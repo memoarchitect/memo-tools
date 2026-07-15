@@ -1,11 +1,11 @@
 {
   "name": "@memo/ontology-tools",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "type": "module",
-  "description": "Ontology lint + drawio generator driven by SysML source of truth",
+  "description": "Dependency-free ontology lint and SysML editor portability checks",
   "scripts": {
     "lint": "node lint.mjs",
-    "diagram": "node diagram-gen.mjs"
+    "compat": "node syside-compat.mjs"
   }
 }

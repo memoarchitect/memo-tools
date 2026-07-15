@@ -1,6 +1,6 @@
 {
   "name": "@memo/core",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "MEMO core engine — Langium SysML v2 parser, semantic model, validation, completeness tracking",
   "splitTarget": "memo-cli",
   "type": "module",

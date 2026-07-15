@@ -388,19 +388,6 @@ describe('DD-5: sysand publish dry-run — publishable packages', () => {
         });
     }
 
-    it('sysand-publish-dry-run.mjs exits cleanly', async () => {
-        const { execSync } = await import('node:child_process');
-        const repoRoot = resolve(__dirname, '../../../..');
-        const result = execSync('node tools/ontology-tools/sysand-publish-dry-run.mjs', {
-            cwd: repoRoot,
-            encoding: 'utf-8',
-            timeout: 30_000,
-        });
-        expect(result).toContain('All packages pass dry-run');
-        expect(result).toContain('memo-sysml-base-0.1.0.kpar');
-        expect(result).toContain('memo-ontology-0.1.0.kpar');
-        expect(result).toContain('memo-methodology-default-0.1.0.kpar');
-    });
 });
 
 describe('DD-6: naming + casing lint (ADR-1-12)', () => {

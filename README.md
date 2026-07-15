@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>memo-tools 0.4.2</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
+  <code>memo-tools 0.4.3</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
 </p>
 
 ---
@@ -36,25 +36,79 @@ meMO is a four-layer stack — adopt what you need
 | **03 Tools** | **Model engine + `memo` CLI — this repo** | memoarchitect/memo-tools |
 | 04 Architect | Web workbench over the same model | [memoarchitect/memo-architect](https://github.com/memoarchitect/memo-architect) |
 
-## What the tools do
+## Supported tools
 
-- **Parse** text-first SysML v2 into a semantic graph (Langium-based).
-- **Check** native KerML closure & consistency rules — errors, warnings, completeness.
-- **Analyze** change impact, DSM, and traceability across the model.
-- **Generate** DHF artifacts and document-backed review views.
-- **Import / export** Enterprise Architect, Cameo, OWL, CSV.
+Memo Tools intentionally has two product surfaces and one developer-only quality
+toolset. The web UI lives in Memo Architect; editor functionality belongs to a
+user's SysML v2 editor rather than a MEMO-specific VS Code extension.
 
-CLI verbs: `validate` · `dev` · `build` · `export` · `import` · `ontology` ·
-`dhf` · `generate` · `req`
+| Surface | Purpose | Typical use |
+|---|---|---|
+| `@memo/core` | Parser, semantic model, validation, analysis, document, and import/export libraries | Reused by the CLI and Memo Architect server |
+| `memo` / `@memo/cli` | Thin command-line wrapper over the shared core operations | Local authoring, CI validation, conversion, and automation |
+| `tools/ontology-tools` | Dependency-free repository quality checks | Maintainers validating ontology structure and editor portability |
 
-Run `memo validate` in CI and each change produces a defined re-review scope.
+### CLI usage
+
+```bash
+# Create and inspect a project
+memo init my-device
+memo ontology show
+
+# Validate locally or in CI
+memo validate .
+memo validate . --format junit --output validation.xml
+
+# Run the local model server used by Memo Architect
+memo dev --port 3000
+
+# Exchange and publish model data
+memo export json --output model.json
+memo export dot --output model.dot
+memo import csv elements.csv
+memo ontology export owl --output ontology.ttl
+memo sysand publish --dry-run
+
+# Generate assurance artifacts
+memo dhf status
+memo export dhf --format docx --output dhf-output
+memo rules coverage
+```
+
+Run `memo --help` or `memo <command> --help` for the complete command surface.
+
+### Core library usage
+
+`@memo/core` is the reusable implementation layer. New behavior should be added
+there first and exposed through protocol DTOs; the CLI remains a thin adapter,
+and React does not import core internals directly.
+
+```ts
+import { buildMemoModel } from '@memo/core';
+```
+
+The API is pre-stable. Pin an exact `0.4.x` patch when embedding it directly.
+
+### Maintainer checks
+
+```bash
+pnpm run ontology:lint    # naming, inheritance, and ontology policy checks
+pnpm run ontology:compat  # static SysML v2 / SysIDE portability checks
+pnpm run build
+pnpm run test
+pnpm run type-check
+```
+
+The authoritative external parse/package validation remains the `sysand` build
+in the nested `memo` repository. Diagram and presentation generators are private
+release/documentation machinery maintained in `memo-meta`, not product tools.
 
 ## Layout
 
 ```
 packages/core/       @memo/core — grammar, parser, model builder, validator, serializers
 packages/cli/        @memo/cli — the memo CLI (Commander.js)
-tools/               ontology lint/diagram tooling, ontology viewer, VS Code extension
+tools/ontology-tools repository lint and editor-portability checks
 memo/ git submodule → memoarchitect/memo (canonical SysML content)
 ```
 

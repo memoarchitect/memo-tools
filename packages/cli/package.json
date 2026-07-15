@@ -1,6 +1,6 @@
 {
   "name": "@memo/cli",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "MEMO CLI — init, dev, validate, build, pack commands for medical device MBSE",
   "splitTarget": "memo-cli",
   "type": "module",

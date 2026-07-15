@@ -1,6 +1,6 @@
 {
   "name": "memo-tools",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "description": "meMO Tools \u2014 Langium-based SysML v2 model engine and memo CLI for medical device assurance",
   "scripts": {
@@ -16,7 +16,7 @@
     "example:dev": "cd memo/src/examples/gpca-pump && node ../../../packages/cli/lib/bin/memo.js dev --port 3000",
     "setup": "pnpm install && pnpm run build",
     "ontology:lint": "node tools/ontology-tools/lint.mjs",
-    "diagram:ontology": "node tools/ontology-tools/diagram-gen.mjs",
+    "ontology:compat": "node tools/ontology-tools/syside-compat.mjs",
     "preinstall": "npx only-allow pnpm"
   },
   "devDependencies": {
