@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>memo-tools 0.4.3</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
+  <code>memo-tools 0.4.4</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
 </p>
 
 ---
@@ -108,8 +108,8 @@ release/documentation machinery maintained in `memo-meta`, not product tools.
 ```
 packages/core/       @memo/core — grammar, parser, model builder, validator, serializers
 packages/cli/        @memo/cli — the memo CLI (Commander.js)
-tools/ontology-tools repository lint and editor-portability checks
-memo/ git submodule → memoarchitect/memo (canonical SysML content)
+tools/ontology-tools/ repository lint and editor-portability checks
+memo/                 git submodule → memoarchitect/memo (canonical SysML content)
 ```
 
 The engine reads the ontology content live from the `memo`

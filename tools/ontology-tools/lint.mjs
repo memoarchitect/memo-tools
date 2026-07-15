@@ -6,9 +6,8 @@
 // conventions per ADR-1-12: PascalCase defs, camelCase attributes, snake_case
 // filenames).
 //
-// P1 violations are gated by `packages/ontology-medical-arch/.p1-exceptions.yaml`:
-// any `def X :> Y { }` whose body is empty fails unless `X` is listed as an
-// exception (standard-named artefacts, distinct relations, etc.).
+// P1 rejects every empty `def X :> Y { }`; the canonical ontology has no
+// package-specific exception file.
 //
 // Also emits warnings for:
 //   - labels-only bodies (just `attribute name : String;` — inherited already)
@@ -29,19 +28,6 @@ const COLORS = {
     gray: (s) => `\x1b[90m${s}\x1b[0m`,
     bold: (s) => `\x1b[1m${s}\x1b[0m`,
 };
-
-function loadP1Exceptions() {
-    const path = join(REPO_ROOT, 'packages/ontology-medical-arch/.p1-exceptions.yaml');
-    if (!existsSync(path)) {
-        return { path, whitelist: new Set() };
-    }
-    const content = readFileSync(path, 'utf-8');
-    const whitelist = new Set();
-    const kindRegex = /^\s*-\s*kind:\s*["']?([\w.:-]+)["']?/gm;
-    let m;
-    while ((m = kindRegex.exec(content)) !== null) whitelist.add(m[1]);
-    return { path, whitelist };
-}
 
 // EARS templates — approximate regexes (case-insensitive, allow leading "The ").
 const EARS_PATTERNS = [
@@ -244,13 +230,17 @@ function lintP6(failures) {
         }
     }
 
-    // P6-dir: snake_case directory segments under ontology/
-    const ontRoot = join(REPO_ROOT, 'memo');
+    // P6-dir: snake_case directory segments in the canonical ontology source tree.
+    const ontRoot = join(REPO_ROOT, 'memo', 'src');
     if (existsSync(ontRoot)) {
+        const containsSysml = (dir) => readdirSync(dir, { withFileTypes: true }).some((entry) =>
+            entry.isFile() ? entry.name.endsWith('.sysml') : containsSysml(join(dir, entry.name)),
+        );
         const walkDirs = (dir) => {
             for (const entry of readdirSync(dir, { withFileTypes: true })) {
                 if (!entry.isDirectory()) continue;
                 if (VENDOR_SKIP_SEGMENTS.has(entry.name) || entry.name.startsWith('.')) continue;
+                if (!containsSysml(join(dir, entry.name))) continue;
                 if (!SNAKE_CASE_RE.test(entry.name)) {
                     failures.push({
                         rule: 'P6-dir',
@@ -267,7 +257,6 @@ function lintP6(failures) {
 }
 
 function main() {
-    const { whitelist, path: whitelistPath } = loadP1Exceptions();
     const { packages, definitions } = parseAllOntologyDefinitions();
 
     const failures = [];
@@ -277,12 +266,11 @@ function main() {
     for (const d of definitions) {
         if (!d.superType) continue;
         if (!d.bodyIsEmpty) continue;
-        if (whitelist.has(d.name)) continue;
         failures.push({
             rule: 'P1',
             file: d.relPath,
             line: d.line,
-            message: `${d.construct} def ${d.name} :> ${d.superType} { } — empty subclass (OWL anti-pattern). Collapse into ${d.superType} with a category attribute, or whitelist in .p1-exceptions.yaml if standard-named.`,
+            message: `${d.construct} def ${d.name} :> ${d.superType} { } — empty subclass (OWL anti-pattern). Collapse into ${d.superType} or add meaningful semantics.`,
         });
     }
 
@@ -338,7 +326,6 @@ function main() {
     // Render report
     const header = COLORS.bold('memo ontology:lint');
     console.log(`${header}`);
-    console.log(COLORS.gray(`  whitelist:   ${whitelistPath.replace(REPO_ROOT + '/', '')}  (${whitelist.size} exceptions)`));
     console.log(COLORS.gray(`  packages:    ${packages.length}`));
     console.log(COLORS.gray(`  definitions: ${definitions.length}`));
     console.log('');

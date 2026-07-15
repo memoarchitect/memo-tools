@@ -1,6 +1,6 @@
 {
   "name": "@memo/ontology-tools",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "private": true,
   "type": "module",
   "description": "Dependency-free ontology lint and SysML editor portability checks",

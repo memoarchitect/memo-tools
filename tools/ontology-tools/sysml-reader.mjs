@@ -1,8 +1,8 @@
 // ─── SysML Reader ───────────────────────────────────────────────────────────
 //
 // Minimal SysML v2 reader used by the ontology lint and drawio generator.
-// Walks `packages/ontology-*` and `packages/ontology-extensions/*`, parses each
-// `.sysml` file into a flat list of definitions (kind, package, layer, body).
+// Discovers the canonical MEMO package plus supported extension packages and
+// parses each `.sysml` file into a flat list of definitions.
 //
 // This deliberately does not depend on @memo/core — the lint and generator
 // must run before the monorepo's TS build to be useful in CI.

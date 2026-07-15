@@ -1,8 +1,7 @@
 {
   "name": "@memo/cli",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "MEMO CLI — init, dev, validate, build, pack commands for medical device MBSE",
-  "splitTarget": "memo-cli",
   "type": "module",
   "bin": {
     "memo": "./lib/bin/memo.js"

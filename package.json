@@ -1,11 +1,10 @@
 {
   "name": "memo-tools",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "private": true,
   "description": "meMO Tools \u2014 Langium-based SysML v2 model engine and memo CLI for medical device assurance",
   "scripts": {
-    "build": "pnpm run ontology:lint && pnpm run check:cache && turbo build",
-    "check:cache": "bash scripts/check-no-ontology-cache.sh",
+    "build": "pnpm run ontology:lint && turbo build",
     "dev": "turbo dev",
     "test": "turbo test",
     "test:coverage": "turbo test:coverage",

@@ -6,7 +6,7 @@
 //
 // Usage:
 //   memo create-package my-ontology --type ontology
-//   memo create-package my-profile --type profile --extends @memo/ontology-medical-process
+//   memo create-package my-profile --type profile --extends @memo/ontology
 //   memo create-package my-library --type library
 // ─────────────────────────────────────────────────────────────────────────────
 

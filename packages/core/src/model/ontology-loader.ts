@@ -597,8 +597,8 @@ export function findOntologyPackageDirs(configPath: string): string[] {
         if (pkgConfig) walkExtendsChain(pkgConfig, dirs, seen);
     }
 
-    // 4. Ensure @memo/ontology-medical-arch is always included as the foundational backbone
-    const coreConfig = resolvePackageConfig('@memo/ontology-medical-arch', dirname(configPath));
+    // 4. Ensure the canonical ontology is always included as the foundational backbone.
+    const coreConfig = resolvePackageConfig('@memo/ontology', dirname(configPath));
     if (coreConfig) {
         walkExtendsChain(coreConfig, dirs, seen);
     }
