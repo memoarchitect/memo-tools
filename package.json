@@ -1,0 +1,30 @@
+{
+  "name": "memo-tools",
+  "version": "0.4.2",
+  "private": true,
+  "description": "meMO Tools \u2014 Langium-based SysML v2 model engine and memo CLI for medical device assurance",
+  "scripts": {
+    "build": "pnpm run ontology:lint && pnpm run check:cache && turbo build",
+    "check:cache": "bash scripts/check-no-ontology-cache.sh",
+    "dev": "turbo dev",
+    "test": "turbo test",
+    "test:coverage": "turbo test:coverage",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean",
+    "memo": "node packages/cli/lib/bin/memo.js",
+    "example:dev": "cd memo/src/examples/gpca-pump && node ../../../packages/cli/lib/bin/memo.js dev --port 3000",
+    "setup": "pnpm install && pnpm run build",
+    "ontology:lint": "node tools/ontology-tools/lint.mjs",
+    "diagram:ontology": "node tools/ontology-tools/diagram-gen.mjs",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "~5.5.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

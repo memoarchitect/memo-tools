@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Claude Code worktrees (internal)
+.claude/worktrees/
+
+# Build outputs
+dist/
+lib/
+out/
+*.tsbuildinfo
+
+# Generated (Langium)
+packages/core/src/language/generated/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turbo
+.turbo/
+
+# Test
+coverage/
+
+# Layouts (auto-generated, optional to version)
+.memo/layouts/
+
+# SysAnd local cache + generated build metadata
+.sysand/
+sysand_env/
+# .meta.json is regenerated deterministically by scripts/sysand-portability-check.sh
+.meta.json
+output/
+
+# Local feedback
+feedback/
+
+# Built kpar archives
+*.kpar
+
+# Generated TextMate grammar
+packages/core/syntaxes/
+
+# Python (pdm / mkdocs)
+.venv/
+__pypackages__/
+site/
+*.egg-info/
+
+# Roadmap plans are tracked docs, not generated GitLab truth.
+.claude/settings.local.json

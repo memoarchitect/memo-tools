@@ -1,0 +1,14 @@
+{
+  "projectName": "MemoSysML",
+  "languages": [
+    {
+      "id": "memo-sysml",
+      "grammar": "src/grammar/memo-sysml.langium",
+      "fileExtensions": [".sysml"],
+      "textMate": {
+        "out": "syntaxes/memo-sysml.tmLanguage.json"
+      }
+    }
+  ],
+  "out": "src/language/generated"
+}

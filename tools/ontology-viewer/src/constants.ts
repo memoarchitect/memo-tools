@@ -1,0 +1,36 @@
+// Default layer colors — same as the MEMO web app
+export const LAYER_COLORS: Record<string, string> = {
+    purpose: '#8B5CF6',
+    business: '#8E44AD',
+    operational: '#EC4899',
+    requirements: '#4A90D9',
+    risk: '#E74C3C',
+    functional: '#E67E22',
+    behavior: '#FF6B6B',
+    logical: '#7B68EE',
+    physical: '#95A5A6',
+    software: '#F39C12',
+    interfaces: '#1ABC9C',
+    analysis: '#6B7280',
+    verification: '#2ECC71',
+    ui: '#3498DB',
+    crosscutting: '#9CA3AF',
+    'design-control': '#4A90D9',
+    'software-lifecycle': '#F39C12',
+    safety: '#E74C3C',
+    clinical: '#EC4899',
+    qms: '#8B5CF6',
+    privacy: '#6366F1',
+    cybersecurity: '#EF4444',
+    'product-line': '#14B8A6',
+    operations: '#F97316',
+};
+
+export const LAYER_ORDER = [
+    'purpose', 'business', 'operational', 'requirements', 'risk',
+    'functional', 'behavior', 'logical', 'physical', 'software',
+    'interfaces', 'analysis', 'verification', 'ui',
+    'design-control', 'software-lifecycle', 'safety', 'clinical',
+    'qms', 'privacy', 'cybersecurity', 'product-line', 'operations',
+    'crosscutting',
+] as const;
