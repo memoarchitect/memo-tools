@@ -85,13 +85,14 @@ program
 program
     .command('init')
     .description('Scaffold a new MEMO project')
-    .argument('[name]', 'Project name')
+    .argument('[name]', 'Project directory (omit or "." to initialize the current directory)')
     .option('-t, --template <template>', 'Template to use', 'medical')
     .option('--ontology <package>', 'Ontology package to use', '@memo/medical-modeling-profile')
     .option('--archetype <id>', 'Device archetype (samd, connected, monitoring, infusion_pump, blank)')
-    .option('--from-example <id>', 'Copy from an example project (e.g. gpca-pump)')
+    .option('--example <id>', 'Create from an example project (e.g. gpca)')
+    .option('--from-example <id>', 'Alias for --example')
     .option('--list-ontologies', 'List available ontology packages and archetypes')
-    .action(async (name: string | undefined, options: { template: string; ontology: string; archetype?: string; fromExample?: string; listOntologies?: boolean }) => {
+    .action(async (name: string | undefined, options: { template: string; ontology: string; archetype?: string; example?: string; fromExample?: string; listOntologies?: boolean }) => {
         await initCommand(name, options);
     });
 

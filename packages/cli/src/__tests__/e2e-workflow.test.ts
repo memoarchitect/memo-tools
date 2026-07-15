@@ -67,12 +67,30 @@ describe('E2E: memo init → validate → export', () => {
         expect(config).toContain('type: device');
         expect(config).toContain('extends: "@memo/medical-modeling-profile"');
 
-        // Check lock file created
-        expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
-        const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
-        expect(lock).toContain('ontology:');
-        expect(lock).toContain('version:');
-        expect(lock).toContain('lockedAt:');
+        // Outside a workspace the ontology is not resolvable: init must warn
+        // and skip the lock file rather than lock the project against itself.
+        expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(false);
+        expect(output).toContain('Could not create lock file');
+        expect(output).toContain('could not be resolved');
+    });
+
+    it('memo init with no name initializes the current directory', () => {
+        const projectDir = join(tmpDir, 'inplace-device');
+        mkdirSync(projectDir);
+
+        const output = run('init', projectDir);
+        expect(output).toContain('Creating MEMO project: inplace-device');
+        expect(output).toContain('Project created in current directory');
+
+        expect(existsSync(join(projectDir, 'memo.package.yaml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'inplace-device.sysml'))).toBe(true);
+        const config = readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8');
+        expect(config).toContain('name: "inplace-device"');
+
+        // Second init in the same directory must refuse
+        const { exitCode, stdout } = runMayFail('init', projectDir);
+        expect(exitCode).not.toBe(0);
+        expect(stdout).toContain('already a MEMO project');
     });
 
     it('memo init refuses to overwrite existing directory', () => {
@@ -93,10 +111,25 @@ describe('E2E: memo init → validate → export', () => {
 
         // SysML should import the ontology
         const sysml = readFileSync(join(projectDir, 'model', `test-core-device.sysml`), 'utf-8');
-        expect(sysml).toContain('import MEMO_Ontology_Arch::*');
+        expect(sysml).toContain('import memo_medical_device_library::*');
 
-        // Lock file should exist
-        expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
+        // The project lives in tmpDir where the ontology chain is not resolvable,
+        // so no lock file may be written (never lock a project against itself).
+        expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(false);
+    });
+
+    it('memo init inside the workspace locks against the resolved ontology', () => {
+        const projectDir = join(REPO_ROOT, 'tmp-e2e-lock-device');
+        try {
+            const output = run(`init ${projectDir}`, REPO_ROOT);
+            expect(output).toContain('Created memo.lock.yaml');
+
+            const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
+            expect(lock).toContain('ontology: "@memo/medical-modeling-profile"');
+            expect(lock).not.toContain('tmp-e2e-lock-device');
+        } finally {
+            rmSync(projectDir, { recursive: true, force: true });
+        }
     });
 
     it('memo init --ontology rejects unknown ontology', () => {
@@ -175,6 +208,30 @@ describe('E2E: memo init → validate → export', () => {
         expect(catalogFiles.some(f => f.endsWith('.sysml'))).toBe(true);
     });
 
+    it('memo init --example gpca matches gpca-pump by prefix', () => {
+        const projectDir = join(tmpDir, 'test-example-prefix');
+        const output = run(`init ${projectDir} --example gpca`, REPO_ROOT);
+
+        expect(output).toContain('Creating project from example');
+        expect(output).toContain('gpca-pump');
+        expect(existsSync(join(projectDir, 'memo.config.yaml'))).toBe(true);
+    });
+
+    it('memo init --example with no name copies into the current (empty) directory', () => {
+        const projectDir = join(tmpDir, 'test-example-inplace');
+        mkdirSync(projectDir);
+
+        const output = run('init --example gpca', projectDir);
+        expect(output).toContain('Project created in current directory');
+        expect(existsSync(join(projectDir, 'memo.config.yaml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model'))).toBe(true);
+
+        // Refuses to copy into a non-empty directory
+        const { exitCode, stdout } = runMayFail('init --example gpca', projectDir);
+        expect(exitCode).not.toBe(0);
+        expect(stdout).toContain('not empty');
+    });
+
     it('memo init --from-example rejects unknown example', () => {
         const projectDir = join(tmpDir, 'test-bad-example');
         const { exitCode, stdout } = runMayFail(`init ${projectDir} --from-example nonexistent`, REPO_ROOT);
@@ -207,7 +264,7 @@ extends: "@memo/medical-modeling-profile"
 
         writeFileSync(join(projectDir, 'model', 'device.sysml'), `
 package LockTest {
-    import MEMO_Ontology_Arch::*;
+    import memo_medical_device_library::*;
     part sys : System {
         attribute redefines name = "Lock Test";
     }
@@ -322,7 +379,7 @@ extends: "@memo/medical-modeling-profile"
         // Write a SysML model with elements and a traced relationship
         writeFileSync(join(projectDir, 'model', 'device.sysml'), `
 package CustomDevice {
-    import MEMO_Ontology_Arch::*;
+    import memo_medical_device_library::*;
 
     part mySystem : System {
         attribute redefines name = "Custom Device";

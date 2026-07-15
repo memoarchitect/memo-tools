@@ -1,4 +1,4 @@
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, cpSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
@@ -9,6 +9,10 @@ import { loadArchetypes, findArchetype, deviceClassArchetypes, profileArchetypes
 import { runWizard, regulatoryComment } from './init-wizard.js';
 
 const DEFAULT_ONTOLOGY = '@memo/medical-modeling-profile';
+
+// Public import surface of the ontology: memo::medical_device_library
+// re-exports core, all architecture layers, viewpoints, and views.
+const ONTOLOGY_ROOT_IMPORT = 'memo_medical_device_library';
 
 export { type ArchetypeInfo } from './archetype-loader.js';
 
@@ -178,7 +182,20 @@ export interface InitOptions {
     ontology: string;
     archetype?: string;
     listOntologies?: boolean;
+    example?: string;
     fromExample?: string;
+}
+
+/** Match an example by exact id, then unique prefix, then unique substring (e.g. "gpca" → "gpca-pump"). */
+function matchExample(examples: AvailableExample[], query: string): { example?: AvailableExample; candidates: AvailableExample[] } {
+    const exact = examples.find(e => e.id === query);
+    if (exact) return { example: exact, candidates: [exact] };
+
+    let candidates = examples.filter(e => e.id.startsWith(query));
+    if (candidates.length === 0) {
+        candidates = examples.filter(e => e.id.includes(query));
+    }
+    return { example: candidates.length === 1 ? candidates[0] : undefined, candidates };
 }
 
 export async function initCommand(
@@ -199,7 +216,7 @@ export async function initCommand(
                     console.log(`    ${chalk.gray(ex.description)}`);
                 }
             }
-            console.log(chalk.gray(`\n  Usage: memo init <name> --from-example <id>\n`));
+            console.log(chalk.gray(`\n  Usage: memo init <name> --example <id>\n`));
         }
 
         const profiles = profileArchetypes(archetypes);
@@ -222,43 +239,59 @@ export async function initCommand(
         return;
     }
 
-    if (options.fromExample) {
+    const exampleQuery = options.example ?? options.fromExample;
+    if (exampleQuery) {
         const examples = discoverExamples(process.cwd());
-        const example = examples.find(e => e.id === options.fromExample);
+        const { example, candidates } = matchExample(examples, exampleQuery);
         if (!example) {
-            console.error(chalk.red(`❌ Unknown example "${options.fromExample}".`));
-            if (examples.length > 0) {
-                console.log(chalk.gray('Available: ' + examples.map(e => e.id).join(', ')));
+            if (candidates.length > 1) {
+                console.error(chalk.red(`❌ Example "${exampleQuery}" is ambiguous.`));
+                console.log(chalk.gray('Matches: ' + candidates.map(e => e.id).join(', ')));
+            } else {
+                console.error(chalk.red(`❌ Unknown example "${exampleQuery}".`));
+                if (examples.length > 0) {
+                    console.log(chalk.gray('Available: ' + examples.map(e => e.id).join(', ')));
+                }
             }
             process.exit(1);
         }
 
-        const targetName = name ?? example.id;
-        const projectDir = resolve(process.cwd(), targetName);
-        if (existsSync(projectDir)) {
-            console.error(chalk.red(`❌ Directory "${targetName}" already exists.`));
+        const inPlace = !name || name === '.';
+        const projectDir = inPlace ? process.cwd() : resolve(process.cwd(), name!);
+        if (inPlace) {
+            const visibleEntries = readdirSync(projectDir).filter(f => !f.startsWith('.'));
+            if (visibleEntries.length > 0) {
+                console.error(chalk.red('❌ Current directory is not empty.'));
+                console.log(chalk.gray(`  Run in an empty directory, or pass a name: memo init <name> --example ${example.id}`));
+                process.exit(1);
+            }
+        } else if (existsSync(projectDir)) {
+            console.error(chalk.red(`❌ Directory "${name}" already exists.`));
             process.exit(1);
         }
 
         console.log(chalk.bold(`\n📦 Creating project from example: ${example.id}\n`));
         cpSync(example.path, projectDir, { recursive: true });
-        console.log(chalk.green(`\n✅ Project created at ./${targetName}`));
+        console.log(chalk.green(inPlace
+            ? `\n✅ Project created in current directory`
+            : `\n✅ Project created at ./${name}`));
         console.log(chalk.gray(`\n  Next steps:`));
-        console.log(chalk.gray(`    cd ${targetName}`));
+        if (!inPlace) console.log(chalk.gray(`    cd ${name}`));
         console.log(chalk.gray(`    memo dev\n`));
         return;
     }
 
-    if (!name) {
-        console.error(chalk.red('❌ Project name is required. Usage: memo init <name>'));
-        process.exit(1);
-        return;
-    }
+    const inPlace = !name || name === '.';
+    const projectDir = inPlace ? process.cwd() : resolve(process.cwd(), name!);
+    const projectName = basename(projectDir);
 
-    const projectDir = resolve(process.cwd(), name);
-    const projectName = projectDir.split('/').pop() ?? name;
-
-    if (existsSync(projectDir)) {
+    if (inPlace) {
+        const existingConfig = findConfigFile(projectDir);
+        if (existingConfig) {
+            console.error(chalk.red(`❌ This directory is already a MEMO project (${basename(existingConfig)} exists).`));
+            process.exit(1);
+        }
+    } else if (existsSync(projectDir)) {
         console.error(chalk.red(`❌ Directory "${name}" already exists.`));
         process.exit(1);
     }
@@ -336,7 +369,6 @@ description: "MEMO device model project"
 
     if (templatePath) {
         const templateContent = readFileSync(templatePath, 'utf-8');
-        const importPackage = resolveImportPackage(ontology, available);
         const firstPackageNameMatch = templateContent.match(/^package\s+\w+/m);
         const firstPackageName = firstPackageNameMatch ? firstPackageNameMatch[0].split(/\s+/)[1] : null;
         let content = templateContent;
@@ -355,12 +387,11 @@ description: "MEMO device model project"
             console.log(chalk.gray(`  Scaffolded: ${elementTypes.join(', ')}`));
         }
     } else {
-        const importPackage = resolveImportPackage(ontology, available);
         const sysmlContent = `// ${projectName} — SysML v2 Model
 // Generated by \`memo init\`
 
 package ${toIdentifier(projectName)} {
-    import ${importPackage}::*;
+    import ${ONTOLOGY_ROOT_IMPORT}::*;
 
     part ${toIdentifier(projectName)}System : System {
         attribute redefines name = "${projectName}";
@@ -391,9 +422,11 @@ package ${toIdentifier(projectName)} {
         }
     }
 
-    console.log(chalk.green(`\n✅ Project created at ./${projectName}`));
+    console.log(chalk.green(inPlace
+        ? `\n✅ Project created in current directory`
+        : `\n✅ Project created at ./${projectName}`));
     console.log(chalk.gray(`\n  Next steps:`));
-    console.log(chalk.gray(`    cd ${projectName}`));
+    if (!inPlace) console.log(chalk.gray(`    cd ${projectName}`));
     console.log(chalk.gray(`    memo dev\n`));
     console.log(chalk.gray(`  Then open http://localhost:3000 — the Dashboard shows your model status.\n`));
 }
@@ -430,23 +463,6 @@ function extractElementSummary(content: string): string[] {
         if (regex.test(content)) kinds.add(label);
     }
     return [...kinds].slice(0, 6);
-}
-
-function resolveImportPackage(ontology: string, available: AvailableOntology[]): string {
-    const ont = available.find(o => o.name === ontology);
-    if (!ont) return 'MEMO_Ontology_Arch';
-
-    const visited = new Set<string>();
-    let current: AvailableOntology | undefined = ont;
-    while (current && !visited.has(current.name)) {
-        visited.add(current.name);
-        if (current.name === '@memo/ontology' && !current.extends) {
-            return 'MEMO_Ontology_Arch';
-        }
-        current = current.extends ? available.find(o => o.name === current!.extends) : undefined;
-    }
-
-    return 'MEMO_Ontology_Arch';
 }
 
 function toIdentifier(name: string): string {

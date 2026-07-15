@@ -485,16 +485,18 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         const modelDir = resolve(projectRoot, 'model');
                         if (!existsSync(modelDir)) mkd(modelDir, { recursive: true });
 
+                        // Both packages expose the same SysML import surface:
+                        // memo::medical_device_library (the profile ships no SysML of its own).
                         const PACKAGE_NAMESPACE: Record<string, string> = {
-                            '@memo/ontology': 'MEMO_Ontology_Arch',
-                            '@memo/medical-modeling-profile': 'MEMO_Medical_Profile',
+                            '@memo/ontology': 'memo_medical_device_library',
+                            '@memo/medical-modeling-profile': 'memo_medical_device_library',
                         };
-                        const importLines = selected
-                            .map(name => {
-                                const ns = PACKAGE_NAMESPACE[name]
-                                    ?? name.replace(/^@/, '').replace(/[/\-]/g, '_').toUpperCase();
-                                return `    import ${ns}::*;`;
-                            })
+                        const namespaces = [...new Set(selected.map(name =>
+                            PACKAGE_NAMESPACE[name]
+                                ?? name.replace(/^@/, '').replace(/[/\-]/g, '_').toUpperCase()
+                        ))];
+                        const importLines = namespaces
+                            .map(ns => `    import ${ns}::*;`)
                             .join('\n');
 
                         const sysmlContent = [

@@ -113,12 +113,26 @@ export function createLockFile(configPath: string): { lockPath: string; lock: On
     const leafExtends = leafConfig?.extends;
     const leafExtendsStr = Array.isArray(leafExtends) ? leafExtends.join('+') : leafExtends;
 
+    // Never lock a project against itself: if the extends chain did not resolve
+    // to an ontology/profile package, the lock would record a meaningless identity.
+    if (!ontologyEntry) {
+        if (leafExtendsStr) {
+            throw new Error(
+                `ontology package "${leafExtendsStr}" could not be resolved from this directory. ` +
+                `Install it (or run inside a workspace that contains it), then run \`memo lock\`.`
+            );
+        }
+        throw new Error(
+            `this project declares no \`extends\` ontology in its config, so there is nothing to lock.`
+        );
+    }
+
     const lock: OntologyLock = {
-        ontology: ontologyEntry?.config.ontologyMetadata?.id
-            || ontologyEntry?.config.projectName
+        ontology: ontologyEntry.config.ontologyMetadata?.id
+            || ontologyEntry.config.projectName
             || leafExtendsStr
             || 'unknown',
-        version: ontologyEntry?.config.ontologyMetadata?.version || '0.0.0',
+        version: ontologyEntry.config.ontologyMetadata?.version || '0.0.0',
         lockedAt: new Date().toISOString().split('T')[0],
         packages: chain
             .filter(e => e.config.projectType !== 'device')
@@ -138,6 +152,8 @@ export function createLockFile(configPath: string): { lockPath: string; lock: On
 /**
  * Find the ontology root in the config chain — the highest-level
  * ontology or profile package that the project extends.
+ * Returns undefined when the chain contains no ontology/profile package
+ * (e.g. the extends target could not be resolved from this directory).
  */
 function findOntologyRoot(chain: ConfigChainEntry[]): ConfigChainEntry | undefined {
     // Walk from leaf toward root, find the direct extends target (profile or ontology)
@@ -148,7 +164,7 @@ function findOntologyRoot(chain: ConfigChainEntry[]): ConfigChainEntry | undefin
             return chain[i];
         }
     }
-    return chain[0];
+    return undefined;
 }
 
 /**
@@ -170,11 +186,26 @@ export function checkLockFile(configPath: string): LockCheckResult {
     const ontologyEntry = findOntologyRoot(chain);
     const tailExtends = chain[chain.length - 1]?.config.extends;
     const tailExtendsStr = Array.isArray(tailExtends) ? tailExtends.join('+') : tailExtends;
-    const currentOntology = ontologyEntry?.config.ontologyMetadata?.id
-        || ontologyEntry?.config.projectName
+
+    if (!ontologyEntry) {
+        return {
+            ok: false,
+            lockPath,
+            locked: lock,
+            message:
+                `Locked ontology cannot be resolved!\n\n` +
+                `  Locked:  ${lock.ontology} v${lock.version}\n` +
+                `  Current: package "${tailExtendsStr ?? lock.ontology}" not found from this directory\n\n` +
+                `  The ontology this project was locked against is not installed here.\n` +
+                `  Install it (or run inside a workspace that contains it), then retry.`,
+        };
+    }
+
+    const currentOntology = ontologyEntry.config.ontologyMetadata?.id
+        || ontologyEntry.config.projectName
         || tailExtendsStr
         || 'unknown';
-    const currentVersion = ontologyEntry?.config.ontologyMetadata?.version || '0.0.0';
+    const currentVersion = ontologyEntry.config.ontologyMetadata?.version || '0.0.0';
 
     const current = { ontology: currentOntology, version: currentVersion };
 
