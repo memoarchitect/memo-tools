@@ -1,0 +1,15 @@
+:root,
+[data-md-color-scheme="default"],
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #1b3a4b;
+  --md-primary-fg-color--dark: #0b1e2d;
+  --md-accent-fg-color: #2dd4a8;
+}
+
+.md-header { background: #0b1e2d; }
+.md-tabs { background: #1b3a4b; }
+.md-typeset h1 { font-weight: 700; }
+.md-typeset h2 { font-weight: 650; }
+.md-typeset table:not([class]) th { background: rgba(27, 58, 75, 0.09); }
+.md-typeset .admonition { border-left-color: #2dd4a8; }
+.md-typeset .admonition-title { background: rgba(45, 212, 168, 0.09); }

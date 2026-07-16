@@ -42,3 +42,8 @@ feedback/
 
 # Generated TextMate grammar
 packages/tools/syntaxes/
+
+# Documentation builds
+site/
+public/
+_site/

@@ -35,6 +35,8 @@
     "clean": "rm -rf packages/tools/lib packages/tools/src/language/generated",
     "memo": "node packages/tools/lib/bin/memo.js",
     "example:validate": "cd memo/examples/gpca-pump && node ../../../packages/tools/lib/bin/memo.js validate .",
+    "docs:serve": "python3 -m mkdocs serve",
+    "docs:build": "python3 -m mkdocs build --strict",
     "ontology:lint": "node tools/ontology-tools/lint.mjs",
     "ontology:compat": "node tools/ontology-tools/syside-compat.mjs"
   },

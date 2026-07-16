@@ -74,6 +74,17 @@ memo rules coverage
 
 Run `memo --help` or `memo <command> --help` for the complete command surface.
 
+## Documentation
+
+The [task-oriented documentation](docs/index.md) starts with installation and a
+first useful workflow, then covers validation, import, export, CI, configuration,
+and the library API. Build it locally with:
+
+```bash
+python3 -m pip install "mkdocs>=1.6" "mkdocs-material>=9.5" "pymdown-extensions>=10.0"
+pnpm run docs:build
+```
+
 ### Compiler and packager selection
 
 Projects may select external tools in either `memo.package.yaml` or the legacy

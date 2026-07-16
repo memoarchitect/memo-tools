@@ -1,0 +1,73 @@
+site_name: MEMO Tools
+site_description: Task-oriented documentation for the MEMO model engine and command line
+site_author: memoarchitect
+repo_url: https://github.com/memoarchitect/memo-tools
+repo_name: memoarchitect/memo-tools
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Use dark mode
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Use light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+
+docs_dir: docs
+site_dir: site
+
+nav:
+  - Start:
+      - Overview: index.md
+      - Install and Create a Project: start/install.md
+      - First Useful Workflow: start/first-workflow.md
+  - Everyday Tasks:
+      - Validate a Model: tasks/validate.md
+      - Import Existing Data: tasks/import.md
+      - Export and Share: tasks/export.md
+      - Run in CI: tasks/ci.md
+  - Reference:
+      - Command Map: reference/commands.md
+      - Project Configuration: reference/configuration.md
+      - Library API: reference/library.md
+  - Maintainers:
+      - How Tools Is Built: maintainers/implementation.md

@@ -1,0 +1,29 @@
+stages:
+  - test
+  - docs
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+test:
+  stage: test
+  image: node:20
+  before_script:
+    - corepack enable
+  script:
+    - pnpm install --frozen-lockfile
+    - pnpm run build
+    - pnpm run type-check
+    - pnpm run test
+
+pages:
+  stage: docs
+  image: python:3.12-slim
+  script:
+    - pip install --quiet "mkdocs>=1.6" "mkdocs-material>=9.5" "pymdown-extensions>=10.0"
+    - mkdocs build --strict --site-dir public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
