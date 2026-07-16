@@ -193,11 +193,12 @@ function renderMetricGroup(mg: DhfMetricGroup): string {
 }
 
 function renderProgress(p: DhfProgress): string {
-    const pct = p.max > 0 ? Math.round(p.value / p.max * 100) : 0;
+    const rawPct = p.max > 0 ? Math.round(p.value / p.max * 100) : 0;
+    const pct = Math.max(0, Math.min(100, rawPct));
     const color = p.color || (pct >= 80 ? '#10b981' : pct >= 50 ? '#d97706' : '#dc2626');
     return `<div class="progress-bar">
     <div class="progress-label">${esc(p.label)}: ${p.value}/${p.max} (${pct}%)</div>
-    <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${esc(color)}"></div></div>
   </div>`;
 }
 

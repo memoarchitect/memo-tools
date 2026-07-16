@@ -11,6 +11,7 @@ import { join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { VENDOR_ONTOLOGY_PACKAGES_DIR } from '@memo/tools';
 import { parse as parseYaml } from 'yaml';
+import { serializeForInlineScript } from '../commands/build.js';
 
 const CLI_PATH = join(__dirname, '../../lib/bin/memo.js');
 const REPO_ROOT = join(__dirname, '../../../..');
@@ -517,14 +518,11 @@ description: "Another fake ontology"
     });
 });
 
-// `memo build` exports the static viewer site, so it needs a built @memo/web
-// dist. @memo/web is an optional peer in the three-repo split (ADR-1-17):
-// present in the monorepo, absent in memo-tools — skip the suite there.
-const WEB_DIST_AVAILABLE = existsSync(join(REPO_ROOT, 'packages', 'web', 'dist', 'index.html'));
-
-describe.skipIf(!WEB_DIST_AVAILABLE)('DD-3: kpar round-trip smoke test (GPCA pump)', () => {
+describe('DD-3: static HTML + kpar round-trip (GPCA pump)', () => {
     const GPCA_DIR = join(REPO_ROOT, 'memo', 'src', 'examples', 'gpca-pump');
     let extractDir: string;
+    let webFixtureDir: string;
+    let previousWebDist: string | undefined;
 
     function collectSysmlFiles(dir: string): string[] {
         const files: string[] = [];
@@ -541,13 +539,58 @@ describe.skipIf(!WEB_DIST_AVAILABLE)('DD-3: kpar round-trip smoke test (GPCA pum
 
     beforeAll(() => {
         extractDir = mkdtempSync(join(tmpdir(), 'memo-kpar-roundtrip-'));
-        run('build --kpar', GPCA_DIR);
+        webFixtureDir = join(extractDir, 'web-dist');
+        mkdirSync(join(webFixtureDir, 'assets'), { recursive: true });
+        writeFileSync(join(webFixtureDir, 'index.html'), `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MEMO Architect Test Fixture</title>
+  <link rel="stylesheet" href="/assets/index.css">
+  <script type="module" src="/assets/index.js"></script>
+</head>
+<body><div id="root"></div></body>
+</html>`);
+        writeFileSync(join(webFixtureDir, 'assets', 'index.css'), 'body { color: rgb(27, 58, 75); }');
+        writeFileSync(join(webFixtureDir, 'assets', 'index.js'), 'window.__MEMO_FIXTURE_LOADED__ = true;');
+        previousWebDist = process.env.MEMO_WEB_DIST;
+        process.env.MEMO_WEB_DIST = webFixtureDir;
+        run('build --single-file --kpar', GPCA_DIR);
     });
 
     afterAll(() => {
         rmSync(extractDir, { recursive: true, force: true });
         rmSync(join(GPCA_DIR, 'dist'), { recursive: true, force: true });
         rmSync(join(GPCA_DIR, 'gpca-pump.kpar'), { force: true });
+        if (previousWebDist === undefined) delete process.env.MEMO_WEB_DIST;
+        else process.env.MEMO_WEB_DIST = previousWebDist;
+    });
+
+    it('produces a self-contained static viewer with embedded model results', () => {
+        const indexPath = join(GPCA_DIR, 'dist', 'index.html');
+        expect(existsSync(indexPath)).toBe(true);
+
+        const html = readFileSync(indexPath, 'utf-8');
+        expect(html).toContain('window.__MEMO_DATA__=');
+        expect(html).toContain('"model"');
+        expect(html).toContain('"validation"');
+        expect(html).toContain('"completeness"');
+        expect(html).toContain('<style>body { color: rgb(27, 58, 75); }</style>');
+        expect(html).toContain('<script type="module">window.__MEMO_FIXTURE_LOADED__ = true;</script>');
+        expect(html).not.toContain('href="/assets/index.css"');
+        expect(html).not.toContain('src="/assets/index.js"');
+        expect(existsSync(join(GPCA_DIR, 'dist', 'assets'))).toBe(false);
+    });
+
+    it('serializes embedded data without allowing script termination', () => {
+        const serialized = serializeForInlineScript({
+            text: '</script><script>alert("xss")</script>',
+            separators: '\u2028\u2029',
+        });
+
+        expect(serialized).not.toContain('</script>');
+        expect(serialized).toContain('\\u003c/script\\u003e');
+        expect(serialized).toContain('\\u2028\\u2029');
     });
 
     it('produces a .kpar file', () => {

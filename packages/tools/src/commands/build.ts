@@ -138,7 +138,7 @@ export async function buildCommand(options: {
         validation,
         completeness,
     };
-    const dataScript = `<script>window.__MEMO_DATA__=${JSON.stringify(embeddedData)};</script>`;
+    const dataScript = `<script>window.__MEMO_DATA__=${serializeForInlineScript(embeddedData)};</script>`;
 
     // 4. Find pre-built web app or build it
     const webDistPath = resolveWebDist(cwd);
@@ -208,6 +208,7 @@ export async function buildCommand(options: {
 function resolveWebDist(cwd: string): string | undefined {
     const cliDir = dirname(fileURLToPath(import.meta.url));
     const tryPaths = [
+        process.env.MEMO_WEB_DIST ? resolve(cwd, process.env.MEMO_WEB_DIST) : undefined,
         resolve(cwd, '../../packages/web/dist'),
         resolve(cwd, '../web/dist'),
         resolve(cwd, 'node_modules/@memo/web/dist'),
@@ -220,6 +221,7 @@ function resolveWebDist(cwd: string): string | undefined {
     ];
 
     for (const p of tryPaths) {
+        if (!p) continue;
         try {
             const files = readdirSync(p);
             if (files.includes('index.html')) return p;
@@ -378,6 +380,20 @@ function createTar(files: { path: string; content: Buffer }[]): Buffer {
 function writeOctal(buf: Buffer, offset: number, length: number, value: number): void {
     const str = value.toString(8).padStart(length - 1, '0');
     Buffer.from(str + '\0', 'ascii').copy(buf, offset);
+}
+
+/**
+ * JSON embedded in a script element must not be able to terminate that element.
+ * Escaping these characters also keeps U+2028/U+2029 from being interpreted as
+ * JavaScript line separators by older engines.
+ */
+export function serializeForInlineScript(value: unknown): string {
+    return JSON.stringify(value)
+        .replace(/&/g, '\\u0026')
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e')
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
 }
 
 function inlineAssets(html: string, baseDir: string): string {

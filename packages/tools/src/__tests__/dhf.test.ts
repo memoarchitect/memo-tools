@@ -3,12 +3,13 @@ import {
     DHF_DOCUMENT_TYPES, getDocumentType, getDocumentsByGroup, getAllDocumentIds,
     resolveDocumentType,
     compileDocument, createQueryContext,
-    text, xref, heading, paragraph, table, badge, metric, metricGroup, progress, divider,
+    text, xref, heading, paragraph, table, list, badge, metric, metricGroup, progress, divider,
     createSnapshot, diffSnapshots, generateRedlineDocument,
     loadDhfConfig, isDocumentEnabled,
     getPlugin, getAvailableFormats,
 } from '../index.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
+import type { DhfDocument } from '../dhf/document-ir.js';
 import type { ValidationResult, CompletenessReport } from '../validator/types.js';
 import type { MEMOConfig } from '../model/config.js';
 
@@ -299,6 +300,67 @@ describe('Export Plugins', () => {
         expect(result.format).toBe('html');
         expect(result.content).toContain('Risk Management Plan');
         expect(result.content).toContain('<!DOCTYPE html>');
+    });
+
+    it('HTML plugin renders and escapes the complete document IR', async () => {
+        const plugin = getPlugin('html')!;
+        const doc: DhfDocument = {
+            frontmatter: {
+                documentId: 'security-review',
+                title: 'Safety <Review>',
+                project: 'Pump & Controller',
+                organization: '"Example" Medical',
+                version: '1.0',
+                standards: ['ISO 14971 <2025>'],
+                generatedAt: '2026-07-16T12:00:00.000Z',
+                approvers: [{ name: 'A <B', role: 'Quality & Safety' }],
+            },
+            sections: [{
+                id: 'risk" onclick="alert(1)',
+                title: 'Risk & Controls',
+                status: 'partial',
+                blocks: [
+                    heading(3, 'Detailed <analysis>', 'detail" data-bad="true'),
+                    {
+                        ...paragraph(
+                            text('added <script>alert(1)</script>', { bold: true, change: 'added' }),
+                            text(' removed', { italic: true, change: 'removed' }),
+                            xref('hazard" onclick="bad()', 'Hazard <A>', 'Hazard & Harm'),
+                            badge('Needs <review>', 'warning'),
+                        ),
+                        change: 'added',
+                    },
+                    table(
+                        ['Hazard & ID'],
+                        [[[text('H-1 <unsafe>')]]],
+                        'Risk <table>',
+                    ),
+                    list([[text('First & item')], [text('Second <item>')]], true),
+                    metricGroup(metric('Coverage <target>', 95, { unit: '%', variant: 'success' })),
+                    progress('Completion <status>', 12, 10, 'red";display:none'),
+                    divider(),
+                ],
+            }],
+            status: 'partial',
+            totalElements: 1,
+            totalGaps: 1,
+        };
+
+        const result = await plugin.render(doc);
+        const html = String(result.content);
+
+        expect(result.extension).toBe('.html');
+        expect(result.mimeType).toBe('text/html');
+        expect(html).toContain('<title>Safety &lt;Review&gt; — Pump &amp; Controller</title>');
+        expect(html).toContain('id="risk&quot; onclick=&quot;alert(1)"');
+        expect(html).toContain('<ins class="redline-add"><strong>added &lt;script&gt;alert(1)&lt;/script&gt;</strong></ins>');
+        expect(html).toContain('<del class="redline-del"><em> removed</em></del>');
+        expect(html).toContain('data-element-id="hazard&quot; onclick=&quot;bad()"');
+        expect(html).toContain('<caption>Risk &lt;table&gt;</caption>');
+        expect(html).toContain('<ol><li>First &amp; item</li>');
+        expect(html).toContain('width:100%;background:red&quot;;display:none');
+        expect(html).toContain('@media print');
+        expect(html).not.toContain('<script>alert(1)</script>');
     });
 
     it('Markdown plugin renders a document', async () => {
