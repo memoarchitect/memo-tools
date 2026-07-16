@@ -35,9 +35,9 @@ export function buildCompilerInvocation(
         throw new Error(`Unsupported compiler "${String(provider)}". Choose "internal" or "syside".`);
     }
     const tool = config.toolchain?.syside;
-    const args = ['check', '--colour', 'no', '--diagnose', tool?.diagnose ?? 'project'];
+    const args = ['check', '--colour', 'no', '--diagnose', tool?.diagnose ?? 'all'];
     if (tool?.configFile) args.push('--config', resolveProjectPath(tool.configFile, projectDir));
-    if (tool?.warningsAsErrors) args.push('--warnings-as-errors');
+    if (tool?.warningsAsErrors ?? true) args.push('--warnings-as-errors');
     for (const includeDir of [...new Set(includeDirs)]) args.push('--include', includeDir);
     args.push(projectDir);
     return {

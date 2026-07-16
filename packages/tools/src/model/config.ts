@@ -147,9 +147,9 @@ export interface SysideToolConfig {
     executable?: string;
     /** Optional syside.toml path, relative to the project directory. */
     configFile?: string;
-    /** Treat Syside warnings as compilation errors. */
+    /** Treat Syside warnings as compilation errors. Defaults to true. */
     warningsAsErrors?: boolean;
-    /** Syside validation scope. Defaults to `project`. Use `none` for syntax-only compilation. */
+    /** Syside validation scope. Defaults to `all`. Use `none` for syntax-only compilation. */
     diagnose?: 'all' | 'external' | 'project' | 'none';
 }
 

@@ -37,7 +37,7 @@ describe('toolchain provider configuration', () => {
         }), '/project')).toEqual({
             command: '/project/bin/syside',
             args: [
-                'check', '--colour', 'no', '--diagnose', 'project',
+                'check', '--colour', 'no', '--diagnose', 'all',
                 '--config', '/project/config/syside.toml',
                 '--warnings-as-errors', '/project',
             ],
@@ -52,8 +52,17 @@ describe('toolchain provider configuration', () => {
         }), '/project', ['/content/src', '/content/src'])).toMatchObject({
             args: [
                 'check', '--colour', 'no', '--diagnose', 'none',
-                '--include', '/content/src', '/project',
+                '--warnings-as-errors', '--include', '/content/src', '/project',
             ],
+        });
+    });
+
+    it('allows strict warning handling to be disabled explicitly', () => {
+        expect(buildCompilerInvocation(config({
+            compiler: 'syside',
+            syside: { warningsAsErrors: false },
+        }), '/project')).toMatchObject({
+            args: ['check', '--colour', 'no', '--diagnose', 'all', '/project'],
         });
     });
 

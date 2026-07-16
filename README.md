@@ -89,16 +89,17 @@ toolchain:
   syside:
     executable: ~/.local/bin/syside
     configFile: ./syside.toml
-    warningsAsErrors: true
-    diagnose: project    # all | external | project | none
+    warningsAsErrors: true  # default: true
+    diagnose: all           # default: all; all | external | project | none
   sysand:
     executable: ~/.local/bin/sysand
     configFile: ./sysand.toml
 ```
 
-`memo validate` and `memo build` run the configured Syside check before MEMO's
-semantic validation, automatically including the resolved ontology directories.
-Use `diagnose: none` for syntax-only compilation. `memo build --kpar` delegates
+`memo validate` and `memo build` run `syside check --diagnose all
+--warnings-as-errors` by default before MEMO's semantic validation, automatically
+including the resolved ontology directories. Set `warningsAsErrors: false` or use
+`diagnose: none` to relax the check. `memo build --kpar` delegates
 archive creation to SysAnd when selected. Relative executable and config paths
 resolve from the project directory; bare executable names resolve through `PATH`.
 
