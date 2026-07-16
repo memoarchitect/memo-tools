@@ -7,7 +7,7 @@
 import { resolve } from 'node:path';
 import { readdirSync, statSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memo/tools';
+import { compileWithConfiguredTool, findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memo/tools';
 import type { BuilderRegistries, ParsedDocument } from '@memo/tools';
 import { validateModel, collectNativeConstraints } from '@memo/tools';
 import { computeCompleteness } from '@memo/tools';
@@ -52,6 +52,14 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
     // 2. Load and resolve config
     const config = loadAndResolveConfig(configPath);
     console.log(chalk.gray(`Project: ${config.projectName} (${config.projectType})`));
+
+    try {
+        const compiler = compileWithConfiguredTool(config, cwd, configPath);
+        if (compiler !== 'internal') console.log(chalk.gray(`Compiler: ${compiler}`));
+    } catch (error) {
+        console.error(chalk.red(`\n❌ Compilation failed: ${error instanceof Error ? error.message : error}\n`));
+        process.exit(1);
+    }
 
     // 2a. Check ontology lock
     const lockCheck = checkLockFile(configPath);

@@ -36,6 +36,7 @@ export * from './model/relationship-registry.js';
 export * from './model/ontology-loader.js';
 export * from './model/manifest.js';
 export * from './model/content-store.js';
+export * from './model/toolchain.js';
 export * from './model/methodology-loader.js';
 export * from './model/paths.js';
 export * from './model/dimension-filter.js';

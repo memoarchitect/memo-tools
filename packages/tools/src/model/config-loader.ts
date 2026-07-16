@@ -123,6 +123,7 @@ export function loadConfig(filePath: string): MEMOConfig {
             architectureLayers: renderingLayers,
             viewpoints: viewpointsData.viewpoints,
             firstRun: viewpointsData.firstRun,
+            toolchain: parsed.toolchain,
         };
     }
 
@@ -153,6 +154,7 @@ export function loadConfig(filePath: string): MEMOConfig {
         viewpoints: mergedViewpoints,
         workflows: parsed.workflows,
         firstRun: viewpointsData.firstRun ?? parsed.firstRun,
+        toolchain: parsed.toolchain,
     };
 }
 
@@ -265,5 +267,17 @@ function mergeConfigs(parent: MEMOConfig, child: MEMOConfig): MEMOConfig {
         viewpoints: mergeViewpoints(parent.viewpoints, child.viewpoints),
         workflows: child.workflows ?? parent.workflows,
         firstRun: child.firstRun ?? parent.firstRun,
+        toolchain: parent.toolchain || child.toolchain ? {
+            ...parent.toolchain,
+            ...child.toolchain,
+            syside: parent.toolchain?.syside || child.toolchain?.syside ? {
+                ...parent.toolchain?.syside,
+                ...child.toolchain?.syside,
+            } : undefined,
+            sysand: parent.toolchain?.sysand || child.toolchain?.sysand ? {
+                ...parent.toolchain?.sysand,
+                ...child.toolchain?.sysand,
+            } : undefined,
+        } : undefined,
     };
 }

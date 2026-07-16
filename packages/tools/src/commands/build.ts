@@ -14,7 +14,16 @@ import { readdirSync, readFileSync, writeFileSync, mkdirSync, cpSync, createWrit
 import { createGzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, modelToDTO, loadOntologyRegistries, deriveModelViews } from '@memo/tools';
+import {
+    compileWithConfiguredTool,
+    findConfigFile,
+    packageWithConfiguredTool,
+    parseFiles,
+    buildMemoModel,
+    modelToDTO,
+    loadOntologyRegistries,
+    deriveModelViews,
+} from '@memo/tools';
 import type { BuilderRegistries, DiagramDTO } from '@memo/tools';
 import { validateModel } from '@memo/tools';
 import { computeCompleteness } from '@memo/tools';
@@ -57,6 +66,14 @@ export async function buildCommand(options: {
 
     const config = loadAndResolveConfig(configPath);
     console.log(chalk.gray(`  Project: ${config.projectName}`));
+
+    try {
+        const compiler = compileWithConfiguredTool(config, cwd, configPath);
+        if (compiler !== 'internal') console.log(chalk.gray(`  Compiler: ${compiler}`));
+    } catch (error) {
+        console.error(chalk.red(`❌ Compilation failed: ${error instanceof Error ? error.message : error}`));
+        process.exit(1);
+    }
 
     // 2. Parse + build model (ontology registries give kind/layer resolution,
     //    matching `memo dev` and `memo validate`)
@@ -171,7 +188,17 @@ export async function buildCommand(options: {
 
     // 6. Optional .kpar packaging
     if (options.kpar) {
-        const kparPath = await buildKpar(cwd, outputDir, config.projectName || 'memo-project');
+        const projectName = config.projectName || 'memo-project';
+        const kparPath = resolve(cwd, `${projectName.replace(/[^a-zA-Z0-9_-]/g, '-')}.kpar`);
+        let packager: 'internal' | 'sysand';
+        try {
+            packager = packageWithConfiguredTool(config, cwd, kparPath);
+        } catch (error) {
+            console.error(chalk.red(`❌ Packaging failed: ${error instanceof Error ? error.message : error}`));
+            process.exit(1);
+        }
+        if (packager === 'internal') await buildKpar(cwd, outputDir, projectName);
+        else console.log(chalk.gray(`  Packager: ${packager}`));
         console.log(chalk.green(`\n📦 Packaged as ${kparPath}`));
     }
 

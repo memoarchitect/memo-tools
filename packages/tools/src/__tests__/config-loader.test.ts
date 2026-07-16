@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolve, join } from 'node:path';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { loadConfig, loadRenderingLayers } from '../model/config-loader.js';
+import { loadConfig, loadRenderingLayers, resolveConfig } from '../model/config-loader.js';
 import { VENDOR_ONTOLOGY_PACKAGES_DIR } from '../model/paths.js';
 
 const TMP_DIR = resolve(__dirname, '__tmp_config_test__');
@@ -50,6 +50,71 @@ layers:
 // ─── loadConfig with memo.rendering.yaml ────────────────────────────────────
 
 describe('loadConfig with memo.rendering.yaml', () => {
+    it('loads toolchain selection from memo.package.yaml', () => {
+        writeFileSync(join(TMP_DIR, 'memo.package.yaml'), `
+name: test-project
+type: device
+toolchain:
+  compiler: syside
+  packager: sysand
+  syside:
+    executable: /opt/tools/syside
+    warningsAsErrors: true
+    diagnose: all
+  sysand:
+    executable: /opt/tools/sysand
+`);
+
+        const config = loadConfig(join(TMP_DIR, 'memo.package.yaml'));
+        expect(config.toolchain).toEqual({
+            compiler: 'syside',
+            packager: 'sysand',
+            syside: { executable: '/opt/tools/syside', warningsAsErrors: true, diagnose: 'all' },
+            sysand: { executable: '/opt/tools/sysand' },
+        });
+    });
+
+    it('loads toolchain selection from legacy memo.config.yaml', () => {
+        writeFileSync(join(TMP_DIR, 'memo.config.yaml'), `
+projectName: test-project
+projectType: device
+toolchain:
+  compiler: internal
+  packager: sysand
+`);
+
+        expect(loadConfig(join(TMP_DIR, 'memo.config.yaml')).toolchain).toEqual({
+            compiler: 'internal',
+            packager: 'sysand',
+        });
+    });
+
+    it('inherits tool settings while allowing a project to override provider options', () => {
+        const parent = {
+            projectName: 'parent',
+            projectType: 'ontology' as const,
+            toolchain: {
+                compiler: 'syside' as const,
+                packager: 'sysand' as const,
+                syside: { executable: '/opt/tools/syside', diagnose: 'all' as const },
+                sysand: { executable: '/opt/tools/sysand' },
+            },
+        };
+        const child = {
+            projectName: 'child',
+            projectType: 'device' as const,
+            extends: '@memo/parent',
+            toolchain: { syside: { diagnose: 'none' as const } },
+        };
+
+        expect(resolveConfig(child, name => name === '@memo/parent' ? parent : undefined).toolchain).toEqual({
+            compiler: 'syside',
+            packager: 'sysand',
+            syside: { executable: '/opt/tools/syside', diagnose: 'none' },
+            sysand: { executable: '/opt/tools/sysand' },
+        });
+    });
+
     it('merges rendering layers into architectureLayers', () => {
         // Config with no architectureLayers
         writeFileSync(join(TMP_DIR, 'memo.config.yaml'), `

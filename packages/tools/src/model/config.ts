@@ -142,6 +142,32 @@ export interface FirstRunConfig {
     scaffoldFiles?: string[];
 }
 
+export interface SysideToolConfig {
+    /** Executable name or path. Defaults to `syside` on PATH. */
+    executable?: string;
+    /** Optional syside.toml path, relative to the project directory. */
+    configFile?: string;
+    /** Treat Syside warnings as compilation errors. */
+    warningsAsErrors?: boolean;
+    /** Syside validation scope. Defaults to `project`. Use `none` for syntax-only compilation. */
+    diagnose?: 'all' | 'external' | 'project' | 'none';
+}
+
+export interface SysandToolConfig {
+    /** Executable name or path. Defaults to `sysand` on PATH. */
+    executable?: string;
+    /** Optional sysand.toml path, relative to the project directory. */
+    configFile?: string;
+}
+
+/** External tool selection. Defaults preserve MEMO's built-in behavior. */
+export interface ToolchainConfig {
+    compiler?: 'internal' | 'syside';
+    packager?: 'internal' | 'sysand';
+    syside?: SysideToolConfig;
+    sysand?: SysandToolConfig;
+}
+
 /** Ontology reference in a device project */
 export interface OntologyReference {
     /** Package name, e.g. "@memo/ontology" or "memo-ontology" on SysAnd */
@@ -244,4 +270,7 @@ export interface MEMOConfig {
 
     /** First-run scaffolding configuration */
     firstRun?: FirstRunConfig;
+
+    /** Compiler and KPAR packager selection. */
+    toolchain?: ToolchainConfig;
 }

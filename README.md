@@ -76,6 +76,32 @@ memo rules coverage
 
 Run `memo --help` or `memo <command> --help` for the complete command surface.
 
+### Compiler and packager selection
+
+Projects may select external tools in either `memo.package.yaml` or the legacy
+`memo.config.yaml`. Omit `toolchain` (or use `internal`) to preserve MEMO's
+built-in parser and KPAR writer.
+
+```yaml
+toolchain:
+  compiler: syside       # internal | syside
+  packager: sysand       # internal | sysand
+  syside:
+    executable: ~/.local/bin/syside
+    configFile: ./syside.toml
+    warningsAsErrors: true
+    diagnose: project    # all | external | project | none
+  sysand:
+    executable: ~/.local/bin/sysand
+    configFile: ./sysand.toml
+```
+
+`memo validate` and `memo build` run the configured Syside check before MEMO's
+semantic validation, automatically including the resolved ontology directories.
+Use `diagnose: none` for syntax-only compilation. `memo build --kpar` delegates
+archive creation to SysAnd when selected. Relative executable and config paths
+resolve from the project directory; bare executable names resolve through `PATH`.
+
 ### Core library usage
 
 `@memo/tools` is the reusable implementation layer. New behavior should be added
