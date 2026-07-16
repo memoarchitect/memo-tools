@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@memo/tools": ["./src/index.ts"],
+      "@memo/tools/browser": ["./src/browser/index.ts"],
+      "@memo/tools/types": ["./src/types/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

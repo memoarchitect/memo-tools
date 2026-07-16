@@ -4,7 +4,7 @@
 // Discovers the canonical MEMO package plus supported extension packages and
 // parses each `.sysml` file into a flat list of definitions.
 //
-// This deliberately does not depend on @memo/core — the lint and generator
+// This deliberately does not depend on @memo/tools — the lint and generator
 // must run before the monorepo's TS build to be useful in CI.
 // ─────────────────────────────────────────────────────────────────────────────
 

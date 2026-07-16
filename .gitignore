@@ -9,7 +9,7 @@ out/
 *.tsbuildinfo
 
 # Generated (Langium)
-packages/core/src/language/generated/
+packages/tools/src/language/generated/
 
 # IDE
 .vscode/
@@ -41,4 +41,4 @@ feedback/
 *.kpar
 
 # Generated TextMate grammar
-packages/core/syntaxes/
+packages/tools/syntaxes/

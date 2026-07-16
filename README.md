@@ -44,8 +44,7 @@ user's SysML v2 editor rather than a MEMO-specific VS Code extension.
 
 | Surface | Purpose | Typical use |
 |---|---|---|
-| `@memo/core` | Parser, semantic model, validation, analysis, document, and import/export libraries | Reused by the CLI and Memo Architect server |
-| `memo` / `@memo/cli` | Thin command-line wrapper over the shared core operations | Local authoring, CI validation, conversion, and automation |
+| `@memo/tools` | Parser, semantic model, validation, analysis, project operations, document tooling, and the `memo` CLI | Reused by the CLI and Memo Architect server |
 | `tools/ontology-tools` | Dependency-free repository quality checks | Maintainers validating ontology structure and editor portability |
 
 ### CLI usage
@@ -79,12 +78,12 @@ Run `memo --help` or `memo <command> --help` for the complete command surface.
 
 ### Core library usage
 
-`@memo/core` is the reusable implementation layer. New behavior should be added
+`@memo/tools` is the reusable implementation layer. New behavior should be added
 there first and exposed through protocol DTOs; the CLI remains a thin adapter,
 and React does not import core internals directly.
 
 ```ts
-import { buildMemoModel } from '@memo/core';
+import { buildMemoModel } from '@memo/tools';
 ```
 
 The API is pre-stable. Pin an exact `0.4.x` patch when embedding it directly.
@@ -106,8 +105,7 @@ release/documentation machinery maintained in `memo-meta`, not product tools.
 ## Layout
 
 ```
-packages/core/       @memo/core — grammar, parser, model builder, validator, serializers
-packages/cli/        @memo/cli — the memo CLI (Commander.js)
+packages/tools/      @memo/tools — engine, shared operations, browser/types exports, and CLI
 tools/ontology-tools/ repository lint and editor-portability checks
 memo/                 git submodule → memoarchitect/memo (canonical SysML content)
 ```
