@@ -16,7 +16,7 @@ import { KindRegistry } from './kind-registry.js';
 import { RelationshipRegistry } from './relationship-registry.js';
 import { parseFiles } from './parser-utils.js';
 import { VENDOR_ONTOLOGY_DIR, VENDOR_ONTOLOGY_PACKAGES_DIR } from './paths.js';
-import { discoverMemoManifests, resolveManifestPath } from './manifest.js';
+import { discoverMemoManifests, findMemoManifests, resolveManifestPath } from './manifest.js';
 import type { BuilderRegistries } from './builder.js';
 
 // ─── Ontology Package Metadata (Phase C2) ────────────────────────────────────
@@ -852,7 +852,10 @@ export function resolvePackageConfig(packageName: string, fromDir: string): stri
     // resolution never relies on walking above its own root.
     const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
     const devManifestRoot = resolve(packageRoot, VENDOR_ONTOLOGY_DIR);
-    for (const manifest of discoverMemoManifests([devManifestRoot])) {
+    for (const manifest of [
+        ...findMemoManifests(fromDir),
+        ...discoverMemoManifests([devManifestRoot]),
+    ]) {
         const subpath = manifest.manifest.packages[packageName];
         if (!subpath) continue;
         const packageDir = resolveManifestPath(manifest, subpath);

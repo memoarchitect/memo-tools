@@ -1,4 +1,4 @@
-// ─── memo dev ────────────────────────────────────────────────────────────────
+// ─── memo-architect dev ────────────────────────────────────────────────────────────────
 //
 // Starts the development server:
 //   1. bootstrap() — load config + ontology registries once (frozen after)
@@ -8,7 +8,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve } from 'node:path';
-import { createRequire } from 'node:module';
 import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
@@ -86,7 +85,7 @@ function computeOntologyHash(registries: BuilderRegistries): string {
     return createHash('sha256').update(`${kindKeys}|${relKeys}`).digest('hex').slice(0, 16);
 }
 
-export async function devCommand(options: { port?: number; open?: boolean }): Promise<void> {
+export async function devCommand(options: { port?: number; open?: boolean; clientRoot: string }): Promise<void> {
     const cwd = process.cwd();
     const port = options.port || 3000;
     const host = '127.0.0.1';
@@ -296,7 +295,7 @@ export async function devCommand(options: { port?: number; open?: boolean }): Pr
     const server = await createDevServer({
         port,
         projectRoot: cwd,
-        webPackagePath: resolveWebPackage(cwd),
+        webPackagePath: options.clientRoot,
         initialMessages: initial.messages,
         ontologyRegistries,
     });
@@ -313,7 +312,7 @@ export async function devCommand(options: { port?: number; open?: boolean }): Pr
             type: 'app:restart-required',
             reason,
             changedFile,
-            instruction: 'Stop dev server (Ctrl+C) and run `memo dev` again to apply ontology changes.',
+            instruction: 'Stop Architect (Ctrl+C) and start it again to apply ontology changes.',
         };
         process.stderr.write(
             chalk.yellow(`\n  ⚠ Ontology changed (${changedFile}) — restart required. Changes ignored until restart.\n\n`)
@@ -348,45 +347,4 @@ export async function devCommand(options: { port?: number; open?: boolean }): Pr
         server.close();
         process.exit(0);
     });
-}
-
-function resolveWebPackage(cwd: string): string {
-    // Explicit override wins — standalone installs point this at the folder
-    // containing the @memo/web package (source checkout or prebuilt dist/)
-    const explicit = process.env.MEMO_WEB_ROOT;
-    if (explicit) {
-        const root = resolve(cwd, explicit);
-        if (existsSync(root)) return root;
-        console.warn(chalk.yellow(`  ⚠ MEMO_WEB_ROOT points to a missing path: ${root}`));
-    }
-
-    const tryPaths = [
-        // Standalone: @memo/web installed as a package next to the model
-        resolve(cwd, 'node_modules/@memo/web'),
-        // Monorepo layouts (memo-tools checkout, memo-architect root)
-        resolve(cwd, '../../packages/web'),
-        // memo-architect layout: example lives in the nested content submodule
-        // (memo-tools/memo/src/examples/<x>), web at repo root
-        resolve(cwd, '../../../../../packages/web'),
-        resolve(cwd, '../web'),
-    ];
-
-    // Global/linked install: @memo/web resolvable from the CLI's own tree
-    try {
-        const require = createRequire(import.meta.url);
-        tryPaths.push(resolve(require.resolve('@memo/web/package.json'), '..'));
-    } catch {
-        // @memo/web is not a dependency of the CLI install — fine
-    }
-
-    for (const p of tryPaths) {
-        try {
-            readdirSync(p);
-            return p;
-        } catch {
-            // not found
-        }
-    }
-
-    return resolve(cwd, '../../packages/web');
 }

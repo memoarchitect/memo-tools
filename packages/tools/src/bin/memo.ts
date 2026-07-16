@@ -2,10 +2,9 @@
 // ─── MEMO CLI Entry Point ────────────────────────────────────────────────────
 //
 // Commands:
-//   memo dev            — Start development server with live reload
 //   memo validate       — Validate model against closure rules
 //   memo init           — Scaffold a new project
-//   memo build          — Build static HTML site with embedded model
+//   memo pack           — Package the model as a KPAR archive
 //   memo export json    — Export model as JSON
 //   memo export dot     — Export model as Graphviz DOT
 //   memo ontology show  — Show resolved ontology summary
@@ -16,9 +15,8 @@
 
 import { Command } from 'commander';
 import { validateCommand } from '../commands/validate.js';
-import { devCommand } from '../commands/dev.js';
 import { initCommand } from '../commands/init.js';
-import { buildCommand } from '../commands/build.js';
+import { packCommand } from '../commands/pack.js';
 import { exportJsonCommand, exportDotCommand } from '../commands/export.js';
 import {
     exportDhfCommand,
@@ -71,18 +69,6 @@ program
     });
 
 program
-    .command('dev')
-    .description('Start development server with live model reload')
-    .option('-p, --port <port>', 'Server port', '3000')
-    .option('--no-open', 'Do not open browser')
-    .action(async (options: { port: string; open: boolean }) => {
-        await devCommand({
-            port: parseInt(options.port, 10),
-            open: options.open,
-        });
-    });
-
-program
     .command('init')
     .description('Scaffold a new MEMO project')
     .argument('[name]', 'Project directory (omit or "." to initialize the current directory)')
@@ -97,13 +83,11 @@ program
     });
 
 program
-    .command('build')
-    .description('Build a self-contained static HTML site with the model diagram')
-    .option('-o, --output <dir>', 'Output directory', 'dist')
-    .option('--single-file', 'Inline all assets into a single index.html')
-    .option('--kpar', 'Also produce a .kpar archive (Knowledge Package Archive)')
-    .action(async (options: { output: string; singleFile?: boolean; kpar?: boolean }) => {
-        await buildCommand(options);
+    .command('pack')
+    .description('Package the model as a Knowledge Package Archive (KPAR)')
+    .option('-o, --output <file>', 'Output .kpar path')
+    .action(async (options: { output?: string }) => {
+        await packCommand(options);
     });
 
 const exportCmd = program

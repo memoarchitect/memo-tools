@@ -6,12 +6,22 @@ import { discoverMemoManifests, type LoadedMemoManifest } from './manifest.js';
 
 interface ToolsPackageMetadata {
     memo?: { contentPackage?: string };
-    devDependencies?: Record<string, string>;
+    dependencies?: Record<string, string>;
 }
 
 function packageMetadata(): ToolsPackageMetadata {
-    const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-    return JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf-8')) as ToolsPackageMetadata;
+    let dir = dirname(fileURLToPath(import.meta.url));
+    while (true) {
+        const candidate = resolve(dir, 'package.json');
+        if (existsSync(candidate)) {
+            const metadata = JSON.parse(readFileSync(candidate, 'utf-8')) as ToolsPackageMetadata & { name?: string };
+            if (metadata.name === '@memo/tools') return metadata;
+        }
+        const parent = dirname(dir);
+        if (parent === dir) break;
+        dir = parent;
+    }
+    throw new Error('Could not locate the @memo/tools package manifest.');
 }
 
 export function contentPackageName(): string {
@@ -24,7 +34,7 @@ export function contentPackageSpec(version?: string): string {
     if (process.env.MEMO_CONTENT_SPEC) return process.env.MEMO_CONTENT_SPEC;
     const metadata = packageMetadata();
     const name = contentPackageName();
-    const declared = metadata.devDependencies?.[name];
+    const declared = metadata.dependencies?.[name];
     const resolvedVersion = version || (declared && !declared.startsWith('workspace:') ? declared : undefined);
     return resolvedVersion ? `${name}@${resolvedVersion}` : name;
 }

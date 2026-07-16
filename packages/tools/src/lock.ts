@@ -2,7 +2,7 @@
 //
 // Creates and checks memo.lock.yaml — locks the ontology identity so that
 // accidental ontology changes are caught early. Lock file is created at
-// `memo init` time and checked on `memo dev` / `memo validate`.
+// `memo init` time and checked on `memo-architect dev` / `memo validate`.
 //
 // No auto-migration: changing ontology is rare and high-risk in regulated
 // medical device development (per platform-strategy.md §8).

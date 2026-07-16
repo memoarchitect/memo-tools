@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import { VENDOR_ONTOLOGY_DIR } from './paths.js';
@@ -107,6 +108,12 @@ export function findMemoManifests(fromDir: string): LoadedMemoManifest[] {
         dir = parent;
     }
     if (process.env.MEMO_ONTOLOGY_PATH) roots.push(resolve(process.env.MEMO_ONTOLOGY_PATH));
+    try {
+        const require = createRequire(import.meta.url);
+        roots.push(dirname(require.resolve('@memo/ontology/package.json')));
+    } catch {
+        // Development checkouts may provide the ontology through the nested repo.
+    }
     const toolsRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
     roots.push(resolve(toolsRoot, VENDOR_ONTOLOGY_DIR));
     return discoverMemoManifests(roots);

@@ -38,14 +38,14 @@ meMO is a four-layer stack — adopt what you need
 
 ## Supported tools
 
-Memo Tools intentionally has two product surfaces and one developer-only quality
-toolset. The web UI lives in Memo Architect; editor functionality belongs to a
+Memo Tools is one npm package with internal engine, CLI, and maintainer-tool
+modules. The UI lives in Memo Architect; editor functionality belongs to a
 user's SysML v2 editor rather than a MEMO-specific VS Code extension.
 
 | Surface | Purpose | Typical use |
 |---|---|---|
 | `@memo/tools` | Parser, semantic model, validation, analysis, project operations, document tooling, and the `memo` CLI | Reused by the CLI and Memo Architect server |
-| `tools/ontology-tools` | Dependency-free repository quality checks | Maintainers validating ontology structure and editor portability |
+| `tools/ontology-tools` | Internal dependency-free repository checks (not an npm package) | Maintainers validating ontology structure and editor portability |
 
 ### CLI usage
 
@@ -58,14 +58,12 @@ memo ontology show
 memo validate .
 memo validate . --format junit --output validation.xml
 
-# Run the local model server used by Memo Architect
-memo dev --port 3000
-
 # Exchange and publish model data
 memo export json --output model.json
 memo export dot --output model.dot
 memo import csv elements.csv
 memo ontology export owl --output ontology.ttl
+memo pack --output model.kpar
 memo sysand publish --dry-run
 
 # Generate assurance artifacts
@@ -96,10 +94,10 @@ toolchain:
     configFile: ./sysand.toml
 ```
 
-`memo validate` and `memo build` run `syside check --diagnose all
+`memo validate` and `memo pack` run `syside check --diagnose all
 --warnings-as-errors` by default before MEMO's semantic validation, automatically
 including the resolved ontology directories. Set `warningsAsErrors: false` or use
-`diagnose: none` to relax the check. `memo build --kpar` delegates
+`diagnose: none` to relax the check. `memo pack` delegates
 archive creation to SysAnd when selected. Relative executable and config paths
 resolve from the project directory; bare executable names resolve through `PATH`.
 
@@ -132,8 +130,8 @@ release/documentation machinery maintained in `memo-meta`, not product tools.
 ## Layout
 
 ```
-packages/tools/      @memo/tools — engine, shared operations, browser/types exports, and CLI
-tools/ontology-tools/ repository lint and editor-portability checks
+packages/tools/       internal source for the root @memo/tools package
+tools/ontology-tools/ internal repository lint and editor-portability checks
 memo/                 git submodule → memoarchitect/memo (canonical SysML content)
 ```
 
@@ -149,16 +147,13 @@ git clone --recurse-submodules https://github.com/memoarchitect/memo-tools.git
 cd memo-tools
 pnpm install && pnpm run build && pnpm run test
 
-# live model + validation for the GPCA reference pump
-pnpm run example:dev        # memo dev on memo/src/examples/gpca-pump
+# validate the GPCA reference pump
+pnpm run example:validate
 ```
 
-> Note: `memo dev` serves the parsed model, validation results, and the
-> WebSocket model API. The browser UI it normally serves comes from
-> **meMO Architect** (`@memo/web`, Layer 04) — an optional peer that is not
-> part of this repo, so the root page is unavailable here until Architect
-> is installed alongside. `memo build` (static site export) likewise
-> requires a built `@memo/web`.
+Memo Tools deliberately exposes no CLI commands that require Architect.
+Interactive development and static viewer builds are provided by the separate
+`@memo/architect` command.
 
 ## License
 

@@ -1,26 +1,82 @@
 {
-  "name": "memo-tools",
+  "name": "@memo/tools",
   "version": "0.4.4",
-  "private": true,
-  "description": "meMO Tools \u2014 Langium-based SysML v2 model engine and memo CLI for medical device assurance",
+  "description": "MEMO tools — SysML v2 parser, semantic model, validation, project operations, and CLI",
+  "type": "module",
+  "main": "./packages/tools/lib/index.js",
+  "types": "./packages/tools/lib/index.d.ts",
+  "bin": {
+    "memo": "./packages/tools/lib/bin/memo.js"
+  },
+  "memo": {
+    "contentPackage": "@memo/ontology"
+  },
+  "exports": {
+    ".": {
+      "types": "./packages/tools/lib/index.d.ts",
+      "import": "./packages/tools/lib/index.js"
+    },
+    "./browser": {
+      "types": "./packages/tools/lib/browser/index.d.ts",
+      "import": "./packages/tools/lib/browser/index.js"
+    },
+    "./types": {
+      "types": "./packages/tools/lib/types/index.d.ts",
+      "import": "./packages/tools/lib/types/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
-    "build": "pnpm run ontology:lint && turbo build",
-    "dev": "turbo dev",
-    "test": "turbo test",
-    "test:coverage": "turbo test:coverage",
-    "lint": "turbo lint",
-    "type-check": "turbo type-check",
-    "clean": "turbo clean",
+    "build": "cd packages/tools && langium generate && tsc",
+    "dev": "tsc -p packages/tools/tsconfig.json --watch",
+    "test": "cd packages/tools && vitest run",
+    "test:coverage": "cd packages/tools && vitest run --coverage",
+    "type-check": "tsc -p packages/tools/tsconfig.json --noEmit",
+    "clean": "rm -rf packages/tools/lib packages/tools/src/language/generated",
     "memo": "node packages/tools/lib/bin/memo.js",
-    "example:dev": "cd memo/examples/gpca-pump && node ../../../packages/tools/lib/bin/memo.js dev --port 3000",
-    "setup": "pnpm install && pnpm run build",
+    "example:validate": "cd memo/examples/gpca-pump && node ../../../packages/tools/lib/bin/memo.js validate .",
     "ontology:lint": "node tools/ontology-tools/lint.mjs",
-    "ontology:compat": "node tools/ontology-tools/syside-compat.mjs",
-    "preinstall": "npx only-allow pnpm"
+    "ontology:compat": "node tools/ontology-tools/syside-compat.mjs"
+  },
+  "dependencies": {
+    "@memo/ontology": "workspace:*",
+    "chalk": "^5.3.0",
+    "chokidar": "^4.0.0",
+    "commander": "^12.1.0",
+    "glob": "^11.0.0",
+    "langium": "^3.3.0",
+    "open": "^10.1.0",
+    "ora": "^8.1.0",
+    "uuid": "^10.0.0",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "ws": "^8.18.0",
+    "yaml": "^2.5.0"
   },
   "devDependencies": {
-    "turbo": "^2.3.0",
-    "typescript": "~5.5.0"
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "langium-cli": "^3.3.0",
+    "typescript": "~5.5.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  },
+  "files": [
+    "packages/tools/lib/",
+    "!packages/tools/lib/__tests__/",
+    "!packages/tools/lib/**/*.test.*",
+    "packages/tools/src/grammar/",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memoarchitect/memo-tools.git"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {

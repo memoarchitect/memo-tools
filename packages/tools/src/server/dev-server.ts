@@ -1,7 +1,7 @@
 // ─── Dev Server ──────────────────────────────────────────────────────────────
 //
 // HTTP server with:
-//   - Vite dev middleware (serves the @memo/web React app)
+//   - Optional client middleware supplied by a higher-level application
 //   - WebSocket endpoint for pushing model updates to browser
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -22,6 +22,7 @@ import {
 export interface DevServerOptions {
     port: number;
     projectRoot: string;
+    /** Client application root supplied by the caller (for example Architect). */
     webPackagePath: string;
     initialMessages: ServerMessage[];
     /** Frozen ontology registries from bootstrap — used to validate diagrams/layouts on load */
@@ -76,14 +77,13 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     const { port, webPackagePath, initialMessages } = options;
     const host = '127.0.0.1';
 
-    // Vite dev middleware needs the @memo/web source tree (index.html at the
-    // package root). Packaged installs ship only the prebuilt dist/, which is
-    // served statically instead — no Vite required in the user's folder.
+    // A source client can use Vite middleware. A packaged client can provide a
+    // prebuilt dist/ directory. Tools does not resolve or depend on that client.
     const hasWebSource = existsSync(resolve(webPackagePath, 'index.html'));
     const webDistPath = resolve(webPackagePath, 'dist');
     const hasWebDist = existsSync(resolve(webDistPath, 'index.html'));
 
-    // Dynamic import Vite (it's a dev dependency of @memo/web)
+    // Dynamic import Vite for a caller-provided source client.
     let vite: any;
     if (hasWebSource) {
         try {
@@ -130,7 +130,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         return true;
     }
 
-    /** Serve the prebuilt @memo/web dist as an SPA. Returns true if handled. */
+    /** Serve the caller-provided prebuilt client as an SPA. */
     function serveWebDist(req: any, res: any): boolean {
         if (!hasWebDist) return false;
         const url: string = (req.url ?? '/').split('?')[0];
@@ -178,7 +178,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                 <head><title>MEMO Dev</title></head>
                 <body>
                     <h1>MEMO Dev Server</h1>
-                    <p>Web package not found at ${webPackagePath}. Install @memo/web.</p>
+                    <p>Architect client not found at ${webPackagePath}. Run this server through @memo/architect.</p>
                     <pre id="log"></pre>
                     <script>
                         const ws = new WebSocket('ws://' + location.host);
@@ -547,7 +547,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         type: 'app:restart-required' as const,
                         reason: 'ontology-selection-changed' as const,
                         changedFile,
-                        instruction: 'Ontology selection saved. Stop dev server (Ctrl+C) and run `memo dev` again to apply.',
+                        instruction: 'Ontology selection saved. Stop dev server (Ctrl+C) and run `memo-architect dev` again to apply.',
                     };
                     for (const client of clients) {
                         if (client.readyState === 1) client.send(JSON.stringify(restartMsg));

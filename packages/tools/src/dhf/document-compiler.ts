@@ -202,7 +202,7 @@ function runCompilePipeline(
             }
             case 'diagram': {
                 const diagramId = directive.diagramId ?? '';
-                return `\n\n> **[Diagram: ${diagramId}]** _(diagram embed — run \`memo dev\` to view)_\n\n`;
+                return `\n\n> **[Diagram: ${diagramId}]** _(diagram embed — run \`memo-architect dev\` to view)_\n\n`;
             }
             case 'toc': {
                 // TOC is resolved after all other directives, so we use a placeholder
