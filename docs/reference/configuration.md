@@ -1,6 +1,6 @@
 # Project Configuration
 
-Projects use `memo.package.yaml` or the legacy `memo.config.yaml` to identify
+Projects use `memo.package.yaml` or `memo.config.yaml` to identify
 their content package/profile and toolchain.
 
 ## Select the modeling profile

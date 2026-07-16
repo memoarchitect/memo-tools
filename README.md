@@ -87,7 +87,7 @@ pnpm run docs:build
 
 ### Compiler and packager selection
 
-Projects may select external tools in either `memo.package.yaml` or the legacy
+Projects may select external tools in `memo.package.yaml` or
 `memo.config.yaml`. Omit `toolchain` (or use `internal`) to preserve MEMO's
 built-in parser and KPAR writer.
 
@@ -114,9 +114,9 @@ resolve from the project directory; bare executable names resolve through `PATH`
 
 ### Core library usage
 
-`@memo/tools` is the reusable implementation layer. New behavior should be added
-there first and exposed through protocol DTOs; the CLI remains a thin adapter,
-and React does not import core internals directly.
+`@memo/tools` is the reusable implementation layer. Protocol DTOs expose its
+supported application boundary; the CLI is an adapter over that boundary, and
+React does not import core internals directly.
 
 ```ts
 import { buildMemoModel } from '@memo/tools';

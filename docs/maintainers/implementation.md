@@ -1,7 +1,5 @@
 # How Tools Is Built
 
-This section follows the user workflows intentionally.
-
 Memo Tools is one npm package. Its implementation is organized under
 `packages/tools`, with the CLI as an adapter over shared model and project
 operations. The canonical ontology is the nested `memo` submodule.
@@ -16,6 +14,7 @@ pnpm run type-check
 pnpm run test
 ```
 
-Add behavior in reusable Tools services before exposing it through the CLI.
-Keep command output stable and machine-readable formats version-aware. When a
-command changes, update its task guide before internal architecture notes.
+Reusable Tools services provide model behavior to the CLI and Architect.
+Command output is stable at the supported interface boundary, and
+machine-readable formats carry version-aware contracts. Task documentation and
+interface tests describe the supported behavior.

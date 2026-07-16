@@ -31,7 +31,7 @@ Use JSON for custom reporting and JUnit for CI test reports.
 
 ## External compiler checks
 
-Projects may select SysIDE in `memo.package.yaml` or the legacy
+Projects may select SysIDE in `memo.package.yaml` or
 `memo.config.yaml`. With strict diagnostics enabled, `memo validate` runs the
 external check before MEMO semantic validation.
 
