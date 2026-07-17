@@ -14,9 +14,9 @@
 
 ---
 
-> **Status: work in progress.** meMO Tools is in the initial stages of
-> development and is not yet ready for release. APIs, CLI flags, and model
-> semantics may change without notice.
+> **Status: published preview.** `@memoarchitect/tools` is available on npm.
+> Its API, CLI flags, and model semantics remain pre-stable and may change
+> before version 1.0.
 
 ## Version compatibility
 
@@ -148,6 +148,14 @@ tools/ontology-tools/ internal repository lint and editor-portability checks
 The engine resolves ontology content through its exact
 `@memoarchitect/ontology` npm dependency. In `memo-meta`, pnpm links that
 dependency to the sibling `memo` checkout for iterative development.
+
+## Current repository relationship
+
+- A standalone clone installs `@memoarchitect/ontology@0.4.4` from npm.
+- The Tools repository contains no ontology git submodule.
+- The private `memo-meta` workspace keeps `memo` and `memo-tools` as sibling
+  submodules and applies local pnpm overrides for cross-repository work.
+- Publishing Tools never depends on the meta repository.
 
 ## Quickstart
 
