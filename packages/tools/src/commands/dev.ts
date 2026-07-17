@@ -25,7 +25,14 @@ import { checkLockFile } from '../lock.js';
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
     const git = (cmd: string) => {
-        try { return execSync(cmd, { cwd, encoding: 'utf8', timeout: 3000 }).trim(); }
+        try {
+            return execSync(cmd, {
+                cwd,
+                encoding: 'utf8',
+                timeout: 3000,
+                stdio: ['ignore', 'pipe', 'ignore'],
+            }).trim();
+        }
         catch { return undefined; }
     };
     return {
