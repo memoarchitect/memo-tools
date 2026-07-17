@@ -1,12 +1,12 @@
 {
   "name": "@memoarchitect/tools",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "MEMO tools — SysML v2 parser, semantic model, validation, project operations, and CLI",
   "type": "module",
   "main": "./packages/tools/lib/index.js",
   "types": "./packages/tools/lib/index.d.ts",
   "bin": {
-    "memo": "./packages/tools/lib/bin/memo.js"
+    "memo": "packages/tools/lib/bin/memo.js"
   },
   "memo": {
     "contentPackage": "@memoarchitect/ontology"
@@ -41,7 +41,7 @@
     "ontology:compat": "node tools/ontology-tools/syside-compat.mjs"
   },
   "dependencies": {
-    "@memoarchitect/ontology": "0.4.4",
+    "@memoarchitect/ontology": "0.4.5",
     "chalk": "^5.3.0",
     "chokidar": "^4.0.0",
     "commander": "^12.1.0",
