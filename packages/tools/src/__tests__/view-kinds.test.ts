@@ -17,6 +17,7 @@ import {
     resolveViewKind,
 } from '../model/view-kinds.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
+import { resolveContentPackageRoot } from '../model/paths.js';
 
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
@@ -130,8 +131,8 @@ describe('KK-1: deriveModelViews view kinds', () => {
 // ─── KK-1 acceptance: every GPCA view resolves to one of the 8 kinds ────────
 
 const GPCA_VIEWS_DIR = resolve(
-    __dirname,
-    '../../../../memo/src/examples/gpca-pump/model/views'
+    resolveContentPackageRoot(),
+    'examples/gpca-pump/model/views'
 );
 
 /** Config covering the view kinds the GPCA views instantiate */

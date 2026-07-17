@@ -428,7 +428,7 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
     }
 
     // Also scan node_modules/@memoarchitect/ for installed packages
-    const nmMemo = join(projectRoot, 'node_modules', '@memo');
+    const nmMemo = join(projectRoot, 'node_modules', '@memoarchitect');
     if (existsSync(nmMemo)) {
         try {
             for (const entry of readdirSync(nmMemo, { withFileTypes: true })) {

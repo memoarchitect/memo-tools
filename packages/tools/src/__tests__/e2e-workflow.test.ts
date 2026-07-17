@@ -9,7 +9,7 @@ import { execSync } from 'node:child_process';
 import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
-import { VENDOR_ONTOLOGY_PACKAGES_DIR } from '@memoarchitect/tools';
+import { resolveContentPackageRoot } from '@memoarchitect/tools';
 import { parse as parseYaml } from 'yaml';
 
 const CLI_PATH = join(__dirname, '../../lib/bin/memo.js');
@@ -518,7 +518,7 @@ description: "Another fake ontology"
 });
 
 describe('DD-3: kpar round-trip (GPCA pump)', () => {
-    const GPCA_DIR = join(REPO_ROOT, 'memo', 'src', 'examples', 'gpca-pump');
+    const GPCA_DIR = join(resolveContentPackageRoot(), 'examples', 'gpca-pump');
     let extractDir: string;
 
     function collectSysmlFiles(dir: string): string[] {
@@ -607,7 +607,7 @@ describe('DD-3: kpar round-trip (GPCA pump)', () => {
 
 describe('DD-5: sysand publish --dry-run', () => {
     it('memo sysand publish --dry-run succeeds for ontology', () => {
-        const pkgDir = join(REPO_ROOT, VENDOR_ONTOLOGY_PACKAGES_DIR, 'ontology');
+        const pkgDir = join(resolveContentPackageRoot(), 'ontology');
         const output = run('sysand publish --dry-run --package @memoarchitect/ontology', pkgDir);
         expect(output).toContain('PASS');
         expect(output).toContain('.kpar');

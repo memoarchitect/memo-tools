@@ -1,4 +1,0 @@
-[submodule "memo"]
-	path = memo
-	url = https://github.com/memoarchitect/memo.git
-	branch = main

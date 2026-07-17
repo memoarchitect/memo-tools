@@ -135,7 +135,7 @@ pnpm run type-check
 ```
 
 The authoritative external parse/package validation remains the `sysand` build
-in the nested `memo` repository. Diagram and presentation generators are private
+in the sibling `memo` repository within `memo-meta`. Diagram and presentation generators are private
 release/documentation machinery maintained in `memo-meta`, not product tools.
 
 ## Layout
@@ -143,18 +143,18 @@ release/documentation machinery maintained in `memo-meta`, not product tools.
 ```
 packages/tools/       internal source for the root @memoarchitect/tools package
 tools/ontology-tools/ internal repository lint and editor-portability checks
-memo/                 git submodule → memoarchitect/memo (canonical SysML content)
 ```
 
-The engine reads the ontology content live from the `memo`
-submodule — clone with `git clone --recurse-submodules`.
+The engine resolves ontology content through its exact
+`@memoarchitect/ontology` npm dependency. In `memo-meta`, pnpm links that
+dependency to the sibling `memo` checkout for iterative development.
 
 ## Quickstart
 
 Requires Node ≥ 20 and pnpm.
 
 ```bash
-git clone --recurse-submodules https://github.com/memoarchitect/memo-tools.git
+git clone https://github.com/memoarchitect/memo-tools.git
 cd memo-tools
 pnpm install && pnpm run build && pnpm run test
 

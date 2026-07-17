@@ -2,29 +2,35 @@
 //
 // Resolves DHF document templates from:
 //   1. Custom template directory (memo.dhf.yaml → template_dir)
-//   2. The ontology's templates (memo/src/compliance/dhf-templates/ — the
-//      templates are compliance content and live in the ontology repo)
+//   2. The installed @memoarchitect/ontology package
 //
-// The ontology templates directory is discovered by walking up from the
-// working directory (a project inside the monorepo tree) and, failing that,
-// relative to this package (engine checked out with its ontology submodule).
+// The installed package is authoritative. A legacy nested-checkout search is
+// retained only for source trees that have not installed dependencies yet.
 //
 // Also handles {{include:path}} partial resolution and {{project.*}} expansion.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { VENDOR_DHF_TEMPLATES_DIR } from '../model/paths.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { resolveContentPackageRoot, VENDOR_DHF_TEMPLATES_DIR } from '../model/paths.js';
 
 /** Locate the ontology's dhf-templates directory. Cached after first hit. */
 let vendorTemplatesDir: string | null | undefined;
 export function findVendorTemplatesDir(startDir: string = process.cwd()): string | null {
     if (vendorTemplatesDir !== undefined) return vendorTemplatesDir;
 
-    // 1. Walk up from the working directory (covers projects anywhere in the tree)
+    // 1. Resolve the content through the declared npm dependency. In the meta
+    // workspace this resolves to a local workspace link; standalone installs
+    // resolve to the registry package.
+    try {
+        const ontologyRoot = resolveContentPackageRoot();
+        const installed = join(ontologyRoot, 'src/compliance/dhf-templates');
+        if (existsSync(installed)) { vendorTemplatesDir = installed; return installed; }
+    } catch {
+        // Fall through for dependency-free legacy source checkouts.
+    }
+
+    // 2. Walk up from the working directory for a legacy nested checkout.
     let dir = resolve(startDir);
     while (true) {
         const candidate = join(dir, VENDOR_DHF_TEMPLATES_DIR);
@@ -33,10 +39,6 @@ export function findVendorTemplatesDir(startDir: string = process.cwd()): string
         if (parent === dir) break;
         dir = parent;
     }
-
-    // 2. Relative to this package: <repo>/packages/tools/{src|lib}/dhf → <repo>/memo/...
-    const fromPackage = resolve(__dirname, '../../../..', VENDOR_DHF_TEMPLATES_DIR);
-    if (existsSync(fromPackage)) { vendorTemplatesDir = fromPackage; return fromPackage; }
 
     vendorTemplatesDir = null;
     return null;
@@ -90,7 +92,7 @@ export function parseFrontmatter(content: string): { frontmatter: TemplateFrontm
  * Resolve the filesystem path for a template ID.
  * Searches:
  *   1. Custom template dir (if provided)
- *   2. Ontology templates (memo/src/compliance/dhf-templates)
+ *   2. Templates from @memoarchitect/ontology
  */
 export function resolveTemplatePath(
     templateId: string,

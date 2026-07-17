@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolve, join } from 'node:path';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { loadConfig, loadRenderingLayers, resolveConfig } from '../model/config-loader.js';
-import { VENDOR_ONTOLOGY_PACKAGES_DIR } from '../model/paths.js';
+import { resolveContentPackageRoot } from '../model/paths.js';
 
 const TMP_DIR = resolve(__dirname, '__tmp_config_test__');
 
@@ -201,7 +201,7 @@ layers:
 
 describe('loadConfig with real ontology package files', () => {
     it('ontology loads rendering layers from memo.package.yaml + memo.rendering.yaml', () => {
-        const configPath = resolve(__dirname, '../../../..', VENDOR_ONTOLOGY_PACKAGES_DIR, 'ontology/memo.package.yaml');
+        const configPath = resolve(resolveContentPackageRoot(), 'ontology/memo.package.yaml');
         const config = loadConfig(configPath);
 
         // Should have 11 layers from memo.rendering.yaml

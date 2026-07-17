@@ -2,7 +2,8 @@
 
 Memo Tools is one npm package. Its implementation is organized under
 `packages/tools`, with the CLI as an adapter over shared model and project
-operations. The canonical ontology is the nested `memo` submodule.
+operations. The canonical ontology is the `@memoarchitect/ontology` dependency;
+`memo-meta` links it to a sibling source checkout during coordinated development.
 
 ## Maintainer checks
 

@@ -22,7 +22,7 @@ npx memo --help
 For a source checkout:
 
 ```bash
-git clone --recurse-submodules https://github.com/memoarchitect/memo-tools.git
+git clone https://github.com/memoarchitect/memo-tools.git
 cd memo-tools
 corepack enable
 pnpm install

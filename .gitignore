@@ -2,6 +2,9 @@
 node_modules/
 .pnpm-store/
 
+# Legacy nested checkout retained locally during the move to memo-meta siblings.
+/memo/
+
 # Build outputs
 dist/
 lib/

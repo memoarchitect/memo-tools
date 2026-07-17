@@ -5,12 +5,13 @@ import { createMemoSysMLServices } from '../language/memo-sysml-module.js';
 import type { Model } from '../language/generated/ast.js';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join, relative, dirname } from 'node:path';
-import { VENDOR_ONTOLOGY_SRC_DIR } from '../model/paths.js';
+import { resolveContentPackageRoot } from '../model/paths.js';
 
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
 
-const ONTOLOGY_ROOT = resolve(__dirname, '../../../..', VENDOR_ONTOLOGY_SRC_DIR);
+const CONTENT_ROOT = resolveContentPackageRoot();
+const ONTOLOGY_ROOT = resolve(CONTENT_ROOT, 'src');
 
 // The canonical ontology and its example projects are scanned separately so
 // package workspace dirs, installed dependencies, output, and git metadata are
@@ -31,7 +32,7 @@ function collectSysmlFiles(dir: string): string[] {
     return files;
 }
 
-const EXAMPLES_ROOT = resolve(ONTOLOGY_ROOT, 'examples');
+const EXAMPLES_ROOT = resolve(CONTENT_ROOT, 'examples');
 const GPCA_MODEL_DIR = resolve(EXAMPLES_ROOT, 'gpca-pump/model');
 const STDLIB_WRAPPER_DIR = resolve(ONTOLOGY_ROOT, 'core', 'stdlib');
 
@@ -165,7 +166,7 @@ describe('DD-4: Syside compatibility — structural invariants', () => {
     function collectAllSysml(): { relPath: string; text: string; allPackages: string[]; leafPackages: string[]; imports: string[] }[] {
         const dirs = [ONTOLOGY_ROOT, EXAMPLES_ROOT];
         const entries: { relPath: string; text: string; allPackages: string[]; leafPackages: string[]; imports: string[] }[] = [];
-        const root = resolve(__dirname, '../../../..');
+        const root = CONTENT_ROOT;
         for (const dir of dirs) {
             if (!existsSync(dir)) continue;
             for (const f of collectSysmlFiles(dir)) {
@@ -283,7 +284,7 @@ describe('DD-4: Syside compatibility — structural invariants', () => {
 
     it('C4: ontology directory segments match namespace segments', () => {
         const mismatches: string[] = [];
-        const ONTOLOGY_PREFIX = `${VENDOR_ONTOLOGY_SRC_DIR}/`;
+        const ONTOLOGY_PREFIX = 'src/';
         for (const e of allEntries) {
             if (!e.relPath.startsWith(ONTOLOGY_PREFIX) || e.relPath.endsWith('/memo_namespaces.sysml')) continue;
             const innerPath = e.relPath.slice(ONTOLOGY_PREFIX.length);
@@ -405,7 +406,7 @@ describe('DD-6: naming + casing lint (ADR-1-12)', () => {
     function collectAllSysml(): { relPath: string; text: string }[] {
         const dirs = [ONTOLOGY_ROOT, EXAMPLES_ROOT];
         const entries: { relPath: string; text: string }[] = [];
-        const root = resolve(__dirname, '../../../..');
+        const root = CONTENT_ROOT;
         for (const dir of dirs) {
             if (!existsSync(dir)) continue;
             for (const f of collectSysmlFiles(dir)) {
@@ -470,7 +471,7 @@ describe('DD-6: naming + casing lint (ADR-1-12)', () => {
     });
 
     it('N4: ontology directory segments use snake_case', () => {
-        const ONTOLOGY_PREFIX = `${VENDOR_ONTOLOGY_SRC_DIR}/`;
+        const ONTOLOGY_PREFIX = 'src/';
         const violations: string[] = [];
         for (const e of allEntries) {
             if (!e.relPath.startsWith(ONTOLOGY_PREFIX)) continue;

@@ -1,7 +1,7 @@
 // ─── DHF Template Resolver Tests ─────────────────────────────────────────────
 //
-// Templates live in the ontology submodule (memo/src/compliance/dhf-templates);
-// the resolver must find them from the vendor tree and still honor an explicit
+// Templates live in the installed @memoarchitect/ontology package;
+// the resolver must find them through npm resolution and still honor an explicit
 // custom template directory first.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ describe('vendor template resolution', () => {
     it('finds the ontology dhf-templates directory', () => {
         const dir = findVendorTemplatesDir();
         expect(dir).toBeTruthy();
-        expect(dir).toContain('memo/src/compliance/dhf-templates');
+        expect(dir).toMatch(/src[/\\]compliance[/\\]dhf-templates$/);
     });
 
     it('loads a template by standard-prefixed id', () => {
