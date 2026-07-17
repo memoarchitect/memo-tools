@@ -13,8 +13,8 @@ import {
     findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries,
     validateModel, computeCompleteness, createQueryContext,
     PluginRegistry, loadPlugins, loadPluginConfig, scaffoldPlugin,
-} from '@memo/tools';
-import type { BuilderRegistries, PluginType, PluginContext, MemoPlugin } from '@memo/tools';
+} from '@memoarchitect/tools';
+import type { BuilderRegistries, PluginType, PluginContext, MemoPlugin } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 function findSysmlFiles(dir: string): string[] {

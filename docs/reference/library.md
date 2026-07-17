@@ -1,10 +1,10 @@
 # Library API
 
-Use `@memo/tools` when an application needs the same parser, semantic model,
+Use `@memoarchitect/tools` when an application needs the same parser, semantic model,
 validation, analysis, document, and project operations as the CLI.
 
 ```ts
-import { buildMemoModel } from '@memo/tools';
+import { buildMemoModel } from '@memoarchitect/tools';
 ```
 
 The API is pre-stable. Pin an exact compatible patch version and wrap calls
@@ -22,5 +22,5 @@ Prefer the library when:
 - you are building a custom analysis or UI;
 - repeated parsing or direct typed access matters.
 
-Browser-safe exports are available through `@memo/tools/browser`; inspect the
+Browser-safe exports are available through `@memoarchitect/tools/browser`; inspect the
 package exports and generated type declarations for the exact release contract.

@@ -110,7 +110,7 @@ export function findMemoManifests(fromDir: string): LoadedMemoManifest[] {
     if (process.env.MEMO_ONTOLOGY_PATH) roots.push(resolve(process.env.MEMO_ONTOLOGY_PATH));
     try {
         const require = createRequire(import.meta.url);
-        roots.push(dirname(require.resolve('@memo/ontology/package.json')));
+        roots.push(dirname(require.resolve('@memoarchitect/ontology/package.json')));
     } catch {
         // Development checkouts may provide the ontology through the nested repo.
     }

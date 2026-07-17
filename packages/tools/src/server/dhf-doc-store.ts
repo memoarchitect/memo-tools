@@ -13,7 +13,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync, realpathSync } from 'node:fs';
 import { extname, isAbsolute, relative, resolve } from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import type { DhfDocDTO, DhfSettingsDTO, DhfRepoTemplateInfo } from '@memo/tools';
+import type { DhfDocDTO, DhfSettingsDTO, DhfRepoTemplateInfo } from '@memoarchitect/tools';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 

@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
-import { generateUsage, type MemoElement } from '@memo/tools';
+import { generateUsage, type MemoElement } from '@memoarchitect/tools';
 
 /**
  * Persists an element change back to its source .sysml file.

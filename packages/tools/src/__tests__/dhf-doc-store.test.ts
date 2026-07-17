@@ -13,7 +13,7 @@ import {
     loadDhfSettings, saveDhfSettings,
     listRepoTemplates, readRepoTemplate,
 } from '../server/dhf-doc-store.js';
-import type { DhfDocDTO } from '@memo/tools';
+import type { DhfDocDTO } from '@memoarchitect/tools';
 
 let root: string;
 

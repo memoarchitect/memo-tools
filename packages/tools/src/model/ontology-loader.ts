@@ -277,7 +277,7 @@ function readMethodologyChain(configPath: string): Set<string> {
         const raw = m[1];
         const lastAt = raw.lastIndexOf('@');
         methodologyName = lastAt > 0 ? raw.slice(0, lastAt) : raw;
-        if (!methodologyName.startsWith('@memo/')) methodologyName = `@memo/${methodologyName}`;
+        if (!methodologyName.startsWith('@memoarchitect/')) methodologyName = `@memoarchitect/${methodologyName}`;
     } catch { return out; }
     if (!methodologyName) return out;
 
@@ -370,7 +370,7 @@ function readOptionalModulesList(content: string): string[] {
 
 /**
  * Get ontology package metadata for all packages in the project's extends chain
- * plus any available-but-unselected packages under packages/ or node_modules/@memo/.
+ * plus any available-but-unselected packages under packages/ or node_modules/@memoarchitect/.
  *
  * @param projectRoot - Absolute path to the project root (where memo.package.yaml lives)
  */
@@ -427,7 +427,7 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
         } catch { /* skip */ }
     }
 
-    // Also scan node_modules/@memo/ for installed packages
+    // Also scan node_modules/@memoarchitect/ for installed packages
     const nmMemo = join(projectRoot, 'node_modules', '@memo');
     if (existsSync(nmMemo)) {
         try {
@@ -477,7 +477,7 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
         if (!info) continue;
         // Mark as selected if name is in project's ontologies list, or inferred heuristic
         info.selected = selectedNames.has(info.name)
-            || selectedNames.has(info.name.replace('@memo/', ''))
+            || selectedNames.has(info.name.replace('@memoarchitect/', ''))
             || projectModules.has(info.name)
             || methodologySelected.has(info.name);
         info.isOptionalModule = optionalModuleNames.has(info.name);
@@ -536,7 +536,7 @@ function collectSysmlFiles(dir: string): string[] {
  *
  * Strategy:
  * 1. Start from the config file's directory
- * 2. Follow `extends` references (@memo/package-name → packages/package-name)
+ * 2. Follow `extends` references (@memoarchitect/package-name → packages/package-name)
  * 3. For each package in the chain, check if it has a sysml/ directory
  * 4. Also check for ontology-core (may not be in extends chain directly)
  */
@@ -546,19 +546,19 @@ export function findOntologyPackageDirs(configPath: string): string[] {
 
     // 0. (Phase C) If project pins a `methodology:`, resolve it and walk its
     // extends chain. The methodology package brings in its own SysML and
-    // chain-pulls the kinds ontology (e.g. @memo/ontology).
+    // chain-pulls the kinds ontology (e.g. @memoarchitect/ontology).
     try {
         const content = readFileSync(configPath, 'utf-8');
         const methodologyMatch = content.match(/^methodology:\s*"?([^"\s#]+)"?/m);
         if (methodologyMatch) {
             // Strip optional version range "@^1.0" → just the package name.
-            // The leading @memo/ scope must be preserved, so only strip the LAST `@`.
+            // The leading @memoarchitect/ scope must be preserved, so only strip the LAST `@`.
             const raw = methodologyMatch[1];
             const lastAt = raw.lastIndexOf('@');
             const methodologyName = lastAt > 0 ? raw.slice(0, lastAt) : raw;
-            const fullName = methodologyName.startsWith('@memo/')
+            const fullName = methodologyName.startsWith('@memoarchitect/')
                 ? methodologyName
-                : `@memo/${methodologyName}`;
+                : `@memoarchitect/${methodologyName}`;
             const pkgConfig = resolvePackageConfig(fullName, dirname(configPath));
             if (pkgConfig) walkExtendsChain(pkgConfig, dirs, seen);
         }
@@ -577,9 +577,9 @@ export function findOntologyPackageDirs(configPath: string): string[] {
             const matches = ontologySection.matchAll(/^\s*-\s*name:\s*"?([\w@\/-]+)"?/gm);
             for (const match of matches) {
                 let ontologyName = match[1];
-                // Ensure name has @memo/ prefix for resolution if missing
-                if (!ontologyName.startsWith('@memo/')) {
-                    ontologyName = `@memo/${ontologyName}`;
+                // Ensure name has @memoarchitect/ prefix for resolution if missing
+                if (!ontologyName.startsWith('@memoarchitect/')) {
+                    ontologyName = `@memoarchitect/${ontologyName}`;
                 }
                 const pkgConfig = resolvePackageConfig(ontologyName, dirname(configPath));
                 if (pkgConfig) {
@@ -605,14 +605,14 @@ export function findOntologyPackageDirs(configPath: string): string[] {
 /**
  * Read the `modules:` array from a project config, resolving short aliases
  * (e.g. "ros") against the base ontology's `optionalModules:` list.
- * Returns fully-qualified @memo/... package names.
+ * Returns fully-qualified @memoarchitect/... package names.
  */
 function readDeclaredModules(configPath: string): string[] {
     const out: string[] = [];
     let rawModules: string[] = [];
     try {
         const content = readFileSync(configPath, 'utf-8');
-        // Match `modules:\n  - foo\n  - "@memo/bar"`
+        // Match `modules:\n  - foo\n  - "@memoarchitect/bar"`
         const section = content.split(/^modules:/m)[1];
         if (section) {
             const matches = section.matchAll(/^\s*-\s*"?([@\w/-]+)"?/gm);
@@ -699,9 +699,9 @@ function walkExtendsChain(configPath: string, dirs: string[], seen: Set<string>)
     try {
         const content = readFileSync(resolvedPath, 'utf-8');
         // Handle both single-string extends and array extends in YAML:
-        //   extends: "@memo/ontology"
+        //   extends: "@memoarchitect/ontology"
         //   extends:
-        //     - "@memo/ontology"
+        //     - "@memoarchitect/ontology"
         const singleMatch = content.match(/^extends:\s*"?(@memo\/[\w-]+)"?/m);
         if (singleMatch) {
             extendsPackages = [singleMatch[1]];
@@ -774,7 +774,7 @@ const CONFIG_SEARCH_ORDER = [
 ];
 
 /**
- * Resolve a @memo/package-name to its config file path.
+ * Resolve a @memoarchitect/package-name to its config file path.
  * Prefers memo.package.yaml (new format), falls back to memo.config.yaml (legacy).
  * Searches: workspace packages (monorepo), then node_modules.
  */
@@ -910,7 +910,7 @@ export async function loadOntologyRegistries(configPath: string): Promise<Ontolo
     // Collect all SysML files from all ontology packages (honor sysmlDir override).
     // Dedupe by absolute path — methodology and base ontology pkgs may have
     // overlapping sysmlDirs (e.g. methodology points at ontology/methodology/memo
-    // while @memo/ontology points at src/).
+    // while @memoarchitect/ontology points at src/).
     const sysmlSet = new Set<string>();
     for (const pkgDir of ontologyDirs) {
         let sysmlDir = resolve(pkgDir, 'sysml');

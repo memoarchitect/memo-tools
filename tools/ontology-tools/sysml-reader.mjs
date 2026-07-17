@@ -4,7 +4,7 @@
 // Discovers the canonical MEMO package plus supported extension packages and
 // parses each `.sysml` file into a flat list of definitions.
 //
-// This deliberately does not depend on @memo/tools — the lint and generator
+// This deliberately does not depend on @memoarchitect/tools — the lint and generator
 // must run before the monorepo's TS build to be useful in CI.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -48,13 +48,13 @@ function readPackageManifest(pkgDir) {
             const versionMatch = content.match(/^version:\s*["']?([^"'\n]+)["']?/m);
             const sysmlDirMatch = content.match(/^sysmlDir:\s*["']?([^"'\n]+)["']?/m);
             return {
-                name: nameMatch ? nameMatch[1].trim() : `@memo/${basename(pkgDir)}`,
+                name: nameMatch ? nameMatch[1].trim() : `@memoarchitect/${basename(pkgDir)}`,
                 version: versionMatch ? versionMatch[1].trim() : '0.0.0',
                 sysmlDir: sysmlDirMatch ? sysmlDirMatch[1].trim() : 'sysml',
             };
         }
     }
-    return { name: `@memo/${basename(pkgDir)}`, version: '0.0.0', sysmlDir: 'sysml' };
+    return { name: `@memoarchitect/${basename(pkgDir)}`, version: '0.0.0', sysmlDir: 'sysml' };
 }
 
 /** Enumerate every ontology package directory with a `sysml/` subtree. */
@@ -101,7 +101,7 @@ function makePackage(pkgDir) {
  * labelsOnlyBody: true if body contains only an inherited `attribute name : String;`
  * filePath: absolute path
  * relPath: path relative to repo root
- * packageName: `@memo/...` name of the owning package
+ * packageName: `@memoarchitect/...` name of the owning package
  * layer: Arcadia layer derived via first-segment rule
  * line: 1-based line number where the definition starts
  */
@@ -188,7 +188,7 @@ export function parseAllOntologyDefinitions() {
 
 /** Parse a raw snippet — used by unit-style smoke tests. */
 export function parseSnippet(text) {
-    const pkg = { name: '@memo/test', dir: '', sysmlDir: '' };
+    const pkg = { name: '@memoarchitect/test', dir: '', sysmlDir: '' };
     return extractDefinitions(text, pkg, 'inline.sysml');
 }
 

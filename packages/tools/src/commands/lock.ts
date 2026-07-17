@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import chalk from 'chalk';
-import { findConfigFile } from '@memo/tools';
+import { findConfigFile } from '@memoarchitect/tools';
 import { createLockFile } from '../lock.js';
 
 export async function lockCommand(): Promise<void> {

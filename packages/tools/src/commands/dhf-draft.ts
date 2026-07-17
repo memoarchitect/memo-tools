@@ -16,9 +16,9 @@ import {
     compileDocument, loadDhfConfig,
     getPlugin,
     resolveLLMConfig, createProvider, draftDocument,
-} from '@memo/tools';
-import type { BuilderRegistries, DhfExportFormat, MemoModel, MEMOConfig, DhfConfig } from '@memo/tools';
-import type { ValidationResult, CompletenessReport } from '@memo/tools';
+} from '@memoarchitect/tools';
+import type { BuilderRegistries, DhfExportFormat, MemoModel, MEMOConfig, DhfConfig } from '@memoarchitect/tools';
+import type { ValidationResult, CompletenessReport } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 function findSysmlFiles(dir: string): string[] {

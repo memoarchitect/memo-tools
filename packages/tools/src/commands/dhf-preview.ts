@@ -14,11 +14,11 @@ import {
     findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries,
     validateModel, computeCompleteness,
     createQueryContext,
-} from '@memo/tools';
-import { compileMarkdownDocument } from '@memo/tools';
-import { loadDhfConfigV2, extractProjectMeta } from '@memo/tools';
+} from '@memoarchitect/tools';
+import { compileMarkdownDocument } from '@memoarchitect/tools';
+import { loadDhfConfigV2, extractProjectMeta } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import type { BuilderRegistries, MemoModel, MEMOConfig, ValidationResult, CompletenessReport } from '@memo/tools';
+import type { BuilderRegistries, MemoModel, MEMOConfig, ValidationResult, CompletenessReport } from '@memoarchitect/tools';
 
 const PREVIEW_PORT_DEFAULT = 3001;
 

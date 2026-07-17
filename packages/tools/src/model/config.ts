@@ -1,6 +1,6 @@
 // ─── MEMO Configuration Types ─────────────────────────────────────────────────
 //
-// Domain packages (e.g. @memo/medical-modeling-profile) implement MEMOConfig as config.yaml.
+// Domain packages (e.g. @memoarchitect/medical-modeling-profile) implement MEMOConfig as config.yaml.
 // Projects inherit from domain configs via the `extends` field.
 // The CLI merges the inheritance chain at startup.
 //
@@ -170,7 +170,7 @@ export interface ToolchainConfig {
 
 /** Ontology reference in a device project */
 export interface OntologyReference {
-    /** Package name, e.g. "@memo/ontology" or "memo-ontology" on SysAnd */
+    /** Package name, e.g. "@memoarchitect/ontology" or "memo-ontology" on SysAnd */
     name: string;
     /** Semver version constraint, e.g. "^2.0.0" */
     version: string;
@@ -178,7 +178,7 @@ export interface OntologyReference {
 
 /** Self-describing metadata for an ontology package */
 export interface OntologyMetadata {
-    /** Package identifier, e.g. "@memo/ontology" */
+    /** Package identifier, e.g. "@memoarchitect/ontology" */
     id: string;
     /** Semver version */
     version: string;
@@ -239,7 +239,7 @@ export interface MEMOConfig {
      * project explicitly opts into are loaded — disabled modules contribute
      * no kinds/relationships, no validation rules, and no viewpoints.
      *
-     * Each entry is a package name like "@memo/ontology-ros" or a
+     * Each entry is a package name like "@memoarchitect/ontology-ros" or a
      * short alias like "ros" (resolved against the base ontology's optionalModules list).
      */
     modules?: string[];

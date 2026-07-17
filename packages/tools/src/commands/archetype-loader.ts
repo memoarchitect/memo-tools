@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
-import { findMemoManifests, resolveManifestPath, type LoadedMemoManifest } from '@memo/tools';
+import { findMemoManifests, resolveManifestPath, type LoadedMemoManifest } from '@memoarchitect/tools';
 
 export interface ArchetypeInfo {
     id: string;

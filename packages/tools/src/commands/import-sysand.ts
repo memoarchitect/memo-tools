@@ -12,7 +12,7 @@ import {
     loadOntologyRegistries,
     findConfigFile,
     verifySysandRoundTrip,
-} from '@memo/tools';
+} from '@memoarchitect/tools';
 
 /**
  * memo import sysand <project-dir> — Import a SysAnd project.

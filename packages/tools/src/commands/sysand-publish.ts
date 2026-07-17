@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import chalk from 'chalk';
-import { findConfigFile } from '@memo/tools';
+import { findConfigFile } from '@memoarchitect/tools';
 import { loadConfigChain, type ConfigChainEntry } from '../server/config-resolver.js';
 
 export interface PublishOptions {

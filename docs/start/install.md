@@ -10,7 +10,7 @@
 Install the command for your project:
 
 ```bash
-npm install @memo/tools
+npm install @memoarchitect/tools
 ```
 
 Then run it through your package manager:

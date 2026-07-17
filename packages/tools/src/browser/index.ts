@@ -1,4 +1,4 @@
-// Browser-safe @memo/tools surface. Keep this entrypoint free of parser,
+// Browser-safe @memoarchitect/tools surface. Keep this entrypoint free of parser,
 // filesystem, server, and other Node-only dependencies.
 export * from '../model/semantic.js';
 export * from '../model/view-deriver.js';

@@ -13,7 +13,7 @@ import {
     importJsonLd,
     owlResultToSysml,
     owlResultToPackage,
-} from '@memo/tools';
+} from '@memoarchitect/tools';
 
 /**
  * memo import owl <file> — Import an OWL/Turtle or JSON-LD file.

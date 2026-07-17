@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse, stringify } from 'yaml';
-import type { DiagramDTO, DiagramLayout } from '@memo/tools';
+import type { DiagramDTO, DiagramLayout } from '@memoarchitect/tools';
 import { loadViewLayout, saveViewLayout, viewLayoutPath } from '../server/view-layout-store.js';
 
 const roots: string[] = [];

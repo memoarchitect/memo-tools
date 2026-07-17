@@ -1,13 +1,13 @@
 // ─── Config Resolver ──────────────────────────────────────────────────────────
 //
 // Resolves the `extends` chain for MEMO configs.
-// Handles: "@memo/medical-modeling-profile" → find config in node_modules or workspace packages
+// Handles: "@memoarchitect/medical-modeling-profile" → find config in node_modules or workspace packages
 // Supports both new format (memo.package.yaml) and legacy (memo.config.yaml).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve, dirname } from 'node:path';
-import type { MEMOConfig } from '@memo/tools';
-import { loadConfig, resolveConfig, resolvePackageConfig } from '@memo/tools';
+import type { MEMOConfig } from '@memoarchitect/tools';
+import { loadConfig, resolveConfig, resolvePackageConfig } from '@memoarchitect/tools';
 
 export interface ConfigChainEntry {
     configPath: string;

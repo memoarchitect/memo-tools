@@ -6,14 +6,14 @@
 //
 // Usage:
 //   memo create-package my-ontology --type ontology
-//   memo create-package my-profile --type profile --extends @memo/ontology
+//   memo create-package my-profile --type profile --extends @memoarchitect/ontology
 //   memo create-package my-library --type library
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve, join } from 'node:path';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
-import type { ProjectType } from '@memo/tools';
+import type { ProjectType } from '@memoarchitect/tools';
 
 interface CreatePackageOptions {
     type: ProjectType;
@@ -224,7 +224,7 @@ function scaffoldProfile(dir: string, name: string, extendsPackage?: string): vo
     // The KerML evaluator (memo validate / memo rules check) runs these directly — no
     // proprietary rule format. Rule metadata travels as plain attribute members.
     const rulesSysml = `// Consistency rules for ${name} — native SysML v2 constraints.
-// See @memo/medical-modeling-profile for examples.
+// See @memoarchitect/medical-modeling-profile for examples.
 package ${name.replace(/^@[^/]+\//, '').replace(/-/g, '_')}_Rules {
     // Example: every Requirement must trace to at least one stakeholder need.
     // constraint def requirementTraceRule {

@@ -18,9 +18,9 @@ import {
     RuleRegistry,
     collectNativeConstraints,
     evaluateConstraintNode,
-} from '@memo/tools';
+} from '@memoarchitect/tools';
 // parseFiles still needed by rulesCheckCommand for project SysML files
-import type { BuilderRegistries, ParsedDocument } from '@memo/tools';
+import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

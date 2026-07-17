@@ -44,7 +44,7 @@ user's SysML v2 editor rather than a MEMO-specific VS Code extension.
 
 | Surface | Purpose | Typical use |
 |---|---|---|
-| `@memo/tools` | Parser, semantic model, validation, analysis, project operations, document tooling, and the `memo` CLI | Reused by the CLI and Memo Architect server |
+| `@memoarchitect/tools` | Parser, semantic model, validation, analysis, project operations, document tooling, and the `memo` CLI | Reused by the CLI and Memo Architect server |
 | `tools/ontology-tools` | Internal dependency-free repository checks (not an npm package) | Maintainers validating ontology structure and editor portability |
 
 ### CLI usage
@@ -114,12 +114,12 @@ resolve from the project directory; bare executable names resolve through `PATH`
 
 ### Core library usage
 
-`@memo/tools` is the reusable implementation layer. Protocol DTOs expose its
+`@memoarchitect/tools` is the reusable implementation layer. Protocol DTOs expose its
 supported application boundary; the CLI is an adapter over that boundary, and
 React does not import core internals directly.
 
 ```ts
-import { buildMemoModel } from '@memo/tools';
+import { buildMemoModel } from '@memoarchitect/tools';
 ```
 
 The API is pre-stable. Pin an exact `0.4.x` patch when embedding it directly.
@@ -141,7 +141,7 @@ release/documentation machinery maintained in `memo-meta`, not product tools.
 ## Layout
 
 ```
-packages/tools/       internal source for the root @memo/tools package
+packages/tools/       internal source for the root @memoarchitect/tools package
 tools/ontology-tools/ internal repository lint and editor-portability checks
 memo/                 git submodule → memoarchitect/memo (canonical SysML content)
 ```
@@ -164,7 +164,7 @@ pnpm run example:validate
 
 Memo Tools deliberately exposes no CLI commands that require Architect.
 Interactive development and static viewer builds are provided by the separate
-`@memo/architect` command.
+`@memoarchitect/architect` command.
 
 ## License
 

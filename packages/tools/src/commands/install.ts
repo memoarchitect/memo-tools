@@ -24,7 +24,7 @@ import {
     findConfigFile,
     findMemoManifests,
     installContentPackage,
-} from '@memo/tools';
+} from '@memoarchitect/tools';
 import { readLockFile } from '../lock.js';
 
 /** Detect which install mode to use based on the source string */

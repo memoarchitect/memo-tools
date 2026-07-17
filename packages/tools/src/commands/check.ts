@@ -1,8 +1,8 @@
 import { resolve } from 'node:path';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memo/tools';
-import type { BuilderRegistries, MemoModel, MemoElement, ParseError } from '@memo/tools';
+import { findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
+import type { BuilderRegistries, MemoModel, MemoElement, ParseError } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 const STANDARD_CONSTRUCTS = new Set([

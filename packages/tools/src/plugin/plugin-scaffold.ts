@@ -61,7 +61,7 @@ tags: [memo-plugin, ${type}]
                 dev: 'tsc --watch',
             },
             dependencies: {
-                '@memo/tools': 'workspace:*',
+                '@memoarchitect/tools': 'workspace:*',
             },
             devDependencies: {
                 typescript: '~5.5.0',
@@ -110,8 +110,8 @@ tags: [memo-plugin, ${type}]
 function generatePluginSource(id: string, name: string, type: PluginType): string {
     switch (type) {
         case 'export':
-            return `import type { ExportPlugin, PluginContext, ExportResult } from '@memo/tools';
-import type { DhfDocument } from '@memo/tools';
+            return `import type { ExportPlugin, PluginContext, ExportResult } from '@memoarchitect/tools';
+import type { DhfDocument } from '@memoarchitect/tools';
 
 const plugin: ExportPlugin = {
     id: '${id}',
@@ -146,7 +146,7 @@ export default plugin;
 `;
 
         case 'analysis':
-            return `import type { AnalysisPlugin, PluginContext, AnalysisResult } from '@memo/tools';
+            return `import type { AnalysisPlugin, PluginContext, AnalysisResult } from '@memoarchitect/tools';
 
 const plugin: AnalysisPlugin = {
     id: '${id}',
@@ -175,8 +175,8 @@ export default plugin;
 `;
 
         case 'validation':
-            return `import type { ValidationPlugin, PluginContext } from '@memo/tools';
-import type { Violation } from '@memo/tools';
+            return `import type { ValidationPlugin, PluginContext } from '@memoarchitect/tools';
+import type { Violation } from '@memoarchitect/tools';
 
 const plugin: ValidationPlugin = {
     id: '${id}',
@@ -211,7 +211,7 @@ export default plugin;
 `;
 
         case 'generator':
-            return `import type { GeneratorPlugin, PluginContext } from '@memo/tools';
+            return `import type { GeneratorPlugin, PluginContext } from '@memoarchitect/tools';
 
 const plugin: GeneratorPlugin = {
     id: '${id}',

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { parse, stringify } from 'yaml';
-import type { DiagramDTO, DiagramLayout } from '@memo/tools';
+import type { DiagramDTO, DiagramLayout } from '@memoarchitect/tools';
 
 export const VIEW_LAYOUT_EXTENSION = '.viewlayout';
 

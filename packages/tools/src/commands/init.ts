@@ -8,7 +8,7 @@ import {
     installContentPackage,
     resolveManifestPath,
     type LoadedMemoManifest,
-} from '@memo/tools';
+} from '@memoarchitect/tools';
 import { createLockFile } from '../lock.js';
 import {
     loadArchetypes,

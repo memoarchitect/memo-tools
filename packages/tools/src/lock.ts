@@ -11,7 +11,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import { loadConfig } from '@memo/tools';
+import { loadConfig } from '@memoarchitect/tools';
 import { loadConfigChain, type ConfigChainEntry } from './server/config-resolver.js';
 
 /** A single package entry in the lock file */

@@ -5,9 +5,9 @@
     "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
-      "@memo/tools": ["./src/index.ts"],
-      "@memo/tools/browser": ["./src/browser/index.ts"],
-      "@memo/tools/types": ["./src/types/index.ts"]
+      "@memoarchitect/tools": ["./src/index.ts"],
+      "@memoarchitect/tools/browser": ["./src/browser/index.ts"],
+      "@memoarchitect/tools/types": ["./src/types/index.ts"]
     }
   },
   "include": ["src/**/*.ts"]

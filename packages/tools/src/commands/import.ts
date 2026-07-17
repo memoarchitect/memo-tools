@@ -24,7 +24,7 @@ import {
     generateRelationshipTemplate,
     computeImportDiff,
     formatDiffSummary,
-} from '@memo/tools';
+} from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 function findSysmlFiles(dir: string): string[] {

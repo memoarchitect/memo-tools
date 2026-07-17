@@ -7,10 +7,10 @@
 import { resolve } from 'node:path';
 import { readdirSync, statSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { compileWithConfiguredTool, findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memo/tools';
-import type { BuilderRegistries, ParsedDocument } from '@memo/tools';
-import { validateModel, collectNativeConstraints } from '@memo/tools';
-import { computeCompleteness } from '@memo/tools';
+import { compileWithConfiguredTool, findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
+import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
+import { validateModel, collectNativeConstraints } from '@memoarchitect/tools';
+import { computeCompleteness } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { checkLockFile } from '../lock.js';
 

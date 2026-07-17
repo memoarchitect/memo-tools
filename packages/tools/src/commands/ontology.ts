@@ -11,8 +11,8 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync
 import { createHash } from 'node:crypto';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import chalk from 'chalk';
-import type { MEMOConfig } from '@memo/tools';
-import { findConfigFile, loadOntologyRegistries, exportToOwlTurtle, exportToOwlXml } from '@memo/tools';
+import type { MEMOConfig } from '@memoarchitect/tools';
+import { findConfigFile, loadOntologyRegistries, exportToOwlTurtle, exportToOwlXml } from '@memoarchitect/tools';
 import { loadAndResolveConfig, loadConfigChain, type ConfigChainEntry } from '../server/config-resolver.js';
 
 // ─── memo ontology add-kind ──────────────────────────────────────────────────

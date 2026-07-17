@@ -9,9 +9,9 @@ import { createServer as createHttpServer, type Server } from 'node:http';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync, createReadStream, statSync } from 'node:fs';
 import { extname } from 'node:path';
-import type { ServerMessage, ModelUpdateMessage, DiagramDTO } from '@memo/tools';
-import type { BuilderRegistries } from '@memo/tools';
-import { findMemoManifests } from '@memo/tools';
+import type { ServerMessage, ModelUpdateMessage, DiagramDTO } from '@memoarchitect/tools';
+import type { BuilderRegistries } from '@memoarchitect/tools';
+import { findMemoManifests } from '@memoarchitect/tools';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
@@ -178,7 +178,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                 <head><title>MEMO Dev</title></head>
                 <body>
                     <h1>MEMO Dev Server</h1>
-                    <p>Architect client not found at ${webPackagePath}. Run this server through @memo/architect.</p>
+                    <p>Architect client not found at ${webPackagePath}. Run this server through @memoarchitect/architect.</p>
                     <pre id="log"></pre>
                     <script>
                         const ws = new WebSocket('ws://' + location.host);
@@ -586,7 +586,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             }
 
                             // Refresh packages and broadcast
-                            const { getPackageMetadata } = await import('@memo/tools');
+                            const { getPackageMetadata } = await import('@memoarchitect/tools');
                             const packages = getPackageMetadata(projectRoot);
                             const pkgMsg = { type: 'ontology:packages' as const, payload: { packages } };
                             for (const client of clients) {
@@ -617,7 +617,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             generateFile,
                             attachProvenance,
                             findConfigFile,
-                        } = await import('@memo/tools');
+                        } = await import('@memoarchitect/tools');
                         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
                         const configPath = findConfigFile(projectRoot);
@@ -694,9 +694,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // Q&A about the model via LLM (#52)
                     const { requestId, question } = msg.payload ?? {};
                     try {
-                        const { resolveLLMConfig, createProvider } = await import('@memo/tools');
-                        const { createQueryContext, findConfigFile } = await import('@memo/tools');
-                        const { askModel } = await import('@memo/tools');
+                        const { resolveLLMConfig, createProvider } = await import('@memoarchitect/tools');
+                        const { createQueryContext, findConfigFile } = await import('@memoarchitect/tools');
+                        const { askModel } = await import('@memoarchitect/tools');
                         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
                         const llmConfig = resolveLLMConfig();
@@ -721,7 +721,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // Generate SysML v2 from natural language (#54)
                     const { requestId, description } = msg.payload ?? {};
                     try {
-                        const { resolveLLMConfig, createProvider, generateSysml, findConfigFile } = await import('@memo/tools');
+                        const { resolveLLMConfig, createProvider, generateSysml, findConfigFile } = await import('@memoarchitect/tools');
                         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
                         const llmConfig = resolveLLMConfig();
@@ -742,8 +742,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // Draft DHF document sections via LLM (#55)
                     const { requestId, documentTypeId, targetSections } = msg.payload ?? {};
                     try {
-                        const { resolveLLMConfig, createProvider, createQueryContext, findConfigFile, getDocumentType } = await import('@memo/tools');
-                        const { draftDocument } = await import('@memo/tools');
+                        const { resolveLLMConfig, createProvider, createQueryContext, findConfigFile, getDocumentType } = await import('@memoarchitect/tools');
+                        const { draftDocument } = await import('@memoarchitect/tools');
                         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
                         const llmConfig = resolveLLMConfig();
@@ -782,7 +782,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // Completeness suggestions via LLM (#53)
                     const { requestId } = msg.payload ?? {};
                     try {
-                        const { resolveLLMConfig, createProvider, createQueryContext, findConfigFile, serializeModelContext } = await import('@memo/tools');
+                        const { resolveLLMConfig, createProvider, createQueryContext, findConfigFile, serializeModelContext } = await import('@memoarchitect/tools');
                         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
                         const llmConfig = resolveLLMConfig();
@@ -871,14 +871,14 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         ws.send(JSON.stringify({ type: 'ontology:remove:result', payload: { success: false, packageName: '', error: 'No package name' } }));
                     } else {
                         try {
-                            const shortName = pkgName.replace('@memo/', '');
+                            const shortName = pkgName.replace('@memoarchitect/', '');
                             const memoPkgsPath = resolve(projectRoot, 'memo_packages', shortName);
                             if (existsSync(memoPkgsPath)) {
                                 const { rmSync } = await import('node:fs');
                                 rmSync(memoPkgsPath, { recursive: true, force: true });
                             }
                             // Refresh and broadcast
-                            const { getPackageMetadata } = await import('@memo/tools');
+                            const { getPackageMetadata } = await import('@memoarchitect/tools');
                             const packages = getPackageMetadata(projectRoot);
                             const pkgMsg = { type: 'ontology:packages' as const, payload: { packages } };
                             for (const client of clients) {

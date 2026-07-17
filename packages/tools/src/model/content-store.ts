@@ -15,18 +15,18 @@ function packageMetadata(): ToolsPackageMetadata {
         const candidate = resolve(dir, 'package.json');
         if (existsSync(candidate)) {
             const metadata = JSON.parse(readFileSync(candidate, 'utf-8')) as ToolsPackageMetadata & { name?: string };
-            if (metadata.name === '@memo/tools') return metadata;
+            if (metadata.name === '@memoarchitect/tools') return metadata;
         }
         const parent = dirname(dir);
         if (parent === dir) break;
         dir = parent;
     }
-    throw new Error('Could not locate the @memo/tools package manifest.');
+    throw new Error('Could not locate the @memoarchitect/tools package manifest.');
 }
 
 export function contentPackageName(): string {
     const name = packageMetadata().memo?.contentPackage;
-    if (!name) throw new Error('This @memo/tools package does not declare its MEMO content package.');
+    if (!name) throw new Error('This @memoarchitect/tools package does not declare its MEMO content package.');
     return name;
 }
 

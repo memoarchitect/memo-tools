@@ -1,4 +1,4 @@
-// @memo/tools — public API
+// @memoarchitect/tools — public API
 
 // ─── Language (generated parser + AST) ──────────────────────────────────────
 export * from './language/generated/ast.js';

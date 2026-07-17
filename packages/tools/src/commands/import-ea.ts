@@ -18,8 +18,8 @@ import {
     importCameoXml,
     importCameoJson,
     cameoResultToSysml,
-} from '@memo/tools';
-import type { EaJsonExport, CameoJsonExport } from '@memo/tools';
+} from '@memoarchitect/tools';
+import type { EaJsonExport, CameoJsonExport } from '@memoarchitect/tools';
 
 /**
  * memo import ea <file> — Import from Sparx EA JSON export.

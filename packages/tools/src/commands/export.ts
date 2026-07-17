@@ -8,10 +8,10 @@
 import { resolve } from 'node:path';
 import { readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, modelToDTO } from '@memo/tools';
-import { validateModel } from '@memo/tools';
-import { computeCompleteness } from '@memo/tools';
-import type { ViewpointDTO, ArchLayerDTO } from '@memo/tools';
+import { findConfigFile, parseFiles, buildMemoModel, modelToDTO } from '@memoarchitect/tools';
+import { validateModel } from '@memoarchitect/tools';
+import { computeCompleteness } from '@memoarchitect/tools';
+import type { ViewpointDTO, ArchLayerDTO } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 function findSysmlFiles(dir: string): string[] {

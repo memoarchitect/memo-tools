@@ -2,7 +2,7 @@
 
 MEMO Tools turns SysML v2 source into a model you can validate, inspect, import,
 export, package, and use in automation. It includes the `memo` command and the
-reusable `@memo/tools` library.
+reusable `@memoarchitect/tools` library.
 
 Start with a task:
 

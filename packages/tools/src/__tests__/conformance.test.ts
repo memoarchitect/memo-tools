@@ -322,9 +322,9 @@ describe('DD-4: Syside compatibility — structural invariants', () => {
 
 describe('DD-5: sysand publish dry-run — publishable packages', () => {
     const PACKAGE_MAP: { name: string; level: string; dirs: string[]; rootFiles?: string[] }[] = [
-        { name: '@memo/sysml-base', level: 'L0', dirs: ['base', 'core'] },
-        { name: '@memo/ontology', level: 'L1', dirs: ['architecture', 'compliance', 'viewpoints', 'views'], rootFiles: ['medical_device_library.sysml'] },
-        { name: '@memo/methodology-default', level: 'L2', dirs: ['methodology'] },
+        { name: '@memoarchitect/sysml-base', level: 'L0', dirs: ['base', 'core'] },
+        { name: '@memoarchitect/ontology', level: 'L1', dirs: ['architecture', 'compliance', 'viewpoints', 'views'], rootFiles: ['medical_device_library.sysml'] },
+        { name: '@memoarchitect/methodology-default', level: 'L2', dirs: ['methodology'] },
     ];
 
     function collectPackageFiles(pkg: typeof PACKAGE_MAP[0]): string[] {

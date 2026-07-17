@@ -13,8 +13,8 @@ import chalk from 'chalk';
 import {
     findConfigFile, loadOntologyRegistries,
     resolveLLMConfig, createProvider, generateSysml,
-} from '@memo/tools';
-import type { BuilderRegistries } from '@memo/tools';
+} from '@memoarchitect/tools';
+import type { BuilderRegistries } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 export interface GenerateCommandOptions {

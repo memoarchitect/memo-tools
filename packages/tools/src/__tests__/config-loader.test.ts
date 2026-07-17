@@ -103,11 +103,11 @@ toolchain:
         const child = {
             projectName: 'child',
             projectType: 'device' as const,
-            extends: '@memo/parent',
+            extends: '@memoarchitect/parent',
             toolchain: { syside: { diagnose: 'none' as const } },
         };
 
-        expect(resolveConfig(child, name => name === '@memo/parent' ? parent : undefined).toolchain).toEqual({
+        expect(resolveConfig(child, name => name === '@memoarchitect/parent' ? parent : undefined).toolchain).toEqual({
             compiler: 'syside',
             packager: 'sysand',
             syside: { executable: '/opt/tools/syside', diagnose: 'none' },
@@ -216,7 +216,7 @@ describe('loadConfig with real ontology package files', () => {
         expect(layerIds).toContain('safety');
 
         // Verify identity from memo.package.yaml
-        expect(config.projectName).toBe('@memo/ontology');
+        expect(config.projectName).toBe('@memoarchitect/ontology');
         expect(config.projectType).toBe('ontology');
     });
 

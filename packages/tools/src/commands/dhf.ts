@@ -18,11 +18,11 @@ import {
     createQueryContext,
     loadDhfConfigV2, isDhfConfigV2, resolveManifestDocuments,
     compileMarkdownDocument, compileMarkdownContent, markdownToDhfDocument,
-} from '@memo/tools';
+} from '@memoarchitect/tools';
 import { readFileSync } from 'node:fs';
 import { loadDhfDocs, loadDhfSettings } from '../server/dhf-doc-store.js';
-import type { BuilderRegistries, DhfExportFormat, DhfDocument, MemoModel, MEMOConfig, DhfConfig } from '@memo/tools';
-import type { ValidationResult, CompletenessReport } from '@memo/tools';
+import type { BuilderRegistries, DhfExportFormat, DhfDocument, MemoModel, MEMOConfig, DhfConfig } from '@memoarchitect/tools';
+import type { ValidationResult, CompletenessReport } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 // ─── Shared: find SysML files ────────────────────────────────────────────────
