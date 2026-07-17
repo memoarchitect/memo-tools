@@ -8,7 +8,7 @@
 //
 // Adds the package to memo.package.yaml under `dependencies`.
 // Resolution order (handled by config-resolver):
-//   1. memo/packages/<name>/  (git submodule)
+//   1. content manifests (memo.manifest.yaml, legacy @memo/ names aliased)
 //   2. packages/<name>/                      (workspace)
 //   3. memo_packages/<name>/                 (local installs)
 //   4. node_modules/<name>/                  (npm installs)
@@ -24,6 +24,7 @@ import {
     findConfigFile,
     findMemoManifests,
     installContentPackage,
+    logicalNameCandidates,
 } from '@memoarchitect/tools';
 import { readLockFile } from '../lock.js';
 
@@ -122,14 +123,15 @@ export async function installCommand(
             process.exit(1);
         }
         const physicalPackage = contentPackageName();
-        if (findMemoManifests(projectDir).some(manifest => manifest.manifest.packages[lock.ontology])) {
+        const lockNames = logicalNameCandidates(lock.ontology);
+        if (findMemoManifests(projectDir).some(manifest => lockNames.some(name => manifest.manifest.packages[name]))) {
             console.log(chalk.green(`✅ ${physicalPackage} v${lock.version} is already resolvable.`));
             return;
         }
         console.log(chalk.bold(`\n📦 Installing locked MEMO content v${lock.version}...\n`));
         try {
             const installed = installContentPackage(projectDir, lock.version);
-            if (!installed.some(manifest => manifest.manifest.packages[lock.ontology])) {
+            if (!installed.some(manifest => lockNames.some(name => manifest.manifest.packages[name]))) {
                 throw new Error(`installed content does not provide logical package "${lock.ontology}"`);
             }
         } catch (error) {

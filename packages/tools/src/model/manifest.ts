@@ -25,6 +25,22 @@ export interface LoadedMemoManifest {
 
 const MANIFEST_FILENAME = 'memo.manifest.yaml';
 
+const LEGACY_CONTENT_SCOPE = '@memo/';
+const CONTENT_SCOPE = '@memoarchitect/';
+
+/**
+ * Candidate logical names for a package reference. Content shipped before the
+ * scope rename used `@memo/<name>`; manifests only declare `@memoarchitect/`
+ * names, so legacy references (old `extends:` values and lock files) resolve
+ * through their canonical alias.
+ */
+export function logicalNameCandidates(packageName: string): string[] {
+    if (packageName.startsWith(LEGACY_CONTENT_SCOPE)) {
+        return [packageName, CONTENT_SCOPE + packageName.slice(LEGACY_CONTENT_SCOPE.length)];
+    }
+    return [packageName];
+}
+
 function isStringRecord(value: unknown): value is Record<string, string> {
     return Boolean(value) && typeof value === 'object'
         && Object.values(value as Record<string, unknown>).every(entry => typeof entry === 'string');

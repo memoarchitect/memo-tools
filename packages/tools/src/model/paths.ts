@@ -26,9 +26,6 @@ export function resolveContentPackageRoot(): string {
 /** Relative path (from a legacy tools checkout) to the ontology repository. */
 export const VENDOR_ONTOLOGY_DIR = 'memo';
 
-/** Relative path to the legacy ontology repository's `packages/` directory. */
-export const VENDOR_ONTOLOGY_PACKAGES_DIR = `${VENDOR_ONTOLOGY_DIR}/packages`;
-
 /**
  * Relative path (from a legacy tools checkout) to the ontology `src/` root.
  * All SysML v2 ontology/methodology/example content lives under `src/`, organized

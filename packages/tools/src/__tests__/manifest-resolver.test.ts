@@ -104,4 +104,28 @@ describe('manifest package resolution', () => {
         expect(resolvePackageConfig('@logical/profile', project))
             .toBe(join(content, 'profile', 'memo.package.yaml'));
     });
+
+    it('resolves legacy @memo/ references through their @memoarchitect/ manifest entry', () => {
+        const root = fixture();
+        const project = join(root, 'project');
+        const content = join(project, 'node_modules', '@memoarchitect', 'ontology');
+        mkdirSync(join(content, 'profile'), { recursive: true });
+        writeFileSync(join(project, 'memo.package.yaml'), 'name: project\ntype: device\nextends: "@memo/medical-modeling-profile"\n');
+        writeFileSync(join(content, 'memo.manifest.yaml'), [
+            'manifest: 1',
+            'packages:',
+            '  "@memoarchitect/medical-modeling-profile": ./profile',
+            'init:',
+            '  defaultExtends: "@memoarchitect/medical-modeling-profile"',
+            '  rootImport: "memo_medical_device_library"',
+            '  template: ./template',
+            '  archetypes: ./profile/archetypes.yaml',
+            'examples: {}',
+            '',
+        ].join('\n'));
+        writeFileSync(join(content, 'profile', 'memo.package.yaml'), 'name: "@memoarchitect/medical-modeling-profile"\ntype: profile\n');
+
+        expect(resolvePackageConfig('@memo/medical-modeling-profile', project))
+            .toBe(join(content, 'profile', 'memo.package.yaml'));
+    });
 });

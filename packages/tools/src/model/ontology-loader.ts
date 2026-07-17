@@ -15,8 +15,9 @@ import { fileURLToPath } from 'node:url';
 import { KindRegistry } from './kind-registry.js';
 import { RelationshipRegistry } from './relationship-registry.js';
 import { parseFiles } from './parser-utils.js';
-import { VENDOR_ONTOLOGY_DIR, VENDOR_ONTOLOGY_PACKAGES_DIR } from './paths.js';
-import { discoverMemoManifests, findMemoManifests, resolveManifestPath } from './manifest.js';
+import { VENDOR_ONTOLOGY_DIR } from './paths.js';
+import { discoverMemoManifests, findMemoManifests, logicalNameCandidates, resolveManifestPath } from './manifest.js';
+import type { LoadedMemoManifest } from './manifest.js';
 import type { BuilderRegistries } from './builder.js';
 
 // ─── Ontology Package Metadata (Phase C2) ────────────────────────────────────
@@ -399,16 +400,6 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
                     candidates.push(join(pkgsDir, entry.name));
                 }
             } catch { /* skip */ }
-
-            const vendorPkgsDir = join(searchDir, VENDOR_ONTOLOGY_PACKAGES_DIR);
-            if (existsSync(vendorPkgsDir)) {
-                try {
-                    for (const entry of readdirSync(vendorPkgsDir, { withFileTypes: true })) {
-                        if (!entry.isDirectory()) continue;
-                        candidates.push(join(vendorPkgsDir, entry.name));
-                    }
-                } catch { /* skip */ }
-            }
 
             break;
         }
@@ -794,7 +785,7 @@ export function resolvePackageConfig(packageName: string, fromDir: string): stri
             let manifestDir = dirname(projectConfig);
             while (true) {
                 for (const manifest of discoverMemoManifests([manifestDir])) {
-                    const subpath = manifest.manifest.packages[packageName];
+                    const subpath = manifestSubpathFor(manifest, packageName);
                     if (!subpath) continue;
                     const packageDir = resolveManifestPath(manifest, subpath);
                     for (const configName of CONFIG_SEARCH_ORDER) {
@@ -813,7 +804,7 @@ export function resolvePackageConfig(packageName: string, fromDir: string): stri
     let dir = startDir;
     while (true) {
         for (const manifest of discoverMemoManifests([dir])) {
-            const subpath = manifest.manifest.packages[packageName];
+            const subpath = manifestSubpathFor(manifest, packageName);
             if (!subpath) continue;
             const packageDir = resolveManifestPath(manifest, subpath);
             for (const configName of CONFIG_SEARCH_ORDER) {
@@ -825,11 +816,6 @@ export function resolvePackageConfig(packageName: string, fromDir: string): stri
         for (const configName of CONFIG_SEARCH_ORDER) {
             const candidate = resolve(dir, 'packages', shortName, configName);
             if (existsSync(candidate)) return candidate;
-        }
-
-        for (const configName of CONFIG_SEARCH_ORDER) {
-            const vendorCandidate = resolve(dir, VENDOR_ONTOLOGY_PACKAGES_DIR, shortName, configName);
-            if (existsSync(vendorCandidate)) return vendorCandidate;
         }
 
         for (const configName of CONFIG_SEARCH_ORDER) {
@@ -856,13 +842,22 @@ export function resolvePackageConfig(packageName: string, fromDir: string): stri
         ...findMemoManifests(fromDir),
         ...discoverMemoManifests([devManifestRoot]),
     ]) {
-        const subpath = manifest.manifest.packages[packageName];
+        const subpath = manifestSubpathFor(manifest, packageName);
         if (!subpath) continue;
         const packageDir = resolveManifestPath(manifest, subpath);
         for (const configName of CONFIG_SEARCH_ORDER) {
             const candidate = resolve(packageDir, configName);
             if (existsSync(candidate)) return candidate;
         }
+    }
+    return undefined;
+}
+
+/** Look up a logical package in a manifest, accepting the legacy @memo/ scope. */
+function manifestSubpathFor(manifest: LoadedMemoManifest, packageName: string): string | undefined {
+    for (const name of logicalNameCandidates(packageName)) {
+        const subpath = manifest.manifest.packages[name];
+        if (subpath) return subpath;
     }
     return undefined;
 }
