@@ -1,15 +1,152 @@
-:root,
-[data-md-color-scheme="default"],
-[data-md-color-scheme="slate"] {
-  --md-primary-fg-color: #1b3a4b;
-  --md-primary-fg-color--dark: #0b1e2d;
-  --md-accent-fg-color: #2dd4a8;
+/* MEMO documentation theme
+   Visual identity from the MEMO introduction deck:
+   night-navy chrome, teal accent, ink-on-paper text, soft wash cards,
+   mono teal package names. Shared across the memo, memo-tools, and
+   memo-architect documentation sites. */
+
+:root {
+  --memo-night: #0b1e2d;
+  --memo-night-2: #0a3452;
+  --memo-ink: #082744;
+  --memo-muted: #5c7188;
+  --memo-paper: #fbfcfd;
+  --memo-wash: #eef4f7;
+  --memo-line: #d8e2e9;
+  --memo-teal: #2dd4a8;
+  --memo-teal-deep: #0a8d76;
+  --memo-teal-soft: #e3faf3;
+  --memo-blue: #438ed0;
+  --memo-blue-soft: #eaf4fd;
+  --memo-orange: #ef9b51;
+  --memo-orange-soft: #fff3e8;
+  --memo-red: #ea6b61;
+  --memo-red-soft: #fff0ef;
+  --memo-code-bg: #06243d;
+  --memo-code-ink: #cfe8ff;
+  --memo-radius: 12px;
 }
 
-.md-header { background: #0b1e2d; }
+/* ── Palette mapping ─────────────────────────────────────────────────── */
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #1b3a4b;
+  --md-primary-fg-color--dark: var(--memo-night);
+  --md-accent-fg-color: var(--memo-teal-deep);
+  --md-typeset-a-color: var(--memo-teal-deep);
+  --md-default-bg-color: var(--memo-paper);
+  --md-code-bg-color: var(--memo-wash);
+  --md-typeset-table-color: var(--memo-line);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #1b3a4b;
+  --md-primary-fg-color--dark: var(--memo-night);
+  --md-accent-fg-color: var(--memo-teal);
+  --md-typeset-a-color: var(--memo-teal);
+  --md-default-bg-color: #0d2231;
+  --md-code-bg-color: rgba(6, 36, 61, 0.72);
+}
+
+/* ── Chrome: header and tabs match the deck's night navy ────────────── */
+
+.md-header { background: var(--memo-night); }
+.md-header--shadow { box-shadow: 0 1px 0 rgba(45, 212, 168, 0.25), 0 8px 24px rgba(2, 31, 54, 0.18); }
 .md-tabs { background: #1b3a4b; }
-.md-typeset h1 { font-weight: 700; }
-.md-typeset h2 { font-weight: 650; }
-.md-typeset table:not([class]) th { background: rgba(27, 58, 75, 0.09); }
-.md-typeset .admonition { border-left-color: #2dd4a8; }
-.md-typeset .admonition-title { background: rgba(45, 212, 168, 0.09); }
+.md-tabs__link--active { color: var(--memo-teal); font-weight: 700; }
+.md-header__topic:first-child { font-weight: 800; letter-spacing: -0.01em; }
+
+/* ── Typography: tight display headings like the deck ────────────────── */
+
+.md-typeset h1 {
+  color: var(--memo-ink);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.md-typeset h2 { font-weight: 750; letter-spacing: -0.02em; }
+.md-typeset h3 { font-weight: 700; letter-spacing: -0.01em; }
+[data-md-color-scheme="slate"] .md-typeset h1 { color: #e8f1f8; }
+
+/* ── Inline code: teal chips, as the deck styles package names ───────── */
+
+.md-typeset code {
+  border-radius: 6px;
+  background: var(--memo-teal-soft);
+  color: var(--memo-teal-deep);
+  padding: 0.1em 0.4em;
+}
+[data-md-color-scheme="slate"] .md-typeset code {
+  background: rgba(45, 212, 168, 0.12);
+  color: var(--memo-teal);
+}
+
+/* Code blocks keep neutral syntax colors on the standard panel */
+.md-typeset pre > code {
+  background: var(--md-code-bg-color);
+  color: var(--md-code-fg-color);
+  border-radius: var(--memo-radius);
+  padding: 0.75em 1em;
+}
+
+/* ── Tables: wash header band, soft rounded frame ─────────────────────── */
+
+.md-typeset table:not([class]) {
+  border-radius: var(--memo-radius);
+  border: 1px solid var(--memo-line);
+  overflow: hidden;
+}
+.md-typeset table:not([class]) th {
+  background: var(--memo-wash);
+  color: var(--memo-ink);
+  font-weight: 750;
+}
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) {
+  border-color: rgba(216, 226, 233, 0.16);
+}
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background: rgba(45, 212, 168, 0.08);
+  color: #e8f1f8;
+}
+
+/* ── Admonitions: deck card styling ──────────────────────────────────── */
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: var(--memo-radius);
+  border-width: 0 0 0 4px;
+  border-left-color: var(--memo-teal-deep);
+  box-shadow: 0 6px 20px rgba(2, 31, 54, 0.08);
+}
+.md-typeset .admonition-title,
+.md-typeset summary { background: rgba(45, 212, 168, 0.10); }
+.md-typeset .admonition.warning, .md-typeset details.warning { border-left-color: var(--memo-orange); }
+.md-typeset .warning > .admonition-title, .md-typeset .warning > summary { background: var(--memo-orange-soft); }
+.md-typeset .admonition.danger, .md-typeset details.danger { border-left-color: var(--memo-red); }
+.md-typeset .danger > .admonition-title, .md-typeset .danger > summary { background: var(--memo-red-soft); }
+.md-typeset .admonition.info, .md-typeset details.info { border-left-color: var(--memo-blue); }
+.md-typeset .info > .admonition-title, .md-typeset .info > summary { background: var(--memo-blue-soft); }
+[data-md-color-scheme="slate"] .md-typeset .warning > .admonition-title { background: rgba(239, 155, 81, 0.14); }
+[data-md-color-scheme="slate"] .md-typeset .danger > .admonition-title { background: rgba(234, 107, 97, 0.14); }
+[data-md-color-scheme="slate"] .md-typeset .info > .admonition-title { background: rgba(67, 142, 208, 0.14); }
+
+/* ── Blockquotes: the deck's teal-rail callout ───────────────────────── */
+
+.md-typeset blockquote {
+  border-left: 4px solid var(--memo-teal);
+  background: var(--memo-teal-soft);
+  border-radius: 0 var(--memo-radius) var(--memo-radius) 0;
+  padding: 0.6em 1em;
+  color: var(--memo-ink);
+}
+[data-md-color-scheme="slate"] .md-typeset blockquote {
+  background: rgba(45, 212, 168, 0.08);
+  color: inherit;
+}
+
+/* ── Buttons and footer ──────────────────────────────────────────────── */
+
+.md-typeset .md-button--primary {
+  background-color: var(--memo-teal-deep);
+  border-color: var(--memo-teal-deep);
+}
+.md-footer { background: var(--memo-night); }
+.md-footer-meta { background: #071825; }

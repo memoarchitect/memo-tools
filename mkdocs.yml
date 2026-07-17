@@ -6,6 +6,9 @@ repo_name: memoarchitect/memo-tools
 
 theme:
   name: material
+  font:
+    text: Nunito
+    code: JetBrains Mono
   palette:
     - scheme: default
       primary: custom
@@ -69,5 +72,6 @@ nav:
       - Command Map: reference/commands.md
       - Project Configuration: reference/configuration.md
       - Library API: reference/library.md
-  - Maintainers:
-      - How Tools Is Built: maintainers/implementation.md
+  - Architecture:
+      - How Tools Is Organized: architecture/index.md
+  - Contributing: contributing.md
