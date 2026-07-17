@@ -16,7 +16,7 @@ pnpm run build
 pnpm run test
 ```
 
-Use Node.js 20 or later and pnpm 9 or later. The build runs
+Use Node.js 22 or later and pnpm 9 or later. The build runs
 `langium generate` before `tsc`, so grammar changes under
 `packages/tools/src/grammar` are picked up automatically.
 
