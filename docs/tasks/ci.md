@@ -38,7 +38,7 @@ jobs:
 
 ```yaml
 model-validation:
-  image: node:22
+  image: node:26
   script:
     - corepack enable
     - pnpm install --frozen-lockfile

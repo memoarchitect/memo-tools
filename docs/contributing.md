@@ -16,7 +16,7 @@ pnpm run build
 pnpm run test
 ```
 
-Use Node.js 22 or later and pnpm 9 or later. The build runs
+Use Node.js 26 or later and pnpm 9 or later. The build runs
 `langium generate` before `tsc`, so grammar changes under
 `packages/tools/src/grammar` are picked up automatically.
 
@@ -58,8 +58,9 @@ rules protect.
   define the supported contract.
 - Machine-readable output (JSON, protocol events) is versioned — extending it
   is fine, breaking it needs a coordinated release.
-- Existing user project files (`memo.package.yaml`, `memo.lock.yaml`) must
-  keep working without migration.
+- Pre-1.0, formats and names may break between releases without migration
+  support; projects pin exact versions. Compatibility guarantees start at
+  the 1.0 baseline.
 
 ## Propose the change
 

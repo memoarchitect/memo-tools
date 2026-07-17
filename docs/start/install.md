@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 22 or later
+- Node.js 26 or later
 - npm, pnpm, or another compatible package manager
 
 ## Install

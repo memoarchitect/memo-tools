@@ -7,7 +7,7 @@ variables:
 
 test:
   stage: test
-  image: node:22
+  image: node:26
   before_script:
     - corepack enable
   script:
