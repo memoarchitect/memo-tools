@@ -1,28 +1,10 @@
 # How Tools Is Organized
 
-Memo Tools is the engine of the MEMO stack: it parses text-first SysML v2 into
-a semantic model, runs domain rules and closure checks, and exposes the result
-to the `memo` CLI, the Architect workbench, and your own automation — all
-through **one implementation**.
-
-```mermaid
-flowchart LR
-    subgraph inputs [Inputs]
-        SRC["Your .sysml source"]
-        ONT["@memoarchitect/ontology<br/>content resolved per project"]
-    end
-    subgraph engine ["@memoarchitect/tools"]
-        P["Parser<br/>Langium grammar"] --> M["Semantic model<br/>MemoModel"]
-        M --> V["Validation<br/>closure · consistency · coverage"]
-        M --> OPS["Project operations<br/>init · build · export · import · dhf"]
-    end
-    SRC --> P
-    ONT --> P
-    V --> CLI["memo CLI"]
-    OPS --> CLI
-    OPS --> SRV["Dev server<br/>WebSocket protocol"]
-    SRV --> ARCH["MEMO Architect<br/>web workbench"]
-```
+MEMO Tools turns two inputs—your SysML v2 source and the selected ontology
+content—into one semantic model. The same model supports validation, command
+line operations, exports, and the Architect workbench. This shared model is why
+a validation finding, a JSON export, and a diagram can describe the same
+engineering record rather than parallel copies.
 
 ## The stack position
 

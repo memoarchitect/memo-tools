@@ -59,8 +59,8 @@ docs_dir: docs
 site_dir: site
 
 nav:
-  - Start:
-      - Overview: index.md
+  - Start Here:
+      - What MEMO Tools Is: index.md
       - Install and Create a Project: start/install.md
       - First Useful Workflow: start/first-workflow.md
   - Everyday Tasks:
@@ -72,6 +72,7 @@ nav:
       - Command Map: reference/commands.md
       - Project Configuration: reference/configuration.md
       - Library API: reference/library.md
-  - Architecture:
-      - How Tools Is Organized: architecture/index.md
-  - Contributing: contributing.md
+  - Concepts and Design:
+      - How Tools Turns Source into Review Artifacts: architecture/index.md
+  - Contribute:
+      - Contributing: contributing.md
