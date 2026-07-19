@@ -293,11 +293,11 @@ function readMethodologyChain(configPath: string): Set<string> {
         if (!pkgCfg) continue;
         let content = '';
         try { content = readFileSync(pkgCfg, 'utf-8'); } catch { continue; }
-        const single = content.match(/^extends:\s*"?(@memo\/[\w-]+)"?/m);
+        const single = content.match(/^extends:\s*"?(@[\w-]+\/[\w-]+)"?/m);
         if (single) { stack.push(single[1]); continue; }
         const arr = content.match(/^extends:\s*\n((?:\s+-\s+.+\n?)+)/m);
         if (arr) {
-            for (const em of arr[1].matchAll(/^\s+-\s+"?(@memo\/[\w-]+)"?/gm)) stack.push(em[1]);
+            for (const em of arr[1].matchAll(/^\s+-\s+"?(@[\w-]+\/[\w-]+)"?/gm)) stack.push(em[1]);
         }
     }
     return out;
@@ -658,14 +658,14 @@ function collectOptionalModules(configPath: string): string[] {
         }
 
         // Handle both single and array extends forms
-        const singleExt = content.match(/^extends:\s*"?(@memo\/[\w-]+)"?/m);
+        const singleExt = content.match(/^extends:\s*"?(@[\w-]+\/[\w-]+)"?/m);
         if (singleExt) {
             const parent = resolvePackageConfig(singleExt[1], dirname(p));
             if (parent) stack.push(parent);
         } else {
             const arraySection = content.match(/^extends:\s*\n((?:\s+-\s+.+\n?)+)/m);
             if (arraySection) {
-                for (const m of arraySection[1].matchAll(/^\s+-\s+"?(@memo\/[\w-]+)"?/gm)) {
+                for (const m of arraySection[1].matchAll(/^\s+-\s+"?(@[\w-]+\/[\w-]+)"?/gm)) {
                     const parent = resolvePackageConfig(m[1], dirname(p));
                     if (parent) stack.push(parent);
                 }
@@ -692,14 +692,14 @@ function walkExtendsChain(configPath: string, dirs: string[], seen: Set<string>)
         //   extends: "@memoarchitect/ontology"
         //   extends:
         //     - "@memoarchitect/ontology"
-        const singleMatch = content.match(/^extends:\s*"?(@memo\/[\w-]+)"?/m);
+        const singleMatch = content.match(/^extends:\s*"?(@[\w-]+\/[\w-]+)"?/m);
         if (singleMatch) {
             extendsPackages = [singleMatch[1]];
         } else {
             // Array form: collect all list entries under `extends:`
             const arraySection = content.match(/^extends:\s*\n((?:\s+-\s+.+\n?)+)/m);
             if (arraySection) {
-                const entries = [...arraySection[1].matchAll(/^\s+-\s+"?(@memo\/[\w-]+)"?/gm)];
+                const entries = [...arraySection[1].matchAll(/^\s+-\s+"?(@[\w-]+\/[\w-]+)"?/gm)];
                 extendsPackages = entries.map(m => m[1]);
             }
         }
