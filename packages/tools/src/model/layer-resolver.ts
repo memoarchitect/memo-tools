@@ -46,6 +46,21 @@ export function resolveLayerFromPath(filePath: string): string {
     // groups (viewpoints, compliance, core, ...) are themselves the layer.
     const archMatch = normalized.match(/\/src\/architecture\/([^/]+)\//);
     if (archMatch && !archMatch[1].endsWith('.sysml')) return archMatch[1];
+    const assuranceMatch = normalized.match(/\/src\/assurance\/([^/]+)\//);
+    if (assuranceMatch && !assuranceMatch[1].endsWith('.sysml')) {
+        const assuranceLayers: Record<string, string> = {
+            safety: 'risk',
+            safety_analysis: 'risk',
+            verification: 'verification',
+            human_factors: 'human-factors',
+            needs: 'needs',
+        };
+        return assuranceLayers[assuranceMatch[1]] ?? assuranceMatch[1];
+    }
+    const operationalMatch = normalized.match(/\/src\/(context|activities|clinical_procedures|interaction|scenarios|use_cases|workflows)\//);
+    if (operationalMatch) {
+        return operationalMatch[1] === 'context' ? 'context' : 'operational';
+    }
     const groupMatch = normalized.match(/\/src\/(viewpoints|compliance|core|methodology|artifacts|rules)\//);
     if (groupMatch) return groupMatch[1];
 

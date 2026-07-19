@@ -427,6 +427,14 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
         } catch { /* skip */ }
     }
 
+    // A bundled example runs from a disposable directory and intentionally has
+    // no node_modules of its own. Its packages are nevertheless resolvable via
+    // its methodology/extends chain, so use that same authoritative resolution
+    // path when publishing metadata to clients such as Memo Architect.
+    for (const packageDir of findOntologyPackageDirs(primaryConfig)) {
+        candidates.push(packageDir);
+    }
+
     // Collect which packages are declared as optionalModules by any base pkg.
     const optionalModuleNames = new Set<string>();
     for (const pkgDir of candidates) {
