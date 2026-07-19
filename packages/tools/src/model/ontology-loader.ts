@@ -12,6 +12,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parse as parseYaml } from 'yaml';
 import { KindRegistry } from './kind-registry.js';
 import { RelationshipRegistry } from './relationship-registry.js';
 import { parseFiles } from './parser-utils.js';
@@ -342,7 +343,7 @@ function buildPackageInfo(pkgDir: string, selected: boolean): OntologyPackageInf
     const sysmlDir = sysmlDirOverride
         ? resolve(pkgDir, sysmlDirOverride)
         : join(pkgDir, 'sysml');
-    const layers = buildLayers(sysmlDir);
+    const layers = applyExplorerClassification(buildLayers(sysmlDir), pkgDir);
     const kindCount = layers.reduce((s, l) => s + l.kindCount, 0);
     const relationshipTypes = buildRelationshipTypes(sysmlDir);
     const optionalModules = readOptionalModulesList(configContent);
@@ -353,6 +354,34 @@ function buildPackageInfo(pkgDir: string, selected: boolean): OntologyPackageInf
         optionalModules,
         rootDir: pkgDir,
     };
+}
+
+/** Apply the ontology-declared Explorer taxonomy to discovered kinds. */
+function applyExplorerClassification(layers: OntologyLayerInfo[], pkgDir: string): OntologyLayerInfo[] {
+    const rendering = join(pkgDir, 'memo.rendering.yaml');
+    if (!existsSync(rendering)) return layers;
+    try {
+        const parsed = parseYaml(readFileSync(rendering, 'utf-8')) as {
+            explorer?: { classifications?: Array<{ source: string; domain: string; group: string }> };
+        };
+        const classifications = parsed.explorer?.classifications ?? [];
+        if (classifications.length === 0) return layers;
+        const bySource = new Map(classifications.map(c => [c.source, c]));
+        const domains = new Map<string, OntologyLayerInfo>();
+        for (const layer of layers) for (const kind of layer.kinds) {
+            const source = kind.group ?? kind.layer;
+            const placement = bySource.get(source);
+            if (!placement) continue;
+            let domain = domains.get(placement.domain);
+            if (!domain) {
+                domain = { id: placement.domain, label: placement.domain.charAt(0).toUpperCase() + placement.domain.slice(1), color: '#6B7280', kindCount: 0, kinds: [] };
+                domains.set(placement.domain, domain);
+            }
+            domain.kinds.push({ ...kind, layer: placement.domain, group: placement.group });
+        }
+        for (const domain of domains.values()) domain.kindCount = domain.kinds.length;
+        return [...domains.values()];
+    } catch { return layers; }
 }
 
 /** Parse `optionalModules:` list from a manifest file content. */

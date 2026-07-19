@@ -397,7 +397,7 @@ function extractFromPackage(
                 extractActionDefinition(member as ActionDefinition, filePath, packageName, config, elements, registry);
                 break;
             case 'ItemDefinition':
-                extractItemDefinition(member as ItemDefinition, filePath, packageName, config, elements, registry);
+                extractItemDefinition(member as ItemDefinition, filePath, packageName, config, elements, registry, registries);
                 break;
             case 'PartDefinition':
             case 'PortDefinition':
@@ -542,19 +542,24 @@ function extractItemDefinition(
     packageName: string,
     config: MEMOConfig,
     elements: Map<string, MemoElement>,
-    registry: PackageRegistry
+    registry: PackageRegistry,
+    registries?: BuilderRegistries
 ): void {
     const id = itemDef.name;
 
     const attributes = extractAttributes(itemDef.body);
     const doc = extractDocComment(itemDef.body);
+    const typeName = itemDef.specialization?.superType;
+    const { kindDef, resolvedKind } = typeName
+        ? resolveKindDef(typeName, config, registries)
+        : { kindDef: undefined, resolvedKind: 'ItemDefinition' };
 
     const element: MemoElement = {
         id,
         name: id,
-        kind: 'ItemDefinition',
+        kind: kindDef?.layer && kindDef.layer !== 'unknown' ? resolvedKind : 'ItemDefinition',
         construct: 'item',
-        layer: 'behavior',
+        layer: kindDef?.layer && kindDef.layer !== 'unknown' ? kindDef.layer : 'behavior',
         file: filePath,
         package: packageName || undefined,
         attributes,
