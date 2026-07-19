@@ -50,7 +50,7 @@ describe('KK-1: view-kind taxonomy', () => {
 
     it('maps every legacy diagramType key to exactly one spec view kind', () => {
         const legacyKeys = [
-            'bdd', 'ibd', 'req', 'ucd', 'act', 'afd', 'pkg', 'par', 'risk',
+            'bdd', 'ibd', 'req', 'ucd', 'context', 'act', 'afd', 'pkg', 'par', 'risk',
             'stm', 'seq', 'fmea', 'alloc', 'threat-model', 'ofd', 'ffd',
         ];
         for (const key of legacyKeys) {

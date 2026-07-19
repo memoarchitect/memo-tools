@@ -1,8 +1,9 @@
 // ─── Kind Registry ───────────────────────────────────────────────────────────
 //
 // Discovers kinds from SysML AST Definition nodes, replacing config.kinds.
-// Walks PartDefinition, RequirementDefinition, ActionDefinition, ItemDefinition,
-// PortDefinition, InterfaceDefinition, AttributeDefinition, and EnumDefinition
+// Walks PartDefinition, RequirementDefinition, VerificationDefinition,
+// StateDefinition, UseCaseDeclaration definitions, ActionDefinition,
+// ItemDefinition, PortDefinition, InterfaceDefinition, AttributeDefinition, and EnumDefinition
 // nodes. Derives layer from the file's directory path (Apollo-11 convention).
 //
 // Usage:
@@ -15,6 +16,9 @@ import type { PackageDeclaration } from '../language/generated/ast.js';
 import {
     isPartDefinition,
     isRequirementDefinition,
+    isVerificationDefinition,
+    isStateDefinition,
+    isUseCaseDeclaration,
     isActionDefinition,
     isItemDefinition,
     isPortDefinition,
@@ -53,6 +57,9 @@ export interface KindRegistryEntry {
 const AST_TYPE_TO_CONSTRUCT: Record<string, SysMLConstruct> = {
     PartDefinition: 'part def',
     RequirementDefinition: 'requirement def',
+    VerificationDefinition: 'verification def',
+    StateDefinition: 'state def',
+    UseCaseDeclaration: 'use case def',
     ActionDefinition: 'action def',
     ItemDefinition: 'item def',
     PortDefinition: 'port def',
@@ -196,6 +203,9 @@ export class KindRegistry {
             if (
                 isPartDefinition(member) ||
                 isRequirementDefinition(member) ||
+                isVerificationDefinition(member) ||
+                isStateDefinition(member) ||
+                (isUseCaseDeclaration(member) && member.isDefinition) ||
                 isActionDefinition(member) ||
                 isItemDefinition(member) ||
                 isPortDefinition(member) ||

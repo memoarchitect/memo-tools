@@ -47,6 +47,9 @@ PackageMember:
     | ImportDeclaration
     | DefinitionMember
     | UsageMember
+    | ItemUsage
+    | AttributeMember
+    | UseCaseDeclaration
     | ConnectionUsage
     | AllocateUsage
     | MetadataApplication
@@ -73,6 +76,8 @@ ImportPath returns string:
 DefinitionMember:
     PartDefinition
     | RequirementDefinition
+    | VerificationDefinition
+    | StateDefinition
     | ActionDefinition
     | ItemDefinition
     | PortDefinition
@@ -104,6 +109,18 @@ RequirementDefinition:
     isAbstract?='abstract'? 'requirement' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=DefinitionBodyMember* '}' | ';');
 
+// SysML v2 verification case definition (VerificationCases::VerificationCase).
+// A behaviour, so it may not specialize a part-based MEMO base.
+VerificationDefinition:
+    isAbstract?='abstract'? 'verification' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+    ('{' body+=DefinitionBodyMember* '}' | ';');
+
+// SysML v2 state definition (States::StateAction) — a behaviour. MEMO uses it
+// for state machines and their mode states; transitions stay part-based.
+StateDefinition:
+    isAbstract?='abstract'? 'state' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+    ('{' body+=DefinitionBodyMember* '}' | ';');
+
 ActionDefinition:
     isAbstract?='abstract'? behaviorKind=('action' | 'operator' | 'function') 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=ActionDefBodyMember* '}' | ';');
@@ -116,9 +133,11 @@ PortDefinition:
     isAbstract?='abstract'? 'port' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=DefinitionBodyMember* '}' | ';');
 
+// Interface defs, like connection defs, may declare `end` features naming the
+// two sides of the interface (e.g. end providerPort / end consumerPort).
 InterfaceDefinition:
     isAbstract?='abstract'? 'interface' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
-    ('{' body+=DefinitionBodyMember* '}' | ';');
+    ('{' body+=ConnectionBodyMember* '}' | ';');
 
 ConnectionDefinition:
     isAbstract?='abstract'? 'connection' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
@@ -151,7 +170,7 @@ ConnectionBodyMember:
     EndDeclaration | DefinitionBodyMember;
 
 EndDeclaration:
-    'end' name=FeatureName (':' type=QualifiedName)? multiplicity=Multiplicity? ';';
+    'end' name=FeatureName (':' isConjugated?='~'? type=QualifiedName)? multiplicity=Multiplicity? ';';
 
 Multiplicity:
     '[' lower=INT '..' (upper=INT | unbounded?='*') ']'
@@ -164,25 +183,63 @@ EnumLiteral:
     'enum' name=EnumLiteralName ';';
 
 EnumLiteralName returns string:
-    ID | 'in' | 'out' | 'inout' | 'part' | 'requirement' | 'action' | 'item' | 'port'
+    ID | UNRESTRICTED_NAME
+    | 'in' | 'out' | 'inout' | 'part' | 'requirement' | 'action' | 'item' | 'port'
     | 'interface' | 'connection' | 'attribute' | 'constraint' | 'enum' | 'view' | 'viewpoint'
-    | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'library' | 'private' | 'public';
+    | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'library' | 'private' | 'public' | 'state' | 'verification';
 
 // ─── Usages (instances) ─────────────────────────────────────────────────────
 
 UsageMember:
     PartUsage
     | RequirementUsage
+    | VerificationUsage
+    | StateUsage
+    | InterfaceUsage
     | ActionUsage
     | PortUsage
     | ViewUsage;
 
 PartUsage:
-    'part' name=ID ':' type=QualifiedName
+    'part' name=ID (':' type=QualifiedName)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// SysML v2 `use case def` / `use case` share a single leading `use case` token
+// pair. Branching inside one rule keeps the def-vs-usage decision local instead
+// of forcing cross-alternative lookahead past the `case` keyword.
+UseCaseDeclaration:
+    isAbstract?='abstract'? 'use' 'case'
+    (   isDefinition?='def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+        ('{' body+=DefinitionBodyMember* '}' | ';')
+      | name=ID (':' type=QualifiedName)?
+        ('{' usageBody+=UsageBodyMember* '}' | ';')
+    );
+
+// Item usage: standalone (`item x : T { … }`), directioned port payload
+// (`in item reading : T;` / `out item command : T;`), or a bound feature value.
+ItemUsage:
+    direction=('in' | 'out' | 'inout')? 'item' name=MemberName
+    (':' type=QualifiedName multiplicity=Multiplicity?)?
+    ('=' boundRef=QualifiedName)?
     ('{' body+=UsageBodyMember* '}' | ';');
 
 RequirementUsage:
     'requirement' name=ID ':' type=QualifiedName
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// SysML v2 verification case usage: `verification vc : SomeCase { … }`.
+VerificationUsage:
+    'verification' name=ID ':' type=QualifiedName
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// SysML v2 state usage: `state modeIdle : ModeState { … }`.
+StateUsage:
+    'state' name=ID ':' type=QualifiedName
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// SysML v2 interface usage: `interface siData : Interface { … }`.
+InterfaceUsage:
+    'interface' name=ID ':' type=QualifiedName
     ('{' body+=UsageBodyMember* '}' | ';');
 
 // ActionUsage supports both typed (action name : Type;) and composite
@@ -213,7 +270,8 @@ ExposePath returns string:
 
 ConnectionUsage:
     'connection' (':' type=QualifiedName)?
-    'connect' source=ConnectionEnd 'to' target=ConnectionEnd ';';
+    'connect' source=ConnectionEnd 'to' target=ConnectionEnd
+    ('{' body+=UsageBodyMember* '}' | ';');
 
 ConnectionEnd:
     endName=FeatureName '::>' ref=ReferenceName;
@@ -230,8 +288,10 @@ ActionParameterMember:
 // ─── Behavior: Action usage body ────────────────────────────────────────────
 // Composite actions contain nested actions, flow connections, successions
 
+// FlowConnectionUsage / SuccessionUsage / ConnectionUsage are contributed by
+// UsageBodyMember; listing them again here would make the alternatives ambiguous.
 ActionUsageBodyMember:
-    ActionUsage | ControlNodeUsage | FlowConnectionUsage | SuccessionUsage | UsageBodyMember;
+    ActionUsage | ControlNodeUsage | UsageBodyMember;
 
 // ─── Behavior: Control nodes (fork / join) ──────────────────────────────────
 // SysML v2 activity control nodes. A `fork` splits one incoming control flow
@@ -285,7 +345,7 @@ ReferenceName returns string:
 // ─── Body members ────────────────────────────────────────────────────────────
 
 DefinitionBodyMember:
-    AttributeMember | PartMember | PortUsage | ViewUsage | RefMember | RequireConstraintMember | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | RefMember | RequireConstraintMember | MetadataApplication | DocComment;
 
 // ─── Constraint expression (KerML boolean subset — ADR-1-18) ─────────────────
 // Authored inside constraint def / requirement def bodies as:
@@ -329,7 +389,7 @@ PrimaryExpr infers ConstraintExpr:
 // value — the bare `name = value;` shorthand is non-standard and is not accepted.
 // Use `attribute redefines name = value;` (the form the serializer emits).
 UsageBodyMember:
-    AttributeMember | PartMember | PortUsage | ViewUsage | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | SuccessionUsage | ConnectionUsage | MetadataApplication | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
 // Two forms:
@@ -337,8 +397,9 @@ UsageBodyMember:
 //   attribute redefines name = value ;   (value assignment / redefinition)
 
 AttributeMember:
-    'attribute' redefines?=('redefines' | ':>>')? name=ID
-    (':' type=QualifiedName multiplicity=Multiplicity? ';' | '=' value=AttributeValue ';');
+    'attribute' redefines?=('redefines' | ':>>')? name=MemberName
+    (':' type=QualifiedName multiplicity=Multiplicity? ('{' body+=UsageBodyMember* '}' | ';')
+    | '=' value=AttributeValue ';');
 
 AttributeValue:
     StringValue | RealValue | IntValue | BooleanValue | SetLiteral | EnumValue;
@@ -385,10 +446,17 @@ PartMember:
     ('{' body+=UsageBodyMember* '}' | ';');
 
 // ─── Reference member ───────────────────────────────────────────────────────
-// e.g. ref subject : TraceableElement[*];
+// Forms:
+//   ref subject : TraceableElement[*];        (typed reference feature)
+//   ref function : SystemFunction[0..1];      (keyword-named reference)
+//   ref item exchangedItem : ExchangeItem;    (item-typed reference payload)
+//   ref :>> definition = syringeDef;          (redefining a reference to a value)
 
 RefMember:
-    'ref' name=ID ':' type=QualifiedName multiplicity=Multiplicity? ';';
+    'ref' (isItem?='item')? (redefines?=':>>')? name=FeatureName
+    (':' isConjugated?='~'? type=QualifiedName multiplicity=Multiplicity?)?
+    ('=' value=AttributeValue)?
+    ';';
 
 // ─── Doc comment ─────────────────────────────────────────────────────────────
 // Captured as a single terminal to prevent hidden ML_COMMENT from consuming it
@@ -415,19 +483,20 @@ QualifiedNameSegment returns string:
 // avoid ambiguity with usage prefixes at statement start.
 QualifiedNameTailSegment returns string:
     QualifiedNameSegment
+    | UNRESTRICTED_NAME
     | 'in' | 'out' | 'inout' | 'part' | 'requirement' | 'action' | 'item' | 'port'
     | 'interface' | 'connection' | 'attribute' | 'constraint' | 'enum' | 'view' | 'viewpoint'
-    | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'private' | 'public';
+    | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'private' | 'public' | 'state' | 'verification';
 
 // Allow keywords as identifiers in member/feature contexts
 MemberName returns string:
     ID | 'requirement' | 'action' | 'item' | 'port' | 'interface' | 'connection'
-    | 'attribute' | 'constraint' | 'view' | 'viewpoint' | 'ref' | 'part';
+    | 'attribute' | 'constraint' | 'view' | 'viewpoint' | 'ref' | 'part' | 'state' | 'verification';
 
 FeatureName returns string:
     ID | 'part' | 'requirement' | 'action' | 'item' | 'port' | 'interface'
     | 'connection' | 'flow' | 'view' | 'viewpoint' | 'attribute' | 'constraint'
-    | 'ref' | 'allocate' | 'end' | 'enum' | 'function' | 'operator';
+    | 'ref' | 'allocate' | 'end' | 'enum' | 'function' | 'operator' | 'state' | 'verification';
 
 // ─── Hidden terminals (skipped by lexer) ─────────────────────────────────────
 
@@ -443,6 +512,9 @@ hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
 terminal DOC_COMMENT: /doc\s+\/\*[\s\S]*?\*\//;
 
 terminal ID: /[a-zA-Z_][a-zA-Z0-9_]*/;
+// SysML v2 unrestricted name: any text in single quotes, used when a name would
+// otherwise collide with a reserved word (e.g. enum 'verification';).
+terminal UNRESTRICTED_NAME: /'(?:[^'\\]|\\.)*'/;
 terminal STRING: /"(?:[^"\\]|\\.)*"/;
 // REAL must be declared before INT so the longest-match lexer emits a single
 // REAL token for `20.0` rather than INT `.` INT.

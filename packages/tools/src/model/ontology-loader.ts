@@ -124,9 +124,9 @@ function parseConstructsInFile(filePath: string): { kinds: ParsedKindInfo[]; rel
 
         // Match kind definitions with optional :> (specializes) and preceding doc comments
         // Pattern: [doc /* ... */] <construct> def Name [:> SuperType] { ... }
-        const kindRegex = /(?:doc\s+\/\*\s*([\s\S]*?)\s*\*\/\s*)?^\s*(?:part|requirement|action|attribute|item|abstract part)\s+def\s+(\w+)(?:\s*(?::>|specializes)\s+(\w+))?/gm;
+        const kindRegex = /(?:doc\s+\/\*\s*([\s\S]*?)\s*\*\/\s*)?^\s*(?:abstract\s+)?(?:part|requirement|verification|state|use\s+case|action|attribute|item)\s+def\s+(\w+)(?:\s*(?::>|specializes)\s+(\w+))?/gm;
         for (const m of content.matchAll(kindRegex)) {
-            const construct = m[0].match(/(?:abstract\s+)?(part|requirement|action|attribute|item)\s+def/)?.[0]?.trim() ?? 'part def';
+            const construct = m[0].match(/(?:abstract\s+)?(part|requirement|verification|state|use\s+case|action|attribute|item)\s+def/)?.[0]?.trim() ?? 'part def';
             kinds.push({
                 name: m[2],
                 construct,

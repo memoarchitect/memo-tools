@@ -30,6 +30,11 @@ import type {
     PackageDeclaration,
     PartUsage,
     RequirementUsage,
+    ItemUsage,
+    UseCaseDeclaration,
+    VerificationUsage,
+    StateUsage,
+    InterfaceUsage,
     ActionUsage,
     PortUsage,
     ViewUsage,
@@ -344,6 +349,25 @@ function extractFromPackage(
             case 'RequirementUsage':
                 extractUsage(member as RequirementUsage, 'requirement', filePath, packageName, config, elements, registry, registries);
                 break;
+            case 'ItemUsage':
+                extractUsage(member as ItemUsage, 'item', filePath, packageName, config, elements, registry, registries);
+                break;
+            case 'UseCaseDeclaration': {
+                const useCase = member as UseCaseDeclaration;
+                if (!useCase.isDefinition) {
+                    extractUsage({ name: useCase.name, type: useCase.type, body: useCase.usageBody }, 'use case', filePath, packageName, config, elements, registry, registries);
+                }
+                break;
+            }
+            case 'VerificationUsage':
+                extractUsage(member as VerificationUsage, 'verification', filePath, packageName, config, elements, registry, registries);
+                break;
+            case 'StateUsage':
+                extractUsage(member as StateUsage, 'state', filePath, packageName, config, elements, registry, registries);
+                break;
+            case 'InterfaceUsage':
+                extractUsage(member as InterfaceUsage, 'interface', filePath, packageName, config, elements, registry, registries);
+                break;
             case 'ActionUsage':
                 extractActionUsage(member as ActionUsage, filePath, packageName, config, elements, deferredFlows, deferredSuccessions, registry, registries);
                 break;
@@ -387,7 +411,11 @@ function extractFromPackage(
     }
 }
 
-type UsageNode = PartUsage | RequirementUsage | ActionUsage | PortUsage | ViewUsage;
+interface UsageNode {
+    name: string;
+    type?: string;
+    body: any[];
+}
 
 function extractUsage(
     usage: UsageNode,

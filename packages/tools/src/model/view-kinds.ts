@@ -42,6 +42,7 @@ export const DIAGRAM_TYPE_TO_VIEW_KIND: Record<string, ViewKind> = {
     pkg: 'general',
     req: 'general',
     ucd: 'general',
+    context: 'general',
     risk: 'general',
     'threat-model': 'general',
     ibd: 'interconnection',

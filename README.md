@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>memo-tools 0.4.6</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
+  <code>memo-tools 0.5.0</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
 </p>
 
 ---
@@ -21,7 +21,7 @@
 ## Version compatibility
 
 `memo`, `memo-tools`, and `memo-architect` share a `MAJOR.MINOR` compatibility
-line. Any `0.4.x` release is intended to work with the other `0.4.x` products;
+line. Any `0.5.x` release is intended to work with the other `0.5.x` products;
 patch versions may advance independently for fixes and additive changes.
 
 ## The meMO stack
@@ -122,7 +122,7 @@ React does not import core internals directly.
 import { buildMemoModel } from '@memoarchitect/tools';
 ```
 
-The API is pre-stable. Pin an exact `0.4.x` patch when embedding it directly.
+The API is pre-stable. Pin an exact `0.5.x` patch when embedding it directly.
 
 ### Maintainer checks
 
@@ -151,7 +151,7 @@ dependency to the sibling `memo` checkout for iterative development.
 
 ## Current repository relationship
 
-- A standalone clone installs `@memoarchitect/ontology@0.4.6` from npm.
+- A standalone clone installs `@memoarchitect/ontology@0.5.0` from npm.
 - The Tools repository contains no ontology git submodule.
 - The private `memo-meta` workspace keeps `memo` and `memo-tools` as sibling
   submodules and applies local pnpm overrides for cross-repository work.

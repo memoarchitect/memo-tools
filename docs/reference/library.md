@@ -10,6 +10,12 @@ import { buildMemoModel } from '@memoarchitect/tools';
 The API is pre-stable. Pin an exact compatible patch version and wrap calls
 behind your own application boundary.
 
+The semantic builder represents supported top-level usage forms—including
+parts, requirements, items, use cases, actions, ports, interfaces, states,
+verification cases, and views—as `MemoElement` records. Reusable definitions
+populate the kind registry; they are not emitted as project elements unless a
+definition has a dedicated semantic representation.
+
 Prefer the CLI when:
 
 - a shell command is sufficient;

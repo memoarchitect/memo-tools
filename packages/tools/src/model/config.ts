@@ -40,6 +40,9 @@ export interface RelationshipType {
 export type SysMLConstruct =
     | 'part def'
     | 'requirement def'
+    | 'verification def'
+    | 'state def'
+    | 'use case def'
     | 'action def'
     | 'action usage'
     | 'item def'

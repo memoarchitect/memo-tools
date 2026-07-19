@@ -93,6 +93,30 @@ describe('buildMemoModel', () => {
         expect(el.doc).toContain('hazard description');
     });
 
+    it('extracts item and use-case usages while retaining a use-case definition as a kind', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                use case def ClinicalGoal;
+                use case ucMonitor : ClinicalGoal {
+                    attribute redefines name = "Monitor patient";
+                }
+                item alarmSignal : AlarmSignal {
+                    attribute redefines name = "Alarm signal";
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig);
+
+        expect(model.elements.size).toBe(2);
+        expect(model.elements.get('ucMonitor')).toMatchObject({
+            kind: 'ClinicalGoal', construct: 'use case', name: 'Monitor patient',
+        });
+        expect(model.elements.get('alarmSignal')).toMatchObject({
+            kind: 'AlarmSignal', construct: 'item', name: 'Alarm signal',
+        });
+        expect(model.errors).toHaveLength(0);
+    });
+
     it('extracts connection usages as relationships', async () => {
         const doc = await parseDoc(`
             package TestPkg {
