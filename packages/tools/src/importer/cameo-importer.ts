@@ -127,7 +127,7 @@ const CAMEO_STEREOTYPE_MAP: Record<string, string> = {
     'Harm': 'Harm',
     'RiskControl': 'RiskControl',
     'Risk': 'Risk',
-    'UserNeed': 'Requirement',
+    'UserNeed': 'Need',
     'DesignInput': 'DesignInput',
     'DesignOutput': 'DesignOutput',
     'SoftwareSystem': 'SoftwareSystem',

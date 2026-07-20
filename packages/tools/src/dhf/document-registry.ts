@@ -166,7 +166,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
         title: 'Design Input Plan',
         standards: ['ISO 13485:2016 §7.3.3'],
         layers: ['requirements', 'business'],
-        relevantKinds: ['DesignInput', 'Requirement', 'StakeholderNeed', 'UseCase'],
+        relevantKinds: ['DesignInput', 'Requirement', 'Need', 'UseCase'],
         relevantRelationships: ['traceTo', 'derivedFrom', 'satisfies'],
         group: 'design',
         sections: [

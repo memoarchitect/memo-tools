@@ -17,8 +17,8 @@ Prepare stable IDs, names, kinds, descriptions, and relevant attributes:
 
 ```csv
 id,name,kind,statement,priority
-NEED-001,Safe therapy,StakeholderNeed,Patient needs safe delivery,high
-REQ-001,Flow accuracy,SystemRequirement,The device shall deliver within the specified tolerance,high
+NEED-001,Safe therapy,Need,Patient needs safe delivery,high
+REQ-001,Flow accuracy,Requirement,The device shall deliver within the specified tolerance,high
 ```
 
 Kind names must exist in the active profile. Preserve source identifiers when

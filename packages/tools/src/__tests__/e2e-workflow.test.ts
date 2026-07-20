@@ -817,7 +817,7 @@ describe('I-1: memo ontology add-kind', () => {
         const outPath = join(tmpDir, 'ontology', 'risk', 'MyHazard.sysml');
         expect(existsSync(outPath)).toBe(true);
         const content = readFileSync(outPath, 'utf-8');
-        expect(content).toContain('part def MyHazard specializes TraceableElement');
+        expect(content).toContain('part def MyHazard specializes MemoPart');
         expect(content).toContain('package risk {');
         expect(content).toContain('private import memo::core::common::*;');
     });
@@ -829,7 +829,7 @@ describe('I-1: memo ontology add-kind', () => {
         const content = readFileSync(outPath, 'utf-8');
         expect(content).toContain('package architecture {');
         expect(content).toContain('package risk {');
-        expect(content).toContain('part def SafetyControl specializes TraceableElement');
+        expect(content).toContain('part def SafetyControl specializes MemoPart');
     });
 
     it('rejects non-PascalCase kind names', () => {

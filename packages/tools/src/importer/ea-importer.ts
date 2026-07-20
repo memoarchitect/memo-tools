@@ -127,8 +127,8 @@ const EA_STEREOTYPE_MAP: Record<string, string> = {
     'Risk': 'Risk',
     'risk': 'Risk',
     // Design control
-    'UserNeed': 'Requirement',
-    'userNeed': 'Requirement',
+    'UserNeed': 'Need',
+    'userNeed': 'Need',
     'DesignInput': 'DesignInput',
     'designInput': 'DesignInput',
     'DesignOutput': 'DesignOutput',

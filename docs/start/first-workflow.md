@@ -10,14 +10,16 @@ In a project `.sysml` file:
 package my_device {
     private import memo_medical_device_library::*;
 
-    requirement safeOperation : StakeholderNeed {
+    requirement safeOperation : Need {
         attribute :>> id = "NEED-001";
         attribute :>> name = "SafeOperation";
+        attribute :>> needKind = NeedKind::stakeholder;
         attribute :>> statement = "The device must protect the patient during normal use.";
     }
 
-    requirement detectFault : SystemRequirement {
+    requirement detectFault : Requirement {
         attribute :>> id = "REQ-001";
+        attribute :>> requirementKind = RequirementKind::system;
         attribute :>> name = "DetectDeliveryFault";
         attribute :>> statement =
             "The device shall detect a delivery fault within two seconds.";

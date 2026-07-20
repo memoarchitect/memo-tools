@@ -75,7 +75,7 @@ export function ontologyAddKindCommand(name: string, options: { layer: string; o
         `${indent}private import memo::core::common::*;`,
         `${indent}private import memo::core::enumerations::*;`,
         '',
-        `${indent}part def ${name} specializes TraceableElement {`,
+        `${indent}part def ${name} specializes MemoPart {`,
         `${indent}    attribute doc : String;`,
         `${indent}}`,
         closePkgs,
