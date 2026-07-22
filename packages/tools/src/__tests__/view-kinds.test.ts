@@ -188,7 +188,7 @@ describe('KK-1 acceptance: GPCA views', () => {
 
 describe('action-flow sample subtypes', () => {
     it('derives the three explicitly declared diagram types without collapsing them', async () => {
-        const samplesDir = resolve(GPCA_VIEWS_DIR, '../samples');
+        const samplesDir = resolve(resolveContentPackageRoot(), 'examples/sysml-diagram-samples/model/samples');
         const files = ['action_flow_view.sysml', 'functional_flow_view.sysml', 'operational_behaviour_view.sysml'];
         const docs: ParsedDocument[] = [];
         for (const file of files) {
