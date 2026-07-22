@@ -246,7 +246,7 @@ viewpoints: []
   # Example:
   # - id: risk-view
   #   label: "Risk Analysis"
-  #   visibleKinds: [Hazard, HazardousSituation, Harm, RiskControl]
+  #   visibleKinds: [Hazard, HazardousSituation, Harm, RiskControlMeasure]
   #   visibleRelationships: [mitigates, leadsTo, causes]
   #   visibleLayers: [risk]
 `;

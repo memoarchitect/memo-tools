@@ -125,7 +125,10 @@ const CAMEO_STEREOTYPE_MAP: Record<string, string> = {
     'Hazard': 'Hazard',
     'HazardousSituation': 'HazardousSituation',
     'Harm': 'Harm',
-    'RiskControl': 'RiskControl',
+    'RiskControlMeasure': 'RiskControlMeasure',
+    'riskControlMeasure': 'RiskControlMeasure',
+    // Older UML/SysML profiles commonly use this pre-ISO-14971 name.
+    'RiskControl': 'RiskControlMeasure',
     'Risk': 'Risk',
     'UserNeed': 'Need',
     'DesignInput': 'DesignInput',

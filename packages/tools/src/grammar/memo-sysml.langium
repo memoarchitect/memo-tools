@@ -186,7 +186,8 @@ EnumLiteralName returns string:
     ID | UNRESTRICTED_NAME
     | 'in' | 'out' | 'inout' | 'part' | 'requirement' | 'action' | 'item' | 'port'
     | 'interface' | 'connection' | 'attribute' | 'constraint' | 'enum' | 'view' | 'viewpoint'
-    | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'library' | 'private' | 'public' | 'state' | 'verification';
+    | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'library' | 'private' | 'public' | 'state' | 'verification'
+    | 'use' | 'fork' | 'join';
 
 // ─── Usages (instances) ─────────────────────────────────────────────────────
 
@@ -270,8 +271,12 @@ ExposePath returns string:
 
 ConnectionUsage:
     'connection' (':' type=QualifiedName)?
-    'connect' source=ConnectionEnd 'to' target=ConnectionEnd
-    ('{' body+=UsageBodyMember* '}' | ';');
+    (   'connect' source=ConnectionEnd 'to' target=ConnectionEnd
+        ('{' body+=UsageBodyMember* '}' | ';')
+      | '{' body+=UsageBodyMember*
+        'connect' source=ConnectionEnd 'to' target=ConnectionEnd ';'
+        '}'
+    );
 
 ConnectionEnd:
     endName=FeatureName '::>' ref=ReferenceName;
@@ -486,7 +491,8 @@ QualifiedNameTailSegment returns string:
     | UNRESTRICTED_NAME
     | 'in' | 'out' | 'inout' | 'part' | 'requirement' | 'action' | 'item' | 'port'
     | 'interface' | 'connection' | 'attribute' | 'constraint' | 'enum' | 'view' | 'viewpoint'
-    | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'private' | 'public' | 'state' | 'verification';
+    | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'private' | 'public' | 'state' | 'verification'
+    | 'use' | 'fork' | 'join';
 
 // Allow keywords as identifiers in member/feature contexts
 MemberName returns string:

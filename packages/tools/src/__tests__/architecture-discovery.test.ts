@@ -49,6 +49,19 @@ describe('buildLayers — architecture sublayer discovery', () => {
         const names = arch!.kinds.map(k => k.name).sort();
         expect(names).toEqual(['AnotherKind', 'FlatKind', 'NestedKind']);
     });
+
+    it('records abstract kinds and all supported definition constructs', () => {
+        const path = join(root, 'architecture/types.sysml');
+        mkdirSync(join(root, 'architecture'), { recursive: true });
+        writeFileSync(path, 'abstract part def AbstractNode;\nport def SignalPort;\ninterface def DeviceInterface;\nconnection def Connects;\n', 'utf-8');
+        const architecture = buildLayers(root).find(layer => layer.id === 'architecture')!;
+        expect(architecture.kinds).toEqual(expect.arrayContaining([
+            expect.objectContaining({ name: 'AbstractNode', isAbstract: true }),
+            expect.objectContaining({ name: 'SignalPort', construct: 'port def' }),
+            expect.objectContaining({ name: 'DeviceInterface', construct: 'interface def' }),
+            expect.objectContaining({ name: 'Connects', construct: 'connection def' }),
+        ]));
+    });
 });
 
 // W1.08.01 E-1: artifact folder skeleton — layer discovery for artifacts/

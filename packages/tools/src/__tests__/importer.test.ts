@@ -26,7 +26,7 @@ describe('EA Importer', () => {
             elements: [
                 { id: 1, name: 'Overheating', type: 'Class', stereotype: 'Hazard', notes: 'Thermal hazard' },
                 { id: 2, name: 'Temperature Sensor', type: 'Component', notes: 'Monitors temp' },
-                { id: 3, name: 'Alert System', type: 'Class', stereotype: 'RiskControl' },
+                { id: 3, name: 'Alert System', type: 'Class', stereotype: 'RiskControlMeasure' },
             ],
             connectors: [
                 { id: 1, sourceId: 3, targetId: 1, type: 'Dependency', stereotype: 'mitigates' },
@@ -37,7 +37,7 @@ describe('EA Importer', () => {
         expect(result.stats.mappedElements).toBe(3);
         expect(result.elements[0].memoKind).toBe('Hazard');
         expect(result.elements[1].memoKind).toBe('LogicalComponent');
-        expect(result.elements[2].memoKind).toBe('RiskControl');
+        expect(result.elements[2].memoKind).toBe('RiskControlMeasure');
         expect(result.stats.mappedRelationships).toBe(1);
         expect(result.relationships[0].memoRelType).toBe('mitigates');
     });
@@ -77,7 +77,7 @@ describe('EA Importer', () => {
         const result = importEaJson({
             elements: [
                 { id: 1, name: 'Overheating', type: 'Class', stereotype: 'Hazard', notes: 'Thermal hazard' },
-                { id: 2, name: 'Temp Monitor', type: 'Class', stereotype: 'RiskControl' },
+                { id: 2, name: 'Temp Monitor', type: 'Class', stereotype: 'RiskControlMeasure' },
             ],
             connectors: [
                 { id: 1, sourceId: 2, targetId: 1, type: 'Dependency', stereotype: 'mitigates' },
@@ -87,7 +87,7 @@ describe('EA Importer', () => {
         const sysml = eaResultToSysml(result, 'ea_import');
         expect(sysml).toContain('package ea_import {');
         expect(sysml).toContain('Overheating : Hazard');
-        expect(sysml).toContain('Temp_Monitor : RiskControl');
+        expect(sysml).toContain('Temp_Monitor : RiskControlMeasure');
         expect(sysml).toContain('connection : Mitigates');
         expect(sysml).toContain('doc /* Thermal hazard */');
     });
@@ -145,7 +145,7 @@ describe('Cameo Importer', () => {
         const result = importCameoJson({
             elements: [
                 { id: 'e1', name: 'Shock Hazard', type: 'uml:Class', stereotypes: ['Hazard'], documentation: 'Electric shock' },
-                { id: 'e2', name: 'Insulation', type: 'uml:Class', stereotypes: ['RiskControl'] },
+                { id: 'e2', name: 'Insulation', type: 'uml:Class', stereotypes: ['RiskControlMeasure'] },
             ],
             relationships: [
                 { id: 'r1', sourceId: 'e2', targetId: 'e1', type: 'sysml:Satisfy' },
@@ -154,7 +154,7 @@ describe('Cameo Importer', () => {
 
         expect(result.stats.mappedElements).toBe(2);
         expect(result.elements[0].memoKind).toBe('Hazard');
-        expect(result.elements[1].memoKind).toBe('RiskControl');
+        expect(result.elements[1].memoKind).toBe('RiskControlMeasure');
         expect(result.relationships[0].memoRelType).toBe('satisfy');
     });
 
@@ -219,7 +219,7 @@ memo:Hazard a owl:Class ;
     memo:sysmlConstruct "part def" ;
     .
 
-memo:RiskControl a owl:Class ;
+memo:RiskControlMeasure a owl:Class ;
     rdfs:label "Risk Control" ;
     memo:layer "risk" ;
     memo:sysmlConstruct "part def" ;
@@ -234,7 +234,7 @@ memo:Requirement a owl:Class ;
 memo:mitigates a owl:ObjectProperty ;
     rdfs:label "mitigates" ;
     memo:layer "risk" ;
-    rdfs:domain memo:RiskControl ;
+    rdfs:domain memo:RiskControlMeasure ;
     rdfs:range memo:Hazard ;
     .
 `;
@@ -264,7 +264,7 @@ memo:mitigates a owl:ObjectProperty ;
 
         const mitigates = result.properties.find(p => p.name === 'mitigates');
         expect(mitigates).toBeDefined();
-        expect(mitigates!.domain).toBe('RiskControl');
+        expect(mitigates!.domain).toBe('RiskControlMeasure');
         expect(mitigates!.range).toBe('Hazard');
     });
 
@@ -274,7 +274,7 @@ memo:mitigates a owl:ObjectProperty ;
 
         expect(sysml).toContain('package owl_import {');
         expect(sysml).toContain('part def Hazard');
-        expect(sysml).toContain('part def RiskControl');
+        expect(sysml).toContain('part def RiskControlMeasure');
         expect(sysml).toContain('requirement def Requirement');
         expect(sysml).toContain('connection def Mitigates');
     });
@@ -292,7 +292,7 @@ memo:mitigates a owl:ObjectProperty ;
 
         const riskSysml = pkgFiles.get('sysml/risk/risk.sysml')!;
         expect(riskSysml).toContain('part def Hazard');
-        expect(riskSysml).toContain('part def RiskControl');
+        expect(riskSysml).toContain('part def RiskControlMeasure');
     });
 
     it('skips Layer_ classes from OWL import', () => {
@@ -368,7 +368,7 @@ describe('JSON-LD Importer', () => {
                     '@id': 'https://example.org/mitigates',
                     '@type': 'owl:ObjectProperty',
                     'rdfs:label': 'mitigates',
-                    'rdfs:domain': { '@id': 'https://example.org/RiskControl' },
+                    'rdfs:domain': { '@id': 'https://example.org/RiskControlMeasure' },
                     'rdfs:range': { '@id': 'https://example.org/Hazard' },
                 },
             ],
@@ -381,7 +381,7 @@ describe('JSON-LD Importer', () => {
         expect(result.classes.length).toBe(1);
         expect(result.classes[0].name).toBe('Hazard');
         expect(result.properties.length).toBe(1);
-        expect(result.properties[0].domain).toBe('RiskControl');
+        expect(result.properties[0].domain).toBe('RiskControlMeasure');
         expect(result.properties[0].range).toBe('Hazard');
     });
 

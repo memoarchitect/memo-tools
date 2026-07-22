@@ -30,7 +30,7 @@ const testConfig: MEMOConfig = {
     projectType: 'device',
     kinds: {
         Hazard: { label: 'Hazard', layer: 'risk', sysmlConstruct: 'requirement def' },
-        RiskControl: { label: 'Risk Control', layer: 'risk', sysmlConstruct: 'requirement def' },
+        RiskControlMeasure: { label: 'Risk Control', layer: 'risk', sysmlConstruct: 'requirement def' },
         SystemRequirement: { label: 'System Req', layer: 'requirements', sysmlConstruct: 'requirement def' },
         SoftwareRequirement: { label: 'Software Req', layer: 'requirements', sysmlConstruct: 'requirement def' },
         Software: { label: 'Software', layer: 'software', sysmlConstruct: 'part def' },
@@ -120,7 +120,7 @@ describe('buildMemoModel', () => {
     it('extracts connection usages as relationships', async () => {
         const doc = await parseDoc(`
             package TestPkg {
-                requirement rc1 : RiskControl {
+                requirement rc1 : RiskControlMeasure {
                     attribute redefines title = "Control 1";
                 }
                 requirement haz1 : Hazard {
@@ -161,7 +161,7 @@ describe('buildMemoModel', () => {
     it('builds relationship indexes (outgoing, incoming, byType)', async () => {
         const doc = await parseDoc(`
             package TestPkg {
-                requirement rc1 : RiskControl { attribute redefines title = "RC1"; }
+                requirement rc1 : RiskControlMeasure { attribute redefines title = "RC1"; }
                 requirement h1 : Hazard { attribute redefines title = "H1"; }
                 connection : Mitigates connect control ::> rc1 to hazard ::> h1;
             }
@@ -193,7 +193,7 @@ describe('computeCompleteness', () => {
         const doc = await parseDoc(`
             package TestPkg {
                 requirement h1 : Hazard { attribute redefines title = "H1"; }
-                requirement rc1 : RiskControl { attribute redefines title = "RC1"; }
+                requirement rc1 : RiskControlMeasure { attribute redefines title = "RC1"; }
                 part sw1 : Software { attribute redefines safetyClassification = "C"; }
                 connection : Mitigates connect control ::> rc1 to hazard ::> h1;
             }
@@ -237,7 +237,7 @@ describe('Cross-file import resolution', () => {
         const controlFile = await parseDoc(`
             package ControlPkg {
                 import RiskPkg::*;
-                requirement rc1 : RiskControl {
+                requirement rc1 : RiskControlMeasure {
                     attribute redefines title = "Flow Limiter";
                 }
                 connection : Mitigates connect control ::> rc1 to hazard ::> haz1;
@@ -270,7 +270,7 @@ describe('Cross-file import resolution', () => {
         const controlFile = await parseDoc(`
             package ControlPkg {
                 import RiskPkg::haz1;
-                requirement rc1 : RiskControl {
+                requirement rc1 : RiskControlMeasure {
                     attribute redefines title = "Flow Limiter";
                 }
                 connection : Mitigates connect control ::> rc1 to hazard ::> haz1;
@@ -294,7 +294,7 @@ describe('Cross-file import resolution', () => {
 
         const controlFile = await parseDoc(`
             package ControlPkg {
-                requirement rc1 : RiskControl {
+                requirement rc1 : RiskControlMeasure {
                     attribute redefines title = "Flow Limiter";
                 }
                 connection : Mitigates connect control ::> rc1 to hazard ::> RiskPkg::haz1;
@@ -317,7 +317,7 @@ describe('Cross-file import resolution', () => {
                 }
                 package Controls {
                     import DeviceModel::Risk::*;
-                    requirement rc1 : RiskControl {
+                    requirement rc1 : RiskControlMeasure {
                         attribute redefines title = "RC1";
                     }
                     connection : Mitigates connect control ::> rc1 to hazard ::> haz1;
@@ -354,7 +354,7 @@ describe('SysML v2 library keyword', () => {
         const doc = await parseDoc(`
             library package MEMO_Types {
                 part def Hazard;
-                part def RiskControl;
+                part def RiskControlMeasure;
             }
         `);
         const model = buildMemoModel([doc], testConfig);
@@ -420,7 +420,7 @@ describe('Multi-file model splitting', () => {
                 requirement haz1 : Hazard {
                     attribute redefines title = "Over-Infusion";
                 }
-                requirement rc1 : RiskControl {
+                requirement rc1 : RiskControlMeasure {
                     attribute redefines title = "Flow Limiter";
                 }
                 connection : Mitigates connect control ::> rc1 to hazard ::> haz1;
@@ -630,7 +630,7 @@ describe('Port wiring (M-2)', () => {
     it('does not set port IDs when endpoints are not ports', async () => {
         const doc = await parseDoc(`
             package TestPkg {
-                requirement rc1 : RiskControl { attribute redefines title = "RC1"; }
+                requirement rc1 : RiskControlMeasure { attribute redefines title = "RC1"; }
                 requirement h1 : Hazard { attribute redefines title = "H1"; }
                 connection : Mitigates connect control ::> rc1 to hazard ::> h1;
             }
@@ -735,7 +735,7 @@ describe('Dual-mode builder with registries', () => {
     function createTestKindRegistry(): KindRegistry {
         const kr = new KindRegistry();
         kr.register({ name: 'Hazard', label: 'Hazard', layer: 'risk', sysmlConstruct: 'requirement def' });
-        kr.register({ name: 'RiskControl', label: 'Risk Control', layer: 'risk', sysmlConstruct: 'requirement def' });
+        kr.register({ name: 'RiskControlMeasure', label: 'Risk Control', layer: 'risk', sysmlConstruct: 'requirement def' });
         kr.register({ name: 'SystemRequirement', label: 'System Req', layer: 'requirements', sysmlConstruct: 'requirement def' });
         kr.register({ name: 'Actor', label: 'Actor', layer: 'purpose', sysmlConstruct: 'part def' });
         kr.register({ name: 'Software', label: 'Software', layer: 'software', sysmlConstruct: 'part def' });
@@ -863,7 +863,7 @@ describe('Dual-mode builder with registries', () => {
     it('produces identical output without registries (backward compat)', async () => {
         const doc = await parseDoc(`
             package TestPkg {
-                requirement rc1 : RiskControl {
+                requirement rc1 : RiskControlMeasure {
                     attribute redefines title = "Control 1";
                 }
                 requirement haz1 : Hazard {

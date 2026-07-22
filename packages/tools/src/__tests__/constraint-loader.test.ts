@@ -135,7 +135,7 @@ describe('native constraint evaluation (EE-3 rule semantics)', () => {
     it('requireRelationship: flags subjects missing the navigation', async () => {
         const h1 = elem('Hazard', 'H1');                 // unmitigated → violation
         const h2 = elem('Hazard', 'H2');                 // mitigated → ok
-        const rc = elem('RiskControl', 'RC1');
+        const rc = elem('RiskControlMeasure', 'RC1');
         const m = buildModel([h1, h2, rc], [{ type: 'mitigates', from: h2.id, to: rc.id }]);
 
         const [native] = await load(`package P { constraint def hazardMitigationRule {

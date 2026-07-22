@@ -31,7 +31,7 @@ function createMockContext(): QueryContext {
     const elements: MemoElement[] = [
         { id: 'haz-001', name: 'OverPressure', kind: 'Hazard', construct: 'part', layer: 'risk', file: 'risk.sysml', attributes: { severity: 'S4' } },
         { id: 'req-001', name: 'PressureLimit', kind: 'SystemRequirement', construct: 'requirement', layer: 'requirements', file: 'reqs.sysml', attributes: {} },
-        { id: 'rc-001', name: 'PressureRelief', kind: 'RiskControl', construct: 'part', layer: 'risk', file: 'risk.sysml', attributes: {} },
+        { id: 'rc-001', name: 'PressureRelief', kind: 'RiskControlMeasure', construct: 'part', layer: 'risk', file: 'risk.sysml', attributes: {} },
     ];
     const relationships: MemoRelationship[] = [
         { id: 'rel-001', type: 'mitigates', sourceId: 'rc-001', sourceEnd: 'control', targetId: 'haz-001', targetEnd: 'hazard', file: 'risk.sysml' },
@@ -39,7 +39,7 @@ function createMockContext(): QueryContext {
     const byKind: Record<string, MemoElement[]> = {
         Hazard: [elements[0]],
         SystemRequirement: [elements[1]],
-        RiskControl: [elements[2]],
+        RiskControlMeasure: [elements[2]],
     };
 
     return {
@@ -236,7 +236,7 @@ describe('draftDocument', () => {
             title: 'Risk Management Plan',
             standards: ['ISO 14971:2019 §4.4'],
             layers: ['risk'],
-            relevantKinds: ['Hazard', 'RiskControl'],
+            relevantKinds: ['Hazard', 'RiskControlMeasure'],
             relevantRelationships: ['mitigates'],
             group: 'risk',
             sections: [

@@ -164,7 +164,7 @@ describe('Document IR Helpers', () => {
 describe('Query Engine', () => {
     const hazard1 = makeElement({ id: 'h1', name: 'Overheating', kind: 'Hazard' });
     const hazard2 = makeElement({ id: 'h2', name: 'Leaking', kind: 'Hazard' });
-    const control = makeElement({ id: 'c1', name: 'TempSensor', kind: 'RiskControl', layer: 'risk' });
+    const control = makeElement({ id: 'c1', name: 'TempSensor', kind: 'RiskControlMeasure', layer: 'risk' });
     const req = makeElement({ id: 'r1', name: 'REQ-001', kind: 'SystemRequirement', layer: 'requirements' });
 
     const mitigatesRel: MemoRelationship = {
@@ -188,7 +188,7 @@ describe('Query Engine', () => {
     });
 
     it('elementsByKinds returns elements matching any kind', () => {
-        expect(ctx.elementsByKinds(['Hazard', 'RiskControl'])).toHaveLength(3);
+        expect(ctx.elementsByKinds(['Hazard', 'RiskControlMeasure'])).toHaveLength(3);
     });
 
     it('related returns filtered relationships', () => {
@@ -225,7 +225,7 @@ describe('Query Engine', () => {
 
 describe('Template Engine', () => {
     const hazard = makeElement({ id: 'h1', name: 'Overheating', kind: 'Hazard', doc: 'Device may overheat' });
-    const control = makeElement({ id: 'c1', name: 'TempSensor', kind: 'RiskControl' });
+    const control = makeElement({ id: 'c1', name: 'TempSensor', kind: 'RiskControlMeasure' });
     const model = makeModel([hazard, control], [{
         id: 'rel-1', type: 'mitigates', sourceId: 'c1', sourceEnd: 'control',
         targetId: 'h1', targetEnd: 'hazard', file: 'test.sysml',
@@ -393,7 +393,7 @@ describe('Export Plugins', () => {
 describe('Snapshot & Redline', () => {
     const model = makeModel([
         makeElement({ id: 'h1', kind: 'Hazard' }),
-        makeElement({ id: 'c1', kind: 'RiskControl' }),
+        makeElement({ id: 'c1', kind: 'RiskControlMeasure' }),
     ], []);
     const config = makeConfig();
     const rmpType = getDocumentType('rmp')!;

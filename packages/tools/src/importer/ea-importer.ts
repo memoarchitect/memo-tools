@@ -20,7 +20,7 @@ export interface EaElement {
     name: string;
     /** EA element type (e.g. "Class", "Requirement", "Component") */
     eaType: string;
-    /** EA stereotype (e.g. "Hazard", "RiskControl") */
+    /** EA stereotype (e.g. "Hazard", "RiskControlMeasure") */
     stereotype: string;
     /** Mapped MEMO kind (e.g. "Hazard") */
     memoKind?: string;
@@ -122,8 +122,10 @@ const EA_STEREOTYPE_MAP: Record<string, string> = {
     'hazardousSituation': 'HazardousSituation',
     'Harm': 'Harm',
     'harm': 'Harm',
-    'RiskControl': 'RiskControl',
-    'riskControl': 'RiskControl',
+    'RiskControlMeasure': 'RiskControlMeasure',
+    'riskControlMeasure': 'RiskControlMeasure',
+    'RiskControl': 'RiskControlMeasure',
+    'riskControl': 'RiskControlMeasure',
     'Risk': 'Risk',
     'risk': 'Risk',
     // Design control

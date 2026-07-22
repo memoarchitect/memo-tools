@@ -48,7 +48,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
         title: 'Risk Management Plan',
         standards: ['ISO 14971:2019 §4.4'],
         layers: ['risk'],
-        relevantKinds: ['Hazard', 'HazardousSituation', 'Harm', 'RiskControl', 'RiskAcceptabilityCriteria'],
+        relevantKinds: ['Hazard', 'HazardousSituation', 'Harm', 'RiskControlMeasure', 'RiskAcceptabilityCriteria'],
         relevantRelationships: ['mitigates', 'causedBy', 'leadsTo'],
         group: 'risk',
         sections: [
@@ -65,7 +65,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
         title: 'Hazard Analysis Report',
         standards: ['ISO 14971:2019 §5', 'ISO 14971:2019 §6'],
         layers: ['risk'],
-        relevantKinds: ['Hazard', 'HazardousSituation', 'Harm', 'RiskControl'],
+        relevantKinds: ['Hazard', 'HazardousSituation', 'Harm', 'RiskControlMeasure'],
         relevantRelationships: ['mitigates', 'causedBy', 'leadsTo', 'identifiedIn'],
         group: 'risk',
         sections: [
@@ -81,7 +81,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
         title: 'Failure Mode and Effects Analysis',
         standards: ['IEC 60812:2018'],
         layers: ['risk', 'functional', 'physical'],
-        relevantKinds: ['Hazard', 'RiskControl', 'Function', 'Component', 'Subsystem'],
+        relevantKinds: ['Hazard', 'RiskControlMeasure', 'Function', 'Component', 'Subsystem'],
         relevantRelationships: ['mitigates', 'allocatedTo', 'performs'],
         group: 'risk',
         sections: [
@@ -242,7 +242,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
         title: 'Clinical Safety Report',
         standards: ['ISO 14971:2019 §10'],
         layers: ['risk', 'verification'],
-        relevantKinds: ['Hazard', 'RiskControl', 'ClinicalEvidence', 'ValidationActivity'],
+        relevantKinds: ['Hazard', 'RiskControlMeasure', 'ClinicalEvidence', 'ValidationActivity'],
         relevantRelationships: ['mitigates', 'validates', 'supports'],
         group: 'compliance',
         sections: [

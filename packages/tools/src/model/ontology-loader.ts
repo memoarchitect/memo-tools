@@ -71,6 +71,8 @@ export interface OntologyKindInfo {
     group?: string;
     /** Compliance standard (e.g. "iso14971"), set for kinds under compliance/<standard>/ */
     standard?: string;
+    /** Abstract ontology bases organize the type system but are not Explorer folders. */
+    isAbstract?: boolean;
 }
 
 /** Layer color palette (mirrors web constants) */
@@ -104,6 +106,7 @@ interface ParsedKindInfo {
     construct: string;
     derivesFrom?: string;
     description?: string;
+    isAbstract?: boolean;
 }
 
 /** Parsed relationship info from a connection def */
@@ -125,14 +128,15 @@ function parseConstructsInFile(filePath: string): { kinds: ParsedKindInfo[]; rel
 
         // Match kind definitions with optional :> (specializes) and preceding doc comments
         // Pattern: [doc /* ... */] <construct> def Name [:> SuperType] { ... }
-        const kindRegex = /(?:doc\s+\/\*\s*([\s\S]*?)\s*\*\/\s*)?^\s*(?:abstract\s+)?(?:part|requirement|verification|state|use\s+case|action|attribute|item)\s+def\s+(\w+)(?:\s*(?::>|specializes)\s+(\w+))?/gm;
+        const kindRegex = /(?:doc\s+\/\*\s*([\s\S]*?)\s*\*\/\s*)?^\s*(?:abstract\s+)?(?:part|requirement|verification|state|use\s+case|action|attribute|item|port|interface|enum|connection|metadata)\s+def\s+(\w+)(?:\s*(?::>|specializes)\s+(\w+))?/gm;
         for (const m of content.matchAll(kindRegex)) {
-            const construct = m[0].match(/(?:abstract\s+)?(part|requirement|verification|state|use\s+case|action|attribute|item)\s+def/)?.[0]?.trim() ?? 'part def';
+            const construct = m[0].match(/(?:abstract\s+)?(part|requirement|verification|state|use\s+case|action|attribute|item|port|interface|enum|connection|metadata)\s+def/)?.[0]?.trim() ?? 'part def';
             kinds.push({
                 name: m[2],
                 construct,
                 derivesFrom: m[3] || undefined,
                 description: m[1]?.replace(/\s+/g, ' ').trim() || undefined,
+                isAbstract: /\babstract\s+(?:part|requirement|verification|state|use\s+case|action|attribute|item|port|interface|enum|connection|metadata)\s+def\b/.test(m[0]),
             });
         }
 
@@ -204,6 +208,7 @@ export function buildLayers(sysmlDir: string): OntologyLayerInfo[] {
                         derivesFrom: k.derivesFrom,
                         group,
                         standard,
+                        isAbstract: k.isAbstract,
                     });
                 }
             }

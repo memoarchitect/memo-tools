@@ -123,7 +123,7 @@ function rmpScope(sectionDef: any, _docType: any, ctx: QueryContext, dhfConfig?:
 
 function rmpRiskPolicy(sectionDef: any, _docType: any, ctx: QueryContext): DhfDocumentSection {
     const hazards = ctx.elementsByKind('Hazard');
-    const controls = ctx.elementsByKind('RiskControl');
+    const controls = ctx.elementsByKind('RiskControlMeasure');
     const blocks: DhfBlock[] = [
         heading(3, 'Risk Acceptability Policy', 'risk-policy'),
         metricGroup(
@@ -150,7 +150,7 @@ function rmpRiskPolicy(sectionDef: any, _docType: any, ctx: QueryContext): DhfDo
 }
 
 function rmpVerification(sectionDef: any, _docType: any, ctx: QueryContext): DhfDocumentSection {
-    const controls = ctx.elementsByKind('RiskControl');
+    const controls = ctx.elementsByKind('RiskControlMeasure');
     const blocks: DhfBlock[] = [heading(3, 'Verification of Risk Control Measures', 'verification-activities')];
 
     if (controls.length > 0) {
@@ -206,7 +206,7 @@ function harHazardId(sectionDef: any, _docType: any, ctx: QueryContext): DhfDocu
 }
 
 function harRiskControls(sectionDef: any, _docType: any, ctx: QueryContext): DhfDocumentSection {
-    const controls = ctx.elementsByKind('RiskControl');
+    const controls = ctx.elementsByKind('RiskControlMeasure');
     const blocks: DhfBlock[] = [heading(3, 'Risk Control Measures', 'risk-controls')];
 
     if (controls.length > 0) {

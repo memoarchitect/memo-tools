@@ -350,7 +350,7 @@ describe('ConnectionDefinition', () => {
             package Test {
                 connection def Mitigates {
                     doc /* A risk control mitigates a hazard. */
-                    end control : RiskControl [1];
+                    end control : RiskControlMeasure [1];
                     end hazard : Hazard [1];
                 }
             }
@@ -363,7 +363,7 @@ describe('ConnectionDefinition', () => {
         const end1 = connDef.body[1] as EndDeclaration;
         expect(end1.$type).toBe('EndDeclaration');
         expect(end1.name).toBe('control');
-        expect(end1.type).toBe('RiskControl');
+        expect(end1.type).toBe('RiskControlMeasure');
         expect(end1.multiplicity?.exact).toBe(1);
 
         const end2 = connDef.body[2] as EndDeclaration;
@@ -862,6 +862,22 @@ describe('ConnectionUsage', () => {
         expect(conn.source.endName).toBe('function');
         expect(conn.target.endName).toBe('structure');
     });
+
+    it('parses a connection with attributes before its connect clause', async () => {
+        const model = await parseValid(`
+            package Test {
+                connection : Mitigates {
+                    attribute :>> mitigationKind = MitigationKind::vulnerability;
+                    connect control ::> serviceAuthentication to mitigatedElement ::> weakAuthentication;
+                }
+            }
+        `);
+        const pkg = model.members[0] as PackageDeclaration;
+        const conn = pkg.members[0] as ConnectionUsage;
+        expect(conn.body).toHaveLength(1);
+        expect(conn.source.ref).toBe('serviceAuthentication');
+        expect(conn.target.ref).toBe('weakAuthentication');
+    });
 });
 
 // ─── Full file integration tests ─────────────────────────────────────────────
@@ -968,7 +984,7 @@ describe('Integration: Device model subset', () => {
                     attribute redefines title = "Over-Infusion";
                 }
 
-                requirement rcFlowRateLimiter : RiskControl {
+                requirement rcFlowRateLimiter : RiskControlMeasure {
                     attribute redefines rcId = "RC-001";
                     attribute redefines title = "Software Flow Rate Limiter";
                 }

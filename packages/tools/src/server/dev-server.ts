@@ -804,7 +804,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                                         content: `You are MEMO Completeness Assistant, an expert in medical device systems engineering and SysML v2 modeling. Analyze the provided model and suggest the top 5-8 most impactful next modeling steps to improve completeness and regulatory compliance (ISO 14971, IEC 62304, ISO 13485).
 
 Return ONLY a JSON array of strings. Each string is a concise, actionable suggestion (one sentence). Example format:
-["Add RiskControl elements for 3 unmitigated Hazard elements", "Define VerificationActivity for each TestCase requirement"]`,
+["Add RiskControlMeasure elements for 3 unmitigated Hazard elements", "Define VerificationActivity for each TestCase requirement"]`,
                                     },
                                     {
                                         role: 'user',

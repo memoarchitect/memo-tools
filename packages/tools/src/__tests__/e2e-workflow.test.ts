@@ -637,7 +637,7 @@ describe('E2E: import ea/cameo/sysand/owl', () => {
         const eaJson = JSON.stringify({
             elements: [
                 { id: 1, name: 'Overheating', type: 'Class', stereotype: 'Hazard', notes: 'Thermal hazard' },
-                { id: 2, name: 'Temp Monitor', type: 'Class', stereotype: 'RiskControl' },
+                { id: 2, name: 'Temp Monitor', type: 'Class', stereotype: 'RiskControlMeasure' },
             ],
             connectors: [
                 { id: 1, sourceId: 2, targetId: 1, type: 'Dependency', stereotype: 'mitigates' },
@@ -649,7 +649,7 @@ describe('E2E: import ea/cameo/sysand/owl', () => {
         expect(output).toContain('Sparx EA');
         expect(output).toContain('2 mapped');
         expect(output).toContain('Overheating : Hazard');
-        expect(output).toContain('Temp_Monitor : RiskControl');
+        expect(output).toContain('Temp_Monitor : RiskControlMeasure');
         expect(output).toContain('Mitigates');
     });
 
@@ -657,7 +657,7 @@ describe('E2E: import ea/cameo/sysand/owl', () => {
         const cameoJson = JSON.stringify({
             elements: [
                 { id: 'e1', name: 'Shock Hazard', type: 'uml:Class', stereotypes: ['Hazard'] },
-                { id: 'e2', name: 'Insulation', type: 'uml:Class', stereotypes: ['RiskControl'] },
+                { id: 'e2', name: 'Insulation', type: 'uml:Class', stereotypes: ['RiskControlMeasure'] },
             ],
             relationships: [
                 { id: 'r1', sourceId: 'e2', targetId: 'e1', type: 'sysml:Satisfy' },
@@ -669,7 +669,7 @@ describe('E2E: import ea/cameo/sysand/owl', () => {
         expect(output).toContain('MagicDraw/Cameo');
         expect(output).toContain('2 mapped');
         expect(output).toContain('Shock_Hazard : Hazard');
-        expect(output).toContain('Insulation : RiskControl');
+        expect(output).toContain('Insulation : RiskControlMeasure');
     });
 
     it('memo import owl imports from OWL/Turtle', () => {
