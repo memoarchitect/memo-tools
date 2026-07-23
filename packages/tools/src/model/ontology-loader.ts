@@ -421,8 +421,35 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
     const result: OntologyPackageInfo[] = [];
     const seen = new Set<string>();
 
+    // The active ontology often lives behind a logical package manifest. For
+    // example, the medical profile resolves to MEMO's `ontology/` directory
+    // rather than a sibling `packages/` directory. Follow the actual extends
+    // chain first, so the Explorer receives the same canonical types that the
+    // model builder uses to resolve usages.
+    const inheritedDirs = new Set<string>();
+    const visitExtends = (configPath: string, visited = new Set<string>()) => {
+        const normalized = resolve(configPath);
+        if (visited.has(normalized)) return;
+        visited.add(normalized);
+        let content = '';
+        try { content = readFileSync(normalized, 'utf-8'); } catch { return; }
+        const parentNames: string[] = [];
+        const single = content.match(/^extends:\s*"?(@[\w-]+\/[\w-]+)"?/m);
+        if (single) parentNames.push(single[1]);
+        const array = content.match(/^extends:\s*\n((?:\s+-\s+.+\n?)+)/m);
+        if (array) for (const entry of array[1].matchAll(/^\s+-\s+"?(@[\w-]+\/[\w-]+)"?/gm)) parentNames.push(entry[1]);
+        for (const parentName of parentNames) {
+            const parentConfig = resolvePackageConfig(parentName, dirname(normalized));
+            if (!parentConfig) continue;
+            inheritedDirs.add(dirname(parentConfig));
+            visitExtends(parentConfig, visited);
+        }
+    };
+    visitExtends(primaryConfig);
+
     // Gather package directories from the tools repo and its memo submodule.
     const candidates: string[] = [];
+    candidates.push(...inheritedDirs);
     let searchDir = resolve(projectRoot);
     while (true) {
         const pkgsDir = join(searchDir, 'packages');
@@ -508,7 +535,8 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
         const info = buildPackageInfo(pkgDir, false);
         if (!info) continue;
         // Mark as selected if name is in project's ontologies list, or inferred heuristic
-        info.selected = selectedNames.has(info.name)
+        info.selected = inheritedDirs.has(pkgDir)
+            || selectedNames.has(info.name)
             || selectedNames.has(info.name.replace('@memoarchitect/', ''))
             || projectModules.has(info.name)
             || methodologySelected.has(info.name);
