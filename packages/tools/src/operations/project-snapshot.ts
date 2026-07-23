@@ -77,21 +77,9 @@ export async function buildProjectSnapshot(projectRoot = process.cwd()): Promise
         label: layer.label,
         color: layer.color,
     }));
+    // Diagrams are authored model views. Do not fabricate one generic BDD per
+    // layer: those views carry no diagram intent and obscure the useful views.
     const diagrams: DiagramDTO[] = [];
-    for (const [layerId, layerElements] of semanticModel.elementsByLayer.entries()) {
-        if (layerElements.length === 0) continue;
-        const label = layerId.charAt(0).toUpperCase() + layerId.slice(1);
-        diagrams.push({
-            id: `diag-layer-${layerId}`,
-            name: `${label} Layer`,
-            diagramType: 'bdd',
-            viewKind: 'general',
-            viewpointId: '__model',
-            auto: true,
-            description: `${label} architecture layer — ${layerElements.length} elements`,
-            elementIds: layerElements.map(element => element.id),
-        });
-    }
     const derivedViews = deriveModelViews(semanticModel, ontologyRegistries?.kindRegistry);
     viewpoints.push(...derivedViews.viewpoints);
     diagrams.push(...derivedViews.diagrams);
