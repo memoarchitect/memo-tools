@@ -30,6 +30,7 @@ import {
 import type { KindDefinition, SysMLConstruct } from './config.js';
 import type { ParsedDocument } from './parser-utils.js';
 import { resolveLayerFromPath, resolveStandardFromPath } from './layer-resolver.js';
+import type { KindDefinitionDTO } from './relationship-legality.js';
 
 /** Entry in the KindRegistry, matching KindDefinition shape */
 export interface KindRegistryEntry {
@@ -51,6 +52,8 @@ export interface KindRegistryEntry {
     standard?: string;
     /** Standard clause reference (e.g. "4.5"), extracted from SysML attribute if present */
     clause?: string;
+    /** Abstract definitions (e.g. MemoPart) classify but are never instantiated */
+    isAbstract?: boolean;
 }
 
 /** AST $type → SysMLConstruct mapping */
@@ -130,6 +133,22 @@ export class KindRegistry {
     /** Get all entries */
     entries(): KindRegistryEntry[] {
         return Array.from(this.kinds.values());
+    }
+
+    /**
+     * Project the registry into serializable definitions for the web client.
+     * Only the fields relationship legality needs — chiefly superType, which
+     * carries the specialization chain that conformance walks.
+     */
+    toDefinitionDTOs(): KindDefinitionDTO[] {
+        return Array.from(this.kinds.values()).map(entry => ({
+            name: entry.name,
+            label: entry.label,
+            layer: entry.layer,
+            construct: entry.sysmlConstruct,
+            superType: entry.superType,
+            isAbstract: entry.isAbstract,
+        }));
     }
 
     /** Get compliance standard groups discovered from the ontology tree. */
@@ -230,6 +249,7 @@ export class KindRegistry {
                     sysmlConstruct: construct,
                     superType: superType || undefined,
                     standard,
+                    isAbstract: ('isAbstract' in member && member.isAbstract) || undefined,
                 });
             }
         }

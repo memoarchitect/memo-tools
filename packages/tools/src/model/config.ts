@@ -265,6 +265,18 @@ export interface MEMOConfig {
     /** Typed relationship definitions with architecture layer mapping. Optional — prefer RelationshipRegistry. */
     relationshipTypes?: RelationshipType[];
 
+    /**
+     * Where authored relationships are written, per model package.
+     * Keyed by package qualified name, valued by a project-relative .sysml
+     * path. A package listed here always collects its relationships in that
+     * file; anything not listed falls back to the ownership policy in
+     * server/relationship-writer.ts.
+     */
+    relationshipFiles?: Record<string, string>;
+
+    /** Project-relative .sysml file that owns relationships with no better home. */
+    canonicalRelationshipFile?: string;
+
     /** Viewpoint definitions for filtered views */
     viewpoints?: ViewpointDefinition[];
 

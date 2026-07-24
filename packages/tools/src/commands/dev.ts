@@ -16,7 +16,7 @@ import { findConfigFile, parseFiles, buildMemoModel, modelToDTO, loadOntologyReg
 import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
-import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata } from '@memoarchitect/tools';
+import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { createDevServer } from '../server/dev-server.js';
 import { createProjectWatcher, createOntologyWatcher } from '../server/file-watcher.js';
@@ -271,7 +271,16 @@ export async function devCommand(options: { port?: number; open?: boolean; clien
             }
         }
 
-        const dto = modelToDTO(model, { viewpoints, architectureLayers, diagrams });
+        // Ship the ontology registries with the model so the client resolves
+        // relationship legality from the ontology, not a hardcoded table.
+        const registriesDTO: OntologyRegistriesDTO | undefined = ontologyRegistries
+            ? {
+                relationships: ontologyRegistries.relationshipRegistry?.toDefinitionDTOs() ?? [],
+                kinds: ontologyRegistries.kindRegistry?.toDefinitionDTOs() ?? [],
+            }
+            : undefined;
+
+        const dto = modelToDTO(model, { viewpoints, architectureLayers, diagrams, registries: registriesDTO });
         dto.metadata = metadata;
         (dto as any).ontologyHash = ontologyHash;
 
@@ -305,6 +314,9 @@ export async function devCommand(options: { port?: number; open?: boolean; clien
         webPackagePath: options.clientRoot,
         initialMessages: initial.messages,
         ontologyRegistries,
+        ontologyRoots,
+        relationshipFiles: config.relationshipFiles,
+        canonicalRelationshipFile: config.canonicalRelationshipFile,
     });
 
     console.log(chalk.green(`\n  ➜ http://${host}:${port}\n`));

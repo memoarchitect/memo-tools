@@ -9,9 +9,18 @@ import { createServer as createHttpServer, type Server } from 'node:http';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync, createReadStream, statSync } from 'node:fs';
 import { extname } from 'node:path';
-import type { ServerMessage, ModelUpdateMessage, DiagramDTO } from '@memoarchitect/tools';
+import type {
+    ServerMessage, ModelUpdateMessage, DiagramDTO, MemoModelDTO,
+    RelationshipCreateRequest, RelationshipCreateResultMessage,
+    RelationshipDeleteRequest, RelationshipDeleteResultMessage,
+    RelationshipDiagnostic, OntologyRegistriesDTO,
+} from '@memoarchitect/tools';
 import type { BuilderRegistries } from '@memoarchitect/tools';
-import { findMemoManifests } from '@memoarchitect/tools';
+import { findMemoManifests, validateRelationshipMutation, validateRelationshipDeletion } from '@memoarchitect/tools';
+import {
+    isWritableRelationshipFile, removeRelationship, resolveRelationshipPlacement,
+    writeRelationship, type RelationshipWriterOptions,
+} from './relationship-writer.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
@@ -27,6 +36,15 @@ export interface DevServerOptions {
     initialMessages: ServerMessage[];
     /** Frozen ontology registries from bootstrap — used to validate diagrams/layouts on load */
     ontologyRegistries?: BuilderRegistries;
+    /**
+     * Absolute roots of installed ontology packages. Authoring never writes
+     * into these — they are read-only library content.
+     */
+    ontologyRoots?: string[];
+    /** Per-package relationship files from project config. */
+    relationshipFiles?: Record<string, string>;
+    /** Configured canonical relationship file from project config. */
+    canonicalRelationshipFile?: string;
 }
 
 export interface DevServer {
@@ -223,6 +241,152 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         }
     }
 
+    /** Latest model DTO — broadcast() replaces initialMessages on every rebuild. */
+    const currentModel = (): MemoModelDTO | undefined =>
+        (initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined)?.payload;
+
+    /**
+     * Ontology registries in serializable form. The server validates against
+     * the same DTOs the client reasons over, so both sides apply identical
+     * legality rules — but the server derives them from its own frozen
+     * registries rather than trusting anything in the request.
+     */
+    function serverRegistries(): OntologyRegistriesDTO {
+        const registries = options.ontologyRegistries;
+        return {
+            relationships: registries?.relationshipRegistry?.toDefinitionDTOs()
+                ?? currentModel()?.registries?.relationships ?? [],
+            kinds: registries?.kindRegistry?.toDefinitionDTOs()
+                ?? currentModel()?.registries?.kinds ?? [],
+        };
+    }
+
+    function relationshipWriterOptions(): RelationshipWriterOptions {
+        return {
+            projectRoot: options.projectRoot,
+            ontologyRoots: options.ontologyRoots,
+            designatedFiles: options.relationshipFiles,
+            canonicalFile: options.canonicalRelationshipFile,
+        };
+    }
+
+    /**
+     * Create one model relationship.
+     *
+     * Client-side filtering is only a convenience: every request is validated
+     * again here, against the server's own model and registries, before any
+     * file is touched. A stale or hand-crafted request fails with the same
+     * REL-xxx diagnostics the UI uses.
+     */
+    async function handleRelationshipCreate(
+        payload: RelationshipCreateRequest,
+    ): Promise<RelationshipCreateResultMessage> {
+        const requestId = payload?.requestId ?? '';
+        const reject = (error: string, diagnostics?: RelationshipDiagnostic[]): RelationshipCreateResultMessage => ({
+            type: 'relationship:create:result',
+            payload: { requestId, success: false, error, diagnostics },
+        });
+
+        const model = currentModel();
+        if (!model) return reject('The model is not loaded yet.');
+
+        const registries = serverRegistries();
+        const writerOptions = relationshipWriterOptions();
+
+        // The active view's profile only downgrades to a warning, so a
+        // relationship the view cannot draw is still created in the model.
+        const diagram = payload.diagramId
+            ? currentDiagrams().find(d => d.id === payload.diagramId)
+            : undefined;
+        const viewProfile = diagram
+            ? {
+                diagramId: diagram.id,
+                permittedRelationshipTypes: diagram.relationshipTypes,
+                elementIds: diagram.elementIds,
+            }
+            : undefined;
+
+        const placement = resolveRelationshipPlacement(payload, model, writerOptions);
+        const validation = validateRelationshipMutation(payload, model, registries, {
+            viewProfile,
+            hasWritableOwner: isWritableRelationshipFile(placement.file, writerOptions),
+        });
+
+        if (!validation.valid || !validation.definition) {
+            const first = validation.diagnostics.find(d => d.severity === 'error');
+            console.warn(`[Relationship] Rejected ${payload.type} ${payload.sourceId}→${payload.targetId}: ` +
+                `${first?.code} ${first?.message}`);
+            return reject(first?.message ?? 'The relationship is not valid.', validation.diagnostics);
+        }
+
+        const result = await writeRelationship(payload, validation.definition, model, writerOptions);
+        if (!result.success) {
+            console.error(`[Relationship] Write failed: ${result.error}`);
+            return reject(result.error ?? 'The relationship could not be written.', validation.diagnostics);
+        }
+
+        console.log(`[Persisted] relationship ${result.relationshipId} (${validation.normalizedType}) ` +
+            `to ${result.sourceFile} [${result.placementReason}]`);
+
+        // The file watcher rebuilds and broadcasts the canonical model; this
+        // response only confirms the write and carries the IDs the client needs
+        // to replace its pending row.
+        return {
+            type: 'relationship:create:result',
+            payload: {
+                requestId,
+                success: true,
+                relationshipId: result.relationshipId,
+                type: validation.normalizedType,
+                sourceId: payload.sourceId,
+                targetId: payload.targetId,
+                sourceFile: result.sourceFile,
+                diagnostics: validation.diagnostics.filter(d => d.severity === 'warning'),
+            },
+        };
+    }
+
+    /** Delete one relationship usage, leaving both endpoint elements in place. */
+    async function handleRelationshipDelete(
+        payload: RelationshipDeleteRequest,
+    ): Promise<RelationshipDeleteResultMessage> {
+        const requestId = payload?.requestId ?? '';
+        const relationshipId = payload?.relationshipId ?? '';
+        const reject = (error: string, diagnostics?: RelationshipDiagnostic[]): RelationshipDeleteResultMessage => ({
+            type: 'relationship:delete:result',
+            payload: { requestId, success: false, relationshipId, error, diagnostics },
+        });
+
+        const model = currentModel();
+        if (!model) return reject('The model is not loaded yet.');
+
+        // Resolve the relationship from the server's model, never from the
+        // request — the client cannot name a file it does not own.
+        const validation = validateRelationshipDeletion(payload, model);
+        if (!validation.valid || !validation.relationship) {
+            const first = validation.diagnostics[0];
+            return reject(first?.message ?? 'The relationship was not found.', validation.diagnostics);
+        }
+
+        const result = await removeRelationship(validation.relationship, relationshipWriterOptions());
+        if (!result.success) {
+            console.error(`[Relationship] Delete failed: ${result.error}`);
+            return reject(result.error ?? 'The relationship could not be removed.');
+        }
+
+        console.log(`[Persisted] removed relationship ${relationshipId} from ${result.sourceFile}`);
+        return {
+            type: 'relationship:delete:result',
+            payload: {
+                requestId,
+                success: true,
+                relationshipId,
+                sourceFile: result.sourceFile,
+                removedDeclaration: result.removedDeclaration,
+            },
+        };
+    }
+
     /** Convert a DhfBlock (from document IR) to a markdown string */
     function blockToMarkdown(block: any): string {
         switch (block.type) {
@@ -365,15 +529,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     for (const client of clients) {
                         if (client !== ws && client.readyState === 1) client.send(layoutMsg);
                     }
-                } else if (msg.type === 'relationship:add') {
-                    const { saveRelationshipToFile } = await import('./persistor.js');
-                    const { projectRoot } = options;
-                    const result = saveRelationshipToFile(projectRoot, msg.payload);
-                    if (result.success) {
-                        console.log(`[Persisted] relationship:add (${msg.payload.type}) to ${result.filePath}`);
-                    } else {
-                        console.error(`[Error] relationship:add failed: ${result.error}`);
-                    }
+                } else if (msg.type === 'relationship:create') {
+                    ws.send(JSON.stringify(await handleRelationshipCreate(msg.payload)));
+                } else if (msg.type === 'relationship:delete') {
+                    ws.send(JSON.stringify(await handleRelationshipDelete(msg.payload)));
                 } else if (msg.type === 'element:remap-kinds') {
                     // Remap orphaned kind references: for each element whose kind is in the
                     // mappings, persist the element with the new kind. The file watcher will

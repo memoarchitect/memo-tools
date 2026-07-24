@@ -81,6 +81,35 @@ export async function parseFiles(filePaths: string[], basePath: string = ''): Pr
     return { documents, errors };
 }
 
+/**
+ * Parse a single SysML source string, keeping the CST so callers can edit the
+ * original text by offset. Source-preserving editors use this to validate a
+ * candidate edit before it replaces the file on disk.
+ */
+export async function parseText(source: string): Promise<{
+    document: LangiumDocument<Model>;
+    errors: ParseError[];
+}> {
+    const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
+    const parse = parseHelper<Model>(services);
+    const document = await parse(source);
+
+    const errors: ParseError[] = [];
+    for (const err of document.parseResult.lexerErrors) {
+        errors.push({ file: '', message: err.message, line: err.line, column: err.column });
+    }
+    for (const err of document.parseResult.parserErrors) {
+        const token = (err as any).token;
+        errors.push({
+            file: '',
+            message: err.message,
+            line: token?.startLine,
+            column: token?.startColumn,
+        });
+    }
+    return { document, errors };
+}
+
 function relativePath(filePath: string, basePath: string): string {
     if (basePath && filePath.startsWith(basePath)) {
         return filePath.slice(basePath.length).replace(/^\//, '');

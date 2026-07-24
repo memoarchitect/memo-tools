@@ -7,6 +7,11 @@ import type { MemoModelDTO } from '../model/semantic.js';
 import type { ValidationResult, CompletenessReport } from '../validator/types.js';
 import type { OntologyPackageInfo } from '../model/ontology-loader.js';
 import type { MethodologyDescriptor } from '../model/methodology-loader.js';
+import type {
+    RelationshipCreateRequest,
+    RelationshipDeleteRequest,
+    RelationshipDiagnostic,
+} from '../model/relationship-legality.js';
 
 // ─── Server → Client ────────────────────────────────────────────────────────
 
@@ -32,7 +37,9 @@ export type ServerMessage =
     | DhfDocsMessage
     | DhfSettingsMessage
     | DhfTemplatesResultMessage
-    | DhfTemplateContentMessage;
+    | DhfTemplateContentMessage
+    | RelationshipCreateResultMessage
+    | RelationshipDeleteResultMessage;
 
 export interface ModelUpdateMessage {
     type: 'model:update';
@@ -72,7 +79,8 @@ export type ClientMessage =
     | RequestRefreshMessage
     | ElementUpdateMessage
     | ElementCreateMessage
-    | AddRelationshipMessage
+    | RelationshipCreateMessage
+    | RelationshipDeleteMessage
     | CsvImportMessage
     | DiagramCreateMessage
     | DiagramUpdateMessage
@@ -150,13 +158,57 @@ export interface ElementCreateMessage {
     };
 }
 
-/** Client requests a new relationship between two elements */
-export interface AddRelationshipMessage {
-    type: 'relationship:add';
+/**
+ * Client requests a new model relationship between two elements.
+ *
+ * This is a request/response exchange, not fire-and-forget: the server
+ * revalidates the request against the ontology before writing, and answers with
+ * relationship:create:result. The client shows a pending row until then.
+ */
+export interface RelationshipCreateMessage {
+    type: 'relationship:create';
+    payload: RelationshipCreateRequest;
+}
+
+/** Server response to relationship:create */
+export interface RelationshipCreateResultMessage {
+    type: 'relationship:create:result';
     payload: {
-        sourceId: string;
-        targetId: string;
-        type: string;
+        requestId: string;
+        success: boolean;
+        /** Stable ID of the created connection usage */
+        relationshipId?: string;
+        /** Normalized camelCase relationship type */
+        type?: string;
+        sourceId?: string;
+        targetId?: string;
+        /** Project-relative .sysml file the relationship was written to */
+        sourceFile?: string;
+        /** Actionable diagnostics (REL-xxx) — populated on failure */
+        diagnostics?: RelationshipDiagnostic[];
+        error?: string;
+    };
+}
+
+/** Client requests deletion of one relationship usage */
+export interface RelationshipDeleteMessage {
+    type: 'relationship:delete';
+    payload: RelationshipDeleteRequest;
+}
+
+/** Server response to relationship:delete */
+export interface RelationshipDeleteResultMessage {
+    type: 'relationship:delete:result';
+    payload: {
+        requestId: string;
+        success: boolean;
+        relationshipId: string;
+        /** File the usage was removed from */
+        sourceFile?: string;
+        /** The exact declaration removed, so the client can offer undo */
+        removedDeclaration?: string;
+        diagnostics?: RelationshipDiagnostic[];
+        error?: string;
     };
 }
 

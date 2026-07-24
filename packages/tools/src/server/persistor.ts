@@ -77,37 +77,6 @@ export function saveElementToFile(cwd: string, element: any): { success: boolean
     }
 }
 
-/**
- * Appends a typed relationship connection to model/relationships.sysml.
- * Writes:  connection : RelType connect sourceId to targetId;
- */
-export function saveRelationshipToFile(
-    cwd: string,
-    rel: { sourceId: string; targetId: string; type: string }
-): { success: boolean; filePath: string; error?: string } {
-    const relativePath = 'model/relationships.sysml';
-    const filePath = resolve(cwd, relativePath);
-    const dir = dirname(filePath);
-
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
-    const typeName = rel.type.charAt(0).toUpperCase() + rel.type.slice(1);
-    const line = `    connection : ${typeName} connect ${rel.sourceId} to ${rel.targetId};\n`;
-
-    try {
-        if (!existsSync(filePath)) {
-            writeFileSync(filePath, `package relationships {\n${line}}\n`, 'utf8');
-        } else {
-            // Insert before the last closing brace
-            const content = readFileSync(filePath, 'utf8');
-            const lastBrace = content.lastIndexOf('}');
-            const newContent = lastBrace !== -1
-                ? content.slice(0, lastBrace) + line + content.slice(lastBrace)
-                : content + line;
-            writeFileSync(filePath, newContent, 'utf8');
-        }
-        return { success: true, filePath: relativePath };
-    } catch (e) {
-        return { success: false, filePath: relativePath, error: String(e) };
-    }
-}
+// Relationship persistence lives in ./relationship-writer.ts. It replaces the
+// blind append this module used to do: relationships now go through ontology
+// validation, a deterministic ownership policy, and CST-aware source editing.

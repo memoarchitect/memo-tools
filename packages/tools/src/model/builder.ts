@@ -71,6 +71,7 @@ import { PackageRegistry } from './package-registry.js';
 import { assignSequentialShortIds } from './short-id.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
+import { indexKinds, kindConformsTo } from './relationship-legality.js';
 
 /**
  * Optional registries for dual-mode resolution.
@@ -238,16 +239,13 @@ export function buildMemoModel(
     // A kind conforms to an end type if it equals it or specializes it
     // (transitively) — e.g. HardwareAssembly conforms to ArchitectureElement.
     if (registries?.relationshipRegistry) {
+        // Same resolver the authoring UI and the server persistence path use,
+        // so a link the panel offers is a link the builder accepts.
+        const kindIndex = indexKinds(registries.kindRegistry?.toDefinitionDTOs() ?? []);
         const conformsTo = (kind: string, expected: string): boolean => {
-            let current: string | undefined = kind;
-            const seen = new Set<string>();
-            while (current && !seen.has(current)) {
-                if (current === expected) return true;
-                seen.add(current);
-                current = registries.kindRegistry?.getKind(current)?.superType;
-            }
+            if (kindConformsTo(kind, expected, kindIndex)) return true;
             // Legacy fallback when the kind hierarchy is unknown to the registry
-            return kind.endsWith(expected);
+            return !kindIndex.has(kind) && kind.endsWith(expected);
         };
 
         for (const rel of relationships) {
@@ -758,14 +756,17 @@ function resolveConnection(
     const targetId = resolveEndpointId(conn.target.ref, packageName, registry, allElementIds);
     if (!sourceId || !targetId) return;
 
+    // A named connection usage carries its own stable ID; anonymous ones fall
+    // back to a positional counter that shifts whenever the file changes.
     const rel: MemoRelationship = {
-        id: `rel-${++relationshipCounter}`,
+        id: conn.name || `rel-${++relationshipCounter}`,
         type: normalizedType,
         sourceId,
         sourceEnd: conn.source.endName,
         targetId,
         targetEnd: conn.target.endName,
         file: filePath,
+        named: conn.name ? true : undefined,
     };
 
     // Tag port IDs when endpoints reference port elements

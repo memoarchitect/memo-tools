@@ -11,15 +11,32 @@
 //   const rel = registry.getRelType("mitigates");
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { PackageDeclaration } from '../language/generated/ast.js';
+import type {
+    AttributeValue, BooleanValue, Multiplicity, PackageDeclaration,
+} from '../language/generated/ast.js';
 import {
+    isAttributeMember,
     isConnectionDefinition,
+    isDocComment,
     isEndDeclaration,
     isPackageDeclaration,
 } from '../language/generated/ast.js';
 import type { RelationshipType } from './config.js';
 import type { ParsedDocument } from './parser-utils.js';
 import { resolveLayerFromPath } from './layer-resolver.js';
+import type {
+    MultiplicityDTO,
+    RelationshipDefinitionDTO,
+    RelationshipEndDTO,
+} from './relationship-legality.js';
+
+/** One `end` declaration on a connection definition */
+export interface RelationshipEnd {
+    name: string;
+    type?: string;
+    /** Declared multiplicity, e.g. `end owner : Requirement [0..1];` */
+    multiplicity?: MultiplicityDTO;
+}
 
 /** Entry in the RelationshipRegistry */
 export interface RelationshipRegistryEntry {
@@ -31,8 +48,24 @@ export interface RelationshipRegistryEntry {
     label: string;
     /** Architecture layer derived from directory path */
     layer: string;
+    /** Doc comment on the connection definition */
+    description?: string;
+    /** Abstract definitions (e.g. MemoRelationship) are not instantiable */
+    isAbstract?: boolean;
+    /**
+     * Whether an element may be related to itself by this relation, from the
+     * `isReflexive` attribute. Undefined when the ontology does not say.
+     */
+    isReflexive?: boolean;
+    /**
+     * Whether the same ordered pair may be linked more than once, from the
+     * `isUnique` attribute. Undefined when the ontology does not say.
+     */
+    isUnique?: boolean;
+    /** Supertype connection definition, when the relationship specializes one */
+    superType?: string;
     /** End names from the connection definition */
-    ends: Array<{ name: string; type?: string }>;
+    ends: RelationshipEnd[];
 }
 
 /**
@@ -50,6 +83,53 @@ export function pascalToCamelCase(name: string): string {
  */
 function pascalToLabel(name: string): string {
     return name.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+/** Strip the `doc /* … *​/` wrapper and per-line asterisks from a doc comment. */
+function cleanDocComment(content: string): string | undefined {
+    const text = content
+        .replace(/^doc\s+\/\*\s*/, '')
+        .replace(/\s*\*\/$/, '')
+        .replace(/\n\s*\*\s?/g, ' ')
+        .trim();
+    return text || undefined;
+}
+
+/** Convert a parsed Multiplicity node into its serializable bounds. */
+function toMultiplicityDTO(multiplicity: Multiplicity | undefined): MultiplicityDTO | undefined {
+    if (!multiplicity) return undefined;
+    // `[3]` — an exact bound pins both ends.
+    if (multiplicity.exact !== undefined) {
+        const exact = Number(multiplicity.exact);
+        return { lower: exact, upper: exact };
+    }
+    // `[*]` — no lower bound was written, so it stays 0.
+    if (multiplicity.lower === undefined) {
+        return { lower: 0, upper: multiplicity.unbounded ? null : null };
+    }
+    // `[0..1]` / `[1..*]`
+    return {
+        lower: Number(multiplicity.lower),
+        upper: multiplicity.unbounded || multiplicity.upper === undefined
+            ? null
+            : Number(multiplicity.upper),
+    };
+}
+
+/**
+ * Read a Boolean attribute value, or undefined when the attribute declares a
+ * type rather than stating a value. Undefined is meaningful: it means the
+ * ontology is silent, and the caller applies the documented default.
+ */
+function booleanAttributeValue(value: AttributeValue | undefined): boolean | undefined {
+    if (!value || value.$type !== 'BooleanValue') return undefined;
+    return (value as BooleanValue).value === 'true';
+}
+
+/** Project one registry end (possibly absent) into its DTO. */
+function toEndDTO(end: RelationshipEnd | undefined, fallbackName: string): RelationshipEndDTO {
+    if (!end) return { name: fallbackName };
+    return { name: end.name || fallbackName, type: end.type, multiplicity: end.multiplicity };
 }
 
 /**
@@ -116,6 +196,50 @@ export class RelationshipRegistry {
         return Array.from(this.relTypes.values());
     }
 
+    /**
+     * Project the registry into serializable definitions for the web client.
+     * The first declared end becomes the source, the second the target; a
+     * definition with fewer than two ends still yields a definition with the
+     * missing end untyped, so it accepts any kind rather than disappearing.
+     */
+    toDefinitionDTOs(): RelationshipDefinitionDTO[] {
+        return Array.from(this.relTypes.values()).map(entry => ({
+            name: entry.name,
+            sysmlName: entry.sysmlName,
+            label: entry.label,
+            description: entry.description,
+            layer: entry.layer,
+            isAbstract: entry.isAbstract,
+            isReflexive: this.inherited(entry, 'isReflexive'),
+            isUnique: this.inherited(entry, 'isUnique'),
+            sourceEnd: toEndDTO(entry.ends[0], 'source'),
+            targetEnd: toEndDTO(entry.ends[1], 'target'),
+        }));
+    }
+
+    /**
+     * Resolve a structural property up the specialization chain: a connection
+     * def that says nothing inherits whatever its supertype declared, so a
+     * value set once on MemoRelationship reaches every relation.
+     */
+    private inherited(
+        entry: RelationshipRegistryEntry,
+        property: 'isReflexive' | 'isUnique',
+    ): boolean | undefined {
+        let current: RelationshipRegistryEntry | undefined = entry;
+        const seen = new Set<string>();
+        while (current && !seen.has(current.sysmlName)) {
+            if (current[property] !== undefined) return current[property];
+            seen.add(current.sysmlName);
+            const superName: string | undefined = current.superType;
+            // Supertypes are keyed by camelCase name like every other entry.
+            current = superName
+                ? this.relTypes.get(pascalToCamelCase(superName))
+                : undefined;
+        }
+        return undefined;
+    }
+
     /** Register a relationship type manually (for testing or config fallback) */
     register(entry: RelationshipRegistryEntry): void {
         this.relTypes.set(entry.name, entry);
@@ -154,13 +278,27 @@ export class RelationshipRegistry {
                 const label = pascalToLabel(sysmlName);
 
                 // Extract end declarations
-                const ends: Array<{ name: string; type?: string }> = [];
+                const ends: RelationshipEnd[] = [];
+                let description: string | undefined;
+                let isReflexive: boolean | undefined;
+                let isUnique: boolean | undefined;
                 for (const bodyMember of member.body) {
                     if (isEndDeclaration(bodyMember)) {
                         ends.push({
                             name: bodyMember.name || '',
                             type: bodyMember.type || undefined,
+                            multiplicity: toMultiplicityDTO(bodyMember.multiplicity),
                         });
+                    } else if (isDocComment(bodyMember) && description === undefined) {
+                        description = cleanDocComment(bodyMember.content);
+                    } else if (isAttributeMember(bodyMember)) {
+                        // Only a valued attribute states anything — a bare
+                        // `attribute isUnique : Boolean;` declares the slot.
+                        if (bodyMember.name === 'isReflexive') {
+                            isReflexive = booleanAttributeValue(bodyMember.value) ?? isReflexive;
+                        } else if (bodyMember.name === 'isUnique') {
+                            isUnique = booleanAttributeValue(bodyMember.value) ?? isUnique;
+                        }
                     }
                 }
 
@@ -169,6 +307,11 @@ export class RelationshipRegistry {
                     name,
                     label,
                     layer,
+                    description,
+                    isAbstract: member.isAbstract || undefined,
+                    superType: member.specialization?.superType || undefined,
+                    isReflexive,
+                    isUnique,
                     ends,
                 });
             }

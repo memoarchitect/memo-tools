@@ -5,6 +5,8 @@
 // decoupled from Langium's AST nodes so they can be sent over WebSocket.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { OntologyRegistriesDTO } from './relationship-legality.js';
+
 /** Direction of a port or action parameter */
 export type ParameterDirection = 'in' | 'out' | 'inout';
 
@@ -80,6 +82,12 @@ export interface MemoRelationship {
     targetEnd: string;
     /** Source file path (relative) */
     file: string;
+    /**
+     * True when `id` is the connection usage's declared name in SysML, so it
+     * addresses exactly one declaration and survives a rebuild. Anonymous
+     * connections get a positional id instead and cannot be edited by id.
+     */
+    named?: boolean;
     /** Item type being transported (for flow relationships) */
     flowItem?: string;
     /** Source port element ID (when connection endpoint is a port) */
@@ -184,12 +192,23 @@ export interface MemoModelDTO {
     diagrams?: DiagramDTO[];
     /** Model metadata for versioning and attribution */
     metadata?: ModelMetadata;
+    /**
+     * Ontology relationship and kind definitions. The client needs these to
+     * decide relationship legality from the ontology rather than a hardcoded
+     * table — see model/relationship-legality.ts.
+     */
+    registries?: OntologyRegistriesDTO;
 }
 
 /** Convert MemoModel to a plain JSON-serializable object */
 export function modelToDTO(
     model: MemoModel,
-    options?: { viewpoints?: ViewpointDTO[]; architectureLayers?: ArchLayerDTO[]; diagrams?: DiagramDTO[] }
+    options?: {
+        viewpoints?: ViewpointDTO[];
+        architectureLayers?: ArchLayerDTO[];
+        diagrams?: DiagramDTO[];
+        registries?: OntologyRegistriesDTO;
+    }
 ): MemoModelDTO {
     const elements: Record<string, MemoElement> = {};
     for (const [id, el] of model.elements) {
@@ -202,6 +221,7 @@ export function modelToDTO(
         viewpoints: options?.viewpoints,
         architectureLayers: options?.architectureLayers,
         diagrams: options?.diagrams,
+        registries: options?.registries,
     };
 }
 

@@ -269,8 +269,11 @@ ExposePath returns string:
 // ─── Connection usage (typed relationship instances) ─────────────────────────
 // Syntax: connection : Type connect end1 ::> ref1 to end2 ::> ref2 ;
 
+// A connection usage may carry a name. Named connections get a stable
+// relationship ID that survives rebuilds, which authoring needs for
+// inspection, deletion, and deep links.
 ConnectionUsage:
-    'connection' (':' type=QualifiedName)?
+    'connection' name=ID? (':' type=QualifiedName)?
     (   'connect' source=ConnectionEnd 'to' target=ConnectionEnd
         ('{' body+=UsageBodyMember* '}' | ';')
       | '{' body+=UsageBodyMember*
