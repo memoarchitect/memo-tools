@@ -523,7 +523,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     const diagram = currentDiagrams().find(d => d.id === diagramId)
                         ?? { id: diagramId, name: diagramId, diagramType: 'bdd', viewpointId: '__model', auto: false };
                     const savedPath = saveViewLayout(options.projectRoot, diagram, layout);
-                    console.log(`[Diagram] Saved layout: ${savedPath}`);
+                    console.log(savedPath
+                        ? `[Diagram] Saved layout: ${savedPath}`
+                        : `[Diagram] No overrides to save for ${diagramId}`);
                     // Broadcast to other clients (not the sender)
                     const layoutMsg = JSON.stringify({ type: 'diagram:layout', payload: { layouts: { [diagramId]: layout } } });
                     for (const client of clients) {

@@ -28,7 +28,7 @@ describe('.viewlayout companions', () => {
         const root = mkdtempSync(join(tmpdir(), 'memo-view-layout-')); roots.push(root);
         mkdirSync(join(root, 'model/views'), { recursive: true });
         const d = diagram();
-        const saved = saveViewLayout(root, d, layout);
+        const saved = saveViewLayout(root, d, layout)!;
         expect(saved).toBe(join(root, 'model/views/thermal.viewlayout'));
         expect(existsSync(saved)).toBe(true);
         expect(loadViewLayout(root, d)).toEqual(layout);
@@ -48,6 +48,50 @@ describe('.viewlayout companions', () => {
         saveViewLayout(root, second, { nodes: { service: { x: 10, y: 20 } }, edges: {} });
         expect(viewLayoutPath(root, first)).toBe(viewLayoutPath(root, second));
         expect(loadViewLayout(root, first)).toEqual(layout);
+        expect(loadViewLayout(root, second)?.nodes.service).toEqual({ x: 10, y: 20 });
+    });
+
+    it('writes no companion for a layout that overrides nothing', () => {
+        const root = mkdtempSync(join(tmpdir(), 'memo-view-layout-')); roots.push(root);
+        mkdirSync(join(root, 'model/views'), { recursive: true });
+        const d = diagram();
+        // A canvas toggle left at its default is not an override.
+        const saved = saveViewLayout(root, d, { nodes: {}, edges: {}, canvas: { flowAnimation: false } });
+        expect(saved).toBeNull();
+        expect(existsSync(viewLayoutPath(root, d))).toBe(false);
+        expect(loadViewLayout(root, d)).toBeNull();
+    });
+
+    it('keeps a companion for a canvas setting the user actually changed', () => {
+        const root = mkdtempSync(join(tmpdir(), 'memo-view-layout-')); roots.push(root);
+        mkdirSync(join(root, 'model/views'), { recursive: true });
+        const d = diagram();
+        for (const canvas of [{ flowAnimation: true }, { autoLayout: false }, { grid: 20 }] as const) {
+            rmSync(viewLayoutPath(root, d), { force: true });
+            expect(saveViewLayout(root, d, { nodes: {}, edges: {}, canvas })).not.toBeNull();
+            expect(loadViewLayout(root, d)).toEqual({ nodes: {}, edges: {}, canvas });
+        }
+    });
+
+    it('drops the companion once its last override is cleared', () => {
+        const root = mkdtempSync(join(tmpdir(), 'memo-view-layout-')); roots.push(root);
+        mkdirSync(join(root, 'model/views'), { recursive: true });
+        const d = diagram();
+        saveViewLayout(root, d, layout);
+        expect(existsSync(viewLayoutPath(root, d))).toBe(true);
+        expect(saveViewLayout(root, d, { nodes: {}, edges: {} })).toBeNull();
+        expect(existsSync(viewLayoutPath(root, d))).toBe(false);
+    });
+
+    it('keeps a sibling diagram\'s overrides when one diagram is cleared', () => {
+        const root = mkdtempSync(join(tmpdir(), 'memo-view-layout-')); roots.push(root);
+        mkdirSync(join(root, 'model/views'), { recursive: true });
+        const first = diagram();
+        const second = { ...diagram(), id: 'view-coffee-service', name: 'Service IBD' };
+        saveViewLayout(root, first, layout);
+        saveViewLayout(root, second, { nodes: { service: { x: 10, y: 20 } }, edges: {} });
+        expect(saveViewLayout(root, first, { nodes: {}, edges: {} })).toBe(viewLayoutPath(root, first));
+        expect(loadViewLayout(root, first)).toBeNull();
         expect(loadViewLayout(root, second)?.nodes.service).toEqual({ x: 10, y: 20 });
     });
 

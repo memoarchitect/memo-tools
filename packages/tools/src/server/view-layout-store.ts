@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { parse, stringify } from 'yaml';
 import type { DiagramDTO, DiagramLayout } from '@memoarchitect/tools';
@@ -45,19 +45,70 @@ export function loadViewLayout(projectRoot: string, diagram: DiagramDTO): Diagra
     try { return parse(readFileSync(legacy, 'utf8')) as DiagramLayout; } catch { return null; }
 }
 
-export function saveViewLayout(projectRoot: string, diagram: DiagramDTO, layout: DiagramLayout): string {
+/**
+ * Whether a layout says anything the model does not already say: a moved node,
+ * a routed connector, or a canvas setting the user changed. A companion exists
+ * to record overrides, so a layout that holds none is not worth a file — the
+ * view renders identically without it.
+ */
+export function isDefaultViewLayout(layout: DiagramLayout): boolean {
+    if (Object.keys(layout.nodes ?? {}).length > 0) return false;
+    if (Object.keys(layout.edges ?? {}).length > 0) return false;
+    const canvas = layout.canvas;
+    if (!canvas) return true;
+    // Automatic layout and still connectors are the defaults; every other
+    // canvas field is unset until the user sets it.
+    return canvas.autoLayout !== false
+        && canvas.flowAnimation !== true
+        && canvas.zoom === undefined
+        && canvas.pan === undefined
+        && canvas.grid === undefined
+        && canvas.snap === undefined;
+}
+
+/** Existing companion entries, keyed by diagram id; empty for a new file. */
+function readViewLayouts(path: string): Record<string, DiagramLayout> {
+    if (!existsSync(path)) return {};
+    try {
+        const existing = parse(readFileSync(path, 'utf8')) as Partial<SysmlViewLayoutArtifact> & {
+            format?: string; diagramId?: string; layout?: DiagramLayout;
+        };
+        if (existing.format === 'memo.viewlayout/v1' || existing.format === 'memo.sysmlview/v2') return existing.layouts ?? {};
+        if (existing.diagramId && existing.layout) return { [existing.diagramId]: existing.layout };
+    } catch { /* replace malformed companion */ }
+    return {};
+}
+
+/**
+ * Persist a diagram's overrides beside its SysML source. Returns the companion
+ * path, or null when there was nothing to persist — a layout that carries no
+ * override drops its entry instead, and the companion is removed once it holds
+ * no entries at all, so a purely visual toggle never dirties the project.
+ */
+export function saveViewLayout(projectRoot: string, diagram: DiagramDTO, layout: DiagramLayout): string | null {
     const path = viewLayoutPath(projectRoot, diagram);
-    mkdirSync(dirname(path), { recursive: true });
-    let existingLayouts: Record<string, DiagramLayout> = {};
-    if (existsSync(path)) {
-        try {
-            const existing = parse(readFileSync(path, 'utf8')) as Partial<SysmlViewLayoutArtifact> & {
-                format?: string; diagramId?: string; layout?: DiagramLayout;
-            };
-            if (existing.format === 'memo.viewlayout/v1' || existing.format === 'memo.sysmlview/v2') existingLayouts = existing.layouts ?? {};
-            else if (existing.diagramId && existing.layout) existingLayouts = { [existing.diagramId]: existing.layout };
-        } catch { /* replace malformed companion */ }
+    const existingLayouts = readViewLayouts(path);
+
+    if (isDefaultViewLayout(layout)) {
+        if (!(diagram.id in existingLayouts)) {
+            if (existsSync(path) && Object.keys(existingLayouts).length === 0) rmSync(path, { force: true });
+            return null;
+        }
+        const remaining = { ...existingLayouts };
+        delete remaining[diagram.id];
+        if (Object.keys(remaining).length === 0) {
+            rmSync(path, { force: true });
+            return null;
+        }
+        writeFileSync(path, stringify({
+            format: 'memo.viewlayout/v1' as const,
+            ...(diagram.sourceFile ? { viewSource: diagram.sourceFile } : {}),
+            layouts: remaining,
+        }), 'utf8');
+        return path;
     }
+
+    mkdirSync(dirname(path), { recursive: true });
     const artifact: SysmlViewLayoutArtifact = {
         format: 'memo.viewlayout/v1',
         ...(diagram.sourceFile ? { viewSource: diagram.sourceFile } : {}),
