@@ -25,6 +25,7 @@ export {
 } from './model/config.js';
 export * from './model/config-loader.js';
 export * from './model/semantic.js';
+export * from './model/source-graph.js';
 export * from './model/short-id.js';
 export * from './model/parser-utils.js';
 export * from './model/builder.js';

@@ -39,7 +39,8 @@ export type ServerMessage =
     | DhfTemplatesResultMessage
     | DhfTemplateContentMessage
     | RelationshipCreateResultMessage
-    | RelationshipDeleteResultMessage;
+    | RelationshipDeleteResultMessage
+    | SourceChangedMessage;
 
 export interface ModelUpdateMessage {
     type: 'model:update';
@@ -65,6 +66,27 @@ export interface ErrorMessage {
 export interface OntologyPackagesMessage {
     type: 'ontology:packages';
     payload: { packages: OntologyPackageInfo[] };
+}
+
+/**
+ * Server → Client: which source files changed on disk, sent with the rebuild
+ * they caused.
+ *
+ * `model:update` says what the model is now; this says what moved. A surface
+ * showing a file — the SysML editor, a view, an element — needs the second to
+ * know whether it is looking at stale content, since the model DTO alone
+ * cannot distinguish "your file changed" from "some other file changed".
+ */
+export interface SourceChangedMessage {
+    type: 'source:changed';
+    payload: {
+        /** Project-relative paths that changed, added, or were removed. */
+        files: string[];
+        /** Model revision produced by the rebuild these changes triggered. */
+        revision: number;
+        /** Wall-clock time of the rebuild, for "updated 2s ago" affordances. */
+        at: number;
+    };
 }
 
 /** Server sends parsed methodology data — Phase B (data-only, no UI yet) */
@@ -296,6 +318,14 @@ export interface DiagramSourceSaveMessage {
         requestId: string;
         diagramId: string;
         text: string;
+        /**
+         * Revision the edit was based on, from the load (or last save) that
+         * produced the buffer. The server refuses the write when the file has
+         * moved on since, so a stale editor cannot silently discard work that
+         * arrived from another editor, another client, or the relationship
+         * writer. Omit only to force an unconditional overwrite.
+         */
+        baseRevision?: string;
     };
 }
 
@@ -310,6 +340,20 @@ export interface DiagramSourceResultMessage {
         sourceFile?: string;
         text?: string;
         error?: string;
+        /** Content revision of the file as it now stands on disk. */
+        revision?: string;
+        /**
+         * Set when a save was refused because the file changed underneath the
+         * edit. `text` and `revision` carry the current on-disk state so the
+         * client can show the conflict rather than guess.
+         */
+        conflict?: boolean;
+        /**
+         * Parse errors in the text that was written. The save still succeeds —
+         * saving work in progress is legitimate — but the editor can surface
+         * them immediately instead of waiting for the rebuild.
+         */
+        parseErrors?: string[];
     };
 }
 

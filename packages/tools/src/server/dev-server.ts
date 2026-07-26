@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createServer as createHttpServer, type Server } from 'node:http';
+import { createHash } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync, createReadStream, statSync } from 'node:fs';
 import { extname } from 'node:path';
@@ -48,7 +49,14 @@ export interface DevServerOptions {
 }
 
 export interface DevServer {
+    /** Replace the current state and push it to every client. */
     broadcast(messages: ServerMessage[]): void;
+    /**
+     * Send transient messages to connected clients without recording them as
+     * state. A client connecting later must not be told about an event it was
+     * not present for — a stale "your file just changed" is worse than silence.
+     */
+    notify(messages: ServerMessage[]): void;
     close(): void;
 }
 
@@ -417,6 +425,30 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         return ids;
     }
 
+    /**
+     * Content revision of a file — a hash of exactly what is on disk.
+     *
+     * Content, not mtime: an editor that rewrites a file with identical bytes
+     * has not changed anything the user needs to be warned about, and mtime
+     * granularity is too coarse to trust for conflict detection.
+     */
+    function fileRevision(contents: string): string {
+        return createHash('sha256').update(contents).digest('hex').slice(0, 16);
+    }
+
+    /** Parse errors in SysML text, so the editor can show them without a rebuild. */
+    async function sysmlParseErrors(text: string): Promise<string[]> {
+        try {
+            const { parseText } = await import('../model/parser-utils.js');
+            const { errors } = await parseText(text);
+            return errors.slice(0, 10).map(error =>
+                typeof error.line === 'number' ? `Line ${error.line}: ${error.message}` : error.message);
+        } catch {
+            // A parser failure is not a save failure — the write already stands.
+            return [];
+        }
+    }
+
     /** Resolve only the project-local .sysml source declared by the diagram. */
     function diagramSource(diagramId: string): { sourceFile: string; path: string } {
         const diagram = currentDiagrams().find(d => d.id === diagramId);
@@ -604,7 +636,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             type: 'diagram:source:result',
                             payload: {
                                 requestId, diagramId, operation: 'load', success: true,
-                                sourceFile: source.sourceFile, text,
+                                sourceFile: source.sourceFile, text, revision: fileRevision(text),
                             },
                         }));
                     } catch (e: any) {
@@ -614,16 +646,37 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         }));
                     }
                 } else if (msg.type === 'diagram:source:save') {
-                    const { requestId, diagramId, text } = msg.payload ?? {};
+                    const { requestId, diagramId, text, baseRevision } = msg.payload ?? {};
                     try {
                         if (typeof text !== 'string') throw new Error('SysML source text is required.');
                         const source = diagramSource(String(diagramId ?? ''));
+
+                        // Refuse to overwrite work that arrived after this edit
+                        // began. The client gets the current file back so it can
+                        // show the conflict instead of losing one of the two.
+                        const onDisk = readFileSync(source.path, 'utf8');
+                        const currentRevision = fileRevision(onDisk);
+                        if (typeof baseRevision === 'string' && baseRevision !== currentRevision) {
+                            console.warn(`[Diagram] Refused stale save of ${source.sourceFile} ` +
+                                `(based on ${baseRevision}, disk is ${currentRevision})`);
+                            ws.send(JSON.stringify({
+                                type: 'diagram:source:result',
+                                payload: {
+                                    requestId, diagramId, operation: 'save', success: false, conflict: true,
+                                    sourceFile: source.sourceFile, text: onDisk, revision: currentRevision,
+                                    error: `${source.sourceFile} changed on disk since this edit began.`,
+                                },
+                            }));
+                            return;
+                        }
+
                         writeFileSync(source.path, text, 'utf8');
                         ws.send(JSON.stringify({
                             type: 'diagram:source:result',
                             payload: {
                                 requestId, diagramId, operation: 'save', success: true,
-                                sourceFile: source.sourceFile,
+                                sourceFile: source.sourceFile, revision: fileRevision(text),
+                                parseErrors: await sysmlParseErrors(text),
                             },
                         }));
                         // The project watcher rebuilds and broadcasts the resulting model.
@@ -1081,6 +1134,13 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                     for (const msg of messages) {
                         client.send(JSON.stringify(msg));
                     }
+                }
+            }
+        },
+        notify(messages: ServerMessage[]) {
+            for (const client of clients) {
+                if (client.readyState === 1) {
+                    for (const msg of messages) client.send(JSON.stringify(msg));
                 }
             }
         },

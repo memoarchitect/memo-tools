@@ -156,6 +156,22 @@ export interface DiagramDTO {
     relationshipTypes?: string[];
     /** SysML source containing the view definition (project-relative). */
     sourceFile?: string;
+    /**
+     * Every project-relative file whose change can alter what this view
+     * renders: its own source, the files owning its elements, and the
+     * transitive import closure of both. See model/source-graph.ts.
+     */
+    sourceFiles?: string[];
+}
+
+/**
+ * File-level dependency graph of the model's SysML sources.
+ *
+ * `dependsOn[file]` lists the files `file` can draw names from, transitively
+ * through package imports. Files with no dependencies are omitted.
+ */
+export interface SourceGraphDTO {
+    dependsOn: Record<string, string[]>;
 }
 
 /** Architecture layer info (serializable subset of config) */
@@ -198,6 +214,17 @@ export interface MemoModelDTO {
      * table — see model/relationship-legality.ts.
      */
     registries?: OntologyRegistriesDTO;
+    /**
+     * Build counter for this model. Increments on every rebuild, so a client
+     * can tell a fresh model from a re-delivered one and order source-change
+     * notifications against it.
+     */
+    revision?: number;
+    /**
+     * Import dependencies between source files, so any surface can decide
+     * whether a changed file affects what it is showing.
+     */
+    sourceGraph?: SourceGraphDTO;
 }
 
 /** Convert MemoModel to a plain JSON-serializable object */
@@ -208,6 +235,8 @@ export function modelToDTO(
         architectureLayers?: ArchLayerDTO[];
         diagrams?: DiagramDTO[];
         registries?: OntologyRegistriesDTO;
+        revision?: number;
+        sourceGraph?: SourceGraphDTO;
     }
 ): MemoModelDTO {
     const elements: Record<string, MemoElement> = {};
@@ -222,6 +251,8 @@ export function modelToDTO(
         architectureLayers: options?.architectureLayers,
         diagrams: options?.diagrams,
         registries: options?.registries,
+        revision: options?.revision,
+        sourceGraph: options?.sourceGraph,
     };
 }
 

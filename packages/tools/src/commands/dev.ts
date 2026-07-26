@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
 import { findConfigFile, parseFiles, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, deriveModelViews, resolveViewKind } from '@memoarchitect/tools';
+import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
@@ -176,7 +177,7 @@ export async function devCommand(options: { port?: number; open?: boolean; clien
 
     // ── rebuildProject: hot path — no ontology reload ─────────────────────────
     const methodologyConfigPath: string = configPath;
-    async function rebuildProject(): Promise<{ messages: ServerMessage[] }> {
+    async function rebuildProject(): Promise<{ messages: ServerMessage[]; revision: number }> {
         buildCount++;
         try {
             methodologyDescriptor = await loadMethodologyDescriptor(methodologyConfigPath, cwd);
@@ -280,13 +281,26 @@ export async function devCommand(options: { port?: number; open?: boolean; clien
             }
             : undefined;
 
-        const dto = modelToDTO(model, { viewpoints, architectureLayers, diagrams, registries: registriesDTO });
+        // Which files can change what each view renders. Computed once per
+        // rebuild so every client can answer "does this change affect me?"
+        // locally, without a round trip per changed file.
+        const sourceGraph = buildSourceGraph(documents);
+        for (const diagram of diagrams) {
+            diagram.sourceFiles = viewSourceFiles(diagram, model.elements, sourceGraph);
+        }
+
+        const dto = modelToDTO(model, {
+            viewpoints, architectureLayers, diagrams, registries: registriesDTO,
+            revision: buildCount,
+            sourceGraph: sourceGraphToDTO(sourceGraph),
+        });
         dto.metadata = metadata;
         (dto as any).ontologyHash = ontologyHash;
 
         const ontologyPackages = getPackageMetadata(cwd);
 
         return {
+            revision: buildCount,
             messages: [
                 { type: 'model:update', payload: dto },
                 { type: 'validation:update', payload: validation },
@@ -339,12 +353,23 @@ export async function devCommand(options: { port?: number; open?: boolean; clien
         server.broadcast([msg]);
     }
 
-    // Project watcher — hot reload
-    const projectWatcher = createProjectWatcher(cwd, async () => {
-        console.log(chalk.gray(`  [${new Date().toLocaleTimeString()}] Rebuilding...`));
+    // Project watcher — hot reload.
+    //
+    // The rebuild is broadcast together with the list of files that caused it,
+    // so open editors and views can tell whether the change was theirs instead
+    // of refreshing on every unrelated save.
+    const projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
+        const summary = changedFiles.length === 1
+            ? changedFiles[0]
+            : `${changedFiles.length} files`;
+        console.log(chalk.gray(`  [${new Date().toLocaleTimeString()}] Rebuilding (${summary})...`));
         const result = await rebuildProject();
         server.broadcast(result.messages);
-    });
+        server.notify([{
+            type: 'source:changed',
+            payload: { files: changedFiles, revision: result.revision, at: Date.now() },
+        }]);
+    }, 300, false, { ontologyRoots });
 
     // Ontology watcher — restart notification only, no registry reload
     const ontologyWatcher = createOntologyWatcher(
