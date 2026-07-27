@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>memo-tools 0.6.2</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
+  <code>memo-tools 0.6.3</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
 </p>
 
 ---
@@ -154,7 +154,7 @@ dependency to the sibling `memo` checkout for iterative development.
 
 ## Current repository relationship
 
-- A standalone clone installs `@memoarchitect/ontology@0.6.1` from npm.
+- A standalone clone installs `@memoarchitect/ontology@0.6.2` from npm.
 - The Tools repository contains no ontology git submodule.
 - The private `memo-meta` workspace keeps `memo` and `memo-tools` as sibling
   submodules and applies local pnpm overrides for cross-repository work.
