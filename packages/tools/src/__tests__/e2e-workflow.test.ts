@@ -71,7 +71,7 @@ describe('E2E: memo init → validate → export', () => {
             type: 'device',
             extends: '@memoarchitect/medical-modeling-profile',
         });
-        expect(readFileSync(starterPath, 'utf-8')).toContain('import memo_medical_device_library::*');
+        expect(readFileSync(starterPath, 'utf-8')).toContain('private import memo::*');
 
         expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
         const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
@@ -115,7 +115,7 @@ describe('E2E: memo init → validate → export', () => {
 
         // SysML should import the ontology
         const sysml = readFileSync(join(projectDir, 'src', 'catalog', 'starter.sysml'), 'utf-8');
-        expect(sysml).toContain('import memo_medical_device_library::*');
+        expect(sysml).toContain('private import memo::*');
 
         expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
         expect(readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8')).not.toContain('test-core-device');

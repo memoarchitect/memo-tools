@@ -289,12 +289,7 @@ describe('DD-4: Syside compatibility — structural invariants', () => {
             if (!e.relPath.startsWith(ONTOLOGY_PREFIX) || e.relPath.endsWith('/memo_namespaces.sysml')) continue;
             const innerPath = e.relPath.slice(ONTOLOGY_PREFIX.length);
             const innerDir = dirname(innerPath);
-            // `implementation/` is a transparent organizational grouping folder, not a
-            // namespace segment: the architecture implementation layer nests
-            // software/hardware/ui on disk but its packages bind by the flat names
-            // memo_architecture_{software,hardware,ui}_* (nesting is alias-only in
-            // memo_namespaces.sysml). Drop it before deriving the expected base.
-            const dirSegments = innerDir === '.' ? [] : innerDir.split('/').filter((s) => s !== 'implementation');
+            const dirSegments = innerDir === '.' ? [] : innerDir.split('/');
             const normalizedDir = dirSegments.join('_').replace(/[^A-Za-z0-9]+/g, '_');
             const expectedBase = normalizedDir ? `memo_${normalizedDir}` : 'memo';
             for (const packageName of e.allPackages) {

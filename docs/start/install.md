@@ -1,9 +1,7 @@
 # Install and Create a Project
 
-## Prerequisites
-
-- Node.js 26 or later
-- npm, pnpm, or another compatible package manager
+[Check the prerequisites](prerequisites.md), including when SysIDE or `sysand`
+is needed.
 
 ## Install
 

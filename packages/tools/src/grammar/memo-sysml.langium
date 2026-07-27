@@ -59,7 +59,10 @@ PackageMember:
 // owns a unique package for reliable SysIDE indexing; aliases reconstruct the
 // user-facing hierarchy without reopening packages across documents.
 AliasDeclaration:
-    'alias' name=ID 'for' target=QualifiedName ';';
+    'alias' name=AliasName 'for' target=QualifiedName ';';
+
+AliasName returns string:
+    ID | 'verification';
 
 // ─── Import ──────────────────────────────────────────────────────────────────
 

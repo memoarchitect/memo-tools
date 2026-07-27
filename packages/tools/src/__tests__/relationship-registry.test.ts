@@ -267,7 +267,10 @@ describe('MEMO ontology relationship properties', () => {
         registry.populateFromDocuments([{ document, filePath: 'src/core/relationships/memo_relationships.sysml' }]);
 
         const untypedEnds = registry.toDefinitionDTOs()
-            .filter(d => !d.isAbstract && d.sysmlName !== 'MemoLink')
+            // MemoLink is the fully generic escape hatch. Validates is also
+            // intentionally cross-metaclass: its target can be a requirement
+            // or an operational behavior, which have no portable common base.
+            .filter(d => !d.isAbstract && !['MemoLink', 'Validates'].includes(d.sysmlName))
             .filter(d => !d.sourceEnd.type || !d.targetEnd.type);
         expect(untypedEnds.map(d => d.sysmlName)).toEqual([]);
     });

@@ -61,6 +61,7 @@ site_dir: site
 nav:
   - Start Here:
       - What MEMO Tools Is: index.md
+      - Prerequisites: start/prerequisites.md
       - Install and Create a Project: start/install.md
       - First Useful Workflow: start/first-workflow.md
   - Everyday Tasks:

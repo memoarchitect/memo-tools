@@ -13,6 +13,7 @@ Start with a task:
 
 | Goal | Go to |
 |---|---|
+| Check what must be installed | [Prerequisites](start/prerequisites.md) |
 | Create a device-model project | [Install and Create a Project](start/install.md) |
 | See value in a few minutes | [First Useful Workflow](start/first-workflow.md) |
 | Find missing traceability | [Validate a Model](tasks/validate.md) |
