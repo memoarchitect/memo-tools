@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { resolve, join } from 'node:path';
 import { readdirSync } from 'node:fs';
-import { resolveLayerFromPath, resolveStandardFromPath } from '../model/layer-resolver.js';
+import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from '../model/layer-resolver.js';
 import { KindRegistry } from '../model/kind-registry.js';
 import { parseFiles } from '../model/parser-utils.js';
 
@@ -44,6 +44,24 @@ describe('resolveLayerFromPath', () => {
 
     it('handles Windows-style backslashes', () => {
         expect(resolveLayerFromPath('sysml\\safety\\hazard.sysml')).toBe('safety');
+    });
+});
+
+describe('resolveNamespaceFromPath', () => {
+    it('derives the complete MEMO namespace from a nested src path', () => {
+        expect(resolveNamespaceFromPath(
+            '/repo/memo/src/assurance/safety_risk/analysis/memo_fmea.sysml',
+        )).toEqual(['assurance', 'safety_risk', 'analysis']);
+    });
+
+    it('supports the legacy sysml source-root convention', () => {
+        expect(resolveNamespaceFromPath(
+            '/repo/package/sysml/operational/context/actors.sysml',
+        )).toEqual(['operational', 'context']);
+    });
+
+    it('returns no namespace for non-ontology source paths', () => {
+        expect(resolveNamespaceFromPath('/repo/packages/tools/src/model/builder.ts')).toEqual([]);
     });
 });
 

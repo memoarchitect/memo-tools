@@ -29,7 +29,7 @@ import {
 } from '../language/generated/ast.js';
 import type { KindDefinition, SysMLConstruct } from './config.js';
 import type { ParsedDocument } from './parser-utils.js';
-import { resolveLayerFromPath, resolveStandardFromPath } from './layer-resolver.js';
+import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from './layer-resolver.js';
 import type { KindDefinitionDTO } from './relationship-legality.js';
 
 /** Entry in the KindRegistry, matching KindDefinition shape */
@@ -54,6 +54,8 @@ export interface KindRegistryEntry {
     clause?: string;
     /** Abstract definitions (e.g. MemoPart) classify but are never instantiated */
     isAbstract?: boolean;
+    /** Namespace segments mirrored by the ontology source folders. */
+    namespace?: string[];
 }
 
 /** AST $type → SysMLConstruct mapping */
@@ -148,6 +150,7 @@ export class KindRegistry {
             construct: entry.sysmlConstruct,
             superType: entry.superType,
             isAbstract: entry.isAbstract,
+            namespace: entry.namespace,
         }));
     }
 
@@ -201,20 +204,21 @@ export class KindRegistry {
             const model = doc.document.parseResult.value;
             const layer = resolveLayerFromPath(doc.filePath);
             const standard = resolveStandardFromPath(doc.filePath);
+            const namespace = resolveNamespaceFromPath(doc.filePath);
 
             for (const member of model.members) {
                 if (isPackageDeclaration(member)) {
-                    this.walkPackage(member, layer, standard);
+                    this.walkPackage(member, layer, standard, namespace);
                 }
             }
         }
     }
 
     /** Walk a package declaration and register all Definition nodes */
-    private walkPackage(pkg: PackageDeclaration, layer: string, standard?: string): void {
+    private walkPackage(pkg: PackageDeclaration, layer: string, standard?: string, namespace?: string[]): void {
         for (const member of pkg.members) {
             if (isPackageDeclaration(member)) {
-                this.walkPackage(member, layer, standard);
+                this.walkPackage(member, layer, standard, namespace);
                 continue;
             }
 
@@ -250,6 +254,7 @@ export class KindRegistry {
                     superType: superType || undefined,
                     standard,
                     isAbstract: ('isAbstract' in member && member.isAbstract) || undefined,
+                    namespace,
                 });
             }
         }

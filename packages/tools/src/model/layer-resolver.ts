@@ -68,6 +68,40 @@ export function resolveLayerFromPath(filePath: string): string {
 }
 
 /**
+ * Resolve the namespace path represented by an ontology source file.
+ *
+ * MEMO keeps namespace and folder paths aligned, so
+ * `src/assurance/safety_risk/analysis/fmea.sysml` becomes
+ * `["assurance", "safety_risk", "analysis"]`. Older ontology packages that
+ * use `sysml/` receive the same treatment. The registry ships this path to
+ * clients so they never need a second hardcoded kind taxonomy.
+ */
+export function resolveNamespaceFromPath(filePath: string): string[] {
+    const normalized = filePath.replace(/\\/g, '/');
+    const roots = ['/src/', '/sysml/'];
+    let remainder: string | undefined;
+
+    for (const root of roots) {
+        const index = normalized.lastIndexOf(root);
+        if (index !== -1) {
+            remainder = normalized.substring(index + root.length);
+            break;
+        }
+        const relativeRoot = root.substring(1);
+        if (normalized.startsWith(relativeRoot)) {
+            remainder = normalized.substring(relativeRoot.length);
+            break;
+        }
+    }
+
+    if (!remainder || !remainder.endsWith('.sysml')) return [];
+    const segments = remainder.split('/').filter(Boolean);
+    if (segments.length === 0) return [];
+    if (segments[segments.length - 1].endsWith('.sysml')) segments.pop();
+    return segments;
+}
+
+/**
  * For files under a compliance layer, extract the standard subdirectory.
  *
  * Convention: sysml/compliance/<standard>/<file>.sysml → standard name.

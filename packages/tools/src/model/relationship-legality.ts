@@ -82,6 +82,11 @@ export interface KindDefinitionDTO {
     /** Direct supertype, the basis for transitive conformance. */
     superType?: string;
     isAbstract?: boolean;
+    /**
+     * Ontology namespace segments derived from the source tree.
+     * Example: ["assurance", "safety_risk", "analysis"].
+     */
+    namespace?: string[];
 }
 
 /** Both ontology registries in serializable form, as shipped to the client. */
