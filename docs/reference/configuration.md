@@ -3,10 +3,10 @@
 Projects use `memo.package.yaml` or `memo.config.yaml` to identify
 their content package/profile and toolchain.
 
-## Select the modeling profile
+## Select the methodology
 
 ```yaml
-extends: "@memo/medical-modeling-profile"
+extends: "@memoarchitect/methodology-default"
 ```
 
 The lock file records the resolved dependency graph. Commit it when your team

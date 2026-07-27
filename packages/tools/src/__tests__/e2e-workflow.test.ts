@@ -60,18 +60,19 @@ describe('E2E: memo init → validate → export', () => {
         const projectDir = join(tmpDir, 'test-device');
         expect(existsSync(projectDir)).toBe(true);
         expect(existsSync(join(projectDir, 'memo.package.yaml'))).toBe(true);
-        const starterPath = join(projectDir, 'src', 'catalog', 'starter.sysml');
-        expect(existsSync(starterPath)).toBe(true);
-        expect(readdirSync(join(projectDir, 'src', 'documents'))).toEqual(['.gitkeep']);
+        const architecturePath = join(projectDir, 'src', 'architecture', 'system.sysml');
+        expect(existsSync(architecturePath)).toBe(true);
+        expect(existsSync(join(projectDir, 'src', 'assurance', 'requirements.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'src', 'artifacts', 'artifacts.sysml'))).toBe(true);
 
         // Check new-format config content
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
         expect(config).toMatchObject({
             name: 'test-device',
             type: 'device',
-            extends: '@memoarchitect/medical-modeling-profile',
+            extends: '@memoarchitect/methodology-default',
         });
-        expect(readFileSync(starterPath, 'utf-8')).toContain('private import memo::*');
+        expect(readFileSync(architecturePath, 'utf-8')).toContain('private import memo::*');
 
         expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
         const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
@@ -87,7 +88,9 @@ describe('E2E: memo init → validate → export', () => {
         expect(output).toContain('Project created in current directory');
 
         expect(existsSync(join(projectDir, 'memo.package.yaml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'src', 'catalog', 'starter.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'src', 'architecture', 'system.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'src', 'assurance', 'requirements.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'src', 'artifacts', 'artifacts.sysml'))).toBe(true);
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
         expect(config.name).toBe('inplace-device');
 
@@ -114,7 +117,7 @@ describe('E2E: memo init → validate → export', () => {
         expect(config.extends).toBe('@memoarchitect/ontology');
 
         // SysML should import the ontology
-        const sysml = readFileSync(join(projectDir, 'src', 'catalog', 'starter.sysml'), 'utf-8');
+        const sysml = readFileSync(join(projectDir, 'src', 'architecture', 'system.sysml'), 'utf-8');
         expect(sysml).toContain('private import memo::*');
 
         expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
@@ -128,7 +131,8 @@ describe('E2E: memo init → validate → export', () => {
             expect(output).toContain('Created memo.lock.yaml');
 
             const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
-            expect(lock).toContain('ontology: "@memoarchitect/medical-modeling-profile"');
+            expect(lock).toContain('ontology: "@memoarchitect/ontology"');
+            expect(lock).toContain('name: "@memoarchitect/methodology-default"');
             expect(lock).not.toContain('tmp-e2e-lock-device');
         } finally {
             rmSync(projectDir, { recursive: true, force: true });
@@ -145,55 +149,57 @@ describe('E2E: memo init → validate → export', () => {
         expect(stdout).toContain('not found');
     });
 
-    it('memo init --list-ontologies shows available packages', () => {
+    it('memo init --list shows available packages', () => {
         // Run from REPO_ROOT so packages are discoverable
-        const output = run('init --list-ontologies', REPO_ROOT);
+        const output = run('init --list', REPO_ROOT);
         expect(output).toContain('@memoarchitect/ontology');
         expect(output).toContain('@memoarchitect/medical-modeling-profile');
         expect(output).toContain('(default)');
     });
 
-    it('memo init --archetype samd creates project with archetype pinned', () => {
+    it('memo init --template samd copies the ontology template', () => {
         const projectDir = join(tmpDir, 'test-samd');
-        const output = run(`init ${projectDir} --archetype samd`, REPO_ROOT);
+        const output = run(`init ${projectDir} --template samd`, REPO_ROOT);
 
-        expect(output).toContain('Creating MEMO project');
+        expect(output).toContain('template: samd');
         expect(output).toContain('Project created');
-
-        const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
-        expect(config.archetype).toBe('samd');
+        expect(readFileSync(join(projectDir, 'src', 'architecture', 'system.sysml'), 'utf-8'))
+            .toContain('samdDevice');
     });
 
-    it('memo init --archetype blank creates project without archetype field', () => {
-        const projectDir = join(tmpDir, 'test-blank');
-        const output = run(`init ${projectDir} --archetype blank`, REPO_ROOT);
+    it('memo init uses the ontology default template', () => {
+        const projectDir = join(tmpDir, 'test-default');
+        const output = run(`init ${projectDir}`, REPO_ROOT);
 
+        expect(output).toContain('template: default');
         expect(output).toContain('Project created');
-
+        expect(existsSync(join(projectDir, 'src', 'architecture', 'system.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'src', 'assurance', 'requirements.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'src', 'artifacts', 'artifacts.sysml'))).toBe(true);
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
-        expect(config.archetype).toBeUndefined();
+        expect(config.extends).toBe('@memoarchitect/methodology-default');
     });
 
-    it('memo init --archetype rejects unknown archetype', () => {
-        const projectDir = join(tmpDir, 'test-bad-arch');
-        const { exitCode, stdout } = runMayFail(`init ${projectDir} --archetype nonexistent`, REPO_ROOT);
+    it('memo init --template rejects an unknown template', () => {
+        const projectDir = join(tmpDir, 'test-bad-template');
+        const { exitCode, stdout } = runMayFail(`init ${projectDir} --template nonexistent`, REPO_ROOT);
         expect(exitCode).not.toBe(0);
-        expect(stdout).toContain('Unknown archetype');
+        expect(stdout).toContain('Unknown template');
     });
 
-    it('memo init --list-ontologies shows archetypes from SysML', () => {
-        const output = run('init --list-ontologies', REPO_ROOT);
-        expect(output).toContain('device archetypes');
+    it('memo init --list shows templates from the ontology manifest', () => {
+        const output = run('init --list', REPO_ROOT);
+        expect(output).toContain('Available templates');
+        expect(output).toContain('default');
         expect(output).toContain('samd');
-        expect(output).toContain('connected');
-        expect(output).toContain('monitoring');
-        expect(output).toContain('infusion_pump');
-        expect(output).toContain('blank');
+        expect(output).toContain('connected-device');
+        expect(output).toContain('monitoring-device');
+        expect(output).toContain('infusion-pump');
     });
 
-    it('memo init --from-example gpca-pump copies example project', () => {
+    it('memo init --example gpca-pump copies example project', () => {
         const projectDir = join(tmpDir, 'test-from-example');
-        const output = run(`init ${projectDir} --from-example gpca-pump`, REPO_ROOT);
+        const output = run(`init ${projectDir} --example gpca-pump`, REPO_ROOT);
 
         expect(output).toContain('Creating project from example');
         expect(output).toContain('gpca-pump');
@@ -235,15 +241,15 @@ describe('E2E: memo init → validate → export', () => {
         expect(stdout).toContain('already a MEMO project');
     });
 
-    it('memo init --from-example rejects unknown example', () => {
+    it('memo init --example rejects unknown example', () => {
         const projectDir = join(tmpDir, 'test-bad-example');
-        const { exitCode, stdout } = runMayFail(`init ${projectDir} --from-example nonexistent`, REPO_ROOT);
+        const { exitCode, stdout } = runMayFail(`init ${projectDir} --example nonexistent`, REPO_ROOT);
         expect(exitCode).not.toBe(0);
         expect(stdout).toContain('Unknown example');
     });
 
-    it('memo init --list-ontologies shows available examples', () => {
-        const output = run('init --list-ontologies', REPO_ROOT);
+    it('memo init --list shows available examples', () => {
+        const output = run('init --list', REPO_ROOT);
         expect(output).toContain('Available examples');
         expect(output).toContain('gpca-pump');
     });
@@ -738,7 +744,7 @@ describe('E2E: memo check --sysml-compat', () => {
 
     beforeAll(() => {
         tmpDir = mkdtempSync(join(tmpdir(), 'memo-check-'));
-        run('init test-check --template medical', tmpDir);
+        run('init test-check', tmpDir);
     });
 
     afterAll(() => {
@@ -771,7 +777,7 @@ describe('E2E: memo round-trip', () => {
 
     beforeAll(() => {
         tmpDir = mkdtempSync(join(tmpdir(), 'memo-rt-'));
-        run('init test-rt --template medical', tmpDir);
+        run('init test-rt', tmpDir);
     });
 
     afterAll(() => {

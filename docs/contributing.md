@@ -40,7 +40,7 @@ pnpm run example:validate  # the GPCA example must still validate
   reachable from `packages/tools/src/browser` — the Architect web bundle
   builds directly against it.
 - **No content knowledge in the engine.** Ontology package names, SysML
-  namespace strings, archetypes, and templates come from the ontology
+  namespace strings, templates, and examples come from the ontology
   package's manifest, never from TypeScript literals.
 - **Operations first, commands second.** New behavior goes into
   `operations/` so the CLI, the dev server, and tests share one

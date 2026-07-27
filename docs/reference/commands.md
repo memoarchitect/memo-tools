@@ -4,7 +4,10 @@ Use `memo <command> --help` as the authoritative option reference.
 
 | Goal | Command |
 |---|---|
-| Create a project | `memo init` |
+| List ontology templates and examples | `memo init --list` |
+| Create the default starter project | `memo init <name>` |
+| Create from an ontology template | `memo init <name> --template <id>` |
+| Copy a worked example | `memo init <name> --example <id>` |
 | Resolve/install ontology dependencies | `memo install` |
 | Refresh dependency lock | `memo lock` |
 | Inspect active ontology | `memo ontology show` |
@@ -23,6 +26,7 @@ Examples:
 
 ```bash
 memo --help
+memo init --list
 memo validate --help
 memo export dhf --help
 memo ontology export --help

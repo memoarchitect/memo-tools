@@ -10,16 +10,6 @@ import {
     type LoadedMemoManifest,
 } from '@memoarchitect/tools';
 import { createLockFile } from '../lock.js';
-import {
-    loadArchetypes,
-    findArchetype,
-    deviceClassArchetypes,
-    profileArchetypes,
-    type ArchetypeInfo,
-} from './archetype-loader.js';
-import { runWizard } from './init-wizard.js';
-
-export { type ArchetypeInfo } from './archetype-loader.js';
 
 export interface AvailableOntology {
     name: string;
@@ -37,6 +27,12 @@ export interface AvailableExample {
     name: string;
     description: string;
     path: string;
+}
+
+export interface AvailableTemplate {
+    id: string;
+    path: string;
+    isDefault: boolean;
 }
 
 function manifests(fromDir: string): LoadedMemoManifest[] {
@@ -91,6 +87,18 @@ export function discoverExamples(fromDir: string): AvailableExample[] {
     return results;
 }
 
+export function discoverTemplates(fromDir: string): AvailableTemplate[] {
+    const results: AvailableTemplate[] = [];
+    for (const loaded of manifests(fromDir)) {
+        for (const [id, subpath] of Object.entries(loaded.manifest.templates)) {
+            const path = resolveManifestPath(loaded, subpath);
+            if (!existsSync(path) || results.some(result => result.id === id)) continue;
+            results.push({ id, path, isDefault: id === loaded.manifest.init.defaultTemplate });
+        }
+    }
+    return results;
+}
+
 export function listOntologiesCommand(fromDir = process.cwd()): void {
     const available = discoverOntologies(fromDir);
     if (available.length === 0) {
@@ -109,10 +117,8 @@ export function listOntologiesCommand(fromDir = process.cwd()): void {
 export interface InitOptions {
     template?: string;
     ontology?: string;
-    archetype?: string;
-    listOntologies?: boolean;
+    list?: boolean;
     example?: string;
-    fromExample?: string;
 }
 
 function matchExample(examples: AvailableExample[], query: string): { example?: AvailableExample; candidates: AvailableExample[] } {
@@ -175,11 +181,11 @@ function selectManifest(fromDir: string, logicalName?: string): LoadedMemoManife
 
 export async function initCommand(name: string | undefined, options: InitOptions): Promise<void> {
     const fromDir = process.cwd();
-    const exampleQuery = options.example ?? options.fromExample;
+    const exampleQuery = options.example;
     let preparedTarget: ReturnType<typeof ensureTarget> | undefined;
     let loaded: LoadedMemoManifest;
     try {
-        if (manifests(fromDir).length === 0 && !options.listOntologies) {
+        if (manifests(fromDir).length === 0 && !options.list) {
             preparedTarget = ensureTarget(name, exampleQuery);
             console.log(chalk.gray('  Fetching MEMO content package...'));
             installContentPackage(preparedTarget.projectDir);
@@ -194,20 +200,23 @@ export async function initCommand(name: string | undefined, options: InitOptions
         process.exit(1);
     }
     const contentFromDir = preparedTarget?.projectDir ?? fromDir;
-    const archetypes = await loadArchetypes(contentFromDir, loaded);
 
-    if (options.listOntologies) {
+    if (options.list) {
         listOntologiesCommand(fromDir);
+        const templates = discoverTemplates(fromDir);
+        if (templates.length > 0) {
+            console.log(chalk.bold('Available templates:\n'));
+            for (const template of templates) {
+                console.log(`  ${chalk.cyan(template.id)}${template.isDefault ? chalk.green(' (default)') : ''}`);
+            }
+            console.log();
+        }
         const examples = discoverExamples(fromDir);
         if (examples.length > 0) {
             console.log(chalk.bold('Available examples:\n'));
             for (const example of examples) console.log(`  ${chalk.cyan(example.id)}`);
             console.log();
         }
-        const profiles = profileArchetypes(archetypes);
-        if (profiles.length > 0) console.log(chalk.bold(`Available profiles:\n${profiles.map(p => `  ${p.id}`).join('\n')}\n`));
-        console.log(chalk.bold('Available device archetypes:\n'));
-        for (const archetype of deviceClassArchetypes(archetypes)) console.log(`  ${chalk.cyan(archetype.id)}\n    ${chalk.gray(archetype.description)}`);
         return;
     }
 
@@ -228,36 +237,23 @@ export async function initCommand(name: string | undefined, options: InitOptions
 
     const target = preparedTarget ?? ensureTarget(name);
     const ontology = options.ontology ?? loaded.manifest.init.defaultExtends;
-    let selectedArchetype = options.archetype ? findArchetype(archetypes, options.archetype) : undefined;
-    if (options.archetype && !selectedArchetype) {
-        console.error(chalk.red(`❌ Unknown archetype "${options.archetype}".`));
-        console.log(chalk.gray('Available: ' + archetypes.map(entry => entry.id).join(', ')));
+    const templateId = options.template ?? loaded.manifest.init.defaultTemplate;
+    const templatePath = loaded.manifest.templates[templateId];
+    if (!templatePath) {
+        console.error(chalk.red(`❌ Unknown template "${templateId}".`));
+        console.log(chalk.gray('Available: ' + Object.keys(loaded.manifest.templates).join(', ')));
         process.exit(1);
     }
-    if (!selectedArchetype && process.stdin.isTTY) {
-        try {
-            const result = await runWizard(deviceClassArchetypes(archetypes));
-            selectedArchetype = findArchetype(archetypes, result.archetypeId);
-        } catch { selectedArchetype = findArchetype(archetypes, 'blank'); }
-    }
-    selectedArchetype ??= findArchetype(archetypes, 'blank');
 
-    console.log(chalk.bold(`\n📦 Creating MEMO project: ${target.projectName}\n`));
-    const templateDir = resolveManifestPath(loaded, loaded.manifest.init.template);
+    console.log(chalk.bold(`\n📦 Creating MEMO project: ${target.projectName} (template: ${templateId})\n`));
+    const templateDir = resolveManifestPath(loaded, templatePath);
     cpSync(templateDir, target.projectDir, { recursive: true });
-    if (selectedArchetype?.templateDir) {
-        const archetypesPath = resolveManifestPath(loaded, loaded.manifest.init.archetypes);
-        const starter = resolve(archetypesPath, '..', 'templates', selectedArchetype.templateDir, 'starter.sysml');
-        if (!existsSync(starter)) throw new Error(`Archetype template not found: ${starter}`);
-        cpSync(starter, resolve(target.projectDir, 'src', 'catalog', 'starter.sysml'));
-    }
     replaceTokens(target.projectDir, { name: target.projectName, rootImport: loaded.manifest.init.rootImport });
 
     const configPath = resolve(target.projectDir, 'memo.package.yaml');
     const config = parseYaml(readFileSync(configPath, 'utf-8'));
     config.name = target.projectName;
     config.extends = ontology;
-    if (selectedArchetype && selectedArchetype.id !== 'blank') config.archetype = selectedArchetype.id;
     writeFileSync(configPath, stringifyYaml(config, { lineWidth: 0 }));
 
     try {

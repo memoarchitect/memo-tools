@@ -11,9 +11,9 @@ export interface MemoManifest {
     init: {
         defaultExtends: string;
         rootImport: string;
-        template: string;
-        archetypes: string;
+        defaultTemplate: string;
     };
+    templates: Record<string, string>;
     examples: Record<string, string>;
 }
 
@@ -33,12 +33,13 @@ function isStringRecord(value: unknown): value is Record<string, string> {
 export function loadMemoManifest(manifestPath: string): LoadedMemoManifest {
     const path = resolve(manifestPath);
     const parsed = parseYaml(readFileSync(path, 'utf-8')) as Partial<MemoManifest> | undefined;
-    if (parsed?.manifest !== 1 || !isStringRecord(parsed.packages) || !isStringRecord(parsed.examples)) {
+    if (parsed?.manifest !== 1 || !isStringRecord(parsed.packages)
+        || !isStringRecord(parsed.templates) || !isStringRecord(parsed.examples)) {
         throw new Error(`Unsupported or malformed MEMO manifest: ${path}`);
     }
     const init = parsed.init;
     if (!init || typeof init.defaultExtends !== 'string' || typeof init.rootImport !== 'string'
-        || typeof init.template !== 'string' || typeof init.archetypes !== 'string') {
+        || typeof init.defaultTemplate !== 'string' || !(init.defaultTemplate in parsed.templates)) {
         throw new Error(`MEMO manifest has an invalid init section: ${path}`);
     }
     return { path, rootDir: dirname(path), manifest: parsed as MemoManifest };

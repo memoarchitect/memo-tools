@@ -53,15 +53,17 @@ Everything lives under `packages/tools/src`:
 ## How ontology content is resolved
 
 The engine contains **no content knowledge** — no package names, namespace
-strings, archetype catalogs, or template layouts are hardcoded. Everything
+strings, template catalogs, examples, or template layouts are hardcoded. Everything
 comes from the ontology package's `memo.manifest.yaml`:
 
 1. A project's `memo.package.yaml` declares `extends: "<logical package>"`.
 2. The resolver locates the installed `@memoarchitect/ontology` package,
    reads its manifest, and maps the logical name to a subpath.
-3. `memo.lock.yaml` pins the resolved identity and version; `memo validate`
+3. `memo init --list` reads the manifest's `templates` and `examples` maps;
+   `--template` and `--example` copy the selected ontology-owned directory.
+4. `memo.lock.yaml` pins the resolved identity and version; `memo validate`
    validates against the locked version.
-4. If content cannot be resolved, commands fail with an actionable error —
+5. If content cannot be resolved, commands fail with an actionable error —
    a lock file is never written against an unresolvable ontology chain.
 
 In the `memo-meta` development workspace, the sibling `memo` checkout is

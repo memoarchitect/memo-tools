@@ -56,7 +56,7 @@ const program = new Command();
 program
     .name('memo')
     .description('MEMO — Model-Based Systems Engineering for Medical Devices')
-    .version('0.6.0');
+    .version('0.6.1');
 
 program
     .command('validate')
@@ -72,13 +72,11 @@ program
     .command('init')
     .description('Scaffold a new MEMO project')
     .argument('[name]', 'Project directory (omit or "." to initialize the current directory)')
-    .option('-t, --template <template>', 'Template to use')
+    .option('-t, --template <id>', 'Create from an ontology template')
     .option('--ontology <package>', 'Logical ontology package to use (defaults from the content manifest)')
-    .option('--archetype <id>', 'Device archetype declared by the content manifest')
     .option('--example <id>', 'Create from an example project (e.g. gpca)')
-    .option('--from-example <id>', 'Alias for --example')
-    .option('--list-ontologies', 'List available ontology packages and archetypes')
-    .action(async (name: string | undefined, options: { template?: string; ontology?: string; archetype?: string; example?: string; fromExample?: string; listOntologies?: boolean }) => {
+    .option('--list', 'List installed ontology templates and examples')
+    .action(async (name: string | undefined, options: { template?: string; ontology?: string; example?: string; list?: boolean }) => {
         await initCommand(name, options);
     });
 
