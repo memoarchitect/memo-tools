@@ -1,6 +1,6 @@
 {
   "name": "@memoarchitect/tools",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "MEMO tools — SysML v2 parser, semantic model, validation, project operations, and CLI",
   "type": "module",
   "main": "./packages/tools/lib/index.js",
@@ -28,6 +28,7 @@
   },
   "scripts": {
     "build": "cd packages/tools && langium generate && tsc",
+    "prepack": "pnpm clean && pnpm build",
     "dev": "tsc -p packages/tools/tsconfig.json --watch",
     "test": "cd packages/tools && vitest run",
     "test:coverage": "cd packages/tools && vitest run --coverage",
