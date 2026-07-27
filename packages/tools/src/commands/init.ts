@@ -1,5 +1,6 @@
 import { basename, resolve } from 'node:path';
 import { cpSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import chalk from 'chalk';
 import {
@@ -119,6 +120,7 @@ export interface InitOptions {
     ontology?: string;
     list?: boolean;
     example?: string;
+    install?: boolean;
 }
 
 function matchExample(examples: AvailableExample[], query: string): { example?: AvailableExample; candidates: AvailableExample[] } {
@@ -164,6 +166,32 @@ function replaceTokens(dir: string, values: Record<string, string>): void {
         for (const [key, value] of Object.entries(values)) text = text.replaceAll(`{{${key}}}`, value);
         writeFileSync(path, text);
     }
+}
+
+function npmPackageName(projectName: string): string {
+    const normalized = projectName.toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^[._-]+|[._-]+$/g, '');
+    return normalized || 'memo-project';
+}
+
+function contentVersion(loaded: LoadedMemoManifest): string {
+    const packagePath = resolve(loaded.rootDir, 'package.json');
+    if (!existsSync(packagePath)) {
+        throw new Error(`content package has no package.json: ${loaded.rootDir}`);
+    }
+    const metadata = JSON.parse(readFileSync(packagePath, 'utf-8')) as { version?: unknown };
+    if (typeof metadata.version !== 'string' || metadata.version.length === 0) {
+        throw new Error(`content package has no version: ${packagePath}`);
+    }
+    return metadata.version;
+}
+
+function installProjectDependencies(projectDir: string): void {
+    execFileSync('npm', ['install', '--ignore-scripts'], {
+        cwd: projectDir,
+        stdio: 'pipe',
+    });
 }
 
 function selectManifest(fromDir: string, logicalName?: string): LoadedMemoManifest {
@@ -248,13 +276,30 @@ export async function initCommand(name: string | undefined, options: InitOptions
     console.log(chalk.bold(`\n📦 Creating MEMO project: ${target.projectName} (template: ${templateId})\n`));
     const templateDir = resolveManifestPath(loaded, templatePath);
     cpSync(templateDir, target.projectDir, { recursive: true });
-    replaceTokens(target.projectDir, { name: target.projectName, rootImport: loaded.manifest.init.rootImport });
+    replaceTokens(target.projectDir, {
+        name: target.projectName,
+        npmName: npmPackageName(target.projectName),
+        ontologyVersion: contentVersion(loaded),
+        rootImport: loaded.manifest.init.rootImport,
+    });
 
     const configPath = resolve(target.projectDir, 'memo.package.yaml');
     const config = parseYaml(readFileSync(configPath, 'utf-8'));
     config.name = target.projectName;
     config.extends = ontology;
     writeFileSync(configPath, stringifyYaml(config, { lineWidth: 0 }));
+
+    if (options.install !== false) {
+        try {
+            console.log(chalk.gray('  Installing the project-local MEMO ontology...'));
+            installProjectDependencies(target.projectDir);
+            console.log(chalk.gray('  Installed @memoarchitect/ontology in node_modules'));
+        } catch (error) {
+            console.error(chalk.red(`❌ npm install failed: ${error instanceof Error ? error.message : error}`));
+            console.error(chalk.gray(`  The project was created at ${target.projectDir}. Run npm install there to finish setup.`));
+            process.exit(1);
+        }
+    }
 
     try {
         const { lock } = createLockFile(configPath);

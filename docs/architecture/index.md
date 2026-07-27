@@ -57,7 +57,8 @@ strings, template catalogs, examples, or template layouts are hardcoded. Everyth
 comes from the ontology package's `memo.manifest.yaml`:
 
 1. A project's `memo.package.yaml` declares `extends: "<logical package>"`.
-2. The resolver locates the installed `@memoarchitect/ontology` package,
+2. The resolver locates the project-local `@memoarchitect/ontology` package in
+   `node_modules`,
    reads its manifest, and maps the logical name to a subpath.
 3. `memo init --list` reads the manifest's `templates` and `examples` maps;
    `--template` and `--example` copy the selected ontology-owned directory.

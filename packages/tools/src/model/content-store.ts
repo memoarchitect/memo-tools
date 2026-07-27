@@ -40,17 +40,16 @@ export function contentPackageSpec(version?: string): string {
 }
 
 export function projectContentStore(projectDir: string): string {
-    return resolve(projectDir, '.memo', 'content');
+    return resolve(projectDir, 'node_modules');
 }
 
 export function installedContentManifests(projectDir: string): LoadedMemoManifest[] {
-    return discoverMemoManifests([projectContentStore(projectDir)]);
+    return discoverMemoManifests([projectDir]);
 }
 
 export function installContentPackage(projectDir: string, version?: string): LoadedMemoManifest[] {
-    const store = projectContentStore(projectDir);
     const spec = contentPackageSpec(version);
-    execFileSync('npm', ['install', '--prefix', store, '--no-save', '--ignore-scripts', spec], {
+    execFileSync('npm', ['install', '--save-exact', '--ignore-scripts', spec], {
         cwd: projectDir,
         stdio: 'pipe',
     });

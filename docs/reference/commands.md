@@ -22,6 +22,11 @@ Use `memo <command> --help` as the authoritative option reference.
 | Create a KPAR | `memo pack` |
 | Inspect rule coverage | `memo rules coverage` |
 
+The default starter includes `package.json`, `syside.toml`, and the
+architecture, assurance, and artifacts source folders. `memo init` installs the
+ontology into the new project's `node_modules`; use `--no-install` only when a
+separate package-install step is required.
+
 Examples:
 
 ```bash

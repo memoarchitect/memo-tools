@@ -76,7 +76,8 @@ program
     .option('--ontology <package>', 'Logical ontology package to use (defaults from the content manifest)')
     .option('--example <id>', 'Create from an example project (e.g. gpca)')
     .option('--list', 'List installed ontology templates and examples')
-    .action(async (name: string | undefined, options: { template?: string; ontology?: string; example?: string; list?: boolean }) => {
+    .option('--no-install', 'Create the project without running npm install')
+    .action(async (name: string | undefined, options: { template?: string; ontology?: string; example?: string; list?: boolean; install?: boolean }) => {
         await initCommand(name, options);
     });
 

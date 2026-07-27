@@ -137,7 +137,7 @@ export async function installCommand(
             process.exit(1);
         }
         console.log(chalk.green(`\n✅ Installed ${physicalPackage} v${lock.version}`));
-        console.log(chalk.gray(`  Location: ${join(projectDir, '.memo', 'content')}\n`));
+        console.log(chalk.gray(`  Location: ${join(projectDir, 'node_modules', '@memoarchitect', 'ontology')}\n`));
         return;
     }
 

@@ -52,7 +52,7 @@ describe('E2E: memo init → validate → export', () => {
     });
 
     it('memo init creates project structure with memo.package.yaml', () => {
-        const output = run('init test-device', tmpDir);
+        const output = run('init test-device --no-install', tmpDir);
 
         expect(output).toContain('Creating MEMO project: test-device');
         expect(output).toContain('Project created');
@@ -83,7 +83,7 @@ describe('E2E: memo init → validate → export', () => {
         const projectDir = join(tmpDir, 'inplace-device');
         mkdirSync(projectDir);
 
-        const output = run('init', projectDir);
+        const output = run('init --no-install', projectDir);
         expect(output).toContain('Creating MEMO project: inplace-device');
         expect(output).toContain('Project created in current directory');
 
@@ -107,7 +107,7 @@ describe('E2E: memo init → validate → export', () => {
 
     it('memo init --ontology selects a different ontology', () => {
         // Run from REPO_ROOT so ontology packages are discoverable
-        const output = run(`init ${join(tmpDir, 'test-core-device')} --ontology @memoarchitect/ontology`, REPO_ROOT);
+        const output = run(`init ${join(tmpDir, 'test-core-device')} --ontology @memoarchitect/ontology --no-install`, REPO_ROOT);
 
         expect(output).toContain('Creating MEMO project');
         expect(output).toContain('Project created');
@@ -127,7 +127,7 @@ describe('E2E: memo init → validate → export', () => {
     it('memo init inside the workspace locks against the resolved ontology', () => {
         const projectDir = join(REPO_ROOT, 'tmp-e2e-lock-device');
         try {
-            const output = run(`init ${projectDir}`, REPO_ROOT);
+            const output = run(`init ${projectDir} --no-install`, REPO_ROOT);
             expect(output).toContain('Created memo.lock.yaml');
 
             const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
@@ -159,7 +159,7 @@ describe('E2E: memo init → validate → export', () => {
 
     it('memo init --template samd copies the ontology template', () => {
         const projectDir = join(tmpDir, 'test-samd');
-        const output = run(`init ${projectDir} --template samd`, REPO_ROOT);
+        const output = run(`init ${projectDir} --template samd --no-install`, REPO_ROOT);
 
         expect(output).toContain('template: samd');
         expect(output).toContain('Project created');
@@ -169,20 +169,24 @@ describe('E2E: memo init → validate → export', () => {
 
     it('memo init uses the ontology default template', () => {
         const projectDir = join(tmpDir, 'test-default');
-        const output = run(`init ${projectDir}`, REPO_ROOT);
+        const output = run(`init ${projectDir} --no-install`, REPO_ROOT);
 
         expect(output).toContain('template: default');
         expect(output).toContain('Project created');
         expect(existsSync(join(projectDir, 'src', 'architecture', 'system.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'src', 'assurance', 'requirements.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'src', 'artifacts', 'artifacts.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'syside.toml'))).toBe(true);
+        const npmPackage = JSON.parse(readFileSync(join(projectDir, 'package.json'), 'utf-8'));
+        expect(npmPackage.name).toBe('test-default');
+        expect(npmPackage.dependencies['@memoarchitect/ontology']).toMatch(/^\d+\.\d+\.\d+$/);
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
         expect(config.extends).toBe('@memoarchitect/methodology-default');
     });
 
     it('memo init --template rejects an unknown template', () => {
         const projectDir = join(tmpDir, 'test-bad-template');
-        const { exitCode, stdout } = runMayFail(`init ${projectDir} --template nonexistent`, REPO_ROOT);
+        const { exitCode, stdout } = runMayFail(`init ${projectDir} --template nonexistent --no-install`, REPO_ROOT);
         expect(exitCode).not.toBe(0);
         expect(stdout).toContain('Unknown template');
     });
@@ -435,7 +439,7 @@ describe('E2E: memo install', () => {
         rmSync(projectDir, { recursive: true, force: true });
 
         // Use memo init to create a properly configured project
-        run(`init ${projectDir}`, REPO_ROOT);
+        run(`init ${projectDir} --no-install`, REPO_ROOT);
 
         // Create a fake local ontology package to install
         fakeOntologyDir = join(REPO_ROOT, '.test-fake-ontology-' + process.pid);
@@ -744,7 +748,7 @@ describe('E2E: memo check --sysml-compat', () => {
 
     beforeAll(() => {
         tmpDir = mkdtempSync(join(tmpdir(), 'memo-check-'));
-        run('init test-check', tmpDir);
+        run('init test-check --no-install', tmpDir);
     });
 
     afterAll(() => {
@@ -777,7 +781,7 @@ describe('E2E: memo round-trip', () => {
 
     beforeAll(() => {
         tmpDir = mkdtempSync(join(tmpdir(), 'memo-rt-'));
-        run('init test-rt', tmpDir);
+        run('init test-rt --no-install', tmpDir);
     });
 
     afterAll(() => {
