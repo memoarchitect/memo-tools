@@ -41,6 +41,7 @@ import { lockCommand } from '../commands/lock.js';
 import { installCommand } from '../commands/install.js';
 import { createPackageCommand } from '../commands/create-package.js';
 import { askCommand } from '../commands/ask.js';
+import { mcpCommand, mcpInitCommand } from '../commands/mcp.js';
 import { generateCommand } from '../commands/generate.js';
 import { dhfDraftCommand } from '../commands/dhf-draft.js';
 import { dhfInitCommand } from '../commands/dhf-init.js';
@@ -303,6 +304,35 @@ program
     .option('--kind <kind>', 'Filter context to a specific kind')
     .action(async (question: string, options: { layer?: string; kind?: string }) => {
         await askCommand(question, options);
+    });
+
+// ─── memo mcp ────────────────────────────────────────────────────────────────
+
+// `init` is a positional argument rather than a subcommand: commander binds an
+// option declared on both a command and its subcommand to the parent, so
+// `memo mcp init --project X` would silently lose --project.
+program
+    .command('mcp')
+    .description('Serve the model to AI coding tools over the Model Context Protocol')
+    .argument('[action]', 'Omit to serve; "init" to register the server with Cursor')
+    .option('--project <dir>', 'Project directory (defaults to the current one)')
+    .option('--write', 'Enable the model-editing tools (read-only by default)')
+    .option('--no-rules', 'With "init", skip writing .cursor/rules/memo.mdc')
+    .action(async (action: string | undefined, options: { project?: string; write?: boolean; rules?: boolean }) => {
+        if (action === 'init') {
+            await mcpInitCommand({
+                project: options.project,
+                write: options.write,
+                noRules: options.rules === false,
+            });
+            return;
+        }
+        if (action) {
+            console.error(`Unknown action "${action}". Use \`memo mcp\` to serve, or \`memo mcp init\`.`);
+            process.exit(1);
+        }
+        // Runs until the client closes stdin; stdout is reserved for JSON-RPC.
+        await mcpCommand({ project: options.project, write: options.write, version: program.version() });
     });
 
 // ─── memo generate ───────────────────────────────────────────────────────────

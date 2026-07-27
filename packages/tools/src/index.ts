@@ -78,6 +78,11 @@ export * from './llm/index.js';
 // ─── Plugin System ──────────────────────────────────────────────────────────
 export * from './plugin/index.js';
 
+// The MCP server is intentionally NOT re-exported here. It depends on
+// server/persistor, which imports this module by package name — routing it
+// through the public index would close a runtime import cycle. `memo mcp`
+// imports src/mcp/server.js directly instead.
+
 // ─── Protocol (WebSocket messages) ──────────────────────────────────────────
 export * from './protocol/messages.js';
 
