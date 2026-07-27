@@ -50,3 +50,7 @@ packages/tools/syntaxes/
 site/
 public/
 _site/
+
+# LLM credentials — never commit an API key
+.env
+.env.local

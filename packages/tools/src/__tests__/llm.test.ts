@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import {
     resolveLLMConfig,
     serializeModelContext,
@@ -77,6 +79,13 @@ function createMockContext(): QueryContext {
 
 describe('resolveLLMConfig', () => {
     const originalEnv = { ...process.env };
+
+    beforeEach(() => {
+        // Resolution now also consults ~/.memo/credentials.json. Point it at a
+        // path that cannot exist so a key the developer saved in the workbench
+        // does not decide the outcome of these tests.
+        process.env.MEMO_CREDENTIALS_PATH = resolve(tmpdir(), 'memo-tests-no-such-credentials.json');
+    });
 
     afterEach(() => {
         process.env = { ...originalEnv };

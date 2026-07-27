@@ -14,3 +14,15 @@ export type * from '../validator/types.js';
 export type * from '../protocol/messages.js';
 export type { MethodologyDescriptor } from '../model/methodology-loader.js';
 export type { OntologyPackageInfo } from '../model/ontology-loader.js';
+
+// LLM types only. These modules reach for node:fs and fetch, but `export type`
+// is erased at compile time, so nothing Node-only reaches the bundle.
+export type { ChatMessage, ToolCall, LLMProviderName } from '../llm/llm-provider.js';
+export type {
+    ProposedChange,
+    ProposedElementCreate,
+    ProposedElementUpdate,
+    ProposedRelationshipCreate,
+    ProposedRelationshipDelete,
+} from '../llm/chat-engine.js';
+export type { LlmSettingsStatus, LlmSettingsOrigin } from '../llm/llm-settings.js';

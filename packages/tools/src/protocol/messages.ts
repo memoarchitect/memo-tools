@@ -12,6 +12,9 @@ import type {
     RelationshipDeleteRequest,
     RelationshipDiagnostic,
 } from '../model/relationship-legality.js';
+import type { ChatMessage } from '../llm/llm-provider.js';
+import type { ProposedChange } from '../llm/chat-engine.js';
+import type { LlmSettingsStatus, LLMProviderName } from '../llm/llm-settings.js';
 
 // ─── Server → Client ────────────────────────────────────────────────────────
 
@@ -30,6 +33,10 @@ export type ServerMessage =
     | OntologyRemoveResultMessage
     | LlmStatusMessage
     | LlmAskResultMessage
+    | LlmChatResultMessage
+    | LlmApplyResultMessage
+    | LlmSettingsMessage
+    | LlmSettingsSaveResultMessage
     | LlmGenerateResultMessage
     | LlmDraftResultMessage
     | LlmSuggestResultMessage
@@ -115,6 +122,9 @@ export type ClientMessage =
     | OntologyRemoveMessage
     | DiagramLayoutUpdateMessage
     | LlmAskMessage
+    | LlmChatMessage
+    | LlmApplyMessage
+    | LlmSettingsSaveMessage
     | LlmGenerateMessage
     | LlmDraftMessage
     | LlmSuggestMessage
@@ -435,6 +445,84 @@ export interface LlmAskMessage {
 export interface LlmAskResultMessage {
     type: 'llm:ask:result';
     payload: { requestId: string; answer?: string; error?: string };
+}
+
+/**
+ * Client → Server: one turn of a multi-turn model conversation.
+ *
+ * `history` is the transcript returned by the previous turn, tool calls and
+ * all — the server holds no per-conversation state.
+ */
+export interface LlmChatMessage {
+    type: 'llm:chat';
+    payload: {
+        requestId: string;
+        question: string;
+        history?: ChatMessage[];
+        /** Let the model stage edits. Read-only when absent or false. */
+        allowEdits?: boolean;
+    };
+}
+
+/** Server → Client: assistant reply plus any changes staged for approval */
+export interface LlmChatResultMessage {
+    type: 'llm:chat:result';
+    payload: {
+        requestId: string;
+        answer?: string;
+        proposedChanges?: ProposedChange[];
+        /** Updated transcript to send back as `history` on the next turn. */
+        messages?: ChatMessage[];
+        truncated?: boolean;
+        error?: string;
+    };
+}
+
+/** Client → Server: apply the changes the user approved */
+export interface LlmApplyMessage {
+    type: 'llm:chat:apply';
+    payload: { requestId: string; changes: ProposedChange[] };
+}
+
+/** Server → Client: per-change outcome of an apply */
+export interface LlmApplyResultMessage {
+    type: 'llm:chat:apply:result';
+    payload: {
+        requestId: string;
+        applied?: string[];
+        failed?: Array<{ id: string; error: string }>;
+        error?: string;
+    };
+}
+
+/** Server → Client: current LLM settings. Never includes the API key itself. */
+export interface LlmSettingsMessage {
+    type: 'llm:settings';
+    payload: { settings: LlmSettingsStatus };
+}
+
+/**
+ * Client → Server: update LLM settings.
+ *
+ * `apiKey` is written to the user's credentials file outside the project;
+ * provider/model/baseUrl go to project settings. Omitted fields are left alone;
+ * an empty `apiKey` string clears the stored key.
+ */
+export interface LlmSettingsSaveMessage {
+    type: 'llm:settings:save';
+    payload: {
+        requestId: string;
+        provider?: LLMProviderName;
+        model?: string;
+        baseUrl?: string;
+        apiKey?: string;
+    };
+}
+
+/** Server → Client: settings after the save, or why it failed */
+export interface LlmSettingsSaveResultMessage {
+    type: 'llm:settings:save:result';
+    payload: { requestId: string; settings?: LlmSettingsStatus; error?: string };
 }
 
 /** Client → Server: generate SysML v2 from a natural language description */

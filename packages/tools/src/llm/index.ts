@@ -4,8 +4,10 @@
 // generation from natural language, and DHF draft assistant.
 // ─────────────────────────────────────────────────────────────────────────────
 
+export * from './llm-settings.js';
 export * from './llm-provider.js';
 export * from './model-context.js';
 export * from './ask-engine.js';
+export * from './chat-engine.js';
 export * from './generate-engine.js';
 export * from './draft-engine.js';

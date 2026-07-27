@@ -15,6 +15,7 @@ import type {
     RelationshipCreateRequest, RelationshipCreateResultMessage,
     RelationshipDeleteRequest, RelationshipDeleteResultMessage,
     RelationshipDiagnostic, OntologyRegistriesDTO,
+    QueryContext, MEMOConfig, ProposedChange,
 } from '@memoarchitect/tools';
 import type { BuilderRegistries } from '@memoarchitect/tools';
 import { findMemoManifests, validateRelationshipMutation, validateRelationshipDeletion } from '@memoarchitect/tools';
@@ -252,6 +253,104 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     /** Latest model DTO — broadcast() replaces initialMessages on every rebuild. */
     const currentModel = (): MemoModelDTO | undefined =>
         (initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined)?.payload;
+
+    /**
+     * Build the query context the LLM engines read from, against whatever the
+     * server currently holds. Every LLM handler needs the same four pieces, so
+     * they share this rather than each re-deriving them.
+     */
+    async function llmQueryContext(): Promise<{ ctx: QueryContext; config: MEMOConfig }> {
+        const { createQueryContext, findConfigFile } = await import('@memoarchitect/tools');
+        const { loadAndResolveConfig } = await import('./config-resolver.js');
+
+        const modelMsg = initialMessages.find(m => m.type === 'model:update') as any;
+        const validMsg = initialMessages.find(m => m.type === 'validation:update') as any;
+        const compMsg = initialMessages.find(m => m.type === 'completeness:update') as any;
+        const configPath = findConfigFile(options.projectRoot);
+        const config = configPath ? await loadAndResolveConfig(configPath) : {} as MEMOConfig;
+
+        const ctx = createQueryContext(
+            modelMsg?.payload ?? {},
+            validMsg?.payload ?? { violations: [] },
+            compMsg?.payload ?? { overall: 0, layers: [] },
+            config,
+        );
+        return { ctx, config };
+    }
+
+    /** Settings status for the client — provider/model/origin, never the key. */
+    async function llmSettings() {
+        const { llmSettingsStatus } = await import('@memoarchitect/tools');
+        return llmSettingsStatus(options.projectRoot);
+    }
+
+    /**
+     * Apply one approved change from the chat.
+     *
+     * Element writes go through the same persistor the properties panel uses,
+     * and relationship writes through the same legality-checked handlers as the
+     * relationship dialog — so an LLM-originated edit is validated exactly like
+     * a hand-made one, and the file watcher broadcasts the result either way.
+     */
+    async function applyProposedChange(change: ProposedChange): Promise<void> {
+        const { saveElementToFile } = await import('./persistor.js');
+
+        switch (change.kind) {
+            case 'create-element': {
+                const { config } = await llmQueryContext();
+                const kindDef = config.kinds?.[change.elementKind];
+                const result = saveElementToFile(options.projectRoot, {
+                    id: change.elementId,
+                    name: change.name,
+                    kind: change.elementKind,
+                    construct: kindDef?.sysmlConstruct ?? 'part',
+                    layer: change.layer ?? kindDef?.layer ?? '',
+                    doc: change.doc ?? '',
+                    attributes: change.attributes ?? {},
+                });
+                if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
+                return;
+            }
+
+            case 'update-element': {
+                const existing = currentModel()?.elements?.[change.elementId];
+                if (!existing) throw new Error(`Element "${change.elementId}" no longer exists.`);
+                const result = saveElementToFile(options.projectRoot, {
+                    ...existing,
+                    ...(change.changes.name !== undefined ? { name: change.changes.name } : {}),
+                    ...(change.changes.doc !== undefined ? { doc: change.changes.doc } : {}),
+                    attributes: { ...existing.attributes, ...(change.changes.attributes ?? {}) },
+                });
+                if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
+                return;
+            }
+
+            case 'create-relationship': {
+                const response = await handleRelationshipCreate({
+                    requestId: change.id,
+                    type: change.relationshipType,
+                    sourceId: change.sourceId,
+                    targetId: change.targetId,
+                    direction: 'outgoing',
+                });
+                if (!response.payload.success) {
+                    throw new Error(response.payload.error ?? 'The relationship was rejected.');
+                }
+                return;
+            }
+
+            case 'delete-relationship': {
+                const response = await handleRelationshipDelete({
+                    requestId: change.id,
+                    relationshipId: change.relationshipId,
+                });
+                if (!response.payload.success) {
+                    throw new Error(response.payload.error ?? 'The relationship could not be removed.');
+                }
+                return;
+            }
+        }
+    }
 
     /**
      * Ontology registries in serializable form. The server validates against
@@ -495,16 +594,21 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             console.error('[DHF] initial load failed:', e);
         }
 
-        // Announce LLM availability on connect
-        {
-            const hasAnthropic = !!(process.env.ANTHROPIC_API_KEY);
-            const hasOpenAI = !!(process.env.OPENAI_API_KEY);
-            const available = hasAnthropic || hasOpenAI;
-            const provider = hasAnthropic ? 'anthropic' : hasOpenAI ? 'openai' : undefined;
-            const model = process.env.MEMO_LLM_MODEL
-                || (hasAnthropic ? 'claude-sonnet-4-20250514' : hasOpenAI ? 'gpt-4o' : undefined);
-            ws.send(JSON.stringify({ type: 'llm:status', payload: { available, provider, model } }));
-        }
+        // Announce LLM availability and settings on connect. Resolution spans
+        // the environment, a project .env, project settings and stored
+        // credentials — never just process.env.
+        void (async () => {
+            try {
+                const settings = await llmSettings();
+                ws.send(JSON.stringify({
+                    type: 'llm:status',
+                    payload: { available: settings.configured, provider: settings.provider, model: settings.model },
+                }));
+                ws.send(JSON.stringify({ type: 'llm:settings', payload: { settings } }));
+            } catch (e) {
+                console.error('[LLM] settings load failed:', e);
+            }
+        })();
 
         ws.on('close', () => clients.delete(ws));
 
@@ -930,6 +1034,93 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     } catch (e: any) {
                         console.error('[LLM] ask failed:', e);
                         ws.send(JSON.stringify({ type: 'llm:ask:result', payload: { requestId, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'llm:chat') {
+                    // Multi-turn conversation about the model, with optional edit proposals.
+                    const { requestId, question, history, allowEdits } = msg.payload ?? {};
+                    try {
+                        const { resolveLLMConfig, createProvider, runChatTurn } = await import('@memoarchitect/tools');
+
+                        const llmConfig = resolveLLMConfig(options.projectRoot);
+                        if (!llmConfig) {
+                            ws.send(JSON.stringify({ type: 'llm:chat:result', payload: { requestId, error: 'No LLM provider configured. Add an API key in Settings, set ANTHROPIC_API_KEY or OPENAI_API_KEY, or put one in a project .env file.' } }));
+                        } else {
+                            const { ctx, config } = await llmQueryContext();
+                            const provider = createProvider(llmConfig);
+                            const result = await runChatTurn({
+                                question, history, ctx, provider, config,
+                                allowEdits: allowEdits === true,
+                            });
+                            ws.send(JSON.stringify({
+                                type: 'llm:chat:result',
+                                payload: {
+                                    requestId,
+                                    answer: result.answer,
+                                    proposedChanges: result.proposedChanges,
+                                    messages: result.messages,
+                                    truncated: result.truncated,
+                                },
+                            }));
+                        }
+                    } catch (e: any) {
+                        console.error('[LLM] chat failed:', e);
+                        ws.send(JSON.stringify({ type: 'llm:chat:result', payload: { requestId, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'llm:chat:apply') {
+                    // Apply the subset of proposals the engineer approved.
+                    const { requestId, changes } = msg.payload ?? {};
+                    const applied: string[] = [];
+                    const failed: Array<{ id: string; error: string }> = [];
+                    try {
+                        // Sequential on purpose: a relationship may depend on an
+                        // element created earlier in the same batch.
+                        for (const change of (changes ?? []) as ProposedChange[]) {
+                            try {
+                                await applyProposedChange(change);
+                                applied.push(change.id);
+                            } catch (e: any) {
+                                failed.push({ id: change.id, error: e?.message ?? String(e) });
+                            }
+                        }
+                        console.log(`[LLM] applied ${applied.length} change(s), ${failed.length} failed`);
+                        ws.send(JSON.stringify({ type: 'llm:chat:apply:result', payload: { requestId, applied, failed } }));
+                    } catch (e: any) {
+                        console.error('[LLM] apply failed:', e);
+                        ws.send(JSON.stringify({ type: 'llm:chat:apply:result', payload: { requestId, applied, failed, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'llm:settings:save') {
+                    const { requestId, provider, model, baseUrl, apiKey } = msg.payload ?? {};
+                    try {
+                        const {
+                            saveLlmProjectSettings, loadLlmProjectSettings,
+                            saveLlmCredential, clearLlmCredential,
+                        } = await import('@memoarchitect/tools');
+
+                        // Omitted fields keep their current value; the client
+                        // sends only what the user actually edited.
+                        const existing = loadLlmProjectSettings(options.projectRoot);
+                        saveLlmProjectSettings(options.projectRoot, {
+                            provider: provider ?? existing.provider,
+                            model: model ?? existing.model,
+                            baseUrl: baseUrl ?? existing.baseUrl,
+                        });
+
+                        if (typeof apiKey === 'string') {
+                            const target = provider ?? existing.provider ?? 'anthropic';
+                            if (apiKey) saveLlmCredential(target, apiKey);
+                            else clearLlmCredential(target);
+                        }
+
+                        const settings = await llmSettings();
+                        ws.send(JSON.stringify({ type: 'llm:settings:save:result', payload: { requestId, settings } }));
+                        // Everyone watching this project should see the new status.
+                        const settingsMsg = JSON.stringify({ type: 'llm:settings', payload: { settings } });
+                        for (const client of clients) {
+                            if (client.readyState === 1) client.send(settingsMsg);
+                        }
+                    } catch (e: any) {
+                        console.error('[LLM] settings save failed:', e);
+                        ws.send(JSON.stringify({ type: 'llm:settings:save:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'llm:generate') {
                     // Generate SysML v2 from natural language (#54)
