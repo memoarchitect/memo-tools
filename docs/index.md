@@ -6,8 +6,18 @@ exchange information with other tools, and produce review artifacts. Your
 `.sysml` files remain the source of truth.
 
 MEMO Tools does not define the medical-device vocabulary—that belongs to the
-[MEMO Ontology](https://github.com/memoarchitect/memo)—and it is not the visual
-review application—that is [MEMO Architect](https://github.com/memoarchitect/memo-architect).
+[MEMO Ontology documentation](https://memoarchitect.com/memo/) and its
+[GitHub repository](https://github.com/memoarchitect/memo)—and it is not the visual
+review application—that is [MEMO Architect documentation](https://memoarchitect.com/memo-architect/)
+and its [GitHub repository](https://github.com/memoarchitect/memo-architect).
+
+!!! warning "Experimental before 1.0"
+    MEMO Tools and the ontology APIs may change before version 1.0. Use a
+    [tagged release](https://github.com/memoarchitect/memo-tools/releases) and
+    an exact npm version rather than `main` or a floating range for reproducible work.
+
+[MEMO Tools GitHub repository](https://github.com/memoarchitect/memo-tools) ·
+[MEMO product website](https://memoarchitect.com/)
 
 Start with a task:
 

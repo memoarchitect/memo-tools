@@ -1,6 +1,7 @@
 site_name: MEMO Tools
 site_description: Task-oriented documentation for the MEMO model engine and command line
 site_author: memoarchitect
+site_url: https://memoarchitect.com/memo-tools/
 repo_url: https://github.com/memoarchitect/memo-tools
 repo_name: memoarchitect/memo-tools
 
