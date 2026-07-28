@@ -4,7 +4,7 @@
 //
 // A product model can declare views as part usages of the ontology view kinds
 // (DiagramView, DocumentView, and their specializations). Each view carries:
-//   - `part viewpoint :> <ontologyViewpoint>;`  → grouping viewpoint
+//   - `part viewpointDefinition :>> <ontologyViewpoint>;`  → grouping viewpoint
 //   - `part selectionQuery { attribute includeElementKinds = {...}; ... }`
 //     → captured by the builder as `selectionQuery.*` prefixed attributes
 //
@@ -89,6 +89,27 @@ function viewpointLabel(ref: string): string {
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+/** Resolve the authored ISO 42010 viewpoint usage referenced by a view. */
+function resolveViewpoint(
+    view: MemoElement,
+    model: MemoModel,
+): { id: string; label: string; ref: string } | undefined {
+    // `viewpointDefinition` is the canonical property declared by MemoView.
+    // Keep the former `viewpoint` spelling as a compatibility fallback for
+    // projects authored before the ontology adopted the ISO 42010 vocabulary.
+    const ref = view.attributes['viewpointDefinition'] || view.attributes['viewpoint'];
+    if (!ref) return undefined;
+
+    const authored = model.elements.get(ref);
+    return {
+        id: authored?.attributes['id'] || ref,
+        label: authored?.attributes['title']
+            || authored?.attributes['name']
+            || `${viewpointLabel(ref)} Viewpoint`,
+        ref,
+    };
+}
+
 export interface DerivedViews {
     viewpoints: ViewpointDTO[];
     diagrams: DiagramDTO[];
@@ -96,8 +117,9 @@ export interface DerivedViews {
 
 /**
  * Derive viewpoint and diagram DTOs from view elements modelled in SysML.
- * Views are grouped by their `viewpoint :>` binding; views without one are
- * grouped under a generic "Model Views" viewpoint.
+ * Views are grouped by their `viewpointDefinition` binding. The binding and
+ * the authored `id`/`title` attributes come from the ontology's ISO 42010
+ * viewpoint usage; they are not inferred from filenames or display names.
  */
 export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry): DerivedViews {
     const viewpointsById = new Map<string, ViewpointDTO>();
@@ -112,14 +134,15 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             ? el.package.split('::').some(segment => /(?:^|_)samples(?:_|$)/.test(segment))
             : false;
 
-        // Views without a viewpoint binding are typically document-backed
-        // (RMF, SDD, DHF index, ...) — group them under "Document Views".
-        const vpRef = el.attributes['viewpoint'] || 'documentViewsViewpoint';
-        const vpId = isRendererSample ? '__model' : `vp-${vpRef}`;
+        const authoredViewpoint = resolveViewpoint(el, model);
+        // A view with no viewpoint binding is genuinely unassigned. Do not
+        // misclassify it as a "Document View" merely because its binding was
+        // absent or could not be resolved.
+        const vpId = isRendererSample ? '__model' : authoredViewpoint?.id ?? '__unassigned';
         if (!isRendererSample && !viewpointsById.has(vpId)) {
             viewpointsById.set(vpId, {
                 id: vpId,
-                label: vpRef === 'documentViewsViewpoint' ? 'Document Views' : `${viewpointLabel(vpRef)} Viewpoint`,
+                label: authoredViewpoint?.label ?? 'Unassigned Views',
                 visibleKinds: [],
                 visibleRelationships: [],
                 visibleLayers: [],
@@ -154,8 +177,12 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         const viewKind = resolveViewKind(el.attributes['viewKind'], el.attributes['diagramType']);
 
         diagrams.push({
-            id: isRendererSample ? `diag-sample-${el.id}` : `view-${el.id}`,
-            name: el.attributes['title'] || el.name,
+            id: isRendererSample
+                ? `diag-sample-${el.id}`
+                : el.attributes['id'] || el.id,
+            // `name` remains the user-facing title in the transport DTO; the
+            // stable authored ID above owns routing and persistence.
+            name: el.attributes['title'] || el.attributes['name'] || el.name,
             diagramType: el.attributes['diagramType'] || 'bdd',
             viewKind,
             viewpointId: vpId,

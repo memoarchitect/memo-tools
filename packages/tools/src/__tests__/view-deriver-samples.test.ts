@@ -40,4 +40,39 @@ describe('explicit renderer samples', () => {
             sourceFile: 'sample/model/test.sysml',
         })]);
     });
+
+    it('uses the ontology viewpoint binding and authored IDs for views', () => {
+        const viewpoint = element('logicalArchitectureViewpoint', 'Viewpoint');
+        viewpoint.attributes = {
+            id: 'VP-LOG',
+            name: 'LogicalArchitectureViewpoint',
+            title: 'Logical Viewpoint',
+        };
+        const view = element('gpcaActionFlowView', 'DiagramView');
+        view.attributes = {
+            id: 'VIEW-BHV-003',
+            name: 'GPCA_InfusionDeliveryActionFlowView',
+            title: 'GPCA Infusion Delivery Action Flow',
+            viewpointDefinition: 'logicalArchitectureViewpoint',
+            diagramType: 'afd',
+        };
+        const elements = new Map([[viewpoint.id, viewpoint], [view.id, view]]);
+        const model = {
+            elements,
+            relationships: [],
+            incoming: new Map(),
+        } as unknown as MemoModel;
+
+        const result = deriveModelViews(model);
+
+        expect(result.viewpoints).toEqual([expect.objectContaining({
+            id: 'VP-LOG',
+            label: 'Logical Viewpoint',
+        })]);
+        expect(result.diagrams).toEqual([expect.objectContaining({
+            id: 'VIEW-BHV-003',
+            name: 'GPCA Infusion Delivery Action Flow',
+            viewpointId: 'VP-LOG',
+        })]);
+    });
 });

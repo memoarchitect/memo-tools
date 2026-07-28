@@ -71,6 +71,20 @@ describe('buildMemoModel', () => {
         expect(el.attributes['name']).toBe('Clinician');
     });
 
+    it('retains authored reference bindings as element attributes', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                part workflow : Software;
+                part scenario : Software {
+                    ref :>> parentWorkflow = workflow;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig);
+
+        expect(model.elements.get('scenario')?.attributes['parentWorkflow']).toBe('workflow');
+    });
+
     it('extracts elements from requirement usages', async () => {
         const doc = await parseDoc(`
             package TestPkg {

@@ -917,7 +917,7 @@ function extractAttributes(body: any[] | undefined): Record<string, string> {
     const attrs: Record<string, string> = {};
 
     for (const member of body) {
-        if (member.$type === 'AttributeMember') {
+        if (member.$type === 'AttributeMember' || member.$type === 'RefMember') {
             const attr = member as AttributeMember;
             if (attr.value) {
                 attrs[attr.name] = extractAttributeValue(attr.value);

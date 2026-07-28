@@ -80,7 +80,9 @@ export function discoverExamples(fromDir: string): AvailableExample[] {
                 const raw = readFileSync(configPath, 'utf-8');
                 const parsed = parseYaml(raw);
                 name = String(parsed?.name ?? parsed?.projectName ?? id);
-                description = raw.split('\n')[0]?.replace(/^#\s*/, '') ?? '';
+                description = typeof parsed?.description === 'string'
+                    ? parsed.description
+                    : (raw.split('\n').find(line => /^#\s+/.test(line))?.replace(/^#\s*/, '') ?? '');
             }
             results.push({ id, aliases: [alias], name, description, path });
         }
@@ -113,6 +115,34 @@ export function listOntologiesCommand(fromDir = process.cwd()): void {
         if (ontology.description) console.log(`    ${chalk.gray(ontology.description)}`);
         console.log();
     }
+}
+
+export function listTemplatesCommand(fromDir = process.cwd()): void {
+    const templates = discoverTemplates(fromDir);
+    if (templates.length === 0) {
+        console.log(chalk.yellow('No installed project templates found.'));
+        return;
+    }
+    console.log(chalk.bold('\nAvailable templates:\n'));
+    for (const template of templates) {
+        console.log(`  ${chalk.cyan(template.id)}${template.isDefault ? chalk.green(' (default)') : ''}`);
+    }
+    console.log(chalk.gray('\nCreate one with: memo init <project> --template <id>\n'));
+}
+
+export function listExamplesCommand(fromDir = process.cwd()): void {
+    const examples = discoverExamples(fromDir);
+    if (examples.length === 0) {
+        console.log(chalk.yellow('No installed worked examples found.'));
+        return;
+    }
+    console.log(chalk.bold('\nAvailable examples:\n'));
+    for (const example of examples) {
+        const aliases = example.aliases.filter(alias => alias !== example.id);
+        console.log(`  ${chalk.cyan(example.id)}${aliases.length ? chalk.gray(` (aliases: ${aliases.join(', ')})`) : ''}`);
+        if (example.description) console.log(`    ${chalk.gray(example.description)}`);
+    }
+    console.log(chalk.gray('\nCreate one with: memo init <project> --example <id-or-alias>\n'));
 }
 
 export interface InitOptions {
@@ -231,20 +261,8 @@ export async function initCommand(name: string | undefined, options: InitOptions
 
     if (options.list) {
         listOntologiesCommand(fromDir);
-        const templates = discoverTemplates(fromDir);
-        if (templates.length > 0) {
-            console.log(chalk.bold('Available templates:\n'));
-            for (const template of templates) {
-                console.log(`  ${chalk.cyan(template.id)}${template.isDefault ? chalk.green(' (default)') : ''}`);
-            }
-            console.log();
-        }
-        const examples = discoverExamples(fromDir);
-        if (examples.length > 0) {
-            console.log(chalk.bold('Available examples:\n'));
-            for (const example of examples) console.log(`  ${chalk.cyan(example.id)}`);
-            console.log();
-        }
+        listTemplatesCommand(fromDir);
+        listExamplesCommand(fromDir);
         return;
     }
 

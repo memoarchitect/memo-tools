@@ -15,7 +15,7 @@
 
 import { Command } from 'commander';
 import { validateCommand } from '../commands/validate.js';
-import { initCommand } from '../commands/init.js';
+import { initCommand, listExamplesCommand, listTemplatesCommand } from '../commands/init.js';
 import { packCommand } from '../commands/pack.js';
 import { exportJsonCommand, exportDotCommand } from '../commands/export.js';
 import {
@@ -57,7 +57,7 @@ const program = new Command();
 program
     .name('memo')
     .description('MEMO — Model-Based Systems Engineering for Medical Devices')
-    .version('0.6.3');
+    .version('0.6.4');
 
 program
     .command('validate')
@@ -81,6 +81,16 @@ program
     .action(async (name: string | undefined, options: { template?: string; ontology?: string; example?: string; list?: boolean; install?: boolean }) => {
         await initCommand(name, options);
     });
+
+program
+    .command('examples')
+    .description('List installed worked examples and the IDs accepted by memo init --example')
+    .action(() => listExamplesCommand());
+
+program
+    .command('templates')
+    .description('List installed project templates and the IDs accepted by memo init --template')
+    .action(() => listTemplatesCommand());
 
 program
     .command('pack')
