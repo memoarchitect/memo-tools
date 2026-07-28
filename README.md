@@ -9,7 +9,14 @@
 </p>
 
 <p align="center">
-  <code>memo-tools 0.6.4</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
+  <code>memo-tools 0.6.5</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
+</p>
+
+<p align="center">
+  <a href="https://memoarchitect.com/memo-tools.html">Product website</a> &middot;
+  <a href="https://memoarchitect.com/memo-tools/">MkDocs documentation</a> &middot;
+  <a href="https://github.com/memoarchitect/memo-tools">GitHub repository</a> &middot;
+  <a href="https://www.npmjs.com/package/@memoarchitect/tools">npm package</a>
 </p>
 
 ---
@@ -21,7 +28,7 @@
 ## Version compatibility
 
 `memo`, `memo-tools`, and `memo-architect` share a `MAJOR.MINOR` compatibility
-line. Any `0.5.x` release is intended to work with the other `0.5.x` products;
+line. Any `0.6.x` release is intended to work with the other `0.6.x` products;
 patch versions may advance independently for fixes and additive changes.
 
 ## The meMO stack
@@ -31,10 +38,10 @@ meMO is a four-layer stack — adopt what you need
 
 | Layer | What | Where |
 |---|---|---|
-| 01 Ontology | Typed SysML v2 elements, Arcadia-inspired architecture layers | [memoarchitect/memo](https://github.com/memoarchitect/memo) |
-| 02 Methodology | Profiles, viewpoints, rules, workflow gates | [memoarchitect/memo](https://github.com/memoarchitect/memo) |
-| **03 Tools** | **Model engine + `memo` CLI — this repo** | memoarchitect/memo-tools |
-| 04 Architect | Web workbench over the same model | [memoarchitect/memo-architect](https://github.com/memoarchitect/memo-architect) |
+| 01 Ontology | Typed SysML v2 elements and architecture definitions | [Docs](https://memoarchitect.com/memo/) · [Repository](https://github.com/memoarchitect/memo) |
+| 02 Methodology | Profiles, viewpoints, rules, workflow gates | [Docs](https://memoarchitect.com/memo/) · [Repository](https://github.com/memoarchitect/memo) |
+| **03 Tools** | **Model engine + `memo` CLI — this repo** | [Docs](https://memoarchitect.com/memo-tools/) · [Repository](https://github.com/memoarchitect/memo-tools) |
+| 04 Architect | Web workbench over the same model | [Docs](https://memoarchitect.com/memo-architect/) · [Repository](https://github.com/memoarchitect/memo-architect) |
 
 ## Supported tools
 
@@ -79,9 +86,11 @@ Run `memo --help` or `memo <command> --help` for the complete command surface.
 
 ## Documentation
 
-The [task-oriented documentation](docs/index.md) starts with installation and a
+The [published MkDocs documentation](https://memoarchitect.com/memo-tools/)
+starts with installation and a
 first useful workflow, then covers validation, import, export, CI, configuration,
-and the library API. Build it locally with:
+and the library API. Its source starts at [`docs/index.md`](docs/index.md). Build
+it locally with:
 
 ```bash
 python3 -m pip install "mkdocs>=1.6" "mkdocs-material>=9.5" "pymdown-extensions>=10.0"
@@ -125,7 +134,7 @@ React does not import core internals directly.
 import { buildMemoModel } from '@memoarchitect/tools';
 ```
 
-The API is pre-stable. Pin an exact `0.5.x` patch when embedding it directly.
+The API is pre-stable. Pin an exact `0.6.x` patch when embedding it directly.
 
 ### Maintainer checks
 
@@ -154,7 +163,7 @@ dependency to the sibling `memo` checkout for iterative development.
 
 ## Current repository relationship
 
-- A standalone clone installs `@memoarchitect/ontology@0.6.2` from npm.
+- A standalone clone installs `@memoarchitect/ontology@0.6.3` from npm.
 - The Tools repository contains no ontology git submodule.
 - The private `memo-meta` workspace keeps `memo` and `memo-tools` as sibling
   submodules and applies local pnpm overrides for cross-repository work.
