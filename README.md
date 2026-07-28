@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://memoarchitect.com/memo-tools.html">Product website</a> &middot;
-  <a href="https://memoarchitect.com/memo-tools/">MkDocs documentation</a> &middot;
+  <a href="https://memoarchitect.com/memo-tools/">Documentation</a> &middot;
   <a href="https://github.com/memoarchitect/memo-tools">GitHub repository</a> &middot;
   <a href="https://www.npmjs.com/package/@memoarchitect/tools">npm package</a>
 </p>
@@ -91,7 +91,7 @@ Run `memo --help` or `memo <command> --help` for the complete command surface.
 
 ## Documentation
 
-The [published MkDocs documentation](https://memoarchitect.com/memo-tools/)
+The [published documentation](https://memoarchitect.com/memo-tools/)
 starts with installation and a
 first useful workflow, then covers validation, import, export, CI, configuration,
 and the library API. Its source starts at [`docs/index.md`](docs/index.md). Build
