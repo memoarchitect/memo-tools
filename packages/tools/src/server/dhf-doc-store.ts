@@ -7,7 +7,7 @@
 // in the web editor are the same block — saving merges the workbench metadata
 // into whatever frontmatter the user typed, so hand edits survive.
 //
-// Also lists repo markdown files usable as custom templates.
+// Project templates live separately under dhf/templates/.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync, realpathSync } from 'node:fs';
@@ -114,13 +114,15 @@ export function saveDhfSettings(projectRoot: string, settings: DhfSettingsDTO): 
 
 // ─── Repo templates ──────────────────────────────────────────────────────────
 
-const SKIP_DIRS = new Set(['node_modules', '.git', '.memo', 'memo_packages']);
-// Existing workbench documents and export output are not templates
-const SKIP_RELATIVE = new Set(['dhf/documents', 'dhf/exports']);
+function templatesDir(projectRoot: string): string {
+    return resolve(projectRoot, 'dhf', 'templates');
+}
 
 /** Markdown files in the project usable as custom document templates. */
 export function listRepoTemplates(projectRoot: string): DhfRepoTemplateInfo[] {
     const root = realpathSync(resolve(projectRoot));
+    const templateRoot = templatesDir(root);
+    if (!existsSync(templateRoot)) return [];
     const out: DhfRepoTemplateInfo[] = [];
     const walk = (dir: string, depth: number): void => {
         if (depth > 6 || out.length >= 200) return;
@@ -130,15 +132,34 @@ export function listRepoTemplates(projectRoot: string): DhfRepoTemplateInfo[] {
             if (entry.name.startsWith('.')) continue;
             const full = resolve(dir, entry.name);
             if (entry.isDirectory()) {
-                const rel = relative(root, full).split('\\').join('/');
-                if (!SKIP_DIRS.has(entry.name) && !SKIP_RELATIVE.has(rel)) walk(full, depth + 1);
+                walk(full, depth + 1);
             } else if (entry.isFile() && entry.name.endsWith('.md')) {
                 out.push({ path: relative(root, full), title: templateTitle(full) });
             }
         }
     };
-    walk(root, 0);
+    walk(templateRoot, 0);
     return out.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+/** Persist a reusable project template and return its project-relative path. */
+export function saveRepoTemplate(projectRoot: string, title: string, content: string): string {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) throw new Error('Template title is required.');
+    const slug = cleanTitle.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'template';
+    const dir = templatesDir(projectRoot);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    let filename = `${slug}.md`;
+    let suffix = 2;
+    while (existsSync(resolve(dir, filename))) filename = `${slug}-${suffix++}.md`;
+    const body = content.trim() || `# ${cleanTitle}\n\n_[TODO: Add template content]_`;
+    const frontmatter = stringifyYaml({ title: cleanTitle }).trimEnd();
+    const markdown = `---\n${frontmatter}\n---\n\n${body}\n`;
+    const path = resolve(dir, filename);
+    writeFileSync(path, markdown, 'utf8');
+    return relative(resolve(projectRoot), path).split('\\').join('/');
 }
 
 function templateTitle(fullPath: string): string {

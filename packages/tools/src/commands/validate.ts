@@ -121,7 +121,7 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
     if (nativeConstraints.length > 0) {
         console.log(chalk.gray(`Native constraints: ${nativeConstraints.length} (from constraint def bodies)`));
     }
-    const result = validateModel(model, nativeConstraints);
+    const result = validateModel(model, nativeConstraints, ontologyRegistries?.kindRegistry);
     const completeness = computeCompleteness(model, result, config);
 
     const errors = result.violations.filter(v => v.severity === 'error');

@@ -187,7 +187,7 @@ export async function devCommand(options: { port?: number; open?: boolean; clien
         const sysmlFiles = findSysmlFiles(cwd);
         const { documents, errors } = await parseFiles(sysmlFiles, cwd + '/');
         const model = buildMemoModel(documents, config, errors, ontologyRegistries);
-        const validation = validateModel(model);
+        const validation = validateModel(model, [], ontologyRegistries?.kindRegistry);
         const completeness = computeCompleteness(model, validation, config);
 
         console.log(chalk.cyan(
@@ -198,6 +198,7 @@ export async function devCommand(options: { port?: number; open?: boolean; clien
         const viewpoints: ViewpointDTO[] = config.viewpoints?.map(vp => ({
             id: vp.id,
             label: vp.label,
+            group: vp.group,
             visibleKinds: vp.visibleKinds,
             visibleRelationships: vp.visibleRelationships,
             visibleLayers: vp.visibleLayers,
@@ -235,6 +236,8 @@ export async function devCommand(options: { port?: number; open?: boolean; clien
                             diagramType: d.diagramType,
                             viewKind: resolveViewKind(undefined, d.diagramType),
                             viewpointId: d.viewpointId,
+                            viewpointIds: d.viewpointIds,
+                            group: d.group,
                             auto: d.auto,
                             description: d.description,
                             properties: d.properties,

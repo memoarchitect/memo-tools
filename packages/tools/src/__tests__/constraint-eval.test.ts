@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateNativeConstraint, type NativeConstraint } from '../validator/constraint-eval.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
+import { KindRegistry } from '../model/kind-registry.js';
 
 // ─── Fixture helpers ──────────────────────────────────────────────────────────
 
@@ -96,6 +97,23 @@ describe('native constraint evaluator (Epic EE ⊕-0 spike)', () => {
             expression: 'allocate->notEmpty()', severity: 'error',
         };
         expect(evaluateNativeConstraint(c, allocationModel())).toHaveLength(0);
+    });
+
+    it('applies base-kind methodology constraints to user ontology specializations', () => {
+        const registry = new KindRegistry();
+        registry.register({ name: 'SoftwareComponent', label: 'Software Component', layer: 'software', sysmlConstruct: 'part def' });
+        registry.register({ name: 'FirmwareComponent', label: 'Firmware Component', layer: 'software', sysmlConstruct: 'part def', superType: 'SoftwareComponent' });
+        registry.computeDerivedBy();
+        const model = makeModel([el('FW-1', 'FirmwareComponent')], []);
+        const constraint: NativeConstraint = {
+            id: 'SW-TRACE-001',
+            description: 'Every software component must realize a function.',
+            appliesToKind: 'SoftwareComponent',
+            expression: 'realizes->notEmpty()',
+            severity: 'error',
+        };
+
+        expect(evaluateNativeConstraint(constraint, model, registry).map(v => v.elementId)).toEqual(['FW-1']);
     });
 
     it('rejects an unsupported collection op with a clear error', () => {

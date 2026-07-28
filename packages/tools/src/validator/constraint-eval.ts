@@ -28,6 +28,7 @@
 import type { MemoModel, MemoElement } from '../model/semantic.js';
 import type { Violation } from './types.js';
 import type { ConstraintExpr } from '../language/generated/ast.js';
+import type { KindRegistry } from '../model/kind-registry.js';
 
 /** A constraint authored as a KerML-subset boolean expression over a subject element. */
 export interface NativeConstraint {
@@ -53,10 +54,14 @@ export interface CompiledConstraint extends ConstraintMeta {
 }
 
 /** Evaluate one native constraint (expression as source string) against its subject kind. */
-export function evaluateNativeConstraint(constraint: NativeConstraint, model: MemoModel): Violation[] {
+export function evaluateNativeConstraint(
+    constraint: NativeConstraint,
+    model: MemoModel,
+    kindRegistry?: KindRegistry,
+): Violation[] {
     const ast = parseExpression(constraint.expression);
     const { expression: _drop, ...meta } = constraint;
-    return evaluateConstraintNode(meta, ast, model);
+    return evaluateConstraintNode(meta, ast, model, kindRegistry);
 }
 
 /**
@@ -64,12 +69,18 @@ export function evaluateNativeConstraint(constraint: NativeConstraint, model: Me
  * This is the shared core used by both the string entry point (above) and the
  * ontology loader, which compiles `constraint def` bodies via {@link langiumExprToNode}.
  */
-export function evaluateConstraintNode(meta: ConstraintMeta, ast: ConstraintNode, model: MemoModel): Violation[] {
-    const subjects = model.elementsByKind.get(meta.appliesToKind) ?? [];
+export function evaluateConstraintNode(
+    meta: ConstraintMeta,
+    ast: ConstraintNode,
+    model: MemoModel,
+    kindRegistry?: KindRegistry,
+): Violation[] {
+    const evaluationModel = kindRegistry ? withSpecializationExtents(model, kindRegistry) : model;
+    const subjects = evaluationModel.elementsByKind.get(meta.appliesToKind) ?? [];
     const violations: Violation[] = [];
 
     for (const element of subjects) {
-        const ok = toBool(evalNode(ast, { root: element, current: element }, model));
+        const ok = toBool(evalNode(ast, { root: element, current: element }, evaluationModel));
         if (!ok) {
             violations.push({
                 ruleId: meta.id,
@@ -83,6 +94,29 @@ export function evaluateConstraintNode(meta: ConstraintMeta, ast: ConstraintNode
         }
     }
     return violations;
+}
+
+/**
+ * Add inherited kind extents for the duration of constraint evaluation. The
+ * canonical model keeps exact-kind indexes; the evaluator's type extent uses
+ * SysML specialization semantics, including kinds supplied by user ontology
+ * extensions.
+ */
+function withSpecializationExtents(model: MemoModel, kindRegistry: KindRegistry): MemoModel {
+    const elementsByKind = new Map(model.elementsByKind);
+    for (const base of kindRegistry.entries()) {
+        const names = new Set<string>();
+        const queue = [base.name];
+        while (queue.length > 0) {
+            const name = queue.pop()!;
+            if (names.has(name)) continue;
+            names.add(name);
+            for (const derived of kindRegistry.getKind(name)?.derivedBy ?? []) queue.push(derived);
+        }
+        const extent = [...names].flatMap(name => model.elementsByKind.get(name) ?? []);
+        if (extent.length > 0) elementsByKind.set(base.name, [...new Map(extent.map(el => [el.id, el])).values()]);
+    }
+    return { ...model, elementsByKind };
 }
 
 // ─── AST ────────────────────────────────────────────────────────────────────

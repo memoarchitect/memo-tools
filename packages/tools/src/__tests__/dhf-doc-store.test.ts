@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
     loadDhfSettings, saveDhfSettings,
-    listRepoTemplates, readRepoTemplate,
+    listRepoTemplates, readRepoTemplate, saveRepoTemplate,
 } from '../server/dhf-doc-store.js';
 import type { DhfDocDTO } from '@memoarchitect/tools';
 
@@ -82,30 +82,40 @@ describe('DHF settings persistence', () => {
     });
 });
 
-describe('repo template listing', () => {
-    it('lists markdown files with titles, skipping documents/exports and node_modules', () => {
-        mkdirSync(join(root, 'templates'), { recursive: true });
+describe('project template library', () => {
+    it('lists only markdown files under dhf/templates', () => {
+        mkdirSync(join(root, 'dhf', 'templates'), { recursive: true });
+        mkdirSync(join(root, 'notes'), { recursive: true });
         mkdirSync(join(root, 'dhf', 'documents'), { recursive: true });
-        mkdirSync(join(root, 'node_modules', 'pkg'), { recursive: true });
-        writeFileSync(join(root, 'templates', 'custom.md'), '---\ntitle: My Custom Template\n---\n\n# Ignored\n');
-        writeFileSync(join(root, 'templates', 'untitled.md'), 'no frontmatter\n\n# Heading Title\n');
+        writeFileSync(join(root, 'dhf', 'templates', 'custom.md'), '---\ntitle: My Custom Template\n---\n\n# Ignored\n');
+        writeFileSync(join(root, 'dhf', 'templates', 'untitled.md'), 'no frontmatter\n\n# Heading Title\n');
+        writeFileSync(join(root, 'notes', 'garbage.md'), '# Not a template\n');
         writeFileSync(join(root, 'dhf', 'documents', 'DOC-X.md'), '# existing doc\n');
-        writeFileSync(join(root, 'node_modules', 'pkg', 'README.md'), '# dep readme\n');
 
         const templates = listRepoTemplates(root);
         const paths = templates.map(t => t.path);
-        expect(paths).toContain('templates/custom.md');
-        expect(paths).toContain('templates/untitled.md');
+        expect(paths).toContain('dhf/templates/custom.md');
+        expect(paths).toContain('dhf/templates/untitled.md');
+        expect(paths).not.toContain('notes/garbage.md');
         expect(paths).not.toContain('dhf/documents/DOC-X.md');
-        expect(paths.some(p => p.includes('node_modules'))).toBe(false);
-        expect(templates.find(t => t.path === 'templates/custom.md')!.title).toBe('My Custom Template');
-        expect(templates.find(t => t.path === 'templates/untitled.md')!.title).toBe('Heading Title');
+        expect(templates.find(t => t.path === 'dhf/templates/custom.md')!.title).toBe('My Custom Template');
+        expect(templates.find(t => t.path === 'dhf/templates/untitled.md')!.title).toBe('Heading Title');
     });
 
     it('reads a project-local template and rejects path escapes', () => {
-        writeFileSync(join(root, 'tpl.md'), '# T\n');
-        expect(readRepoTemplate(root, 'tpl.md')).toBe('# T\n');
+        mkdirSync(join(root, 'dhf', 'templates'), { recursive: true });
+        writeFileSync(join(root, 'dhf', 'templates', 'tpl.md'), '# T\n');
+        expect(readRepoTemplate(root, 'dhf/templates/tpl.md')).toBe('# T\n');
         expect(() => readRepoTemplate(root, '../outside.md')).toThrow();
         expect(() => readRepoTemplate(root, 'missing.md')).toThrow();
+    });
+
+    it('adds a reusable template with a safe unique filename', () => {
+        const first = saveRepoTemplate(root, 'Risk Review', '# Risk Review\n\nSections');
+        const second = saveRepoTemplate(root, 'Risk Review', '# Another');
+        expect(first).toBe('dhf/templates/risk-review.md');
+        expect(second).toBe('dhf/templates/risk-review-2.md');
+        expect(readFileSync(join(root, first), 'utf8')).toContain('title: Risk Review');
+        expect(listRepoTemplates(root).map(t => t.path).sort()).toEqual([first, second].sort());
     });
 });

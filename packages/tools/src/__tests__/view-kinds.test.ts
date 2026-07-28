@@ -8,6 +8,7 @@ import type { Model } from '../language/generated/ast.js';
 import type { MEMOConfig } from '../model/config.js';
 import { buildMemoModel } from '../model/builder.js';
 import { deriveModelViews } from '../model/view-deriver.js';
+import { KindRegistry } from '../model/kind-registry.js';
 import { validateViews } from '../validator/view-validator.js';
 import {
     VIEW_KINDS,
@@ -125,6 +126,66 @@ describe('KK-1: deriveModelViews view kinds', () => {
         expect(byName.get('FMEA View')?.viewKind).toBe('grid');
         expect(byName.get('Mode View')?.viewKind).toBe('statetransition');
         expect(byName.get('DHF Index')?.viewKind).toBe('browser');
+    });
+
+    it('lists one reusable view under every bound viewpoint', async () => {
+        const doc = await parseDoc(`
+            package TestViews {
+                part softwareViewpoint : Viewpoint {
+                    attribute id = "VP-SW";
+                    attribute title = "Software";
+                }
+                part safetyViewpoint : Viewpoint {
+                    attribute id = "VP-SAFE";
+                    attribute title = "Safety";
+                }
+                part firmwareView : DiagramView {
+                    attribute name = "Firmware Review";
+                    attribute diagramType = "bdd";
+                    part :>> viewpointDefinition = softwareViewpoint;
+                    part :>> viewpointDefinition = safetyViewpoint;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], viewConfig);
+        const { viewpoints, diagrams } = deriveModelViews(model);
+
+        expect(viewpoints.map(vp => vp.id)).toEqual(['VP-SW', 'VP-SAFE']);
+        expect(diagrams[0].viewpointId).toBe('VP-SW');
+        expect(diagrams[0].viewpointIds).toEqual(['VP-SW', 'VP-SAFE']);
+    });
+
+    it('recognizes extension kinds through the transitive specialization closure', async () => {
+        const doc = await parseDoc(`
+            package TestViews {
+                part softwareViewpoint : Viewpoint { attribute id = "VP-SW"; }
+                part firmware : FirmwareComponent;
+                part firmwareView : DiagramView {
+                    attribute name = "Firmware Review";
+                    attribute diagramType = "bdd";
+                    part :>> viewpointDefinition = softwareViewpoint;
+                    part selectionQuery {
+                        attribute includeElementKinds = ("SoftwareComponent");
+                    }
+                }
+            }
+        `);
+        const registry = new KindRegistry();
+        registry.register({ name: 'SoftwareComponent', label: 'Software Component', layer: 'software', sysmlConstruct: 'part def' });
+        registry.register({ name: 'FirmwareComponent', label: 'Firmware Component', layer: 'software', sysmlConstruct: 'part def', superType: 'SoftwareComponent' });
+        registry.computeDerivedBy();
+        const config: MEMOConfig = {
+            ...viewConfig,
+            kinds: {
+                ...viewConfig.kinds,
+                FirmwareComponent: { label: 'Firmware Component', layer: 'software', sysmlConstruct: 'part def' },
+            },
+        };
+        const model = buildMemoModel([doc], config);
+        const { viewpoints, diagrams } = deriveModelViews(model, registry);
+
+        expect(viewpoints[0].visibleKinds).toEqual(['SoftwareComponent', 'FirmwareComponent']);
+        expect(diagrams[0].elementIds).toContain('firmware');
     });
 });
 
@@ -264,6 +325,7 @@ describe('KK-1: view validation', () => {
                 part legacyView : DiagramView {
                     attribute name = "Legacy View";
                     attribute diagramType = "flowchart";
+                    part :>> viewpointDefinition = testViewpoint;
                 }
             }
         `);
@@ -283,6 +345,7 @@ describe('KK-1: view validation', () => {
                     attribute name = "Odd View";
                     attribute viewKind = DiagramViewKind::freeform;
                     attribute diagramType = "bdd";
+                    part :>> viewpointDefinition = testViewpoint;
                 }
             }
         `);
@@ -301,10 +364,26 @@ describe('KK-1: view validation', () => {
                     attribute name = "OK View";
                     attribute viewKind = DiagramViewKind::interconnection;
                     attribute diagramType = "ibd";
+                    part :>> viewpointDefinition = testViewpoint;
                 }
             }
         `);
         const model = buildMemoModel([doc], viewConfig);
         expect(validateViews(model)).toHaveLength(0);
+    });
+
+    it('requires every view to conform to at least one viewpoint (VW-003)', async () => {
+        const doc = await parseDoc(`
+            package TestViews {
+                part orphanView : DiagramView {
+                    attribute name = "Orphan View";
+                    attribute diagramType = "bdd";
+                }
+            }
+        `);
+        const violations = validateViews(buildMemoModel([doc], viewConfig));
+        const vw003 = violations.filter(v => v.ruleId === 'VW-003');
+        expect(vw003).toHaveLength(1);
+        expect(vw003[0].severity).toBe('error');
     });
 });

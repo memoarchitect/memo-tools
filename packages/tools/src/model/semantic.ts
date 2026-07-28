@@ -135,6 +135,8 @@ export interface MemoModel {
 export interface ViewpointDTO {
     id: string;
     label: string;
+    /** Optional ontology-authored grouping used by Memo Architect. */
+    group?: string;
     visibleKinds: string[];
     visibleRelationships: string[];
     visibleLayers: string[];
@@ -149,6 +151,10 @@ export interface DiagramDTO {
     /** SysML v2 spec view kind (one of the 8 standard kinds, see view-kinds.ts) */
     viewKind?: string;
     viewpointId: string;
+    /** All viewpoints this reusable view conforms to; viewpointId is the primary legacy value. */
+    viewpointIds?: string[];
+    /** Optional grouping of views within a viewpoint. */
+    group?: string;
     auto: boolean;
     description?: string;
     properties?: Record<string, string>;

@@ -90,24 +90,27 @@ function viewpointLabel(ref: string): string {
 }
 
 /** Resolve the authored ISO 42010 viewpoint usage referenced by a view. */
-function resolveViewpoint(
+function resolveViewpoints(
     view: MemoElement,
     model: MemoModel,
-): { id: string; label: string; ref: string } | undefined {
+): Array<{ id: string; label: string; ref: string; group?: string }> {
     // `viewpointDefinition` is the canonical property declared by MemoView.
     // Keep the former `viewpoint` spelling as a compatibility fallback for
     // projects authored before the ontology adopted the ISO 42010 vocabulary.
-    const ref = view.attributes['viewpointDefinition'] || view.attributes['viewpoint'];
-    if (!ref) return undefined;
+    const raw = view.attributes['viewpointDefinition'] || view.attributes['viewpoint'];
+    if (!raw) return [];
 
-    const authored = model.elements.get(ref);
-    return {
-        id: authored?.attributes['id'] || ref,
-        label: authored?.attributes['title']
-            || authored?.attributes['name']
-            || `${viewpointLabel(ref)} Viewpoint`,
-        ref,
-    };
+    return splitList(raw).map(ref => {
+        const authored = model.elements.get(ref);
+        return {
+            id: authored?.attributes['id'] || ref,
+            label: authored?.attributes['title']
+                || authored?.attributes['name']
+                || `${viewpointLabel(ref)} Viewpoint`,
+            group: authored?.attributes['group'],
+            ref,
+        };
+    });
 }
 
 export interface DerivedViews {
@@ -134,26 +137,39 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             ? el.package.split('::').some(segment => /(?:^|_)samples(?:_|$)/.test(segment))
             : false;
 
-        const authoredViewpoint = resolveViewpoint(el, model);
+        const authoredViewpoints = resolveViewpoints(el, model);
         // A view with no viewpoint binding is genuinely unassigned. Do not
         // misclassify it as a "Document View" merely because its binding was
         // absent or could not be resolved.
-        const vpId = isRendererSample ? '__model' : authoredViewpoint?.id ?? '__unassigned';
-        if (!isRendererSample && !viewpointsById.has(vpId)) {
-            viewpointsById.set(vpId, {
-                id: vpId,
-                label: authoredViewpoint?.label ?? 'Unassigned Views',
-                visibleKinds: [],
-                visibleRelationships: [],
-                visibleLayers: [],
-            });
+        const vpIds = isRendererSample
+            ? ['__model']
+            : authoredViewpoints.length > 0
+                ? authoredViewpoints.map(vp => vp.id)
+                : ['__unassigned'];
+        const vpId = vpIds[0];
+        for (const authoredViewpoint of authoredViewpoints.length > 0
+            ? authoredViewpoints
+            : [{ id: '__unassigned', label: 'Unassigned Views', ref: '__unassigned' }]) {
+            if (!isRendererSample && !viewpointsById.has(authoredViewpoint.id)) {
+                viewpointsById.set(authoredViewpoint.id, {
+                    id: authoredViewpoint.id,
+                    label: authoredViewpoint.label,
+                    group: authoredViewpoint.group,
+                    visibleKinds: [],
+                    visibleRelationships: [],
+                    visibleLayers: [],
+                });
+            }
         }
-        const vp = viewpointsById.get(vpId);
+        const vps = vpIds.map(id => viewpointsById.get(id)).filter((vp): vp is ViewpointDTO => Boolean(vp));
 
         const queryKinds = splitList(el.attributes['selectionQuery.includeElementKinds']);
         const queryRels = splitList(el.attributes['selectionQuery.includeRelationshipKinds']);
-        if (vp) {
-            for (const k of queryKinds) {
+        for (const vp of vps) {
+            // Palette/filter eligibility follows the ontology specialization
+            // closure, so a user FirmwareComponent specializing
+            // SoftwareComponent is recognized automatically.
+            for (const k of expandKinds(queryKinds, kindRegistry)) {
                 if (!vp.visibleKinds.includes(k)) vp.visibleKinds.push(k);
             }
             for (const l of splitList(el.attributes['selectionQuery.includeLayers'])) {
@@ -186,6 +202,8 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             diagramType: el.attributes['diagramType'] || 'bdd',
             viewKind,
             viewpointId: vpId,
+            viewpointIds: vpIds,
+            group: el.attributes['group'],
             auto: true,
             description: el.attributes['shortDescription'] || el.doc,
             ...(Object.keys(properties).length > 0 ? { properties } : {}),

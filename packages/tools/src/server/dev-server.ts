@@ -27,7 +27,7 @@ import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
     loadDhfSettings, saveDhfSettings,
-    listRepoTemplates, readRepoTemplate,
+    listRepoTemplates, readRepoTemplate, saveRepoTemplate,
 } from './dhf-doc-store.js';
 
 export interface DevServerOptions {
@@ -1267,6 +1267,14 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         ws.send(JSON.stringify({ type: 'dhf:template:content', payload: { requestId, path, content } }));
                     } catch (e: any) {
                         ws.send(JSON.stringify({ type: 'dhf:template:content', payload: { requestId, path, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'dhf:template:save') {
+                    const { requestId, title, content } = msg.payload ?? {};
+                    try {
+                        const path = saveRepoTemplate(options.projectRoot, title, content);
+                        ws.send(JSON.stringify({ type: 'dhf:template:save:result', payload: { requestId, path } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'dhf:template:save:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'ontology:remove') {
                     // Remove an installed ontology package

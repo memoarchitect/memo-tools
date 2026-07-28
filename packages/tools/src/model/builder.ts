@@ -444,7 +444,13 @@ function extractUsage(
         if ((member as any).$type !== 'PartMember') continue;
         const pm = member as any;
         if (pm.boundRef && pm.name) {
-            attributes[pm.name] = pm.boundRef;
+            // A feature with multiplicity may be rebound more than once. Keep
+            // every binding as a comma-separated value so view conformance can
+            // model one view against several viewpoints without cloning it.
+            const previous = attributes[pm.name];
+            attributes[pm.name] = previous
+                ? `${previous},${pm.boundRef}`
+                : pm.boundRef;
         } else if (pm.body && pm.name) {
             const nested = extractAttributes(pm.body);
             for (const [k, v] of Object.entries(nested)) {

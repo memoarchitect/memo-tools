@@ -45,6 +45,7 @@ export type ServerMessage =
     | DhfSettingsMessage
     | DhfTemplatesResultMessage
     | DhfTemplateContentMessage
+    | DhfTemplateSaveResultMessage
     | RelationshipCreateResultMessage
     | RelationshipDeleteResultMessage
     | SourceChangedMessage;
@@ -133,7 +134,8 @@ export type ClientMessage =
     | DhfDocDeleteMessage
     | DhfSettingsSaveMessage
     | DhfTemplatesListMessage
-    | DhfTemplateReadMessage;
+    | DhfTemplateReadMessage
+    | DhfTemplateSaveMessage;
 
 export interface RequestRefreshMessage {
     type: 'request:refresh';
@@ -663,6 +665,18 @@ export interface DhfTemplateReadMessage {
 export interface DhfTemplateContentMessage {
     type: 'dhf:template:content';
     payload: { requestId: string; path: string; content?: string; error?: string };
+}
+
+/** Client → Server: add a reusable project template under dhf/templates. */
+export interface DhfTemplateSaveMessage {
+    type: 'dhf:template:save';
+    payload: { requestId: string; title: string; content: string };
+}
+
+/** Server → Client: project template persistence result. */
+export interface DhfTemplateSaveResultMessage {
+    type: 'dhf:template:save:result';
+    payload: { requestId: string; path?: string; error?: string };
 }
 
 /** Server → Client: CSV import results */

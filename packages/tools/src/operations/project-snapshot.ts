@@ -62,12 +62,13 @@ export async function buildProjectSnapshot(projectRoot = process.cwd()): Promise
 
     const { documents, errors } = await parseFiles(findSysmlFiles(cwd), `${cwd}/`);
     const semanticModel = buildMemoModel(documents, config, errors, ontologyRegistries);
-    const validation = validateModel(semanticModel);
+    const validation = validateModel(semanticModel, [], ontologyRegistries?.kindRegistry);
     const completeness = computeCompleteness(semanticModel, validation, config);
 
     const viewpoints: ViewpointDTO[] = config.viewpoints?.map(vp => ({
         id: vp.id,
         label: vp.label,
+        group: vp.group,
         visibleKinds: vp.visibleKinds,
         visibleRelationships: vp.visibleRelationships,
         visibleLayers: vp.visibleLayers,

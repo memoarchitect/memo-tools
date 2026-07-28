@@ -83,6 +83,10 @@ export interface DiagramDefinition {
     diagramType: DiagramType;
     /** Parent viewpoint ID this diagram belongs to */
     viewpointId: string;
+    /** Additional viewpoints this reusable diagram also conforms to. */
+    viewpointIds?: string[];
+    /** Optional group shown within each viewpoint in Memo Architect. */
+    group?: string;
     /** Whether this diagram is auto-generated from the viewpoint */
     auto: boolean;
     /** Description / purpose of this diagram (used in doc generation) */
@@ -101,6 +105,8 @@ export interface ViewpointDefinition {
     id: string;
     /** Human-readable name */
     label: string;
+    /** Optional ontology-authored grouping used by Memo Architect. */
+    group?: string;
     /** Entity kinds visible in this viewpoint */
     visibleKinds: string[];
     /** Relationship types visible in this viewpoint */

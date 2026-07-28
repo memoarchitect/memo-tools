@@ -13,6 +13,7 @@ import type { CompiledConstraint } from './constraint-eval.js';
 import { evaluateConstraintNode } from './constraint-eval.js';
 import { validateBehavior } from './behavior-validator.js';
 import { validateViews } from './view-validator.js';
+import type { KindRegistry } from '../model/kind-registry.js';
 
 /**
  * Full model validation: native constraints + structural checks.
@@ -24,7 +25,8 @@ import { validateViews } from './view-validator.js';
  */
 export function validateModel(
     model: MemoModel,
-    nativeConstraints: CompiledConstraint[] = []
+    nativeConstraints: CompiledConstraint[] = [],
+    kindRegistry?: KindRegistry,
 ): ValidationResult {
     const behaviorViolations = validateBehavior(model);
     const viewViolations = validateViews(model);
@@ -32,7 +34,7 @@ export function validateModel(
     const nativeViolations: Violation[] = [];
     let nativePassed = 0;
     for (const constraint of nativeConstraints) {
-        const violations = evaluateConstraintNode(constraint, constraint.ast, model);
+        const violations = evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry);
         if (violations.length === 0) nativePassed++;
         nativeViolations.push(...violations);
     }
