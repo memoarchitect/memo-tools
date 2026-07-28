@@ -35,7 +35,7 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
-      - run: mkdocs build --strict --site-dir _site
+      - run: python -m mkdocs build --strict --site-dir _site
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
