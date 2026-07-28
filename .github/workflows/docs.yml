@@ -40,6 +40,8 @@ jobs:
           cache: pip
       - run: pip install "mkdocs>=1.6" "mkdocs-material>=9.5" "pymdown-extensions>=10.0"
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - run: mkdocs build --strict --site-dir _site
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
