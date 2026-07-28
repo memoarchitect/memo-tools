@@ -31,6 +31,11 @@
 line. Any `0.6.x` release is intended to work with the other `0.6.x` products;
 patch versions may advance independently for fixes and additive changes.
 
+`VERSION` is the sole release-version source for this repository. Run
+`pnpm version:sync` after changing it; CI rejects unsynchronized generated
+version fields and automatically creates the matching `v<version>` tag when
+the change reaches `main`.
+
 ## The meMO stack
 
 meMO is a four-layer stack — adopt what you need

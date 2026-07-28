@@ -38,6 +38,8 @@
     "example:validate": "node scripts/validate-gpca-example.mjs",
     "docs:serve": "python3 -m mkdocs serve",
     "docs:build": "python3 -m mkdocs build --strict",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/sync-version.mjs --check",
     "ontology:lint": "node tools/ontology-tools/lint.mjs",
     "ontology:compat": "node tools/ontology-tools/syside-compat.mjs"
   },
