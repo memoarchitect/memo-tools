@@ -64,6 +64,21 @@ describe('E2E: memo init → validate → export', () => {
         expect(existsSync(architecturePath)).toBe(true);
         expect(existsSync(join(projectDir, 'src', 'assurance', 'requirements.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'src', 'artifacts', 'artifacts.sysml'))).toBe(true);
+        const samplesDir = join(projectDir, 'analysis', 'Samples');
+        expect(readdirSync(samplesDir).sort()).toEqual([
+            '01-model-overview.ipynb',
+            '02-architecture-hotspots.ipynb',
+            '03-model-quality.ipynb',
+            '04-change-impact-explorer.ipynb',
+            '05-model-charts.ipynb',
+            '06-ownership-graph.ipynb',
+            '07-model-inventory-table.ipynb',
+            'README.md',
+        ]);
+        const overview = JSON.parse(readFileSync(join(samplesDir, '01-model-overview.ipynb'), 'utf-8'));
+        expect(overview.nbformat).toBe(4);
+        expect(overview.cells.some((cell: { source?: string[] }) => cell.source?.join('').includes('find_sysml_root'))).toBe(true);
+        expect(readFileSync(join(samplesDir, 'README.md'), 'utf-8')).toContain('Analysis → Jupyter Notebooks');
 
         // Check new-format config content
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));

@@ -89,6 +89,24 @@ memo rules coverage
 
 Run `memo --help` or `memo <command> --help` for the complete command surface.
 
+### Jupyter analysis samples
+
+Every `memo init` project includes `analysis/Samples/` with seven portable
+Syside notebooks. They cover model overview and quality, architecture hotspots,
+change-impact exploration, semantic charts, an ownership graph, and an HTML/CSV
+inventory table. The notebooks discover either `model/` or `src/` automatically,
+so the same samples work with default templates and worked examples.
+
+Run them in a licensed Syside environment:
+
+```bash
+python -m venv analysis/.venv
+source analysis/.venv/bin/activate
+python -m pip install jupyterlab syside
+cd analysis
+jupyter lab --port 8888
+```
+
 ## Documentation
 
 The [published documentation](https://memoarchitect.com/memo-tools/)

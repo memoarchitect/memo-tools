@@ -11,6 +11,7 @@ import {
     type LoadedMemoManifest,
 } from '@memoarchitect/tools';
 import { createLockFile } from '../lock.js';
+import { scaffoldAnalysisSamples } from '../analysis-starters.js';
 
 export interface AvailableOntology {
     name: string;
@@ -277,6 +278,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
         const target = preparedTarget ?? ensureTarget(name, example.id);
         console.log(chalk.bold(`\n📦 Creating project from example: ${example.id}\n`));
         cpSync(example.path, target.projectDir, { recursive: true });
+        scaffoldAnalysisSamples(target.projectDir);
         console.log(chalk.green(target.inPlace ? '\n✅ Project created in current directory' : `\n✅ Project created at ./${name}`));
         return;
     }
@@ -294,6 +296,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
     console.log(chalk.bold(`\n📦 Creating MEMO project: ${target.projectName} (template: ${templateId})\n`));
     const templateDir = resolveManifestPath(loaded, templatePath);
     cpSync(templateDir, target.projectDir, { recursive: true });
+    scaffoldAnalysisSamples(target.projectDir);
     replaceTokens(target.projectDir, {
         name: target.projectName,
         npmName: npmPackageName(target.projectName),

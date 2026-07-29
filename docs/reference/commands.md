@@ -50,6 +50,11 @@ memo init [name] [--template <id> | --example <id>]
 | `--list` | List installed packages, templates, and examples, then exit. |
 | `--no-install` | Do not run the project dependency installation step. |
 
+Every initialization path, including `--template` and `--example`, creates
+`analysis/Samples/README.md` and seven model-independent Jupyter notebooks.
+They use Syside to discover and query the project's nearest `model/` or `src/`
+tree; existing sample files are never overwritten.
+
 ## Command groups
 
 | Group | Subcommands |
