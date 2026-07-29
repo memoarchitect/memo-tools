@@ -237,6 +237,18 @@ describe('MEMO ontology relationship properties', () => {
         expect(registry.toDefinitionDTOs().every(d => d.isReflexive === undefined)).toBe(true);
     });
 
+    // Untyped ends make a relation cross metaclass families, so each one has to
+    // earn its exemption. `memo_relationships.sysml` states the reason inline
+    // above every entry here; adding a name to this list without one is a bug.
+    //
+    //   MemoLink       — the fully generic escape hatch (both ends untyped).
+    //   Mitigates      — controls and hazards may be item defs (both ends untyped).
+    //   Validates      — target is a requirement or an operational behavior.
+    //   DerivesFrom    — target may be a Need, which is a requirement def.
+    //   SatisfiedBy    — source may be a Need alongside Requirement.
+    const UNTYPED_END_EXEMPTIONS = ['MemoLink', 'Mitigates', 'Validates', 'DerivesFrom', 'SatisfiedBy'];
+    const FULLY_UNTYPED = ['MemoLink', 'Mitigates'];
+
     it('ships exactly one universal relation, with both ends untyped', async () => {
         const source = readFileSync(
             join(resolveContentPackageRoot(), 'src/core/relationships/memo_relationships.sysml'),
@@ -246,13 +258,13 @@ describe('MEMO ontology relationship properties', () => {
         const registry = new RelationshipRegistry();
         registry.populateFromDocuments([{ document, filePath: 'src/core/relationships/memo_relationships.sysml' }]);
 
-        const universal = registry.toDefinitionDTOs()
+        const bothEndsUntyped = registry.toDefinitionDTOs()
             .filter(d => !d.isAbstract && !d.sourceEnd.type && !d.targetEnd.type);
-        expect(universal.map(d => d.sysmlName)).toEqual(['MemoLink']);
+        expect(bothEndsUntyped.map(d => d.sysmlName).sort()).toEqual([...FULLY_UNTYPED].sort());
 
-        // Untyped ends are what make it cross metaclass families; every other
-        // concrete relation constrains at least one end.
-        const link = universal[0];
+        // MemoLink is the only one of them that is universal by intent: Mitigates
+        // is still keyed to the risk chain by its mitigationKind attribute.
+        const link = bothEndsUntyped.find(d => d.sysmlName === 'MemoLink')!;
         expect(link.sourceEnd.name).toBe('linkSource');
         expect(link.targetEnd.name).toBe('linkTarget');
         expect(link.isAbstract).toBeUndefined();
@@ -267,10 +279,7 @@ describe('MEMO ontology relationship properties', () => {
         registry.populateFromDocuments([{ document, filePath: 'src/core/relationships/memo_relationships.sysml' }]);
 
         const untypedEnds = registry.toDefinitionDTOs()
-            // MemoLink is the fully generic escape hatch. Validates is also
-            // intentionally cross-metaclass: its target can be a requirement
-            // or an operational behavior, which have no portable common base.
-            .filter(d => !d.isAbstract && !['MemoLink', 'Validates'].includes(d.sysmlName))
+            .filter(d => !d.isAbstract && !UNTYPED_END_EXEMPTIONS.includes(d.sysmlName))
             .filter(d => !d.sourceEnd.type || !d.targetEnd.type);
         expect(untypedEnds.map(d => d.sysmlName)).toEqual([]);
     });

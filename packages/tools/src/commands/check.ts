@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import { findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
 import type { BuilderRegistries, MemoModel, MemoElement, ParseError } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
 const STANDARD_CONSTRUCTS = new Set([
     'part', 'requirement', 'action', 'item', 'port',
@@ -42,22 +43,6 @@ interface CompatReport {
     };
 }
 
-function findSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = resolve(dir, entry.name);
-            if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.memo') {
-                files.push(...findSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml')) {
-                files.push(full);
-            }
-        }
-    } catch {
-        // skip
-    }
-    return files;
-}
 
 function checkExplicitMultiplicity(sysmlFiles: string[]): CompatFinding[] {
     const findings: CompatFinding[] = [];

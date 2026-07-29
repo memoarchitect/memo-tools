@@ -773,6 +773,7 @@ function resolveConnection(
         targetEnd: conn.target.endName,
         file: filePath,
         named: conn.name ? true : undefined,
+        attributes: extractAttributes(conn.body),
     };
 
     // Tag port IDs when endpoints reference port elements

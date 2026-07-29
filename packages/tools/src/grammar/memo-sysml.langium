@@ -61,8 +61,10 @@ PackageMember:
 AliasDeclaration:
     'alias' name=AliasName 'for' target=QualifiedName ';';
 
+// UNRESTRICTED_NAME carries the facade segments SysIDE reserves as keywords
+// (`'analysis'`, `'verification'`), which is how SysML v2 spells them.
 AliasName returns string:
-    ID | 'verification';
+    ID | UNRESTRICTED_NAME | 'verification';
 
 // ─── Import ──────────────────────────────────────────────────────────────────
 

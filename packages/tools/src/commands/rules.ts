@@ -8,7 +8,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve } from 'node:path';
-import { readdirSync } from 'node:fs';
 import chalk from 'chalk';
 import {
     findConfigFile,
@@ -22,25 +21,10 @@ import {
 // parseFiles still needed by rulesCheckCommand for project SysML files
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function findSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = resolve(dir, entry.name);
-            if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.memo') {
-                files.push(...findSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml')) {
-                files.push(full);
-            }
-        }
-    } catch {
-        // Permission errors, etc.
-    }
-    return files;
-}
 
 async function loadContext(projectDir?: string) {
     const cwd = resolve(projectDir || process.cwd());

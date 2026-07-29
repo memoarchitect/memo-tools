@@ -47,6 +47,14 @@ export interface DevServerOptions {
     relationshipFiles?: Record<string, string>;
     /** Configured canonical relationship file from project config. */
     canonicalRelationshipFile?: string;
+    /**
+     * Last-chance rewrite of the client's HTML shell, applied to both the Vite
+     * and prebuilt-dist paths. Tools hosts a client it does not own, so
+     * anything the client needs inlined ahead of its bundle — Architect splices
+     * in its feature grants this way — goes through here rather than teaching
+     * the server a vocabulary that belongs to the client.
+     */
+    transformClientHtml?: (html: string) => string;
 }
 
 export interface DevServer {
@@ -101,7 +109,7 @@ function streamFile(res: any, fullPath: string, status = 200): void {
 }
 
 export async function createDevServer(options: DevServerOptions): Promise<DevServer> {
-    const { port, webPackagePath, initialMessages } = options;
+    const { port, webPackagePath, initialMessages, transformClientHtml } = options;
     const host = '127.0.0.1';
 
     // A source client can use Vite middleware. A packaged client can provide a
@@ -173,6 +181,15 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         const fullPath = isWithinDist && existsSync(requested) && statSync(requested).isFile()
             ? requested
             : resolve(webDistPath, 'index.html');
+        // Only the SPA shell goes through the client's rewrite; every other
+        // asset streams untouched.
+        if (transformClientHtml && extname(fullPath) === '.html') {
+            const html = transformClientHtml(readFileSync(fullPath, 'utf8'));
+            const body = Buffer.from(html, 'utf8');
+            res.writeHead(200, { 'Content-Type': STATIC_MIME['.html'], 'Content-Length': body.byteLength });
+            res.end(body);
+            return true;
+        }
         streamFile(res, fullPath);
         return true;
     }
@@ -183,6 +200,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             root: webPackagePath,
             server: { middlewareMode: true, host },
             appType: 'spa',
+            plugins: transformClientHtml
+                ? [{ name: 'memo-client-html', transformIndexHtml: transformClientHtml }]
+                : [],
         });
 
         server = createHttpServer((req, res) => {
@@ -363,8 +383,11 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         return {
             relationships: registries?.relationshipRegistry?.toDefinitionDTOs()
                 ?? currentModel()?.registries?.relationships ?? [],
-            kinds: registries?.kindRegistry?.toDefinitionDTOs()
-                ?? currentModel()?.registries?.kinds ?? [],
+            // The current model also contains project-local kinds that derive
+            // from the frozen ontology registry. Prefer that effective kind
+            // registry so authoring honors the same extension chain as build.
+            kinds: currentModel()?.registries?.kinds
+                ?? registries?.kindRegistry?.toDefinitionDTOs() ?? [],
         };
     }
 

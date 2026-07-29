@@ -93,7 +93,7 @@ function viewpointLabel(ref: string): string {
 function resolveViewpoints(
     view: MemoElement,
     model: MemoModel,
-): Array<{ id: string; label: string; ref: string; group?: string }> {
+): Array<{ id: string; label: string; ref: string; group?: string; declaredLayers?: string[] }> {
     // `viewpointDefinition` is the canonical property declared by MemoView.
     // Keep the former `viewpoint` spelling as a compatibility fallback for
     // projects authored before the ontology adopted the ISO 42010 vocabulary.
@@ -108,6 +108,11 @@ function resolveViewpoints(
                 || authored?.attributes['name']
                 || `${viewpointLabel(ref)} Viewpoint`,
             group: authored?.attributes['group'],
+            // The viewpoint's own `includedLayers`, as authored. Distinct from
+            // the DTO's `visibleLayers`, which is accumulated from the views
+            // that bind to it — a viewpoint states which layers it frames even
+            // before any view exists.
+            declaredLayers: splitList(authored?.attributes['includedLayers'] ?? ''),
             ref,
         };
     });
@@ -155,6 +160,8 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                     id: authoredViewpoint.id,
                     label: authoredViewpoint.label,
                     group: authoredViewpoint.group,
+                    declaredLayers: authoredViewpoint.declaredLayers?.length
+                        ? authoredViewpoint.declaredLayers : undefined,
                     visibleKinds: [],
                     visibleRelationships: [],
                     visibleLayers: [],

@@ -94,6 +94,8 @@ export interface MemoRelationship {
     sourcePortId?: string;
     /** Target port element ID (when connection endpoint is a port) */
     targetPortId?: string;
+    /** Attributes authored on the connection usage. */
+    attributes?: Record<string, string>;
 }
 
 /** A parse error from a specific file */
@@ -140,6 +142,14 @@ export interface ViewpointDTO {
     visibleKinds: string[];
     visibleRelationships: string[];
     visibleLayers: string[];
+    /**
+     * Layers the viewpoint itself declares it frames (`includedLayers`).
+     *
+     * `visibleLayers` above is accumulated from the views bound to this
+     * viewpoint, so it reflects what happens to be drawn. This is the authored
+     * intent, and is what consumers should order or filter by.
+     */
+    declaredLayers?: string[];
     supportedDiagramTypes?: string[];
 }
 

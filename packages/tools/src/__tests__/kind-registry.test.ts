@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { resolve, join } from 'node:path';
-import { readdirSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from '../model/layer-resolver.js';
 import { KindRegistry } from '../model/kind-registry.js';
 import { parseFiles } from '../model/parser-utils.js';
@@ -173,5 +174,47 @@ describe('KindRegistry', () => {
         const registry = new KindRegistry();
         registry.register({ name: 'Hazard', label: 'Hazard', layer: 'safety', sysmlConstruct: 'part def' });
         expect(registry.getComplianceGroups()).toHaveLength(0);
+    });
+
+    it('inherits ontology placement for transitive project extension kinds', async () => {
+        const registry = new KindRegistry();
+        registry.register({
+            name: 'SoftwareComponent',
+            label: 'Software Component',
+            layer: 'implementation',
+            namespace: ['architecture', 'implementation', 'software', 'runtime'],
+            sysmlConstruct: 'part def',
+        });
+
+        const dir = mkdtempSync(join(tmpdir(), 'memo-kind-extension-'));
+        const file = join(dir, 'elements.sysml');
+        writeFileSync(file, `
+            package project_library {
+                part def DeviceFirmware specializes FirmwareComponent;
+                part def FirmwareComponent specializes SoftwareComponent;
+                part def UnrelatedType;
+            }
+        `);
+        try {
+            const parsed = await parseFiles([file], `${dir}/`);
+            const extended = registry.withProjectExtensions(parsed.documents);
+
+            expect(extended.getKind('FirmwareComponent')).toMatchObject({
+                layer: 'implementation',
+                superType: 'SoftwareComponent',
+                namespace: ['architecture', 'implementation', 'software', 'runtime'],
+            });
+            expect(extended.getKind('DeviceFirmware')).toMatchObject({
+                layer: 'implementation',
+                superType: 'FirmwareComponent',
+            });
+            expect(extended.getKind('UnrelatedType')).toMatchObject({
+                layer: 'sysml',
+                namespace: ['sysml'],
+            });
+            expect(registry.has('FirmwareComponent')).toBe(false);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 });

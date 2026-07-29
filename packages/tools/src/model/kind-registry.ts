@@ -138,6 +138,76 @@ export class KindRegistry {
     }
 
     /**
+     * Return a registry augmented with project-local definitions. Definitions
+     * that derive from a registered ontology kind inherit that kind's
+     * placement. Other valid SysML definitions remain available under the
+     * standard SysML area instead of being reported as undefined. The
+     * ontology registry itself remains unchanged (it is frozen for the
+     * lifetime of an Architect session).
+     *
+     * Local extension kinds inherit their ontology parent's placement while
+     * retaining their own name and construct. This lets a project declare,
+     * for example, `FirmwareComponent specializes SoftwareComponent` and use
+     * FirmwareComponent everywhere the ontology accepts SoftwareComponent.
+     */
+    withProjectExtensions(documents: ParsedDocument[]): KindRegistry {
+        const result = new KindRegistry();
+        for (const entry of this.kinds.values()) {
+            result.register({
+                ...entry,
+                namespace: entry.namespace ? [...entry.namespace] : undefined,
+                derivedBy: entry.derivedBy ? [...entry.derivedBy] : undefined,
+            });
+        }
+
+        const discovered = new KindRegistry();
+        discovered.populateFromDocuments(documents);
+        let pending = discovered.entries().filter(entry => !result.has(entry.name));
+
+        // Resolve repeatedly so chains of local extensions work regardless of
+        // source-file order (e.g. DeviceFirmware -> FirmwareComponent ->
+        // SoftwareComponent).
+        while (pending.length > 0) {
+            let added = 0;
+            const unresolved: KindRegistryEntry[] = [];
+            for (const entry of pending) {
+                const declaredSuperType = entry.superType;
+                const superType = declaredSuperType?.split('::').pop();
+                const parent = superType ? result.getKind(superType) : undefined;
+                if (!parent || parent.layer === 'unknown') {
+                    unresolved.push(entry);
+                    continue;
+                }
+                result.register({
+                    ...entry,
+                    superType,
+                    layer: parent.layer,
+                    namespace: parent.namespace ? [...parent.namespace] : undefined,
+                    standard: entry.standard ?? parent.standard,
+                });
+                added++;
+            }
+            if (added === 0) break;
+            pending = unresolved;
+        }
+
+        // A definition does not have to extend MEMO to be valid SysML. Keep
+        // independent project types visible and usable, but do not pretend
+        // they conform to a MEMO ontology kind.
+        for (const entry of pending) {
+            result.register({
+                ...entry,
+                superType: entry.superType?.split('::').pop(),
+                layer: 'sysml',
+                namespace: ['sysml'],
+            });
+        }
+
+        result.computeDerivedBy();
+        return result;
+    }
+
+    /**
      * Project the registry into serializable definitions for the web client.
      * Only the fields relationship legality needs — chiefly superType, which
      * carries the specialization chain that conformance walks.

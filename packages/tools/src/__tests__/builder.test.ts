@@ -140,7 +140,10 @@ describe('buildMemoModel', () => {
                 requirement haz1 : Hazard {
                     attribute redefines title = "Hazard 1";
                 }
-                connection : Mitigates connect control ::> rc1 to hazard ::> haz1;
+                connection : Mitigates {
+                    attribute interactionLabel = "Controls hazard";
+                    connect control ::> rc1 to hazard ::> haz1;
+                }
             }
         `);
         const model = buildMemoModel([doc], testConfig);
@@ -154,6 +157,7 @@ describe('buildMemoModel', () => {
         expect(rel.sourceEnd).toBe('control');
         expect(rel.targetId).toBe('haz1');
         expect(rel.targetEnd).toBe('hazard');
+        expect(rel.attributes?.interactionLabel).toBe('Controls hazard');
     });
 
     it('builds element indexes by kind and layer', async () => {
@@ -763,6 +767,42 @@ describe('Dual-mode builder with registries', () => {
         rr.register({ sysmlName: 'TraceTo', name: 'traceTo', label: 'Trace To', layer: 'crosscutting', ends: [] });
         return rr;
     }
+
+    it('recognizes MEMO-derived and standard SysML project extension kinds', async () => {
+        const ontologyKinds = new KindRegistry();
+        ontologyKinds.register({
+            name: 'SoftwareComponent',
+            label: 'Software Component',
+            layer: 'implementation',
+            namespace: ['architecture', 'implementation', 'software', 'runtime'],
+            sysmlConstruct: 'part def',
+        });
+
+        const doc = await parseDoc(`
+            package TestPkg {
+                part def FirmwareComponent specializes SoftwareComponent;
+                part def ProjectContainer;
+                part firmware : FirmwareComponent;
+                part container : ProjectContainer;
+            }
+        `);
+        const kindRegistry = ontologyKinds.withProjectExtensions([doc]);
+        const model = buildMemoModel(
+            [doc],
+            { ...testConfig, kinds: {} },
+            [],
+            { kindRegistry },
+        );
+
+        expect(model.elements.get('firmware')).toMatchObject({
+            kind: 'FirmwareComponent',
+            layer: 'implementation',
+        });
+        expect(model.elements.get('container')).toMatchObject({
+            kind: 'ProjectContainer',
+            layer: 'sysml',
+        });
+    });
 
     it('resolves kinds from registry when provided', async () => {
         const registries: BuilderRegistries = {

@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve, join } from 'node:path';
-import { readdirSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
 import {
     findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries,
@@ -16,21 +16,8 @@ import {
 } from '@memoarchitect/tools';
 import type { BuilderRegistries, PluginType, PluginContext, MemoPlugin } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
-function findSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = resolve(dir, entry.name);
-            if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.memo') {
-                files.push(...findSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml')) {
-                files.push(full);
-            }
-        }
-    } catch { /* skip */ }
-    return files;
-}
 
 // ─── memo plugin list ───────────────────────────────────────────────────────
 

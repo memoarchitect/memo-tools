@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve } from 'node:path';
-import { readdirSync, statSync, writeFileSync } from 'node:fs';
+import { statSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import { compileWithConfiguredTool, findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
@@ -13,26 +13,8 @@ import { validateModel, collectNativeConstraints } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { checkLockFile } from '../lock.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
-/**
- * Find all .sysml files recursively from a directory.
- */
-function findSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = resolve(dir, entry.name);
-            if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.memo') {
-                files.push(...findSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml')) {
-                files.push(full);
-            }
-        }
-    } catch {
-        // Permission errors, etc.
-    }
-    return files;
-}
 
 export type ValidateFormat = 'text' | 'junit' | 'json';
 

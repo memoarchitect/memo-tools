@@ -166,6 +166,11 @@ export class PackageRegistry {
         for (const member of pkg.members) {
             if (member.$type === 'ImportDeclaration') {
                 const imp = member as ImportDeclaration;
+                // The grammar types `path` as required, but a stdlib or
+                // membership import can parse without a resolvable one, and a
+                // partially-recovered parse yields an empty node. Neither names
+                // a package, so there is nothing to record.
+                if (typeof imp.path !== 'string' || !imp.path) continue;
                 imports.push(parseImport(imp.path));
             } else if (member.$type === 'PackageDeclaration') {
                 const childPkg = member as PackageDeclaration;
@@ -196,6 +201,11 @@ export class PackageRegistry {
 
 /** Parse an import path into its components */
 function parseImport(path: string): ImportEntry {
+    // Defensive against a pathless import reaching here from another caller:
+    // `path.endsWith` on undefined would take down the whole model build.
+    if (typeof path !== 'string' || !path) {
+        return { path: '', packageName: '', isWildcard: false, namedImport: undefined };
+    }
     const isWildcard = path.endsWith('::*');
     let packageName: string;
     let namedImport: string | undefined;

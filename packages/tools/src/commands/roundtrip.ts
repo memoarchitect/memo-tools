@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
-import { readdirSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import { findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
 import type { BuilderRegistries, MemoModel } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
 interface RoundTripDiff {
     category: 'element_lost' | 'element_gained' | 'relationship_lost' | 'relationship_gained' | 'attribute_changed';
@@ -28,22 +29,6 @@ interface RoundTripReport {
     };
 }
 
-function findSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = resolve(dir, entry.name);
-            if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.memo') {
-                files.push(...findSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml')) {
-                files.push(full);
-            }
-        }
-    } catch {
-        // skip
-    }
-    return files;
-}
 
 function computeRoundTripDiffs(source: MemoModel): RoundTripDiff[] {
     const diffs: RoundTripDiff[] = [];

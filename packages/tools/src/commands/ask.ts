@@ -7,7 +7,6 @@
 //   memo ask "Which layers are least complete?"
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import chalk from 'chalk';
 import {
@@ -17,21 +16,8 @@ import {
 } from '@memoarchitect/tools';
 import type { BuilderRegistries } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
-function findSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = resolve(dir, entry.name);
-            if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.memo') {
-                files.push(...findSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml')) {
-                files.push(full);
-            }
-        }
-    } catch { /* skip */ }
-    return files;
-}
 
 export interface AskCommandOptions {
     layer?: string;

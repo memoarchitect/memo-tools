@@ -1,4 +1,3 @@
-import { readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { buildMemoModel } from '../model/builder.js';
 import { compileWithConfiguredTool } from '../model/toolchain.js';
@@ -14,23 +13,8 @@ import { modelToDTO } from '../model/semantic.js';
 import type { ArchLayerDTO, DiagramDTO, MemoModelDTO, ViewpointDTO } from '../model/semantic.js';
 import type { CompletenessReport, ValidationResult } from '../validator/types.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
-function findSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = resolve(dir, entry.name);
-            if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.memo') {
-                files.push(...findSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml')) {
-                files.push(full);
-            }
-        }
-    } catch {
-        // Ignore unreadable directories.
-    }
-    return files;
-}
 
 export interface ProjectSnapshot {
     projectRoot: string;
