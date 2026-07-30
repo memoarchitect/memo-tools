@@ -378,6 +378,8 @@ export interface DiagramNodeLayout {
     width?: number;
     height?: number;
     color?: string;
+    /** Fill opacity 0..1, for dimming context around the parts under review. */
+    opacity?: number;
     /** Per-diagram boundary-port positions, relative to the owning node. */
     ports?: Record<string, { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right' }>;
 }
@@ -398,10 +400,22 @@ export interface DiagramEdgeLayout {
     targetPortId?: string;
 }
 
+/** Presentation-only annotation stored with a diagram, never as a model fact. */
+export interface DiagramAnnotation {
+    kind: 'note' | 'text' | 'constraint';
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    text: string;
+    color?: string;
+}
+
 /** Full layout for one diagram, deserialized from its .viewlayout companion. */
 export interface DiagramLayout {
     nodes: Record<string, DiagramNodeLayout>;
     edges: Record<string, DiagramEdgeLayout>;
+    annotations?: Record<string, DiagramAnnotation>;
     canvas?: {
         zoom?: number;
         pan?: { x: number; y: number };

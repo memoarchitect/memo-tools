@@ -789,6 +789,7 @@ function resolveConnection(
 
     // A named connection usage carries its own stable ID; anonymous ones fall
     // back to a positional counter that shifts whenever the file changes.
+    const attributes = extractAttributes(conn.body);
     const rel: MemoRelationship = {
         id: conn.name || `rel-${++relationshipCounter}`,
         type: normalizedType,
@@ -798,7 +799,8 @@ function resolveConnection(
         targetEnd: conn.target.endName,
         file: filePath,
         named: conn.name ? true : undefined,
-        attributes: extractAttributes(conn.body),
+        attributes,
+        flowItem: attributes.transportedItem || attributes.flowItem || undefined,
     };
 
     // Tag port IDs when endpoints reference port elements

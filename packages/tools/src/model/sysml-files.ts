@@ -14,10 +14,30 @@ import { resolve } from 'node:path';
  * `.venv`, `__pycache__`, `dist` and `.sysand` are build/tool output that can
  * hold copies of model files — parsing those reports duplicate elements and
  * phantom errors against files the author does not edit.
+ *
+ * A Python virtualenv is the sharpest case: SysIDE ships the entire SysML v2
+ * standard library inside `site-packages`, so a project with a notebook
+ * environment beside its model hands the walker several hundred library files
+ * the Langium grammar was never meant to parse. `venv` and `site-packages` are
+ * listed alongside `.venv` because `python -m venv venv` is just as common, and
+ * a vendored environment can be reached without its root directory in the path.
  */
 const ALWAYS_SKIP = new Set([
-    'node_modules', '.memo', '.git', '.sysand', '.venv', '__pycache__', 'dist',
+    'node_modules', 'memo_packages', '.memo', '.git', '.sysand',
+    '.venv', 'venv', 'site-packages', '__pycache__', 'dist', 'output', '.turbo',
 ]);
+
+/**
+ * Whether a directory name is tool output or a vendored dependency, and so is
+ * never authored project content.
+ *
+ * Exported for the walkers that collect more than `.sysml` — packaging sweeps a
+ * project's manifests and config too — so that one list governs what "not
+ * project content" means instead of each collector keeping its own.
+ */
+export function isIgnoredDirectory(name: string): boolean {
+    return ALWAYS_SKIP.has(name);
+}
 
 /**
  * Whether to skip a directory during the walk.

@@ -118,6 +118,8 @@ export interface RelationshipCreateRequest {
     owningFile?: string;
     /** Diagram the request was invoked from, when invoked from a diagram. */
     diagramId?: string;
+    /** Optional item or information flow transported by the connector. */
+    flowItem?: string;
 }
 
 /** A request to delete one model relationship. */

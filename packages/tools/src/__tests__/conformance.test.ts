@@ -6,6 +6,7 @@ import type { Model } from '../language/generated/ast.js';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join, relative, dirname } from 'node:path';
 import { resolveContentPackageRoot } from '../model/paths.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
@@ -15,21 +16,15 @@ const ONTOLOGY_ROOT = resolve(CONTENT_ROOT, 'src');
 
 // The canonical ontology and its example projects are scanned separately so
 // package workspace dirs, installed dependencies, output, and git metadata are
-// never mistaken for source content.
-const VENDOR_SKIP_DIRS = new Set(['examples', 'packages', 'node_modules', 'output', '.git', '.turbo']);
+// never mistaken for source content. Discovery itself is the shared walker's —
+// this suite kept a copy whose skip list drifted, and started asserting that
+// SysIDE's bundled standard library inside an example's Python virtualenv
+// conformed to MEMO's own authoring rules.
+const VENDOR_SKIP_DIRS = new Set(['examples', 'packages']);
 
 function collectSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        const full = join(dir, entry.name);
-        if (entry.isDirectory()) {
-            if (VENDOR_SKIP_DIRS.has(entry.name)) continue;
-            files.push(...collectSysmlFiles(full));
-        } else if (entry.name.endsWith('.sysml')) {
-            files.push(full);
-        }
-    }
-    return files;
+    return findSysmlFiles(dir).filter(file =>
+        !relative(dir, file).split(/[/\\]/).slice(0, -1).some(segment => VENDOR_SKIP_DIRS.has(segment)));
 }
 
 const EXAMPLES_ROOT = resolve(CONTENT_ROOT, 'examples');

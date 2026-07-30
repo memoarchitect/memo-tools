@@ -8,8 +8,9 @@
 // cost of a reload.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { readdirSync, statSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { findSysmlFiles } from '../model/sysml-files.js';
 // Imported from their defining modules rather than the package index: this
 // module is reached from server/persistor, which imports the package by name.
 import { findConfigFile } from '../model/config-loader.js';
@@ -23,24 +24,11 @@ import type { QueryContext } from '../dhf/query-engine.js';
 import type { MEMOConfig } from '../model/config.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
-const SKIP_DIRS = new Set(['node_modules', '.memo', '.git', 'memo_packages']);
-
-export function findSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = resolve(dir, entry.name);
-            if (entry.isDirectory()) {
-                if (!SKIP_DIRS.has(entry.name)) files.push(...findSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml')) {
-                files.push(full);
-            }
-        }
-    } catch {
-        // An unreadable directory is not worth failing the whole load over.
-    }
-    return files;
-}
+// Source discovery is the shared walker's job. This module kept its own copy
+// with a shorter skip list, which meant the MCP server saw files every other
+// entry point had already learned to ignore — a virtualenv's bundled standard
+// library among them. Re-exported because `mcp/index.ts` publishes it.
+export { findSysmlFiles };
 
 export interface LoadedProject {
     ctx: QueryContext;

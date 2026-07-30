@@ -4,13 +4,16 @@ import { createGzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
 import chalk from 'chalk';
 import { packageWithConfiguredTool } from '../model/toolchain.js';
+import { isIgnoredDirectory } from '../model/sysml-files.js';
 import { buildProjectSnapshot } from '../operations/project-snapshot.js';
 
 function collectProjectFiles(dir: string, root: string): { path: string; content: Buffer }[] {
     const files: { path: string; content: Buffer }[] = [];
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.memo'
-            || entry.name === 'dist' || entry.name === 'output' || entry.name.endsWith('.kpar')) continue;
+        // Tool output and vendored dependencies are excluded by the same rule
+        // the source walker uses, so a package can never ship (or claim in its
+        // manifest) files the rest of the toolchain ignores.
+        if (isIgnoredDirectory(entry.name) || entry.name.endsWith('.kpar')) continue;
         const full = resolve(dir, entry.name);
         if (entry.isDirectory()) files.push(...collectProjectFiles(full, root));
         else if (entry.name.endsWith('.sysml') || [

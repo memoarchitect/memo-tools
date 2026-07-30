@@ -282,10 +282,15 @@ export function generateRelationshipDeclaration(
     definition: RelationshipDefinitionDTO,
     sourceId: string,
     targetId: string,
+    flowItem?: string,
 ): string {
-    return `connection ${id} : ${definition.sysmlName} connect ` +
+    const head = `connection ${id} : ${definition.sysmlName} connect ` +
         `${definition.sourceEnd.name} ::> ${sourceId} to ` +
-        `${definition.targetEnd.name} ::> ${targetId};`;
+        `${definition.targetEnd.name} ::> ${targetId}`;
+    const item = flowItem?.trim();
+    return item
+        ? `${head} {\n        attribute transportedItem = ${JSON.stringify(item)};\n    }`
+        : `${head};`;
 }
 
 // ─── Create ─────────────────────────────────────────────────────────────────
@@ -316,7 +321,7 @@ export async function writeRelationship(
         model.relationships.map(rel => rel.id),
     );
     const declaration = generateRelationshipDeclaration(
-        relationshipId, definition, request.sourceId, request.targetId);
+        relationshipId, definition, request.sourceId, request.targetId, request.flowItem);
 
     let updated: string;
     if (!existsSync(absolutePath)) {

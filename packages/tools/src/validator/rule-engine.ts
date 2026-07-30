@@ -12,6 +12,7 @@ import type { Violation, ValidationResult } from './types.js';
 import type { CompiledConstraint } from './constraint-eval.js';
 import { evaluateConstraintNode } from './constraint-eval.js';
 import { validateBehavior } from './behavior-validator.js';
+import { validateArchitecture } from './architecture-validator.js';
 import { validateViews } from './view-validator.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 
@@ -29,6 +30,7 @@ export function validateModel(
     kindRegistry?: KindRegistry,
 ): ValidationResult {
     const behaviorViolations = validateBehavior(model);
+    const architectureViolations = validateArchitecture(model);
     const viewViolations = validateViews(model);
 
     const nativeViolations: Violation[] = [];
@@ -40,8 +42,8 @@ export function validateModel(
     }
 
     return {
-        violations: [...behaviorViolations, ...viewViolations, ...nativeViolations],
-        rulesEvaluated: 5 + nativeConstraints.length,
+        violations: [...behaviorViolations, ...architectureViolations, ...viewViolations, ...nativeViolations],
+        rulesEvaluated: 6 + nativeConstraints.length,
         rulesPassed: nativePassed,
         timestamp: Date.now(),
     };

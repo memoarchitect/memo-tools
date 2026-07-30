@@ -174,6 +174,13 @@ export interface DiagramDTO {
     properties?: Record<string, string>;
     elementIds?: string[];
     relationshipTypes?: string[];
+    /**
+     * Kinds this view admits, from its own `selectionQuery.includeElementKinds`
+     * expanded through the ontology specialization closure. Drives the authoring
+     * palette: these are the shapes it makes sense to draw on this view, as
+     * distinct from the union its viewpoint accumulates.
+     */
+    elementKinds?: string[];
     /** SysML source containing the view definition (project-relative). */
     sourceFile?: string;
     /**

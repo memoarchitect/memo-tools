@@ -10,6 +10,20 @@ function element(id: string, kind: string, packageName?: string): MemoElement {
 }
 
 describe('explicit renderer samples', () => {
+    it('supports exact element-id selections without sweeping in every element of a kind', () => {
+        const selected = element('selectedPart', 'LogicalComponent');
+        selected.attributes.id = 'LC-SELECTED';
+        const excluded = element('excludedPart', 'LogicalComponent');
+        const view = element('exactView', 'DiagramView');
+        view.attributes = { 'selectionQuery.includeElementIds': 'LC-SELECTED' };
+        const model = {
+            elements: new Map([[selected.id, selected], [excluded.id, excluded], [view.id, view]]),
+            relationships: [], incoming: new Map(),
+        } as unknown as MemoModel;
+
+        expect(deriveModelViews(model).diagrams[0].elementIds).toEqual(['selectedPart']);
+    });
+
     it('places SysML views from the samples package in Model Viewpoint > Samples', () => {
         const part = element('partA', 'LogicalComponent', 'samples');
         const view = element('sampleInterconnectionView', 'DiagramView', 'samples');

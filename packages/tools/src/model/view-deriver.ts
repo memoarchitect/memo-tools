@@ -62,6 +62,7 @@ export function resolveViewElementIds(
     kindRegistry?: KindRegistry
 ): string[] {
     const kindList = splitList(view.attributes['selectionQuery.includeElementKinds']);
+    const explicitIdList = splitList(view.attributes['selectionQuery.includeElementIds']);
     const layerList = splitList(view.attributes['selectionQuery.includeLayers']);
 
     const kinds = expandKinds(kindList, kindRegistry);
@@ -75,6 +76,12 @@ export function resolveViewElementIds(
             if (kinds.size === 0 && layers.size > 0 && !layers.has(el.layer)) continue;
             ids.add(el.id);
         }
+    }
+    for (const reference of explicitIdList) {
+        const direct = model.elements.get(reference);
+        if (direct) { ids.add(direct.id); continue; }
+        const authored = [...model.elements.values()].find(element => element.attributes.id === reference);
+        if (authored) ids.add(authored.id);
     }
     for (const rel of model.incoming.get(view.id) ?? []) {
         if (rel.type.toLowerCase() === 'includedin' && rel.sourceId !== view.id) ids.add(rel.sourceId);
@@ -223,6 +230,13 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             ...(Object.keys(properties).length > 0 ? { properties } : {}),
             elementIds: resolveViewElementIds(el, model, kindRegistry),
             relationshipTypes: queryRels,
+            // This view's own admitted kinds, not the viewpoint's. A viewpoint
+            // accumulates the kinds of every view under it, so an IBD sharing the
+            // logical viewpoint with a state-machine view would otherwise offer
+            // StateMachine and Transition as shapes to draw on an IBD.
+            ...(queryKinds.length > 0
+                ? { elementKinds: [...expandKinds(queryKinds, kindRegistry)] }
+                : {}),
             sourceFile: el.file,
         });
     }

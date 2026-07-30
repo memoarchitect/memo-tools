@@ -29,9 +29,17 @@ beforeAll(() => {
     file('model', 'nested', 'b.sysml');
     file('model', 'samples', 'kept.sysml');     // nested samples: real content
     file('samples', 'scratch.sysml');            // top-level samples: scratch
-    for (const dir of ['node_modules', '.memo', '.git', '.sysand', '.venv', '__pycache__', 'dist']) {
+    for (const dir of [
+        'node_modules', 'memo_packages', '.memo', '.git', '.sysand',
+        '.venv', 'venv', '__pycache__', 'dist', 'output', '.turbo',
+    ]) {
         file(dir, 'skipped.sysml');
     }
+    // SysIDE ships the whole SysML v2 standard library inside a virtualenv's
+    // site-packages. This is the shape that made conformance assert MEMO's own
+    // authoring rules against the standard library.
+    file('analysis', '.venv', 'lib', 'python3.12', 'site-packages', '_syside',
+        'sysml.library', 'Domain Libraries', 'Analysis', 'AnalysisTooling.sysml');
     file('notes.md');
 });
 
@@ -44,12 +52,20 @@ describe('findSysmlFiles', () => {
         expect(found()).toEqual(['model/a.sysml', 'model/nested/b.sysml', 'model/samples/kept.sysml']);
     });
 
-    it.each(['node_modules', '.memo', '.git', '.sysand', '.venv', '__pycache__', 'dist'])(
+    it.each([
+        'node_modules', 'memo_packages', '.memo', '.git', '.sysand',
+        '.venv', 'venv', '__pycache__', 'dist', 'output', '.turbo',
+    ])(
         'skips %s, which holds tool output rather than authored sources',
         dir => {
             expect(found().some(f => f.startsWith(`${dir}/`))).toBe(false);
         },
     );
+
+    it("never descends into a virtualenv's bundled SysML standard library", () => {
+        expect(found().some(f => f.includes('site-packages'))).toBe(false);
+        expect(found().some(f => f.includes('sysml.library'))).toBe(false);
+    });
 
     it("skips a project's top-level samples/, which is scratch beside the manifest", () => {
         expect(found()).not.toContain('samples/scratch.sysml');

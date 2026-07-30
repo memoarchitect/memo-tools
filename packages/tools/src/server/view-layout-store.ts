@@ -54,6 +54,7 @@ export function loadViewLayout(projectRoot: string, diagram: DiagramDTO): Diagra
 export function isDefaultViewLayout(layout: DiagramLayout): boolean {
     if (Object.keys(layout.nodes ?? {}).length > 0) return false;
     if (Object.keys(layout.edges ?? {}).length > 0) return false;
+    if (Object.keys(layout.annotations ?? {}).length > 0) return false;
     const canvas = layout.canvas;
     if (!canvas) return true;
     // Automatic layout and still connectors are the defaults; every other

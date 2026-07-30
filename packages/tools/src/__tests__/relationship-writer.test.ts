@@ -253,6 +253,11 @@ describe('generateRelationshipDeclaration', () => {
         expect(generateRelationshipDeclaration('rel_1', satisfiedBy, 'controller', 'sr104'))
             .toBe('connection rel_1 : SatisfiedBy connect satisfyingElement ::> controller to requiredElement ::> sr104;');
     });
+
+    it('persists an optional transported-item label on the connector', () => {
+        expect(generateRelationshipDeclaration('rel_1', satisfiedBy, 'controller', 'sr104', 'Alarm status'))
+            .toContain('attribute transportedItem = "Alarm status";');
+    });
 });
 
 // ─── Writing ────────────────────────────────────────────────────────────────
