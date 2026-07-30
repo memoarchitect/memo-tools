@@ -36,6 +36,8 @@ export interface MemoElement {
     id: string;
     /** Stable short ID for deep-linking, e.g. "SW-REQ-4291" (set by builder) */
     shortId?: string;
+    /** Stable technical UUID assigned during compilation; never used as a display label. */
+    uuid?: string;
     /** Human-readable name (from 'attribute redefines name = ...' or id) */
     name: string;
     /** The kind key matching config.kinds, e.g. "Hazard", "Requirement" */
@@ -165,6 +167,8 @@ export interface DiagramDTO {
     viewpointIds?: string[];
     /** Optional grouping of views within a viewpoint. */
     group?: string;
+    /** Explicit scenarios this diagram is linked to, when authored. */
+    scenarioIds?: string[];
     auto: boolean;
     description?: string;
     properties?: Record<string, string>;

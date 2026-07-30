@@ -25,6 +25,7 @@
 //   - ItemDefinition → MemoElement with construct "item"
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { createHash } from 'node:crypto';
 import type {
     Model,
     PackageDeclaration,
@@ -68,7 +69,7 @@ import type {
 } from './semantic.js';
 import type { ParsedDocument } from './parser-utils.js';
 import { PackageRegistry } from './package-registry.js';
-import { assignSequentialShortIds } from './short-id.js';
+import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
@@ -226,12 +227,20 @@ export function buildMemoModel(
         elementsByLayer.get(el.layer)!.push(el);
     }
 
-    // Assign sequential short IDs: sort each kind group by element id, then
-    // assign PREFIX-1, PREFIX-2, ... Deletion-stable (survivors keep their seq).
-    for (const [kind, kindElements] of elementsByKind) {
-        const idToShortId = assignSequentialShortIds(kind, kindElements.map(e => e.id));
-        for (const el of kindElements) {
+    // Assign each three-letter prefix one sequential display index. This is
+    // deliberately distinct from the technical UUID assigned below.
+    const elementsByPrefix = new Map<string, MemoElement[]>();
+    for (const element of elements.values()) {
+        const prefix = kindToPrefix(element.kind);
+        const prefixElements = elementsByPrefix.get(prefix) ?? [];
+        prefixElements.push(element);
+        elementsByPrefix.set(prefix, prefixElements);
+    }
+    for (const [prefix, prefixElements] of elementsByPrefix) {
+        const idToShortId = assignSequentialShortIds(prefix, prefixElements.map(e => e.id));
+        for (const el of prefixElements) {
             (el as MemoElement).shortId = idToShortId.get(el.id);
+            (el as MemoElement).uuid = stableElementUuid(el);
         }
     }
 
@@ -296,6 +305,22 @@ export function buildMemoModel(
         outgoing,
         incoming,
     };
+}
+
+/**
+ * Derive a UUID from source identity, rather than allocating a random value on
+ * every compilation. This is the machine identity; `shortId` is the compact
+ * human-facing PREFIX-1, PREFIX-2, … label used in explorers.
+ */
+function stableElementUuid(element: Pick<MemoElement, 'file' | 'kind' | 'id'>): string {
+    const bytes = createHash('sha256')
+        .update(`${element.file}\0${element.kind}\0${element.id}`)
+        .digest()
+        .subarray(0, 16);
+    bytes[6] = (bytes[6] & 0x0f) | 0x50; // UUID v5 shape
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+    const hex = bytes.toString('hex');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 // ─── AST Walking ────────────────────────────────────────────────────────────

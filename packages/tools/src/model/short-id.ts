@@ -1,14 +1,13 @@
 // ─── Short ID generation for MEMO elements ───────────────────────────────────
 //
-// Generates stable, human-readable short IDs in the form {KIND-PREFIX}-{SEQ},
-// e.g. "SW-REQ-4291", "HZD-1823", "SYS-COMP-7432".
+// Generates stable, human-readable short IDs in the form {PREFIX}-{SEQ},
+// where PREFIX is exactly three alphabetic characters, e.g. "REQ-1",
+// "HZD-2", "OPR-3".
 //
-// The prefix is derived deterministically from the kind name (CamelCase split).
-// The sequence number is a hash of the element's SysML id — stable across
-// rebuilds as long as the element name in the source file doesn't change.
+// The prefix is derived deterministically from the kind name. The sequence
+// number starts at 1 and increments within its prefix family.
 //
-// URL family = first segment of the prefix (SW-REQ → SW, HZD → HZD).
-// This determines the grouping in /catalog/:family/ routes.
+// URL family is the three-letter prefix.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -46,9 +45,14 @@ const KIND_PREFIX_OVERRIDES: Record<string, string> = {
     Action: 'ACT',
     ActionDefinition: 'ACT-DEF',
     UseCase: 'UC',
+    Workflow: 'WFL',
+    OperationalWorkflow: 'WFL',
     // Operational
     Stakeholder: 'STK',
-    OperationalScenario: 'OPS',
+    OperationalScenario: 'SCN',
+    OperativeScenario: 'SCN',
+    FunctionalScenario: 'SCN',
+    UiScenario: 'SCN',
     Mission: 'MSNS',
     Capability: 'CAP',
     // Compliance / DHF
@@ -92,37 +96,40 @@ function derivePrefix(kind: string): string {
 }
 
 /**
- * Get the kind prefix for an element kind.
- * Returns a well-known override if available, otherwise auto-derives from CamelCase.
+ * Get the three-letter display prefix for an element kind. Multi-word type
+ * names intentionally use one shared family (OperationalWorkflow → OPR),
+ * leaving the numeric sequence to provide uniqueness.
  */
 export function kindToPrefix(kind: string): string {
-    return KIND_PREFIX_OVERRIDES[kind] ?? derivePrefix(kind);
+    const configured = KIND_PREFIX_OVERRIDES[kind]?.split('-')[0];
+    const derived = derivePrefix(kind).split('-')[0];
+    const candidate = configured?.length === 3 ? configured : derived;
+    return candidate.replace(/[^A-Za-z]/g, '').toUpperCase().padEnd(3, 'X').slice(0, 3);
 }
 
 /**
  * The URL family segment — first hyphen-separated token of the prefix.
- * e.g. "SW-REQ" → "SW", "HZD-EVT" → "HZD", "SYS-COMP" → "SYS"
+ * e.g. "REQ" → "REQ", "HZD" → "HZD", "OPR" → "OPR"
  */
 export function prefixToFamily(prefix: string): string {
     return prefix.split('-')[0];
 }
 
 /**
- * Assign sequential short IDs to a group of elements of the same kind.
+ * Assign sequential short IDs to a group of elements sharing one prefix.
  *
  * Elements are sorted by their SysML id (lexicographic) for a deterministic,
  * stable order — adding a new element appends it at its sort position, and
  * deleting one does not renumber the survivors.
  *
- * Format: {KIND-PREFIX}-{n}  e.g. "HZD-1", "HZD-2", "SW-REQ-1", "SW-REQ-2"
+ * Format: {PREFIX}-{n}  e.g. "HZD-1", "HZD-2", "OPR-1", "OPR-2"
  *
  * Returns a Map from element id → shortId.
  */
 export function assignSequentialShortIds(
-    kind: string,
+    prefix: string,
     elementIds: string[],
 ): Map<string, string> {
-    const prefix = kindToPrefix(kind);
     const sorted = [...elementIds].sort((a, b) => a.localeCompare(b));
     const out = new Map<string, string>();
     for (let i = 0; i < sorted.length; i++) {
@@ -133,7 +140,7 @@ export function assignSequentialShortIds(
 
 /**
  * Parse a shortId back to its prefix and sequence number.
- * e.g. "SW-REQ-3" → { prefix: "SW-REQ", seq: 3 }
+ * e.g. "OPR-3" → { prefix: "OPR", seq: 3 }
  * Returns null if the format is unrecognised.
  */
 export function parseShortId(shortId: string): { prefix: string; seq: number } | null {

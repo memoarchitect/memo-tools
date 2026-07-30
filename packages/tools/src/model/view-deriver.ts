@@ -118,6 +118,12 @@ function resolveViewpoints(
     });
 }
 
+/** Scenario links are authored on the view; they are never inferred from content. */
+function resolveScenarioIds(view: MemoElement, model: MemoModel): string[] {
+    return splitList(view.attributes['scenario'])
+        .map(reference => model.elements.get(reference)?.id ?? reference);
+}
+
 export interface DerivedViews {
     viewpoints: ViewpointDTO[];
     diagrams: DiagramDTO[];
@@ -211,6 +217,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             viewpointId: vpId,
             viewpointIds: vpIds,
             group: el.attributes['group'],
+            ...(resolveScenarioIds(el, model).length > 0 ? { scenarioIds: resolveScenarioIds(el, model) } : {}),
             auto: true,
             description: el.attributes['shortDescription'] || el.doc,
             ...(Object.keys(properties).length > 0 ? { properties } : {}),
