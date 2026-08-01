@@ -17,10 +17,14 @@ describe('buildLayers — architecture sublayer discovery', () => {
         rmSync(root, { recursive: true, force: true });
     });
 
+    // Definitions are wrapped in a package because MEMO's grammar — like the
+    // portability gate — requires it. Layer discovery reads the parsed AST, so
+    // a fixture that does not parse contributes nothing; the previous regex
+    // scanner accepted the bare form only because it never parsed at all.
     function writeKindFile(rel: string, kindName: string) {
         const full = join(root, rel);
         mkdirSync(full.substring(0, full.lastIndexOf('/')), { recursive: true });
-        writeFileSync(full, `part def ${kindName};\n`, 'utf-8');
+        writeFileSync(full, `package fixture {\n    part def ${kindName};\n}\n`, 'utf-8');
     }
 
     it('loads kinds from flat architecture/<file>.sysml layout', () => {
@@ -53,7 +57,15 @@ describe('buildLayers — architecture sublayer discovery', () => {
     it('records abstract kinds and all supported definition constructs', () => {
         const path = join(root, 'architecture/types.sysml');
         mkdirSync(join(root, 'architecture'), { recursive: true });
-        writeFileSync(path, 'abstract part def AbstractNode;\nport def SignalPort;\ninterface def DeviceInterface;\nconnection def Connects;\n', 'utf-8');
+        writeFileSync(path, [
+            'package fixture {',
+            '    abstract part def AbstractNode;',
+            '    port def SignalPort;',
+            '    interface def DeviceInterface;',
+            '    connection def Connects;',
+            '}',
+            '',
+        ].join('\n'), 'utf-8');
         const architecture = buildLayers(root).find(layer => layer.id === 'architecture')!;
         expect(architecture.kinds).toEqual(expect.arrayContaining([
             expect.objectContaining({ name: 'AbstractNode', isAbstract: true }),
@@ -84,7 +96,7 @@ describe('buildLayers — artifact layer discovery', () => {
     }
 
     it('discovers artifacts/ as a layer', () => {
-        writeKindFile('artifacts/risk_plan.sysml', 'part def RiskManagementPlan;\n');
+        writeKindFile('artifacts/risk_plan.sysml', 'package fixture {\n    part def RiskManagementPlan;\n}\n');
         const layers = buildLayers(root);
         const artifacts = layers.find(l => l.id === 'artifacts');
         expect(artifacts).toBeDefined();
@@ -92,8 +104,8 @@ describe('buildLayers — artifact layer discovery', () => {
     });
 
     it('coexists with other layers without interference', () => {
-        writeKindFile('architecture/some_kind.sysml', 'part def SomeKind;\n');
-        writeKindFile('artifacts/risk_plan.sysml', 'part def RiskManagementPlan;\n');
+        writeKindFile('architecture/some_kind.sysml', 'package fixture {\n    part def SomeKind;\n}\n');
+        writeKindFile('artifacts/risk_plan.sysml', 'package fixture {\n    part def RiskManagementPlan;\n}\n');
         const layers = buildLayers(root);
         expect(layers.find(l => l.id === 'architecture')).toBeDefined();
         expect(layers.find(l => l.id === 'artifacts')).toBeDefined();

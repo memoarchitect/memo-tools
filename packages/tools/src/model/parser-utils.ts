@@ -110,6 +110,41 @@ export async function parseText(source: string): Promise<{
     return { document, errors };
 }
 
+/**
+ * Parse one SysML file to an AST synchronously.
+ *
+ * `parseFiles`/`parseText` go through Langium's async document builder, which
+ * several callers cannot use: the ontology-browser metadata path is synchronous
+ * all the way up through `buildLayers` and `getPackageMetadata`. Langium's
+ * parser itself is synchronous, so those callers can have a real AST without
+ * the surrounding pipeline going async — which is what let the regex scanner
+ * survive as long as it did.
+ *
+ * Returns undefined when the file cannot be read or produces no root node.
+ * Parse errors are not surfaced: callers here are building a catalog view, and
+ * a partially-parsed file should contribute what it has rather than vanish.
+ */
+export function parseFileToAstSync(filePath: string): Model | undefined {
+    try {
+        const source = readFileSync(filePath, 'utf-8');
+        const services = getSyncServices();
+        const result = services.parser.LangiumParser.parse<Model>(source);
+        return result.value ?? undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Language services are expensive to construct and stateless for parsing, so
+ * the synchronous path reuses one instance across every file it scans.
+ */
+let syncServices: ReturnType<typeof createMemoSysMLServices>['MemoSysML'] | undefined;
+function getSyncServices() {
+    syncServices ??= createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
+    return syncServices;
+}
+
 function relativePath(filePath: string, basePath: string): string {
     if (basePath && filePath.startsWith(basePath)) {
         return filePath.slice(basePath.length).replace(/^\//, '');

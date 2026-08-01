@@ -13,9 +13,15 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
+import {
+    isConnectionDefinition,
+    isDocComment,
+    isEndDeclaration,
+    isPackageDeclaration,
+} from '../language/generated/ast.js';
 import { KindRegistry } from './kind-registry.js';
 import { RelationshipRegistry } from './relationship-registry.js';
-import { parseFiles } from './parser-utils.js';
+import { parseFiles, parseFileToAstSync } from './parser-utils.js';
 import { VENDOR_ONTOLOGY_DIR } from './paths.js';
 import { discoverMemoManifests, findMemoManifests, resolveManifestPath } from './manifest.js';
 import {
@@ -125,47 +131,110 @@ interface ParsedRelationshipInfo {
 }
 
 /**
- * Parse SysML constructs (part def, requirement def, action def, connection def)
- * from a single SysML file, extracting specialization and doc comments.
+ * AST node `$type` → the `<construct> def` spelling reported in catalog DTOs.
+ *
+ * Kept separate from kind-registry's own map because that one deliberately
+ * omits connection/metadata definitions (they classify relationships and
+ * annotations, not model elements) while the catalog view lists them.
+ */
+const CATALOG_CONSTRUCTS: Record<string, string> = {
+    PartDefinition: 'part def',
+    RequirementDefinition: 'requirement def',
+    VerificationDefinition: 'verification def',
+    StateDefinition: 'state def',
+    UseCaseDeclaration: 'use case def',
+    ActionDefinition: 'action def',
+    AttributeDefinition: 'attribute def',
+    ItemDefinition: 'item def',
+    PortDefinition: 'port def',
+    InterfaceDefinition: 'interface def',
+    EnumDefinition: 'enum def',
+    ConnectionDefinition: 'connection def',
+    MetadataDefinition: 'metadata def',
+    // ConstraintDefinition is deliberately absent: rules are not catalog kinds,
+    // and including them would add 33 entries to the ontology browser that the
+    // previous scanner never listed. Session 1 changes no output.
+};
+
+/**
+ * Read the definitions and connection endpoints declared in one SysML file.
+ *
+ * This walks the parsed AST. The previous implementation pattern-matched the
+ * source text, which meant a definition inside a block comment counted, a
+ * `connection def` whose body contained a nested brace truncated at the wrong
+ * place, and a qualified supertype (`:> memo::core::MemoPart`) was recorded as
+ * the bare last segment only by accident of the character class. Reading the
+ * tree removes all three failure modes and costs one parse per file.
  */
 function parseConstructsInFile(filePath: string): { kinds: ParsedKindInfo[]; relationships: ParsedRelationshipInfo[] } {
     const kinds: ParsedKindInfo[] = [];
     const relationships: ParsedRelationshipInfo[] = [];
-    try {
-        const content = readFileSync(filePath, 'utf-8');
 
-        // Match kind definitions with optional :> (specializes) and preceding doc comments
-        // Pattern: [doc /* ... */] <construct> def Name [:> SuperType] { ... }
-        const kindRegex = /(?:doc\s+\/\*\s*([\s\S]*?)\s*\*\/\s*)?^\s*(?:abstract\s+)?(?:part|requirement|verification|state|use\s+case|action|attribute|item|port|interface|enum|connection|metadata)\s+def\s+(\w+)(?:\s*(?::>|specializes)\s+(\w+))?/gm;
-        for (const m of content.matchAll(kindRegex)) {
-            const construct = m[0].match(/(?:abstract\s+)?(part|requirement|verification|state|use\s+case|action|attribute|item|port|interface|enum|connection|metadata)\s+def/)?.[0]?.trim() ?? 'part def';
-            kinds.push({
-                name: m[2],
-                construct,
-                derivesFrom: m[3] || undefined,
-                description: m[1]?.replace(/\s+/g, ' ').trim() || undefined,
-                isAbstract: /\babstract\s+(?:part|requirement|verification|state|use\s+case|action|attribute|item|port|interface|enum|connection|metadata)\s+def\b/.test(m[0]),
-            });
-        }
+    const model = parseFileToAstSync(filePath);
+    if (!model) return { kinds, relationships };
 
-        // Match connection defs with endpoint type annotations
-        // Pattern: connection def Name { end name : TypeName [mult]; end name : TypeName [mult]; }
-        const connBlockRegex = /(?:connection|binding|allocation)\s+def\s+(\w+)\s*\{([^}]*)\}/g;
-        for (const m of content.matchAll(connBlockRegex)) {
-            const name = m[1];
-            const body = m[2];
-            // Extract typed ends: `end <name> : <TypeName> [` — ignore untyped ends like `end subject[1]`
-            const endRegex = /end\s+\w+\s*:\s*(\w+)\s*\[/g;
+    for (const { node, doc } of walkDefinitions(model)) {
+        const construct = CATALOG_CONSTRUCTS[node.$type];
+        if (!construct) continue;
+        const name = (node as { name?: string }).name;
+        if (!name) continue;
+
+        // The catalog reports the bare supertype name, matching how kinds are
+        // keyed in the browser DTO; the qualified form is preserved in the
+        // registry, which is what conformance walks.
+        const superType = (node as { specialization?: { superType?: string } }).specialization?.superType;
+        kinds.push({
+            name,
+            construct,
+            derivesFrom: superType ? superType.split('::').pop() : undefined,
+            description: doc,
+            isAbstract: (node as { isAbstract?: boolean }).isAbstract || undefined,
+        });
+
+        if (isConnectionDefinition(node)) {
             const typedEnds: string[] = [];
-            for (const em of body.matchAll(endRegex)) typedEnds.push(em[1]);
-            relationships.push({
-                name,
-                sourceKind: typedEnds[0],
-                targetKind: typedEnds[1],
-            });
+            for (const member of node.body) {
+                if (isEndDeclaration(member) && member.type) {
+                    typedEnds.push(member.type.split('::').pop() ?? member.type);
+                }
+            }
+            relationships.push({ name, sourceKind: typedEnds[0], targetKind: typedEnds[1] });
         }
-    } catch { /* skip */ }
+    }
     return { kinds, relationships };
+}
+
+/**
+ * Yield every definition in a model with the doc comment that precedes it.
+ *
+ * Packages nest arbitrarily, so this recurses rather than assuming the
+ * ontology's current two-level shape.
+ */
+function* walkDefinitions(
+    container: { members?: unknown[]; body?: unknown[] },
+): Generator<{ node: { $type: string }; doc?: string }> {
+    const members = (container.members ?? container.body ?? []) as Array<Record<string, unknown>>;
+    let pendingDoc: string | undefined;
+    for (const member of members) {
+        if (!member || typeof member !== 'object') continue;
+        if (isDocComment(member)) {
+            pendingDoc = cleanDoc(String((member as { content?: unknown }).content ?? ''));
+            continue;
+        }
+        if (isPackageDeclaration(member)) {
+            yield* walkDefinitions(member as never);
+            pendingDoc = undefined;
+            continue;
+        }
+        if (typeof member.$type === 'string' && CATALOG_CONSTRUCTS[member.$type]) {
+            yield { node: member as { $type: string }, doc: pendingDoc };
+        }
+        pendingDoc = undefined;
+    }
+}
+
+function cleanDoc(content: string): string | undefined {
+    return content.replace(/\s+/g, ' ').trim() || undefined;
 }
 
 /**
