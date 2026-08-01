@@ -44,14 +44,22 @@ export const FIXTURES = [
 /**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
- * KNOWN PRE-EXISTING DEFECT (not introduced by session 1): `memo init` resolves
- * the published @memoarchitect/ontology (0.6.4), whose CR-MED-002 carries
- * `predicateExpression = "attributes.severity != \"\""`. The constraint
- * expression parser cannot compile the escaped empty string, so `memo validate`
- * throws on a freshly initialized project. Local ontology 0.6.5 already fixes
- * this by using `''`, but it is unreleased. The baseline therefore records the
- * validation error for this fixture rather than a violation list; that is the
- * true pre-session behaviour and must not be silently "fixed" by session 1.
+ * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
+ *
+ * The first capture recorded `validation: null` here: `memo init` resolves the
+ * published @memoarchitect/ontology (0.6.4), 16 of whose rules carry
+ * predicateExpressions the constraint parser cannot compile, and a single
+ * failure threw out of collectNativeConstraints and killed the whole command.
+ * `memo validate` therefore crashed on a freshly initialized project.
+ *
+ * Session 1 made rule loading resilient: a rule that fails to compile is
+ * skipped and reported loudly instead of being fatal. This fixture now
+ * validates and produces 24 violations, so its baseline was re-frozen. The
+ * other three fixtures are unchanged.
+ *
+ * The underlying content defect is NOT fixed here — it is fixed in the
+ * unreleased local ontology 0.6.5 and needs a release. Against 0.6.5 all 32
+ * rules load; against published 0.6.4, 16 do not.
  */
 export function materializeDefault() {
     const dir = resolve(tmpdir(), 'memo-baseline-default-project');

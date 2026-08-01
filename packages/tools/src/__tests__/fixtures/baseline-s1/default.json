@@ -27,10 +27,135 @@
     },
     "diagrams": []
   },
-  "validation": null,
-  "errors": [
-    "validation: Error: Cannot compile predicateExpression for CR-MED-002 (\"attributes.severity != \\\"\"): Constraint parse error near: \" \"\""
-  ],
+  "validation": {
+    "violations": [
+      {
+        "rule": "AR-IBD-001",
+        "severity": "warning",
+        "elementId": "mainRequirement"
+      },
+      {
+        "rule": "AR-IBD-001",
+        "severity": "warning",
+        "elementId": "system"
+      },
+      {
+        "rule": "COV-13485-001",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-14155-001",
+        "severity": "warning",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-14971-001",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-14971-002",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-14971-003",
+        "severity": "warning",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-60601-001",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-62304-001",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-62304-002",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-62366-001",
+        "severity": "warning",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-820-001",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-820-002",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-82304-001",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-001",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-002",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-003",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-004",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-005",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-006",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-007",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-008",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-009",
+        "severity": "error",
+        "elementId": "__model__"
+      },
+      {
+        "rule": "COV-CYBER-010",
+        "severity": "warning",
+        "elementId": "__model__"
+      }
+    ],
+    "counts": {
+      "error": 18,
+      "warning": 6
+    }
+  },
+  "errors": [],
   "summary": {
     "elements": 2,
     "completeness": 100

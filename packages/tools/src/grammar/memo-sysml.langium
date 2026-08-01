@@ -27,8 +27,20 @@ grammar MemoSysML
 entry Model:
     members+=NamespaceMember*;
 
+// The root namespace accepts definitions, not only packages. SysML v2 permits
+// members at the root of a file and SysIDE accepts `part def X;` standing alone,
+// so rejecting it here was a MEMO-only restriction: valid source failed to
+// parse, and the AST-based loaders then reported the file as contributing
+// nothing. MEMO's own content still nests everything in packages — the
+// portability gate requires that for qualified naming — but the grammar must
+// not reject source the compiler of record accepts.
 NamespaceMember:
-    PackageDeclaration | ImportDeclaration;
+    PackageDeclaration
+    | ImportDeclaration
+    | AliasDeclaration
+    | DefinitionMember
+    | UseCaseDeclaration
+    | DocComment;
 
 // ─── Package ─────────────────────────────────────────────────────────────────
 

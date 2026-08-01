@@ -20,33 +20,83 @@ import type { ParsedDocument } from '../model/parser-utils.js';
 import type { CompiledConstraint } from './constraint-eval.js';
 import { langiumExprToNode, parseConstraintExpression } from './constraint-eval.js';
 
+/** A rule that could not be loaded, or that conflicts with another rule. */
+export interface ConstraintDiagnostic {
+    kind: 'compile-failed' | 'duplicate-id';
+    ruleId: string;
+    file: string;
+    message: string;
+}
+
 /**
  * Walk all parsed documents and compile every native constraint def found.
- * De-duplicated by rule id: the same ontology file can appear in more than one
- * document set (ontology load + project parse), and a rule id is unique, so a
- * later occurrence replaces an earlier one rather than double-counting.
+ *
+ * De-duplication by rule id is legitimate for the SAME rule seen twice: the
+ * same ontology file appears in both the ontology load and the project parse.
+ * Two DIFFERENT rules sharing an id is a defect, and is reported rather than
+ * silently resolved by document order.
+ *
+ * A rule whose predicate fails to compile is skipped and reported. It used to
+ * throw, which took down the entire command: one malformed
+ * `predicateExpression` anywhere in a resolved dependency meant `memo validate`
+ * exited with a stack trace and validated nothing. A broken rule must be loud,
+ * but it must not be fatal — the other rules still have work to do.
+ *
+ * Callers are expected to surface `diagnostics`; a skipped rule that nobody
+ * reports is a silently disabled check, which is worse than a crash.
  */
-export function collectNativeConstraints(docs: ParsedDocument[]): CompiledConstraint[] {
+export function collectNativeConstraints(
+    docs: ParsedDocument[],
+    diagnostics?: ConstraintDiagnostic[],
+): CompiledConstraint[] {
     const byId = new Map<string, CompiledConstraint>();
+    const sourceById = new Map<string, string>();
     for (const doc of docs) {
         const model = doc.document.parseResult?.value as any;
         if (!model) continue;
         const found: CompiledConstraint[] = [];
         for (const member of model.members ?? []) {
-            walk(member, found);
+            walk(member, found, doc.filePath, diagnostics);
         }
-        for (const c of found) byId.set(c.id, c);
+        for (const c of found) {
+            const previous = sourceById.get(c.id);
+            if (previous !== undefined && previous !== doc.filePath) {
+                diagnostics?.push({
+                    kind: 'duplicate-id',
+                    ruleId: c.id,
+                    file: doc.filePath,
+                    message: `Rule id ${c.id} is declared in both ${previous} and ${doc.filePath}. `
+                        + `Rule ids must be unique; which definition wins currently depends on load order.`,
+                });
+            }
+            sourceById.set(c.id, doc.filePath);
+            byId.set(c.id, c);
+        }
     }
     return [...byId.values()];
 }
 
-function walk(node: any, out: CompiledConstraint[]): void {
+function walk(
+    node: any,
+    out: CompiledConstraint[],
+    file: string,
+    diagnostics?: ConstraintDiagnostic[],
+): void {
     if (!node) return;
     if (node.$type === 'PackageDeclaration') {
-        for (const member of node.members ?? []) walk(member, out);
+        for (const member of node.members ?? []) walk(member, out, file, diagnostics);
     } else if (node.$type === 'ConstraintDefinition' || node.$type === 'RequirementDefinition') {
-        const compiled = tryCompile(node);
-        if (compiled) out.push(compiled);
+        try {
+            const compiled = tryCompile(node);
+            if (compiled) out.push(compiled);
+        } catch (error) {
+            diagnostics?.push({
+                kind: 'compile-failed',
+                ruleId: extractAttributes(node.body ?? [])['id'] ?? '(unknown)',
+                file,
+                message: error instanceof Error ? error.message : String(error),
+            });
+        }
     }
 }
 

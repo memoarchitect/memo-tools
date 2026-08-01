@@ -9,7 +9,7 @@ import { statSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import { compileWithConfiguredTool, findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
-import { validateModel, collectNativeConstraints } from '@memoarchitect/tools';
+import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { checkLockFile } from '../lock.js';
@@ -99,9 +99,22 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
     // 6. Validate — native ontology constraints (constraint def bodies) + structural checks.
     //    Constraint defs live in the ontology packages (parsed by loadOntologyRegistries),
     //    so collect across both ontology and project documents.
-    const nativeConstraints = collectNativeConstraints([...ontologyDocuments, ...documents]);
+    const constraintDiagnostics: ConstraintDiagnostic[] = [];
+    const nativeConstraints = collectNativeConstraints(
+        [...ontologyDocuments, ...documents], constraintDiagnostics);
     if (nativeConstraints.length > 0) {
         console.log(chalk.gray(`Native constraints: ${nativeConstraints.length} (from constraint def bodies)`));
+    }
+    // A rule that failed to load is a check that is not running. Report it
+    // prominently: silence here reads as "all rules passed".
+    if (constraintDiagnostics.length > 0) {
+        console.log(chalk.red(
+            `\n⚠  ${constraintDiagnostics.length} rule(s) could not be loaded and are NOT being evaluated:`));
+        for (const d of constraintDiagnostics) {
+            console.log(chalk.red(`   ${d.ruleId} (${d.file})`));
+            console.log(chalk.gray(`     ${d.message}`));
+        }
+        console.log('');
     }
     const result = validateModel(model, nativeConstraints, ontologyRegistries?.kindRegistry);
     const completeness = computeCompleteness(model, result, config);
@@ -138,7 +151,9 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
                 warnings: warnings.length,
                 infos: infos.length,
                 completeness: completeness.overall,
+                rulesNotLoaded: constraintDiagnostics.length,
             },
+            rulesNotLoaded: constraintDiagnostics,
             violations: result.violations.map(v => ({
                 ruleId: v.ruleId,
                 severity: v.severity,
