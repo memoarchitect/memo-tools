@@ -56,6 +56,30 @@ export interface KindRegistryEntry {
     isAbstract?: boolean;
     /** Namespace segments mirrored by the ontology source folders. */
     namespace?: string[];
+    /**
+     * Fully qualified name, e.g. `memo::ontology::assurance::safety_risk::Hazard`.
+     *
+     * This is the registry's real identity. `name` is a short index into it,
+     * which resolves only while it is unambiguous — see `getCollisions`.
+     */
+    qualifiedName?: string;
+    /** Source file this definition was declared in. */
+    sourceFile?: string;
+}
+
+/**
+ * Two definitions sharing a short name.
+ *
+ * Previously the second silently replaced the first in a `Map` keyed by short
+ * name, so which one survived depended on file iteration order and the loss was
+ * invisible. Collisions are now recorded and surfaced as load diagnostics.
+ */
+export interface KindNameCollision {
+    shortName: string;
+    /** Qualified names competing for the short name, in discovery order. */
+    qualifiedNames: string[];
+    /** Files declaring them, aligned with `qualifiedNames`. */
+    sourceFiles: string[];
 }
 
 /** AST $type → SysMLConstruct mapping */
@@ -117,6 +141,11 @@ export class KindRegistry {
      */
     private readonly viewDefaults = new Map<string, Record<string, string>>();
     private readonly viewSuperTypes = new Map<string, string>();
+    /** short name → the qualified name it currently resolves to. */
+    private readonly byQualifiedName = new Map<string, string>();
+    /** qualified name → declaring file, for collision diagnostics. */
+    private readonly sourceFiles = new Map<string, string>();
+    private readonly collisions = new Map<string, KindNameCollision>();
 
     /** Number of registered kinds */
     get size(): number {
@@ -304,7 +333,51 @@ export class KindRegistry {
 
     /** Register a kind manually (for testing or config fallback) */
     register(entry: KindRegistryEntry): void {
+        this.recordIdentity(entry);
         this.kinds.set(entry.name, entry);
+    }
+
+    /**
+     * Track qualified identity alongside the short-name map.
+     *
+     * Short-name lookup is kept as-is so every existing caller keeps working;
+     * what changes is that a shadowed definition is no longer lost silently.
+     * A re-registration of the SAME qualified name is not a collision — that
+     * happens legitimately when a registry is copied in `withProjectExtensions`.
+     */
+    private recordIdentity(entry: KindRegistryEntry): void {
+        const qualified = entry.qualifiedName ?? entry.name;
+        const existing = this.byQualifiedName.get(entry.name);
+        if (existing && existing !== qualified) {
+            const collision = this.collisions.get(entry.name) ?? {
+                shortName: entry.name,
+                qualifiedNames: [existing],
+                sourceFiles: [this.sourceFiles.get(existing) ?? '(unknown)'],
+            };
+            if (!collision.qualifiedNames.includes(qualified)) {
+                collision.qualifiedNames.push(qualified);
+                collision.sourceFiles.push(entry.sourceFile ?? '(unknown)');
+            }
+            this.collisions.set(entry.name, collision);
+        }
+        this.byQualifiedName.set(entry.name, qualified);
+        if (entry.sourceFile) this.sourceFiles.set(qualified, entry.sourceFile);
+    }
+
+    /**
+     * Short names claimed by more than one qualified definition.
+     *
+     * Callers surface these as load diagnostics: a reference to an ambiguous
+     * short name cannot be resolved by load order and needs qualifying.
+     */
+    getCollisions(): KindNameCollision[] {
+        return [...this.collisions.values()]
+            .sort((a, b) => a.shortName.localeCompare(b.shortName));
+    }
+
+    /** Qualified name a short name currently resolves to. */
+    getQualifiedName(shortName: string): string | undefined {
+        return this.byQualifiedName.get(shortName);
     }
 
     /**
@@ -341,17 +414,28 @@ export class KindRegistry {
 
             for (const member of model.members) {
                 if (isPackageDeclaration(member)) {
-                    this.walkPackage(member, layer, standard, namespace);
+                    this.walkPackage(member, layer, standard, namespace, [], doc.filePath);
                 }
             }
         }
     }
 
     /** Walk a package declaration and register all Definition nodes */
-    private walkPackage(pkg: PackageDeclaration, layer: string, standard?: string, namespace?: string[]): void {
+    private walkPackage(
+        pkg: PackageDeclaration,
+        layer: string,
+        standard?: string,
+        namespace?: string[],
+        packagePath: string[] = [],
+        sourceFile?: string,
+    ): void {
+        // A declaration's qualified name is the enclosing package chain, which
+        // is why nested package declarations are required: a file declaring
+        // `package a::b` gives no chain to walk.
+        const here = pkg.name ? [...packagePath, pkg.name] : packagePath;
         for (const member of pkg.members) {
             if (isPackageDeclaration(member)) {
-                this.walkPackage(member, layer, standard, namespace);
+                this.walkPackage(member, layer, standard, namespace, here, sourceFile);
                 continue;
             }
 
@@ -389,7 +473,7 @@ export class KindRegistry {
                     ? member.specialization?.superType
                     : undefined;
 
-                this.kinds.set(name, {
+                this.register({
                     name,
                     label: name,
                     layer,
@@ -398,6 +482,8 @@ export class KindRegistry {
                     standard,
                     isAbstract: ('isAbstract' in member && member.isAbstract) || undefined,
                     namespace,
+                    qualifiedName: [...here, name].join('::'),
+                    sourceFile,
                 });
             }
         }

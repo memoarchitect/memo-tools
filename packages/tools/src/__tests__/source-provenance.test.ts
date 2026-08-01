@@ -125,3 +125,56 @@ describe('ProvenanceTable', () => {
         expect(p.writable).toBe(true);
     });
 });
+
+// ─── Qualified identity and short-name collisions (deliverable 3) ─────────────
+
+describe('KindRegistry qualified identity', () => {
+    it('records the qualified name alongside the short name', async () => {
+        const { KindRegistry } = await import('../model/kind-registry.js');
+        const registry = new KindRegistry();
+        registry.register({
+            name: 'Hazard', label: 'Hazard', layer: 'risk', sysmlConstruct: 'part def',
+            qualifiedName: 'memo::assurance::safety_risk::Hazard',
+            sourceFile: 'src/assurance/risk.sysml',
+        });
+        expect(registry.getQualifiedName('Hazard')).toBe('memo::assurance::safety_risk::Hazard');
+        expect(registry.getCollisions()).toEqual([]);
+    });
+
+    it('reports two definitions competing for one short name', async () => {
+        const { KindRegistry } = await import('../model/kind-registry.js');
+        const registry = new KindRegistry();
+        registry.register({
+            name: 'WorkflowStep', label: 'WorkflowStep', layer: 'methodology', sysmlConstruct: 'action def',
+            qualifiedName: 'memo_methodology_workflow::WorkflowStep',
+            sourceFile: 'src/methodology/workflow/memo_workflow.sysml',
+        });
+        registry.register({
+            name: 'WorkflowStep', label: 'WorkflowStep', layer: 'operational', sysmlConstruct: 'action def',
+            qualifiedName: 'memo_architecture_operational_workflows::WorkflowStep',
+            sourceFile: 'src/architecture/operational/workflows/memo_workflows.sysml',
+        });
+        const collisions = registry.getCollisions();
+        expect(collisions).toHaveLength(1);
+        expect(collisions[0].shortName).toBe('WorkflowStep');
+        expect(collisions[0].qualifiedNames).toEqual([
+            'memo_methodology_workflow::WorkflowStep',
+            'memo_architecture_operational_workflows::WorkflowStep',
+        ]);
+        expect(collisions[0].sourceFiles).toHaveLength(2);
+    });
+
+    it('does not report re-registering the same qualified name', async () => {
+        // withProjectExtensions copies every entry into a fresh registry; that
+        // must not look like a collision.
+        const { KindRegistry } = await import('../model/kind-registry.js');
+        const registry = new KindRegistry();
+        const entry = {
+            name: 'Hazard', label: 'Hazard', layer: 'risk', sysmlConstruct: 'part def' as const,
+            qualifiedName: 'memo::assurance::Hazard',
+        };
+        registry.register(entry);
+        registry.register({ ...entry });
+        expect(registry.getCollisions()).toEqual([]);
+    });
+});

@@ -19,7 +19,7 @@ import {
     isEndDeclaration,
     isPackageDeclaration,
 } from '../language/generated/ast.js';
-import { KindRegistry } from './kind-registry.js';
+import { KindRegistry, type KindNameCollision } from './kind-registry.js';
 import { RelationshipRegistry } from './relationship-registry.js';
 import { parseFiles, parseFileToAstSync } from './parser-utils.js';
 import { VENDOR_ONTOLOGY_DIR } from './paths.js';
@@ -589,6 +589,17 @@ export interface OntologyLoadResult {
     errors: string[];
     /** Parsed ontology documents (for rule registry and other consumers) */
     parsedDocuments: import('./parser-utils.js').ParsedDocument[];
+    /**
+     * Short names claimed by more than one definition.
+     *
+     * Reported separately from `errors` because these are ontology defects, not
+     * load failures: the model still builds, but which definition a short
+     * reference resolves to depends on file order. Session 2 resolves the
+     * ontology's own collisions; session 3 makes an ambiguous reference fail.
+     */
+    kindNameCollisions: KindNameCollision[];
+    /** Resolved dependency roots and the provenance they imply. */
+    provenance?: ProvenanceTable;
 }
 
 /**
@@ -876,6 +887,7 @@ export async function loadOntologyRegistries(configPath: string): Promise<Ontolo
             ontologyDirs: [],
             errors: ['No ontology packages with sysml/ directories found in extends chain'],
             parsedDocuments: [],
+            kindNameCollisions: [],
         };
     }
 
@@ -896,6 +908,7 @@ export async function loadOntologyRegistries(configPath: string): Promise<Ontolo
             ontologyDirs,
             errors: ['Ontology packages found but no .sysml files in sysml/ directories'],
             parsedDocuments: [],
+            kindNameCollisions: [],
         };
     }
 
@@ -917,5 +930,31 @@ export async function loadOntologyRegistries(configPath: string): Promise<Ontolo
         ontologyDirs,
         errors,
         parsedDocuments: parseResult.documents,
+        kindNameCollisions: kindRegistry.getCollisions(),
+        provenance: buildProvenanceTable(configPath, ontologyDirs),
     };
+}
+
+/**
+ * Classify each resolved package directory into an authority category.
+ *
+ * Origin comes from the package manifest's declared `type:` — that is, from
+ * what the resolved dependency says it is — not from where its files happen to
+ * sit. Import depth is the position in the resolution order, which approximates
+ * distance from the project closely enough for provenance display; the exact
+ * graph distance arrives with the native import closure in session 3.
+ */
+function buildProvenanceTable(configPath: string, ontologyDirs: string[]): ProvenanceTable {
+    const projectRoot = dirname(resolve(configPath));
+    const roots: ResolvedRoot[] = ontologyDirs.map((dir, index) => {
+        const { manifest } = readPackageManifest(dir);
+        return {
+            dir,
+            origin: originForPackageType(manifest.type),
+            packageName: manifest.name ?? basename(dir),
+            packageVersion: manifest.version,
+            importDepth: index + 1,
+        };
+    });
+    return new ProvenanceTable(projectRoot, roots);
 }

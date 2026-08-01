@@ -1,0 +1,205 @@
+{
+  "capturedAt": "session-1",
+  "findings": [
+    {
+      "file": "memo/examples/extensions/clinical/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/extensions/clinical/memo.package.yaml",
+      "field": "sysmlDir",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/extensions/clinical/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/extensions/clinical/memo.package.yaml",
+      "field": "usage",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/extensions/template/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/extensions/template/memo.package.yaml",
+      "field": "sysmlDir",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/extensions/template/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/extensions/template/memo.package.yaml",
+      "field": "usage",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/gpca-pump/memo.config.yaml",
+      "field": "methodology",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/gpca-pump/memo.config.yaml",
+      "field": "projectType",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/sysml-diagram-samples/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/sysml-diagram-samples/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/ui-screen-regions/memo.config.yaml",
+      "field": "methodology",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/examples/ui-screen-regions/memo.config.yaml",
+      "field": "projectType",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/methodologies/default/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/methodologies/default/memo.package.yaml",
+      "field": "sysmlDir",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/methodologies/default/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/methodologies/default/memo.package.yaml",
+      "field": "usage",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/methodologies/gpca/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/methodologies/gpca/memo.package.yaml",
+      "field": "sysmlDir",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/methodologies/gpca/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/methodologies/gpca/memo.package.yaml",
+      "field": "usage",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/ontology/memo.package.yaml",
+      "field": "sysmlDir",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/ontology/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/ontology/memo.package.yaml",
+      "field": "usage",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/ontology/memo.rendering.yaml",
+      "field": "explorer",
+      "kind": "rendering-section"
+    },
+    {
+      "file": "memo/ontology/memo.rendering.yaml",
+      "field": "layers",
+      "kind": "rendering-section"
+    },
+    {
+      "file": "memo/profile/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/profile/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/profile/memo.package.yaml",
+      "field": "usage",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/connected-device/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/connected-device/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/default/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/default/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/infusion-pump/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/infusion-pump/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/monitoring-device/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/monitoring-device/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/samd/memo.package.yaml",
+      "field": "extends",
+      "kind": "manifest-field"
+    },
+    {
+      "file": "memo/templates/samd/memo.package.yaml",
+      "field": "type",
+      "kind": "manifest-field"
+    }
+  ]
+}
