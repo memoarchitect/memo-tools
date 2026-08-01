@@ -17,6 +17,7 @@ import {
     RuleRegistry,
     collectNativeConstraints,
     evaluateConstraintNode,
+    validateArchitecture,
 } from '@memoarchitect/tools';
 // parseFiles still needed by rulesCheckCommand for project SysML files
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
@@ -141,7 +142,11 @@ export async function rulesCheckCommand(
     let rulesPassed = 0;
     const violations = [];
     for (const constraint of constraints) {
-        const ruleViolations = evaluateConstraintNode(constraint, constraint.ast, model);
+        const ruleViolations = constraint.evaluator === 'architecture'
+            ? validateArchitecture(model, constraint.appliesToKind, ontologyRegistries?.kindRegistry)
+            : constraint.evaluator && constraint.evaluator !== 'native'
+                ? []
+                : evaluateConstraintNode(constraint, constraint.ast, model, ontologyRegistries?.kindRegistry);
         if (ruleViolations.length === 0) rulesPassed++;
         violations.push(...ruleViolations);
     }

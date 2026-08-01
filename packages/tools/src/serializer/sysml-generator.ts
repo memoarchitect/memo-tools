@@ -25,10 +25,33 @@ export function generateUsage(element: CsvElement): string {
         lines.push(`${indent}attribute redefines name = "${escapeString(element.name)}";`);
     }
 
-    // Dynamic attributes
+    // Dynamic attributes. Structured attribute values are flattened in the
+    // semantic model (`bounds.x`, `bounds.width`) and reconstructed here so an
+    // edit round-trips to the SysML form the parser accepts.
+    const scalarAttributes: Array<[string, string]> = [];
+    const structuredAttributes = new Map<string, Array<[string, string]>>();
     for (const [key, value] of Object.entries(element.attributes)) {
         if (key === 'name') continue; // already handled above
-        lines.push(`${indent}attribute redefines ${key} = "${escapeString(value)}";`);
+        const dot = key.indexOf('.');
+        if (dot < 1 || dot === key.length - 1) {
+            scalarAttributes.push([key, value]);
+            continue;
+        }
+        const root = key.slice(0, dot);
+        const child = key.slice(dot + 1);
+        const members = structuredAttributes.get(root) ?? [];
+        members.push([child, value]);
+        structuredAttributes.set(root, members);
+    }
+    for (const [key, value] of scalarAttributes) {
+        lines.push(`${indent}attribute redefines ${key} = ${renderAttributeValue(value)};`);
+    }
+    for (const [root, members] of structuredAttributes) {
+        lines.push(`${indent}attribute redefines ${root} {`);
+        for (const [key, value] of members) {
+            lines.push(`${indent}${indent}attribute redefines ${key} = ${renderAttributeValue(value)};`);
+        }
+        lines.push(`${indent}}`);
     }
 
     // Provenance attributes (written as _import_* so they don't conflict with model attrs)
@@ -42,6 +65,14 @@ export function generateUsage(element: CsvElement): string {
 
     lines.push('}');
     return lines.join('\n');
+}
+
+/** Preserve native scalar/enum/list syntax; quote ordinary text. */
+function renderAttributeValue(value: string): string {
+    const trimmed = String(value).trim();
+    if (/^(?:true|false|-?\d+(?:\.\d+)?|[A-Za-z_]\w*::[A-Za-z_]\w*)$/.test(trimmed)) return trimmed;
+    if (trimmed.startsWith('(') && trimmed.endsWith(')')) return trimmed;
+    return `"${escapeString(String(value))}"`;
 }
 
 /**

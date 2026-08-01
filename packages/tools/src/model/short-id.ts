@@ -41,6 +41,8 @@ const KIND_PREFIX_OVERRIDES: Record<string, string> = {
     Module: 'MOD',
     Interface: 'IF',
     Port: 'PORT',
+    // User interface
+    UIElement: 'UIE',
     // Actions / behavior
     Action: 'ACT',
     ActionDefinition: 'ACT-DEF',

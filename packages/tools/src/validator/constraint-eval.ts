@@ -42,6 +42,8 @@ export interface NativeConstraint {
     expression: string;
     /** Severity when the expression is false for a subject. */
     severity: 'error' | 'warning' | 'info';
+    /** Named specialized evaluator selected by ontology metadata. */
+    evaluator?: string;
 }
 
 /** Constraint metadata without the expression body — used by the AST entry point. */
@@ -59,7 +61,7 @@ export function evaluateNativeConstraint(
     model: MemoModel,
     kindRegistry?: KindRegistry,
 ): Violation[] {
-    const ast = parseExpression(constraint.expression);
+    const ast = parseConstraintExpression(constraint.expression);
     const { expression: _drop, ...meta } = constraint;
     return evaluateConstraintNode(meta, ast, model, kindRegistry);
 }
@@ -76,7 +78,7 @@ export function evaluateConstraintNode(
     kindRegistry?: KindRegistry,
 ): Violation[] {
     const evaluationModel = kindRegistry ? withSpecializationExtents(model, kindRegistry) : model;
-    const subjects = evaluationModel.elementsByKind.get(meta.appliesToKind) ?? [];
+    const subjects = subjectsForScope(meta.appliesToKind, evaluationModel);
     const violations: Violation[] = [];
 
     for (const element of subjects) {
@@ -94,6 +96,22 @@ export function evaluateConstraintNode(
         }
     }
     return violations;
+}
+
+/** Resolve `Kind` or `Kind[attribute=value]` scope declarations. */
+function subjectsForScope(scope: string, model: MemoModel): MemoElement[] {
+    if (scope === 'Model') {
+        return [{
+            id: '__model__', name: 'Model', kind: 'Model', construct: 'model',
+            layer: 'model', file: '', attributes: {},
+        }];
+    }
+    const match = /^([A-Za-z_]\w*)(?:\[([A-Za-z_]\w*)=([^\]]+)\])?$/.exec(scope);
+    if (!match) return [];
+    const [, kind, attribute, expected] = match;
+    const extent = model.elementsByKind.get(kind) ?? [];
+    if (!attribute) return extent;
+    return extent.filter(element => normalizeEnum(element.attributes[attribute] ?? '') === normalizeEnum(expected));
 }
 
 /**
@@ -132,6 +150,7 @@ type Node =
     | { kind: 'feature'; root: 'current' | 'subject'; segments: string[] }
     /** All elements of a named kind (the kind extent). */
     | { kind: 'allOfKind'; kindName: string }
+    | { kind: 'acyclic'; relationshipType: string }
     | { kind: 'method'; target: Node; name: 'size' | 'notEmpty' | 'isEmpty' }
     | { kind: 'quant'; target: Node; name: 'forAll' | 'exists' | 'select'; body: Node }
     | { kind: 'arith'; op: ArithOp; left: Node; right: Node }
@@ -162,7 +181,7 @@ type Token = { t: string; v?: string };
 
 function tokenize(src: string): Token[] {
     const tokens: Token[] = [];
-    const re = /\s*(->|==|!=|>=|<=|"[^"]*"|[<>()[\].+\-*/]|[A-Za-z_][A-Za-z0-9_]*|\d+)/y;
+    const re = /\s*(->|==|!=|>=|<=|"[^"]*"|'[^']*'|[<>()[\].+\-*/]|[A-Za-z_][A-Za-z0-9_]*|\d+)/y;
     let m: RegExpExecArray | null;
     let pos = 0;
     while (pos < src.length) {
@@ -172,7 +191,7 @@ function tokenize(src: string): Token[] {
         pos = re.lastIndex;
         const raw = m[1];
         if (/^\d+$/.test(raw)) tokens.push({ t: 'int', v: raw });
-        else if (raw[0] === '"') tokens.push({ t: 'str', v: raw.slice(1, -1) });
+        else if (raw[0] === '"' || raw[0] === "'") tokens.push({ t: 'str', v: raw.slice(1, -1) });
         else if (/^[A-Za-z_]/.test(raw)) tokens.push({ t: 'ident', v: raw });
         else tokens.push({ t: raw });
     }
@@ -187,7 +206,7 @@ const KEYWORDS = new Set(['and', 'or', 'not', 'true', 'false']);
 const COLLECTION_OPS = new Set(['size', 'notEmpty', 'isEmpty']);
 const QUANTIFIER_OPS = new Set(['forAll', 'exists', 'select']);
 
-function parseExpression(src: string): Node {
+export function parseConstraintExpression(src: string): Node {
     const tokens = tokenize(src);
     let i = 0;
     const peek = () => tokens[i];
@@ -271,6 +290,13 @@ function parseExpression(src: string): Node {
                 expect(')');
                 return { kind: 'allOfKind', kindName: arg.v! };
             }
+            if (tok.v === 'acyclic') {
+                next();
+                expect('(');
+                const relationshipType = expect('ident').v!;
+                expect(')');
+                return { kind: 'acyclic', relationshipType };
+            }
             if (KEYWORDS.has(tok.v!)) throw new Error(`Unexpected keyword '${tok.v}'`);
             return parseFeature();
         }
@@ -302,6 +328,7 @@ function evalNode(node: Node, env: Env, model: MemoModel): Value {
         case 'str': return node.value;
         case 'feature': return resolveFeature(node.root === 'subject' ? env.root : env.current, node.segments, model);
         case 'allOfKind': return model.elementsByKind.get(node.kindName) ?? [];
+        case 'acyclic': return relationshipAcyclic(model, node.relationshipType);
         case 'method': {
             const len = lengthOf(evalNode(node.target, env, model));
             if (node.name === 'size') return len;
@@ -330,6 +357,26 @@ function evalNode(node: Node, env: Env, model: MemoModel): Value {
         case 'or': return toBool(evalNode(node.left, env, model)) || toBool(evalNode(node.right, env, model));
         case 'not': return !toBool(evalNode(node.operand, env, model));
     }
+}
+
+function relationshipAcyclic(model: MemoModel, relationshipType: string): boolean {
+    const adjacency = new Map<string, string[]>();
+    for (const relationship of model.relationships) {
+        if (relationship.type.toLowerCase() !== relationshipType.toLowerCase()) continue;
+        adjacency.set(relationship.sourceId, [...(adjacency.get(relationship.sourceId) ?? []), relationship.targetId]);
+    }
+    const visiting = new Set<string>();
+    const visited = new Set<string>();
+    const visit = (id: string): boolean => {
+        if (visiting.has(id)) return false;
+        if (visited.has(id)) return true;
+        visiting.add(id);
+        for (const target of adjacency.get(id) ?? []) if (!visit(target)) return false;
+        visiting.delete(id);
+        visited.add(id);
+        return true;
+    };
+    return [...adjacency.keys()].every(visit);
 }
 
 /** True if `seg` names a relationship type, compared case-insensitively (keys are camelCase). */
@@ -411,8 +458,8 @@ function navigate(subject: MemoElement, relType: string, model: MemoModel): Memo
 
 function compare(op: CmpOp, l: Value, r: Value): boolean {
     if (typeof l === 'string' || typeof r === 'string') {
-        const ls = toStringValue(l);
-        const rs = toStringValue(r);
+        const ls = normalizeEnum(toStringValue(l));
+        const rs = normalizeEnum(toStringValue(r));
         switch (op) {
             case '==': return ls === rs;
             case '!=': return ls !== rs;
@@ -432,6 +479,13 @@ function compare(op: CmpOp, l: Value, r: Value): boolean {
         case '>': return ln > rn;
         case '<': return ln < rn;
     }
+}
+
+/** Compare enum values by literal, regardless of qualified storage form. */
+function normalizeEnum(value: string): string {
+    const trimmed = value.trim().replace(/^['"]|['"]$/g, '');
+    const separator = trimmed.lastIndexOf('::');
+    return separator >= 0 ? trimmed.slice(separator + 2) : trimmed;
 }
 
 function isElement(v: Value): v is MemoElement {

@@ -200,17 +200,25 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             }
         }
 
+        // A view usage inherits the attribute values its `view def` binds, and
+        // SysIDE forbids restating them on the usage, so the definition is the
+        // only place they can live. The usage's own values still win where it
+        // declares any.
+        const inherited = kindRegistry?.getViewDefaults(el.kind) ?? {};
+        const attr = (name: string): string | undefined => el.attributes[name] || inherited[name];
+
         // Presentation hints declared on the view — the renderer stays dumb and
         // just honors them
         const properties: Record<string, string> = {};
         for (const hint of ['layoutHint', 'styleHint', 'presentationKind'] as const) {
-            if (el.attributes[hint]) properties[hint] = el.attributes[hint];
+            const value = attr(hint);
+            if (value) properties[hint] = value;
         }
 
         // Every view resolves to exactly one of the 8 spec view kinds: an
         // explicit `viewKind` declaration wins, else the legacy diagramType
         // key maps; document-backed views (no diagramType) become browser.
-        const viewKind = resolveViewKind(el.attributes['viewKind'], el.attributes['diagramType']);
+        const viewKind = resolveViewKind(attr('viewKind'), el.attributes['diagramType']);
 
         diagrams.push({
             id: isRendererSample

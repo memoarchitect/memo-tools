@@ -57,7 +57,7 @@ const program = new Command();
 program
     .name('memo')
     .description('MEMO — Model-Based Systems Engineering for Medical Devices')
-    .version('0.6.4');
+    .version('0.6.7');
 
 program
     .command('validate')

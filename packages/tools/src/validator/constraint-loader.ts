@@ -2,9 +2,9 @@
 //
 // Discovers native `constraint def` / `requirement def` declarations from parsed
 // SysML documents and compiles each `require`/`assert constraint { … }` body into
-// an evaluator AST (via langiumExprToNode). This replaces the proprietary
-// ConsistencyRule predicate-attribute parts that RuleRegistry used to walk:
-// rules are now ordinary KerML constraint expressions over a subject kind.
+// an evaluator AST. Rules can use a directly parseable KerML body, or keep a
+// portable `true` body and provide `predicateExpression` for MEMO semantic-model
+// navigation. Model-level coverage targets are compiled into extent predicates.
 //
 // Rule metadata travels as plain attribute members inside the def body:
 //   constraint def hazardNeedsMitigation {
@@ -12,13 +12,13 @@
 //       attribute appliesTo = "Hazard";
 //       attribute severity = RuleSeverityKind::error;
 //       attribute rationaleText = "ISO 14971 requires risk control for each hazard.";
-//       require constraint { mitigates->size() >= 1 }
+//       require constraint { mitigatesHazard->size() >= 1 }
 //   }
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { ParsedDocument } from '../model/parser-utils.js';
 import type { CompiledConstraint } from './constraint-eval.js';
-import { langiumExprToNode } from './constraint-eval.js';
+import { langiumExprToNode, parseConstraintExpression } from './constraint-eval.js';
 
 /**
  * Walk all parsed documents and compile every native constraint def found.
@@ -52,29 +52,51 @@ function walk(node: any, out: CompiledConstraint[]): void {
 
 function tryCompile(def: any): CompiledConstraint | undefined {
     const body: any[] = def.body ?? [];
+    const attrs = extractAttributes(body);
+    const id = attrs['id'];
+    if (!id) return undefined;
 
     // The boolean body: first require/assert constraint member.
     const requireMember = body.find(m => m.$type === 'RequireConstraintMember' && m.expression);
-    if (!requireMember) return undefined;
-
-    const attrs = extractAttributes(body);
-    const id = attrs['id'];
-    if (!id) return undefined; // metadata-less constraints are not consistency rules
-
     let ast;
-    try {
+    let appliesToKind = attrs['appliesTo'] ?? '';
+    if (requireMember) {
         ast = langiumExprToNode(requireMember.expression);
-    } catch {
-        return undefined; // unsupported expression — skip rather than crash validation
+        if (ast.kind === 'bool' && ast.value && attrs['predicateExpression'] && attrs['evaluator'] !== 'architecture') {
+            // Portable constraint bodies remain `true` where SysML tools cannot
+            // resolve MEMO's semantic-model navigation. The executable predicate
+            // is still ontology-owned and is compiled here.
+            try {
+                ast = parseConstraintExpression(attrs['predicateExpression']);
+            } catch (error) {
+                throw new Error(`Cannot compile predicateExpression for ${id} (${JSON.stringify(attrs['predicateExpression'])}): ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+    } else if (attrs['coverageTarget']) {
+        const target = parseScope(attrs['coverageTarget']);
+        const filter = target.attribute
+            ? `->exists(attributes.${target.attribute} == "${target.value}")`
+            : '->notEmpty()';
+        ast = parseConstraintExpression(`allOfKind("${target.kind}")${filter}`);
+        appliesToKind = 'Model';
+    } else {
+        return undefined;
     }
 
     return {
         id,
         description: attrs['description'] || attrs['rationaleText'] || id,
-        appliesToKind: attrs['appliesTo'] ?? '',
+        appliesToKind,
         severity: mapSeverity(attrs['severity']),
+        evaluator: attrs['evaluator'] || undefined,
         ast,
     };
+}
+
+function parseScope(scope: string): { kind: string; attribute?: string; value?: string } {
+    const match = /^([A-Za-z_]\w*)(?:\[([A-Za-z_]\w*)=([^\]]+)\])?$/.exec(scope);
+    if (!match) throw new Error(`Unsupported coverage target '${scope}'.`);
+    return { kind: match[1], attribute: match[2], value: match[3] };
 }
 
 function extractAttributes(body: any[]): Record<string, string> {
@@ -91,7 +113,11 @@ function extractValue(value: any): string {
     if (!value) return '';
     switch (value.$type) {
         case 'StringValue':
-            return value.value?.replace(/^"|"$/g, '') ?? '';
+            try {
+                return JSON.parse(value.value ?? '""');
+            } catch {
+                return value.value?.replace(/^"|"$/g, '') ?? '';
+            }
         case 'IntValue':
         case 'RealValue':
             return String(value.value);

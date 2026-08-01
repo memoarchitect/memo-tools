@@ -129,6 +129,34 @@ describe('collectNativeConstraints', () => {
         expect(constraints).toHaveLength(1);
         expect(constraints[0].id).toBe('CR-MED-001');
     });
+
+    it('compiles predicateExpression when the portable body is true', async () => {
+        const [constraint] = await load(`package P { constraint def R {
+            attribute id = "PRED-1"; attribute appliesTo = "Hazard";
+            attribute predicateExpression = "severity == 'critical'";
+            require constraint { true } } }`);
+        const ok = elem('Hazard', 'OK', { severity: 'SeverityKind::critical' });
+        const bad = elem('Hazard', 'BAD', { severity: 'minor' });
+        expect(evaluateConstraintNode(constraint, constraint.ast, buildModel([ok, bad])).map(v => v.elementName)).toEqual(['BAD']);
+    });
+
+    it('preserves a specialized evaluator without compiling its predicate', async () => {
+        const [constraint] = await load(`package P { constraint def R {
+            attribute id = "ARCH-1"; attribute appliesTo = "LogicalComponent";
+            attribute evaluator = "architecture";
+            attribute predicateExpression = "syntax owned by the architecture evaluator";
+            require constraint { true } } }`);
+        expect(constraint.evaluator).toBe('architecture');
+        expect(constraint.ast).toEqual({ kind: 'bool', value: true });
+    });
+
+    it('compiles metadata coverage targets into a model-level extent check', async () => {
+        const [constraint] = await load(`package P { constraint def R {
+            attribute id = "COV-1"; attribute coverageTarget = "Requirement[status=approved]"; } }`);
+        const model = buildModel([elem('Requirement', 'Draft', { status: 'draft' })]);
+        expect(constraint.appliesToKind).toBe('Model');
+        expect(evaluateConstraintNode(constraint, constraint.ast, model)).toHaveLength(1);
+    });
 });
 
 describe('native constraint evaluation (EE-3 rule semantics)', () => {

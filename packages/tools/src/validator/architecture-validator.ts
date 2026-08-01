@@ -8,6 +8,7 @@
 
 import type { MemoElement, MemoModel } from '../model/semantic.js';
 import type { Violation } from './types.js';
+import type { KindRegistry } from '../model/kind-registry.js';
 
 const COMPOSITION_TYPES = new Set(['composes', 'composedof', 'decomposedby', 'aggregation']);
 // These are interface/flow relations. Trace, allocation, deployment, and
@@ -20,8 +21,33 @@ const CONNECTOR_TYPES = new Set(['exchangeswith', 'flow', 'logicalexchange', 'lo
  * descendant has a modeled IBD connector. A warning, rather than an error,
  * preserves legitimate passive or intentionally isolated components while
  * making omitted interfaces visible in Memo Architect's Problems panel.
+ *
+ * The SUBJECT SCOPE is ontology-driven: `appliesToKind` is the rule's declared
+ * `appliesTo` from AR-IBD-001 in the ontology, and only kinds conforming to it
+ * are judged. Narrowing or widening the rule is therefore an ontology edit, not
+ * a code edit — this file holds the graph walk, never the list of kinds it
+ * applies to. Omitting the argument judges every part.
  */
-export function validateArchitecture(model: MemoModel): Violation[] {
+export function validateArchitecture(
+    model: MemoModel,
+    appliesToKind?: string,
+    kindRegistry?: KindRegistry,
+): Violation[] {
+    // Kinds conforming to the ontology-declared subject, walked through the
+    // registry's supertype chain. Unresolvable scope falls back to every part
+    // rather than silently judging nothing.
+    const inScope = (element: MemoElement): boolean => {
+        if (!appliesToKind || !kindRegistry) return true;
+        let name: string | undefined = element.kind;
+        const seen = new Set<string>();
+        while (name && !seen.has(name)) {
+            if (name === appliesToKind) return true;
+            seen.add(name);
+            name = kindRegistry.getKind(name)?.superType;
+        }
+        return false;
+    };
+
     const parentOf = new Map<string, string>();
     for (const rel of model.relationships) {
         if (COMPOSITION_TYPES.has(rel.type.toLowerCase())) parentOf.set(rel.targetId, rel.sourceId);
@@ -61,6 +87,7 @@ export function validateArchitecture(model: MemoModel): Violation[] {
     const violations: Violation[] = [];
     for (const element of model.elements.values()) {
         if (element.construct !== 'part') continue;
+        if (!inScope(element)) continue;
         // The root context block has no owning part, and therefore cannot be
         // judged for isolation within a parent composition.
         const parentId = parentOf.get(element.id);

@@ -67,8 +67,9 @@ describe('KK-1: view-kind taxonomy', () => {
     });
 
     it('KK-9: geometry is reachable only by explicit declaration (ADR-1-19)', () => {
-        // The renderer is deferred; no legacy diagramType may silently map to
-        // geometry. Adding such a mapping must be a deliberate ADR revisit.
+        // No legacy diagramType may silently map to geometry: a geometry view
+        // needs authored bounds to draw, so it is only ever reached by an
+        // explicit `viewKind` declaration. Adding a mapping must be deliberate.
         expect(Object.values(DIAGRAM_TYPE_TO_VIEW_KIND)).not.toContain('geometry');
         expect(resolveViewKind('DiagramViewKind::geometry', undefined)).toBe('geometry');
         expect(resolveViewKind('DiagramViewKind::geometry', 'bdd')).toBe('geometry');
@@ -126,6 +127,53 @@ describe('KK-1: deriveModelViews view kinds', () => {
         expect(byName.get('FMEA View')?.viewKind).toBe('grid');
         expect(byName.get('Mode View')?.viewKind).toBe('statetransition');
         expect(byName.get('DHF Index')?.viewKind).toBe('browser');
+    });
+
+    it('inherits an ontology view definition binding after project extensions are applied', async () => {
+        const ontologyDoc = await parseDoc(`
+            package ViewDefinitions {
+                view def GeometryView :> DiagramView {
+                    attribute :>> viewKind = DiagramViewKind::geometry;
+                }
+            }
+        `);
+        const projectDoc = await parseDoc(`
+            package ProjectViews {
+                view screenLayout : GeometryView {
+                    attribute name = "Screen layout";
+                }
+            }
+        `);
+        const ontologyRegistry = new KindRegistry();
+        ontologyRegistry.populateFromDocuments([ontologyDoc]);
+        const projectRegistry = ontologyRegistry.withProjectExtensions([projectDoc]);
+        const model = buildMemoModel([projectDoc], viewConfig);
+
+        expect(deriveModelViews(model, projectRegistry).diagrams[0].viewKind).toBe('geometry');
+    });
+
+    it('derives the shipped UI screen-region views as geometry', async () => {
+        const contentRoot = resolveContentPackageRoot();
+        const definitionPath = join(
+            contentRoot, 'src/viewpoints/ui_layout/screen_layout_view/screen_layout_view.sysml',
+        );
+        const projectPath = join(
+            contentRoot, 'examples/ui-screen-regions/model/viewpoints/ui_screen_regions_views.sysml',
+        );
+        const definitionDoc = await parseDoc(readFileSync(definitionPath, 'utf8'), definitionPath);
+        const projectDoc = await parseDoc(readFileSync(projectPath, 'utf8'), projectPath);
+        const ontologyRegistry = new KindRegistry();
+        ontologyRegistry.populateFromDocuments([definitionDoc]);
+        const projectRegistry = ontologyRegistry.withProjectExtensions([projectDoc]);
+        const model = buildMemoModel([projectDoc], viewConfig, [], { kindRegistry: projectRegistry });
+        const diagrams = deriveModelViews(model, projectRegistry).diagrams;
+
+        expect(diagrams.find(view => view.id === 'UIE-001')?.viewKind).toBe('geometry');
+        expect(diagrams.find(view => view.id === 'UIE-008')?.viewKind).toBe('geometry');
+        expect(diagrams.find(view => view.id === 'UIV-001')?.viewKind).toBe('general');
+        expect(diagrams.find(view => view.id === 'REQ-101')?.viewKind).toBe('grid');
+        expect(diagrams.find(view => view.id === 'FUN-101')?.viewKind).toBe('general');
+        expect(diagrams.find(view => view.id === 'RSK-101')?.viewKind).toBe('general');
     });
 
     it('lists one reusable view under every bound viewpoint', async () => {

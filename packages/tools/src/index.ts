@@ -47,6 +47,7 @@ export * from './model/dimension-filter.js';
 export * from './validator/types.js';
 export * from './validator/rule-engine.js';
 export * from './validator/behavior-validator.js';
+export * from './validator/architecture-validator.js';
 export * from './validator/view-validator.js';
 export * from './validator/rule-registry.js';
 export * from './validator/constraint-eval.js';

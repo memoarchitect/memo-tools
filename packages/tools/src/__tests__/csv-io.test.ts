@@ -312,6 +312,24 @@ describe('generateUsage', () => {
         expect(sysml).toContain('attribute redefines severity = "Serious"');
         expect(sysml).toContain('}');
     });
+
+    it('reconstructs structured values from dotted semantic attributes', () => {
+        const sysml = generateUsage({
+            id: 'rateValue', name: 'Rate Value', kind: 'UIElement', construct: 'part',
+            layer: 'implementation', doc: '',
+            attributes: {
+                'bounds.x': '0.1', 'bounds.y': '0.2',
+                'bounds.width': '0.55', 'bounds.height': '0.3',
+                formKind: 'UIElementFormKind::field',
+            },
+        });
+
+        expect(sysml).toContain('attribute redefines bounds {');
+        expect(sysml).toContain('attribute redefines x = 0.1;');
+        expect(sysml).toContain('attribute redefines width = 0.55;');
+        expect(sysml).toContain('attribute redefines formKind = UIElementFormKind::field;');
+        expect(sysml).not.toContain('bounds.x');
+    });
 });
 
 describe('generateConnection', () => {

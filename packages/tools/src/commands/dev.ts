@@ -12,9 +12,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, deriveModelViews, resolveViewKind } from '@memoarchitect/tools';
+import { findConfigFile, parseFiles, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, deriveModelViews, resolveViewKind, collectNativeConstraints } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
-import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor } from '@memoarchitect/tools';
+import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO } from '@memoarchitect/tools';
@@ -80,6 +80,8 @@ function computeOntologyHash(registries: BuilderRegistries): string {
 
 export async function devCommand(options: {
     port?: number; open?: boolean; clientRoot: string;
+    /** Stop as soon as the last browser disconnects. */
+    exitWhenIdle?: boolean;
     /** Client-owned rewrite of the HTML shell (see DevServerOptions). */
     transformClientHtml?: (html: string) => string;
 }): Promise<void> {
@@ -113,6 +115,7 @@ export async function devCommand(options: {
     // Load + freeze ontology registries — no mid-session mutation
     let ontologyRegistries: BuilderRegistries | undefined;
     let ontologyRoots: string[] = [];
+    let ontologyDocuments: ParsedDocument[] = [];
     let ontologyHash = '';
 
     try {
@@ -120,6 +123,7 @@ export async function devCommand(options: {
         if (loadResult.fileCount > 0) {
             ontologyRegistries = loadResult.registries;
             ontologyRoots = loadResult.ontologyDirs;
+            ontologyDocuments = loadResult.parsedDocuments;
             if (ontologyRegistries.kindRegistry) Object.freeze(ontologyRegistries.kindRegistry);
             if (ontologyRegistries.relationshipRegistry) Object.freeze(ontologyRegistries.relationshipRegistry);
             ontologyHash = computeOntologyHash(ontologyRegistries);
@@ -182,7 +186,8 @@ export async function devCommand(options: {
             }
             : undefined;
         const model = buildMemoModel(documents, config, errors, projectRegistries);
-        const validation = validateModel(model, [], projectRegistries?.kindRegistry);
+        const nativeConstraints = collectNativeConstraints([...ontologyDocuments, ...documents]);
+        const validation = validateModel(model, nativeConstraints, projectRegistries?.kindRegistry);
         const completeness = computeCompleteness(model, validation, config);
 
         console.log(chalk.cyan(
@@ -319,6 +324,20 @@ export async function devCommand(options: {
     console.log(chalk.gray('  Building model...'));
     const initial = await rebuildProject();
 
+    let shuttingDown = false;
+    let projectWatcher: ReturnType<typeof createProjectWatcher> | undefined;
+    let ontologyWatcher: ReturnType<typeof createOntologyWatcher> | undefined;
+
+    const shutdown = (reason: string) => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        console.log(chalk.gray(`\n  ${reason}`));
+        projectWatcher?.close();
+        ontologyWatcher?.close();
+        server.close();
+        process.exit(0);
+    };
+
     // Start dev server
     const server = await createDevServer({
         port,
@@ -330,6 +349,11 @@ export async function devCommand(options: {
         relationshipFiles: config.relationshipFiles,
         canonicalRelationshipFile: config.canonicalRelationshipFile,
         transformClientHtml: options.transformClientHtml,
+        onClientCountChanged: (count) => {
+            if (options.exitWhenIdle && count === 0) {
+                shutdown('No browser clients remain; shutting down.');
+            }
+        },
     });
 
     console.log(chalk.green(`\n  ➜ http://${host}:${port}\n`));
@@ -357,7 +381,7 @@ export async function devCommand(options: {
     // The rebuild is broadcast together with the list of files that caused it,
     // so open editors and views can tell whether the change was theirs instead
     // of refreshing on every unrelated save.
-    const projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
+    projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
         const summary = changedFiles.length === 1
             ? changedFiles[0]
             : `${changedFiles.length} files`;
@@ -371,7 +395,7 @@ export async function devCommand(options: {
     }, 300, false, { ontologyRoots });
 
     // Ontology watcher — restart notification only, no registry reload
-    const ontologyWatcher = createOntologyWatcher(
+    ontologyWatcher = createOntologyWatcher(
         cwd,
         ontologyRoots,
         (changedFile) => notifyRestartRequired('ontology-source-changed', changedFile)
@@ -383,11 +407,7 @@ export async function devCommand(options: {
         openModule.default(`http://${host}:${port}`);
     }
 
-    process.on('SIGINT', () => {
-        console.log(chalk.gray('\n  Shutting down...'));
-        projectWatcher.close();
-        ontologyWatcher.close();
-        server.close();
-        process.exit(0);
-    });
+    for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+        process.once(signal, () => shutdown('Shutting down...'));
+    }
 }

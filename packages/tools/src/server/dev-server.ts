@@ -14,6 +14,7 @@ import type {
     ServerMessage, ModelUpdateMessage, DiagramDTO, MemoModelDTO,
     RelationshipCreateRequest, RelationshipCreateResultMessage,
     RelationshipDeleteRequest, RelationshipDeleteResultMessage,
+    ElementDeleteResultMessage,
     RelationshipDiagnostic, OntologyRegistriesDTO,
     QueryContext, MEMOConfig, ProposedChange,
 } from '@memoarchitect/tools';
@@ -23,6 +24,7 @@ import {
     isWritableRelationshipFile, removeRelationship, resolveRelationshipPlacement,
     writeRelationship, type RelationshipWriterOptions,
 } from './relationship-writer.js';
+import { removeElement } from './element-writer.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
@@ -55,6 +57,8 @@ export interface DevServerOptions {
      * the server a vocabulary that belongs to the client.
      */
     transformClientHtml?: (html: string) => string;
+    /** Notified whenever a browser WebSocket connects or disconnects. */
+    onClientCountChanged?: (count: number) => void;
 }
 
 export interface DevServer {
@@ -67,6 +71,20 @@ export interface DevServer {
      */
     notify(messages: ServerMessage[]): void;
     close(): void;
+}
+
+/**
+ * Project/model state is reconciled over the MEMO WebSocket. Vite must never
+ * turn these writes into a browser reload, even when a local ontology package
+ * is symlinked beneath Vite's dependency graph.
+ */
+export function isModelOwnedWatchPath(path: string): boolean {
+    const normalized = path.replaceAll('\\', '/');
+    return normalized.endsWith('.sysml')
+        || normalized.endsWith('/memo.config.yaml')
+        || normalized.endsWith('/memo.package.yaml')
+        || normalized.includes('/.memo/')
+        || normalized.includes('/model/assets/');
 }
 
 // ─── User-diagram persistence helpers ──────────────────────────────────────
@@ -94,6 +112,9 @@ const STATIC_MIME: Record<string, string> = {
     '.json': 'application/json',
     '.svg':  'image/svg+xml',
     '.png':  'image/png',
+    '.jpg':  'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
     '.ico':  'image/x-icon',
     '.woff2': 'font/woff2',
     '.woff':  'font/woff',
@@ -106,6 +127,24 @@ function streamFile(res: any, fullPath: string, status = 200): void {
     const size = statSync(fullPath).size;
     res.writeHead(status, { 'Content-Type': mime, 'Content-Length': size });
     createReadStream(fullPath).pipe(res);
+}
+
+/** Resolve only project-owned screen captures under model/assets. */
+export function resolveProjectAssetRequest(projectRoot: string, requestUrl: string): string | undefined {
+    let pathname: string;
+    try {
+        pathname = decodeURIComponent(requestUrl.split('?')[0]);
+    } catch {
+        return undefined;
+    }
+    if (!pathname.startsWith('/model/assets/')) return undefined;
+    const assetRoot = resolve(projectRoot, 'model', 'assets');
+    const requested = resolve(projectRoot, pathname.replace(/^\//, ''));
+    const fromAssetRoot = relative(assetRoot, requested);
+    if (!fromAssetRoot || fromAssetRoot === '..' || fromAssetRoot.startsWith('../') || fromAssetRoot.startsWith('..\\')) {
+        return undefined;
+    }
+    return requested;
 }
 
 export async function createDevServer(options: DevServerOptions): Promise<DevServer> {
@@ -165,6 +204,19 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         return true;
     }
 
+    /** Serve captures referenced by project-relative ScreenCapture.imageUri. */
+    function serveProjectAsset(req: any, res: any): boolean {
+        const requestUrl = req.url ?? '/';
+        if (!requestUrl.split('?')[0].startsWith('/model/assets/')) return false;
+        const requested = resolveProjectAssetRequest(options.projectRoot, requestUrl);
+        if (!requested || !existsSync(requested) || !statSync(requested).isFile()) {
+            res.writeHead(404); res.end('Capture not found');
+            return true;
+        }
+        streamFile(res, requested);
+        return true;
+    }
+
     /** Serve the caller-provided prebuilt client as an SPA. */
     function serveWebDist(req: any, res: any): boolean {
         if (!hasWebDist) return false;
@@ -198,7 +250,11 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         // Create Vite dev server in middleware mode
         viteServer = await vite.createServer({
             root: webPackagePath,
-            server: { middlewareMode: true, host },
+            server: {
+                middlewareMode: true,
+                host,
+                watch: { ignored: isModelOwnedWatchPath },
+            },
             appType: 'spa',
             plugins: transformClientHtml
                 ? [{ name: 'memo-client-html', transformIndexHtml: transformClientHtml }]
@@ -206,18 +262,21 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         });
 
         server = createHttpServer((req, res) => {
+            if (serveProjectAsset(req, res)) return;
             if (serveHelp(req, res)) return;
             viteServer.middlewares(req, res);
         });
     } else if (hasWebDist) {
         // Packaged install: serve the prebuilt web app statically
         server = createHttpServer((req, res) => {
+            if (serveProjectAsset(req, res)) return;
             if (serveHelp(req, res)) return;
             serveWebDist(req, res);
         });
     } else {
         // Fallback: serve a basic page that connects via WebSocket
         server = createHttpServer((req, res) => {
+            if (serveProjectAsset(req, res)) return;
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(`
                 <!DOCTYPE html>
@@ -244,6 +303,21 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     const { WebSocketServer } = await import('ws');
     const wss = new WebSocketServer({ server });
     const clients = new Set<any>();
+
+    // User-created views are project state, not session state. Merge them into
+    // the initial model payload so a UI screen created from the workbench is
+    // still present after the dev server restarts.
+    const initialModelIndex = initialMessages.findIndex(message => message.type === 'model:update');
+    if (initialModelIndex >= 0) {
+        const initialModel = initialMessages[initialModelIndex] as ModelUpdateMessage;
+        const authored = initialModel.payload.diagrams ?? [];
+        const authoredIds = new Set(authored.map(diagram => diagram.id));
+        const userDiagrams = loadUserDiagrams(options.projectRoot).filter(diagram => !authoredIds.has(diagram.id));
+        initialMessages[initialModelIndex] = {
+            type: 'model:update',
+            payload: { ...initialModel.payload, diagrams: [...authored, ...userDiagrams] },
+        };
+    }
 
     const currentDiagrams = (): DiagramDTO[] => {
         const model = initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined;
@@ -517,6 +591,46 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         };
     }
 
+    async function handleElementDelete(payload: {
+        requestId?: string;
+        elementId?: string;
+    }): Promise<ElementDeleteResultMessage> {
+        const requestId = payload?.requestId ?? '';
+        const elementId = payload?.elementId ?? '';
+        const reject = (error: string): ElementDeleteResultMessage => ({
+            type: 'element:delete:result',
+            payload: { requestId, elementId, success: false, error },
+        });
+        const model = currentModel();
+        if (!model) return reject('The model is not loaded yet.');
+        const element = model.elements[elementId];
+        if (!element) return reject(`Element "${elementId}" was not found.`);
+        const result = await removeElement(element, model, options.projectRoot);
+        if (result.success) {
+            // User-authored diagrams are sidecars rather than semantic
+            // relationships, but they must not retain a stale element ID.
+            const diagrams = loadUserDiagrams(options.projectRoot);
+            let changed = false;
+            const cleaned = diagrams.map(diagram => {
+                if (!diagram.elementIds?.includes(elementId)) return diagram;
+                changed = true;
+                return { ...diagram, elementIds: diagram.elementIds.filter(id => id !== elementId) };
+            });
+            if (changed) saveUserDiagrams(options.projectRoot, cleaned);
+        }
+        return {
+            type: 'element:delete:result',
+            payload: {
+                requestId,
+                elementId,
+                success: result.success,
+                sourceFiles: result.sourceFiles,
+                removedRelationshipIds: result.removedRelationshipIds,
+                error: result.error,
+            },
+        };
+    }
+
     /** Convert a DhfBlock (from document IR) to a markdown string */
     function blockToMarkdown(block: any): string {
         switch (block.type) {
@@ -593,6 +707,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
 
     wss.on('connection', (ws: any) => {
         clients.add(ws);
+        options.onClientCountChanged?.(clients.size);
 
         // Send initial state to new connections
         for (const msg of initialMessages) {
@@ -633,7 +748,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             }
         })();
 
-        ws.on('close', () => clients.delete(ws));
+        ws.on('close', () => {
+            clients.delete(ws);
+            options.onClientCountChanged?.(clients.size);
+        });
 
         ws.on('message', async (data: any) => {
             try {
@@ -652,6 +770,48 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     if (result.success) {
                         // The file watcher will catch this change and broadcast to all clients
                         console.log(`[Persisted] ${msg.type} to ${result.filePath}`);
+                    }
+                } else if (msg.type === 'screen-capture:upload') {
+                    const { requestId, viewName, fileName, base64, mediaType } = msg.payload ?? {};
+                    const reply = (payload: Record<string, unknown>) => ws.send(JSON.stringify({
+                        type: 'screen-capture:upload:result',
+                        payload: { requestId, ...payload },
+                    }));
+                    try {
+                        if (!requestId || typeof base64 !== 'string') throw new Error('The image payload is missing.');
+                        const extensions: Record<string, string> = {
+                            'image/png': '.png',
+                            'image/jpeg': '.jpg',
+                            'image/webp': '.webp',
+                        };
+                        const extension = extensions[mediaType];
+                        if (!extension) throw new Error('Only PNG, JPEG, and WebP captures are supported.');
+                        const bytes = Buffer.from(base64, 'base64');
+                        if (!bytes.length) throw new Error('The selected image is empty.');
+                        if (bytes.length > 25 * 1024 * 1024) throw new Error('Screen captures must be 25 MB or smaller.');
+
+                        const safeView = String(viewName || 'ui-screen')
+                            .normalize('NFKD').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '')
+                            || 'ui-screen';
+                        const rawStem = String(fileName || 'capture').replace(/\.[^.]+$/, '');
+                        const safeStem = rawStem
+                            .normalize('NFKD').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '')
+                            || 'capture';
+                        const assetDir = resolve(options.projectRoot, 'model', 'assets', safeView);
+                        const assetPath = resolve(assetDir, `${safeStem}${extension}`);
+                        const modelRoot = resolve(options.projectRoot, 'model');
+                        if (relative(modelRoot, assetPath).startsWith('..')) throw new Error('Invalid capture path.');
+                        mkdirSync(assetDir, { recursive: true });
+                        writeFileSync(assetPath, bytes);
+                        const imageUri = relative(options.projectRoot, assetPath).replaceAll('\\', '/');
+                        reply({
+                            success: true,
+                            imageUri,
+                            imageHash: createHash('sha256').update(bytes).digest('hex'),
+                        });
+                        console.log(`[Screen Capture] Saved ${imageUri}`);
+                    } catch (e: any) {
+                        reply({ success: false, error: e?.message ?? String(e) });
                     }
                 } else if (msg.type === 'diagram:create') {
                     const { projectRoot } = options;
@@ -694,6 +854,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     ws.send(JSON.stringify(await handleRelationshipCreate(msg.payload)));
                 } else if (msg.type === 'relationship:delete') {
                     ws.send(JSON.stringify(await handleRelationshipDelete(msg.payload)));
+                } else if (msg.type === 'element:delete') {
+                    ws.send(JSON.stringify(await handleElementDelete(msg.payload)));
                 } else if (msg.type === 'element:remap-kinds') {
                     // Remap orphaned kind references: for each element whose kind is in the
                     // mappings, persist the element with the new kind. The file watcher will

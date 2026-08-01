@@ -30,12 +30,16 @@ export function validateModel(
     kindRegistry?: KindRegistry,
 ): ValidationResult {
     const behaviorViolations = validateBehavior(model);
-    const architectureViolations = validateArchitecture(model);
+    // AR-IBD-001's subject scope comes from the ontology's own `appliesTo`,
+    // so the rule's reach is declared where the rule is declared.
+    const ibdScope = nativeConstraints.find(c => c.evaluator === 'architecture')?.appliesToKind;
+    const architectureViolations = validateArchitecture(model, ibdScope, kindRegistry);
     const viewViolations = validateViews(model);
 
     const nativeViolations: Violation[] = [];
     let nativePassed = 0;
     for (const constraint of nativeConstraints) {
+        if (constraint.evaluator && constraint.evaluator !== 'native') continue;
         const violations = evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry);
         if (violations.length === 0) nativePassed++;
         nativeViolations.push(...violations);

@@ -128,6 +128,39 @@ describe('native constraint evaluator (Epic EE ⊕-0 spike)', () => {
 // ─── EE-2: attributes, strings, quantifiers, arithmetic ───────────────────────
 
 describe('native constraint evaluator (EE-2 breadth)', () => {
+    it('normalizes qualified enum literals for comparisons', () => {
+        const model = makeModel([el('H-1', 'Hazard', { severity: 'SeverityKind::critical' })], []);
+        const c: NativeConstraint = {
+            id: 'EE-ENUM-001', description: 'critical', appliesToKind: 'Hazard',
+            expression: "severity == 'critical'", severity: 'error',
+        };
+        expect(evaluateNativeConstraint(c, model)).toHaveLength(0);
+    });
+
+    it('filters a Kind[attribute=value] subject scope', () => {
+        const model = makeModel([
+            el('H-C', 'Hazard', { severity: 'SeverityKind::critical' }),
+            el('H-M', 'Hazard', { severity: 'minor' }),
+        ], []);
+        const c: NativeConstraint = {
+            id: 'EE-SCOPE-001', description: 'critical hazards need mitigation',
+            appliesToKind: 'Hazard[severity=critical]', expression: 'mitigates->notEmpty()', severity: 'error',
+        };
+        expect(evaluateNativeConstraint(c, model).map(v => v.elementId)).toEqual(['H-C']);
+    });
+
+    it('evaluates a model-level acyclic relationship predicate', () => {
+        const a = el('A', 'UIElement');
+        const b = el('B', 'UIElement');
+        const cyclic = makeModel([a, b], [rel('r1', 'Composes', a.id, b.id), rel('r2', 'Composes', b.id, a.id)]);
+        const c: NativeConstraint = {
+            id: 'EE-CYCLE-001', description: 'composition is acyclic', appliesToKind: 'Model',
+            expression: 'acyclic(Composes)', severity: 'error',
+        };
+        expect(evaluateNativeConstraint(c, cyclic).map(v => v.elementId)).toEqual(['__model__']);
+        expect(evaluateNativeConstraint(c, makeModel([a, b], [rel('r1', 'Composes', a.id, b.id)]))).toHaveLength(0);
+    });
+
     it('resolves a typed field — "kind == \\"Function\\""', () => {
         // Subject kind is Function, so the comparison holds for both functions
         // and the rule fires for none of them.

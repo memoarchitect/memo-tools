@@ -48,6 +48,8 @@ export type ServerMessage =
     | DhfTemplateSaveResultMessage
     | RelationshipCreateResultMessage
     | RelationshipDeleteResultMessage
+    | ElementDeleteResultMessage
+    | ScreenCaptureUploadResultMessage
     | SourceChangedMessage;
 
 export interface ModelUpdateMessage {
@@ -109,8 +111,10 @@ export type ClientMessage =
     | RequestRefreshMessage
     | ElementUpdateMessage
     | ElementCreateMessage
+    | ElementDeleteMessage
     | RelationshipCreateMessage
     | RelationshipDeleteMessage
+    | ScreenCaptureUploadMessage
     | CsvImportMessage
     | DiagramCreateMessage
     | DiagramUpdateMessage
@@ -192,6 +196,52 @@ export interface ElementCreateMessage {
     };
 }
 
+/** Client requests deletion of one project-owned element and its relationships. */
+export interface ElementDeleteMessage {
+    type: 'element:delete';
+    payload: { requestId: string; elementId: string };
+}
+
+/** Server confirms that the element and connected relationships were removed. */
+export interface ElementDeleteResultMessage {
+    type: 'element:delete:result';
+    payload: {
+        requestId: string;
+        elementId: string;
+        success: boolean;
+        sourceFiles?: string[];
+        removedRelationshipIds?: string[];
+        error?: string;
+    };
+}
+
+/** Persist a screen-capture image inside the model repository. */
+export interface ScreenCaptureUploadMessage {
+    type: 'screen-capture:upload';
+    payload: {
+        requestId: string;
+        /** Geometry view name; used as the asset directory name. */
+        viewName: string;
+        fileName: string;
+        /** Base64 payload without a data-URL prefix. */
+        base64: string;
+        mediaType: 'image/png' | 'image/jpeg' | 'image/webp';
+    };
+}
+
+/** Result of persisting a screen-capture image. */
+export interface ScreenCaptureUploadResultMessage {
+    type: 'screen-capture:upload:result';
+    payload: {
+        requestId: string;
+        success: boolean;
+        /** Project-relative URI suitable for ScreenCapture.imageUri. */
+        imageUri?: string;
+        imageHash?: string;
+        error?: string;
+    };
+}
+
 /**
  * Client requests a new model relationship between two elements.
  *
@@ -268,6 +318,7 @@ export interface DiagramCreateMessage {
         id: string;
         name: string;
         diagramType: string;
+        viewKind?: string;
         viewpointId: string;
         description?: string;
         properties?: Record<string, string>;

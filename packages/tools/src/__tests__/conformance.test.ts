@@ -267,7 +267,14 @@ describe('DD-4: Syside compatibility — structural invariants', () => {
         ];
         const violations: string[] = [];
         for (const e of allEntries) {
-            const stripped = e.text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+            // Comments AND string literals are stripped before matching. A
+            // description that happens to read "the view the clinician returns
+            // to" is prose, not a Langium `returns` clause, and flagging it
+            // would make ordinary English unusable in model content.
+            const stripped = e.text
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/\/\/[^\n]*/g, '')
+                .replace(/"(?:[^"\\]|\\.)*"/g, '""');
             for (const { pattern, label } of langiumPatterns) {
                 if (pattern.test(stripped)) {
                     violations.push(`${e.relPath}: ${label}`);

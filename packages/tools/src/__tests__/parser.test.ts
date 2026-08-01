@@ -433,6 +433,25 @@ describe('PortDefinition', () => {
         expect(portDef.name).toBe('PortEthernet');
         expect(portDef.specialization?.superType).toBe('Port');
     });
+
+    it('parses native directed item features on port definitions and usages', async () => {
+        const model = await parseValid(`
+            package NativePorts {
+                item def Reading;
+                port def ReadingPort {
+                    out item readings[*] : Reading;
+                }
+                port sensor : ReadingPort {
+                    out item reading : Reading;
+                }
+            }
+        `);
+        const pkg = model.members[0] as PackageDeclaration;
+        const portDef = pkg.members[1] as PortDefinition;
+        expect(portDef.body[0].$type).toBe('ItemUsage');
+        const usage = pkg.members[2] as PortUsage;
+        expect(usage.body[0].$type).toBe('ItemUsage');
+    });
 });
 
 describe('InterfaceDefinition', () => {

@@ -59,6 +59,28 @@ export interface KindRegistryEntry {
 }
 
 /** AST $type → SysMLConstruct mapping */
+/**
+ * Literal attribute values declared in a definition body. Only literals are
+ * read: an inherited presentation hint is always a literal, and anything else
+ * belongs to the usage.
+ */
+function extractBoundAttributes(body: any[] | undefined): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const member of body ?? []) {
+        if (member?.$type !== 'AttributeMember' || !member.value || !member.name) continue;
+        const v = member.value;
+        switch (v.$type) {
+            case 'StringValue': out[member.name] = String(v.value).replace(/^"|"$/g, ''); break;
+            case 'IntValue':
+            case 'RealValue': out[member.name] = String(v.value); break;
+            case 'BooleanValue': out[member.name] = String(v.value); break;
+            case 'EnumValue': out[member.name] = String(v.enumRef ?? ''); break;
+            default: break;
+        }
+    }
+    return out;
+}
+
 const AST_TYPE_TO_CONSTRUCT: Record<string, SysMLConstruct> = {
     PartDefinition: 'part def',
     RequirementDefinition: 'requirement def',
@@ -79,6 +101,22 @@ const AST_TYPE_TO_CONSTRUCT: Record<string, SysMLConstruct> = {
  */
 export class KindRegistry {
     private readonly kinds = new Map<string, KindRegistryEntry>();
+    /**
+     * Attribute values bound by a `view def`, keyed by definition name, with the
+     * definition's own supertype chain already merged in.
+     *
+     * A view usage inherits these — `view mainScreenLayout : MemoScreenLayoutView`
+     * gets that definition's `viewKind` without restating it, and SysIDE in fact
+     * REJECTS restating it ("Cannot override a binding feature value"). So the
+     * definition is the only place the value can live, and consumers resolve a
+     * usage's presentation by falling back here.
+     *
+     * View definitions are not registered as kinds: they classify views, not
+     * model elements, and adding them to the kind extent would put them in the
+     * Explorer and in kind counts where they do not belong.
+     */
+    private readonly viewDefaults = new Map<string, Record<string, string>>();
+    private readonly viewSuperTypes = new Map<string, string>();
 
     /** Number of registered kinds */
     get size(): number {
@@ -91,6 +129,25 @@ export class KindRegistry {
      */
     getKind(name: string): KindRegistryEntry | undefined {
         return this.kinds.get(name);
+    }
+
+    /**
+     * Attribute values a view usage inherits from its `view def`, resolved up
+     * the definition's specialization chain (nearest declaration wins).
+     */
+    getViewDefaults(viewDefName: string | undefined): Record<string, string> | undefined {
+        if (!viewDefName) return undefined;
+        const merged: Record<string, string> = {};
+        const seen = new Set<string>();
+        let name: string | undefined = viewDefName;
+        while (name && !seen.has(name)) {
+            seen.add(name);
+            for (const [k, v] of Object.entries(this.viewDefaults.get(name) ?? {})) {
+                if (!(k in merged)) merged[k] = v;   // nearest declaration wins
+            }
+            name = this.viewSuperTypes.get(name);
+        }
+        return Object.keys(merged).length > 0 ? merged : undefined;
     }
 
     /**
@@ -158,6 +215,12 @@ export class KindRegistry {
                 namespace: entry.namespace ? [...entry.namespace] : undefined,
                 derivedBy: entry.derivedBy ? [...entry.derivedBy] : undefined,
             });
+        }
+        for (const [name, defaults] of this.viewDefaults) {
+            result.viewDefaults.set(name, { ...defaults });
+        }
+        for (const [name, superType] of this.viewSuperTypes) {
+            result.viewSuperTypes.set(name, superType);
         }
 
         const discovered = new KindRegistry();
@@ -289,6 +352,16 @@ export class KindRegistry {
         for (const member of pkg.members) {
             if (isPackageDeclaration(member)) {
                 this.walkPackage(member, layer, standard, namespace);
+                continue;
+            }
+
+            if (member.$type === 'ViewDefinition') {
+                const viewName = (member as any).name;
+                if (viewName) {
+                    this.viewDefaults.set(viewName, extractBoundAttributes((member as any).body));
+                    const sup = (member as any).specialization?.superType;
+                    if (sup) this.viewSuperTypes.set(viewName, sup);
+                }
                 continue;
             }
 

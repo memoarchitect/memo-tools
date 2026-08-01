@@ -219,6 +219,27 @@ package memo_core_relationships {
 // ─── The shipped ontology ───────────────────────────────────────────────────
 
 describe('MEMO ontology relationship properties', () => {
+    it('keeps comment, rationale, and note targets universal', async () => {
+        const source = readFileSync(
+            join(resolveContentPackageRoot(), 'src/core/annotations/memo_annotations.sysml'),
+            'utf8');
+        const { document, errors } = await parseText(source);
+        expect(errors).toEqual([]);
+        const registry = new RelationshipRegistry();
+        registry.populateFromDocuments([{ document, filePath: 'src/core/annotations/memo_annotations.sysml' }]);
+
+        const expected = [
+            ['CommentsOn', 'ModelComment'],
+            ['RationaleFor', 'ModelRationale'],
+            ['NotesOn', 'ModelNote'],
+        ] as const;
+        for (const [name, annotationKind] of expected) {
+            const relation = registry.toDefinitionDTOs().find(dto => dto.sysmlName === name)!;
+            expect(relation.sourceEnd.type).toBe(annotationKind);
+            expect(relation.targetEnd.type).toBeUndefined();
+        }
+    });
+
     it('declares the structural slots on MemoRelationship', async () => {
         // Resolve through the installed ontology package, as the loader does.
         const source = readFileSync(
@@ -243,13 +264,14 @@ describe('MEMO ontology relationship properties', () => {
     //
     //   MemoLink       — the fully generic escape hatch (both ends untyped).
     //   Mitigates      — controls and hazards may be item defs (both ends untyped).
+    //   Realizes       — realization crosses structural and behavioral metaclasses.
     //   Validates      — target is a requirement or an operational behavior.
     //   DerivesFrom    — target may be a Need, which is a requirement def.
     //   SatisfiedBy    — source may be a Need alongside Requirement.
-    const UNTYPED_END_EXEMPTIONS = ['MemoLink', 'Mitigates', 'Validates', 'DerivesFrom', 'SatisfiedBy'];
-    const FULLY_UNTYPED = ['MemoLink', 'Mitigates'];
+    const UNTYPED_END_EXEMPTIONS = ['MemoLink', 'Mitigates', 'Realizes', 'Validates', 'DerivesFrom', 'SatisfiedBy'];
+    const FULLY_UNTYPED = ['MemoLink', 'Mitigates', 'Realizes'];
 
-    it('ships exactly one universal relation, with both ends untyped', async () => {
+    it('keeps the universal relation identifiable among fully untyped relations', async () => {
         const source = readFileSync(
             join(resolveContentPackageRoot(), 'src/core/relationships/memo_relationships.sysml'),
             'utf8');
@@ -263,7 +285,7 @@ describe('MEMO ontology relationship properties', () => {
         expect(bothEndsUntyped.map(d => d.sysmlName).sort()).toEqual([...FULLY_UNTYPED].sort());
 
         // MemoLink is the only one of them that is universal by intent: Mitigates
-        // is still keyed to the risk chain by its mitigationKind attribute.
+        // is keyed to a risk chain and Realizes to an abstraction/concretion fact.
         const link = bothEndsUntyped.find(d => d.sysmlName === 'MemoLink')!;
         expect(link.sourceEnd.name).toBe('linkSource');
         expect(link.targetEnd.name).toBe('linkTarget');

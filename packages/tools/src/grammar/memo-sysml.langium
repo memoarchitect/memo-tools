@@ -41,6 +41,9 @@ PackageDeclaration:
         members+=PackageMember*
     '}';
 
+// Flows and successions are legal package members, not only usage-body members:
+// a flow between two action usages declared side by side in a package has no
+// enclosing action to sit inside. SysIDE accepts them here, so the grammar does.
 PackageMember:
     PackageDeclaration
     | AliasDeclaration
@@ -50,6 +53,8 @@ PackageMember:
     | ItemUsage
     | AttributeMember
     | UseCaseDeclaration
+    | FlowConnectionUsage
+    | SuccessionUsage
     | ConnectionUsage
     | AllocateUsage
     | MetadataApplication
@@ -224,7 +229,7 @@ UseCaseDeclaration:
 // Item usage: standalone (`item x : T { … }`), directioned port payload
 // (`in item reading : T;` / `out item command : T;`), or a bound feature value.
 ItemUsage:
-    direction=('in' | 'out' | 'inout')? 'item' name=MemberName
+    direction=('in' | 'out' | 'inout')? 'item' name=MemberName preMultiplicity=Multiplicity?
     (':' type=QualifiedName multiplicity=Multiplicity?)?
     ('=' boundRef=QualifiedName)?
     ('{' body+=UsageBodyMember* '}' | ';');
@@ -405,14 +410,22 @@ UsageBodyMember:
     AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | SuccessionUsage | ConnectionUsage | MetadataApplication | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
-// Two forms:
+// Three forms:
 //   attribute name : Type ;              (type declaration)
 //   attribute redefines name = value ;   (value assignment / redefinition)
+//   attribute redefines name { … }       (structured value: nested redefinitions)
+//
+// The third form is how a value of an `attribute def` with several features is
+// assigned — you cannot write it with `=`, because the value is not a literal.
+// It is what SysIDE accepts for e.g. a RegionBounds:
+//
+//   attribute :>> bounds { attribute :>> x = 0.1; attribute :>> width = 0.4; }
 
 AttributeMember:
     'attribute' redefines?=('redefines' | ':>>')? name=MemberName
     (':' type=QualifiedName multiplicity=Multiplicity? ('{' body+=UsageBodyMember* '}' | ';')
-    | '=' value=AttributeValue ';');
+    | '=' value=AttributeValue ';'
+    | '{' body+=UsageBodyMember* '}');
 
 AttributeValue:
     StringValue | RealValue | IntValue | BooleanValue | SetLiteral | EnumValue;

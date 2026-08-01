@@ -408,6 +408,23 @@ function extractFromPackage(
                     packageName,
                 });
                 break;
+            case 'FlowConnectionUsage':
+                // A flow between two action usages declared side by side in a
+                // package has no enclosing action, so parentActionId is unset
+                // and the endpoints resolve against the package scope.
+                deferredFlows.push({
+                    flow: member as FlowConnectionUsage,
+                    filePath,
+                    packageName,
+                });
+                break;
+            case 'SuccessionUsage':
+                deferredSuccessions.push({
+                    succession: member as SuccessionUsage,
+                    filePath,
+                    packageName,
+                });
+                break;
             case 'AllocateUsage':
                 deferredAllocates.push({
                     allocate: member as AllocateUsage,
@@ -502,11 +519,23 @@ function extractUsage(
     // Port-specific fields
     if (construct === 'port') {
         const portNode = usage as PortUsage;
+        const directedItems = (usage.body || [])
+            .filter(member => member.$type === 'ItemUsage' && !!(member as ItemUsage).direction)
+            .map(member => member as ItemUsage);
+        const itemDirections = new Set(directedItems.map(item => item.direction));
         element.portSpec = {
             type: portNode.type,
-            direction: portNode.direction as PortSpec['direction'],
+            direction: (portNode.direction ?? (itemDirections.size === 1 ? directedItems[0]?.direction : undefined)) as PortSpec['direction'],
             isConjugated: portNode.isConjugated ?? false,
         };
+        element.parameters = directedItems
+            .map(feature => {
+                return {
+                    name: feature.name,
+                    direction: feature.direction as ActionParameter['direction'],
+                    type: feature.type || 'Item',
+                };
+            });
     }
 
     elements.set(id, element);
@@ -530,12 +559,12 @@ function extractActionDefinition(
     const parameters: ActionParameter[] = [];
     const bodyMembers = actionDef.body || [];
     for (const member of bodyMembers) {
-        if (member.$type === 'ActionParameterMember') {
-            const param = member as ActionParameterMember;
+        if (member.$type === 'ActionParameterMember' || (member.$type === 'ItemUsage' && (member as ItemUsage).direction)) {
+            const param = member as ActionParameterMember | ItemUsage;
             parameters.push({
                 name: param.name,
                 direction: param.direction as ActionParameter['direction'],
-                type: param.type,
+                type: param.type || 'Item',
             });
         }
     }
@@ -957,6 +986,16 @@ function extractAttributes(body: any[] | undefined): Record<string, string> {
                 attrs[attr.name] = extractAttributeValue(attr.value);
             } else if (attr.type) {
                 attrs[attr.name] = `<${attr.type}>`;
+            } else if (attr.body?.length) {
+                // Structured value: the members of an `attribute def` assigned
+                // inline, e.g. `attribute :>> bounds { attribute :>> x = 0.1; }`.
+                // Flattened to dotted keys ("bounds.x") so the value lands in
+                // the same flat map every consumer already reads. Without this
+                // branch the whole assignment is dropped and the model carries
+                // no record of it.
+                for (const [key, value] of Object.entries(extractAttributes(attr.body as any[]))) {
+                    attrs[`${attr.name}.${key}`] = value;
+                }
             }
         }
     }
