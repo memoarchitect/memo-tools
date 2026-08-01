@@ -1,0 +1,38 @@
+{
+  "id": "default-template",
+  "model": {
+    "elements": [
+      {
+        "id": "mainRequirement",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "unknown",
+        "package": "project_assurance"
+      },
+      {
+        "id": "system",
+        "kind": "MemoPart",
+        "construct": "part",
+        "layer": "unknown",
+        "package": "project_architecture"
+      }
+    ],
+    "relationships": [],
+    "kindCounts": {
+      "MemoPart": 1,
+      "Requirement": 1
+    },
+    "layerCounts": {
+      "unknown": 2
+    },
+    "diagrams": []
+  },
+  "validation": null,
+  "errors": [
+    "validation: Unexpected token '\ud83d', \"\n📋 MEMO Va\"... is not valid JSON"
+  ],
+  "summary": {
+    "elements": 2,
+    "completeness": 100
+  }
+}

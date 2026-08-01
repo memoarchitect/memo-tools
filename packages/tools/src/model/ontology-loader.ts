@@ -18,6 +18,14 @@ import { RelationshipRegistry } from './relationship-registry.js';
 import { parseFiles } from './parser-utils.js';
 import { VENDOR_ONTOLOGY_DIR } from './paths.js';
 import { discoverMemoManifests, findMemoManifests, resolveManifestPath } from './manifest.js';
+import {
+    CONFIG_SEARCH_ORDER,
+    readManifest,
+    readPackageManifest,
+    qualifyPackageName,
+    type MemoManifest,
+} from './package-manifest.js';
+import { originForPackageType, ProvenanceTable, type ResolvedRoot } from './source-provenance.js';
 import type { BuilderRegistries } from './builder.js';
 
 // ─── Ontology Package Metadata (Phase C2) ────────────────────────────────────
@@ -261,34 +269,17 @@ function buildRelationshipTypes(sysmlDir: string): OntologyRelationshipInfo[] {
 }
 
 /**
- * Read a YAML file and extract a simple string field.
- */
-function readYamlField(content: string, field: string): string {
-    const m = content.match(new RegExp(`^${field}:\\s*["']?([^"'\\n]+)["']?`, 'm'));
-    return m ? m[1].trim() : '';
-}
-
-/**
  * Read the `methodology:` field from a project config.
  * Returns a Set of package names: the methodology pkg + every pkg on its
  * extends chain. Used to mark them as selected in getPackageMetadata.
  */
 function readMethodologyChain(configPath: string): Set<string> {
     const out = new Set<string>();
-    let methodologyName: string | undefined;
-    try {
-        const content = readFileSync(configPath, 'utf-8');
-        const m = content.match(/^methodology:\s*"?([^"\s#]+)"?/m);
-        if (!m) return out;
-        const raw = m[1];
-        const lastAt = raw.lastIndexOf('@');
-        methodologyName = lastAt > 0 ? raw.slice(0, lastAt) : raw;
-        if (!methodologyName.startsWith('@memoarchitect/')) methodologyName = `@memoarchitect/${methodologyName}`;
-    } catch { return out; }
-    if (!methodologyName) return out;
+    const declared = readManifest(configPath).methodology;
+    if (!declared) return out;
 
     // Walk the extends chain starting at the methodology pkg.
-    const stack: string[] = [methodologyName];
+    const stack: string[] = [qualifyPackageName(declared)];
     const visited = new Set<string>();
     while (stack.length) {
         const pkgName = stack.pop()!;
@@ -297,13 +288,8 @@ function readMethodologyChain(configPath: string): Set<string> {
         out.add(pkgName);
         const pkgCfg = resolvePackageConfig(pkgName, dirname(configPath));
         if (!pkgCfg) continue;
-        let content = '';
-        try { content = readFileSync(pkgCfg, 'utf-8'); } catch { continue; }
-        const single = content.match(/^extends:\s*"?(@[\w-]+\/[\w-]+)"?/m);
-        if (single) { stack.push(single[1]); continue; }
-        const arr = content.match(/^extends:\s*\n((?:\s+-\s+.+\n?)+)/m);
-        if (arr) {
-            for (const em of arr[1].matchAll(/^\s+-\s+"?(@[\w-]+\/[\w-]+)"?/gm)) stack.push(em[1]);
+        for (const parent of readManifest(pkgCfg).extends ?? []) {
+            stack.push(qualifyPackageName(parent));
         }
     }
     return out;
@@ -311,52 +297,46 @@ function readMethodologyChain(configPath: string): Set<string> {
 
 /**
  * Get the list of selected ontology package names from a project config file.
+ *
+ * Names are recorded as written: this set is compared against manifest `name:`
+ * fields, which are already fully scoped.
  */
 function readSelectedOntologies(configPath: string): Set<string> {
-    const selected = new Set<string>();
-    try {
-        const content = readFileSync(configPath, 'utf-8');
-        const section = content.split(/^ontologies:/m)[1];
-        if (section) {
-            const matches = section.matchAll(/^\s*-\s*name:\s*["']?([\w@\/-]+)["']?/gm);
-            for (const m of matches) selected.add(m[1]);
-        }
-    } catch { /* skip */ }
-    return selected;
+    return new Set(readManifest(configPath).ontologies ?? []);
 }
 
 /**
  * Build OntologyPackageInfo for a single package directory.
  */
 function buildPackageInfo(pkgDir: string, selected: boolean): OntologyPackageInfo | null {
-    const configCandidates = ['memo.package.yaml', 'memo.package.yml', 'memo.config.yaml', 'memo.config.yml'];
-    let configContent = '';
-    for (const name of configCandidates) {
-        const p = join(pkgDir, name);
-        if (existsSync(p)) { configContent = readFileSync(p, 'utf-8'); break; }
-    }
-    if (!configContent) return null;
+    const { path, manifest } = readPackageManifest(pkgDir);
+    if (!path) return null;
 
-    const name = readYamlField(configContent, 'name') || basename(pkgDir);
-    const version = readYamlField(configContent, 'version') || '0.0.0';
-    const rawType = readYamlField(configContent, 'type') || 'ontology';
+    const rawType = manifest.type ?? 'ontology';
     const type = (['ontology', 'profile', 'extension', 'methodology'].includes(rawType) ? rawType : 'ontology') as OntologyPackageInfo['type'];
-    const description = readYamlField(configContent, 'description') || '';
-    const extendsField = readYamlField(configContent, 'extends') || undefined;
+    // `extends` is a list in the manifest but a single name in this DTO; the
+    // previous regex could only ever see the first entry, so keep that shape.
+    const extendsField = manifest.extends?.[0];
 
-    const sysmlDirOverride = readYamlField(configContent, 'sysmlDir');
-    const sysmlDir = sysmlDirOverride
-        ? resolve(pkgDir, sysmlDirOverride)
+    const sysmlDir = manifest.sysmlDir
+        ? resolve(pkgDir, manifest.sysmlDir)
         : join(pkgDir, 'sysml');
     const layers = applyExplorerClassification(buildLayers(sysmlDir), pkgDir);
     const kindCount = layers.reduce((s, l) => s + l.kindCount, 0);
     const relationshipTypes = buildRelationshipTypes(sysmlDir);
-    const optionalModules = readOptionalModulesList(configContent);
 
     return {
-        name, version, type, description, extends: extendsField, layers, kindCount,
-        relationshipCount: relationshipTypes.length, relationshipTypes, selected,
-        optionalModules,
+        name: manifest.name ?? basename(pkgDir),
+        version: manifest.version ?? '0.0.0',
+        type,
+        description: manifest.description ?? '',
+        extends: extendsField,
+        layers,
+        kindCount,
+        relationshipCount: relationshipTypes.length,
+        relationshipTypes,
+        selected,
+        optionalModules: manifest.optionalModules ?? [],
         rootDir: pkgDir,
     };
 }
@@ -389,18 +369,6 @@ function applyExplorerClassification(layers: OntologyLayerInfo[], pkgDir: string
     } catch { return layers; }
 }
 
-/** Parse `optionalModules:` list from a manifest file content. */
-function readOptionalModulesList(content: string): string[] {
-    const out: string[] = [];
-    const section = content.split(/^optionalModules:/m)[1];
-    if (!section) return out;
-    for (const m of section.matchAll(/^\s*-\s*"?([@\w/-]+)"?/gm)) {
-        out.push(m[1]);
-        // Guard: stop if we leave the list (no leading `-`)
-        if (!m[0].match(/^\s*-/)) break;
-    }
-    return out;
-}
 
 /**
  * Get ontology package metadata for all packages in the project's extends chain
@@ -499,14 +467,8 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
     // Collect which packages are declared as optionalModules by any base pkg.
     const optionalModuleNames = new Set<string>();
     for (const pkgDir of candidates) {
-        for (const cfg of configCandidates) {
-            const manifestPath = join(pkgDir, cfg);
-            if (!existsSync(manifestPath)) continue;
-            try {
-                const content = readFileSync(manifestPath, 'utf-8');
-                for (const m of readOptionalModulesList(content)) optionalModuleNames.add(m);
-            } catch { /* skip */ }
-            break;
+        for (const m of readPackageManifest(pkgDir).manifest.optionalModules ?? []) {
+            optionalModuleNames.add(m);
         }
     }
 
@@ -518,16 +480,7 @@ export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
     const methodologySelected = readMethodologyChain(primaryConfig);
 
     for (const pkgDir of candidates) {
-        let sysmlPath = join(pkgDir, 'sysml');
-        for (const cfg of CONFIG_SEARCH_ORDER) {
-            const cp = join(pkgDir, cfg);
-            if (existsSync(cp)) {
-                const ov = readYamlField(readFileSync(cp, 'utf-8'), 'sysmlDir');
-                if (ov) sysmlPath = resolve(pkgDir, ov);
-                break;
-            }
-        }
-        const hasSysml = existsSync(sysmlPath);
+        const hasSysml = existsSync(resolvePackageSysmlDir(pkgDir));
         if (!hasSysml) continue;
         if (seen.has(pkgDir)) continue;
         seen.add(pkgDir);
@@ -604,51 +557,25 @@ export function findOntologyPackageDirs(configPath: string): string[] {
     const dirs: string[] = [];
     const seen = new Set<string>();
 
+    const projectManifest = readManifest(configPath);
+
     // 0. (Phase C) If project pins a `methodology:`, resolve it and walk its
     // extends chain. The methodology package brings in its own SysML and
     // chain-pulls the kinds ontology (e.g. @memoarchitect/ontology).
-    try {
-        const content = readFileSync(configPath, 'utf-8');
-        const methodologyMatch = content.match(/^methodology:\s*"?([^"\s#]+)"?/m);
-        if (methodologyMatch) {
-            // Strip optional version range "@^1.0" → just the package name.
-            // The leading @memoarchitect/ scope must be preserved, so only strip the LAST `@`.
-            const raw = methodologyMatch[1];
-            const lastAt = raw.lastIndexOf('@');
-            const methodologyName = lastAt > 0 ? raw.slice(0, lastAt) : raw;
-            const fullName = methodologyName.startsWith('@memoarchitect/')
-                ? methodologyName
-                : `@memoarchitect/${methodologyName}`;
-            const pkgConfig = resolvePackageConfig(fullName, dirname(configPath));
-            if (pkgConfig) walkExtendsChain(pkgConfig, dirs, seen);
-        }
-    } catch { /* skip */ }
+    if (projectManifest.methodology) {
+        const pkgConfig = resolvePackageConfig(
+            qualifyPackageName(projectManifest.methodology), dirname(configPath));
+        if (pkgConfig) walkExtendsChain(pkgConfig, dirs, seen);
+    }
 
     // 1. Walk the primary extends chain
     walkExtendsChain(configPath, dirs, seen);
 
     // 2. Load additional ontologies from the config file's `ontologies` array.
     // This allows for a "Base + Plugin" model where users can add multiple domain-specific ontologies.
-    try {
-        const content = readFileSync(configPath, 'utf-8');
-        // Lightweight YAML parsing for ontologies:
-        const ontologySection = content.split(/^ontologies:/m)[1];
-        if (ontologySection) {
-            const matches = ontologySection.matchAll(/^\s*-\s*name:\s*"?([\w@\/-]+)"?/gm);
-            for (const match of matches) {
-                let ontologyName = match[1];
-                // Ensure name has @memoarchitect/ prefix for resolution if missing
-                if (!ontologyName.startsWith('@memoarchitect/')) {
-                    ontologyName = `@memoarchitect/${ontologyName}`;
-                }
-                const pkgConfig = resolvePackageConfig(ontologyName, dirname(configPath));
-                if (pkgConfig) {
-                    walkExtendsChain(pkgConfig, dirs, seen);
-                }
-            }
-        }
-    } catch {
-        // Skip inaccessible configs
+    for (const ontologyName of projectManifest.ontologies ?? []) {
+        const pkgConfig = resolvePackageConfig(qualifyPackageName(ontologyName), dirname(configPath));
+        if (pkgConfig) walkExtendsChain(pkgConfig, dirs, seen);
     }
 
     // 3. Resolve optional modules declared under `modules:` in the project config.
@@ -669,21 +596,7 @@ export function findOntologyPackageDirs(configPath: string): string[] {
  */
 function readDeclaredModules(configPath: string): string[] {
     const out: string[] = [];
-    let rawModules: string[] = [];
-    try {
-        const content = readFileSync(configPath, 'utf-8');
-        // Match `modules:\n  - foo\n  - "@memoarchitect/bar"`
-        const section = content.split(/^modules:/m)[1];
-        if (section) {
-            const matches = section.matchAll(/^\s*-\s*"?([@\w/-]+)"?/gm);
-            // Stop at the first non-list YAML key
-            for (const m of matches) {
-                const line = m[0];
-                if (!line.match(/^\s*-/)) break;
-                rawModules.push(m[1]);
-            }
-        }
-    } catch { return out; }
+    const rawModules = readManifest(configPath).modules ?? [];
     if (rawModules.length === 0) return out;
 
     // Gather optional-module allowlist from the extends chain
@@ -715,31 +628,12 @@ function collectOptionalModules(configPath: string): string[] {
         const p = stack.pop()!;
         if (visited.has(p)) continue;
         visited.add(p);
-        let content = '';
-        try { content = readFileSync(p, 'utf-8'); } catch { continue; }
+        const manifest = readManifest(p);
 
-        const section = content.split(/^optionalModules:/m)[1];
-        if (section) {
-            for (const m of section.matchAll(/^\s*-\s*"?([@\w/-]+)"?/gm)) {
-                const line = m[0];
-                if (!line.match(/^\s*-/)) break;
-                modules.add(m[1]);
-            }
-        }
-
-        // Handle both single and array extends forms
-        const singleExt = content.match(/^extends:\s*"?(@[\w-]+\/[\w-]+)"?/m);
-        if (singleExt) {
-            const parent = resolvePackageConfig(singleExt[1], dirname(p));
+        for (const m of manifest.optionalModules ?? []) modules.add(m);
+        for (const parentName of manifest.extends ?? []) {
+            const parent = resolvePackageConfig(qualifyPackageName(parentName), dirname(p));
             if (parent) stack.push(parent);
-        } else {
-            const arraySection = content.match(/^extends:\s*\n((?:\s+-\s+.+\n?)+)/m);
-            if (arraySection) {
-                for (const m of arraySection[1].matchAll(/^\s+-\s+"?(@[\w-]+\/[\w-]+)"?/gm)) {
-                    const parent = resolvePackageConfig(m[1], dirname(p));
-                    if (parent) stack.push(parent);
-                }
-            }
         }
     }
     return [...modules];
@@ -753,46 +647,17 @@ function walkExtendsChain(configPath: string, dirs: string[], seen: Set<string>)
     if (seen.has(resolvedPath)) return;
     seen.add(resolvedPath);
 
-    // Read the YAML to find extends (lightweight — just look for extends line)
-    let extendsPackages: string[] = [];
-    let projectType: string | undefined;
-    try {
-        const content = readFileSync(resolvedPath, 'utf-8');
-        // Handle both single-string extends and array extends in YAML:
-        //   extends: "@memoarchitect/ontology"
-        //   extends:
-        //     - "@memoarchitect/ontology"
-        const singleMatch = content.match(/^extends:\s*"?(@[\w-]+\/[\w-]+)"?/m);
-        if (singleMatch) {
-            extendsPackages = [singleMatch[1]];
-        } else {
-            // Array form: collect all list entries under `extends:`
-            const arraySection = content.match(/^extends:\s*\n((?:\s+-\s+.+\n?)+)/m);
-            if (arraySection) {
-                const entries = [...arraySection[1].matchAll(/^\s+-\s+"?(@[\w-]+\/[\w-]+)"?/gm)];
-                extendsPackages = entries.map(m => m[1]);
-            }
-        }
-        // Match both legacy (projectType:) and new format (type:)
-        const typeMatch = content.match(/^(?:projectType|type):\s*(\w+)/m);
-        if (typeMatch) {
-            projectType = typeMatch[1];
-        }
-    } catch {
-        return;
-    }
+    const manifest = readManifest(resolvedPath);
+    // Both forms are handled by the parser: `extends:` as a scalar and as a
+    // sequence arrive here as the same list.
+    const extendsPackages = manifest.extends ?? [];
 
     const packageDir = dirname(resolvedPath);
 
     // Honor `sysmlDir:` override (points outside package, e.g. ../../ontology)
-    let sysmlDir: string;
-    try {
-        const content = readFileSync(resolvedPath, 'utf-8');
-        const override = readYamlField(content, 'sysmlDir');
-        sysmlDir = override ? resolve(packageDir, override) : resolve(packageDir, 'sysml');
-    } catch {
-        sysmlDir = resolve(packageDir, 'sysml');
-    }
+    const sysmlDir = manifest.sysmlDir
+        ? resolve(packageDir, manifest.sysmlDir)
+        : resolve(packageDir, 'sysml');
     if (existsSync(sysmlDir)) {
         dirs.push(packageDir);
     }
@@ -812,26 +677,9 @@ function walkExtendsChain(configPath: string, dirs: string[], seen: Set<string>)
  * Honors `sysmlDir:` override in the package's manifest; falls back to `<pkgDir>/sysml`.
  */
 export function resolvePackageSysmlDir(pkgDir: string): string {
-    for (const cfg of CONFIG_SEARCH_ORDER) {
-        const cp = resolve(pkgDir, cfg);
-        if (existsSync(cp)) {
-            try {
-                const ov = readYamlField(readFileSync(cp, 'utf-8'), 'sysmlDir');
-                if (ov) return resolve(pkgDir, ov);
-            } catch { /* skip */ }
-            break;
-        }
-    }
-    return resolve(pkgDir, 'sysml');
+    const override = readPackageManifest(pkgDir).manifest.sysmlDir;
+    return override ? resolve(pkgDir, override) : resolve(pkgDir, 'sysml');
 }
-
-/** Ordered list of config filenames to search for (new format first, then legacy) */
-const CONFIG_SEARCH_ORDER = [
-    'memo.package.yaml',
-    'memo.package.yml',
-    'memo.config.yaml',
-    'memo.config.yml',
-];
 
 /**
  * Resolve a @memoarchitect/package-name to its config file path.
@@ -848,8 +696,8 @@ export function resolvePackageConfig(packageName: string, fromDir: string): stri
     // It is not a user-project boundary: allow sibling logical packages to be
     // resolved through the nearest enclosing manifest.
     if (projectConfig) {
-        const type = readYamlField(readFileSync(projectConfig, 'utf-8'), 'type')
-            || readYamlField(readFileSync(projectConfig, 'utf-8'), 'projectType');
+        const projectManifest = readManifest(projectConfig);
+        const type = projectManifest.type || projectManifest.projectType;
         if (type && type !== 'device') {
             let manifestDir = dirname(projectConfig);
             while (true) {
@@ -968,16 +816,7 @@ export async function loadOntologyRegistries(configPath: string): Promise<Ontolo
     // while @memoarchitect/ontology points at src/).
     const sysmlSet = new Set<string>();
     for (const pkgDir of ontologyDirs) {
-        let sysmlDir = resolve(pkgDir, 'sysml');
-        for (const cfg of CONFIG_SEARCH_ORDER) {
-            const cp = resolve(pkgDir, cfg);
-            if (existsSync(cp)) {
-                const ov = readYamlField(readFileSync(cp, 'utf-8'), 'sysmlDir');
-                if (ov) sysmlDir = resolve(pkgDir, ov);
-                break;
-            }
-        }
-        for (const f of collectSysmlFiles(sysmlDir)) sysmlSet.add(f);
+        for (const f of collectSysmlFiles(resolvePackageSysmlDir(pkgDir))) sysmlSet.add(f);
     }
     const allSysmlFiles = [...sysmlSet];
 

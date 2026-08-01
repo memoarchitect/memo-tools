@@ -1,0 +1,38 @@
+{
+  "id": "default",
+  "model": {
+    "elements": [
+      {
+        "id": "mainRequirement",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "unknown",
+        "package": "project_assurance"
+      },
+      {
+        "id": "system",
+        "kind": "MemoPart",
+        "construct": "part",
+        "layer": "unknown",
+        "package": "project_architecture"
+      }
+    ],
+    "relationships": [],
+    "kindCounts": {
+      "MemoPart": 1,
+      "Requirement": 1
+    },
+    "layerCounts": {
+      "unknown": 2
+    },
+    "diagrams": []
+  },
+  "validation": null,
+  "errors": [
+    "validation: Error: Cannot compile predicateExpression for CR-MED-002 (\"attributes.severity != \\\"\"): Constraint parse error near: \" \"\""
+  ],
+  "summary": {
+    "elements": 2,
+    "completeness": 100
+  }
+}

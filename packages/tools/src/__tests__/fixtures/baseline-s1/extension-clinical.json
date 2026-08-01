@@ -1,0 +1,40 @@
+{
+  "id": "extension-clinical",
+  "model": {
+    "elements": [
+      {
+        "id": "clinicalExtensionMethod",
+        "kind": "MethodologyDefinition",
+        "construct": "part",
+        "layer": "unknown",
+        "package": "memo_extension_clinical_methodology"
+      },
+      {
+        "id": "ClinicalProcedureWorkflow",
+        "kind": "ActionDefinition",
+        "construct": "action",
+        "layer": "behavior",
+        "package": "memo_extension_clinical_procedures"
+      }
+    ],
+    "relationships": [],
+    "kindCounts": {
+      "ActionDefinition": 1,
+      "MethodologyDefinition": 1
+    },
+    "layerCounts": {
+      "behavior": 1,
+      "unknown": 1
+    },
+    "diagrams": []
+  },
+  "validation": {
+    "violations": [],
+    "counts": {}
+  },
+  "errors": [],
+  "summary": {
+    "elements": 2,
+    "completeness": 100
+  }
+}
