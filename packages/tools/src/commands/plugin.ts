@@ -137,7 +137,7 @@ export async function pluginRunCommand(
     const { documents, errors: parseErrors } = await parseFiles(sysmlFiles, cwd + '/');
     const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     const validation = validateModel(model);
-    const completeness = computeCompleteness(model, validation, config);
+    const completeness = computeCompleteness(model, validation);
     const query = createQueryContext(model, validation, completeness, config);
 
     const ctx: PluginContext = {

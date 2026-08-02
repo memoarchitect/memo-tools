@@ -1,7 +1,7 @@
 {
   "name": "@memoarchitect/tools",
   "version": "0.6.7",
-  "description": "MEMO tools — SysML v2 parser, semantic model, validation, project operations, and CLI",
+  "description": "MEMO tools \u2014 SysML v2 parser, semantic model, validation, project operations, and CLI",
   "type": "module",
   "main": "./packages/tools/lib/index.js",
   "types": "./packages/tools/lib/index.d.ts",
@@ -30,7 +30,7 @@
     "build": "cd packages/tools && langium generate && tsc",
     "prepack": "pnpm clean && pnpm build",
     "dev": "tsc -p packages/tools/tsconfig.json --watch",
-    "test": "cd packages/tools && vitest run",
+    "test": "node scripts/check-config-boundary.mjs && cd packages/tools && vitest run",
     "test:coverage": "cd packages/tools && vitest run --coverage",
     "type-check": "tsc -p packages/tools/tsconfig.json --noEmit",
     "clean": "rm -rf packages/tools/lib packages/tools/src/language/generated",
@@ -41,7 +41,8 @@
     "version:sync": "node scripts/sync-version.mjs",
     "version:check": "node scripts/sync-version.mjs --check",
     "ontology:lint": "node tools/ontology-tools/lint.mjs",
-    "ontology:compat": "node tools/ontology-tools/syside-compat.mjs"
+    "ontology:compat": "node tools/ontology-tools/syside-compat.mjs",
+    "check:boundary": "node scripts/check-config-boundary.mjs"
   },
   "dependencies": {
     "@memoarchitect/ontology": "0.6.5",

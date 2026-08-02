@@ -31,12 +31,6 @@ async function parseDoc(source: string, filePath: string = 'test.sysml'): Promis
 /** Minimal config exposing the ontology view kinds */
 const viewConfig: MEMOConfig = {
     projectName: 'test-views',
-    projectType: 'device',
-    kinds: {
-        DiagramView: { label: 'Diagram View', layer: 'viewpoints', sysmlConstruct: 'part def' },
-        DocumentView: { label: 'Document View', layer: 'viewpoints', sysmlConstruct: 'part def' },
-    },
-    relationshipTypes: [],
 };
 
 // ─── KK-1: diagramType → view kind mapping ──────────────────────────────────
@@ -157,15 +151,26 @@ describe('KK-1: deriveModelViews view kinds', () => {
         const definitionPath = join(
             contentRoot, 'src/viewpoints/ui_layout/screen_layout_view/screen_layout_view.sysml',
         );
-        const projectPath = join(
-            contentRoot, 'examples/ui-screen-regions/model/viewpoints/ui_screen_regions_views.sysml',
-        );
+        // Views are nested beneath the viewpoint that governs them, one file
+        // per view, so the example's views are read from that tree rather than
+        // from the single `model/viewpoints/` file they used to share.
+        const viewsRoot = join(contentRoot, 'examples/ui-screen-regions/model/catalog/viewpoints');
+        const projectPaths = [
+            join(viewsRoot, 'ui_layout/views/main_screen_layout.sysml'),
+            join(viewsRoot, 'ui_layout/views/settings_screen_layout.sysml'),
+            join(viewsRoot, 'ui_layout/views/ui_region_trace.sysml'),
+            join(viewsRoot, 'requirements/views/ui_requirements_trace.sysml'),
+            join(viewsRoot, 'functional/views/ui_functional_tree.sysml'),
+            join(viewsRoot, 'risk/views/ui_risk_chain.sysml'),
+        ];
         const definitionDoc = await parseDoc(readFileSync(definitionPath, 'utf8'), definitionPath);
-        const projectDoc = await parseDoc(readFileSync(projectPath, 'utf8'), projectPath);
+        const projectDocs = await Promise.all(
+            projectPaths.map(async path => parseDoc(readFileSync(path, 'utf8'), path)),
+        );
         const ontologyRegistry = new KindRegistry();
         ontologyRegistry.populateFromDocuments([definitionDoc]);
-        const projectRegistry = ontologyRegistry.withProjectExtensions([projectDoc]);
-        const model = buildMemoModel([projectDoc], viewConfig, [], { kindRegistry: projectRegistry });
+        const projectRegistry = ontologyRegistry.withProjectExtensions(projectDocs);
+        const model = buildMemoModel(projectDocs, viewConfig, [], { kindRegistry: projectRegistry });
         const diagrams = deriveModelViews(model, projectRegistry).diagrams;
 
         expect(diagrams.find(view => view.id === 'UIE-001')?.viewKind).toBe('geometry');
@@ -224,10 +229,6 @@ describe('KK-1: deriveModelViews view kinds', () => {
         registry.computeDerivedBy();
         const config: MEMOConfig = {
             ...viewConfig,
-            kinds: {
-                ...viewConfig.kinds,
-                FirmwareComponent: { label: 'Firmware Component', layer: 'software', sysmlConstruct: 'part def' },
-            },
         };
         const model = buildMemoModel([doc], config);
         const { viewpoints, diagrams } = deriveModelViews(model, registry);
@@ -247,15 +248,6 @@ const GPCA_VIEWS_DIR = resolve(
 /** Config covering the view kinds the GPCA views instantiate */
 const gpcaViewConfig: MEMOConfig = {
     projectName: 'gpca-views',
-    projectType: 'device',
-    kinds: {
-        DiagramView: { label: 'Diagram View', layer: 'viewpoints', sysmlConstruct: 'part def' },
-        DocumentView: { label: 'Document View', layer: 'viewpoints', sysmlConstruct: 'part def' },
-        CybersecurityAssessmentView: { label: 'Cybersecurity Assessment View', layer: 'viewpoints', sysmlConstruct: 'part def' },
-        CybersecurityThreatModelView: { label: 'Threat Model View', layer: 'viewpoints', sysmlConstruct: 'part def' },
-        UsabilityEngineeringView: { label: 'Usability Engineering View', layer: 'viewpoints', sysmlConstruct: 'part def' },
-    },
-    relationshipTypes: [],
 };
 
 describe('KK-1 acceptance: GPCA views', () => {

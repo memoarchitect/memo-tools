@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { OntologyRegistriesDTO } from './relationship-legality.js';
+import type { SemanticElementProvenance } from './source-provenance.js';
 
 /** Direction of a port or action parameter */
 export type ParameterDirection = 'in' | 'out' | 'inout';
@@ -66,6 +67,8 @@ export interface MemoElement {
     ownedPorts?: string[];
     /** Port specification (for port usage elements) */
     portSpec?: PortSpec;
+    /** Authoritative declaration and classifier provenance. */
+    provenance?: SemanticElementProvenance;
 }
 
 /** A typed relationship between two elements */
@@ -98,6 +101,8 @@ export interface MemoRelationship {
     targetPortId?: string;
     /** Attributes authored on the connection usage. */
     attributes?: Record<string, string>;
+    /** Authoritative provenance of the connection declaration. */
+    provenance?: SemanticElementProvenance;
 }
 
 /** A parse error from a specific file */

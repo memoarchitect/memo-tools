@@ -14,6 +14,7 @@
 
 import type { QueryContext } from '../dhf/query-engine.js';
 import type { MEMOConfig } from '../model/config.js';
+import { EMPTY_ONTOLOGY_VIEW, type OntologyView } from '../model/kind-registry.js';
 import type { LLMProvider, ChatMessage, ToolDefinition, ToolCall } from './llm-provider.js';
 import { serializeModelContext, type ContextOptions } from './model-context.js';
 
@@ -92,7 +93,8 @@ export interface ChatTurnOptions {
     history?: ChatMessage[];
     ctx: QueryContext;
     provider: LLMProvider;
-    config?: MEMOConfig;
+    /** The kinds and relationships the resolved ontology declares. */
+    ontology?: OntologyView;
     /** Allow the model to propose edits. Read-only when false. */
     allowEdits?: boolean;
     contextOptions?: ContextOptions;
@@ -174,9 +176,9 @@ const READ_TOOLS: ToolDefinition[] = [
     },
 ];
 
-function writeTools(config?: MEMOConfig): ToolDefinition[] {
-    const kindNames = config?.kinds ? Object.keys(config.kinds) : [];
-    const relNames = config?.relationshipTypes?.map(r => r.name) ?? [];
+function writeTools(ontology: OntologyView = EMPTY_ONTOLOGY_VIEW): ToolDefinition[] {
+    const kindNames = Object.keys(ontology.kinds);
+    const relNames = ontology.relationshipTypes.map(r => r.name);
 
     // Listing the legal vocabulary in the description keeps the model inside the
     // ontology instead of inventing plausible-sounding kinds.
@@ -358,12 +360,14 @@ function executeWriteTool(
     name: string,
     input: Record<string, any>,
     ctx: QueryContext,
-    config: MEMOConfig | undefined,
+    ontology: OntologyView,
     staged: ProposedChange[],
     nextId: () => string,
 ): ToolOutcome | undefined {
-    const knownKinds = config?.kinds ? new Set(Object.keys(config.kinds)) : undefined;
-    const knownRels = config?.relationshipTypes ? new Set(config.relationshipTypes.map(r => r.name)) : undefined;
+    const knownKinds = Object.keys(ontology.kinds).length > 0 ? new Set(Object.keys(ontology.kinds)) : undefined;
+    const knownRels = ontology.relationshipTypes.length > 0
+        ? new Set(ontology.relationshipTypes.map(r => r.name))
+        : undefined;
 
     switch (name) {
         case 'propose_create_element': {
@@ -377,7 +381,7 @@ function executeWriteTool(
             }
             const layer = typeof input.layer === 'string' && input.layer
                 ? input.layer
-                : config?.kinds?.[elementKind]?.layer;
+                : ontology.kinds[elementKind]?.layer;
             const change: ProposedElementCreate = {
                 kind: 'create-element',
                 id: nextId(),
@@ -491,12 +495,12 @@ function executeWriteTool(
  */
 export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnResult> {
     const {
-        question, history = [], ctx, provider, config,
+        question, history = [], ctx, provider, ontology = EMPTY_ONTOLOGY_VIEW,
         allowEdits = false, contextOptions,
         maxIterations = DEFAULT_MAX_ITERATIONS,
     } = options;
 
-    const tools = allowEdits ? [...READ_TOOLS, ...writeTools(config)] : READ_TOOLS;
+    const tools = allowEdits ? [...READ_TOOLS, ...writeTools(ontology)] : READ_TOOLS;
 
     // The model summary is only re-sent when the conversation is new; on later
     // turns it is already in the history and repeating it wastes the window.
@@ -545,7 +549,7 @@ export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnRes
         // Every call must get a result, in the same batch — dropping one leaves
         // the conversation malformed for both providers.
         for (const call of calls) {
-            const outcome = runTool(call, ctx, config, allowEdits, proposedChanges, nextId);
+            const outcome = runTool(call, ctx, ontology, allowEdits, proposedChanges, nextId);
             conversation.push({
                 role: 'tool',
                 toolCallId: call.id,
@@ -569,7 +573,7 @@ export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnRes
 function runTool(
     call: ToolCall,
     ctx: QueryContext,
-    config: MEMOConfig | undefined,
+    ontology: OntologyView,
     allowEdits: boolean,
     staged: ProposedChange[],
     nextId: () => string,
@@ -583,7 +587,7 @@ function runTool(
             return fail('Editing is disabled for this conversation. Answer using the read-only tools instead.');
         }
 
-        const write = executeWriteTool(call.name, input, ctx, config, staged, nextId);
+        const write = executeWriteTool(call.name, input, ctx, ontology, staged, nextId);
         if (write) return write;
 
         return fail(`Unknown tool "${call.name}".`);

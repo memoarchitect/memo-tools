@@ -10,6 +10,7 @@
 import { loadProject } from './model-loader.js';
 import { saveElementToFile } from '../server/persistor.js';
 import type { QueryContext } from '../dhf/query-engine.js';
+import type { OntologyView } from '../model/kind-registry.js';
 import type { MEMOConfig } from '../model/config.js';
 
 /** An MCP tool as advertised in `tools/list`. */
@@ -23,6 +24,8 @@ export interface McpToolContext {
     projectRoot: string;
     ctx: QueryContext;
     config: MEMOConfig;
+    /** Kinds and relationships from the resolved ontology. */
+    ontology: OntologyView;
 }
 
 export type McpToolHandler = (
@@ -187,12 +190,11 @@ define({
     name: 'memo_ontology',
     description: 'The vocabulary this project models in: every legal element kind with its SysML v2 construct and layer, and every legal relationship type. Read this before writing or editing any .sysml file so you use terms the ontology actually defines.',
     inputSchema: { type: 'object', properties: {} },
-}, (_input, { config }) => ({
-    projectType: config.projectType,
-    kinds: Object.entries(config.kinds ?? {}).map(([name, def]) => ({
+}, (_input, { ontology }) => ({
+    kinds: Object.entries(ontology.kinds).map(([name, def]) => ({
         name, label: def.label, layer: def.layer, construct: def.sysmlConstruct,
     })),
-    relationshipTypes: (config.relationshipTypes ?? []).map(r => ({
+    relationshipTypes: ontology.relationshipTypes.map(r => ({
         name: r.name, label: r.label, layer: r.layer,
     })),
 }));
@@ -215,12 +217,12 @@ define({
         },
         required: ['id', 'name', 'kind'],
     },
-}, (input, { ctx, config, projectRoot }) => {
+}, (input, { ctx, ontology, projectRoot }) => {
     const id = String(input.id).trim();
     const kind = String(input.kind).trim();
     if (ctx.element(id)) throw new Error(`Element "${id}" already exists.`);
 
-    const kinds = config.kinds ?? {};
+    const kinds = ontology.kinds;
     if (Object.keys(kinds).length > 0 && !kinds[kind]) {
         throw new Error(`"${kind}" is not a kind in this ontology. Valid kinds: ${Object.keys(kinds).join(', ')}`);
     }
@@ -257,6 +259,6 @@ export async function callTool(
     if (entry.write && !allowWrites) {
         throw new Error(`Tool "${name}" modifies the model and this server is read-only. Restart it with \`memo mcp --write\` to enable edits.`);
     }
-    const { ctx, config } = await loadProject(projectRoot);
-    return entry.handler(input ?? {}, { projectRoot, ctx, config });
+    const { ctx, config, ontology } = await loadProject(projectRoot);
+    return entry.handler(input ?? {}, { projectRoot, ctx, config, ontology });
 }

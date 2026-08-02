@@ -10,7 +10,7 @@
 //   memo import template relations   — Generate relationship CSV template
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolve, basename } from 'node:path';
+import { resolve, basename, dirname } from 'node:path';
 import { readFileSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import {
@@ -26,6 +26,7 @@ import {
     formatDiffSummary,
 } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { loadOntologyRegistries, ontologyViewFrom } from '@memoarchitect/tools';
 import { findSysmlFiles } from '../model/sysml-files.js';
 
 
@@ -44,7 +45,10 @@ export async function importCsvCommand(
         console.error(chalk.red('No memo config found. Run `memo init` first.'));
         process.exit(1);
     }
-    const config = await loadAndResolveConfig(configPath);
+    const config = loadAndResolveConfig(configPath);
+    // Kinds and relationships come from the resolved SysML.
+    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     // Read CSV
     const csvPath = resolve(cwd, csvFile);
@@ -58,7 +62,7 @@ export async function importCsvCommand(
 
     console.log(chalk.blue(`Parsing elements CSV: ${csvFile}`));
 
-    const result = parseElementsCsv(csvText, config);
+    const result = parseElementsCsv(csvText, ontology);
 
     // Report warnings
     for (const warn of result.warnings) {
@@ -106,7 +110,10 @@ export async function importRelCsvCommand(
         console.error(chalk.red('No memo config found. Run `memo init` first.'));
         process.exit(1);
     }
-    const config = await loadAndResolveConfig(configPath);
+    const config = loadAndResolveConfig(configPath);
+    // Kinds and relationships come from the resolved SysML.
+    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     // Build current model to validate element references
     const sysmlFiles = findSysmlFiles(cwd);
@@ -128,7 +135,7 @@ export async function importRelCsvCommand(
 
     console.log(chalk.blue(`Parsing relationships CSV: ${csvFile}`));
 
-    const result = parseRelationshipsCsv(csvText, config, knownIds);
+    const result = parseRelationshipsCsv(csvText, ontology, knownIds);
 
     for (const warn of result.warnings) {
         console.log(chalk.yellow(`  Warning: ${warn}`));
@@ -174,19 +181,22 @@ export async function importTemplateCommand(
         console.error(chalk.red('No memo config found. Run `memo init` first.'));
         process.exit(1);
     }
-    const config = await loadAndResolveConfig(configPath);
+    const config = loadAndResolveConfig(configPath);
+    // Kinds and relationships come from the resolved SysML.
+    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     let csv: string;
     let defaultFile: string;
 
     if (templateType === 'elements') {
-        csv = generateElementTemplate(config);
+        csv = generateElementTemplate(ontology);
         defaultFile = 'elements-template.csv';
-        console.log(chalk.blue(`Generating element template with ${Object.keys(config.kinds ?? {}).length} kinds`));
+        console.log(chalk.blue(`Generating element template with ${Object.keys(ontology.kinds).length} kinds`));
     } else if (templateType === 'relationships' || templateType === 'relations') {
-        csv = generateRelationshipTemplate(config);
+        csv = generateRelationshipTemplate(ontology);
         defaultFile = 'relationships-template.csv';
-        console.log(chalk.blue(`Generating relationship template with ${(config.relationshipTypes ?? []).length} types`));
+        console.log(chalk.blue(`Generating relationship template with ${(ontology.relationshipTypes).length} types`));
     } else {
         console.error(chalk.red(`Unknown template type: '${templateType}'. Use 'elements' or 'relationships'.`));
         process.exit(1);
@@ -213,7 +223,10 @@ export async function importDiffCommand(
         console.error(chalk.red('No memo config found. Run `memo init` first.'));
         process.exit(1);
     }
-    const config = await loadAndResolveConfig(configPath);
+    const config = loadAndResolveConfig(configPath);
+    // Kinds and relationships come from the resolved SysML.
+    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     const csvPath = resolve(cwd, csvFile);
     let csvText: string;
@@ -225,7 +238,7 @@ export async function importDiffCommand(
     }
 
     console.log(chalk.blue(`Parsing elements CSV: ${csvFile}`));
-    const parseResult = parseElementsCsv(csvText, config);
+    const parseResult = parseElementsCsv(csvText, ontology);
 
     for (const warn of parseResult.warnings) {
         console.log(chalk.yellow(`  Warning: ${warn}`));

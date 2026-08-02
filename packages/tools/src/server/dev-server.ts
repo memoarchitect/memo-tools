@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync, createReadStream, statSync } from 'node:fs';
 import { extname } from 'node:path';
+import type { OntologyView } from '@memoarchitect/tools';
 import type {
     ServerMessage, ModelUpdateMessage, DiagramDTO, MemoModelDTO,
     RelationshipCreateRequest, RelationshipCreateResultMessage,
@@ -353,15 +354,26 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      * server currently holds. Every LLM handler needs the same four pieces, so
      * they share this rather than each re-deriving them.
      */
-    async function llmQueryContext(): Promise<{ ctx: QueryContext; config: MEMOConfig }> {
-        const { createQueryContext, findConfigFile } = await import('@memoarchitect/tools');
+    async function llmQueryContext(): Promise<{ ctx: QueryContext; config: MEMOConfig; ontology: OntologyView }> {
+        const { createQueryContext, findConfigFile, loadOntologyRegistries, ontologyViewFrom, EMPTY_ONTOLOGY_VIEW } =
+            await import('@memoarchitect/tools');
         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
         const modelMsg = initialMessages.find(m => m.type === 'model:update') as any;
         const validMsg = initialMessages.find(m => m.type === 'validation:update') as any;
         const compMsg = initialMessages.find(m => m.type === 'completeness:update') as any;
         const configPath = findConfigFile(options.projectRoot);
-        const config = configPath ? await loadAndResolveConfig(configPath) : {} as MEMOConfig;
+        const config = configPath ? loadAndResolveConfig(configPath) : { projectName: 'untitled' } as MEMOConfig;
+
+        // Kinds and relationships come from the resolved SysML, not from the
+        // settings file the config path points at.
+        let ontology = EMPTY_ONTOLOGY_VIEW;
+        try {
+            const loaded = await loadOntologyRegistries(options.projectRoot);
+            ontology = ontologyViewFrom(loaded.registries.kindRegistry, loaded.registries.relationshipRegistry);
+        } catch {
+            // A project whose ontology does not resolve still has a model to query.
+        }
 
         const ctx = createQueryContext(
             modelMsg?.payload ?? {},
@@ -369,7 +381,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             compMsg?.payload ?? { overall: 0, layers: [] },
             config,
         );
-        return { ctx, config };
+        return { ctx, config, ontology };
     }
 
     /** Settings status for the client — provider/model/origin, never the key. */
@@ -391,8 +403,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
 
         switch (change.kind) {
             case 'create-element': {
-                const { config } = await llmQueryContext();
-                const kindDef = config.kinds?.[change.elementKind];
+                const { ontology } = await llmQueryContext();
+                const kindDef = ontology.kinds[change.elementKind];
                 const result = saveElementToFile(options.projectRoot, {
                     id: change.elementId,
                     name: change.name,
@@ -605,6 +617,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         if (!model) return reject('The model is not loaded yet.');
         const element = model.elements[elementId];
         if (!element) return reject(`Element "${elementId}" was not found.`);
+        if (element.provenance && !element.provenance.declaration.writable) {
+            return reject(`Element "${elementId}" is read-only ${element.provenance.declaration.origin} content.`);
+        }
         const result = await removeElement(element, model, options.projectRoot);
         if (result.success) {
             // User-authored diagrams are sidecars rather than semantic
@@ -766,6 +781,17 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     const { saveElementToFile } = await import('./persistor.js');
                     const { projectRoot } = options;
 
+                    const existing = currentModel()?.elements[msg.payload?.id];
+                    if (existing?.provenance && !existing.provenance.declaration.writable) {
+                        ws.send(JSON.stringify({
+                            type: 'element:update:result',
+                            payload: {
+                                success: false,
+                                error: `Element "${existing.id}" is read-only ${existing.provenance.declaration.origin} content.`,
+                            },
+                        }));
+                        return;
+                    }
                     const result = saveElementToFile(projectRoot, msg.payload);
                     if (result.success) {
                         // The file watcher will catch this change and broadcast to all clients
@@ -1131,7 +1157,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             }));
                             return;
                         }
-                        const config = await loadAndResolveConfig(configPath);
+                        const config = loadAndResolveConfig(configPath);
+                        const { ontology } = await llmQueryContext();
 
                         const errors: string[] = [];
                         const warnings: string[] = [];
@@ -1142,7 +1169,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         let relationships: any[] = [];
 
                         if (elementsCsv) {
-                            const result = parseElementsCsv(elementsCsv, config);
+                            const result = parseElementsCsv(elementsCsv, ontology);
                             errors.push(...result.errors);
                             warnings.push(...result.warnings);
                             // Attach provenance
@@ -1159,7 +1186,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             const knownIds = elementsImported > 0
                                 ? new Set(elements.map((e: any) => e.id))
                                 : undefined;
-                            const result = parseRelationshipsCsv(relationshipsCsv, config, knownIds);
+                            const result = parseRelationshipsCsv(relationshipsCsv, ontology, knownIds);
                             errors.push(...result.errors);
                             warnings.push(...result.warnings);
                             relationships = result.items;
@@ -1230,10 +1257,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         if (!llmConfig) {
                             ws.send(JSON.stringify({ type: 'llm:chat:result', payload: { requestId, error: 'No LLM provider configured. Add an API key in Settings, set ANTHROPIC_API_KEY or OPENAI_API_KEY, or put one in a project .env file.' } }));
                         } else {
-                            const { ctx, config } = await llmQueryContext();
+                            const { ctx, ontology } = await llmQueryContext();
                             const provider = createProvider(llmConfig);
                             const result = await runChatTurn({
-                                question, history, ctx, provider, config,
+                                question, history, ctx, provider, ontology,
                                 allowEdits: allowEdits === true,
                             });
                             ws.send(JSON.stringify({

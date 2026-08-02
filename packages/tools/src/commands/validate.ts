@@ -5,15 +5,26 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve } from 'node:path';
-import { statSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { compileWithConfiguredTool, findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
+import {
+    compileWithConfiguredTool,
+    buildMemoModel,
+    loadOntologyRegistries,
+    loadProjectSettings,
+    findProjectRoot,
+    resolveEffectiveMethodology,
+    resolveEffectiveRules,
+    buildEffectiveScope,
+    isRulePackageInScope,
+    isInScope,
+    checkSemanticFields,
+    type RuleCandidate,
+} from '@memoarchitect/tools';
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
-import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { checkLockFile } from '../lock.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
 
 
 export type ValidateFormat = 'text' | 'junit' | 'json';
@@ -23,28 +34,65 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
     const cwd = resolve(projectDir || process.cwd());
     console.log(chalk.bold('\n📋 MEMO Validate\n'));
 
-    // 1. Find config
-    const configPath = findConfigFile(cwd);
-    if (!configPath) {
-        console.error(chalk.red('❌ No memo config found. Run `memo init` first.'));
+    // 1. Find the project by its native entrypoint, not by a settings file.
+    const projectRoot = findProjectRoot(cwd);
+    if (!projectRoot) {
+        console.error(chalk.red(
+            '❌ No model/catalog/project.sysml found. A MEMO project declares its identity and method '
+            + 'binding in SysML — run `memo init` to scaffold one.'));
         process.exit(1);
     }
-    console.log(chalk.gray(`Config: ${configPath}`));
+    console.log(chalk.gray(`Project root: ${projectRoot}`));
 
-    // 2. Load and resolve config
-    const config = loadAndResolveConfig(configPath);
-    console.log(chalk.gray(`Project: ${config.projectName} (${config.projectType})`));
+    // 2. Reject semantic configuration before anything reads it.
+    const rejections = checkSemanticFields(projectRoot);
+    if (rejections.length > 0) {
+        console.error(chalk.red(`\n❌ Semantic configuration found in application settings (${rejections.length}):\n`));
+        for (const r of rejections) {
+            console.error(chalk.red(`  ${r.file}`));
+            console.error(chalk.gray(`    ${r.message}\n`));
+        }
+        process.exit(1);
+    }
+
+    const config = loadProjectSettings(projectRoot);
+
+    // 3. Resolve the project natively: imports and the method binding decide
+    //    everything about what is loaded.
+    let ontologyRegistries: BuilderRegistries | undefined;
+    let ontologyDocuments: ParsedDocument[] = [];
+    const loadResult = await loadOntologyRegistries(projectRoot);
+    const resolution = loadResult.resolution;
+    if (loadResult.fileCount > 0) {
+        ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
+        ontologyDocuments = loadResult.parsedDocuments;
+        const kr = loadResult.registries.kindRegistry;
+        const rr = loadResult.registries.relationshipRegistry;
+        console.log(chalk.gray(
+            `Resolved: ${kr?.size ?? 0} kinds, ${rr?.size ?? 0} relationships `
+            + `(${loadResult.fileCount} SysML files, ${loadResult.ontologyDirs.length} packages)`));
+    }
+    for (const err of loadResult.errors) console.log(chalk.yellow(`  ⚠ ${err}`));
+
+    if (resolution?.binding) {
+        console.log(chalk.gray(
+            `Binding: ${resolution.binding.projectName ?? resolution.binding.usageName} → `
+            + `${resolution.binding.selectedMethodologyName ?? '(none)'}`));
+    }
 
     try {
-        const compiler = compileWithConfiguredTool(config, cwd, configPath);
+        const compiler = compileWithConfiguredTool(config, projectRoot);
         if (compiler !== 'internal') console.log(chalk.gray(`Compiler: ${compiler}`));
     } catch (error) {
         console.error(chalk.red(`\n❌ Compilation failed: ${error instanceof Error ? error.message : error}\n`));
         process.exit(1);
     }
 
-    // 2a. Check ontology lock
-    const lockCheck = checkLockFile(configPath);
+    const lockCheck = checkLockFile(projectRoot, (resolution?.selectedRoots ?? []).map(root => ({
+        ...root,
+        origin: 'ontology',
+        importDepth: 1,
+    })));
     if (!lockCheck.ok) {
         console.error(chalk.red(`\n❌ ${lockCheck.message}\n`));
         process.exit(1);
@@ -52,45 +100,17 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
     if (lockCheck.locked) {
         console.log(chalk.gray(`Ontology: locked to ${lockCheck.locked.ontology} v${lockCheck.locked.version}`));
     }
-    console.log(chalk.gray(`Kinds: ${Object.keys(config.kinds ?? {}).length} | Relationships: ${(config.relationshipTypes ?? []).length}`));
 
-    // 2b. Load ontology registries (SysML-driven kind/relationship discovery)
-    let ontologyRegistries: BuilderRegistries | undefined;
-    let ontologyDocuments: ParsedDocument[] = [];
-    try {
-        const loadResult = await loadOntologyRegistries(configPath);
-        if (loadResult.fileCount > 0) {
-            ontologyRegistries = loadResult.registries;
-            ontologyDocuments = loadResult.parsedDocuments;
-            const kr = loadResult.registries.kindRegistry;
-            const rr = loadResult.registries.relationshipRegistry;
-            console.log(chalk.gray(
-                `Ontology: ${kr?.size ?? 0} kinds, ${rr?.size ?? 0} relationships ` +
-                `(from ${loadResult.fileCount} SysML files)`
-            ));
-        }
-    } catch (e) {
-        console.log(chalk.yellow(`  ⚠ Could not load ontology registries: ${e instanceof Error ? e.message : e}`));
-    }
-
-    // 3. Find SysML files
-    const sysmlFiles = findSysmlFiles(cwd);
-    if (sysmlFiles.length === 0) {
-        console.error(chalk.yellow('⚠️  No .sysml files found.'));
+    // 4. The project's own source is the closure minus the resolved roots.
+    const documents = (resolution?.documents ?? []).filter(
+        d => !(resolution?.selectedRoots ?? []).some(r => d.filePath.startsWith(r.sysmlDir)),
+    );
+    const parseErrors: import('@memoarchitect/tools').ParseError[] = [];
+    if (documents.length === 0) {
+        console.error(chalk.yellow('⚠️  No project .sysml files found.'));
         return;
     }
-    console.log(chalk.gray(`Files: ${sysmlFiles.length} .sysml files\n`));
-
-    // 4. Parse
-    const { documents, errors: parseErrors } = await parseFiles(sysmlFiles, cwd + '/');
-    if (parseErrors.length > 0) {
-        console.log(chalk.red.bold(`Parse Errors (${parseErrors.length}):`));
-        for (const err of parseErrors) {
-            const loc = err.line ? `:${err.line}:${err.column || 0}` : '';
-            console.log(chalk.red(`  ${err.file}${loc}: ${err.message}`));
-        }
-        console.log();
-    }
+    console.log(chalk.gray(`Files: ${documents.length} project .sysml files\n`));
 
     // 5. Build model
     const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
@@ -116,8 +136,121 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
         }
         console.log('');
     }
-    const result = validateModel(model, nativeConstraints, ontologyRegistries?.kindRegistry);
-    const completeness = computeCompleteness(model, result, config);
+    // 6a. Effective methodology and the deterministic effective rule set.
+    // A module is available when a resolved package supplies it. That is wider
+    // than the import closure on purpose: a package the project resolved is
+    // resolved in full, and whether the methodology selects it is the next
+    // question, not this one.
+    const availablePackages = new Set(resolution?.filePackages.values() ?? []);
+    const effectiveMethodology = resolveEffectiveMethodology(
+        resolution?.binding,
+        resolution?.methodologies ?? new Map(),
+        availablePackages,
+    );
+    const scope = buildEffectiveScope(effectiveMethodology);
+    for (const d of effectiveMethodology.diagnostics) {
+        console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
+    }
+
+    // A rule's scope is decided by the package that declares it, which is a
+    // question every loaded file has an answer to — including files a resolved
+    // root supplied without any other file importing them.
+    const ruleFileToPackage = resolution?.filePackages ?? new Map<string, string>();
+    // A rule is activated when both its declaring package and its subject kind
+    // are in scope. A rule whose subject the methodology did not select can
+    // only report on content the project never agreed to model, which is how
+    // the GPCA prototype used to accumulate cybersecurity violations for a
+    // discipline it had excluded.
+    const kindRegistry = ontologyRegistries?.kindRegistry;
+    const subjectInScope = (appliesTo: string): boolean => {
+        if (scope.mode === 'allAvailable') return true;
+        // A model-level rule has no single subject kind to place.
+        if (!appliesTo || appliesTo === 'Model') return true;
+        const kindName = appliesTo.split('[')[0];
+        const sourceFile = kindRegistry?.getKind(kindName)?.sourceFile;
+        // A methodology's inclusion lists name packages, so a kind is placed by
+        // the package that declares it — not by the `layer` string, which is a
+        // display grouping in a different namespace.
+        const declaringPackage = sourceFile ? ruleFileToPackage.get(sourceFile) : undefined;
+        return isRulePackageInScope(scope, declaringPackage);
+    };
+    const candidates: RuleCandidate[] = nativeConstraints
+        .filter(c => isRulePackageInScope(scope, c.sourceFile ? ruleFileToPackage.get(c.sourceFile) : undefined))
+        .filter(c => subjectInScope(c.appliesToKind))
+        .map(c => ({
+            id: c.id,
+            typeName: c.typeName ?? c.id,
+            severity: c.severity,
+            tailoring: c.tailoring ?? 'assurance',
+            file: c.sourceFile,
+            constraint: c,
+        }));
+    const effectiveRules = resolveEffectiveRules(candidates, effectiveMethodology.policyChain);
+
+    // A rule-resolution diagnostic is not advisory. A policy that targets a
+    // rule that is not there, or tries to disable an invariant, means the
+    // effective rule set is not the one the methodology describes.
+    if (effectiveRules.diagnostics.length > 0) {
+        console.log(chalk.red.bold(`\nRule resolution (${effectiveRules.diagnostics.length}):`));
+        for (const d of effectiveRules.diagnostics) {
+            console.log(chalk.red(`  ${d.code}${d.ruleId ? ` [${d.ruleId}]` : ''}: ${d.message}`));
+        }
+        console.log();
+        process.exitCode = 1;
+    }
+
+    const disabled = effectiveRules.rules.filter(r => r.disposition !== 'enabled');
+    if (disabled.length > 0) {
+        console.log(chalk.gray(`Tailored rules (${disabled.length}):`));
+        for (const r of disabled) {
+            const chain = r.policyChain.map(p => `${p.level}:${p.source}`).join(' → ');
+            console.log(chalk.gray(`  ${r.sourceRuleId} ${r.disposition} by ${chain}`));
+            if (r.rationaleText) console.log(chalk.gray(`    ${r.rationaleText}`));
+        }
+        console.log();
+    }
+
+    // Rules evaluate over in-scope elements only.
+    //
+    // A kind can be in scope while a specialization of it is not: GPCA selects
+    // safety/risk and excludes cybersecurity, so `Hazard` is in scope and
+    // `CyberHazard` is not. Evaluating a risk rule over a cyber hazard reports
+    // a violation about content the methodology deliberately excluded, which is
+    // noise the reader has to learn to ignore — and a rule set people ignore is
+    // worse than one they do not have.
+    //
+    // The full model is still what gets reported and displayed; only the
+    // subject set narrows.
+    const subjectModel = scope.mode === 'allAvailable' ? model : narrowToScope(model);
+    const result = validateModel(
+        subjectModel, effectiveRules.activeConstraints, ontologyRegistries?.kindRegistry, effectiveRules.rules);
+    // Completeness reports on what the methodology selected, which is the
+    // scoped model — not on content the project deliberately excluded.
+    const completeness = computeCompleteness(subjectModel, result);
+
+    function narrowToScope(full: typeof model): typeof model {
+        const kept = new Map<string, typeof model extends { elements: Map<string, infer E> } ? E : never>();
+        for (const [id, element] of full.elements) {
+            const sourceFile = kindRegistry?.getKind(element.kind)?.sourceFile;
+            const declaringPackage = sourceFile ? ruleFileToPackage.get(sourceFile) : undefined;
+            // A kind the resolved ontology does not declare is project-local
+            // content, which is always in its own project's scope.
+            if (!declaringPackage || isRulePackageInScope(scope, declaringPackage)) kept.set(id, element);
+        }
+        const byKind = new Map<string, any[]>();
+        const byLayer = new Map<string, any[]>();
+        for (const element of kept.values()) {
+            (byKind.get(element.kind) ?? byKind.set(element.kind, []).get(element.kind)!).push(element);
+            (byLayer.get(element.layer) ?? byLayer.set(element.layer, []).get(element.layer)!).push(element);
+        }
+        return {
+            ...full,
+            elements: kept,
+            elementsByKind: byKind,
+            elementsByLayer: byLayer,
+            relationships: full.relationships.filter(r => kept.has(r.sourceId) && kept.has(r.targetId)),
+        };
+    }
 
     const errors = result.violations.filter(v => v.severity === 'error');
     const warnings = result.violations.filter(v => v.severity === 'warning');
@@ -161,6 +294,7 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
                 elementKind: v.elementKind,
                 elementName: v.elementName,
                 description: v.description,
+                provenance: v.provenance,
             })),
             completeness: {
                 overall: completeness.overall,

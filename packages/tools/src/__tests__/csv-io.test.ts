@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { MEMOConfig } from '../model/config.js';
+import type { OntologyView } from '../model/kind-registry.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import {
     parseElementsCsv,
@@ -13,9 +13,7 @@ import { generateUsage, generateConnection, generateFile, wrapPackage } from '..
 
 // ─── Test Config ────────────────────────────────────────────────────────────
 
-const testConfig: MEMOConfig = {
-    projectName: 'test',
-    projectType: 'device',
+const testOntology: OntologyView = {
     kinds: {
         Hazard: {
             label: 'Hazard',
@@ -54,7 +52,7 @@ describe('parseElementsCsv', () => {
 haz_001,Over-Infusion,Hazard,Excess medication delivery
 req_001,Flow Control,SystemRequirement,System shall control flow rate`;
 
-        const result = parseElementsCsv(csv, testConfig);
+        const result = parseElementsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(0);
         expect(result.items).toHaveLength(2);
 
@@ -81,7 +79,7 @@ req_001,Flow Control,SystemRequirement,System shall control flow rate`;
         const csv = `id,name,kind,severity,priority
 haz_001,Overflow,Hazard,Critical,High`;
 
-        const result = parseElementsCsv(csv, testConfig);
+        const result = parseElementsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(0);
         expect(result.items[0].attributes).toEqual({
             severity: 'Critical', // overrides default
@@ -93,7 +91,7 @@ haz_001,Overflow,Hazard,Critical,High`;
         const csv = `id,name,kind
 bad_001,Bad Element,UnknownKind`;
 
-        const result = parseElementsCsv(csv, testConfig);
+        const result = parseElementsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0]).toContain("unknown kind 'UnknownKind'");
         expect(result.items).toHaveLength(0);
@@ -103,7 +101,7 @@ bad_001,Bad Element,UnknownKind`;
         const csv = `id,name,kind
 123invalid,Bad Id,Hazard`;
 
-        const result = parseElementsCsv(csv, testConfig);
+        const result = parseElementsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0]).toContain("invalid id '123invalid'");
     });
@@ -113,7 +111,7 @@ bad_001,Bad Element,UnknownKind`;
 haz_001,First,Hazard
 haz_001,Duplicate,Hazard`;
 
-        const result = parseElementsCsv(csv, testConfig);
+        const result = parseElementsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0]).toContain("duplicate id 'haz_001'");
     });
@@ -122,7 +120,7 @@ haz_001,Duplicate,Hazard`;
         const csv = `name,kind
 Some Name,Hazard`;
 
-        const result = parseElementsCsv(csv, testConfig);
+        const result = parseElementsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0]).toContain('Missing required columns: id');
     });
@@ -131,7 +129,7 @@ Some Name,Hazard`;
         const csv = `id,name,kind,construct
 comp_001,Motor,Component,part`;
 
-        const result = parseElementsCsv(csv, testConfig);
+        const result = parseElementsCsv(csv, testOntology);
         expect(result.items[0].construct).toBe('part');
     });
 
@@ -139,14 +137,14 @@ comp_001,Motor,Component,part`;
         const csv = `id,name,kind,doc
 haz_001,"Over-Infusion, Serious",Hazard,"Excess medication, dangerous"`;
 
-        const result = parseElementsCsv(csv, testConfig);
+        const result = parseElementsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(0);
         expect(result.items[0].name).toBe('Over-Infusion, Serious');
         expect(result.items[0].doc).toBe('Excess medication, dangerous');
     });
 
     it('handles empty CSV', () => {
-        const result = parseElementsCsv('', testConfig);
+        const result = parseElementsCsv('', testOntology);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0]).toContain('empty');
     });
@@ -160,7 +158,7 @@ describe('parseRelationshipsCsv', () => {
 ctrl_001,haz_001,mitigates
 req_001,func_001,traceTo`;
 
-        const result = parseRelationshipsCsv(csv, testConfig);
+        const result = parseRelationshipsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(0);
         expect(result.items).toHaveLength(2);
         expect(result.items[0]).toMatchObject({
@@ -176,7 +174,7 @@ req_001,func_001,traceTo`;
         const csv = `sourceId,targetId,type,sourceEnd,targetEnd
 ctrl_001,haz_001,mitigates,control,hazard`;
 
-        const result = parseRelationshipsCsv(csv, testConfig);
+        const result = parseRelationshipsCsv(csv, testOntology);
         expect(result.items[0].sourceEnd).toBe('control');
         expect(result.items[0].targetEnd).toBe('hazard');
     });
@@ -185,7 +183,7 @@ ctrl_001,haz_001,mitigates,control,hazard`;
         const csv = `sourceId,targetId,type
 a,b,unknownType`;
 
-        const result = parseRelationshipsCsv(csv, testConfig);
+        const result = parseRelationshipsCsv(csv, testOntology);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0]).toContain("unknown relationship type 'unknownType'");
     });
@@ -195,7 +193,7 @@ a,b,unknownType`;
         const csv = `sourceId,targetId,type
 ctrl_001,haz_001,mitigates`;
 
-        const result = parseRelationshipsCsv(csv, testConfig, knownIds);
+        const result = parseRelationshipsCsv(csv, testOntology, knownIds);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0]).toContain("sourceId 'ctrl_001' not found");
     });
@@ -204,7 +202,7 @@ ctrl_001,haz_001,mitigates`;
         const csv = `sourceId,targetId,type
 haz_001,haz_001,mitigates`;
 
-        const result = parseRelationshipsCsv(csv, testConfig);
+        const result = parseRelationshipsCsv(csv, testOntology);
         expect(result.warnings).toHaveLength(1);
         expect(result.warnings[0]).toContain('self-referencing');
     });
@@ -219,7 +217,7 @@ describe('exportElementsCsv', () => {
             { id: 'req_001', name: 'Flow', kind: 'SystemRequirement', construct: 'requirement', layer: 'requirements', file: 'test.sysml', attributes: { priority: 'High' } },
         ]);
 
-        const csv = exportElementsCsv(model, testConfig);
+        const csv = exportElementsCsv(model, testOntology);
         const lines = csv.trim().split('\n');
         expect(lines[0]).toContain('id,name,kind,construct,doc');
         expect(lines[0]).toContain('priority');
@@ -245,7 +243,7 @@ describe('exportRelationshipsCsv', () => {
 
 describe('generateElementTemplate', () => {
     it('produces rows for each kind', () => {
-        const csv = generateElementTemplate(testConfig);
+        const csv = generateElementTemplate(testOntology);
         const lines = csv.trim().split('\n');
         // header + 4 kinds
         expect(lines).toHaveLength(5);
@@ -257,7 +255,7 @@ describe('generateElementTemplate', () => {
 
 describe('generateRelationshipTemplate', () => {
     it('produces rows for each relationship type', () => {
-        const csv = generateRelationshipTemplate(testConfig);
+        const csv = generateRelationshipTemplate(testOntology);
         const lines = csv.trim().split('\n');
         expect(lines).toHaveLength(4); // header + 3 types
         expect(csv).toContain('mitigates');
@@ -374,8 +372,8 @@ describe('CSV roundtrip', () => {
             { id: 'comp_001', name: 'Motor', kind: 'Component', construct: 'part', layer: 'logical', file: 'test.sysml', attributes: {} },
         ]);
 
-        const csv = exportElementsCsv(original, testConfig);
-        const parsed = parseElementsCsv(csv, testConfig);
+        const csv = exportElementsCsv(original, testOntology);
+        const parsed = parseElementsCsv(csv, testOntology);
 
         expect(parsed.errors).toHaveLength(0);
         expect(parsed.items).toHaveLength(2);

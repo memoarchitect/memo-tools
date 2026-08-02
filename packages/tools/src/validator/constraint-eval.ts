@@ -44,6 +44,15 @@ export interface NativeConstraint {
     severity: 'error' | 'warning' | 'info';
     /** Named specialized evaluator selected by ontology metadata. */
     evaluator?: string;
+    /**
+     * The `constraint def` name. A rule's stable ID is its audit identity; the
+     * def name is what a `RulePolicy` references, so both travel together.
+     */
+    typeName?: string;
+    /** Tailoring class from the rule's own `tailoring` attribute. */
+    tailoring?: 'invariant' | 'assurance' | 'methodology';
+    /** File the rule is declared in. */
+    sourceFile?: string;
 }
 
 /** Constraint metadata without the expression body — used by the AST entry point. */

@@ -5,7 +5,7 @@
 // Example: "Add a pressure sensor component with USB interface."
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MEMOConfig } from '../model/config.js';
+import type { OntologyView } from '../model/kind-registry.js';
 import type { LLMProvider, ChatMessage } from './llm-provider.js';
 import { serializeOntologyContext } from './model-context.js';
 
@@ -68,10 +68,10 @@ IMPORTANT: Output ONLY the SysML code block and a brief explanation. Format your
  */
 export async function generateSysml(
     description: string,
-    config: MEMOConfig,
+    ontology: OntologyView,
     provider: LLMProvider,
 ): Promise<GenerateResult> {
-    const ontologyContext = serializeOntologyContext(config);
+    const ontologyContext = serializeOntologyContext(ontology);
 
     const messages: ChatMessage[] = [
         { role: 'system', content: SYSTEM_PROMPT },

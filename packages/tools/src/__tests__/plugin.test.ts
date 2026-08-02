@@ -38,10 +38,6 @@ function createMockContext(): PluginContext {
 
     const config: MEMOConfig = {
         projectName: 'Test',
-        projectType: 'device',
-        architectureLayers: [],
-        viewpoints: [],
-        workflows: [],
     };
 
     const validation: ValidationResult = {

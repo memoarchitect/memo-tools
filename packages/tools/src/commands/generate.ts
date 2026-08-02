@@ -12,8 +12,7 @@ import { resolve, dirname } from 'node:path';
 import chalk from 'chalk';
 import {
     findConfigFile, loadOntologyRegistries,
-    resolveLLMConfig, createProvider, generateSysml,
-} from '@memoarchitect/tools';
+    resolveLLMConfig, createProvider, generateSysml, ontologyViewFrom } from '@memoarchitect/tools';
 import type { BuilderRegistries } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 
@@ -43,19 +42,22 @@ export async function generateCommand(description: string, options: GenerateComm
     }
 
     const config = loadAndResolveConfig(configPath);
+    // Kinds and relationships come from the resolved SysML.
+    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     // Enrich config with ontology registries if available
     try {
         const loadResult = await loadOntologyRegistries(configPath);
-        if (loadResult.registries.kindRegistry && !config.kinds) {
-            config.kinds = {};
+        if (loadResult.registries.kindRegistry && !ontology.kinds) {
+            ontology.kinds = {};
         }
         if (loadResult.registries.kindRegistry) {
             // Add registry kinds to config for context serialization
             const kr = loadResult.registries.kindRegistry;
             for (const entry of (kr as any)._kinds?.values() || []) {
-                if (!config.kinds![entry.name]) {
-                    config.kinds![entry.name] = {
+                if (!ontology.kinds![entry.name]) {
+                    ontology.kinds![entry.name] = {
                         label: entry.label,
                         layer: entry.layer,
                         sysmlConstruct: entry.sysmlConstruct,
@@ -69,7 +71,7 @@ export async function generateCommand(description: string, options: GenerateComm
     console.log(chalk.dim('Generating SysML...'));
     console.log('');
 
-    const result = await generateSysml(description, config, provider);
+    const result = await generateSysml(description, ontology, provider);
 
     // 4. Output
     if (options.dryRun || !options.output) {

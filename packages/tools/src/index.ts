@@ -9,23 +9,19 @@ export * from './language/memo-sysml-module.js';
 // Re-export config types selectively to avoid name collision with AST's
 // ViewpointDefinition (generated from grammar) vs config's ViewpointDefinition.
 export {
-    type ProjectType,
-    type ArchLayer,
-    type RelationshipType,
     type SysMLConstruct,
-    type KindDefinition,
-    type ViewpointDefinition as MEMOViewpointDefinition,
-    type WorkflowStep,
-    type WorkflowDefinition,
-    type FirstRunConfig,
-    type OntologyReference,
     type DiagramType,
-    type DiagramDefinition,
     type MEMOConfig,
+    type ToolchainConfig,
 } from './model/config.js';
+export * from './model/native-project.js';
+export * from './model/methodology-resolver.js';
+export * from './model/effective-scope.js';
+export * from './model/settings-boundary.js';
 export * from './model/config-loader.js';
 export * from './model/semantic.js';
 export * from './model/source-graph.js';
+export * from './model/source-provenance.js';
 export * from './model/short-id.js';
 export * from './model/parser-utils.js';
 export * from './model/builder.js';
@@ -41,7 +37,6 @@ export * from './model/content-store.js';
 export * from './model/toolchain.js';
 export * from './model/methodology-loader.js';
 export * from './model/paths.js';
-export * from './model/dimension-filter.js';
 
 // ─── Validation + Completeness ──────────────────────────────────────────────
 export * from './validator/types.js';

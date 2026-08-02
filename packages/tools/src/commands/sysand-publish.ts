@@ -93,13 +93,13 @@ function resolveSysmlDir(entry: ConfigChainEntry): string {
 function validatePackage(entry: ConfigChainEntry): PackageReport {
     const config = entry.config;
     const sourceDir = dirname(entry.configPath);
-    const name = config.ontologyMetadata?.id || config.projectName || basename(sourceDir);
-    const version = config.ontologyMetadata?.version || '0.0.0';
+    const name = undefined || config.projectName || basename(sourceDir);
+    const version = undefined || '0.0.0';
 
     const report: PackageReport = {
         name,
         version,
-        projectType: config.projectType || 'unknown',
+        projectType: undefined || 'unknown',
         configPath: entry.configPath,
         sysmlFiles: [],
         totalBytes: 0,
@@ -111,10 +111,10 @@ function validatePackage(entry: ConfigChainEntry): PackageReport {
     };
 
     // FB2: validate required metadata
-    if (!config.ontologyMetadata?.id && !config.projectName) {
+    if (!undefined && !config.projectName) {
         report.errors.push('FB2: missing package name (set ontologyMetadata.id or projectName)');
     }
-    if (!config.ontologyMetadata?.version) {
+    if (!undefined) {
         report.warnings.push('FB2: no explicit version in ontologyMetadata (defaulting to 0.0.0)');
     }
 
@@ -137,7 +137,7 @@ function validatePackage(entry: ConfigChainEntry): PackageReport {
             type: 'ontology-package',
             name,
             version,
-            license: config.ontologyMetadata?.license || 'UNLICENSED',
+            license: undefined || 'UNLICENSED',
             usage: deriveUsage(config),
         };
         report.warnings.push('No .project.json found — would be generated from config');
@@ -171,14 +171,14 @@ function validatePackage(entry: ConfigChainEntry): PackageReport {
 
 function deriveUsage(config: any): string[] {
     const usage = new Set<string>();
-    if (config.projectType === 'ontology') {
+    if (undefined === 'ontology') {
         usage.add('kinds');
         usage.add('relationships');
-    } else if (config.projectType === 'profile') {
+    } else if (undefined === 'profile') {
         usage.add('rules');
         usage.add('viewpoints');
         usage.add('templates');
-    } else if (config.projectType === 'library') {
+    } else if (undefined === 'library') {
         usage.add('library');
     }
     return Array.from(usage).sort();
@@ -197,17 +197,15 @@ export async function sysandPublishCommand(options: PublishOptions): Promise<voi
 
     const configChain = loadConfigChain(configPath);
 
-    // Filter to publishable packages (ontology, profile, library — not device projects)
-    let publishable = configChain.filter(entry => {
-        const type = entry.config.projectType;
-        return type === 'ontology' || type === 'profile' || type === 'library' ||
-            !!entry.config.ontologyMetadata;
-    });
+    // Every entry in the chain is a candidate. The `type:` field that used to
+    // decide publishability is gone: what a package is comes from the resolved
+    // root it sits under, and this command publishes what it is pointed at.
+    let publishable = configChain;
 
     // If --package specified, filter to that one
     if (options.package) {
         publishable = publishable.filter(entry => {
-            const id = entry.config.ontologyMetadata?.id || entry.config.projectName || '';
+            const id = entry.config.projectName || '';
             return id === options.package || basename(dirname(entry.configPath)) === options.package;
         });
         if (publishable.length === 0) {

@@ -8,7 +8,11 @@
 import { resolve } from 'node:path';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, modelToDTO } from '@memoarchitect/tools';
+import {
+    findConfigFile, findProjectRoot, loadProjectSettings, loadOntologyRegistries,
+    deriveModelViews, parseFiles, buildMemoModel, modelToDTO,
+} from '@memoarchitect/tools';
+import type { BuilderRegistries } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import type { ViewpointDTO, ArchLayerDTO } from '@memoarchitect/tools';
@@ -16,25 +20,36 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 
 
-function buildFullModel(cwd: string, config: any) {
-    // Shared model building used by all export formats
-    const sysmlFiles = findSysmlFiles(cwd);
-
-    const viewpoints: ViewpointDTO[] | undefined = config.viewpoints?.map((vp: any) => ({
-        id: vp.id,
-        label: vp.label,
-        visibleKinds: vp.visibleKinds,
-        visibleRelationships: vp.visibleRelationships,
-        visibleLayers: vp.visibleLayers,
-    }));
-
-    const architectureLayers: ArchLayerDTO[] | undefined = config.architectureLayers?.map((cl: any) => ({
-        id: cl.id,
-        label: cl.label,
-        color: cl.color,
-    }));
-
-    return { sysmlFiles, viewpoints, architectureLayers };
+/**
+ * Resolve a project for export.
+ *
+ * A project is found by its native entrypoint. Viewpoints and layers used to
+ * come out of the settings file; viewpoints are derived from the model's own
+ * view usages now, and layers from the ontology, so an export carries what the
+ * model says rather than what a sidecar said about it.
+ */
+async function resolveForExport(cwd: string) {
+    const projectRoot = findProjectRoot(cwd);
+    if (!projectRoot) {
+        console.error(chalk.red(
+            '❌ No model/catalog/project.sysml found. Run `memo init` to scaffold one.'));
+        process.exit(1);
+    }
+    const config = loadProjectSettings(projectRoot);
+    let registries: BuilderRegistries | undefined;
+    try {
+        const loaded = await loadOntologyRegistries(projectRoot);
+        if (loaded.fileCount > 0) registries = loaded.registries;
+    } catch {
+        // Export still works with reduced kind resolution.
+    }
+    const sysmlFiles = findSysmlFiles(projectRoot);
+    const { documents, errors } = await parseFiles(sysmlFiles, projectRoot + '/');
+    const model = buildMemoModel(documents, config, errors, registries);
+    const derived = deriveModelViews(model, registries?.kindRegistry);
+    const viewpoints: ViewpointDTO[] | undefined = derived.viewpoints;
+    const architectureLayers: ArchLayerDTO[] | undefined = undefined;
+    return { projectRoot, config, model, viewpoints, architectureLayers };
 }
 
 // ─── memo export json ────────────────────────────────────────────────────────
@@ -47,24 +62,14 @@ export async function exportJsonCommand(options: {
 
     console.log(chalk.bold('\n📤 MEMO Export → JSON\n'));
 
-    const configPath = findConfigFile(cwd);
-    if (!configPath) {
-        console.error(chalk.red('❌ No memo config found.'));
-        process.exit(1);
-    }
-
-    const config = loadAndResolveConfig(configPath);
-    const { sysmlFiles, viewpoints, architectureLayers } = buildFullModel(cwd, config);
-
-    const { documents, errors } = await parseFiles(sysmlFiles, cwd + '/');
-    const model = buildMemoModel(documents, config, errors);
+    const { config, model, viewpoints, architectureLayers } = await resolveForExport(cwd);
     const validation = validateModel(model);
-    const completeness = computeCompleteness(model, validation, config);
+    const completeness = computeCompleteness(model, validation);
     const dto = modelToDTO(model, { viewpoints, architectureLayers });
 
     const output = {
         projectName: config.projectName,
-        projectType: config.projectType,
+        projectType: undefined as string | undefined,
         exportedAt: new Date().toISOString(),
         model: dto,
         validation,
@@ -91,17 +96,7 @@ export async function exportDotCommand(options: {
 
     console.log(chalk.bold('\n📤 MEMO Export → Graphviz DOT\n'));
 
-    const configPath = findConfigFile(cwd);
-    if (!configPath) {
-        console.error(chalk.red('❌ No memo config found.'));
-        process.exit(1);
-    }
-
-    const config = loadAndResolveConfig(configPath);
-    const { sysmlFiles, viewpoints, architectureLayers } = buildFullModel(cwd, config);
-
-    const { documents, errors } = await parseFiles(sysmlFiles, cwd + '/');
-    const model = buildMemoModel(documents, config, errors);
+    const { model, viewpoints, architectureLayers } = await resolveForExport(cwd);
     const dto = modelToDTO(model, { viewpoints, architectureLayers });
 
     // Filter by viewpoint if specified
@@ -121,9 +116,10 @@ export async function exportDotCommand(options: {
         }
     }
 
-    // Layer colors for DOT
+    // Layer colours for DOT. They come from the ontology's LayerRendering
+    // usages when the export carries them; otherwise every node is neutral.
     const layerColors: Record<string, string> = {};
-    for (const cl of architectureLayers ?? []) {
+    for (const cl of (architectureLayers ?? []) as ArchLayerDTO[]) {
         layerColors[cl.id] = cl.color;
     }
 

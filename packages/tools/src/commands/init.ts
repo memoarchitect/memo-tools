@@ -1,4 +1,4 @@
-import { basename, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { cpSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
@@ -49,13 +49,14 @@ export function discoverOntologies(fromDir: string): AvailableOntology[] {
             if (!existsSync(path) || results.some(result => result.name === name)) continue;
             try {
                 const parsed = parseYaml(readFileSync(path, 'utf-8'));
-                if (parsed?.type !== 'ontology' && parsed?.type !== 'profile') continue;
+                // Every manifest-listed package is offered. The `type:` field
+                // that used to gate this was a semantic classifier and is gone;
+                // what a package supplies is what its SysML declares.
                 results.push({
                     name,
                     version: String(parsed.version ?? '0.0.0'),
-                    type: String(parsed.type),
+                    type: 'package',
                     description: String(parsed.description ?? ''),
-                    extends: typeof parsed.extends === 'string' ? parsed.extends : undefined,
                     path,
                     isDefault: name === loaded.manifest.init.defaultExtends,
                 });
@@ -169,9 +170,11 @@ function ensureTarget(name: string | undefined, exampleId?: string): { projectDi
     if (inPlace) {
         const entries = readdirSync(projectDir).filter(entry => !entry.startsWith('.'));
         if (entries.length > 0) {
-            const config = findConfigFile(projectDir);
-            console.error(chalk.red(config
-                ? `❌ This directory is already a MEMO project (${basename(config)} exists).`
+            // A directory is already a MEMO project when it has the native
+            // entrypoint, not when it has a YAML file beside it.
+            const entrypoint = join(projectDir, 'model', 'catalog', 'project.sysml');
+            console.error(chalk.red(existsSync(entrypoint)
+                ? '❌ This directory is already a MEMO project (model/catalog/project.sysml exists).'
                 : '❌ Current directory is not empty.'));
             if (exampleId) console.log(chalk.gray(`  Run in an empty directory, or pass a name: memo init <name> --example ${exampleId}`));
             process.exit(1);
@@ -304,11 +307,27 @@ export async function initCommand(name: string | undefined, options: InitOptions
         rootImport: loaded.manifest.init.rootImport,
     });
 
+    // The descriptor records identity only. What the project selects is in
+    // model/catalog/project.sysml: native imports and a ProjectMethodBinding.
+    // `--ontology` chooses which package the entrypoint imports, and the
+    // descriptor never repeats that choice.
     const configPath = resolve(target.projectDir, 'memo.package.yaml');
-    const config = parseYaml(readFileSync(configPath, 'utf-8'));
-    config.name = target.projectName;
-    config.extends = ontology;
-    writeFileSync(configPath, stringifyYaml(config, { lineWidth: 0 }));
+    const descriptor = parseYaml(readFileSync(configPath, 'utf-8')) ?? {};
+    descriptor.name = target.projectName;
+    for (const semanticField of ['extends', 'type', 'usage', 'methodology', 'ontologies', 'modules']) {
+        delete descriptor[semanticField];
+    }
+    writeFileSync(configPath, stringifyYaml(descriptor, { lineWidth: 0 }));
+
+    const entrypoint = resolve(target.projectDir, 'model', 'catalog', 'project.sysml');
+    if (!existsSync(entrypoint)) {
+        console.error(chalk.red(
+            `❌ Template "${templateId}" produced no model/catalog/project.sysml. `
+            + `A MEMO project's identity and method binding are SysML — a template without an `
+            + `entrypoint cannot express either.`));
+        process.exit(1);
+    }
+    console.log(chalk.gray(`  Native entrypoint: model/catalog/project.sysml (methodology from ${ontology})`));
 
     if (options.install !== false) {
         try {
@@ -323,7 +342,11 @@ export async function initCommand(name: string | undefined, options: InitOptions
     }
 
     try {
-        const { lock } = createLockFile(configPath);
+        const { resolveNativeProject } = await import('@memoarchitect/tools');
+        const resolution = await resolveNativeProject(target.projectDir);
+        const { lock } = createLockFile(target.projectDir, resolution.selectedRoots.map(root => ({
+            ...root, origin: 'ontology', importDepth: 1,
+        })));
         console.log(chalk.gray(`  Created memo.lock.yaml (locked to ${lock.ontology} v${lock.version})`));
     } catch (error) {
         console.log(chalk.yellow(`  ⚠ Could not create lock file: ${error instanceof Error ? error.message : error}`));

@@ -13,10 +13,9 @@
 import { resolve, join } from 'node:path';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
-import type { ProjectType } from '@memoarchitect/tools';
 
 interface CreatePackageOptions {
-    type: ProjectType;
+    type: string;
     extends?: string;
     description?: string;
     author?: string;
@@ -295,7 +294,7 @@ function scaffoldDevice(dir: string, name: string): void {
 
 function buildPackageYaml(
     name: string,
-    type: ProjectType,
+    type: string,
     description: string,
     license: string,
     extendsPackage?: string,
@@ -312,7 +311,7 @@ function buildPackageYaml(
     return yaml;
 }
 
-function buildProjectJson(name: string, type: ProjectType): Record<string, unknown> {
+function buildProjectJson(name: string, type: string): Record<string, unknown> {
     return {
         type: type === 'device' ? 'device-model' : `${type}-package`,
         name,

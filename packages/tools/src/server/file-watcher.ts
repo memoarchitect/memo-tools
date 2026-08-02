@@ -6,6 +6,7 @@
 import chokidar from 'chokidar';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { existsSync } from 'node:fs';
+import { classifySourceChange, type ProvenanceTable } from '../model/source-provenance.js';
 
 export interface FileWatcher {
     close(): void;
@@ -21,6 +22,8 @@ export interface ProjectWatcherOptions {
      * hot rebuild — so the project watcher must not claim them too.
      */
     ontologyRoots?: string[];
+    /** Authoritative ownership classification from the resolved package graph. */
+    provenance?: ProvenanceTable;
 }
 
 const IGNORED_DIR_NAMES = new Set(['node_modules', '.memo', 'dist', 'lib']);
@@ -93,6 +96,7 @@ export function createProjectWatcher(
         if (extname(absolute).toLowerCase() !== '.sysml') return false;
         if (isInIgnoredDir(absolute)) return false;
         if (!isWithin(root, absolute)) return false;
+        if (options.provenance) return classifySourceChange(absolute, options.provenance) === 'project';
         return !ontologyRoots.some(ontologyRoot => isWithin(ontologyRoot, absolute));
     };
 
@@ -135,7 +139,8 @@ export function createOntologyWatcher(
     projectDir: string,
     ontologyRoots: string[],
     onChange: (changedFile: string) => void | Promise<void>,
-    debounceMs: number = 300
+    debounceMs: number = 300,
+    provenance?: ProvenanceTable,
 ): FileWatcher {
     let timer: ReturnType<typeof setTimeout> | null = null;
     let pendingFile = '';
@@ -171,7 +176,15 @@ export function createOntologyWatcher(
         ignoreInitial: true,
     });
 
-    watcher.on('all', (_event, filePath) => fire(filePath));
+    watcher.on('all', (_event, filePath) => {
+        // Project configuration that changes dependency selection is itself a
+        // project file, but it changes the frozen reusable environment.
+        const selectionFile = [
+            resolve(projectDir, 'memo.config.yaml'), resolve(projectDir, 'memo.config.yml'),
+            resolve(projectDir, 'memo.package.yaml'), resolve(projectDir, 'model', 'ontology-selection.sysml'),
+        ].includes(resolve(filePath));
+        if (!provenance || selectionFile || classifySourceChange(filePath, provenance) === 'reusable') fire(filePath);
+    });
 
     return {
         close() {

@@ -25,7 +25,7 @@ export interface OntologyConfig {
 }
 
 export function exportToOwlTurtle(
-    config: OntologyConfig,
+    ontology: OntologyConfig,
     namespace: string = 'https://sysand.dev/ontology/memo/medical#'
 ): string {
     const lines: string[] = [];
@@ -38,19 +38,19 @@ export function exportToOwlTurtle(
     lines.push('');
 
     lines.push(`<${namespace.replace(/#$/, '')}> a owl:Ontology ;`);
-    if (config.ontologyMetadata) {
-        lines.push(`    dcterms:title "${escape(config.ontologyMetadata.description)}" ;`);
-        lines.push(`    owl:versionInfo "${config.ontologyMetadata.version}" ;`);
-        if (config.ontologyMetadata.author) {
-            lines.push(`    dcterms:creator "${escape(config.ontologyMetadata.author)}" ;`);
+    if (ontology.ontologyMetadata) {
+        lines.push(`    dcterms:title "${escape(ontology.ontologyMetadata.description)}" ;`);
+        lines.push(`    owl:versionInfo "${ontology.ontologyMetadata.version}" ;`);
+        if (ontology.ontologyMetadata.author) {
+            lines.push(`    dcterms:creator "${escape(ontology.ontologyMetadata.author)}" ;`);
         }
     } else {
-        lines.push(`    dcterms:title "${escape(config.projectName)}" ;`);
+        lines.push(`    dcterms:title "${escape(ontology.projectName)}" ;`);
     }
     lines.push('    .');
     lines.push('');
 
-    for (const [kindName, kindDef] of Object.entries(config.kinds ?? {})) {
+    for (const [kindName, kindDef] of Object.entries(ontology.kinds ?? {})) {
         lines.push(`${prefix}:${kindName} a owl:Class ;`);
         lines.push(`    rdfs:label "${escape(kindDef.label)}" ;`);
         if (kindDef.layer) {
@@ -60,7 +60,7 @@ export function exportToOwlTurtle(
         lines.push('');
     }
 
-    for (const rel of (config.relationshipTypes ?? [])) {
+    for (const rel of (ontology.relationshipTypes ?? [])) {
         lines.push(`${prefix}:${rel.name} a owl:ObjectProperty ;`);
         lines.push(`    rdfs:label "${escape(rel.label)}" ;`);
         lines.push(`    ${prefix}:layer "${rel.layer}" .`);
@@ -71,7 +71,7 @@ export function exportToOwlTurtle(
 }
 
 export function exportToOwlXml(
-    config: OntologyConfig,
+    ontology: OntologyConfig,
     namespace: string = 'https://sysand.dev/ontology/memo/medical#'
 ): string {
     const lines: string[] = [];
@@ -86,13 +86,13 @@ export function exportToOwlXml(
     lines.push(`  <owl:Ontology rdf:about="${ns}"/>`);
     lines.push('');
 
-    for (const [kindName, kindDef] of Object.entries(config.kinds ?? {})) {
+    for (const [kindName, kindDef] of Object.entries(ontology.kinds ?? {})) {
         lines.push(`  <owl:Class rdf:about="${namespace}${kindName}">`);
         lines.push(`    <rdfs:label>${escapeXml(kindDef.label)}</rdfs:label>`);
         lines.push('  </owl:Class>');
     }
 
-    for (const rel of (config.relationshipTypes ?? [])) {
+    for (const rel of (ontology.relationshipTypes ?? [])) {
         lines.push(`  <owl:ObjectProperty rdf:about="${namespace}${rel.name}">`);
         lines.push(`    <rdfs:label>${escapeXml(rel.label)}</rdfs:label>`);
         lines.push('  </owl:ObjectProperty>');

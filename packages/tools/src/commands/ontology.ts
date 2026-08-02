@@ -12,8 +12,17 @@ import { createHash } from 'node:crypto';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import chalk from 'chalk';
 import type { MEMOConfig } from '@memoarchitect/tools';
-import { findConfigFile, loadOntologyRegistries, exportToOwlTurtle, exportToOwlXml } from '@memoarchitect/tools';
-import { loadAndResolveConfig, loadConfigChain, type ConfigChainEntry } from '../server/config-resolver.js';
+import {
+    findConfigFile,
+    loadOntologyRegistries,
+    getPackageMetadata,
+    resolveNativeProject,
+    ontologyViewFrom,
+    exportToOwlTurtle,
+    exportToOwlXml,
+    type LibraryRoot,
+} from '@memoarchitect/tools';
+import { loadAndResolveConfig } from '../server/config-resolver.js';
 
 // ─── memo ontology add-kind ──────────────────────────────────────────────────
 
@@ -43,8 +52,7 @@ export function ontologyAddKindCommand(name: string, options: { layer: string; o
     if (configPath) {
         try {
             const cfg = loadAndResolveConfig(configPath);
-            if (cfg?.ontologyMetadata?.id) namespace = cfg.ontologyMetadata.id.replace(/^@[^/]+\//, '').replace(/[^A-Za-z0-9_]/g, '_');
-            else if (cfg?.projectName) namespace = (cfg.projectName as string).replace(/[^A-Za-z0-9_]/g, '_');
+            if (cfg?.projectName) namespace = cfg.projectName.replace(/[^A-Za-z0-9_]/g, '_');
         } catch {
             // ignore — fall back to 'local'
         }
@@ -102,27 +110,32 @@ export async function ontologyShowCommand(): Promise<void> {
         process.exit(1);
     }
 
-    const config = loadAndResolveConfig(configPath);
+    const projectRoot = dirname(configPath);
+    const loadResult = await loadOntologyRegistries(projectRoot);
+    const resolution = loadResult.resolution;
 
-    // Show metadata
-    if (config.ontologyMetadata) {
-        console.log(chalk.cyan('  ID:      ') + config.ontologyMetadata.id);
-        console.log(chalk.cyan('  Version: ') + config.ontologyMetadata.version);
-        console.log(chalk.cyan('  Desc:    ') + config.ontologyMetadata.description);
+    // Identity comes from the packages the project's imports resolved to. It
+    // used to come from an `ontologyMetadata:` block in the settings file,
+    // which could name a package the model never loaded.
+    const primary = [...(resolution?.selectedRoots ?? [])][0];
+    if (primary) {
+        console.log(chalk.cyan('  Package: ') + primary.packageName);
+        console.log(chalk.cyan('  Version: ') + (primary.packageVersion ?? 'unknown'));
+        console.log(chalk.cyan('  Source:  ') + primary.sysmlDir);
     }
-    console.log(chalk.cyan('  Extends: ') + (config.extends || 'none'));
+    console.log(chalk.cyan('  Resolved:') + ` ${resolution?.selectedRoots.length ?? 0} package(s) in the import closure`);
     console.log('');
 
-    // Layers
-    const layers = config.architectureLayers || [];
+    const layers = getPackageMetadata(
+        projectRoot,
+        new Set((resolution?.selectedRoots ?? []).map(r => r.dir)),
+    ).filter(p => p.selected).flatMap(p => p.layers);
     console.log(chalk.bold(`  Layers (${layers.length}):`));
     for (const l of layers) {
         console.log(`    ${chalk.hex(l.color)('\u25CF')} ${l.label} (${l.id})`);
     }
     console.log('');
 
-    // Load registries for kinds and relationships
-    const loadResult = await loadOntologyRegistries(configPath);
     const kindRegistry = loadResult.registries.kindRegistry;
     const relationshipRegistry = loadResult.registries.relationshipRegistry;
 
@@ -148,23 +161,8 @@ export async function ontologyShowCommand(): Promise<void> {
                 console.log(`    ${layer}: ${kinds.join(', ')}`);
             }
         }
-    } else {
-        // Fallback to config kinds (legacy)
-        const kindEntries = Object.entries(config.kinds ?? {});
-        console.log(chalk.bold(`  Kinds (${kindEntries.length}):`));
-        const byLayer = new Map<string, string[]>();
-        for (const [name, def] of kindEntries) {
-            const layer = def.layer || 'unknown';
-            if (!byLayer.has(layer)) byLayer.set(layer, []);
-            byLayer.get(layer)!.push(name);
-        }
-        for (const l of layers) {
-            const kinds = byLayer.get(l.id) || [];
-            if (kinds.length > 0) {
-                console.log(`    ${chalk.hex(l.color)(l.label)}: ${kinds.join(', ')}`);
-            }
-        }
     }
+
     console.log('');
 
     // Relationships (from registry)
@@ -172,20 +170,11 @@ export async function ontologyShowCommand(): Promise<void> {
         const relEntries = relationshipRegistry.entries();
         console.log(chalk.bold(`  Relationships (${relEntries.length}):`));
         console.log(`    ${relEntries.map(r => r.name).join(', ')}`);
-    } else {
-        const relTypes = config.relationshipTypes ?? [];
-        console.log(chalk.bold(`  Relationships (${relTypes.length}):`));
-        console.log(`    ${relTypes.map(r => r.name).join(', ')}`);
     }
     console.log('');
 
-    // Viewpoints
-    const viewpoints = config.viewpoints || [];
-    console.log(chalk.bold(`  Viewpoints (${viewpoints.length}):`));
-    for (const vp of viewpoints) {
-        console.log(`    ${vp.label} (${vp.visibleKinds.length} kinds, ${vp.visibleRelationships.length} rels)`);
-    }
-    console.log('');
+    // Viewpoints are native `viewpoint def` packages, listed by `memo view`.
+    // The `viewpoints:` settings block that used to answer this is gone.
 }
 
 export async function ontologyExportOwlCommand(options: {
@@ -207,22 +196,31 @@ export async function ontologyExportOwlCommand(options: {
     const config = loadAndResolveConfig(configPath);
     const ns = options.namespace || 'https://sysand.dev/ontology/memo#';
 
+    // Kinds and relationships come from the resolved SysML, not from a
+    // `kinds:`/`relationshipTypes:` block in a settings file.
+    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const ontology = ontologyViewFrom(
+        loadResult.registries.kindRegistry,
+        loadResult.registries.relationshipRegistry,
+    );
+    const exportInput = { projectName: config.projectName, ...ontology };
+
     let content: string;
     let ext: string;
 
     if (format === 'xml' || format === 'rdfxml') {
-        content = exportToOwlXml(config as any, ns);
+        content = exportToOwlXml(exportInput as any, ns);
         ext = '.owl';
     } else {
-        content = exportToOwlTurtle(config as any, ns);
+        content = exportToOwlTurtle(exportInput as any, ns);
         ext = '.ttl';
     }
 
     const outputPath = resolve(cwd, options.output || `ontology${ext}`);
     writeFileSync(outputPath, content);
 
-    const kindCount = Object.keys(config.kinds ?? {}).length;
-    const relCount = (config.relationshipTypes ?? []).length;
+    const kindCount = Object.keys(ontology.kinds).length;
+    const relCount = (ontology.relationshipTypes).length;
     console.log(chalk.cyan(`  ${kindCount} kinds, ${relCount} relationships`));
     console.log(chalk.green(`\n\u2705 Exported to ${outputPath}\n`));
 }
@@ -240,38 +238,31 @@ export async function ontologyExportSysandCommand(options: {
         process.exit(1);
     }
 
-    const configChain = loadConfigChain(configPath);
-    const currentEntry = configChain[configChain.length - 1];
-    const exportEntries = configChain.filter((entry, index) => {
-        return index < configChain.length - 1 ||
-            !!entry.config.ontologyMetadata ||
-            entry.config.projectType === 'ontology' ||
-            entry.config.projectType === 'profile';
-    });
+    // Export what the project's imports resolved to. The config `extends`
+    // chain this used to walk could name packages the model never loaded.
+    const currentConfig = loadAndResolveConfig(configPath);
+    const exportRoots = (await resolveNativeProject(dirname(configPath))).selectedRoots;
 
-    if (exportEntries.length === 0) {
-        console.error(chalk.red('\u274C No ontology/profile packages found in the current config chain.'));
+    if (exportRoots.length === 0) {
+        console.error(chalk.red(
+            '\u274C The project resolves no reusable packages. Add an import to model/catalog/project.sysml.'));
         process.exit(1);
     }
 
-    const bundleName = sanitizeName(
-        currentEntry.config.ontologyMetadata?.id ||
-        currentEntry.config.projectName ||
-        'memo-ontology'
-    );
+    const bundleName = sanitizeName(currentConfig.projectName || 'memo-ontology');
     const outputDir = resolve(cwd, options.output || `${bundleName}_Project`);
     const packagesDir = resolve(outputDir, 'packages');
 
     mkdirSync(packagesDir, { recursive: true });
 
-    const exportedPackages = exportEntries.map(entry => exportConfigPackage(entry, packagesDir));
+    const exportedPackages = exportRoots.map(root => exportResolvedPackage(root, packagesDir));
 
     mkdirSync(resolve(outputDir, 'docs'), { recursive: true });
-    writeFileSync(resolve(outputDir, '.project.json'), JSON.stringify(renderProjectJson(currentEntry.config, exportedPackages), null, 2));
+    writeFileSync(resolve(outputDir, '.project.json'), JSON.stringify(renderProjectJson(currentConfig, exportedPackages), null, 2));
     writeFileSync(resolve(outputDir, '.meta.json'), JSON.stringify(renderMetaJson(exportedPackages, outputDir), null, 2));
     writeFileSync(resolve(outputDir, '.gitignore'), ['sysand_env/', 'output/'].join('\n') + '\n');
-    writeFileSync(resolve(outputDir, 'README.md'), renderReadme(currentEntry.config, exportedPackages));
-    writeFileSync(resolve(outputDir, 'sysand-lock.toml'), renderSysandLock(currentEntry.config, exportedPackages));
+    writeFileSync(resolve(outputDir, 'README.md'), renderReadme(currentConfig, exportedPackages));
+    writeFileSync(resolve(outputDir, 'sysand-lock.toml'), renderSysandLock(currentConfig, exportedPackages));
     const structureTree = buildTree(outputDir, outputDir);
     writeFileSync(resolve(outputDir, 'docs', 'model-structure.json'), JSON.stringify(structureTree, null, 2));
     writeFileSync(resolve(outputDir, 'docs', 'model-structure.md'), renderTreeMarkdown(structureTree));
@@ -287,9 +278,7 @@ interface ExportedPackage {
     id: string;
     name: string;
     version: string;
-    projectType: string;
     path: string;
-    extends?: string | string[];
     files: string[];
     sources: ExportedSource[];
 }
@@ -306,60 +295,57 @@ interface TreeNode {
     children?: TreeNode[];
 }
 
-function exportConfigPackage(entry: ConfigChainEntry, packagesDir: string): ExportedPackage {
-    const sourceDir = dirname(entry.configPath);
-    const name = sanitizeName(entry.config.ontologyMetadata?.id || basename(sourceDir));
+function exportResolvedPackage(root: LibraryRoot, packagesDir: string): ExportedPackage {
+    const name = sanitizeName(root.packageName);
     const targetDir = resolve(packagesDir, name);
     mkdirSync(targetDir, { recursive: true });
 
     const copied: string[] = [];
     const sources: ExportedSource[] = [];
 
-    // Copy the primary config file
-    cpSync(entry.configPath, resolve(targetDir, basename(entry.configPath)));
-    copied.push(basename(entry.configPath));
-
-    // Copy companion config files (new format: rendering, rules, viewpoints)
-    for (const companion of ['memo.rendering.yaml', 'memo.rules.yaml', 'memo.viewpoints.yaml']) {
-        const companionPath = resolve(sourceDir, companion);
-        if (existsSync(companionPath)) {
-            cpSync(companionPath, resolve(targetDir, companion));
-            copied.push(companion);
+    // The package descriptor travels as a locator. The companion semantic
+    // sidecars — memo.rendering.yaml, memo.rules.yaml, memo.viewpoints.yaml —
+    // are not copied because they no longer exist: their content is SysML in
+    // the sources below.
+    for (const descriptor of ['memo.package.yaml', 'memo.package.yml']) {
+        const path = resolve(root.dir, descriptor);
+        if (existsSync(path)) {
+            cpSync(path, resolve(targetDir, descriptor));
+            copied.push(descriptor);
+            break;
         }
     }
 
-    // Copy per-package .project.json if it exists
-    const projectJsonPath = resolve(sourceDir, '.project.json');
+    const projectJsonPath = resolve(root.dir, '.project.json');
     if (existsSync(projectJsonPath)) {
         cpSync(projectJsonPath, resolve(targetDir, '.project.json'));
         copied.push('.project.json');
     }
 
-    for (const folderName of ['sysml', 'templates']) {
-        const sourcePath = resolve(sourceDir, folderName);
-        if (existsSync(sourcePath)) {
-            cpSync(sourcePath, resolve(targetDir, folderName), { recursive: true });
-            copied.push(`${folderName}/`);
-            if (folderName === 'sysml') {
-                sources.push(...collectSysmlSources(resolve(targetDir, folderName), dirname(packagesDir)));
-            }
-        }
+    if (existsSync(root.sysmlDir)) {
+        cpSync(root.sysmlDir, resolve(targetDir, 'sysml'), { recursive: true });
+        copied.push('sysml/');
+        sources.push(...collectSysmlSources(resolve(targetDir, 'sysml'), dirname(packagesDir)));
+    }
+
+    const templatesDir = resolve(root.dir, 'templates');
+    if (existsSync(templatesDir)) {
+        cpSync(templatesDir, resolve(targetDir, 'templates'), { recursive: true });
+        copied.push('templates/');
     }
 
     return {
-        id: entry.config.ontologyMetadata?.id || entry.config.projectName,
+        id: root.packageName,
         name,
-        version: entry.config.ontologyMetadata?.version || '0.0.0',
-        projectType: entry.config.projectType,
+        version: root.packageVersion ?? '0.0.0',
         path: relative(dirname(packagesDir), targetDir),
-        extends: entry.config.extends,
         files: copied,
         sources,
     };
 }
 
 function renderReadme(currentConfig: MEMOConfig, packages: ExportedPackage[]): string {
-    const title = currentConfig.ontologyMetadata?.id || currentConfig.projectName;
+    const title = currentConfig.projectName;
     const lines = [
         `# ${title}`,
         '',
@@ -383,24 +369,14 @@ function renderProjectJson(
     currentConfig: MEMOConfig,
     packages: ExportedPackage[],
 ): Record<string, unknown> {
-    // Derive usage from package types
-    const usageSet = new Set<string>();
-    for (const pkg of packages) {
-        if (pkg.projectType === 'ontology') {
-            usageSet.add('kinds');
-            usageSet.add('relationships');
-        } else if (pkg.projectType === 'profile') {
-            usageSet.add('rules');
-            usageSet.add('viewpoints');
-            usageSet.add('templates');
-        }
-    }
-
+    // A package's `usage:` used to be declared in its descriptor. What a
+    // package supplies is what its SysML declares, so the export states only
+    // the packages it bundled and lets the consumer read them.
     return {
         name: currentConfig.projectName,
-        publisher: currentConfig.ontologyMetadata?.author || 'untitled',
-        version: currentConfig.ontologyMetadata?.version || packages[packages.length - 1]?.version || '0.0.1',
-        usage: Array.from(usageSet).sort(),
+        publisher: 'untitled',
+        version: packages[packages.length - 1]?.version || '0.0.1',
+        usage: packages.map(p => ({ resource: `urn:kpar:${p.name}` })),
     };
 }
 
@@ -450,12 +426,7 @@ function renderSysandLock(currentConfig: MEMOConfig, packages: ExportedPackage[]
         lines.push(`id = ${tomlString(pkg.id)}`);
         lines.push(`name = ${tomlString(pkg.name)}`);
         lines.push(`version = ${tomlString(pkg.version)}`);
-        lines.push(`project_type = ${tomlString(pkg.projectType)}`);
         lines.push(`path = ${tomlString(pkg.path)}`);
-        if (pkg.extends) {
-            const extendsStr = Array.isArray(pkg.extends) ? pkg.extends.join(', ') : pkg.extends;
-            lines.push(`extends = ${tomlString(extendsStr)}`);
-        }
         if (pkg.files.length > 0) {
             lines.push(`files = [${pkg.files.map(file => tomlString(file)).join(', ')}]`);
         }

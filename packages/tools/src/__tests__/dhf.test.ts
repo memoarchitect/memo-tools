@@ -55,7 +55,7 @@ function makeCompleteness(): CompletenessReport {
 }
 
 function makeConfig(): MEMOConfig {
-    return { projectName: 'Test Project', projectType: 'device' as any, architectureLayers: [], viewpoints: [], workflows: [] };
+    return { projectName: 'Test Project' };
 }
 
 // ─── Document Registry Tests ─────────────────────────────────────────────────

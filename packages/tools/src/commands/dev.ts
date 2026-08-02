@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, deriveModelViews, resolveViewKind, collectNativeConstraints } from '@memoarchitect/tools';
+import { findConfigFile, parseFiles, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
@@ -103,7 +103,13 @@ export async function devCommand(options: {
     let buildCount = 0;
     console.log(chalk.gray(`Project: ${config.projectName}`));
 
-    const lockCheck = checkLockFile(configPath);
+    const nativeResolution = await resolveNativeProject(cwd);
+    for (const d of nativeResolution.diagnostics) {
+        console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
+    }
+    const lockCheck = checkLockFile(cwd, nativeResolution.selectedRoots.map(root => ({
+        ...root, origin: 'ontology', importDepth: 1,
+    })));
     if (!lockCheck.ok) {
         console.error(chalk.red(`\n❌ ${lockCheck.message}\n`));
         process.exit(1);
@@ -115,14 +121,16 @@ export async function devCommand(options: {
     // Load + freeze ontology registries — no mid-session mutation
     let ontologyRegistries: BuilderRegistries | undefined;
     let ontologyRoots: string[] = [];
+    let provenance: import('@memoarchitect/tools').ProvenanceTable | undefined;
     let ontologyDocuments: ParsedDocument[] = [];
     let ontologyHash = '';
 
     try {
         const loadResult = await loadOntologyRegistries(configPath);
         if (loadResult.fileCount > 0) {
-            ontologyRegistries = loadResult.registries;
+            ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
             ontologyRoots = loadResult.ontologyDirs;
+            provenance = loadResult.provenance;
             ontologyDocuments = loadResult.parsedDocuments;
             if (ontologyRegistries.kindRegistry) Object.freeze(ontologyRegistries.kindRegistry);
             if (ontologyRegistries.relationshipRegistry) Object.freeze(ontologyRegistries.relationshipRegistry);
@@ -142,7 +150,7 @@ export async function devCommand(options: {
     // Phase B — methodology descriptor (data-only; no UI consumer yet)
     let methodologyDescriptor: MethodologyDescriptor = { folders: [], errors: [] };
     try {
-        methodologyDescriptor = await loadMethodologyDescriptor(configPath, cwd);
+        methodologyDescriptor = await loadMethodologyDescriptor(cwd, nativeResolution);
         const folderCount = methodologyDescriptor.folders.length;
         const totalParts = methodologyDescriptor.folders.reduce(
             (s, f) => s + Object.values(f.parts).reduce((a, p) => a + p.length, 0), 0,
@@ -173,7 +181,7 @@ export async function devCommand(options: {
     async function rebuildProject(): Promise<{ messages: ServerMessage[]; revision: number }> {
         buildCount++;
         try {
-            methodologyDescriptor = await loadMethodologyDescriptor(methodologyConfigPath, cwd);
+            methodologyDescriptor = await loadMethodologyDescriptor(cwd);
         } catch {
             // keep last good descriptor on transient parse failure
         }
@@ -188,25 +196,20 @@ export async function devCommand(options: {
         const model = buildMemoModel(documents, config, errors, projectRegistries);
         const nativeConstraints = collectNativeConstraints([...ontologyDocuments, ...documents]);
         const validation = validateModel(model, nativeConstraints, projectRegistries?.kindRegistry);
-        const completeness = computeCompleteness(model, validation, config);
+        const completeness = computeCompleteness(model, validation);
 
         console.log(chalk.cyan(
             `  ${model.elements.size} elements, ${model.relationships.length} relationships, ` +
             `${validation.violations.length} violations, ${completeness.overall}% complete`
         ));
 
-        const viewpoints: ViewpointDTO[] = config.viewpoints?.map(vp => ({
-            id: vp.id,
-            label: vp.label,
-            group: vp.group,
-            visibleKinds: vp.visibleKinds,
-            visibleRelationships: vp.visibleRelationships,
-            visibleLayers: vp.visibleLayers,
-            supportedDiagramTypes: vp.supportedDiagramTypes,
-        })) ?? [];
+        // Viewpoints are native `viewpoint def` packages. The `viewpoints:`
+        // settings block that used to supply them is gone: a portable view's
+        // content cannot depend on a file the model does not carry.
+        const viewpoints: ViewpointDTO[] = [];
 
         // Views modelled in SysML (DiagramView/DocumentView usages) surface as
-        // viewpoint-grouped auto diagrams alongside config-defined viewpoints.
+        // viewpoint-grouped auto diagrams.
         const derivedViews = deriveModelViews(model, projectRegistries?.kindRegistry);
         viewpoints.push(...derivedViews.viewpoints);
 
@@ -226,36 +229,12 @@ export async function devCommand(options: {
             });
         }
         diagrams.push(...derivedViews.diagrams);
-        if (config.viewpoints) {
-            for (const vp of config.viewpoints) {
-                if (vp.diagrams) {
-                    for (const d of vp.diagrams) {
-                        diagrams.push({
-                            id: d.id,
-                            name: d.name,
-                            diagramType: d.diagramType,
-                            viewKind: resolveViewKind(undefined, d.diagramType),
-                            viewpointId: d.viewpointId,
-                            viewpointIds: d.viewpointIds,
-                            group: d.group,
-                            auto: d.auto,
-                            description: d.description,
-                            properties: d.properties,
-                            elementIds: d.elementIds,
-                            relationshipTypes: d.relationshipTypes,
-                        });
-                    }
-                }
-            }
-        }
 
-        const architectureLayers: ArchLayerDTO[] | undefined = config.architectureLayers?.map(cl => ({
-            id: cl.id,
-            label: cl.label,
-            color: cl.color,
-        }));
+        // Layer presentation comes from the ontology's own `LayerRendering`
+        // usages, published with the package metadata.
+        const architectureLayers: ArchLayerDTO[] | undefined = undefined;
 
-        const baseVersion = config.ontologyMetadata?.version || '0.1.0';
+        const baseVersion = nativeResolution.selectedRoots[0]?.packageVersion || '0.1.0';
         const metadata: ModelMetadata = {
             projectName: config.projectName,
             version: `${baseVersion}-dev.${buildCount}`,
@@ -392,13 +371,15 @@ export async function devCommand(options: {
             type: 'source:changed',
             payload: { files: changedFiles, revision: result.revision, at: Date.now() },
         }]);
-    }, 300, false, { ontologyRoots });
+    }, 300, false, { ontologyRoots, provenance });
 
     // Ontology watcher — restart notification only, no registry reload
     ontologyWatcher = createOntologyWatcher(
         cwd,
         ontologyRoots,
-        (changedFile) => notifyRestartRequired('ontology-source-changed', changedFile)
+        (changedFile) => notifyRestartRequired('ontology-source-changed', changedFile),
+        300,
+        provenance,
     );
 
     // Open browser

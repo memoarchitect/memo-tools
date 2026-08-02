@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 function config(toolchain?: MEMOConfig['toolchain']): MEMOConfig {
-    return { projectName: 'test', projectType: 'device', toolchain };
+    return { projectName: 'test', toolchain };
 }
 
 describe('toolchain provider configuration', () => {

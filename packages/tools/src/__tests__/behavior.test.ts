@@ -5,6 +5,7 @@ import { createMemoSysMLServices } from '../language/memo-sysml-module.js';
 import type { Model } from '../language/generated/ast.js';
 import type { MEMOConfig } from '../model/config.js';
 import { buildMemoModel } from '../model/builder.js';
+import { KindRegistry } from '../model/kind-registry.js';
 import { validateBehavior } from '../validator/behavior-validator.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
 
@@ -19,16 +20,6 @@ async function parseDoc(source: string, filePath: string = 'test.sysml'): Promis
 /** Minimal config for behavior testing */
 const behaviorConfig: MEMOConfig = {
     projectName: 'test-behavior',
-    projectType: 'device',
-    kinds: {
-        Subsystem: { label: 'Subsystem', layer: 'logical', sysmlConstruct: 'part def' },
-        SystemFunction: { label: 'System Function', layer: 'functional', sysmlConstruct: 'action def' },
-    },
-    relationshipTypes: [
-        { name: 'allocateTo', label: 'Allocate To', layer: 'functional', color: '#E67E22' },
-        { name: 'flow', label: 'Flow', layer: 'behavior', color: '#3498DB' },
-        { name: 'succession', label: 'Succession', layer: 'behavior', color: '#95A5A6' },
-    ],
 };
 
 // ─── Grammar Parsing Tests ─────────────────────────────────────────────────
@@ -420,13 +411,18 @@ describe('Behavior builder: composite action usage', () => {
         expect(validate!.parentAction).toBe('performInfusion');
     });
 
-    it('extracts typed action usage with config kind', async () => {
+    it('extracts a typed action usage and takes its layer from the ontology', async () => {
         const doc = await parseDoc(`
             package Test {
                 action myFunc : SystemFunction;
             }
         `);
-        const model = buildMemoModel([doc], behaviorConfig);
+        const kindRegistry = new KindRegistry();
+        kindRegistry.register({
+            name: 'SystemFunction', label: 'System Function', layer: 'functional',
+            sysmlConstruct: 'action def', qualifiedName: 'memo::test::SystemFunction',
+        });
+        const model = buildMemoModel([doc], behaviorConfig, [], { kindRegistry });
         const el = model.elements.get('myFunc');
         expect(el).toBeDefined();
         expect(el!.kind).toBe('SystemFunction');

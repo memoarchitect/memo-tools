@@ -5,7 +5,6 @@ export * from '../model/source-affinity.js';
 export * from '../model/relationship-legality.js';
 export * from '../model/view-deriver.js';
 export * from '../model/view-kinds.js';
-export * from '../model/dimension-filter.js';
 export * from '../analysis/dsm.js';
 export * from '../analysis/impact.js';
 export * from '../import/recipes.js';

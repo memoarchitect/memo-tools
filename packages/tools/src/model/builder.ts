@@ -58,7 +58,8 @@ import type {
     AllocateUsage,
     ControlNodeUsage,
 } from '../language/generated/ast.js';
-import type { MEMOConfig, KindDefinition } from './config.js';
+import type { MEMOConfig } from './config.js';
+import type { KindDefinition } from './kind-registry.js';
 import type {
     MemoElement,
     MemoRelationship,
@@ -73,6 +74,7 @@ import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
+import type { ProvenanceTable, SemanticElementProvenance } from './source-provenance.js';
 
 /**
  * Optional registries for dual-mode resolution.
@@ -84,6 +86,8 @@ export interface BuilderRegistries {
     kindRegistry?: KindRegistry;
     /** RelationshipRegistry populated from ontology SysML files */
     relationshipRegistry?: RelationshipRegistry;
+    /** Resolved source ownership; never infer this from a client-side path. */
+    provenance?: ProvenanceTable;
 }
 
 let relationshipCounter = 0;
@@ -149,8 +153,10 @@ function resolveKindDef(
         }
     }
 
-    // Fall back to config (if kinds are present)
-    const kinds = config.kinds ?? {};
+    // There is no config fallback. Kinds come from the ontology the project
+    // resolves; a YAML `kinds:` block used to be able to declare one, which
+    // meant a settings file could invent a type the ontology never defined.
+    const kinds: Record<string, KindDefinition> = {};
     const kindDef = kinds[typeName];
     if (kindDef) {
         return { kindDef, resolvedKind: typeName };
@@ -216,6 +222,11 @@ export function buildMemoModel(
     for (const { allocate, filePath, packageName } of deferredAllocates) {
         resolveAllocate(allocate, filePath, packageName, elements, relationships, registry, allElementIds);
     }
+
+    // Keep ownership of a declaration separate from ownership of the type that
+    // classifies it.  A project usage of `Hazard` is editable project content;
+    // its classifier is a read-only ontology definition.
+    applySemanticProvenance(elements, relationships, registries);
 
     // Build indexes
     const elementsByKind = new Map<string, MemoElement[]>();
@@ -305,6 +316,54 @@ export function buildMemoModel(
         outgoing,
         incoming,
     };
+}
+
+function applySemanticProvenance(
+    elements: Map<string, MemoElement>,
+    relationships: MemoRelationship[],
+    registries?: BuilderRegistries,
+): void {
+    const table = registries?.provenance;
+    if (!table) return;
+
+    const entryFor = (kind: string) => registries?.kindRegistry?.getKind(kind)
+            ?? registries?.kindRegistry?.getKind(kind.split('::').pop() ?? kind);
+    const classifierFor = (kind: string) => {
+        const entry = entryFor(kind);
+        if (!entry?.qualifiedName) return undefined;
+        return {
+            qualifiedName: entry.qualifiedName,
+            shortName: entry.name,
+            provenance: entry.sourceFile ? table.lookup(entry.sourceFile) : undefined,
+        };
+    };
+    const classifierChainFor = (kind: string) => {
+        const chain = [] as NonNullable<SemanticElementProvenance['classifierChain']>;
+        const seen = new Set<string>();
+        let entry = entryFor(kind);
+        while (entry?.qualifiedName && !seen.has(entry.qualifiedName)) {
+            seen.add(entry.qualifiedName);
+            chain.push({
+                qualifiedName: entry.qualifiedName,
+                shortName: entry.name,
+                provenance: entry.sourceFile ? table.lookup(entry.sourceFile) : undefined,
+            });
+            entry = entry.superType ? entryFor(entry.superType) : undefined;
+        }
+        return chain.length > 0 ? chain : undefined;
+    };
+    const declarationFor = (file: string, kind?: string): SemanticElementProvenance => ({
+        declaration: table.lookupOrProject(file),
+        classifier: kind ? classifierFor(kind) : undefined,
+        classifierChain: kind ? classifierChainFor(kind) : undefined,
+    });
+
+    for (const element of elements.values()) {
+        element.provenance = declarationFor(element.file, element.kind);
+    }
+    for (const relationship of relationships) {
+        relationship.provenance = declarationFor(relationship.file, relationship.type);
+    }
 }
 
 /**

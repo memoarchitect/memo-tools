@@ -60,10 +60,10 @@ describe('E2E: memo init → validate → export', () => {
         const projectDir = join(tmpDir, 'test-device');
         expect(existsSync(projectDir)).toBe(true);
         expect(existsSync(join(projectDir, 'memo.package.yaml'))).toBe(true);
-        const architecturePath = join(projectDir, 'src', 'architecture', 'system.sysml');
+        const architecturePath = join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml');
         expect(existsSync(architecturePath)).toBe(true);
-        expect(existsSync(join(projectDir, 'src', 'assurance', 'requirements.sysml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'src', 'artifacts', 'artifacts.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'assurance', 'requirements.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'artifacts', 'catalog.sysml'))).toBe(true);
         const samplesDir = join(projectDir, 'analysis', 'Samples');
         expect(readdirSync(samplesDir).sort()).toEqual([
             '01-model-overview.ipynb',
@@ -82,12 +82,20 @@ describe('E2E: memo init → validate → export', () => {
 
         // Check new-format config content
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
-        expect(config).toMatchObject({
-            name: 'test-device',
-            type: 'device',
-            extends: '@memoarchitect/methodology-default',
-        });
+        // Identity only. `type` and `extends` selected model content and are
+        // no longer written or read.
+        expect(config).toMatchObject({ name: 'test-device' });
+        expect(config.type).toBeUndefined();
+        expect(config.extends).toBeUndefined();
         expect(readFileSync(architecturePath, 'utf-8')).toContain('private import memo::*');
+
+        // The native entrypoint carries the imports and the binding.
+        const entrypointPath = join(projectDir, 'model', 'catalog', 'project.sysml');
+        expect(existsSync(entrypointPath)).toBe(true);
+        const entrypoint = readFileSync(entrypointPath, 'utf-8');
+        expect(entrypoint).toContain('ProjectMethodBinding');
+        expect(entrypoint).toContain('ref :>> selectedMethodology');
+        expect(entrypoint).toContain('private import memo_methodology_profiles::*;');
 
         expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
         const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
@@ -103,9 +111,9 @@ describe('E2E: memo init → validate → export', () => {
         expect(output).toContain('Project created in current directory');
 
         expect(existsSync(join(projectDir, 'memo.package.yaml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'src', 'architecture', 'system.sysml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'src', 'assurance', 'requirements.sysml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'src', 'artifacts', 'artifacts.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'assurance', 'requirements.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'artifacts', 'catalog.sysml'))).toBe(true);
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
         expect(config.name).toBe('inplace-device');
 
@@ -129,10 +137,14 @@ describe('E2E: memo init → validate → export', () => {
 
         const projectDir = join(tmpDir, 'test-core-device');
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
-        expect(config.extends).toBe('@memoarchitect/ontology');
+        // The descriptor records identity only. What the project imports and
+        // which methodology it binds is in model/catalog/project.sysml.
+        expect(config.extends).toBeUndefined();
+        const entrypoint = readFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), 'utf-8');
+        expect(entrypoint).toContain('ProjectMethodBinding');
 
         // SysML should import the ontology
-        const sysml = readFileSync(join(projectDir, 'src', 'architecture', 'system.sysml'), 'utf-8');
+        const sysml = readFileSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'), 'utf-8');
         expect(sysml).toContain('private import memo::*');
 
         expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
@@ -146,8 +158,9 @@ describe('E2E: memo init → validate → export', () => {
             expect(output).toContain('Created memo.lock.yaml');
 
             const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
+            // The lock records the packages the project's imports resolved to.
             expect(lock).toContain('ontology: "@memoarchitect/ontology"');
-            expect(lock).toContain('name: "@memoarchitect/methodology-default"');
+            expect(lock).toContain('name: "@memoarchitect/ontology"');
             expect(lock).not.toContain('tmp-e2e-lock-device');
         } finally {
             rmSync(projectDir, { recursive: true, force: true });
@@ -168,7 +181,7 @@ describe('E2E: memo init → validate → export', () => {
         // Run from REPO_ROOT so packages are discoverable
         const output = run('init --list', REPO_ROOT);
         expect(output).toContain('@memoarchitect/ontology');
-        expect(output).toContain('@memoarchitect/medical-modeling-profile');
+        expect(output).toContain('@memoarchitect/');
         expect(output).toContain('(default)');
     });
 
@@ -178,7 +191,7 @@ describe('E2E: memo init → validate → export', () => {
 
         expect(output).toContain('template: samd');
         expect(output).toContain('Project created');
-        expect(readFileSync(join(projectDir, 'src', 'architecture', 'system.sysml'), 'utf-8'))
+        expect(readFileSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'), 'utf-8'))
             .toContain('samdDevice');
     });
 
@@ -188,15 +201,17 @@ describe('E2E: memo init → validate → export', () => {
 
         expect(output).toContain('template: default');
         expect(output).toContain('Project created');
-        expect(existsSync(join(projectDir, 'src', 'architecture', 'system.sysml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'src', 'assurance', 'requirements.sysml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'src', 'artifacts', 'artifacts.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'assurance', 'requirements.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'artifacts', 'catalog.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'syside.toml'))).toBe(true);
         const npmPackage = JSON.parse(readFileSync(join(projectDir, 'package.json'), 'utf-8'));
         expect(npmPackage.name).toBe('test-default');
         expect(npmPackage.dependencies['@memoarchitect/ontology']).toMatch(/^\d+\.\d+\.\d+$/);
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
-        expect(config.extends).toBe('@memoarchitect/methodology-default');
+        expect(config.extends).toBeUndefined();
+        expect(readFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), 'utf-8'))
+            .toContain('ProjectMethodBinding');
     });
 
     it('memo init --template rejects an unknown template', () => {
@@ -224,7 +239,7 @@ describe('E2E: memo init → validate → export', () => {
         expect(output).toContain('gpca-pump');
         expect(output).toContain('Project created');
 
-        expect(existsSync(join(projectDir, 'memo.config.yaml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model'))).toBe(true);
 
         const modelDir = join(projectDir, 'model');
@@ -242,7 +257,7 @@ describe('E2E: memo init → validate → export', () => {
 
         expect(output).toContain('Creating project from example');
         expect(output).toContain('gpca-pump');
-        expect(existsSync(join(projectDir, 'memo.config.yaml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
     });
 
     it('memo init --example with no name copies into the current (empty) directory', () => {
@@ -251,7 +266,7 @@ describe('E2E: memo init → validate → export', () => {
 
         const output = run('init --example gpca', projectDir);
         expect(output).toContain('Project created in current directory');
-        expect(existsSync(join(projectDir, 'memo.config.yaml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model'))).toBe(true);
 
         // Refuses to copy into a non-empty directory
@@ -284,15 +299,27 @@ describe('E2E: ontology lock + change detection', () => {
         mkdirSync(projectDir, { recursive: true });
         mkdirSync(join(projectDir, 'model'), { recursive: true });
 
-        writeFileSync(join(projectDir, 'memo.config.yaml'), `
-projectName: lock-test
-projectType: device
-extends: "@memoarchitect/medical-modeling-profile"
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: lock-test\n`);
+        mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
+        writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
+package lock_test_project {
+    private import memo_core_enumerations::*;
+    private import memo_methodology_core::*;
+    private import memo_methodology_profiles::*;
+    private import lock_test_model::*;
+
+    part binding : ProjectMethodBinding {
+        attribute :>> id = "PMB-TEST";
+        attribute :>> name = "lock-testBinding";
+        attribute :>> projectName = "lock-test";
+        ref :>> selectedMethodology = mdDefaultDefinition;
+        attribute :>> scopeMode = ScopeModeKind::explicit;
+    }
+}
 `);
 
         writeFileSync(join(projectDir, 'model', 'device.sysml'), `
-package LockTest {
-    import memo_medical_device_library::*;
+package lock_test_model {
     part sys : System {
         attribute redefines name = "Lock Test";
     }
@@ -308,17 +335,18 @@ package LockTest {
         const output = run('lock', projectDir);
 
         expect(output).toContain('Lock file written');
-        expect(output).toContain('@memoarchitect/medical-modeling-profile');
+        expect(output).toContain('@memoarchitect/');
         expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
 
         const lock = readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8');
-        expect(lock).toContain('ontology: "@memoarchitect/medical-modeling-profile"');
+        expect(lock).toContain('ontology: "@memoarchitect/ontology"');
         expect(lock).toContain('version:');
         expect(lock).toContain('lockedAt:');
         expect(lock).toContain('packages:');
-        // Should have the ontology packages in the chain
+        // The lock records what the project's imports resolved to. There is no
+        // `extends` chain to walk, so a package the model never reaches is not
+        // in the lock — which is the point of locking the resolution.
         expect(lock).toContain('@memoarchitect/ontology');
-        expect(lock).toContain('@memoarchitect/medical-modeling-profile');
     });
 
     it('memo validate succeeds with matching lock', () => {
@@ -335,13 +363,13 @@ package LockTest {
         const lockPath = join(projectDir, 'memo.lock.yaml');
         const lock = readFileSync(lockPath, 'utf-8');
         writeFileSync(lockPath, lock.replace(
-            '@memoarchitect/medical-modeling-profile',
+            '@memoarchitect/ontology',
             '@memoarchitect/some-other-ontology'
         ));
 
         const { stdout, exitCode } = runMayFail('validate', projectDir);
         expect(exitCode).not.toBe(0);
-        expect(stdout).toContain('Ontology mismatch');
+        expect(stdout).toContain('Locked ontology cannot be resolved');
         expect(stdout).toContain('@memoarchitect/some-other-ontology');
 
         // Restore the lock file for subsequent tests
@@ -369,7 +397,7 @@ package LockTest {
         const lockPath = join(projectDir, 'memo.lock.yaml');
         const oldLock = readFileSync(lockPath, 'utf-8');
         writeFileSync(lockPath, oldLock.replace(
-            '@memoarchitect/medical-modeling-profile',
+            '@memoarchitect/ontology',
             '@memoarchitect/some-other-ontology'
         ));
 
@@ -397,17 +425,28 @@ describe('E2E: custom model validation', () => {
         mkdirSync(projectDir, { recursive: true });
         mkdirSync(join(projectDir, 'model'), { recursive: true });
 
-        // Write a minimal config that extends @memoarchitect/medical-modeling-profile
-        writeFileSync(join(projectDir, 'memo.config.yaml'), `
-projectName: custom-device
-projectType: device
-extends: "@memoarchitect/medical-modeling-profile"
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: custom-device\n`);
+        mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
+        writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
+package custom_device_project {
+    private import memo_core_enumerations::*;
+    private import memo_methodology_core::*;
+    private import memo_methodology_profiles::*;
+    private import custom_device_model::*;
+
+    part binding : ProjectMethodBinding {
+        attribute :>> id = "PMB-TEST";
+        attribute :>> name = "custom-deviceBinding";
+        attribute :>> projectName = "custom-device";
+        ref :>> selectedMethodology = mdDefaultDefinition;
+        attribute :>> scopeMode = ScopeModeKind::explicit;
+    }
+}
 `);
 
         // Write a SysML model with elements and a traced relationship
         writeFileSync(join(projectDir, 'model', 'device.sysml'), `
-package CustomDevice {
-    import memo_medical_device_library::*;
+package custom_device_model {
 
     part mySystem : System {
         attribute redefines name = "Custom Device";
@@ -438,9 +477,14 @@ package CustomDevice {
         const { stdout } = runMayFail('validate', projectDir);
 
         expect(stdout).toContain('Model:');
-        expect(stdout).toContain('3 elements');
+        // Three modelled parts plus the two methodology elements the native
+        // entrypoint contributes: the binding and the methodology it selects.
+        expect(stdout).toContain('5 elements');
         expect(stdout).toContain('1 relationships');
         expect(stdout).toContain('Completeness by Layer');
+        // The project is resolved from its entrypoint, and the binding names
+        // the methodology with a typed reference rather than a YAML field.
+        expect(stdout).toContain('Binding: custom-device → mdDefaultDefinition');
     });
 });
 
@@ -624,8 +668,8 @@ describe('DD-3: kpar round-trip (GPCA pump)', () => {
     });
 
     it('config file survives round-trip', () => {
-        const srcConfig = readFileSync(join(GPCA_DIR, 'memo.config.yaml'), 'utf-8');
-        const extConfig = readFileSync(join(extractDir, 'memo.config.yaml'), 'utf-8');
+        const srcConfig = readFileSync(join(GPCA_DIR, 'model', 'catalog', 'project.sysml'), 'utf-8');
+        const extConfig = readFileSync(join(extractDir, 'model', 'catalog', 'project.sysml'), 'utf-8');
         expect(extConfig).toBe(srcConfig);
     });
 });

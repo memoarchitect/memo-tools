@@ -59,7 +59,7 @@ async function loadModel(): Promise<LoadedModel> {
     const { documents, errors: parseErrors } = await parseFiles(sysmlFiles, cwd + '/');
     const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     const validation = validateModel(model);
-    const completeness = computeCompleteness(model, validation, config);
+    const completeness = computeCompleteness(model, validation);
     const dhfConfig = loadDhfConfig(cwd);
     const queryCtx = createQueryContext(model, validation, completeness, config);
 

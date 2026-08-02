@@ -17,7 +17,7 @@
 // Design reference: sections 7.1-7.3.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolve, sep } from 'node:path';
+import { isAbsolute, resolve, sep } from 'node:path';
 
 /**
  * Authority category of a source unit.
@@ -107,6 +107,16 @@ export function isReusableOrigin(origin: SemanticOrigin): boolean {
     return REUSABLE_ORIGINS.has(origin);
 }
 
+/** Classify a watched source path from the resolved provenance table. */
+export function classifySourceChange(
+    filePath: string,
+    provenance: ProvenanceTable,
+): 'project' | 'reusable' | 'unknown' {
+    const source = provenance.lookup(filePath);
+    if (!source) return 'unknown';
+    return isReusableOrigin(source.origin) ? 'reusable' : 'project';
+}
+
 /**
  * Resolves any file path to its provenance.
  *
@@ -141,9 +151,21 @@ export class ProvenanceTable {
      * content) or to ontology (which would hide a real project file).
      */
     lookup(filePath: string): SourceProvenance | undefined {
-        const absolute = resolve(filePath);
+        // Parsers retain project-relative paths for transport. Resolve those
+        // against the project that owns this table, never the CLI's own cwd.
+        const absolute = isAbsolute(filePath) ? resolve(filePath) : resolve(this.projectRoot, filePath);
         if (this.cache.has(absolute)) return this.cache.get(absolute);
-        const provenance = this.compute(absolute);
+        let provenance = this.compute(absolute);
+        // Registry entries originating from package scans may retain a path
+        // relative to their package root. Try every resolved root only after
+        // the project-relative interpretation, so authored project paths keep
+        // their normal meaning.
+        if (!provenance && !isAbsolute(filePath)) {
+            for (const root of this.roots) {
+                provenance = this.compute(resolve(root.dir, filePath));
+                if (provenance) break;
+            }
+        }
         this.cache.set(absolute, provenance);
         return provenance;
     }
@@ -156,7 +178,8 @@ export class ProvenanceTable {
      * between "project" and "unknown" carries meaning.
      */
     lookupOrProject(filePath: string): SourceProvenance {
-        return this.lookup(filePath) ?? this.projectProvenance(resolve(filePath));
+        const absolute = isAbsolute(filePath) ? resolve(filePath) : resolve(this.projectRoot, filePath);
+        return this.lookup(absolute) ?? this.projectProvenance(absolute);
     }
 
     private compute(absolute: string): SourceProvenance | undefined {

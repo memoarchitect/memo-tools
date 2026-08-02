@@ -87,7 +87,7 @@ function walk(
         for (const member of node.members ?? []) walk(member, out, file, diagnostics);
     } else if (node.$type === 'ConstraintDefinition' || node.$type === 'RequirementDefinition') {
         try {
-            const compiled = tryCompile(node);
+            const compiled = tryCompile(node, file);
             if (compiled) out.push(compiled);
         } catch (error) {
             diagnostics?.push({
@@ -100,7 +100,14 @@ function walk(
     }
 }
 
-function tryCompile(def: any): CompiledConstraint | undefined {
+function mapTailoring(raw?: string): 'invariant' | 'assurance' | 'methodology' {
+    // A rule with no declared class is treated as `assurance`: tailorable with
+    // rationale. Defaulting to `invariant` would silently make every
+    // unclassified rule untailorable, which is the harder failure to notice.
+    return raw === 'invariant' || raw === 'methodology' ? raw : 'assurance';
+}
+
+function tryCompile(def: any, file?: string): CompiledConstraint | undefined {
     const body: any[] = def.body ?? [];
     const attrs = extractAttributes(body);
     const id = attrs['id'];
@@ -139,6 +146,9 @@ function tryCompile(def: any): CompiledConstraint | undefined {
         appliesToKind,
         severity: mapSeverity(attrs['severity']),
         evaluator: attrs['evaluator'] || undefined,
+        typeName: def.name,
+        tailoring: mapTailoring(attrs['tailoring']),
+        sourceFile: file,
         ast,
     };
 }

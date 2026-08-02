@@ -9,7 +9,6 @@ import { runChatTurn } from '../llm/chat-engine.js';
 import { acceptsSamplingParams } from '../llm/llm-provider.js';
 import type { LLMProvider, CompletionOptions, CompletionResult, ChatMessage } from '../llm/llm-provider.js';
 import type { QueryContext } from '../dhf/query-engine.js';
-import type { MEMOConfig } from '../model/config.js';
 import type { MemoElement, MemoRelationship } from '../model/semantic.js';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -52,15 +51,17 @@ function createContext(): QueryContext {
     } as QueryContext;
 }
 
-const config = {
-    projectName: 'TestDevice',
-    projectType: 'device',
+// The vocabulary the chat tools validate against. It used to be read off a
+// MEMOConfig; kinds and relationships come from the resolved ontology now.
+const ontology = {
     kinds: {
-        Hazard: { label: 'Hazard', layer: 'risk', sysmlConstruct: 'part def' },
-        SystemRequirement: { label: 'System Requirement', layer: 'requirements', sysmlConstruct: 'requirement def' },
+        Hazard: { label: 'Hazard', layer: 'risk', sysmlConstruct: 'part def' as const },
+        SystemRequirement: { label: 'System Requirement', layer: 'requirements', sysmlConstruct: 'requirement def' as const },
     },
-    relationshipTypes: [{ name: 'mitigates', label: 'Mitigates', layer: 'risk', color: '#f00' }],
-} as unknown as MEMOConfig;
+    relationshipTypes: [
+        { name: 'mitigates', label: 'Mitigates', layer: 'risk', color: '#E74C3C' },
+    ],
+};
 
 /** A provider that replays a scripted sequence of completions. */
 function scriptedProvider(script: CompletionResult[]): LLMProvider & { calls: CompletionOptions[] } {
@@ -81,24 +82,24 @@ function scriptedProvider(script: CompletionResult[]): LLMProvider & { calls: Co
 describe('runChatTurn — plain answers', () => {
     it('returns the assistant answer when no tools are called', async () => {
         const provider = scriptedProvider([{ content: 'There are 2 elements.', stopReason: 'end_turn' }]);
-        const result = await runChatTurn({ question: 'How many elements?', ctx: createContext(), provider, config });
+        const result = await runChatTurn({ question: 'How many elements?', ctx: createContext(), provider, ontology });
         expect(result.answer).toBe('There are 2 elements.');
         expect(result.proposedChanges).toEqual([]);
     });
 
     it('embeds the model summary on the first turn only', async () => {
         const provider = scriptedProvider([{ content: 'ok', stopReason: 'end_turn' }]);
-        const first = await runChatTurn({ question: 'Q1', ctx: createContext(), provider, config });
+        const first = await runChatTurn({ question: 'Q1', ctx: createContext(), provider, ontology });
         expect(provider.calls[0].messages.some(m => m.content.includes('# Model: TestDevice'))).toBe(true);
 
-        await runChatTurn({ question: 'Q2', history: first.messages, ctx: createContext(), provider, config });
+        await runChatTurn({ question: 'Q2', history: first.messages, ctx: createContext(), provider, ontology });
         const secondTurnUserMsg = provider.calls[1].messages.at(-1);
         expect(secondTurnUserMsg?.content).toBe('Q2');
     });
 
     it('returns a transcript that can be replayed as history', async () => {
         const provider = scriptedProvider([{ content: 'first', stopReason: 'end_turn' }]);
-        const result = await runChatTurn({ question: 'Q1', ctx: createContext(), provider, config });
+        const result = await runChatTurn({ question: 'Q1', ctx: createContext(), provider, ontology });
         expect(result.messages.at(-1)).toEqual({ role: 'assistant', content: 'first' });
     });
 });
@@ -111,7 +112,7 @@ describe('runChatTurn — read tools', () => {
             { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c1', name: 'search_elements', input: { kind: 'Hazard' } }] },
             { content: 'Found OverPressure.', stopReason: 'end_turn' },
         ]);
-        const result = await runChatTurn({ question: 'List hazards', ctx: createContext(), provider, config });
+        const result = await runChatTurn({ question: 'List hazards', ctx: createContext(), provider, ontology });
 
         expect(result.answer).toBe('Found OverPressure.');
         const toolMsg = provider.calls[1].messages.find(m => m.role === 'tool');
@@ -129,7 +130,7 @@ describe('runChatTurn — read tools', () => {
             },
             { content: 'done', stopReason: 'end_turn' },
         ]);
-        await runChatTurn({ question: 'Compare them', ctx: createContext(), provider, config });
+        await runChatTurn({ question: 'Compare them', ctx: createContext(), provider, ontology });
 
         const toolMsgs = provider.calls[1].messages.filter(m => m.role === 'tool');
         expect(toolMsgs.map(m => m.toolCallId)).toEqual(['c1', 'c2']);
@@ -140,7 +141,7 @@ describe('runChatTurn — read tools', () => {
             { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c1', name: 'get_element', input: { id: 'nope' } }] },
             { content: 'That element does not exist.', stopReason: 'end_turn' },
         ]);
-        await runChatTurn({ question: 'Describe nope', ctx: createContext(), provider, config });
+        await runChatTurn({ question: 'Describe nope', ctx: createContext(), provider, ontology });
 
         const toolMsg = provider.calls[1].messages.find(m => m.role === 'tool');
         expect(toolMsg?.isError).toBe(true);
@@ -152,7 +153,7 @@ describe('runChatTurn — read tools', () => {
             { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c', name: 'layer_summary', input: {} }] },
         ]);
         const result = await runChatTurn({
-            question: 'Loop', ctx: createContext(), provider, config, maxIterations: 3,
+            question: 'Loop', ctx: createContext(), provider, ontology, maxIterations: 3,
         });
         expect(result.truncated).toBe(true);
         expect(provider.complete).toHaveBeenCalledTimes(3);
@@ -169,14 +170,14 @@ describe('runChatTurn — proposed changes', () => {
 
     it('hides the write tools unless edits are allowed', async () => {
         const provider = scriptedProvider([{ content: 'ok', stopReason: 'end_turn' }]);
-        await runChatTurn({ question: 'Q', ctx: createContext(), provider, config });
+        await runChatTurn({ question: 'Q', ctx: createContext(), provider, ontology });
         const names = (provider.calls[0].tools ?? []).map(t => t.name);
         expect(names.some(n => n.startsWith('propose_'))).toBe(false);
     });
 
     it('offers the write tools when edits are allowed', async () => {
         const provider = scriptedProvider([{ content: 'ok', stopReason: 'end_turn' }]);
-        await runChatTurn({ question: 'Q', ctx: createContext(), provider, config, allowEdits: true });
+        await runChatTurn({ question: 'Q', ctx: createContext(), provider, ontology, allowEdits: true });
         const names = (provider.calls[0].tools ?? []).map(t => t.name);
         expect(names).toContain('propose_create_element');
         expect(names).toContain('propose_create_relationship');
@@ -184,7 +185,7 @@ describe('runChatTurn — proposed changes', () => {
 
     it('refuses a write tool when edits are disabled, even if the model calls it', async () => {
         const provider = stageOne('propose_create_element', { id: 'x', name: 'X', kind: 'Hazard' });
-        const result = await runChatTurn({ question: 'Add X', ctx: createContext(), provider, config, allowEdits: false });
+        const result = await runChatTurn({ question: 'Add X', ctx: createContext(), provider, ontology, allowEdits: false });
 
         expect(result.proposedChanges).toEqual([]);
         const toolMsg = provider.calls[1].messages.find(m => m.role === 'tool');
@@ -196,7 +197,7 @@ describe('runChatTurn — proposed changes', () => {
         const provider = stageOne('propose_create_element', {
             id: 'haz-002', name: 'UnderPressure', kind: 'Hazard', rationale: 'Symmetric hazard is missing.',
         });
-        const result = await runChatTurn({ question: 'Add it', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Add it', ctx: createContext(), provider, ontology, allowEdits: true });
 
         expect(result.proposedChanges).toHaveLength(1);
         const change = result.proposedChanges[0];
@@ -209,13 +210,13 @@ describe('runChatTurn — proposed changes', () => {
 
     it('defaults a created element to its kind\'s layer', async () => {
         const provider = stageOne('propose_create_element', { id: 'haz-002', name: 'X', kind: 'Hazard' });
-        const result = await runChatTurn({ question: 'Add', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Add', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges[0]).toMatchObject({ layer: 'risk' });
     });
 
     it('rejects a kind the ontology does not define', async () => {
         const provider = stageOne('propose_create_element', { id: 'x', name: 'X', kind: 'Sandwich' });
-        const result = await runChatTurn({ question: 'Add', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Add', ctx: createContext(), provider, ontology, allowEdits: true });
 
         expect(result.proposedChanges).toEqual([]);
         const toolMsg = provider.calls[1].messages.find(m => m.role === 'tool');
@@ -225,7 +226,7 @@ describe('runChatTurn — proposed changes', () => {
 
     it('rejects creating an element that already exists', async () => {
         const provider = stageOne('propose_create_element', { id: 'haz-001', name: 'X', kind: 'Hazard' });
-        const result = await runChatTurn({ question: 'Add', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Add', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges).toEqual([]);
         expect(provider.calls[1].messages.find(m => m.role === 'tool')?.content).toContain('already exists');
     });
@@ -234,7 +235,7 @@ describe('runChatTurn — proposed changes', () => {
         const provider = stageOne('propose_update_element', {
             id: 'haz-001', attributes: { severity: 'S5' },
         });
-        const result = await runChatTurn({ question: 'Raise severity', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Raise severity', ctx: createContext(), provider, ontology, allowEdits: true });
 
         expect(result.proposedChanges[0]).toMatchObject({
             kind: 'update-element',
@@ -246,7 +247,7 @@ describe('runChatTurn — proposed changes', () => {
 
     it('rejects an update with no fields to change', async () => {
         const provider = stageOne('propose_update_element', { id: 'haz-001' });
-        const result = await runChatTurn({ question: 'Update', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Update', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges).toEqual([]);
         expect(provider.calls[1].messages.find(m => m.role === 'tool')?.content).toContain('No changes given');
     });
@@ -255,7 +256,7 @@ describe('runChatTurn — proposed changes', () => {
         const provider = stageOne('propose_create_relationship', {
             type: 'befriends', sourceId: 'req-001', targetId: 'haz-001',
         });
-        const result = await runChatTurn({ question: 'Relate', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Relate', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges).toEqual([]);
         expect(provider.calls[1].messages.find(m => m.role === 'tool')?.content).toContain('not a relationship type');
     });
@@ -264,7 +265,7 @@ describe('runChatTurn — proposed changes', () => {
         const provider = stageOne('propose_create_relationship', {
             type: 'mitigates', sourceId: 'req-001', targetId: 'ghost',
         });
-        const result = await runChatTurn({ question: 'Relate', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Relate', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges).toEqual([]);
         expect(provider.calls[1].messages.find(m => m.role === 'tool')?.content).toContain('for the target');
     });
@@ -279,20 +280,20 @@ describe('runChatTurn — proposed changes', () => {
             },
             { content: 'Staged both.', stopReason: 'end_turn' },
         ]);
-        const result = await runChatTurn({ question: 'Add and link', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Add and link', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges).toHaveLength(2);
         expect(result.proposedChanges[1].kind).toBe('create-relationship');
     });
 
     it('rejects deleting a relationship that does not exist', async () => {
         const provider = stageOne('propose_delete_relationship', { id: 'rel-999' });
-        const result = await runChatTurn({ question: 'Remove', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Remove', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges).toEqual([]);
     });
 
     it('stages a relationship deletion with both endpoints for review', async () => {
         const provider = stageOne('propose_delete_relationship', { id: 'rel-001' });
-        const result = await runChatTurn({ question: 'Remove', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Remove', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges[0]).toMatchObject({
             kind: 'delete-relationship',
             relationshipId: 'rel-001',
@@ -312,7 +313,7 @@ describe('runChatTurn — proposed changes', () => {
             },
             { content: 'ok', stopReason: 'end_turn' },
         ]);
-        const result = await runChatTurn({ question: 'Add two', ctx: createContext(), provider, config, allowEdits: true });
+        const result = await runChatTurn({ question: 'Add two', ctx: createContext(), provider, ontology, allowEdits: true });
         const ids = result.proposedChanges.map(c => c.id);
         expect(new Set(ids).size).toBe(2);
     });

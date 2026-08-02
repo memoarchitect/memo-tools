@@ -164,21 +164,16 @@ describe('serializeModelContext', () => {
 
 describe('serializeOntologyContext', () => {
     it('includes available kinds', () => {
-        const config: MEMOConfig = {
-            projectName: 'Test',
-            projectType: 'device',
+        const ontology = {
             kinds: {
-                Hazard: { label: 'Hazard', layer: 'risk', sysmlConstruct: 'part def' },
-                SystemRequirement: { label: 'System Requirement', layer: 'requirements', sysmlConstruct: 'requirement def' },
+                Hazard: { label: 'Hazard', layer: 'risk', sysmlConstruct: 'part def' as const },
             },
-            architectureLayers: [{ id: 'risk', label: 'Risk', color: '#E53E3E' }],
-            viewpoints: [],
-            workflows: [],
+            relationshipTypes: [{ name: 'mitigates', label: 'Mitigates', layer: 'risk', color: '#E74C3C' }],
         };
-        const text = serializeOntologyContext(config);
+        const text = serializeOntologyContext(ontology);
         expect(text).toContain('Hazard');
         expect(text).toContain('part def');
-        expect(text).toContain('## Architecture Layers');
+        expect(text).toContain('## Available Relationship Types');
     });
 });
 
@@ -202,20 +197,13 @@ describe('askModel', () => {
 
 describe('generateSysml', () => {
     it('returns parsed SysML from LLM response', async () => {
-        const config: MEMOConfig = {
-            projectName: 'Test',
-            projectType: 'device',
-            kinds: { Hazard: { label: 'Hazard', layer: 'risk', sysmlConstruct: 'part def' } },
-            architectureLayers: [],
-            viewpoints: [],
-            workflows: [],
-        };
+        const ontology = { kinds: {}, relationshipTypes: [] };
 
         const provider = createMockProvider(
             '```sysml\npackage RiskModel {\n    part hazOverdose : Hazard {\n        attribute redefines severity = "S4";\n    }\n}\n```\n\n**Explanation:** Created a hazard for overdose.\n\n**Suggested file:** risk/overdose.sysml',
         );
 
-        const result = await generateSysml('Create a hazard for overdose', config, provider);
+        const result = await generateSysml('Create a hazard for overdose', ontology, provider);
 
         expect(result.sysml).toContain('part hazOverdose : Hazard');
         expect(result.explanation).toContain('hazard');
@@ -223,16 +211,10 @@ describe('generateSysml', () => {
     });
 
     it('handles response without code block markers', async () => {
-        const config: MEMOConfig = {
-            projectName: 'Test',
-            projectType: 'device',
-            architectureLayers: [],
-            viewpoints: [],
-            workflows: [],
-        };
+        const ontology = { kinds: {}, relationshipTypes: [] };
 
         const provider = createMockProvider('part sensor : PressureSensor { }');
-        const result = await generateSysml('Add sensor', config, provider);
+        const result = await generateSysml('Add sensor', ontology, provider);
         expect(result.sysml).toContain('PressureSensor');
     });
 });

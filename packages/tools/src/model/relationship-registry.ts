@@ -21,7 +21,22 @@ import {
     isEndDeclaration,
     isPackageDeclaration,
 } from '../language/generated/ast.js';
-import type { RelationshipType } from './config.js';
+/**
+ * A typed relationship as the registry reports it.
+ *
+ * Derived from the ontology's `connection def` declarations. The YAML
+ * `relationshipTypes:` block that used to declare these is gone.
+ */
+export interface RelationshipType {
+    /** Relationship identifier, e.g. "mitigates" */
+    name: string;
+    /** Human-readable label, e.g. "Mitigates" */
+    label: string;
+    /** Architecture layer this relationship belongs to */
+    layer: string;
+    /** Hex colour for relationship visualization */
+    color: string;
+}
 import type { ParsedDocument } from './parser-utils.js';
 import { resolveLayerFromPath } from './layer-resolver.js';
 import type {

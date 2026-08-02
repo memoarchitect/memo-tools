@@ -3,7 +3,7 @@ import { homedir } from 'node:os';
 import { isAbsolute, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import type { MEMOConfig } from './config.js';
-import { findOntologyPackageDirs, resolvePackageSysmlDir } from './ontology-loader.js';
+import { discoverLibraryRoots } from './native-project.js';
 
 export interface ToolInvocation {
     command: string;
@@ -86,9 +86,11 @@ export function compileWithConfiguredTool(
     projectDir: string,
     configPath?: string,
 ): 'internal' | 'syside' {
-    const includeDirs = configPath
-        ? findOntologyPackageDirs(configPath).map(resolvePackageSysmlDir)
-        : [];
+    // Every resolvable library root is offered to the external compiler as an
+    // include path. Which of them the model actually uses is decided by the
+    // project's imports, not by this list — an include path a file never
+    // imports contributes nothing.
+    const includeDirs = discoverLibraryRoots(projectDir).map(root => root.sysmlDir);
     const invocation = buildCompilerInvocation(config, projectDir, includeDirs);
     if (!invocation) return 'internal';
     runToolInvocation(invocation, projectDir);

@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { resolve, dirname, join, basename } from 'node:path';
+import { resolve, dirname, join, basename, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import {
@@ -31,7 +31,8 @@ import {
     qualifyPackageName,
     type MemoManifest,
 } from './package-manifest.js';
-import { originForPackageType, ProvenanceTable, type ResolvedRoot } from './source-provenance.js';
+import { ProvenanceTable, type ResolvedRoot } from './source-provenance.js';
+import { discoverLibraryRoots, resolveNativeProject, type NativeProjectResolution } from './native-project.js';
 import type { BuilderRegistries } from './builder.js';
 
 // ─── Ontology Package Metadata (Phase C2) ────────────────────────────────────
@@ -338,59 +339,19 @@ function buildRelationshipTypes(sysmlDir: string): OntologyRelationshipInfo[] {
 }
 
 /**
- * Read the `methodology:` field from a project config.
- * Returns a Set of package names: the methodology pkg + every pkg on its
- * extends chain. Used to mark them as selected in getPackageMetadata.
- */
-function readMethodologyChain(configPath: string): Set<string> {
-    const out = new Set<string>();
-    const declared = readManifest(configPath).methodology;
-    if (!declared) return out;
-
-    // Walk the extends chain starting at the methodology pkg.
-    const stack: string[] = [qualifyPackageName(declared)];
-    const visited = new Set<string>();
-    while (stack.length) {
-        const pkgName = stack.pop()!;
-        if (visited.has(pkgName)) continue;
-        visited.add(pkgName);
-        out.add(pkgName);
-        const pkgCfg = resolvePackageConfig(pkgName, dirname(configPath));
-        if (!pkgCfg) continue;
-        for (const parent of readManifest(pkgCfg).extends ?? []) {
-            stack.push(qualifyPackageName(parent));
-        }
-    }
-    return out;
-}
-
-/**
- * Get the list of selected ontology package names from a project config file.
- *
- * Names are recorded as written: this set is compared against manifest `name:`
- * fields, which are already fully scoped.
- */
-function readSelectedOntologies(configPath: string): Set<string> {
-    return new Set(readManifest(configPath).ontologies ?? []);
-}
-
-/**
  * Build OntologyPackageInfo for a single package directory.
  */
 function buildPackageInfo(pkgDir: string, selected: boolean): OntologyPackageInfo | null {
     const { path, manifest } = readPackageManifest(pkgDir);
     if (!path) return null;
 
-    const rawType = manifest.type ?? 'ontology';
-    const type = (['ontology', 'profile', 'extension', 'methodology'].includes(rawType) ? rawType : 'ontology') as OntologyPackageInfo['type'];
-    // `extends` is a list in the manifest but a single name in this DTO; the
-    // previous regex could only ever see the first entry, so keep that shape.
-    const extendsField = manifest.extends?.[0];
-
     const sysmlDir = manifest.sysmlDir
         ? resolve(pkgDir, manifest.sysmlDir)
         : join(pkgDir, 'sysml');
-    const layers = applyExplorerClassification(buildLayers(sysmlDir), pkgDir);
+    // Authority is decided by the resolved root a package sits under, from the
+    // native import graph. The manifest `type:` that used to declare it is gone.
+    const type: OntologyPackageInfo['type'] = suppliesMethodology(sysmlDir) ? 'methodology' : 'ontology';
+    const layers = applyExplorerClassification(buildLayers(sysmlDir), sysmlDir);
     const kindCount = layers.reduce((s, l) => s + l.kindCount, 0);
     const relationshipTypes = buildRelationshipTypes(sysmlDir);
 
@@ -399,179 +360,149 @@ function buildPackageInfo(pkgDir: string, selected: boolean): OntologyPackageInf
         version: manifest.version ?? '0.0.0',
         type,
         description: manifest.description ?? '',
-        extends: extendsField,
         layers,
         kindCount,
         relationshipCount: relationshipTypes.length,
         relationshipTypes,
         selected,
-        optionalModules: manifest.optionalModules ?? [],
         rootDir: pkgDir,
     };
 }
 
-/** Apply the ontology-declared Explorer taxonomy to discovered kinds. */
-function applyExplorerClassification(layers: OntologyLayerInfo[], pkgDir: string): OntologyLayerInfo[] {
-    const rendering = join(pkgDir, 'memo.rendering.yaml');
-    if (!existsSync(rendering)) return layers;
-    try {
-        const parsed = parseYaml(readFileSync(rendering, 'utf-8')) as {
-            explorer?: { classifications?: Array<{ source: string; domain: string; group: string }> };
-        };
-        const classifications = parsed.explorer?.classifications ?? [];
-        if (classifications.length === 0) return layers;
-        const bySource = new Map(classifications.map(c => [c.source, c]));
-        const domains = new Map<string, OntologyLayerInfo>();
-        for (const layer of layers) for (const kind of layer.kinds) {
-            const source = kind.group ?? kind.layer;
-            const placement = bySource.get(source);
-            if (!placement) continue;
-            let domain = domains.get(placement.domain);
-            if (!domain) {
-                domain = { id: placement.domain, label: placement.domain.charAt(0).toUpperCase() + placement.domain.slice(1), color: '#6B7280', kindCount: 0, kinds: [] };
-                domains.set(placement.domain, domain);
-            }
-            domain.kinds.push({ ...kind, layer: placement.domain, group: placement.group });
-        }
-        for (const domain of domains.values()) domain.kindCount = domain.kinds.length;
-        return [...domains.values()];
-    } catch { return layers; }
+/**
+ * Does this source tree supply a methodology?
+ *
+ * A package that declares a `MethodologyDefinition` usage is a methodology
+ * package. This is derived from what the SysML says, because the manifest field
+ * that used to declare it selected model content and was removed with the rest.
+ */
+function suppliesMethodology(sysmlDir: string): boolean {
+    for (const file of collectSysmlFiles(sysmlDir)) {
+        let content = '';
+        try { content = readFileSync(file, 'utf-8'); } catch { continue; }
+        if (/:\s*MethodologyDefinition\b/.test(content)) return true;
+    }
+    return false;
 }
 
+/** One `ExplorerClassification` usage, read from ontology SysML. */
+interface ExplorerPlacement {
+    sourceNamespace: string;
+    explorerDomain: string;
+    explorerGroup: string;
+}
+
+/** One `LayerRendering` usage, read from ontology SysML. */
+interface LayerPalette {
+    layerId: string;
+    layerLabel: string;
+    layerColor: string;
+}
+
+const USAGE_BLOCK = /part\s+\w+\s*:\s*(ExplorerClassification|LayerRendering)\s*\{([\s\S]*?)\n\s*\}/g;
+
+function readAttr(body: string, name: string): string | undefined {
+    const m = new RegExp(`attribute\\s+(?::>>|redefines)\\s+${name}\\s*=\\s*"([^"]*)"`).exec(body);
+    return m ? m[1] : undefined;
+}
 
 /**
- * Get ontology package metadata for all packages in the project's extends chain
- * plus any available-but-unselected packages under packages/ or node_modules/@memoarchitect/.
+ * Read the ontology's presentation metadata from its own SysML.
  *
- * @param projectRoot - Absolute path to the project root (where memo.package.yaml lives)
+ * Both the Explorer taxonomy and the layer palette used to live in
+ * `memo.rendering.yaml`. Both decided how MEMO's kinds are grouped and shown,
+ * which makes them ontology metadata: a project that resolved the ontology
+ * without the sidecar got a different Explorer. They are SysML now, so the
+ * ontology carries its own taxonomy wherever it is resolved.
  */
-export function getPackageMetadata(projectRoot: string): OntologyPackageInfo[] {
-    const configCandidates = ['memo.package.yaml', 'memo.package.yml', 'memo.config.yaml', 'memo.config.yml'];
-    let primaryConfig = '';
-    for (const name of configCandidates) {
-        const p = join(projectRoot, name);
-        if (existsSync(p)) { primaryConfig = p; break; }
-    }
-    if (!primaryConfig) return [];
-
-    const selectedNames = readSelectedOntologies(primaryConfig);
-    const result: OntologyPackageInfo[] = [];
-    const seen = new Set<string>();
-
-    // The active ontology often lives behind a logical package manifest. For
-    // example, the medical profile resolves to MEMO's `ontology/` directory
-    // rather than a sibling `packages/` directory. Follow the actual extends
-    // chain first, so the Explorer receives the same canonical types that the
-    // model builder uses to resolve usages.
-    const inheritedDirs = new Set<string>();
-    const visitExtends = (configPath: string, visited = new Set<string>()) => {
-        const normalized = resolve(configPath);
-        if (visited.has(normalized)) return;
-        visited.add(normalized);
+function readRenderingMetadata(sysmlDir: string): { placements: Map<string, ExplorerPlacement>; palette: Map<string, LayerPalette> } {
+    const placements = new Map<string, ExplorerPlacement>();
+    const palette = new Map<string, LayerPalette>();
+    for (const file of collectSysmlFiles(sysmlDir)) {
         let content = '';
-        try { content = readFileSync(normalized, 'utf-8'); } catch { return; }
-        const parentNames: string[] = [];
-        const single = content.match(/^extends:\s*"?(@[\w-]+\/[\w-]+)"?/m);
-        if (single) parentNames.push(single[1]);
-        const array = content.match(/^extends:\s*\n((?:\s+-\s+.+\n?)+)/m);
-        if (array) for (const entry of array[1].matchAll(/^\s+-\s+"?(@[\w-]+\/[\w-]+)"?/gm)) parentNames.push(entry[1]);
-        for (const parentName of parentNames) {
-            const parentConfig = resolvePackageConfig(parentName, dirname(normalized));
-            if (!parentConfig) continue;
-            inheritedDirs.add(dirname(parentConfig));
-            visitExtends(parentConfig, visited);
-        }
-    };
-    visitExtends(primaryConfig);
-
-    // Gather package directories from the tools repo and its memo submodule.
-    const candidates: string[] = [];
-    candidates.push(...inheritedDirs);
-    let searchDir = resolve(projectRoot);
-    while (true) {
-        const pkgsDir = join(searchDir, 'packages');
-        if (existsSync(pkgsDir)) {
-            try {
-                for (const entry of readdirSync(pkgsDir, { withFileTypes: true })) {
-                    if (!entry.isDirectory()) continue;
-                    candidates.push(join(pkgsDir, entry.name));
+        try { content = readFileSync(file, 'utf-8'); } catch { continue; }
+        if (!content.includes('ExplorerClassification') && !content.includes('LayerRendering')) continue;
+        USAGE_BLOCK.lastIndex = 0;
+        for (const m of content.matchAll(USAGE_BLOCK)) {
+            const [, type, body] = m;
+            if (type === 'ExplorerClassification') {
+                const sourceNamespace = readAttr(body, 'sourceNamespace');
+                const explorerDomain = readAttr(body, 'explorerDomain');
+                const explorerGroup = readAttr(body, 'explorerGroup');
+                if (sourceNamespace && explorerDomain && explorerGroup) {
+                    placements.set(sourceNamespace, { sourceNamespace, explorerDomain, explorerGroup });
                 }
-            } catch { /* skip */ }
-
-            break;
-        }
-        const parent = dirname(searchDir);
-        if (parent === searchDir) break;
-        searchDir = parent;
-    }
-
-    // Scan memo_packages/ for locally installed packages
-    const memoPkgsDir = join(projectRoot, 'memo_packages');
-    if (existsSync(memoPkgsDir)) {
-        try {
-            for (const entry of readdirSync(memoPkgsDir, { withFileTypes: true })) {
-                if (entry.isDirectory()) candidates.push(join(memoPkgsDir, entry.name));
+            } else {
+                const layerId = readAttr(body, 'layerId');
+                const layerLabel = readAttr(body, 'layerLabel');
+                const layerColor = readAttr(body, 'layerColor');
+                if (layerId && layerLabel && layerColor) {
+                    palette.set(layerId, { layerId, layerLabel, layerColor });
+                }
             }
-        } catch { /* skip */ }
-    }
-
-    // Also scan node_modules/@memoarchitect/ for installed packages
-    const nmMemo = join(projectRoot, 'node_modules', '@memoarchitect');
-    if (existsSync(nmMemo)) {
-        try {
-            for (const entry of readdirSync(nmMemo, { withFileTypes: true })) {
-                if (entry.isDirectory()) candidates.push(join(nmMemo, entry.name));
-            }
-        } catch { /* skip */ }
-    }
-
-    // A bundled example runs from a disposable directory and intentionally has
-    // no node_modules of its own. Its packages are nevertheless resolvable via
-    // its methodology/extends chain, so use that same authoritative resolution
-    // path when publishing metadata to clients such as Memo Architect.
-    for (const packageDir of findOntologyPackageDirs(primaryConfig)) {
-        candidates.push(packageDir);
-    }
-
-    // Collect which packages are declared as optionalModules by any base pkg.
-    const optionalModuleNames = new Set<string>();
-    for (const pkgDir of candidates) {
-        for (const m of readPackageManifest(pkgDir).manifest.optionalModules ?? []) {
-            optionalModuleNames.add(m);
         }
     }
+    return { placements, palette };
+}
 
-    // Also collect project-declared modules so they get selected=true.
-    const projectModules = new Set(readDeclaredModules(primaryConfig));
-
-    // Phase C: methodology field also marks packages selected — methodology
-    // pkg itself plus everything on its extends chain.
-    const methodologySelected = readMethodologyChain(primaryConfig);
-
-    for (const pkgDir of candidates) {
-        const hasSysml = existsSync(resolvePackageSysmlDir(pkgDir));
-        if (!hasSysml) continue;
-        if (seen.has(pkgDir)) continue;
-        seen.add(pkgDir);
-
-        const info = buildPackageInfo(pkgDir, false);
-        if (!info) continue;
-        // Mark as selected if name is in project's ontologies list, or inferred heuristic
-        info.selected = inheritedDirs.has(pkgDir)
-            || selectedNames.has(info.name)
-            || selectedNames.has(info.name.replace('@memoarchitect/', ''))
-            || projectModules.has(info.name)
-            || methodologySelected.has(info.name);
-        info.isOptionalModule = optionalModuleNames.has(info.name);
-        result.push(info);
+/** Apply the ontology-declared Explorer taxonomy to discovered kinds. */
+function applyExplorerClassification(layers: OntologyLayerInfo[], sysmlDir: string): OntologyLayerInfo[] {
+    const { placements, palette } = readRenderingMetadata(sysmlDir);
+    for (const layer of layers) {
+        const authored = palette.get(layer.id);
+        if (authored) {
+            layer.label = authored.layerLabel;
+            layer.color = authored.layerColor;
+        }
     }
+    if (placements.size === 0) return layers;
 
-    // Sort: selected first, then by name
+    const domains = new Map<string, OntologyLayerInfo>();
+    for (const layer of layers) for (const kind of layer.kinds) {
+        const source = kind.group ?? kind.layer;
+        const placement = placements.get(source);
+        if (!placement) continue;
+        let domain = domains.get(placement.explorerDomain);
+        if (!domain) {
+            domain = {
+                id: placement.explorerDomain,
+                label: placement.explorerDomain.charAt(0).toUpperCase() + placement.explorerDomain.slice(1),
+                color: '#6B7280',
+                kindCount: 0,
+                kinds: [],
+            };
+            domains.set(placement.explorerDomain, domain);
+        }
+        domain.kinds.push({ ...kind, layer: placement.explorerDomain, group: placement.explorerGroup });
+    }
+    if (domains.size === 0) return layers;
+    for (const domain of domains.values()) domain.kindCount = domain.kinds.length;
+    return [...domains.values()];
+}
+
+/**
+ * Describe every package a project could resolve, marking the ones it does.
+ *
+ * "Available" comes from locators — distribution manifests, node_modules,
+ * workspace package directories. "Selected" comes from the native import
+ * closure and nothing else: a package a manifest points at but no import
+ * reaches is listed here as available and unselected, which is exactly what it
+ * is. Before the flip, selection was read out of `ontologies:`, `modules:`,
+ * `methodology:`, and the `extends` chain.
+ */
+export function getPackageMetadata(
+    projectRoot: string,
+    selectedRootDirs?: ReadonlySet<string>,
+): OntologyPackageInfo[] {
+    const result: OntologyPackageInfo[] = [];
+    for (const root of discoverLibraryRoots(resolve(projectRoot))) {
+        const info = buildPackageInfo(root.dir, selectedRootDirs?.has(root.dir) ?? false);
+        if (info) result.push(info);
+    }
     result.sort((a, b) => {
         if (a.selected !== b.selected) return a.selected ? -1 : 1;
         return a.name.localeCompare(b.name);
     });
-
     return result;
 }
 
@@ -600,6 +531,8 @@ export interface OntologyLoadResult {
     kindNameCollisions: KindNameCollision[];
     /** Resolved dependency roots and the provenance they imply. */
     provenance?: ProvenanceTable;
+    /** The native resolution this load was driven by. */
+    resolution?: NativeProjectResolution;
 }
 
 /**
@@ -621,135 +554,6 @@ function collectSysmlFiles(dir: string): string[] {
         // skip inaccessible dirs
     }
     return files;
-}
-
-/**
- * Walk the config `extends` chain to find ontology package directories.
- * Returns absolute paths to directories containing `sysml/` subdirectories.
- *
- * Strategy:
- * 1. Start from the config file's directory
- * 2. Follow `extends` references (@memoarchitect/package-name → packages/package-name)
- * 3. For each package in the chain, check if it has a sysml/ directory
- * 4. Also check for ontology-core (may not be in extends chain directly)
- */
-export function findOntologyPackageDirs(configPath: string): string[] {
-    const dirs: string[] = [];
-    const seen = new Set<string>();
-
-    const projectManifest = readManifest(configPath);
-
-    // 0. (Phase C) If project pins a `methodology:`, resolve it and walk its
-    // extends chain. The methodology package brings in its own SysML and
-    // chain-pulls the kinds ontology (e.g. @memoarchitect/ontology).
-    if (projectManifest.methodology) {
-        const pkgConfig = resolvePackageConfig(
-            qualifyPackageName(projectManifest.methodology), dirname(configPath));
-        if (pkgConfig) walkExtendsChain(pkgConfig, dirs, seen);
-    }
-
-    // 1. Walk the primary extends chain
-    walkExtendsChain(configPath, dirs, seen);
-
-    // 2. Load additional ontologies from the config file's `ontologies` array.
-    // This allows for a "Base + Plugin" model where users can add multiple domain-specific ontologies.
-    for (const ontologyName of projectManifest.ontologies ?? []) {
-        const pkgConfig = resolvePackageConfig(qualifyPackageName(ontologyName), dirname(configPath));
-        if (pkgConfig) walkExtendsChain(pkgConfig, dirs, seen);
-    }
-
-    // 3. Resolve optional modules declared under `modules:` in the project config.
-    // Modules follow OWL import semantics — declared in the base ontology's
-    // `optionalModules:` list, loaded only when the project opts in.
-    for (const moduleName of readDeclaredModules(configPath)) {
-        const pkgConfig = resolvePackageConfig(moduleName, dirname(configPath));
-        if (pkgConfig) walkExtendsChain(pkgConfig, dirs, seen);
-    }
-
-    return dirs;
-}
-
-/**
- * Read the `modules:` array from a project config, resolving short aliases
- * (e.g. "ros") against the base ontology's `optionalModules:` list.
- * Returns fully-qualified @memoarchitect/... package names.
- */
-function readDeclaredModules(configPath: string): string[] {
-    const out: string[] = [];
-    const rawModules = readManifest(configPath).modules ?? [];
-    if (rawModules.length === 0) return out;
-
-    // Gather optional-module allowlist from the extends chain
-    const allowlist = collectOptionalModules(configPath);
-    const byShort = new Map<string, string>(); // short → full name
-    for (const full of allowlist) {
-        const short = full.split('/').pop() ?? full;
-        byShort.set(short, full);
-    }
-
-    for (const entry of rawModules) {
-        if (entry.startsWith('@')) {
-            out.push(entry);
-        } else {
-            out.push(byShort.get(entry) ?? entry);
-        }
-    }
-    return out;
-}
-
-/**
- * Walk the extends chain of a config and collect all `optionalModules:` entries.
- */
-function collectOptionalModules(configPath: string): string[] {
-    const modules = new Set<string>();
-    const visited = new Set<string>();
-    const stack = [resolve(configPath)];
-    while (stack.length) {
-        const p = stack.pop()!;
-        if (visited.has(p)) continue;
-        visited.add(p);
-        const manifest = readManifest(p);
-
-        for (const m of manifest.optionalModules ?? []) modules.add(m);
-        for (const parentName of manifest.extends ?? []) {
-            const parent = resolvePackageConfig(qualifyPackageName(parentName), dirname(p));
-            if (parent) stack.push(parent);
-        }
-    }
-    return [...modules];
-}
-
-/**
- * Recursively walk the extends chain, collecting ontology package dirs.
- */
-function walkExtendsChain(configPath: string, dirs: string[], seen: Set<string>): void {
-    const resolvedPath = resolve(configPath);
-    if (seen.has(resolvedPath)) return;
-    seen.add(resolvedPath);
-
-    const manifest = readManifest(resolvedPath);
-    // Both forms are handled by the parser: `extends:` as a scalar and as a
-    // sequence arrive here as the same list.
-    const extendsPackages = manifest.extends ?? [];
-
-    const packageDir = dirname(resolvedPath);
-
-    // Honor `sysmlDir:` override (points outside package, e.g. ../../ontology)
-    const sysmlDir = manifest.sysmlDir
-        ? resolve(packageDir, manifest.sysmlDir)
-        : resolve(packageDir, 'sysml');
-    if (existsSync(sysmlDir)) {
-        dirs.push(packageDir);
-    }
-
-    // Follow extends chain (handles both single and array extends)
-    for (const extendsPackage of extendsPackages) {
-        const parentConfigPath = resolvePackageConfig(extendsPackage, packageDir);
-        if (parentConfigPath) {
-            walkExtendsChain(parentConfigPath, dirs, seen);
-        }
-    }
-
 }
 
 /**
@@ -775,10 +579,11 @@ export function resolvePackageConfig(packageName: string, fromDir: string): stri
     // A logical package config is itself inside the physical content package.
     // It is not a user-project boundary: allow sibling logical packages to be
     // resolved through the nearest enclosing manifest.
+    // A logical package descriptor sits inside the physical content package, so
+    // it is not a user-project boundary. Sibling logical packages resolve
+    // through the nearest enclosing distribution manifest.
     if (projectConfig) {
-        const projectManifest = readManifest(projectConfig);
-        const type = projectManifest.type || projectManifest.projectType;
-        if (type && type !== 'device') {
+        {
             let manifestDir = dirname(projectConfig);
             while (true) {
                 for (const manifest of discoverMemoManifests([manifestDir])) {
@@ -865,96 +670,109 @@ function findNearestProjectConfig(startDir: string): string | undefined {
 }
 
 /**
- * Load ontology registries by walking the config extends chain,
- * finding ontology SysML files, parsing them, and populating
- * KindRegistry + RelationshipRegistry.
+ * Load the reusable registries a project actually resolves.
  *
- * @param configPath - Path to the project's memo.config.yaml
- * @returns Populated registries and diagnostic info
+ * Selection is the native import closure. This used to walk the `extends`
+ * chain, the `methodology:` field, the `ontologies:` list, and the `modules:`
+ * opt-ins; all four are gone, and a package now contributes kinds because the
+ * project imports it, not because a settings file named it.
+ *
+ * Everything in the closure is parsed, including project-owned source, because
+ * a project may declare its own definitions and those are project content the
+ * builder must see. Provenance keeps the two apart.
  */
-export async function loadOntologyRegistries(configPath: string): Promise<OntologyLoadResult> {
+export async function loadOntologyRegistries(projectRoot: string): Promise<OntologyLoadResult> {
     const kindRegistry = new KindRegistry();
     const relationshipRegistry = new RelationshipRegistry();
     const errors: string[] = [];
 
-    // Find ontology package directories
-    const ontologyDirs = findOntologyPackageDirs(configPath);
-
-    if (ontologyDirs.length === 0) {
-        return {
-            registries: { kindRegistry, relationshipRegistry },
-            fileCount: 0,
-            ontologyDirs: [],
-            errors: ['No ontology packages with sysml/ directories found in extends chain'],
-            parsedDocuments: [],
-            kindNameCollisions: [],
-        };
+    const resolution = await resolveNativeProject(projectRoot);
+    for (const diagnostic of resolution.diagnostics) {
+        errors.push(`${diagnostic.code}: ${diagnostic.message}`);
     }
 
-    // Collect all SysML files from all ontology packages (honor sysmlDir override).
-    // Dedupe by absolute path — methodology and base ontology pkgs may have
-    // overlapping sysmlDirs (e.g. methodology points at ontology/methodology/memo
-    // while @memoarchitect/ontology points at src/).
-    const sysmlSet = new Set<string>();
-    for (const pkgDir of ontologyDirs) {
-        for (const f of collectSysmlFiles(resolvePackageSysmlDir(pkgDir))) sysmlSet.add(f);
-    }
-    const allSysmlFiles = [...sysmlSet];
+    const ontologyDirs = resolution.selectedRoots.map(r => r.dir);
 
-    if (allSysmlFiles.length === 0) {
+    // A package is resolved in full or not at all.
+    //
+    // The closure says which roots the project reaches; everything those roots
+    // supply is then loaded, because a methodology that declares
+    // `scopeMode = allAvailable` means "everything the resolved packages
+    // provide" and cannot mean that only the files some other file happened to
+    // import exist. Loading is not selecting: effective scope decides what is
+    // active, which keeps one filter rather than two.
+    //
+    // A root no import reaches supplies nothing — that is what makes this the
+    // import graph's answer and not the locator's.
+    const selectedSysmlDirs = resolution.selectedRoots.map(r => r.sysmlDir);
+    const closureFiles = new Set<string>();
+    for (const pkg of resolution.closure.values()) {
+        for (const file of pkg.files) closureFiles.add(file);
+    }
+    const documents = resolution.documents.filter(
+        d => closureFiles.has(d.filePath) || selectedSysmlDirs.some(dir => d.filePath.startsWith(dir + sep)),
+    );
+
+    if (documents.length === 0) {
         return {
             registries: { kindRegistry, relationshipRegistry },
             fileCount: 0,
             ontologyDirs,
-            errors: ['Ontology packages found but no .sysml files in sysml/ directories'],
+            errors: errors.length > 0 ? errors : [
+                'No SysML reachable from the project entrypoint. Check the imports in model/catalog/project.sysml.',
+            ],
             parsedDocuments: [],
             kindNameCollisions: [],
+            resolution,
         };
     }
 
-    // Parse all ontology SysML files
-    const parseResult = await parseFiles(allSysmlFiles, '');
-
-    for (const err of parseResult.errors) {
-        errors.push(`${err.file}${err.line ? `:${err.line}` : ''}: ${err.message}`);
-    }
-
-    // Populate registries from parsed documents
-    kindRegistry.populateFromDocuments(parseResult.documents);
+    kindRegistry.populateFromDocuments(documents);
     kindRegistry.computeDerivedBy();
-    relationshipRegistry.populateFromDocuments(parseResult.documents);
+    relationshipRegistry.populateFromDocuments(documents);
 
     return {
         registries: { kindRegistry, relationshipRegistry },
-        fileCount: allSysmlFiles.length,
+        fileCount: documents.length,
         ontologyDirs,
         errors,
-        parsedDocuments: parseResult.documents,
+        parsedDocuments: documents,
         kindNameCollisions: kindRegistry.getCollisions(),
-        provenance: buildProvenanceTable(configPath, ontologyDirs),
+        provenance: buildProvenanceTable(resolution),
+        resolution,
     };
 }
 
 /**
- * Classify each resolved package directory into an authority category.
+ * Classify each resolved package into an authority category.
  *
- * Origin comes from the package manifest's declared `type:` — that is, from
- * what the resolved dependency says it is — not from where its files happen to
- * sit. Import depth is the position in the resolution order, which approximates
- * distance from the project closely enough for provenance display; the exact
- * graph distance arrives with the native import closure in session 3.
+ * Origin comes from the resolved root a file sits under — never from what the
+ * file declares, what it is called, or where it sits in a directory tree.
+ * Import depth is now the real graph distance from the project entrypoint,
+ * which is what session 1 left this function waiting for; before, it was the
+ * package's position in an ordered walk.
  */
-function buildProvenanceTable(configPath: string, ontologyDirs: string[]): ProvenanceTable {
-    const projectRoot = dirname(resolve(configPath));
-    const roots: ResolvedRoot[] = ontologyDirs.map((dir, index) => {
-        const { manifest } = readPackageManifest(dir);
-        return {
-            dir,
-            origin: originForPackageType(manifest.type),
-            packageName: manifest.name ?? basename(dir),
-            packageVersion: manifest.version,
-            importDepth: index + 1,
-        };
-    });
-    return new ProvenanceTable(projectRoot, roots);
+function buildProvenanceTable(resolution: NativeProjectResolution): ProvenanceTable {
+    const byDir = new Map<string, ResolvedRoot>();
+    for (const pkg of resolution.closure.values()) {
+        if (!pkg.root) continue;
+        const existing = byDir.get(pkg.root.dir);
+        if (existing && existing.importDepth <= pkg.importDepth) continue;
+        byDir.set(pkg.root.dir, {
+            dir: pkg.root.dir,
+            origin: pkg.origin,
+            packageName: pkg.root.packageName,
+            packageVersion: pkg.root.packageVersion,
+            importDepth: pkg.importDepth,
+        });
+    }
+    const roots: ResolvedRoot[] = [];
+    for (const root of byDir.values()) {
+        roots.push(root);
+        // A package may publish its SysML from a directory outside its own
+        // descriptor directory. Both physical roots are the same authority.
+        const lib = resolution.selectedRoots.find(r => r.dir === root.dir);
+        if (lib && lib.sysmlDir !== root.dir) roots.push({ ...root, dir: lib.sysmlDir });
+    }
+    return new ProvenanceTable(resolution.projectRoot, roots);
 }

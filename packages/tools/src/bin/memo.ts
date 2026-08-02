@@ -51,6 +51,7 @@ import { reqNewCommand } from '../commands/req.js';
 import { checkCommand } from '../commands/check.js';
 import { roundTripCommand } from '../commands/roundtrip.js';
 import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand } from '../commands/rules.js';
+import { inspectCommand } from '../commands/inspect.js';
 
 const program = new Command();
 
@@ -67,6 +68,15 @@ program
     .option('-o, --output <file>', 'Write output to file instead of stdout')
     .action(async (dir: string, opts: { format?: string; output?: string }) => {
         await validateCommand(dir, { format: opts.format as any, output: opts.output });
+    });
+
+program
+    .command('inspect <id>')
+    .description('Inspect a model element or relationship')
+    .option('--provenance', 'Show declaration and classifier provenance only')
+    .option('-d, --dir <dir>', 'Project directory', '.')
+    .action(async (id: string, options: { provenance?: boolean; dir?: string }) => {
+        await inspectCommand(id, options);
     });
 
 program

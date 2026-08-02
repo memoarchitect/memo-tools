@@ -57,7 +57,7 @@ export async function askCommand(question: string, options: AskCommandOptions): 
     const { documents, errors: parseErrors } = await parseFiles(sysmlFiles, cwd + '/');
     const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     const validation = validateModel(model);
-    const completeness = computeCompleteness(model, validation, config);
+    const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);
 
     // 3. Build context options from CLI flags

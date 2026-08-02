@@ -6,7 +6,7 @@
 
 import type { MemoModel, MemoElement } from '../model/semantic.js';
 import type { ValidationResult, CompletenessReport } from '../validator/types.js';
-import type { MEMOConfig } from '../model/config.js';
+import type { OntologyView } from '../model/kind-registry.js';
 import type { QueryContext } from '../dhf/query-engine.js';
 
 /** Options for context serialization */
@@ -158,17 +158,17 @@ export function serializeModelContext(
 /**
  * Serialize ontology context (available kinds, relationships) for SysML generation.
  */
-export function serializeOntologyContext(config: MEMOConfig): string {
+export function serializeOntologyContext(ontology: OntologyView): string {
     const parts: string[] = [];
 
     parts.push('# Ontology Context');
     parts.push('');
 
     // Available kinds grouped by layer
-    if (config.kinds) {
+    if (Object.keys(ontology.kinds).length > 0) {
         parts.push('## Available Kinds');
         const byLayer = new Map<string, string[]>();
-        for (const [name, def] of Object.entries(config.kinds)) {
+        for (const [name, def] of Object.entries(ontology.kinds)) {
             const layer = def.layer || 'unknown';
             if (!byLayer.has(layer)) byLayer.set(layer, []);
             byLayer.get(layer)!.push(`${name} (${def.sysmlConstruct})`);
@@ -183,22 +183,16 @@ export function serializeOntologyContext(config: MEMOConfig): string {
     }
 
     // Available relationship types
-    if (config.relationshipTypes?.length) {
+    if (ontology.relationshipTypes?.length) {
         parts.push('## Available Relationship Types');
-        for (const rt of config.relationshipTypes) {
+        for (const rt of ontology.relationshipTypes) {
             parts.push(`- ${rt.name} (${rt.label}) — layer: ${rt.layer}`);
         }
         parts.push('');
     }
 
-    // Architecture layers
-    if (config.architectureLayers?.length) {
-        parts.push('## Architecture Layers');
-        for (const l of config.architectureLayers) {
-            parts.push(`- ${l.id}: ${l.label}`);
-        }
-        parts.push('');
-    }
+    // Architecture layers are derived from the kinds above; a settings file
+    // used to declare them separately, which let the two disagree.
 
     return parts.join('\n');
 }

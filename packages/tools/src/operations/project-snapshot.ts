@@ -13,12 +13,14 @@ import { modelToDTO } from '../model/semantic.js';
 import type { ArchLayerDTO, DiagramDTO, MemoModelDTO, ViewpointDTO } from '../model/semantic.js';
 import type { CompletenessReport, ValidationResult } from '../validator/types.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { findProjectRoot, loadProjectSettings } from '@memoarchitect/tools';
 import { findSysmlFiles } from '../model/sysml-files.js';
 
 
 export interface ProjectSnapshot {
     projectRoot: string;
-    configPath: string;
+    /** Absolute path of the settings file, when the project has one. */
+    configPath?: string;
     config: MEMOConfig;
     model: MemoModelDTO;
     validation: ValidationResult;
@@ -29,16 +31,20 @@ export interface ProjectSnapshot {
 /** Build the immutable data payload consumed by exports and Architect. */
 export async function buildProjectSnapshot(projectRoot = process.cwd()): Promise<ProjectSnapshot> {
     const cwd = resolve(projectRoot);
-    const configPath = findConfigFile(cwd);
-    if (!configPath) {
-        throw new Error('No memo config found. Run `memo init` first.');
+    // A project is identified by its native entrypoint. Settings are optional:
+    // a project with none is complete, because settings carry no meaning.
+    if (!findProjectRoot(cwd)) {
+        throw new Error(
+            'No model/catalog/project.sysml found. A MEMO project declares its identity and method '
+            + 'binding in SysML — run `memo init` to scaffold one.',
+        );
     }
-
-    const config = loadAndResolveConfig(configPath);
-    const compiler = compileWithConfiguredTool(config, cwd, configPath);
+    const configPath = findConfigFile(cwd);
+    const config = configPath ? loadAndResolveConfig(configPath) : loadProjectSettings(cwd);
+    const compiler = compileWithConfiguredTool(config, cwd);
     let ontologyRegistries: BuilderRegistries | undefined;
     try {
-        const loadResult = await loadOntologyRegistries(configPath);
+        const loadResult = await loadOntologyRegistries(cwd);
         if (loadResult.fileCount > 0) ontologyRegistries = loadResult.registries;
     } catch {
         // Snapshot generation remains available with reduced kind resolution.
@@ -47,21 +53,13 @@ export async function buildProjectSnapshot(projectRoot = process.cwd()): Promise
     const { documents, errors } = await parseFiles(findSysmlFiles(cwd), `${cwd}/`);
     const semanticModel = buildMemoModel(documents, config, errors, ontologyRegistries);
     const validation = validateModel(semanticModel, [], ontologyRegistries?.kindRegistry);
-    const completeness = computeCompleteness(semanticModel, validation, config);
+    const completeness = computeCompleteness(semanticModel, validation);
 
-    const viewpoints: ViewpointDTO[] = config.viewpoints?.map(vp => ({
-        id: vp.id,
-        label: vp.label,
-        group: vp.group,
-        visibleKinds: vp.visibleKinds,
-        visibleRelationships: vp.visibleRelationships,
-        visibleLayers: vp.visibleLayers,
-    })) ?? [];
-    const architectureLayers: ArchLayerDTO[] | undefined = config.architectureLayers?.map(layer => ({
-        id: layer.id,
-        label: layer.label,
-        color: layer.color,
-    }));
+    // Viewpoints and layers are derived from the model. The `viewpoints:` and
+    // `architectureLayers:` settings blocks that used to supply them are gone:
+    // a portable view's content cannot depend on a file the model does not carry.
+    const viewpoints: ViewpointDTO[] = [];
+    const architectureLayers: ArchLayerDTO[] | undefined = undefined;
     // Diagrams are authored model views. Do not fabricate one generic BDD per
     // layer: those views carry no diagram intent and obscure the useful views.
     const diagrams: DiagramDTO[] = [];

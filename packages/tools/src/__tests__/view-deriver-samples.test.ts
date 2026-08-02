@@ -50,7 +50,6 @@ describe('explicit renderer samples', () => {
             viewpointId: '__model',
             viewKind: 'interconnection',
             elementIds: ['partA'],
-            relationshipTypes: ['ExchangesWith'],
             sourceFile: 'sample/model/test.sysml',
         })]);
     });

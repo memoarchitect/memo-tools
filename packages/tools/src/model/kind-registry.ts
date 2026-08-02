@@ -27,7 +27,29 @@ import {
     isEnumDefinition,
     isPackageDeclaration,
 } from '../language/generated/ast.js';
-import type { KindDefinition, SysMLConstruct } from './config.js';
+import type { SysMLConstruct } from './config.js';
+
+/**
+ * A kind as the registry reports it.
+ *
+ * This shape used to live in `config.ts`, where a YAML `kinds:` block could
+ * declare one. Kinds come from the ontology's own `part def` / `item def`
+ * declarations now, so the shape belongs to the registry that derives it.
+ */
+export interface KindDefinition {
+    /** Human-readable label */
+    label: string;
+    /** Architecture layer this kind belongs to */
+    layer?: string;
+    /** SysML v2 construct this kind maps to */
+    sysmlConstruct: SysMLConstruct;
+    /** Icon identifier for the palette/diagram */
+    icon?: string;
+    /** Template file for new instances */
+    template?: string;
+    /** Default attributes for new instances */
+    defaultAttributes?: Record<string, string>;
+}
 import type { ParsedDocument } from './parser-utils.js';
 import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from './layer-resolver.js';
 import type { KindDefinitionDTO } from './relationship-legality.js';
@@ -488,4 +510,31 @@ export class KindRegistry {
             }
         }
     }
+}
+
+/**
+ * The ontology facts a formatter or importer needs, derived from the registries.
+ *
+ * Consumers used to take a `MEMOConfig` and read `config.kinds` and
+ * `config.relationshipTypes` off it, which meant a settings file could declare
+ * a kind the ontology never defined. They take this instead: it can only be
+ * built from what the resolved SysML declares.
+ */
+export interface OntologyView {
+    kinds: Record<string, KindDefinition>;
+    relationshipTypes: Array<{ name: string; label: string; layer: string; color: string }>;
+}
+
+/** An empty view — what a caller has before any ontology is resolved. */
+export const EMPTY_ONTOLOGY_VIEW: OntologyView = { kinds: {}, relationshipTypes: [] };
+
+/** Build a view from populated registries. */
+export function ontologyViewFrom(
+    kindRegistry?: { toKindsRecord(): Record<string, KindDefinition> },
+    relationshipRegistry?: { toRelationshipTypesArray(): OntologyView['relationshipTypes'] },
+): OntologyView {
+    return {
+        kinds: kindRegistry?.toKindsRecord() ?? {},
+        relationshipTypes: relationshipRegistry?.toRelationshipTypesArray() ?? [],
+    };
 }

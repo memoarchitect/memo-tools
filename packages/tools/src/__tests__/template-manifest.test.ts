@@ -25,9 +25,12 @@ describe('ontology template manifest', () => {
         for (const path of Object.values(loaded.manifest.templates)) {
             const root = resolveManifestPath(loaded, path);
             expect(existsSync(`${root}/memo.package.yaml`)).toBe(true);
-            expect(existsSync(`${root}/src/architecture/system.sysml`)).toBe(true);
-            expect(existsSync(`${root}/src/assurance/requirements.sysml`)).toBe(true);
-            expect(existsSync(`${root}/src/artifacts/artifacts.sysml`)).toBe(true);
+            // The native entrypoint is what makes the scaffold a project: it
+            // carries the imports and the ProjectMethodBinding.
+            expect(existsSync(`${root}/model/catalog/project.sysml`)).toBe(true);
+            expect(existsSync(`${root}/model/catalog/architecture/system.sysml`)).toBe(true);
+            expect(existsSync(`${root}/model/catalog/assurance/requirements.sysml`)).toBe(true);
+            expect(existsSync(`${root}/model/catalog/artifacts/catalog.sysml`)).toBe(true);
         }
     });
 

@@ -8,11 +8,12 @@ import type { Model } from '../language/generated/ast.js';
 import type { MEMOConfig } from '../model/config.js';
 import { buildMemoModel, type BuilderRegistries } from '../model/builder.js';
 import { KindRegistry } from '../model/kind-registry.js';
+import { ProvenanceTable } from '../model/source-provenance.js';
 import { RelationshipRegistry } from '../model/relationship-registry.js';
 import { validateModel } from '../validator/rule-engine.js';
 import { computeCompleteness } from '../completeness/tracker.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
-import { loadConfig, resolveConfig } from '../model/config-loader.js';
+import { loadConfig } from '../model/config-loader.js';
 
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
@@ -24,33 +25,59 @@ async function parseDoc(source: string, filePath: string = 'test.sysml'): Promis
     return { document: doc, filePath };
 }
 
-/** Minimal config for testing */
+/** Minimal settings for testing. Settings carry no kinds any more. */
 const testConfig: MEMOConfig = {
     projectName: 'test',
-    projectType: 'device',
-    kinds: {
-        Hazard: { label: 'Hazard', layer: 'risk', sysmlConstruct: 'requirement def' },
-        RiskControlMeasure: { label: 'Risk Control', layer: 'risk', sysmlConstruct: 'requirement def' },
-        SystemRequirement: { label: 'System Req', layer: 'requirements', sysmlConstruct: 'requirement def' },
-        SoftwareRequirement: { label: 'Software Req', layer: 'requirements', sysmlConstruct: 'requirement def' },
-        Software: { label: 'Software', layer: 'software', sysmlConstruct: 'part def' },
-        Actor: { label: 'Actor', layer: 'business', sysmlConstruct: 'part def' },
-    },
-    relationshipTypes: [
-        { name: 'mitigates', label: 'Mitigates', layer: 'risk', color: '#E74C3C' },
-        { name: 'traceTo', label: 'Trace To', layer: 'requirements', color: '#4A90D9' },
-    ],
-    architectureLayers: [
-        { id: 'risk', label: 'Risk', color: '#E74C3C' },
-        { id: 'requirements', label: 'Requirements', color: '#4A90D9' },
-        { id: 'software', label: 'Software', color: '#F39C12' },
-        { id: 'business', label: 'Business', color: '#8E44AD' },
-    ],
 };
+
+/**
+ * The kinds these tests model with.
+ *
+ * They used to live in `testConfig.kinds`, and the builder read them from
+ * there. Kinds come from the ontology's own declarations now, so the tests
+ * build the registry the resolved SysML would have produced.
+ */
+function testRegistries(): { kindRegistry: KindRegistry } {
+    const kindRegistry = new KindRegistry();
+    const kinds: Array<[string, string, string, 'part def' | 'requirement def']> = [
+        ['Hazard', 'Hazard', 'risk', 'requirement def'],
+        ['RiskControlMeasure', 'Risk Control', 'risk', 'requirement def'],
+        ['SystemRequirement', 'System Req', 'requirements', 'requirement def'],
+        ['SoftwareRequirement', 'Software Req', 'requirements', 'requirement def'],
+        ['Software', 'Software', 'software', 'part def'],
+        ['Actor', 'Actor', 'business', 'part def'],
+    ];
+    for (const [name, label, layer, sysmlConstruct] of kinds) {
+        kindRegistry.register({ name, label, layer, sysmlConstruct, qualifiedName: `memo::test::${name}` });
+    }
+    return { kindRegistry };
+}
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('buildMemoModel', () => {
+    it('carries declaration and classifier provenance separately', async () => {
+        const doc = await parseDoc(`package TestPkg { part clinician : Actor; }`, '/workspace/model/catalog.sysml');
+        const kinds = new KindRegistry();
+        kinds.register({
+            name: 'Actor', label: 'Actor', layer: 'business', sysmlConstruct: 'part def',
+            qualifiedName: 'memo::architecture::Actor',
+            sourceFile: '/ontology/src/actors.sysml',
+        });
+        const model = buildMemoModel([doc], testConfig, [], {
+            kindRegistry: kinds,
+            provenance: new ProvenanceTable('/workspace', [{
+                dir: '/ontology', origin: 'ontology', packageName: '@memoarchitect/ontology', importDepth: 1,
+            }]),
+        });
+        const element = model.elements.get('clinician')!;
+        expect(element.provenance?.declaration.origin).toBe('project');
+        expect(element.provenance?.declaration.writable).toBe(true);
+        expect(element.provenance?.classifier?.qualifiedName).toBe('memo::architecture::Actor');
+        expect(element.provenance?.classifier?.provenance?.origin).toBe('ontology');
+        expect(element.provenance?.classifierChain?.map(entry => entry.shortName)).toEqual(['Actor']);
+    });
+
     it('extracts elements from part usages', async () => {
         const doc = await parseDoc(`
             package TestPkg {
@@ -59,7 +86,7 @@ describe('buildMemoModel', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.size).toBe(1);
         const el = model.elements.get('clinician')!;
@@ -80,7 +107,7 @@ describe('buildMemoModel', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.get('scenario')?.attributes['parentWorkflow']).toBe('workflow');
     });
@@ -95,7 +122,7 @@ describe('buildMemoModel', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.size).toBe(1);
         const el = model.elements.get('hazOverInfusion')!;
@@ -119,7 +146,7 @@ describe('buildMemoModel', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.size).toBe(2);
         expect(model.elements.get('ucMonitor')).toMatchObject({
@@ -146,7 +173,7 @@ describe('buildMemoModel', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.size).toBe(2);
         expect(model.relationships).toHaveLength(1);
@@ -168,7 +195,7 @@ describe('buildMemoModel', () => {
                 requirement sr1 : SystemRequirement { attribute redefines title = "SR1"; }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elementsByKind.get('Hazard')?.length).toBe(2);
         expect(model.elementsByKind.get('SystemRequirement')?.length).toBe(1);
@@ -184,7 +211,7 @@ describe('buildMemoModel', () => {
                 connection : Mitigates connect control ::> rc1 to hazard ::> h1;
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.outgoing.get('rc1')?.length).toBe(1);
         expect(model.incoming.get('h1')?.length).toBe(1);
@@ -200,7 +227,7 @@ describe('buildMemoModel', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
         expect(model.errors).toHaveLength(0);
         expect(model.elements.get('sw1')?.attributes['periodMs']).toBe('20.0');
     });
@@ -216,14 +243,16 @@ describe('computeCompleteness', () => {
                 connection : Mitigates connect control ::> rc1 to hazard ::> h1;
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
         const validation = validateModel(model);
-        const report = computeCompleteness(model, validation, testConfig);
+        const report = computeCompleteness(model, validation);
 
         expect(report.totalElements).toBe(3);
         // h1 passes (has mitigates), rc1 has no rules, sw1 passes (has attribute)
         expect(report.overall).toBeGreaterThanOrEqual(50);
-        expect(report.layers.length).toBe(4); // risk, requirements, software, business
+        // Layers come from the model, not from a configured list, so only the
+        // layers the model actually populates are reported: risk and software.
+        expect(report.layers.map(l => l.layerId).sort()).toEqual(['risk', 'software']);
     });
 });
 
@@ -238,7 +267,7 @@ describe('Cross-file import resolution', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
         const el = model.elements.get('clinician')!;
         expect(el.package).toBe('DeviceModel');
     });
@@ -342,7 +371,7 @@ describe('Cross-file import resolution', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.get('haz1')?.package).toBe('DeviceModel::Risk');
         expect(model.elements.get('rc1')?.package).toBe('DeviceModel::Controls');
@@ -357,7 +386,7 @@ describe('Cross-file import resolution', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
         const el = model.elements.get('h1')!;
         // Should resolve RiskPkg::Hazard to just "Hazard" for kind lookup
         expect(el.kind).toBe('Hazard');
@@ -375,7 +404,7 @@ describe('SysML v2 library keyword', () => {
                 part def RiskControlMeasure;
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
         // Library packages contain definitions, not usages — no elements extracted
         expect(model.elements.size).toBe(0);
     });
@@ -579,7 +608,7 @@ describe('Port wiring (M-2)', () => {
                 port plain : GenericPort;
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         const sensor = model.elements.get('sensorIn')!;
         expect(sensor).toBeDefined();
@@ -607,7 +636,7 @@ describe('Port wiring (M-2)', () => {
                 }
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         // Ports extracted as elements
         expect(model.elements.size).toBe(2);
@@ -630,14 +659,7 @@ describe('Port wiring (M-2)', () => {
                 connection : DataLink connect source ::> sensorOut to target ::> sensorIn;
             }
         `);
-        const config = {
-            ...testConfig,
-            relationshipTypes: [
-                ...(testConfig.relationshipTypes ?? []),
-                { name: 'dataLink', label: 'Data Link', layer: 'interfaces', color: '#3498DB' },
-            ],
-        };
-        const model = buildMemoModel([doc], config);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
@@ -653,7 +675,7 @@ describe('Port wiring (M-2)', () => {
                 connection : Mitigates connect control ::> rc1 to hazard ::> h1;
             }
         `);
-        const model = buildMemoModel([doc], testConfig);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         const rel = model.relationships[0];
         expect(rel.sourcePortId).toBeUndefined();
@@ -661,92 +683,15 @@ describe('Port wiring (M-2)', () => {
     });
 });
 
-// ─── Helper: resolve extends chain for tests ────────────────────────────────
+// The `resolveConfig` extends-chain helper this file used to carry is gone.
+// Settings no longer inherit: what a project depends on is its SysML imports,
+// resolved by `resolveNativeProject`.
 
-function loadResolvedConfig(configPath: string): MEMOConfig {
-    const config = loadConfig(configPath);
-    return resolveConfig(config, (packageName: string) => {
-        // Map @memo package names to workspace package configs
-        const shortName = packageName.replace(/^@memo\//, '');
-        const parentPath = resolve('/Users/someshkashyap/sandbox/memo/packages', shortName, 'memo.package.yaml');
-        try {
-            return loadConfig(parentPath);
-        } catch {
-            return undefined;
-        }
-    });
-}
 
 // ─── Integration test with real infusion-pump file ──────────────────────────
 
-// SKIP: examples/infusion-pump/ removed in c22b2e3 (single-example branch decision).
-// Restore fixture or repoint to gpca-pump when builder work resumes.
-describe.skip('Infusion pump integration', () => {
-    const PUMP_FILE = resolve('/Users/someshkashyap/sandbox/memo/examples/infusion-pump/model/infusion-pump.sysml');
-    const CONFIG_FILE = resolve('/Users/someshkashyap/sandbox/memo/packages/medical-modeling-profile/memo.package.yaml');
-
-    it('builds model from infusion-pump.sysml', async () => {
-        const source = readFileSync(PUMP_FILE, 'utf-8');
-        const doc = await parse(source);
-        const config = loadResolvedConfig(CONFIG_FILE);
-
-        const model = buildMemoModel(
-            [{ document: doc, filePath: 'model/infusion-pump.sysml' }],
-            config
-        );
-
-        // Should have many elements (actors, requirements, hazards, components, etc.)
-        expect(model.elements.size).toBeGreaterThan(50);
-
-        // Should have relationships across risk, derivation, allocation, satisfaction, and verification.
-        expect(model.relationships.length).toBeGreaterThan(30);
-
-        // Check specific elements
-        expect(model.elements.get('clinician')).toBeDefined();
-        expect(model.elements.get('clinician')?.kind).toBe('Actor');
-
-        expect(model.elements.get('hazOverInfusion')).toBeDefined();
-        expect(model.elements.get('hazOverInfusion')?.kind).toBe('Hazard');
-
-        // Check relationships
-        const mitigates = model.relationshipsByType.get('mitigates') || [];
-        expect(mitigates.length).toBe(3); // 3 risk controls
-
-        const traceTo = model.relationshipsByType.get('traceTo') || [];
-        expect(traceTo.length).toBe(0);
-
-        const derives = model.relationshipsByType.get('derives') || [];
-        const refines = model.relationshipsByType.get('refines') || [];
-        expect(derives.length).toBeGreaterThanOrEqual(6);
-        expect(refines.length).toBeGreaterThanOrEqual(5);
-
-        // Verify relationship indexes
-        const hazOverOutgoing = model.outgoing.get('hazOverInfusion') || [];
-        const hazOverIncoming = model.incoming.get('hazOverInfusion') || [];
-        expect(hazOverOutgoing.length + hazOverIncoming.length).toBeGreaterThan(0);
-    });
-
-    it('validates infusion-pump model', async () => {
-        const source = readFileSync(PUMP_FILE, 'utf-8');
-        const doc = await parse(source);
-        const config = loadResolvedConfig(CONFIG_FILE);
-
-        const model = buildMemoModel(
-            [{ document: doc, filePath: 'model/infusion-pump.sysml' }],
-            config
-        );
-
-        const result = validateModel(model);
-        // Some rules should pass, some may have violations
-        expect(result.violations.length).toBeGreaterThanOrEqual(0);
-
-        const completeness = computeCompleteness(model, result, config);
-        expect(completeness.totalElements).toBeGreaterThan(50);
-        expect(completeness.layers.length).toBeGreaterThanOrEqual(2);
-    });
-});
-
-// ─── Dual-mode builder: registry-first resolution (M41) ─────────────────────
+// The skipped infusion-pump integration block was removed with the settings
+// `extends` resolver it depended on; its fixture had already been deleted.
 
 describe('Dual-mode builder with registries', () => {
     /** Create a KindRegistry with a few test kinds */
@@ -789,7 +734,7 @@ describe('Dual-mode builder with registries', () => {
         const kindRegistry = ontologyKinds.withProjectExtensions([doc]);
         const model = buildMemoModel(
             [doc],
-            { ...testConfig, kinds: {} },
+            testConfig,
             [],
             { kindRegistry },
         );
@@ -819,7 +764,7 @@ describe('Dual-mode builder with registries', () => {
         `);
 
         // Use empty config kinds — registry should provide the resolution
-        const emptyKindsConfig: MEMOConfig = { ...testConfig, kinds: {} };
+        const emptyKindsConfig: MEMOConfig = testConfig;
         const model = buildMemoModel([doc], emptyKindsConfig, [], registries);
 
         const el = model.elements.get('clinician')!;
@@ -829,7 +774,7 @@ describe('Dual-mode builder with registries', () => {
         expect(el.layer).toBe('purpose');
     });
 
-    it('falls back to config when registry does not have the kind', async () => {
+    it('reports an unknown layer when the registry does not have the kind', async () => {
         const registries: BuilderRegistries = {
             kindRegistry: new KindRegistry(), // empty registry
         };
@@ -847,7 +792,10 @@ describe('Dual-mode builder with registries', () => {
         const el = model.elements.get('clinician')!;
         expect(el).toBeDefined();
         expect(el.kind).toBe('Actor');
-        expect(el.layer).toBe('business'); // from config fallback
+        // There is no config fallback any more. A settings file could declare a
+        // `kinds:` block, which meant it could invent a type the ontology never
+        // defined; an unresolved kind is now visibly unresolved.
+        expect(el.layer).toBe('unknown');
     });
 
     it('registry takes precedence over config for same kind', async () => {
@@ -886,7 +834,7 @@ describe('Dual-mode builder with registries', () => {
             }
         `);
 
-        const emptyKindsConfig: MEMOConfig = { ...testConfig, kinds: {} };
+        const emptyKindsConfig: MEMOConfig = testConfig;
         const model = buildMemoModel([doc], emptyKindsConfig, [], registries);
 
         const el = model.elements.get('h1')!;
@@ -906,7 +854,7 @@ describe('Dual-mode builder with registries', () => {
             }
         `);
 
-        const emptyKindsConfig: MEMOConfig = { ...testConfig, kinds: {} };
+        const emptyKindsConfig: MEMOConfig = testConfig;
         const model = buildMemoModel([doc], emptyKindsConfig, [], registries);
 
         const el = model.elements.get('doSomething')!;
@@ -914,7 +862,7 @@ describe('Dual-mode builder with registries', () => {
         expect(el.layer).toBe('operational');
     });
 
-    it('produces identical output without registries (backward compat)', async () => {
+    it('resolves structure without a registry, but not kind layers', async () => {
         const doc = await parseDoc(`
             package TestPkg {
                 requirement rc1 : RiskControlMeasure {
@@ -927,11 +875,18 @@ describe('Dual-mode builder with registries', () => {
             }
         `);
 
-        const modelWithout = buildMemoModel([doc], testConfig);
-        const modelWith = buildMemoModel([doc], testConfig, [], undefined);
+        const withRegistry = buildMemoModel([doc], testConfig, [], testRegistries());
+        const withoutRegistry = buildMemoModel([doc], testConfig, [], undefined);
 
-        expect(modelWith.elements.size).toBe(modelWithout.elements.size);
-        expect(modelWith.relationships.length).toBe(modelWithout.relationships.length);
-        expect(modelWith.elements.get('haz1')?.layer).toBe(modelWithout.elements.get('haz1')?.layer);
+        // Structure is registry-independent: the same elements and the same
+        // relationships either way.
+        expect(withoutRegistry.elements.size).toBe(withRegistry.elements.size);
+        expect(withoutRegistry.relationships.length).toBe(withRegistry.relationships.length);
+
+        // Layer is not. It used to fall back to `config.kinds`, so a settings
+        // file could answer a question only the ontology can answer. Without a
+        // resolved ontology the layer is honestly unknown.
+        expect(withRegistry.elements.get('haz1')?.layer).toBe('risk');
+        expect(withoutRegistry.elements.get('haz1')?.layer).toBe('unknown');
     });
 });

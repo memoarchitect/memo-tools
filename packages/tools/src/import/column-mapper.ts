@@ -4,7 +4,7 @@
 // a standard MEMO elements CSV ready for parseElementsCsv().
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MEMOConfig } from '../model/config.js';
+import type { OntologyView } from '../model/kind-registry.js';
 import type { ImportRecipe, ColumnMapping } from './recipes.js';
 
 export type { ColumnMapping };
@@ -90,7 +90,7 @@ export interface MappedCsvResult {
 export function applyColumnMappings(
     rawRows: Record<string, string>[],
     mappings: ColumnMapping[],
-    config: MEMOConfig,
+    ontology: OntologyView,
     defaultKind?: string
 ): MappedCsvResult {
     const warnings: string[] = [];
@@ -155,8 +155,8 @@ export function applyColumnMappings(
 
         // Validate kind against config kinds (warn but keep)
         const kind = out['kind'];
-        if (kind && config.kinds && !config.kinds[kind]) {
-            warnings.push(`Row ${rowIdx + 2}: unknown kind '${kind}' (not in config)`);
+        if (kind && Object.keys(ontology.kinds).length > 0 && !ontology.kinds[kind]) {
+            warnings.push(`Row ${rowIdx + 2}: unknown kind '${kind}' (not declared by the resolved ontology)`);
         }
 
         const rowValues = outputHeaders.map((h) => escapeCsv(out[h] ?? ''));

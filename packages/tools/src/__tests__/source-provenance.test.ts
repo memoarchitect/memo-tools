@@ -4,6 +4,7 @@ import {
     ProvenanceTable,
     originForPackageType,
     isReusableOrigin,
+    classifySourceChange,
     type ResolvedRoot,
 } from '../model/source-provenance.js';
 
@@ -123,6 +124,15 @@ describe('ProvenanceTable', () => {
         const p = table([]).lookupOrProject('/elsewhere/a.sysml');
         expect(p.origin).toBe('project');
         expect(p.writable).toBe(true);
+    });
+});
+
+describe('watch source classification', () => {
+    it('uses the resolved root rather than a configured path list', () => {
+        const t = table([ontologyRoot]);
+        expect(classifySourceChange(join(PROJECT, 'model/catalog.sysml'), t)).toBe('project');
+        expect(classifySourceChange(join(ontologyRoot.dir, 'src/core.sysml'), t)).toBe('reusable');
+        expect(classifySourceChange('/elsewhere/file.sysml', t)).toBe('unknown');
     });
 });
 

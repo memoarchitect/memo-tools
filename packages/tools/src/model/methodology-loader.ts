@@ -1,48 +1,43 @@
-// ─── Methodology Loader (Phase B) ─────────────────────────────────────────────
+// ─── Methodology Descriptor ───────────────────────────────────────────────────
 //
-// Parses methodology SysML files (e.g. ontology/methodology/<name>/*.sysml) into
-// a typed MethodologyDescriptor. Methodology in MEMO = a curated bundle that
-// selects from the architecture/viewpoints/views/compliance ontologies and adds
-// rules / gates / patterns / workflow / profile metadata.
+// The methodology content a project resolved, as a DTO the server can publish.
 //
-// SysML shape consumed:
-//   part def Viewpoint :> ... { attribute purpose : String; ... }
-//   part swArchView : Viewpoint {
-//       attribute id   = "VP-002";
-//       attribute name = "SoftwareArchitectureView";
-//       attribute purpose = "...";
-//       ...
-//   }
+// Two things changed at the native flip. The scan is an AST walk over the
+// documents the native resolver already parsed, not a regex pass over whatever
+// `.sysml` files sat under a `methodology/` directory — a folder convention is
+// not a selection mechanism. And the descriptor now carries the *effective*
+// methodology and rule set, so a client can show the inheritance and policy
+// chain rather than re-deriving it from raw parts.
 //
-// The loader does a regex-based scan (matching the style of ontology-loader's
-// parseConstructsInFile) and is independent of the Langium grammar so that
-// methodology files load even while grammar work is in flight.
+// Design reference: sections 9.1, 10.3, 15.2 deliverables 4-5.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { resolve, join, basename, relative } from 'node:path';
-import { findOntologyPackageDirs, resolvePackageSysmlDir, getPackageMetadata } from './ontology-loader.js';
+import { basename, relative } from 'node:path';
+import type { ParsedDocument } from './parser-utils.js';
+import {
+    resolveNativeProject,
+    type NativeMethodology,
+    type NativeProjectResolution,
+} from './native-project.js';
+import {
+    resolveEffectiveMethodology,
+    type EffectiveMethodology,
+} from './methodology-resolver.js';
 
 /** Primitive value pulled out of a SysML attribute literal. */
 export type MethodologyAttrValue = string | number | boolean;
 
-/** A `part <name> : <Type> { ... }` instance from a methodology file. */
+/** A `part <name> : <Type> { ... }` usage from resolved source. */
 export interface MethodologyPart {
-    /** SysML local name, e.g. "swArchView". */
     partName: string;
-    /** Type of the part, e.g. "Viewpoint", "WorkflowStep". */
     partType: string;
-    /** Attributes captured from the body (`attribute k = v;` lines). */
     attributes: Record<string, MethodologyAttrValue>;
-    /** Multi-valued attributes (repeated keys). Each key maps to all values in order. */
     multiAttributes: Record<string, MethodologyAttrValue[]>;
-    /** Source file path relative to the project root, for traceability. */
     sourceFile: string;
-    /** Fully-qualified SysML namespace, e.g. "memo::methodology::profiles". */
     namespace?: string;
 }
 
-/** A `part def Foo :> Bar { ... }` declaration discovered in methodology files. */
+/** A `part def Foo :> Bar { ... }` declaration in resolved methodology source. */
 export interface MethodologyPartDef {
     name: string;
     superType?: string;
@@ -50,211 +45,209 @@ export interface MethodologyPartDef {
     namespace?: string;
 }
 
-/** One self-contained methodology folder (e.g. `ontology/methodology/memo`). */
+/** One methodology-supplying source unit. */
 export interface MethodologyFolderInfo {
-    /** Folder name = methodology id (e.g. "memo"). */
+    /** Package name supplying the methodology content. */
     name: string;
-    /** Absolute path to the methodology folder. */
+    /** Absolute path of the root that supplied it. */
     rootDir: string;
-    /** Files scanned (relative to project root). */
     sourceFiles: string[];
-    /** Distinct SysML packages declared across the folder's files. */
     namespaces: string[];
-    /** All `part def`s discovered locally. */
     partDefs: MethodologyPartDef[];
-    /** All part instances, grouped by partType. */
     parts: Record<string, MethodologyPart[]>;
 }
 
-/** Top-level descriptor exposed to the web app. */
+/** Top-level descriptor exposed to clients. */
 export interface MethodologyDescriptor {
-    /** Methodology folders discovered (project may pin one in future Phase C). */
     folders: MethodologyFolderInfo[];
-    /** Errors / warnings during methodology scan (non-fatal). */
     errors: string[];
+    /** The resolved chain, merged selection, and policy chain. */
+    effective?: EffectiveMethodology;
+    /** Methodologies visible in the closure, by usage name. */
+    available?: NativeMethodology[];
 }
 
-// ─── Regex helpers ───────────────────────────────────────────────────────────
+// ─── AST reading ──────────────────────────────────────────────────────────────
 
-/** `part def Foo :> Bar { ... }` */
-const PART_DEF_RE = /^\s*part\s+def\s+(\w+)(?:\s*:>\s*([\w:]+))?\s*\{/gm;
-
-/** `part name : Type { body }` — body is captured to be parsed for attributes. */
-const PART_INSTANCE_RE = /^\s*part\s+(\w+)\s*:\s*(\w+)\s*\{([\s\S]*?)\n\s*\}/gm;
-
-/** `attribute key = value;` — value can be string literal, enum ref, integer, boolean. */
-const ATTR_RE = /attribute\s+(\w+)\s*=\s*(?:"([^"]*)"|(\w+(?:::\w+)*)|(-?\d+(?:\.\d+)?)|(true|false))\s*;/g;
-
-/** `package memo::methodology::profiles {` — top-level namespace */
-const PACKAGE_RE = /^\s*package\s+([\w:]+)\s*\{/m;
-
-function parseAttributes(body: string): { attrs: Record<string, MethodologyAttrValue>; multi: Record<string, MethodologyAttrValue[]> } {
-    const attrs: Record<string, MethodologyAttrValue> = {};
-    const multi: Record<string, MethodologyAttrValue[]> = {};
-    for (const m of body.matchAll(ATTR_RE)) {
-        const key = m[1];
-        let value: MethodologyAttrValue;
-        if (m[2] !== undefined) {
-            value = m[2];
-        } else if (m[3] !== undefined) {
-            const qualified = m[3];
-            const short = qualified.includes('::') ? qualified.split('::').pop()! : qualified;
-            value = short;
-            attrs[`${key}__qualified`] = qualified;
-        } else if (m[4] !== undefined) {
-            value = Number(m[4]);
-        } else if (m[5] !== undefined) {
-            value = m[5] === 'true';
-        } else {
-            continue;
+function literal(value: any): MethodologyAttrValue | undefined {
+    if (!value) return undefined;
+    switch (value.$type) {
+        case 'StringValue':
+            try { return JSON.parse(value.value ?? '""'); }
+            catch { return String(value.value ?? '').replace(/^"|"$/g, ''); }
+        case 'IntValue':
+        case 'RealValue':
+            return Number(value.value);
+        case 'BooleanValue':
+            return value.value === 'true' || value.value === true;
+        case 'EnumValue': {
+            const ref: string = value.enumRef ?? '';
+            const idx = ref.lastIndexOf('::');
+            return idx >= 0 ? ref.slice(idx + 2) : ref;
         }
-        if (!multi[key]) multi[key] = [];
-        multi[key].push(value);
-        attrs[key] = value;
+        default:
+            return undefined;
     }
-    return { attrs, multi };
 }
 
-function parseMethodologyFile(absPath: string, projectRoot: string): {
+function readBody(body: any[]): Pick<MethodologyPart, 'attributes' | 'multiAttributes'> {
+    const attributes: Record<string, MethodologyAttrValue> = {};
+    const multiAttributes: Record<string, MethodologyAttrValue[]> = {};
+    const push = (key: string, v: MethodologyAttrValue) => {
+        (multiAttributes[key] ??= []).push(v);
+        attributes[key] = v;
+    };
+    for (const member of body ?? []) {
+        if (member.$type !== 'AttributeMember' || !member.name || !member.value) continue;
+        if (member.value.$type === 'SetLiteral') {
+            for (const el of member.value.elements ?? []) {
+                const raw = el.stringValue ?? el.value;
+                if (typeof raw !== 'string') continue;
+                try { push(member.name, JSON.parse(raw)); }
+                catch { push(member.name, raw.replace(/^"|"$/g, '')); }
+            }
+        } else if (member.value.$type === 'EnumValue') {
+            const ref: string = member.value.enumRef ?? '';
+            const v = literal(member.value);
+            if (v !== undefined) push(member.name, v);
+            attributes[`${member.name}__qualified`] = ref;
+        } else {
+            const v = literal(member.value);
+            if (v !== undefined) push(member.name, v);
+        }
+    }
+    return { attributes, multiAttributes };
+}
+
+function shortName(qualified: string | undefined): string | undefined {
+    if (!qualified) return undefined;
+    const idx = qualified.lastIndexOf('::');
+    return idx >= 0 ? qualified.slice(idx + 2) : qualified;
+}
+
+function walkDocument(doc: ParsedDocument, projectRoot: string): {
     partDefs: MethodologyPartDef[];
     parts: MethodologyPart[];
-    namespace?: string;
+    namespaces: string[];
 } {
     const partDefs: MethodologyPartDef[] = [];
     const parts: MethodologyPart[] = [];
+    const namespaces: string[] = [];
+    const model = doc.document.parseResult?.value as any;
+    if (!model) return { partDefs, parts, namespaces };
+    const sourceFile = relative(projectRoot, doc.filePath) || basename(doc.filePath);
 
-    let content = '';
-    try { content = readFileSync(absPath, 'utf-8'); } catch { return { partDefs, parts }; }
-
-    const sourceFile = relative(projectRoot, absPath) || basename(absPath);
-    const nsMatch = content.match(PACKAGE_RE);
-    const namespace = nsMatch ? nsMatch[1] : undefined;
-
-    for (const m of content.matchAll(PART_DEF_RE)) {
-        partDefs.push({
-            name: m[1],
-            superType: m[2] || undefined,
-            sourceFile,
-            namespace,
-        });
-    }
-
-    // Reset because PART_INSTANCE_RE has the `g` flag and content shares scope.
-    PART_INSTANCE_RE.lastIndex = 0;
-    for (const m of content.matchAll(PART_INSTANCE_RE)) {
-        const partName = m[1];
-        const partType = m[2];
-        // Skip `part def` matches — PART_INSTANCE_RE doesn't, since `def` isn't excluded.
-        // The PART_DEF_RE form has `def` after `part`; PART_INSTANCE_RE matches `part NAME :`,
-        // but `part def Foo :> Bar { ... }` matches as partName="def", partType="Foo" — filter that.
-        if (partName === 'def') continue;
-        const { attrs, multi } = parseAttributes(m[3]);
-        parts.push({
-            partName,
-            partType,
-            attributes: attrs,
-            multiAttributes: multi,
-            sourceFile,
-            namespace,
-        });
-    }
-
-    return { partDefs, parts, namespace };
-}
-
-function listSysmlFiles(dir: string): string[] {
-    const files: string[] = [];
-    try {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = join(dir, entry.name);
-            if (entry.isDirectory()) {
-                files.push(...listSysmlFiles(full));
-            } else if (entry.name.endsWith('.sysml') && entry.name !== 'index.sysml') {
-                files.push(full);
-            }
+    const visit = (node: any, ns?: string) => {
+        if (!node) return;
+        if (node.$type === 'PackageDeclaration') {
+            if (node.name && !namespaces.includes(node.name)) namespaces.push(node.name);
+            for (const m of node.members ?? []) visit(m, node.name ?? ns);
+            return;
         }
-    } catch { /* skip */ }
-    return files;
-}
+        if (node.$type === 'PartDefinition') {
+            partDefs.push({
+                name: node.name,
+                superType: shortName(node.specialization?.superType),
+                sourceFile,
+                namespace: ns,
+            });
+            return;
+        }
+        // `action` usages carry workflow steps, so they are read alongside parts.
+        if (node.$type === 'PartUsage' || node.$type === 'PartMember' || node.$type === 'ActionUsage') {
+            const partType = shortName(node.type);
+            if (partType && node.name) {
+                parts.push({
+                    partName: node.name,
+                    partType,
+                    ...readBody(node.body ?? node.usageBody ?? []),
+                    sourceFile,
+                    namespace: ns,
+                });
+            }
+            for (const m of node.body ?? []) visit(m, ns);
+        }
+    };
 
-export { extractScopeInfo, type MethodologyScopeInfo } from './dimension-filter.js';
+    for (const member of model.members ?? []) visit(member);
+    return { partDefs, parts, namespaces };
+}
 
 /**
- * Discover all methodology folders reachable from a project config and parse them.
+ * Build the methodology descriptor for a project.
  *
- * For each ontology package on the extends chain, look for a `methodology/`
- * subdirectory under its sysml root. Each direct subdirectory of `methodology/`
- * is treated as one methodology (Phase A convention).
+ * A source unit appears here when it supplies methodology content the project
+ * resolved — that is, when a package in the import closure declares a
+ * methodology part. Discovery is not "a directory called `methodology/`":
+ * that convention meant a package could ship methodology content the project
+ * never imported and have it load anyway.
  */
 export async function loadMethodologyDescriptor(
-    configPath: string,
-    projectRoot?: string,
+    projectRoot: string,
+    resolution?: NativeProjectResolution,
 ): Promise<MethodologyDescriptor> {
-    const root = projectRoot ?? resolve(configPath, '..');
-    const folders: MethodologyFolderInfo[] = [];
-    const errors: string[] = [];
-    const seenFolders = new Set<string>();
+    const resolved = resolution ?? await resolveNativeProject(projectRoot);
+    const errors = resolved.diagnostics.map(d => `${d.code}: ${d.message}`);
 
-    // Two discovery sources, deduped by package directory:
-    //   1. extends chain (authoritative once project pins a methodology — Phase C)
-    //   2. getPackageMetadata (every installed @memo package — covers transitional state
-    //      where the project config still references retired ontology stubs)
-    const pkgDirs = new Set<string>();
-    try {
-        for (const d of findOntologyPackageDirs(configPath)) pkgDirs.add(d);
-    } catch (e) {
-        errors.push(`methodology: failed to walk extends chain (${e instanceof Error ? e.message : e})`);
+    const METHODOLOGY_TYPES = new Set([
+        'MethodologyLibrary', 'MethodologyDefinition', 'ProjectMethodBinding', 'RulePolicy',
+        'ElementUsageRule', 'RelationUsageRule', 'ModelingPattern', 'MethodologyWorkflowStep',
+        'QualityGate', 'DhfDocumentBinding', 'Archetype', 'ResolvedMethodology',
+    ]);
+
+    const byRoot = new Map<string, MethodologyFolderInfo>();
+    const fileToPackage = new Map<string, string>();
+    for (const pkg of resolved.closure.values()) {
+        for (const file of pkg.files) fileToPackage.set(file, pkg.qualifiedName);
     }
-    try {
-        for (const pkg of getPackageMetadata(root)) {
-            if (pkg.rootDir) pkgDirs.add(pkg.rootDir);
+
+    for (const doc of resolved.documents) {
+        const pkgName = fileToPackage.get(doc.filePath);
+        if (!pkgName) continue;           // outside the import closure
+        const pkg = resolved.closure.get(pkgName);
+        const { partDefs, parts, namespaces } = walkDocument(doc, resolved.projectRoot);
+        const relevant = parts.filter(p => METHODOLOGY_TYPES.has(p.partType));
+        if (relevant.length === 0 && partDefs.length === 0) continue;
+        if (relevant.length === 0) continue;
+
+        const key = pkg?.root?.dir ?? resolved.projectRoot;
+        let folder = byRoot.get(key);
+        if (!folder) {
+            folder = {
+                name: pkg?.root?.packageName ?? basename(resolved.projectRoot),
+                rootDir: key,
+                sourceFiles: [],
+                namespaces: [],
+                partDefs: [],
+                parts: {},
+            };
+            byRoot.set(key, folder);
         }
-    } catch (e) {
-        errors.push(`methodology: failed to scan installed packages (${e instanceof Error ? e.message : e})`);
-    }
-
-    for (const pkgDir of pkgDirs) {
-        const sysmlDir = resolvePackageSysmlDir(pkgDir);
-        const methodologyRoot = join(sysmlDir, 'methodology');
-        if (!existsSync(methodologyRoot)) continue;
-
-        let entries: string[] = [];
-        try {
-            entries = readdirSync(methodologyRoot, { withFileTypes: true })
-                .filter(e => e.isDirectory())
-                .map(e => e.name);
-        } catch { continue; }
-
-        for (const name of entries) {
-            const folderDir = join(methodologyRoot, name);
-            if (seenFolders.has(folderDir)) continue;
-            seenFolders.add(folderDir);
-
-            const sysmlFiles = listSysmlFiles(folderDir);
-            const partDefs: MethodologyPartDef[] = [];
-            const partsByType: Record<string, MethodologyPart[]> = {};
-            const namespaceSet = new Set<string>();
-
-            for (const file of sysmlFiles) {
-                const { partDefs: pds, parts, namespace } = parseMethodologyFile(file, root);
-                if (namespace) namespaceSet.add(namespace);
-                partDefs.push(...pds);
-                for (const part of parts) {
-                    if (!partsByType[part.partType]) partsByType[part.partType] = [];
-                    partsByType[part.partType].push(part);
-                }
-            }
-
-            folders.push({
-                name,
-                rootDir: folderDir,
-                sourceFiles: sysmlFiles.map(f => relative(root, f) || basename(f)),
-                namespaces: [...namespaceSet].sort(),
-                partDefs,
-                parts: partsByType,
-            });
+        const rel = relative(resolved.projectRoot, doc.filePath) || basename(doc.filePath);
+        if (!folder.sourceFiles.includes(rel)) folder.sourceFiles.push(rel);
+        for (const ns of namespaces) if (!folder.namespaces.includes(ns)) folder.namespaces.push(ns);
+        folder.partDefs.push(...partDefs);
+        for (const part of relevant) {
+            (folder.parts[part.partType] ??= []).push(part);
         }
     }
 
-    return { folders, errors };
+    for (const folder of byRoot.values()) {
+        folder.namespaces.sort();
+        folder.sourceFiles.sort();
+    }
+
+    const effective = resolveEffectiveMethodology(
+        resolved.binding,
+        resolved.methodologies,
+        new Set(resolved.filePackages.values()),
+    );
+    for (const d of effective.diagnostics) errors.push(`${d.code}: ${d.message}`);
+
+    return {
+        folders: [...byRoot.values()],
+        errors,
+        effective,
+        available: [...resolved.methodologies.values()],
+    };
 }

@@ -1,40 +1,17 @@
-// ─── MEMO Configuration Types ─────────────────────────────────────────────────
+// ─── MEMO Application Settings ────────────────────────────────────────────────
 //
-// Domain packages (e.g. @memoarchitect/medical-modeling-profile) implement MEMOConfig as config.yaml.
-// Projects inherit from domain configs via the `extends` field.
-// The CLI merges the inheritance chain at startup.
+// How the tools operate on a project — never what the project's model contains.
 //
-// Four project types:
-//   - "ontology" — shared type system (kinds + relationships)
-//   - "profile"  — viewpoints, templates (extends an ontology)
-//   - "library"  — reusable model elements (instances, not types)
-//   - "device"   — specific medical device model referencing an ontology
+// `MEMOConfig` used to be the project's semantic description: it selected the
+// methodology, the ontologies, the modules, the viewpoints, the layers, the
+// kinds, and the relationship types. None of that is here now. Those facts are
+// SysML, resolved by `native-project.ts` and `methodology-resolver.ts`, and a
+// settings file that still declares them is rejected by `settings-boundary.ts`.
+//
+// What remains is the section 5.3 list: which external compiler and packager to
+// run, and where their executables and config files are. Changing any of it
+// changes how a command behaves, not what the model means.
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Project type discriminator */
-export type ProjectType = 'ontology' | 'profile' | 'library' | 'device';
-
-/** An architecture visualization layer grouping related entity kinds */
-export interface ArchLayer {
-    /** Unique layer identifier, e.g. "requirements", "architecture" */
-    id: string;
-    /** Human-readable label for the layer */
-    label: string;
-    /** Hex color for layer visualization, e.g. "#4A90D9" */
-    color: string;
-}
-
-/** A typed relationship between entity kinds */
-export interface RelationshipType {
-    /** Relationship identifier, e.g. "mitigates" */
-    name: string;
-    /** Human-readable label, e.g. "Mitigates" */
-    label: string;
-    /** Architecture layer this relationship belongs to */
-    layer: string;
-    /** Hex color for relationship visualization */
-    color: string;
-}
 
 /** SysML v2 constructs supported as entity base types */
 export type SysMLConstruct =
@@ -52,104 +29,10 @@ export type SysMLConstruct =
     | 'attribute def'
     | 'enum def';
 
-/** Definition of an entity kind within a domain */
-export interface KindDefinition {
-    /** Human-readable label */
-    label: string;
-    /** Architecture layer this kind belongs to */
-    layer?: string;
-    /** SysML v2 construct this kind maps to */
-    sysmlConstruct: SysMLConstruct;
-    /** Icon identifier for the palette/diagram */
-    icon?: string;
-    /** Template file for new instances (relative to domain package) */
-    template?: string;
-    /** Default attributes for new instances */
-    defaultAttributes?: Record<string, string>;
-}
-
 /** Legacy diagram type keys — each maps to exactly one SysML v2 view kind (see view-kinds.ts) */
 export type DiagramType =
     | 'bdd' | 'ibd' | 'req' | 'ucd' | 'act' | 'afd' | 'pkg' | 'par' | 'risk'
     | 'stm' | 'seq' | 'fmea' | 'alloc' | 'threat-model';
-
-/** Diagram definition — a named, typed view within a viewpoint */
-export interface DiagramDefinition {
-    /** Unique diagram identifier, e.g. "diag-risk-chain" */
-    id: string;
-    /** Human-readable name, e.g. "Risk Mitigation Chain" */
-    name: string;
-    /** SysML v2 diagram type */
-    diagramType: DiagramType;
-    /** Parent viewpoint ID this diagram belongs to */
-    viewpointId: string;
-    /** Additional viewpoints this reusable diagram also conforms to. */
-    viewpointIds?: string[];
-    /** Optional group shown within each viewpoint in Memo Architect. */
-    group?: string;
-    /** Whether this diagram is auto-generated from the viewpoint */
-    auto: boolean;
-    /** Description / purpose of this diagram (used in doc generation) */
-    description?: string;
-    /** Additional metadata properties (free-form, for doc generation) */
-    properties?: Record<string, string>;
-    /** Optional override: specific element IDs to include (subset of viewpoint) */
-    elementIds?: string[];
-    /** Optional override: specific relationship types to show */
-    relationshipTypes?: string[];
-}
-
-/** Viewpoint definition for filtered model views */
-export interface ViewpointDefinition {
-    /** Unique viewpoint identifier */
-    id: string;
-    /** Human-readable name */
-    label: string;
-    /** Optional ontology-authored grouping used by Memo Architect. */
-    group?: string;
-    /** Entity kinds visible in this viewpoint */
-    visibleKinds: string[];
-    /** Relationship types visible in this viewpoint */
-    visibleRelationships: string[];
-    /** Architecture layers visible in this viewpoint */
-    visibleLayers: string[];
-    /** SysML v2 diagram types supported by this viewpoint */
-    supportedDiagramTypes?: DiagramType[];
-    /** Auto-generated diagrams for this viewpoint */
-    diagrams?: DiagramDefinition[];
-}
-
-/** Guided workflow step for wizard-like interactions */
-export interface WorkflowStep {
-    /** Step identifier */
-    id: string;
-    /** Human-readable label */
-    label: string;
-    /** Entity kinds involved in this step */
-    kinds: string[];
-    /** Prompt text for the user */
-    prompt: string;
-}
-
-/** Guided workflow definition */
-export interface WorkflowDefinition {
-    /** Unique workflow identifier */
-    id: string;
-    /** Human-readable label */
-    label: string;
-    /** Ordered steps */
-    steps: WorkflowStep[];
-}
-
-/** First-run configuration for new projects */
-export interface FirstRunConfig {
-    /** Template to scaffold, e.g. "infusion-pump" */
-    template?: string;
-    /** Prompt user for project metadata */
-    promptForMetadata?: boolean;
-    /** Auto-create starter files */
-    scaffoldFiles?: string[];
-}
 
 export interface SysideToolConfig {
     /** Executable name or path. Defaults to `syside` on PATH. */
@@ -177,120 +60,35 @@ export interface ToolchainConfig {
     sysand?: SysandToolConfig;
 }
 
-/** Ontology reference in a device project */
-export interface OntologyReference {
-    /** Package name, e.g. "@memoarchitect/ontology" or "memo-ontology" on SysAnd */
-    name: string;
-    /** Semver version constraint, e.g. "^2.0.0" */
-    version: string;
-}
-
-/** Self-describing metadata for an ontology package */
-export interface OntologyMetadata {
-    /** Package identifier, e.g. "@memoarchitect/ontology" */
-    id: string;
-    /** Semver version */
-    version: string;
-    /** Human-readable description */
-    description: string;
-    /** Author or organization */
-    author?: string;
-    /** License identifier, e.g. "Apache-2.0" */
-    license?: string;
-    /** Searchable tags, e.g. ["medical", "ISO-14971"] */
-    tags?: string[];
-}
-
-/** Reference to an external ontology (OWL, JSON-LD, or SysAnd format) */
-export interface ExternalOntologyRef {
-    /** Import format */
-    source: 'owl' | 'jsonld' | 'sysand';
-    /** File path or URL to the ontology */
-    uri: string;
-    /** Namespace prefix, e.g. "fma" */
-    prefix: string;
-    /** Import only these classes/concepts (empty = import all) */
-    subset?: string[];
-}
-
-/** Reference to a reusable element library */
-export interface LibraryRef {
-    /** Package name, e.g. "@sysand/std-library" */
-    package: string;
-    /** Import only these categories, e.g. ["USB", "Logging"] */
-    categories?: string[];
-}
-
 /**
- * MEMOConfig — the complete project/domain configuration.
+ * MEMOConfig — application settings for one project.
  *
- * Two project types:
- *   - "ontology": defines a shareable type system (publishable as .kpar)
- *   - "device": models a specific medical device (references an ontology)
+ * Everything here changes how a command runs. Nothing here changes what the
+ * model means: no field selects a methodology, enables or disables a rule,
+ * defines a kind or relationship, or chooses the content of a portable view.
+ * `warningsAsErrors` may change a command's exit policy; it does not change the
+ * severity the model authored.
  */
 export interface MEMOConfig {
-    /** Project name (set by `memo init`) */
-    projectName: string;
-
-    /** Project type: "ontology", "profile", "library", or "device" */
-    projectType: ProjectType;
-
-    /** Parent config to inherit from. String for single parent, array for multiple. */
-    extends?: string | string[];
-
-    /** Ontology references (device projects only) */
-    ontologies?: OntologyReference[];
-
     /**
-     * Optional ontology modules to load on top of the base ontology.
-     * Modules are declared as optional in the base ontology's memo.package.yaml
-     * under `optionalModules:`. Following OWL import semantics, only modules a
-     * project explicitly opts into are loaded — disabled modules contribute
-     * no kinds/relationships, no validation rules, and no viewpoints.
+     * Display name for CLI output.
      *
-     * Each entry is a package name like "@memoarchitect/ontology-ros" or a
-     * short alias like "ros" (resolved against the base ontology's optionalModules list).
+     * The project's real name is `projectName` on its `ProjectMethodBinding`.
+     * This is a convenience copy for log lines, resolved from the binding when
+     * one is available and falling back to the directory name when it is not.
      */
-    modules?: string[];
-
-    /** Self-describing metadata for ontology packages */
-    ontologyMetadata?: OntologyMetadata;
-
-    /** External ontology imports (OWL, JSON-LD, SysAnd) */
-    externalOntologies?: ExternalOntologyRef[];
-
-    /** Reusable element library imports */
-    libraries?: LibraryRef[];
-
-    /** Architecture visualization layers */
-    architectureLayers?: ArchLayer[];
-
-    /** Entity kind definitions (keyed by kind identifier). Optional — prefer KindRegistry. */
-    kinds?: Record<string, KindDefinition>;
-
-    /** Typed relationship definitions with architecture layer mapping. Optional — prefer RelationshipRegistry. */
-    relationshipTypes?: RelationshipType[];
+    projectName: string;
 
     /**
      * Where authored relationships are written, per model package.
      * Keyed by package qualified name, valued by a project-relative .sysml
-     * path. A package listed here always collects its relationships in that
-     * file; anything not listed falls back to the ownership policy in
-     * server/relationship-writer.ts.
+     * path. This is an editor placement preference — it decides which file a
+     * new relationship lands in, not whether the relationship is legal.
      */
     relationshipFiles?: Record<string, string>;
 
     /** Project-relative .sysml file that owns relationships with no better home. */
     canonicalRelationshipFile?: string;
-
-    /** Viewpoint definitions for filtered views */
-    viewpoints?: ViewpointDefinition[];
-
-    /** Guided workflows for step-by-step modeling */
-    workflows?: WorkflowDefinition[];
-
-    /** First-run scaffolding configuration */
-    firstRun?: FirstRunConfig;
 
     /** Compiler and KPAR packager selection. */
     toolchain?: ToolchainConfig;

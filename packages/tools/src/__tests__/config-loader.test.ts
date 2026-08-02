@@ -1,223 +1,86 @@
+// The settings loader after the semantic flip.
+//
+// The tests this file replaces asserted the behaviour the flip removed: that
+// `loadRenderingLayers` read layer colours out of memo.rendering.yaml, that
+// `resolveConfig` merged kinds and viewpoints down an `extends` chain, and that
+// a project's `projectType` came from YAML. None of those functions exist. What
+// is worth testing now is the boundary itself: settings load, semantics do not.
+
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolve, join } from 'node:path';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { loadConfig, loadRenderingLayers, resolveConfig } from '../model/config-loader.js';
-import { resolveContentPackageRoot } from '../model/paths.js';
+import { loadConfig, findConfigFile, loadProjectSettings } from '../model/config-loader.js';
+import { checkSemanticFields } from '../model/settings-boundary.js';
 
 const TMP_DIR = resolve(__dirname, '__tmp_config_test__');
 
-beforeEach(() => {
-    mkdirSync(TMP_DIR, { recursive: true });
-});
+beforeEach(() => { mkdirSync(TMP_DIR, { recursive: true }); });
+afterEach(() => { rmSync(TMP_DIR, { recursive: true, force: true }); });
 
-afterEach(() => {
-    rmSync(TMP_DIR, { recursive: true, force: true });
-});
-
-// ─── loadRenderingLayers Tests ──────────────────────────────────────────────
-
-describe('loadRenderingLayers', () => {
-    it('loads layers from memo.rendering.yaml', () => {
-        writeFileSync(join(TMP_DIR, 'memo.rendering.yaml'), `
-layers:
-  - id: risk
-    label: Risk Management
-    color: "#E74C3C"
-  - id: requirements
-    label: Requirements
-    color: "#4A90D9"
-`);
-        const layers = loadRenderingLayers(TMP_DIR);
-        expect(layers).toHaveLength(2);
-        expect(layers[0].id).toBe('risk');
-        expect(layers[0].label).toBe('Risk Management');
-        expect(layers[0].color).toBe('#E74C3C');
-        expect(layers[1].id).toBe('requirements');
-    });
-
-    it('returns empty array if no rendering file exists', () => {
-        const layers = loadRenderingLayers(TMP_DIR);
-        expect(layers).toEqual([]);
-    });
-
-    it('returns empty array for malformed rendering file', () => {
-        writeFileSync(join(TMP_DIR, 'memo.rendering.yaml'), 'not: valid: yaml: [');
-        const layers = loadRenderingLayers(TMP_DIR);
-        expect(layers).toEqual([]);
-    });
-});
-
-// ─── loadConfig with memo.rendering.yaml ────────────────────────────────────
-
-describe('loadConfig with memo.rendering.yaml', () => {
-    it('loads toolchain selection from memo.package.yaml', () => {
-        writeFileSync(join(TMP_DIR, 'memo.package.yaml'), `
-name: test-project
-type: device
-toolchain:
-  compiler: syside
-  packager: sysand
-  syside:
-    executable: /opt/tools/syside
-    warningsAsErrors: true
-    diagnose: all
-  sysand:
-    executable: /opt/tools/sysand
-`);
-
+describe('loadConfig', () => {
+    it('loads identity and toolchain settings', () => {
+        writeFileSync(join(TMP_DIR, 'memo.package.yaml'), [
+            'name: my-project',
+            'version: 1.2.3',
+            'toolchain:',
+            '  compiler: syside',
+        ].join('\n'));
         const config = loadConfig(join(TMP_DIR, 'memo.package.yaml'));
-        expect(config.toolchain).toEqual({
-            compiler: 'syside',
-            packager: 'sysand',
-            syside: { executable: '/opt/tools/syside', warningsAsErrors: true, diagnose: 'all' },
-            sysand: { executable: '/opt/tools/sysand' },
-        });
+        expect(config.projectName).toBe('my-project');
+        expect(config.toolchain?.compiler).toBe('syside');
     });
 
-    it('loads toolchain selection from legacy memo.config.yaml', () => {
-        writeFileSync(join(TMP_DIR, 'memo.config.yaml'), `
-projectName: test-project
-projectType: device
-toolchain:
-  compiler: internal
-  packager: sysand
-`);
-
-        expect(loadConfig(join(TMP_DIR, 'memo.config.yaml')).toolchain).toEqual({
-            compiler: 'internal',
-            packager: 'sysand',
-        });
+    it('does not surface semantic fields even when the file still carries them', () => {
+        writeFileSync(join(TMP_DIR, 'memo.package.yaml'), [
+            'name: my-project',
+            'extends: "@memoarchitect/ontology"',
+            'methodology: "@memoarchitect/methodology-default"',
+            'type: device',
+        ].join('\n'));
+        const config = loadConfig(join(TMP_DIR, 'memo.package.yaml')) as unknown as Record<string, unknown>;
+        expect(config.extends).toBeUndefined();
+        expect(config.methodology).toBeUndefined();
+        expect(config.projectType).toBeUndefined();
     });
 
-    it('inherits tool settings while allowing a project to override provider options', () => {
-        const parent = {
-            projectName: 'parent',
-            projectType: 'ontology' as const,
-            toolchain: {
-                compiler: 'syside' as const,
-                packager: 'sysand' as const,
-                syside: { executable: '/opt/tools/syside', diagnose: 'all' as const },
-                sysand: { executable: '/opt/tools/sysand' },
-            },
-        };
-        const child = {
-            projectName: 'child',
-            projectType: 'device' as const,
-            extends: '@memoarchitect/parent',
-            toolchain: { syside: { diagnose: 'none' as const } },
-        };
-
-        expect(resolveConfig(child, name => name === '@memoarchitect/parent' ? parent : undefined).toolchain).toEqual({
-            compiler: 'syside',
-            packager: 'sysand',
-            syside: { executable: '/opt/tools/syside', diagnose: 'none' },
-            sysand: { executable: '/opt/tools/sysand' },
-        });
-    });
-
-    it('merges rendering layers into architectureLayers', () => {
-        // Config with no architectureLayers
-        writeFileSync(join(TMP_DIR, 'memo.config.yaml'), `
-projectName: test-project
-projectType: device
-`);
-        writeFileSync(join(TMP_DIR, 'memo.rendering.yaml'), `
-layers:
-  - id: risk
-    label: Risk Management
-    color: "#E74C3C"
-`);
-
-        const config = loadConfig(join(TMP_DIR, 'memo.config.yaml'));
-        expect(config.architectureLayers).toHaveLength(1);
-        expect(config.architectureLayers![0].id).toBe('risk');
-    });
-
-    it('rendering layers take precedence over config architectureLayers for same id', () => {
-        writeFileSync(join(TMP_DIR, 'memo.config.yaml'), `
-projectName: test-project
-projectType: device
-cosmaLayers:
-  - id: risk
-    label: Old Risk Label
-    color: "#000000"
-`);
-        writeFileSync(join(TMP_DIR, 'memo.rendering.yaml'), `
-layers:
-  - id: risk
-    label: Risk Management
-    color: "#E74C3C"
-`);
-
-        const config = loadConfig(join(TMP_DIR, 'memo.config.yaml'));
-        expect(config.architectureLayers).toHaveLength(1);
-        expect(config.architectureLayers![0].label).toBe('Risk Management');
-        expect(config.architectureLayers![0].color).toBe('#E74C3C');
-    });
-
-    it('backward compat: legacy cosmaLayers YAML key is read into architectureLayers', () => {
-        writeFileSync(join(TMP_DIR, 'memo.config.yaml'), `
-projectName: test-project
-projectType: device
-cosmaLayers:
-  - id: risk
-    label: Risk Management
-    color: "#E74C3C"
-  - id: requirements
-    label: Requirements
-    color: "#4A90D9"
-`);
-
-        const config = loadConfig(join(TMP_DIR, 'memo.config.yaml'));
-        expect(config.architectureLayers).toHaveLength(2);
-        expect(config.architectureLayers![0].id).toBe('risk');
-    });
-
-    it('merges both sources when both have different layer ids', () => {
-        writeFileSync(join(TMP_DIR, 'memo.config.yaml'), `
-projectName: test-project
-projectType: device
-cosmaLayers:
-  - id: risk
-    label: Risk
-    color: "#E74C3C"
-`);
-        writeFileSync(join(TMP_DIR, 'memo.rendering.yaml'), `
-layers:
-  - id: requirements
-    label: Requirements
-    color: "#4A90D9"
-`);
-
-        const config = loadConfig(join(TMP_DIR, 'memo.config.yaml'));
-        expect(config.architectureLayers).toHaveLength(2);
-        const ids = config.architectureLayers!.map(l => l.id);
-        expect(ids).toContain('risk');
-        expect(ids).toContain('requirements');
+    it('falls back to defaults when a project has no settings file at all', () => {
+        const config = loadProjectSettings(TMP_DIR);
+        expect(config.projectName).toBe('__tmp_config_test__');
+        expect(findConfigFile(TMP_DIR)).toBeUndefined();
     });
 });
 
-// ─── Integration: real ontology packages ────────────────────────────────────
-
-describe('loadConfig with real ontology package files', () => {
-    it('ontology loads rendering layers from memo.package.yaml + memo.rendering.yaml', () => {
-        const configPath = resolve(resolveContentPackageRoot(), 'ontology/memo.package.yaml');
-        const config = loadConfig(configPath);
-
-        // Should have 11 layers from memo.rendering.yaml
-        expect(config.architectureLayers!.length).toBeGreaterThanOrEqual(10);
-
-        // Verify specific layers are present
-        const layerIds = config.architectureLayers!.map(l => l.id);
-        expect(layerIds).toContain('operational');
-        expect(layerIds).toContain('functional');
-        expect(layerIds).toContain('software');
-        expect(layerIds).toContain('verification');
-        expect(layerIds).toContain('safety');
-
-        // Verify identity from memo.package.yaml
-        expect(config.projectName).toBe('@memoarchitect/ontology');
-        expect(config.projectType).toBe('ontology');
+describe('checkSemanticFields', () => {
+    it('rejects a semantic field and names its native replacement', () => {
+        writeFileSync(join(TMP_DIR, 'memo.package.yaml'), 'name: p\nmethodology: "@memoarchitect/methodology-default"\n');
+        const rejections = checkSemanticFields(TMP_DIR);
+        expect(rejections).toHaveLength(1);
+        expect(rejections[0].field).toBe('methodology');
+        expect(rejections[0].message).toContain('ProjectMethodBinding');
     });
 
+    it('rejects a retired semantic file outright', () => {
+        writeFileSync(join(TMP_DIR, 'memo.rules.yaml'), 'rules: []\n');
+        const rejections = checkSemanticFields(TMP_DIR);
+        expect(rejections).toHaveLength(1);
+        expect(rejections[0].file).toContain('memo.rules.yaml');
+        expect(rejections[0].message).toContain('constraint def');
+    });
+
+    it('accepts a settings file that only locates and configures', () => {
+        writeFileSync(join(TMP_DIR, 'memo.package.yaml'), [
+            'name: "@memoarchitect/ontology"',
+            'version: 0.6.5',
+            'description: identity only',
+            'license: MIT',
+            'sysmlDir: "../src"',
+        ].join('\n'));
+        expect(checkSemanticFields(TMP_DIR)).toEqual([]);
+    });
+
+    it('reports every rejection rather than only the first', () => {
+        writeFileSync(join(TMP_DIR, 'memo.package.yaml'), 'name: p\nextends: x\ntype: device\nusage: [kinds]\n');
+        const fields = checkSemanticFields(TMP_DIR).map(r => r.field).sort();
+        expect(fields).toEqual(['extends', 'type', 'usage']);
+    });
 });

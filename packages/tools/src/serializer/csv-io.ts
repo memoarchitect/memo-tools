@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MemoElement, MemoRelationship, MemoModel } from '../model/semantic.js';
-import type { MEMOConfig, KindDefinition } from '../model/config.js';
+import type { KindDefinition, OntologyView } from '../model/kind-registry.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -149,7 +149,7 @@ function parseCsvText(csvText: string): { headers: string[]; rows: string[][] } 
  *
  * - `id` — unique element identifier (required, valid SysML identifier)
  * - `name` — display name (required)
- * - `kind` — ontology type from config.kinds (required, e.g. "Hazard", "Requirement")
+ * - `kind` — ontology type from ontology.kinds (required, e.g. "Hazard", "Requirement")
  * - `construct` — SysML construct override (optional, auto-derived from kind if omitted)
  * - `doc` — documentation comment (optional)
  * - Additional columns become `attribute redefines <colName> = "<value>"` in SysML
@@ -160,7 +160,7 @@ function parseCsvText(csvText: string): { headers: string[]; rows: string[][] } 
  */
 export function parseElementsCsv(
     csvText: string,
-    config: MEMOConfig
+    ontology: OntologyView
 ): CsvParseResult<CsvElement> {
     const { headers, rows } = parseCsvText(csvText);
     const items: CsvElement[] = [];
@@ -227,7 +227,7 @@ export function parseElementsCsv(
             errors.push(`Row ${lineNum}: missing required field 'kind'`);
             continue;
         }
-        const kinds = config.kinds ?? {};
+        const kinds = ontology.kinds;
         const kindDef: KindDefinition | undefined = kinds[kind];
         if (!kindDef) {
             const validKinds = Object.keys(kinds).sort();
@@ -278,7 +278,7 @@ export function parseElementsCsv(
  * Produces a CSV with fixed columns (id, name, kind, construct, doc) plus
  * dynamic attribute columns gathered from all elements in the model.
  */
-export function exportElementsCsv(model: MemoModel, _config: MEMOConfig): string {
+export function exportElementsCsv(model: MemoModel, _ontology: OntologyView): string {
     const elements = Array.from(model.elements.values());
     if (elements.length === 0) return '';
 
@@ -329,7 +329,7 @@ export function exportElementsCsv(model: MemoModel, _config: MEMOConfig): string
  */
 export function parseRelationshipsCsv(
     csvText: string,
-    config: MEMOConfig,
+    ontology: OntologyView,
     knownElementIds?: Set<string>
 ): CsvParseResult<CsvRelationship> {
     const { headers, rows } = parseCsvText(csvText);
@@ -350,7 +350,7 @@ export function parseRelationshipsCsv(
     }
 
     // Build valid relationship type set
-    const validRelTypes = new Set((config.relationshipTypes ?? []).map((r) => r.name));
+    const validRelTypes = new Set((ontology.relationshipTypes).map((r) => r.name));
 
     for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
         const row = rows[rowIdx];
@@ -448,10 +448,10 @@ function sysmlConstructToUsage(sysmlConstruct: string): string {
  * Generate a template CSV for elements based on the config's ontology kinds.
  * Includes all valid kinds as example rows with their default attributes.
  */
-export function generateElementTemplate(config: MEMOConfig): string {
+export function generateElementTemplate(ontology: OntologyView): string {
     // Gather all default attribute keys across all kinds
     const attrKeysSet = new Set<string>();
-    for (const kindDef of Object.values(config.kinds ?? {})) {
+    for (const kindDef of Object.values(ontology.kinds)) {
         if (kindDef.defaultAttributes) {
             for (const key of Object.keys(kindDef.defaultAttributes)) {
                 attrKeysSet.add(key);
@@ -464,7 +464,7 @@ export function generateElementTemplate(config: MEMOConfig): string {
     const lines = [headers.map(escapeCsvField).join(',')];
 
     // Add one example row per kind
-    for (const [kindKey, kindDef] of Object.entries(config.kinds ?? {})) {
+    for (const [kindKey, kindDef] of Object.entries(ontology.kinds)) {
         const construct = sysmlConstructToUsage(kindDef.sysmlConstruct);
         const row = [
             `example_${kindKey.toLowerCase()}`,    // id
@@ -483,12 +483,12 @@ export function generateElementTemplate(config: MEMOConfig): string {
 /**
  * Generate a template CSV for relationships based on config relationship types.
  */
-export function generateRelationshipTemplate(config: MEMOConfig): string {
+export function generateRelationshipTemplate(ontology: OntologyView): string {
     const headers = [...RELATIONSHIP_FIXED_COLS];
     const lines = [headers.map(escapeCsvField).join(',')];
 
     // Add one example row per relationship type
-    for (const relType of (config.relationshipTypes ?? [])) {
+    for (const relType of (ontology.relationshipTypes)) {
         const row = [
             'source_element_id',   // sourceId
             'target_element_id',   // targetId

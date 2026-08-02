@@ -23,6 +23,7 @@ import { createQueryContext } from '../dhf/query-engine.js';
 import type { QueryContext } from '../dhf/query-engine.js';
 import type { MEMOConfig } from '../model/config.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { EMPTY_ONTOLOGY_VIEW, ontologyViewFrom, type OntologyView } from '../model/kind-registry.js';
 
 // Source discovery is the shared walker's job. This module kept its own copy
 // with a shorter skip list, which meant the MCP server saw files every other
@@ -35,6 +36,8 @@ export interface LoadedProject {
     config: MEMOConfig;
     projectRoot: string;
     fileCount: number;
+    /** Kinds and relationships from the resolved ontology. */
+    ontology: OntologyView;
 }
 
 interface CacheEntry {
@@ -71,12 +74,17 @@ export async function loadProject(projectRoot: string): Promise<LoadedProject> {
         throw new Error(`No MEMO project found at ${projectRoot}. Run \`memo init\` there first.`);
     }
 
-    const config = await loadAndResolveConfig(configPath);
+    const config = loadAndResolveConfig(configPath);
 
     let ontologyRegistries: BuilderRegistries | undefined;
+    let ontology = EMPTY_ONTOLOGY_VIEW;
     try {
-        const loadResult = await loadOntologyRegistries(configPath);
-        if (loadResult.fileCount > 0) ontologyRegistries = loadResult.registries;
+        const loadResult = await loadOntologyRegistries(projectRoot);
+        if (loadResult.fileCount > 0) {
+            ontologyRegistries = loadResult.registries;
+            ontology = ontologyViewFrom(
+                loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
+        }
     } catch {
         // A project without a resolvable ontology still has a parseable model.
     }
@@ -84,10 +92,10 @@ export async function loadProject(projectRoot: string): Promise<LoadedProject> {
     const { documents, errors: parseErrors } = await parseFiles(files, `${projectRoot}/`);
     const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     const validation = validateModel(model);
-    const completeness = computeCompleteness(model, validation, config);
+    const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);
 
-    const project: LoadedProject = { ctx, config, projectRoot, fileCount: files.length };
+    const project: LoadedProject = { ctx, config, ontology, projectRoot, fileCount: files.length };
     cache.set(projectRoot, { project, signature });
     return project;
 }
