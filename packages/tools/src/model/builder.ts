@@ -545,13 +545,22 @@ function extractUsage(
         if ((member as any).$type !== 'PartMember') continue;
         const pm = member as any;
         if (pm.boundRef && pm.name) {
+            // Two shapes land here. `part viewpointDefinition :> vp;` names the
+            // feature in `name` and the value in `boundRef`. The subsetting
+            // form for a multi-valued feature —
+            // `part vpLogical :> viewpointDefinition = someViewpoint;` — puts
+            // the FEATURE in `boundRef` and the value in `subsetValue`, and its
+            // member name is arbitrary. Attribute it to the feature it subsets,
+            // or a view governed by three viewpoints would surface as three
+            // unrelated attributes nothing reads.
+            const key = pm.subsetValue ? pm.boundRef : pm.name;
+            const value = pm.subsetValue ?? pm.boundRef;
+
             // A feature with multiplicity may be rebound more than once. Keep
             // every binding as a comma-separated value so view conformance can
             // model one view against several viewpoints without cloning it.
-            const previous = attributes[pm.name];
-            attributes[pm.name] = previous
-                ? `${previous},${pm.boundRef}`
-                : pm.boundRef;
+            const previous = attributes[key];
+            attributes[key] = previous ? `${previous},${value}` : value;
         } else if (pm.body && pm.name) {
             const nested = extractAttributes(pm.body);
             for (const [k, v] of Object.entries(nested)) {

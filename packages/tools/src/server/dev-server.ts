@@ -27,6 +27,9 @@ import {
     writeRelationship, type RelationshipWriterOptions,
 } from './relationship-writer.js';
 import { removeElement } from './element-writer.js';
+import { classifyConflict } from './conflict-policy.js';
+import type { SemanticOrigin } from '../model/source-provenance.js';
+import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-policy-writer.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
@@ -431,20 +434,62 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         }
     }
 
+    /**
+     * Provenance origin of a file being written.
+     *
+     * The caller has already established the path is inside the project root,
+     * so the only distinction left that changes the conflict route is whether
+     * it is reusable source the project happens to vendor — a methodology or
+     * extension package living in the workspace. Those are frozen for the
+     * session exactly as an installed package is, so a change to one escalates.
+     */
+    function originOf(sourcePath: string): SemanticOrigin {
+        const methodology = initialMessages.find(m => m.type === 'methodology:update') as any;
+        const methodologyFiles = new Set<string>((methodology?.payload?.folders ?? [])
+            .flatMap((folder: any) => (folder.sourceFiles ?? [])
+                .map((file: string) => resolve(options.projectRoot, file))));
+        if (methodologyFiles.has(sourcePath)) return 'methodology';
+        return 'project';
+    }
+
     function checkMutationPrecondition(
         precondition: ModelMutationPrecondition | undefined,
         rejectedCommandId: string,
         rejectedDraft: unknown,
     ): string | undefined {
         if (!precondition) return 'The mutation has no source precondition; reload before saving.';
-        if (precondition.workspaceSessionId !== workspaceSessionId) {
-            return 'The workspace runtime changed; no write was made.';
-        }
         const projectPath = realpathSync(resolve(options.projectRoot));
         const sourcePath = resolve(projectPath, precondition.sourceFile);
         if (!sourcePath.startsWith(`${projectPath}/`)) return 'Mutation source is outside the project.';
         const currentHash = existsSync(sourcePath) ? fileRevision(readFileSync(sourcePath, 'utf8')) : '';
-        if (currentHash === precondition.expectedSourceHash) return undefined;
+
+        // Section 13.5's two routes. The decision is in `conflict-policy.ts`
+        // so it can be tested without driving a live server; this applies it.
+        const decision = classifyConflict({
+            commandSessionId: precondition.workspaceSessionId,
+            currentSessionId: workspaceSessionId,
+            expectedSourceHash: precondition.expectedSourceHash,
+            currentSourceHash: currentHash,
+            origin: originOf(sourcePath),
+            dependencyClosureComputable: !mutationLockout,
+        });
+        if (decision.outcome === 'accept') return undefined;
+
+        if (decision.outcome === 'lockout') {
+            const lockout: RestartRequiredMessage = {
+                type: 'app:restart-required',
+                reason: decision.escalation === 'reusable-source-changed'
+                    ? 'ontology-source-changed' : 'dependency-closure-uncomputable',
+                changedFile: precondition.sourceFile,
+                instruction: decision.reason,
+            };
+            mutationLockout = lockout;
+            for (const client of clients) {
+                if (client.readyState === 1) client.send(JSON.stringify(lockout));
+            }
+            return decision.reason;
+        }
+
         broadcastEditConflict({
             sourceFile: precondition.sourceFile,
             targetElementIds: precondition.targetElementIds,
@@ -1171,6 +1216,54 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         writeFileSync(path, text, 'utf8');
                         const transactionId = recordWriteTransaction(String(sourceFile), text);
                         reply({ success: true, revision: fileRevision(text), transactionId });
+                    } catch (error) {
+                        reply({ success: false, error: error instanceof Error ? error.message : String(error) });
+                    }
+                } else if (msg.type === 'rule:policy:write') {
+                    // Tailoring a rule from the browser goes through exactly
+                    // the path a hand edit does: the same allowed-source check,
+                    // the same base-revision precondition, the same transaction
+                    // ID. The editor supplies a decision; the SysML is rendered
+                    // here, so the browser never composes model source.
+                    const { requestId } = msg.payload ?? {};
+                    const reply = (payload: any) => ws.send(JSON.stringify({
+                        type: 'rule:policy:write:result', payload: { requestId, ...payload },
+                    }));
+                    try {
+                        const request = msg.payload;
+                        const methodology = initialMessages.find(
+                            message => message.type === 'methodology:update') as any;
+                        const effectiveRules: any[] = (initialMessages.find(
+                            message => message.type === 'rules:update') as any)?.payload?.rules ?? [];
+                        const refusal = checkRulePolicy(request, effectiveRules);
+                        if (refusal) {
+                            reply({ success: false, code: refusal.code, error: refusal.message });
+                            return;
+                        }
+
+                        const allowed = new Set<string>((methodology?.payload?.folders ?? []).flatMap((folder: any) =>
+                            (folder.sourceFiles ?? []).map((file: string) => resolve(options.projectRoot, file))));
+                        const path = resolve(options.projectRoot, String(request.sourceFile ?? ''));
+                        if (!allowed.has(path) || !path.endsWith('.sysml')) {
+                            throw new Error('The target file is not in the resolved methodology source set.');
+                        }
+
+                        const onDisk = readFileSync(path, 'utf8');
+                        const revision = fileRevision(onDisk);
+                        if (request.baseRevision !== revision) {
+                            reply({ success: false, conflict: true, revision,
+                                error: `${request.sourceFile} changed on disk; no write was made.` });
+                            return;
+                        }
+
+                        const updated = insertRulePolicy(onDisk, renderRulePolicy(request));
+                        if (!updated) {
+                            throw new Error(
+                                `${request.sourceFile} declares no MethodologyDefinition to attach the policy to.`);
+                        }
+                        writeFileSync(path, updated, 'utf8');
+                        const transactionId = recordWriteTransaction(String(request.sourceFile), updated);
+                        reply({ success: true, revision: fileRevision(updated), transactionId });
                     } catch (error) {
                         reply({ success: false, error: error instanceof Error ? error.message : String(error) });
                     }

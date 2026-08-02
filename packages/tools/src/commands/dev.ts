@@ -12,9 +12,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { IncrementalProjectParser, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, loadProjectSettings } from '@memoarchitect/tools';
+import { IncrementalProjectParser, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
-import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument } from '@memoarchitect/tools';
+import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument, EffectiveRule } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO } from '@memoarchitect/tools';
@@ -197,6 +197,26 @@ export async function devCommand(options: {
         const model = buildMemoModel(documents, config, errors, projectRegistries);
         const nativeConstraints = collectNativeConstraints([...ontologyDocuments, ...documents]);
         const validation = validateModel(model, nativeConstraints, projectRegistries?.kindRegistry);
+        const effectiveRuleSet = (() => {
+            try {
+                const resolved = resolveEffectiveRules(
+                    ruleCandidatesFromConstraints(nativeConstraints),
+                    methodologyDescriptor.effective?.policyChain ?? [],
+                );
+                return { rules: resolved.rules, diagnostics: resolved.diagnostics };
+            } catch (error) {
+                // Rule resolution must never take the rebuild down: a bad
+                // policy is a diagnostic about the methodology, not a reason
+                // the model cannot be shown.
+                return {
+                    rules: [] as EffectiveRule[],
+                    diagnostics: [{
+                        code: 'resolution-failed' as const,
+                        message: error instanceof Error ? error.message : String(error),
+                    }],
+                };
+            }
+        })();
         const completeness = computeCompleteness(model, validation);
 
         console.log(chalk.cyan(
@@ -298,6 +318,12 @@ export async function devCommand(options: {
                 { type: 'completeness:update', payload: completeness },
                 { type: 'ontology:packages', payload: { packages: ontologyPackages, ontologyHash } as any },
                 { type: 'methodology:update', payload: methodologyDescriptor },
+                // The effective rule set is governance data (section 10.4):
+                // which rules are active, at what severity, under whose
+                // authority. The rule-policy editor reads it to know what may
+                // be tailored — an invariant is not offered as an option
+                // rather than being refused after the fact.
+                { type: 'rules:update', payload: effectiveRuleSet },
             ],
         };
         if (changedFiles !== undefined) {

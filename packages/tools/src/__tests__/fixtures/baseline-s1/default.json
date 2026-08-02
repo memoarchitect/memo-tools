@@ -6,39 +6,39 @@
         "id": "mainRequirement",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
+        "layer": "requirements",
         "package": "project_assurance"
+      },
+      {
+        "id": "projectMethodBinding",
+        "kind": "ProjectMethodBinding",
+        "construct": "part",
+        "layer": "methodology",
+        "package": "project_catalog"
       },
       {
         "id": "system",
         "kind": "MemoPart",
         "construct": "part",
-        "layer": "unknown",
+        "layer": "core",
         "package": "project_architecture"
       }
     ],
     "relationships": [],
     "kindCounts": {
       "MemoPart": 1,
+      "ProjectMethodBinding": 1,
       "Requirement": 1
     },
     "layerCounts": {
-      "unknown": 2
+      "core": 1,
+      "methodology": 1,
+      "requirements": 1
     },
     "diagrams": []
   },
   "validation": {
     "violations": [
-      {
-        "rule": "AR-IBD-001",
-        "severity": "warning",
-        "elementId": "mainRequirement"
-      },
-      {
-        "rule": "AR-IBD-001",
-        "severity": "warning",
-        "elementId": "system"
-      },
       {
         "rule": "COV-13485-001",
         "severity": "error",
@@ -152,12 +152,12 @@
     ],
     "counts": {
       "error": 18,
-      "warning": 6
+      "warning": 4
     }
   },
   "errors": [],
   "summary": {
-    "elements": 2,
+    "elements": 3,
     "completeness": 100
   }
 }

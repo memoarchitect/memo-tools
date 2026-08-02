@@ -242,13 +242,16 @@ describe('E2E: memo init → validate → export', () => {
         expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model'))).toBe(true);
 
+        // One catalog root, and nothing beside it. `model/views/` and
+        // `model/samples/` were the pre-catalog layout; the session 4
+        // conversion moved views beneath the viewpoints that govern them, so
+        // their absence here is the assertion, not an omission.
         const modelDir = join(projectDir, 'model');
-        const modelEntries = readdirSync(modelDir);
-        expect(modelEntries).toEqual(expect.arrayContaining(['catalog', 'samples', 'views']));
-        expect(modelEntries.some(f => f.endsWith('.sysml'))).toBe(false);
+        expect(readdirSync(modelDir)).toEqual(['catalog']);
 
         const catalogFiles = readdirSync(join(modelDir, 'catalog'));
         expect(catalogFiles.some(f => f.endsWith('.sysml'))).toBe(true);
+        expect(existsSync(join(modelDir, 'catalog', 'viewpoints'))).toBe(true);
     });
 
     it('memo init --example gpca matches gpca-pump by prefix', () => {

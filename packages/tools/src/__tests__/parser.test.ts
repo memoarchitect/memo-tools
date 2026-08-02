@@ -51,6 +51,95 @@ async function parseErrors(input: string): Promise<string[]> {
         .map((e: any) => e.message);
 }
 
+// ─── Typed attribute with a default ──────────────────────────────────────────
+
+describe('AttributeMember with a type and a default', () => {
+    it('parses `attribute id : String = "x";` inside a constraint def', async () => {
+        // Session 1 logged this as a grammar gap and section 18.2 deliverable 8
+        // assigned the fix to session 2, where rules and policies started
+        // declaring typed attributes with defaults. SysIDE accepts the form;
+        // SysIDE is the compiler of record.
+        const model = await parseValid(`
+            package p {
+                constraint def ThreatMitigationRule {
+                    attribute id : String = "CR-MED-040";
+                    attribute appliesTo : String = "Threat";
+                }
+            }
+        `);
+        expect(model.members).toHaveLength(1);
+    });
+
+    it('parses a typed default carrying a multiplicity', async () => {
+        const model = await parseValid(`
+            package p {
+                part def A {
+                    attribute controlType : String[0..1] = "manual";
+                }
+            }
+        `);
+        expect(model.members).toHaveLength(1);
+    });
+
+    it('still parses the three forms that already worked', async () => {
+        const model = await parseValid(`
+            package p {
+                part def A {
+                    attribute typedOnly : String;
+                    attribute :>> untypedDefault = 1;
+                    attribute :>> nested { attribute :>> x = 1; }
+                }
+            }
+        `);
+        expect(model.members).toHaveLength(1);
+    });
+});
+
+// ─── Subsetting a multi-valued feature ───────────────────────────────────────
+
+describe('PartMember subsetting with a value', () => {
+    it('parses `part <name> :> <feature> = <value>;`', async () => {
+        // How a multi-valued feature takes several values. Repeating
+        // `part :>> viewpointDefinition = x;` redefines the same feature each
+        // time and SysIDE rejects it as shadowing, so each value subsets the
+        // feature under its own member name.
+        //
+        // SysIDE accepted this before the MEMO grammar did. SysIDE is the
+        // compiler of record, so the grammar followed it.
+        const model = await parseValid(`
+            package p {
+                view v : MemoDocumentView {
+                    part vpLogical :> viewpointDefinition = logicalArchitectureViewpoint;
+                    part vpSoftware :> viewpointDefinition = softwareViewpoint;
+                }
+            }
+        `);
+        expect(model.members).toHaveLength(1);
+    });
+
+    it('still parses plain subsetting with no value', async () => {
+        const model = await parseValid(`
+            package p {
+                part def A {
+                    part protectedAsset :> therapyAsset;
+                }
+            }
+        `);
+        expect(model.members).toHaveLength(1);
+    });
+
+    it('still parses a plain value binding', async () => {
+        const model = await parseValid(`
+            package p {
+                part def A {
+                    part requirement = reqSingleMode;
+                }
+            }
+        `);
+        expect(model.members).toHaveLength(1);
+    });
+});
+
 // ─── Basic constructs ────────────────────────────────────────────────────────
 
 describe('Package', () => {

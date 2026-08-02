@@ -71,7 +71,9 @@ export interface RuleResolutionDiagnostic {
         | 'invariant-protected'
         | 'replacement-without-target'
         | 'missing-rationale'
-        | 'ambiguous-target';
+        | 'ambiguous-target'
+        /** Resolution itself threw. Reported so the UI shows why the set is empty. */
+        | 'resolution-failed';
     message: string;
     ruleId?: string;
     policy?: string;
@@ -229,6 +231,37 @@ export interface RuleCandidate {
     tailoring: RuleTailoring;
     file?: string;
     constraint?: CompiledConstraint;
+}
+
+/**
+ * Map compiled native constraints onto rule candidates.
+ *
+ * One place, because both `memo rules` and the dev server need it and they got
+ * the field names wrong independently — `collectNativeConstraints` returns
+ * `id`/`typeName`/`sourceFile`, not `ruleId`/`ruleType`/`file`. A rule whose
+ * identity does not survive this mapping resolves as `undefined` and is
+ * unauditable, which is the opposite of what section 10.4 asks for.
+ *
+ * A constraint with no `typeName` is skipped: a policy references a rule by its
+ * `constraint def` name, so a rule without one cannot be tailored and does not
+ * belong in a set whose purpose is recording tailoring decisions.
+ */
+export function ruleCandidatesFromConstraints(
+    constraints: readonly CompiledConstraint[],
+): RuleCandidate[] {
+    const candidates: RuleCandidate[] = [];
+    for (const constraint of constraints) {
+        if (!constraint.typeName) continue;
+        candidates.push({
+            id: constraint.id,
+            typeName: constraint.typeName,
+            severity: constraint.severity,
+            tailoring: constraint.tailoring ?? 'assurance',
+            file: constraint.sourceFile,
+            constraint,
+        });
+    }
+    return candidates;
 }
 
 export interface EffectiveRuleSet {

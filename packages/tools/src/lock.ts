@@ -106,11 +106,44 @@ function parseLock(content: string): OntologyLock {
  * never named — which is why it is generated from `selectedRoots` rather than
  * from an `extends` chain that could name packages the model never used.
  */
+/** Numeric semver comparison; a missing version sorts lowest. */
+function compareVersions(a: string | undefined, b: string | undefined): number {
+    const parts = (v: string | undefined) => (v ?? '0.0.0').split('.').map(n => Number.parseInt(n, 10) || 0);
+    const [x, y] = [parts(a), parts(b)];
+    for (let i = 0; i < Math.max(x.length, y.length); i++) {
+        const d = (x[i] ?? 0) - (y[i] ?? 0);
+        if (d !== 0) return d;
+    }
+    return 0;
+}
+
 export function createLockFile(
     projectRoot: string,
     selectedRoots: readonly LockableRoot[],
 ): { lockPath: string; lock: OntologyLock } {
-    const roots = [...selectedRoots].sort((a, b) => a.packageName.localeCompare(b.packageName));
+    // One entry per package NAME, not per resolved directory.
+    //
+    // A workspace can offer the same package from two roots — an installed
+    // `node_modules/@memoarchitect/ontology` beside a linked source checkout of
+    // the same package at a different version. Recording both wrote a lock that
+    // pinned `version: 0.6.4` while the loader resolved 0.6.5 through the
+    // import graph, so every freshly initialized project failed its own
+    // ontology-version check on the first `memo validate`.
+    //
+    // The winner is the root the import graph actually resolves through: lowest
+    // importDepth, ties broken by the higher version so a rebuild is
+    // reproducible rather than dependent on directory scan order.
+    const byName = new Map<string, LockableRoot>();
+    for (const root of selectedRoots) {
+        const existing = byName.get(root.packageName);
+        if (!existing
+            || root.importDepth < existing.importDepth
+            || (root.importDepth === existing.importDepth
+                && compareVersions(root.packageVersion, existing.packageVersion) > 0)) {
+            byName.set(root.packageName, root);
+        }
+    }
+    const roots = [...byName.values()].sort((a, b) => a.packageName.localeCompare(b.packageName));
     if (roots.length === 0) {
         throw new Error(
             'This project resolves no reusable packages, so there is nothing to lock. '

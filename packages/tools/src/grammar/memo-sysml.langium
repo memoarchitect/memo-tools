@@ -433,9 +433,19 @@ UsageBodyMember:
 //
 //   attribute :>> bounds { attribute :>> x = 0.1; attribute :>> width = 0.4; }
 
+// A fourth form is a TYPED attribute carrying a default:
+//
+//   attribute id : String = "CR-MED-040";
+//
+// SysIDE accepts it and MEMO rejected it, which session 1 logged as a grammar
+// gap and section 18.2 deliverable 8 assigned to session 2. It stopped being
+// theoretical once rules and policies started declaring typed attributes with
+// defaults. SysIDE is the compiler of record, so the grammar follows it.
+
 AttributeMember:
     'attribute' redefines?=('redefines' | ':>>')? name=MemberName
-    (':' type=QualifiedName multiplicity=Multiplicity? ('{' body+=UsageBodyMember* '}' | ';')
+    (':' type=QualifiedName multiplicity=Multiplicity?
+        ('=' value=AttributeValue ';' | '{' body+=UsageBodyMember* '}' | ';')
     | '=' value=AttributeValue ';'
     | '{' body+=UsageBodyMember* '}');
 
@@ -468,19 +478,32 @@ EnumValue:
     enumRef=QualifiedName;
 
 // ─── Nested part member ──────────────────────────────────────────────────────
-// Three forms:
+// Four forms:
 //   part subsystems : Subsystem[0..*];        (typed nested part)
 //   part requirement = reqSingleMode;          (feature value binding to a reference)
 //   part protectedAsset :> therapyAsset;       (subsetting an existing element)
+//   part vpLogical :> viewpointDefinition = logicalArchitectureViewpoint;
+//                                              (subsetting AND supplying a value)
 // The binding forms carry the source/target ends of semantic *Link instances,
 // which the model builder projects into navigable relationships.
+//
+// The fourth form is how a MULTI-VALUED feature takes several values. Repeating
+// `part :>> viewpointDefinition = x;` redefines the same feature each time and
+// SysIDE rejects it as shadowing, so each value has to subset the feature under
+// its own member name. `viewpointDefinition : Viewpoint[1..*]` is exactly that
+// case: a view governed by three viewpoints needs three members.
+//
+// SysIDE accepts this and the MEMO grammar did not, which is the wrong way
+// round — SysIDE is the compiler of record, so the grammar follows it.
+// `subsetValue` holds the value; `boundRef` keeps meaning the subsetted
+// feature, so every existing `:>` consumer is unaffected.
 
 PartMember:
     'part'
     (bindingOp=':>>' name=MemberName ('=' boundRef=QualifiedName)?
     | name=MemberName
       (':' type=QualifiedName multiplicity=Multiplicity?)?
-      (bindingOp=('=' | ':>') boundRef=QualifiedName)?)
+      (bindingOp=('=' | ':>') boundRef=QualifiedName ('=' subsetValue=QualifiedName)?)?)
     ('{' body+=UsageBodyMember* '}' | ';');
 
 // ─── Reference member ───────────────────────────────────────────────────────

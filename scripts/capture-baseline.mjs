@@ -42,6 +42,34 @@ export const FIXTURES = [
 ];
 
 /**
+ * BASELINE RE-FROZEN 2026-08-02 — all four fixtures, end of session 4.
+ *
+ * The baselines had been red since the session-3 flip and were never re-frozen,
+ * which meant the regression oracle could no longer detect anything: every run
+ * failed for known reasons, so a NEW difference would have hidden among them.
+ * An oracle nobody can read is not an oracle. Every difference below is
+ * accounted for; anything not on this list is a regression.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | all | `package` renamed on most elements | Session 4 moved project content into `model/catalog/` and renamed packages to mirror the tree. The projection records the declaring package, so every relocated element shows one. |
+ * | gpca | -1 element, -1 relationship | `MethodologyScope` and `ResolvedMethodology` were deleted as a second scope authority (session 2 deliverable 6); `ProjectMethodBinding` was added. Net -1. |
+ * | gpca | kind counts move; `layerCounts.unknown` 605 → 26 | Export now resolves the ontology through the native import closure. It previously ran with no registries and could not place a kind, so almost everything read `unknown`. Placing them is the fix, not a loss. |
+ * | gpca | cybersecurity violations gone | Deliberate. The GPCA methodology excludes cybersecurity, and rules no longer evaluate over elements the methodology did not select. |
+ * | ui-regions | +1 element, `layerCounts` populated | Same two causes: the binding is new project content, and layers now resolve. |
+ * | default | +1 element (`ProjectMethodBinding`); 22 violations | The binding is project content that did not exist pre-flip. The violation count is real evaluation against the local ontology 0.6.5. |
+ * | default | `errors` back to 0 | A fresh project used to fail its own ontology-version check: the lock recorded `@memoarchitect/ontology` twice (installed 0.6.4 and linked 0.6.5) and pinned the older one. `createLockFile` now keeps one entry per package name. |
+ * | gpca | 108 → 106 violations, 3 → 1 errors | Two `VW-003` view-conformance violations cleared. `document_architecture_description_view` and `document_dhf_index_view` each name three governing viewpoints, which SysIDE requires be written as three subsetting members rather than three redefinitions. The MEMO grammar did not accept that form, so the extra bindings were invisible and the views looked unconformant. The grammar now accepts what SysIDE accepts. |
+ * | extension-clinical | export refuses, 2 errors | An extension package is not a project: it has no method binding, so there is nothing to resolve. It is exercised as a resolvable package by the portability gate instead. |
+ *
+ * The GPCA content fixes made in session 4 — `longDescription` collapsed into
+ * `description`, 19 duplicated attribute declarations removed, 4 `direction`
+ * attributes dropped from `FunctionalExchange` — are all below this
+ * projection's granularity and move no count here. They show up only in
+ * `syside check`, which is where they were failing.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

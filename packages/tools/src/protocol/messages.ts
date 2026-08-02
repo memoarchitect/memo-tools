@@ -7,6 +7,7 @@ import type { MemoModelDTO } from '../model/semantic.js';
 import type { ValidationResult, CompletenessReport } from '../validator/types.js';
 import type { OntologyPackageInfo } from '../model/ontology-loader.js';
 import type { MethodologyDescriptor } from '../model/methodology-loader.js';
+import type { EffectiveRule, RuleResolutionDiagnostic } from '../model/methodology-resolver.js';
 import type {
     RelationshipCreateRequest,
     RelationshipDeleteRequest,
@@ -58,6 +59,7 @@ export type ServerMessage =
     | DiagramSourceResultMessage
     | OntologyPackagesMessage
     | MethodologyUpdateMessage
+    | RulesUpdateMessage
     | DiagramLayoutMessage
     | OntologyInstallResultMessage
     | OntologyRemoveResultMessage
@@ -82,6 +84,7 @@ export type ServerMessage =
     | ElementDeleteResultMessage
     | ElementMutationResultMessage
     | MethodologySourceResultMessage
+    | RulePolicyWriteResultMessage
     | ScreenCaptureUploadResultMessage
     | SourceChangedMessage;
 
@@ -131,6 +134,63 @@ export interface SourceChangedMessage {
         at: number;
         /** Accepted server writes observed in this watcher batch, file → transaction ID. */
         serverTransactions?: Record<string, string>;
+    };
+}
+
+/**
+ * Server sends the effective rule set: which rules are active, at what
+ * severity, and under whose authority.
+ *
+ * Section 10.4 makes this governance data, not enforcement evidence. It says
+ * what the effective SET is and how it got that way; whether a rule's predicate
+ * fires is the separate question section 4.1 answers with Option P.
+ */
+export interface RulesUpdateMessage {
+    type: 'rules:update';
+    payload: {
+        rules: EffectiveRule[];
+        diagnostics: RuleResolutionDiagnostic[];
+    };
+}
+
+/** Server's answer to a RulePolicy write. */
+export interface RulePolicyWriteResultMessage {
+    type: 'rule:policy:write:result';
+    payload: {
+        requestId: string;
+        success: boolean;
+        /** Refusal code from `checkRulePolicy`, when the decision was rejected. */
+        code?: string;
+        error?: string;
+        revision?: string;
+        transactionId?: string;
+        conflict?: boolean;
+    };
+}
+
+/**
+ * Client asks the server to write a RulePolicy into methodology source.
+ *
+ * The editor never composes SysML text itself. It names the rule and the
+ * decision; Tools renders the `RulePolicy` and writes it through the same
+ * precondition-checked path as every other mutation, so a rule tailored from
+ * the browser is subject to the same conflict rules as one typed in SysIDE.
+ */
+export interface RulePolicyWriteMessage {
+    type: 'rule:policy:write';
+    payload: {
+        requestId: string;
+        /** `constraint def` type name the policy targets. */
+        targetRuleType: string;
+        disposition: 'enabled' | 'disabled' | 'replaced';
+        severityOverride?: 'error' | 'warning' | 'info';
+        replacementRuleType?: string;
+        rationaleText: string;
+        authority?: string;
+        approvalReference?: string;
+        /** Methodology source file to write into. */
+        sourceFile: string;
+        baseRevision: string;
     };
 }
 
@@ -184,6 +244,7 @@ export type ClientMessage =
     | DiagramSourceSaveMessage
     | MethodologySourceRequestMessage
     | MethodologySourceSaveMessage
+    | RulePolicyWriteMessage
     | OntologySaveSelectionMessage
     | OntologyInstallMessage
     | OntologyRemoveMessage

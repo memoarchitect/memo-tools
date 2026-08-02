@@ -35,8 +35,14 @@ export const VENDOR_ONTOLOGY_DIR = 'memo';
 export const VENDOR_ONTOLOGY_SRC_DIR = `${VENDOR_ONTOLOGY_DIR}/src`;
 
 /**
- * Relative path (from a legacy tools checkout) to the DHF templates shipped with the
- * ontology. Templates are compliance-layer content and live in the ontology
- * repo, not the engine.
+ * Relative path (from a legacy tools checkout) to the DHF templates shipped with
+ * the ontology. They are artifact templates — document payloads governed by the
+ * artifacts taxonomy — and live in the ontology repo, not the engine.
+ *
+ * They used to sit under `src/compliance/`, a namespace the V-model taxonomy
+ * removed. That directory was also absent from the package's `files` list, so
+ * the templates shipped to nobody: DHF template resolution worked in a linked
+ * workspace and failed for every installed user. `src/artifacts/` is published,
+ * which fixes both the name and the packaging.
  */
-export const VENDOR_DHF_TEMPLATES_DIR = `${VENDOR_ONTOLOGY_DIR}/src/compliance/dhf-templates`;
+export const VENDOR_DHF_TEMPLATES_DIR = `${VENDOR_ONTOLOGY_DIR}/src/artifacts/templates/dhf`;

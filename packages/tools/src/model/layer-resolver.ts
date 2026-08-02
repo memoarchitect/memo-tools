@@ -120,7 +120,7 @@ export function resolveStandardFromPath(filePath: string): string | undefined {
     } else if (normalized.startsWith('sysml/')) {
         afterSysml = normalized.substring(6);
     } else {
-        // Vendored ontology convention: src/compliance/<standard>/<file>.sysml
+        // Vendored ontology convention: src/<layer>/<module>/<file>.sysml
         const m = normalized.match(/\/src\/compliance\/([^/]+)\/[^/]+\.sysml$/);
         return m ? m[1] : undefined;
     }

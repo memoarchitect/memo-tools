@@ -380,7 +380,13 @@ function suppliesMethodology(sysmlDir: string): boolean {
     for (const file of collectSysmlFiles(sysmlDir)) {
         let content = '';
         try { content = readFileSync(file, 'utf-8'); } catch { continue; }
-        if (/:\s*MethodologyDefinition\b/.test(content)) return true;
+        // Prefilter on the name, then confirm against the AST. A file that
+        // merely mentions `MethodologyDefinition` in a comment or an import
+        // does not supply one.
+        if (!content.includes('MethodologyDefinition')) continue;
+        const model = parseFileToAstSync(file);
+        if (!model) continue;
+        for (const _ of usagesOfType(model, 'MethodologyDefinition')) return true;
     }
     return false;
 }
@@ -399,46 +405,71 @@ interface LayerPalette {
     layerColor: string;
 }
 
-const USAGE_BLOCK = /part\s+\w+\s*:\s*(ExplorerClassification|LayerRendering)\s*\{([\s\S]*?)\n\s*\}/g;
-
-function readAttr(body: string, name: string): string | undefined {
-    const m = new RegExp(`attribute\\s+(?::>>|redefines)\\s+${name}\\s*=\\s*"([^"]*)"`).exec(body);
-    return m ? m[1] : undefined;
+/**
+ * Read a string attribute from a usage body in the AST.
+ *
+ * Both the `:>>` redefinition and the plain declaration forms appear in
+ * authored ontology source, so both are accepted.
+ */
+function usageAttr(body: unknown[], name: string): string | undefined {
+    for (const member of (body ?? []) as Array<Record<string, any>>) {
+        if (!member || member.$type !== 'AttributeMember' || member.name !== name) continue;
+        const value = member.value;
+        if (!value || value.$type !== 'StringValue') continue;
+        try { return JSON.parse(value.value ?? '""'); }
+        catch { return String(value.value ?? '').replace(/^"|"$/g, ''); }
+    }
+    return undefined;
 }
 
-/**
- * Read the ontology's presentation metadata from its own SysML.
- *
- * Both the Explorer taxonomy and the layer palette used to live in
- * `memo.rendering.yaml`. Both decided how MEMO's kinds are grouped and shown,
- * which makes them ontology metadata: a project that resolved the ontology
- * without the sidecar got a different Explorer. They are SysML now, so the
- * ontology carries its own taxonomy wherever it is resolved.
- */
+/** Every `part <name> : <Type> { … }` usage of `typeName`, from the AST. */
+function* usagesOfType(
+    container: { members?: unknown[]; body?: unknown[] },
+    typeName: string,
+): Generator<{ name?: string; body: unknown[] }> {
+    const members = (container.members ?? container.body ?? []) as Array<Record<string, any>>;
+    for (const member of members) {
+        if (!member || typeof member !== 'object') continue;
+        if (isPackageDeclaration(member)) {
+            yield* usagesOfType(member as never, typeName);
+            continue;
+        }
+        const type = typeof member.type === 'string' ? member.type.split('::').pop() : undefined;
+        if (type === typeName && Array.isArray(member.body)) {
+            yield { name: member.name, body: member.body };
+        }
+    }
+}
+
 function readRenderingMetadata(sysmlDir: string): { placements: Map<string, ExplorerPlacement>; palette: Map<string, LayerPalette> } {
     const placements = new Map<string, ExplorerPlacement>();
     const palette = new Map<string, LayerPalette>();
     for (const file of collectSysmlFiles(sysmlDir)) {
+        // Cheap textual prefilter, then a real parse. Section 13.1 forbids
+        // regex as a semantic DISCOVERY mechanism; deciding whether a file is
+        // worth parsing is not discovery, and the values below are read from
+        // the AST.
         let content = '';
         try { content = readFileSync(file, 'utf-8'); } catch { continue; }
         if (!content.includes('ExplorerClassification') && !content.includes('LayerRendering')) continue;
-        USAGE_BLOCK.lastIndex = 0;
-        for (const m of content.matchAll(USAGE_BLOCK)) {
-            const [, type, body] = m;
-            if (type === 'ExplorerClassification') {
-                const sourceNamespace = readAttr(body, 'sourceNamespace');
-                const explorerDomain = readAttr(body, 'explorerDomain');
-                const explorerGroup = readAttr(body, 'explorerGroup');
-                if (sourceNamespace && explorerDomain && explorerGroup) {
-                    placements.set(sourceNamespace, { sourceNamespace, explorerDomain, explorerGroup });
-                }
-            } else {
-                const layerId = readAttr(body, 'layerId');
-                const layerLabel = readAttr(body, 'layerLabel');
-                const layerColor = readAttr(body, 'layerColor');
-                if (layerId && layerLabel && layerColor) {
-                    palette.set(layerId, { layerId, layerLabel, layerColor });
-                }
+
+        const model = parseFileToAstSync(file);
+        if (!model) continue;
+
+        for (const usage of usagesOfType(model, 'ExplorerClassification')) {
+            const sourceNamespace = usageAttr(usage.body, 'sourceNamespace');
+            const explorerDomain = usageAttr(usage.body, 'explorerDomain');
+            const explorerGroup = usageAttr(usage.body, 'explorerGroup');
+            if (sourceNamespace && explorerDomain && explorerGroup) {
+                placements.set(sourceNamespace, { sourceNamespace, explorerDomain, explorerGroup });
+            }
+        }
+        for (const usage of usagesOfType(model, 'LayerRendering')) {
+            const layerId = usageAttr(usage.body, 'layerId');
+            const layerLabel = usageAttr(usage.body, 'layerLabel');
+            const layerColor = usageAttr(usage.body, 'layerColor');
+            if (layerId && layerLabel && layerColor) {
+                palette.set(layerId, { layerId, layerLabel, layerColor });
             }
         }
     }

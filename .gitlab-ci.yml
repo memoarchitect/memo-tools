@@ -16,6 +16,17 @@ test:
     - pnpm run build
     - pnpm run type-check
     - pnpm run test
+    # The session-1 regression oracle: the frozen semantic output of the four
+    # reference projects. A difference here is a behaviour change, and it fails
+    # the build rather than waiting for someone to run the script by hand.
+    - pnpm run check:baselines
+    # Design section 13.3 makes restart cost a requirement, so its ceilings are
+    # measured on GPCA and gated (section 18.4 deliverable 9: a gate, not a
+    # report).
+    - pnpm run check:budgets
+    # The shipped corpus must stay at the native fixed point: a conversion pass
+    # over it finds nothing to do.
+    - pnpm run check:corpus
 
 pages:
   stage: docs

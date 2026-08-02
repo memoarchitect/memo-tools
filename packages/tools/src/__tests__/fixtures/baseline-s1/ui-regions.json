@@ -6,456 +6,463 @@
         "id": "capDrugSelector",
         "kind": "ScreenCapture",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_artifacts_assets"
       },
       {
         "id": "capMain",
         "kind": "ScreenCapture",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_artifacts_assets"
       },
       {
         "id": "capSettings",
         "kind": "ScreenCapture",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_artifacts_assets"
       },
       {
         "id": "cmtDecimalSalience",
         "kind": "ModelComment",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
       },
       {
         "id": "cmtStatusBarReply",
         "kind": "ModelComment",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
       },
       {
         "id": "cmtStatusBarScope",
         "kind": "ModelComment",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
       },
       {
         "id": "elDrugMenuExpanded",
         "kind": "UIElement",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "elDrugSelectorClosed",
         "kind": "UIElement",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "elDrugSelectorRegion",
         "kind": "UIElement",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "elMainScreen",
         "kind": "UIElement",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "elRateConfirmDialog",
         "kind": "UIElement",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "elSettingsScreen",
         "kind": "UIElement",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "evDrugLibrarySelection",
         "kind": "Evidence",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       },
       {
         "id": "evInfusionStatusContent",
         "kind": "Evidence",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       },
       {
         "id": "evRateChange",
         "kind": "Evidence",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       },
       {
         "id": "fnManageInfusionDisplay",
         "kind": "SystemFunction",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "functional",
+        "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnPresentBatteryStatus",
         "kind": "SystemFunction",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "functional",
+        "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnPresentDeliveryStatus",
         "kind": "SystemFunction",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "functional",
+        "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnPresentLocalTime",
         "kind": "SystemFunction",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "functional",
+        "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnSetInfusionRate",
         "kind": "SystemFunction",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "functional",
+        "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnValidateDrugSelection",
         "kind": "SystemFunction",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "functional",
+        "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "hzIncorrectDeliveredVolumeAssessment",
         "kind": "Hazard",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "hzIncorrectEventChronology",
         "kind": "Hazard",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "hzUnexpectedPowerLoss",
         "kind": "Hazard",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "hzWrongDrug",
         "kind": "Hazard",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "hzWrongRate",
         "kind": "Hazard",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "mainScreenLayout",
         "kind": "MemoScreenLayoutView",
         "construct": "view",
         "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints"
+        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_main_screen_layout"
       },
       {
         "id": "needReadableProgramming",
         "kind": "Need",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements_needs"
       },
       {
         "id": "noteCaptureReview",
         "kind": "ModelNote",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_notes"
       },
       {
         "id": "ratOverlayGeometry",
         "kind": "ModelRationale",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_rationales"
       },
       {
         "id": "rcClockFreshnessCheck",
         "kind": "RiskControlMeasure",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "rcDisplayFreshnessMonitor",
         "kind": "RiskControlMeasure",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "rcDrugLibraryGuard",
         "kind": "RiskControlMeasure",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "rcLowBatteryProminence",
         "kind": "RiskControlMeasure",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "rcRateConfirm",
         "kind": "RiskControlMeasure",
         "construct": "item",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "reqActiveRateDisplay",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqBatteryStatusDisplay",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqBatteryWarningPerformance",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqDisplayFreshness",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqDrugIdentityDisplay",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqDrugLibrarySelection",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqDrugSelectionPerformance",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqRateEntry",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqRateLegibility",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqTimeAccuracy",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqTimeDisplay",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "reqVolumeDisplay",
         "kind": "Requirement",
         "construct": "requirement",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
         "id": "settingsScreenLayout",
         "kind": "MemoScreenLayoutView",
         "construct": "view",
         "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints"
+        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_settings_screen_layout"
       },
       {
         "id": "ueMisreadDisplayedTime",
         "kind": "UseError",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
       },
       {
         "id": "ueMisreadRate",
         "kind": "UseError",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
       },
       {
         "id": "ueMissLowBattery",
         "kind": "UseError",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
       },
       {
         "id": "ueRelyOnStaleVolume",
         "kind": "UseError",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
       },
       {
         "id": "ueSelectWrongDrug",
         "kind": "UseError",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
       },
       {
         "id": "uiaEditRate",
-        "kind": "ActionUsage",
+        "kind": "UIAction",
         "construct": "action",
-        "layer": "behavior",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "uiaOpenSettings",
-        "kind": "ActionUsage",
+        "kind": "UIAction",
         "construct": "action",
-        "layer": "behavior",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "uiaSelectDrug",
-        "kind": "ActionUsage",
+        "kind": "UIAction",
         "construct": "action",
-        "layer": "behavior",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "uiElement12",
         "kind": "UIElement",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "uiFunctionalTree",
         "kind": "MemoDiagramView",
         "construct": "view",
         "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints"
+        "package": "memo_examples_ui_screen_regions_viewpoints_functional_views_ui_functional_tree"
       },
       {
         "id": "uiPumpPanel",
         "kind": "UserInterface",
         "construct": "part",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
         "id": "uiRegionTrace",
         "kind": "MemoDiagramView",
         "construct": "view",
         "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints"
+        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_ui_region_trace"
       },
       {
         "id": "uiRequirementsTrace",
         "kind": "MemoDiagramView",
         "construct": "view",
         "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints"
+        "package": "memo_examples_ui_screen_regions_viewpoints_requirements_views_ui_requirements_trace"
       },
       {
         "id": "uiRiskChain",
         "kind": "MemoDiagramView",
         "construct": "view",
         "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints"
+        "package": "memo_examples_ui_screen_regions_viewpoints_risk_views_ui_risk_chain"
+      },
+      {
+        "id": "uiScreenRegionsBinding",
+        "kind": "ProjectMethodBinding",
+        "construct": "part",
+        "layer": "methodology",
+        "package": "memo_examples_ui_screen_regions_project"
       },
       {
         "id": "vcDrugLibrarySelection",
         "kind": "VerificationCase",
         "construct": "verification",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       },
       {
         "id": "vcInfusionStatusContent",
         "kind": "VerificationCase",
         "construct": "verification",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       },
       {
         "id": "vcRateChange",
         "kind": "VerificationCase",
         "construct": "verification",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions"
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       }
     ],
     "relationships": [
@@ -1006,7 +1013,6 @@
       }
     ],
     "kindCounts": {
-      "ActionUsage": 3,
       "Evidence": 3,
       "Hazard": 5,
       "MemoDiagramView": 4,
@@ -1015,18 +1021,27 @@
       "ModelNote": 1,
       "ModelRationale": 1,
       "Need": 1,
+      "ProjectMethodBinding": 1,
       "Requirement": 12,
       "RiskControlMeasure": 5,
       "ScreenCapture": 3,
       "SystemFunction": 6,
+      "UIAction": 3,
       "UIElement": 7,
       "UseError": 5,
       "UserInterface": 1,
       "VerificationCase": 3
     },
     "layerCounts": {
-      "behavior": 3,
-      "unknown": 62
+      "core": 5,
+      "functional": 6,
+      "human-factors": 5,
+      "implementation": 14,
+      "methodology": 1,
+      "requirements": 13,
+      "safety_risk": 10,
+      "unknown": 6,
+      "verification_validation": 6
     },
     "diagrams": []
   },
@@ -1044,7 +1059,7 @@
   },
   "errors": [],
   "summary": {
-    "elements": 65,
+    "elements": 66,
     "completeness": 100
   }
 }

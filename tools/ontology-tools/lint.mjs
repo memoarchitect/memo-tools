@@ -122,7 +122,7 @@ const STDLIB_WRAPPER_DIR = join(REPO_ROOT, 'memo', 'src', 'core', 'stdlib');
 // dirs, installed deps, build output). Only the flattened ontology content
 // at the submodule root is linted; skip the rest to avoid false positives on
 // hyphenated package/dep directory names.
-// dhf-templates holds markdown document templates, not SysML namespace segments
+// templates/dhf holds markdown document templates, not SysML namespace segments
 const VENDOR_SKIP_SEGMENTS = new Set(['node_modules', '.git', 'output', 'packages', 'examples', 'docs', 'site', 'dhf-templates']);
 function isVendorContentFile(absPath) {
     return !relative(REPO_ROOT, absPath).split('/').some((seg) => VENDOR_SKIP_SEGMENTS.has(seg));

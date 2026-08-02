@@ -42,7 +42,10 @@
     "version:check": "node scripts/sync-version.mjs --check",
     "ontology:lint": "node tools/ontology-tools/lint.mjs",
     "ontology:compat": "node tools/ontology-tools/syside-compat.mjs",
-    "check:boundary": "node scripts/check-config-boundary.mjs"
+    "check:boundary": "node scripts/check-config-boundary.mjs",
+    "check:budgets": "node scripts/runtime-budgets.mjs",
+    "check:baselines": "node scripts/verify-baseline.mjs",
+    "check:corpus": "node scripts/convert-corpus.mjs"
   },
   "dependencies": {
     "@memoarchitect/ontology": "0.6.5",

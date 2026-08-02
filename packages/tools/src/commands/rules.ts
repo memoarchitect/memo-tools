@@ -11,16 +11,24 @@ import { resolve } from 'node:path';
 import chalk from 'chalk';
 import {
     findConfigFile,
+    findProjectRoot,
+    loadProjectSettings,
     parseFiles,
     buildMemoModel,
     loadOntologyRegistries,
     RuleRegistry,
     collectNativeConstraints,
+    loadMethodologyDescriptor,
+    resolveEffectiveRules,
+    ruleCandidatesFromConstraints,
+    buildEffectiveScope,
+    activeRuleCandidates,
+    BUILTIN_RULES,
     evaluateConstraintNode,
     validateArchitecture,
 } from '@memoarchitect/tools';
 // parseFiles still needed by rulesCheckCommand for project SysML files
-import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
+import type { BuilderRegistries, ParsedDocument, EffectiveRule, RuleResolutionDiagnostic } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 
@@ -29,20 +37,35 @@ import { findSysmlFiles } from '../model/sysml-files.js';
 
 async function loadContext(projectDir?: string) {
     const cwd = resolve(projectDir || process.cwd());
-    const configPath = findConfigFile(cwd);
-    if (!configPath) {
-        console.error(chalk.red('❌ No memo config found. Run `memo init` first.'));
+
+    // The loader resolves a PROJECT ROOT, not a settings file. Passing the
+    // config path resolved no documents, so `memo rules list` reported "No
+    // rules found" on a project `memo validate` was evaluating 61 rules
+    // against. The two commands must agree about what the effective rule set
+    // is — that is the whole point of section 10.4.
+    const projectRoot = findProjectRoot(cwd);
+    if (!projectRoot) {
+        console.error(chalk.red(
+            '❌ No model/catalog/project.sysml found. A MEMO project declares its identity and method '
+            + 'binding in SysML — run `memo init` to scaffold one.'));
         process.exit(1);
     }
 
-    const config = loadAndResolveConfig(configPath);
+    // A package descriptor is an optional LOCATOR, not a requirement. Demanding
+    // one made `memo rules list` refuse to run on a project `memo validate`
+    // handles fine — GPCA has no `memo.package.yaml` and does not need one,
+    // because the entrypoint and the binding decide what the model contains.
+    const configPath = findConfigFile(projectRoot);
+    const config = loadProjectSettings(projectRoot);
 
     // Load ontology registries
     let ontologyRegistries: BuilderRegistries | undefined;
     let ruleRegistry: RuleRegistry | undefined;
     let ontologyDocuments: ParsedDocument[] = [];
+    let filePackages: ReadonlyMap<string, string> = new Map();
     try {
-        const loadResult = await loadOntologyRegistries(configPath);
+        const loadResult = await loadOntologyRegistries(projectRoot);
+        filePackages = loadResult.resolution?.filePackages ?? new Map<string, string>();
         if (loadResult.fileCount > 0) {
             ontologyRegistries = loadResult.registries;
             ontologyDocuments = loadResult.parsedDocuments;
@@ -55,7 +78,48 @@ async function loadContext(projectDir?: string) {
         // Ontology loading optional
     }
 
-    return { cwd, configPath, config, ontologyRegistries, ruleRegistry, ontologyDocuments };
+    // The EFFECTIVE rule set, resolved exactly as `memo validate` and the dev
+    // server resolve it. `ruleRegistry` above is a discovery catalogue of
+    // methodology closure rules; it is not the set that governs this project,
+    // and reporting it as though it were is what made `rules list` disagree
+    // with `validate` about how many rules exist.
+    let effectiveRules: EffectiveRule[] = [];
+    let ruleDiagnostics: RuleResolutionDiagnostic[] = [];
+    try {
+        const projectFiles = findSysmlFiles(projectRoot);
+        const { documents } = await parseFiles(projectFiles, `${projectRoot}/`);
+        const constraints = collectNativeConstraints([...ontologyDocuments, ...documents]);
+        const descriptor = await loadMethodologyDescriptor(projectRoot);
+
+        // The same activation `memo validate` applies. Reporting every resolved
+        // constraint instead would describe a rule set the project does not
+        // have: GPCA's methodology excludes cybersecurity, and listing its
+        // rules as effective is the exact claim the scope work exists to stop.
+        const scope = descriptor.effective
+            ? buildEffectiveScope(descriptor.effective)
+            : undefined;
+        const kindRegistry = ontologyRegistries?.kindRegistry;
+        const candidates = scope
+            ? activeRuleCandidates(
+                constraints, scope, filePackages,
+                kindName => kindRegistry?.getKind(kindName)?.sourceFile)
+            : ruleCandidatesFromConstraints(constraints);
+
+        const resolved = resolveEffectiveRules(
+            candidates,
+            descriptor.effective?.policyChain ?? [],
+        );
+        effectiveRules = resolved.rules;
+        ruleDiagnostics = resolved.diagnostics;
+    } catch {
+        // Rule resolution is reported, not fatal: a bad policy is a diagnostic
+        // about the methodology, not a reason the command cannot run.
+    }
+
+    return {
+        cwd, configPath, config, ontologyRegistries, ruleRegistry, ontologyDocuments,
+        effectiveRules, ruleDiagnostics,
+    };
 }
 
 function severityIcon(severity: string): string {
@@ -76,46 +140,88 @@ export async function rulesListCommand(
     options?: { format?: RulesFormat; category?: string }
 ): Promise<void> {
     const format = options?.format || 'text';
-    const { ruleRegistry } = await loadContext(projectDir);
+    const { effectiveRules, ruleDiagnostics } = await loadContext(projectDir);
 
-    // Combine all rules from all sources
-    const allRules = ruleRegistry?.entries() ?? [];
+    // Section 19 asks that the effective rule SET be auditable: identity,
+    // disposition, severity, and policy chain. That is what this reports —
+    // governance, not evidence that anything was validated (section 10.4).
     const filteredRules = options?.category
-        ? allRules.filter(r => r.category === options.category)
-        : allRules;
+        ? effectiveRules.filter(r => r.tailoring === options.category)
+        : effectiveRules;
 
     if (format === 'json') {
-        console.log(JSON.stringify(filteredRules, null, 2));
+        console.log(JSON.stringify({
+            tailorable: filteredRules,
+            builtin: options?.category ? [] : BUILTIN_RULES,
+            total: filteredRules.length + (options?.category ? 0 : BUILTIN_RULES.length),
+            diagnostics: ruleDiagnostics,
+        }, null, 2));
         return;
     }
 
-    console.log(chalk.bold('\n📏 Consistency Rules\n'));
+    console.log(chalk.bold('\n📏 Effective rule set\n'));
 
     if (filteredRules.length === 0) {
-        console.log(chalk.gray('  No rules found.'));
+        console.log(chalk.gray('  No rules resolved for this project.'));
+        for (const diagnostic of ruleDiagnostics) {
+            console.log(chalk.yellow(`  [${diagnostic.code}] ${diagnostic.message}`));
+        }
         return;
     }
 
-    // Group by category
-    const byCategory = new Map<string, typeof filteredRules>();
+    const byTailoring = new Map<string, typeof filteredRules>();
     for (const rule of filteredRules) {
-        const cat = rule.category || 'uncategorized';
-        if (!byCategory.has(cat)) byCategory.set(cat, []);
-        byCategory.get(cat)!.push(rule);
+        const cat = rule.tailoring || 'uncategorized';
+        if (!byTailoring.has(cat)) byTailoring.set(cat, []);
+        byTailoring.get(cat)!.push(rule);
     }
 
-    for (const [category, rules] of byCategory) {
-        console.log(chalk.bold.cyan(`  ${category.toUpperCase()} (${rules.length})`));
+    for (const [tailoring, rules] of byTailoring) {
+        console.log(chalk.bold.cyan(`  ${tailoring.toUpperCase()} (${rules.length})`));
         for (const rule of rules) {
-            const icon = severityIcon(rule.severity);
-            const strength = chalk.gray(`[${rule.strength}]`);
-            console.log(`    ${icon} ${chalk.white(rule.id)} ${rule.name} ${strength}`);
-            console.log(`      ${chalk.gray(rule.description || rule.rationaleText)}`);
+            const icon = severityIcon(rule.effectiveSeverity);
+            const disposition = rule.disposition === 'enabled'
+                ? '' : chalk.yellow(` [${rule.disposition}]`);
+            const overridden = rule.effectiveSeverity !== rule.declaredSeverity
+                ? chalk.gray(` (declared ${rule.declaredSeverity})`) : '';
+            console.log(`    ${icon} ${chalk.white(rule.sourceRuleId)} ${rule.sourceRuleType}`
+                + `${disposition}${overridden}`);
+            if (rule.rationaleText) {
+                console.log(`      ${chalk.gray(rule.rationaleText)}`);
+            }
+            if (rule.authority) {
+                console.log(`      ${chalk.gray(`authority: ${rule.authority}`)}`);
+            }
         }
         console.log();
     }
 
-    console.log(chalk.gray(`  Total: ${filteredRules.length} rules`));
+    // Built-in rules evaluate against the model but are not tailorable: a
+    // RulePolicy references a rule by its `constraint def` name and these have
+    // none. Listing them here is what makes this command's total reconcile
+    // with `memo validate` — the two used to report different numbers because
+    // only one of them knew these rules existed.
+    if (!options?.category) {
+        console.log(chalk.bold.cyan(`  BUILT-IN — not tailorable (${BUILTIN_RULES.length})`));
+        for (const rule of BUILTIN_RULES) {
+            console.log(`    ${severityIcon(rule.severity)} ${chalk.white(rule.id)} ${rule.name}`);
+            console.log(`      ${chalk.gray(rule.description)}`);
+        }
+        console.log();
+    }
+
+    const disabled = filteredRules.filter(r => r.disposition !== 'enabled').length;
+    const builtinShown = options?.category ? 0 : BUILTIN_RULES.length;
+    console.log(chalk.gray(
+        `  Total: ${filteredRules.length + builtinShown} rules`
+        + ` (${filteredRules.length} tailorable`
+        + (disabled > 0 ? `, ${disabled} tailored` : '')
+        + (builtinShown > 0 ? `; ${builtinShown} built-in` : '')
+        + ')'));
+    console.log(chalk.gray('  Tailorable rules are the set a methodology governs (design section 10).'));
+    for (const diagnostic of ruleDiagnostics) {
+        console.log(chalk.yellow(`  [${diagnostic.code}] ${diagnostic.message}`));
+    }
 }
 
 // ─── memo rules check ────────────────────────────────────────────────────────

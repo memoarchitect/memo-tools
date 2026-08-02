@@ -14,7 +14,9 @@
 // Design reference: sections 9.2 and 18.3 deliverable 3.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { EffectiveMethodology } from './methodology-resolver.js';
+import type { EffectiveMethodology, RuleCandidate } from './methodology-resolver.js';
+import { ruleCandidatesFromConstraints } from './methodology-resolver.js';
+import type { CompiledConstraint } from '../validator/constraint-eval.js';
 
 /**
  * The part of a kind this module needs.
@@ -125,4 +127,48 @@ export function isRulePackageInScope(scope: EffectiveScope, declaringPackage: st
     if (scope.mode === 'allAvailable') return true;
     if (!declaringPackage) return false;
     return isPackageInScope(scope, declaringPackage);
+}
+
+
+// ─── Rule activation ─────────────────────────────────────────────────────────
+
+/**
+ * The rules a project's methodology actually activates.
+ *
+ * A rule is active when BOTH its declaring package and its subject kind are in
+ * scope. A rule whose subject the methodology never selected can only report on
+ * content the project did not agree to model — which is how the GPCA prototype
+ * used to accumulate cybersecurity violations for a discipline it had excluded.
+ *
+ * This lives here, shared, because `memo validate` and `memo rules list` are
+ * two views of one answer. They computed it separately, and inevitably
+ * disagreed: `validate` scope-filtered and `rules list` did not, so the same
+ * project reported 20 rules and 38 rules depending on which command you asked.
+ * A number that changes with the question is not an audit.
+ */
+export function activeRuleCandidates(
+    constraints: readonly CompiledConstraint[],
+    scope: EffectiveScope,
+    filePackages: ReadonlyMap<string, string>,
+    kindSourceFile: (kindName: string) => string | undefined,
+): RuleCandidate[] {
+    const packageOf = (file: string | undefined) =>
+        file ? filePackages.get(file) : undefined;
+
+    const subjectInScope = (appliesTo: string | undefined): boolean => {
+        if (scope.mode === 'allAvailable') return true;
+        // A model-level rule has no single subject kind to place.
+        if (!appliesTo || appliesTo === 'Model') return true;
+        const kindName = appliesTo.split('[')[0];
+        // A methodology's inclusion lists name packages, so a kind is placed by
+        // the package that declares it — not by the `layer` string, which is a
+        // display grouping in a different namespace.
+        return isRulePackageInScope(scope, packageOf(kindSourceFile(kindName)));
+    };
+
+    return ruleCandidatesFromConstraints(
+        constraints
+            .filter(c => isRulePackageInScope(scope, packageOf(c.sourceFile)))
+            .filter(c => subjectInScope(c.appliesToKind)),
+    );
 }

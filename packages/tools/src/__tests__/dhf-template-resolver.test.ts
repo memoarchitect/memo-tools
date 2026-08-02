@@ -20,14 +20,14 @@ describe('vendor template resolution', () => {
     it('finds the ontology dhf-templates directory', () => {
         const dir = findVendorTemplatesDir();
         expect(dir).toBeTruthy();
-        expect(dir).toMatch(/src[/\\]compliance[/\\]dhf-templates$/);
+        expect(dir).toMatch(/src[/\\]artifacts[/\\]templates[/\\]dhf$/);
     });
 
     it('loads a template by standard-prefixed id', () => {
         const tpl = loadTemplate('iso-14971/rmp');
         expect(tpl).toBeTruthy();
         expect(tpl!.frontmatter.title).toBe('Risk Management Plan');
-        expect(tpl!.sourcePath).toContain('dhf-templates/iso-14971/rmp.md');
+        expect(tpl!.sourcePath).toContain('templates/dhf/iso-14971/rmp.md');
     });
 
     it('resolves shared snippets used by {{include}}', () => {

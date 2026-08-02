@@ -24,7 +24,7 @@ export function findVendorTemplatesDir(startDir: string = process.cwd()): string
     // resolve to the registry package.
     try {
         const ontologyRoot = resolveContentPackageRoot();
-        const installed = join(ontologyRoot, 'src/compliance/dhf-templates');
+        const installed = join(ontologyRoot, 'src/artifacts/templates/dhf');
         if (existsSync(installed)) { vendorTemplatesDir = installed; return installed; }
     } catch {
         // Fall through for dependency-free legacy source checkouts.

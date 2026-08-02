@@ -16,6 +16,7 @@ import {
     resolveEffectiveMethodology,
     resolveEffectiveRules,
     buildEffectiveScope,
+    activeRuleCandidates,
     isRulePackageInScope,
     isInScope,
     checkSemanticFields,
@@ -152,39 +153,14 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
         console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
     }
 
-    // A rule's scope is decided by the package that declares it, which is a
-    // question every loaded file has an answer to — including files a resolved
-    // root supplied without any other file importing them.
+    // Rule activation is shared with `memo rules list` so the two commands
+    // cannot report different rule sets for one project.
     const ruleFileToPackage = resolution?.filePackages ?? new Map<string, string>();
-    // A rule is activated when both its declaring package and its subject kind
-    // are in scope. A rule whose subject the methodology did not select can
-    // only report on content the project never agreed to model, which is how
-    // the GPCA prototype used to accumulate cybersecurity violations for a
-    // discipline it had excluded.
     const kindRegistry = ontologyRegistries?.kindRegistry;
-    const subjectInScope = (appliesTo: string): boolean => {
-        if (scope.mode === 'allAvailable') return true;
-        // A model-level rule has no single subject kind to place.
-        if (!appliesTo || appliesTo === 'Model') return true;
-        const kindName = appliesTo.split('[')[0];
-        const sourceFile = kindRegistry?.getKind(kindName)?.sourceFile;
-        // A methodology's inclusion lists name packages, so a kind is placed by
-        // the package that declares it — not by the `layer` string, which is a
-        // display grouping in a different namespace.
-        const declaringPackage = sourceFile ? ruleFileToPackage.get(sourceFile) : undefined;
-        return isRulePackageInScope(scope, declaringPackage);
-    };
-    const candidates: RuleCandidate[] = nativeConstraints
-        .filter(c => isRulePackageInScope(scope, c.sourceFile ? ruleFileToPackage.get(c.sourceFile) : undefined))
-        .filter(c => subjectInScope(c.appliesToKind))
-        .map(c => ({
-            id: c.id,
-            typeName: c.typeName ?? c.id,
-            severity: c.severity,
-            tailoring: c.tailoring ?? 'assurance',
-            file: c.sourceFile,
-            constraint: c,
-        }));
+    const candidates: RuleCandidate[] = activeRuleCandidates(
+        nativeConstraints, scope, ruleFileToPackage,
+        kindName => kindRegistry?.getKind(kindName)?.sourceFile,
+    );
     const effectiveRules = resolveEffectiveRules(candidates, effectiveMethodology.policyChain);
 
     // A rule-resolution diagnostic is not advisory. A policy that targets a
