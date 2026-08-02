@@ -14,10 +14,20 @@ needs repeatable resolution.
 
 ## Select external tools
 
+Each **role** is filled by one provider. The roles answer different questions,
+so they are selected separately:
+
+| Role | Question it answers | Setting |
+|---|---|---|
+| Validator | "Is this valid SysML/KerML?" | `toolchain.validator` |
+| Lowering | "What can MEMO ingest from this revision?" | `toolchain.lowering` |
+| Packaging | "How is this project packed?" | `toolchain.packager` |
+
 ```yaml
 toolchain:
-  compiler: syside       # internal | syside
-  packager: sysand       # internal | sysand
+  validator: syside
+  lowering: internal
+  packager: sysand
   syside:
     executable: syside
     configFile: ./syside.toml
@@ -28,9 +38,31 @@ toolchain:
     configFile: ./sysand.toml
 ```
 
-Relative paths resolve from the project directory; bare executable names resolve
-through `PATH`.
+Run `memo toolchain probe` to see which providers are registered, which binary
+each resolved to, and its version. Run `memo config effective` to see the whole
+resolved picture, including which settings came from the file, which from a
+flag, and which from a default.
 
-Use the internal compiler and packager for the simplest local workflow. Select
-external tools when their compatibility or packaging behavior is part of the
-project's required evidence.
+Relative paths resolve from the project directory; bare executable names resolve
+through `PATH`. A selected tool that is not installed is a clear error — MEMO
+never silently falls back to a different provider.
+
+Every setting under `toolchain` also has a command-line flag, so any project can
+be checked against a different toolchain without editing its settings:
+
+```bash
+memo validate --toolchain.validator syside --toolchain.syside.diagnose all
+```
+
+Use the built-in providers for the simplest local workflow; they need nothing
+installed. Select external tools when their compatibility or packaging
+behaviour is part of the project's required evidence.
+
+### `toolchain.compiler` is deprecated
+
+`compiler` predates the split between validating and lowering. It still works
+and sets both roles — but only where the named provider can fill them. SysIDE
+validates and cannot emit an ingestible model, so `compiler: syside` selects it
+as the validator and leaves lowering with MEMO's own parser, which is what it
+always did in practice. `memo validate` prints a note saying so. Prefer the
+explicit keys.

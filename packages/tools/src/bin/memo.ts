@@ -53,23 +53,37 @@ import { roundTripCommand } from '../commands/roundtrip.js';
 import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
 import { convertCommand } from '../commands/convert.js';
+import { configEffectiveCommand, toolchainProbeCommand } from '../commands/toolchain.js';
+import { applyToolchainCliOptions } from '../toolchain/schema.js';
+import { defaultRegistry } from '../toolchain/default-registry.js';
 
 const program = new Command();
+
+/**
+ * Add the generated `--toolchain.*` options to a command.
+ *
+ * Generated from the registry's schema, so a provider that contributes a
+ * settings leaf gets its flag without anyone editing this file — which is what
+ * makes "adding a provider touches one file" true of the CLI too.
+ */
+const withToolchainOptions = (command: Command): Command =>
+    applyToolchainCliOptions(command, defaultRegistry);
 
 program
     .name('memo')
     .description('MEMO — Model-Based Systems Engineering for Medical Devices')
     .version('0.6.7');
 
-program
-    .command('validate')
-    .description('Validate the model against closure rules and show completeness')
-    .argument('[dir]', 'Project directory', '.')
-    .option('--format <format>', 'Output format: text, junit, json', 'text')
-    .option('-o, --output <file>', 'Write output to file instead of stdout')
-    .action(async (dir: string, opts: { format?: string; output?: string }) => {
-        await validateCommand(dir, { format: opts.format as any, output: opts.output });
-    });
+withToolchainOptions(
+    program
+        .command('validate')
+        .description('Validate the model against closure rules and show completeness')
+        .argument('[dir]', 'Project directory', '.')
+        .option('--format <format>', 'Output format: text, junit, json', 'text')
+        .option('-o, --output <file>', 'Write output to file instead of stdout'),
+).action(async (dir: string, opts: Record<string, unknown>) => {
+    await validateCommand(dir, { ...opts, format: opts.format as any, output: opts.output as string });
+});
 
 program
     .command('inspect <id>')
@@ -115,13 +129,46 @@ program
     .description('List installed project templates and the IDs accepted by memo init --template')
     .action(() => listTemplatesCommand());
 
-program
-    .command('pack')
-    .description('Package the model as a Knowledge Package Archive (KPAR)')
-    .option('-o, --output <file>', 'Output .kpar path')
-    .action(async (options: { output?: string }) => {
-        await packCommand(options);
-    });
+withToolchainOptions(
+    program
+        .command('pack')
+        .description('Package the model as a Knowledge Package Archive (KPAR)')
+        .option('-o, --output <file>', 'Output .kpar path'),
+).action(async (options: Record<string, unknown>) => {
+    await packCommand({ ...options, output: options.output as string | undefined });
+});
+
+// ─── memo toolchain ─────────────────────────────────────────────────────────
+
+const toolchainCmd = program
+    .command('toolchain')
+    .description('Inspect the configured SysML toolchain');
+
+withToolchainOptions(
+    toolchainCmd
+        .command('probe')
+        .description('Resolve each role to a provider and report its executable and version')
+        .argument('[dir]', 'Project directory', '.')
+        .option('--format <format>', 'Output format: text, json, yaml', 'text'),
+).action(async (dir: string, opts: Record<string, unknown>) => {
+    await toolchainProbeCommand(dir, { ...opts, format: opts.format as any });
+});
+
+// ─── memo config ────────────────────────────────────────────────────────────
+
+const configCmd = program
+    .command('config')
+    .description('Inspect resolved application settings');
+
+withToolchainOptions(
+    configCmd
+        .command('effective')
+        .description('Print settings after flags, the deprecated alias, and defaults are applied')
+        .argument('[dir]', 'Project directory', '.')
+        .option('--format <format>', 'Output format: yaml, json', 'yaml'),
+).action(async (dir: string, opts: Record<string, unknown>) => {
+    await configEffectiveCommand(dir, { ...opts, format: opts.format as any });
+});
 
 const exportCmd = program
     .command('export')

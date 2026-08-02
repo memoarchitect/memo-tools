@@ -8,7 +8,6 @@ import { resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import {
-    compileWithConfiguredTool,
     buildMemoModel,
     loadOntologyRegistries,
     loadProjectSettings,
@@ -26,11 +25,19 @@ import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { checkLockFile } from '../lock.js';
+import { runValidator } from '../toolchain/operations.js';
+import { resolveToolchain } from '../toolchain/effective.js';
+import { defaultRegistry } from '../toolchain/default-registry.js';
+import { withToolchainOverrides } from '../toolchain/schema.js';
+import { countBySeverity, formatDiagnosticsText, type Diagnostic } from '../toolchain/diagnostic.js';
 
 
 export type ValidateFormat = 'text' | 'junit' | 'json';
 
-export async function validateCommand(projectDir?: string, options?: { format?: ValidateFormat; output?: string }): Promise<void> {
+export async function validateCommand(
+    projectDir?: string,
+    options?: { format?: ValidateFormat; output?: string } & Record<string, unknown>,
+): Promise<void> {
     const format = options?.format || 'text';
     const cwd = resolve(projectDir || process.cwd());
     console.log(chalk.bold('\n📋 MEMO Validate\n'));
@@ -56,7 +63,10 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
         process.exit(1);
     }
 
-    const config = loadProjectSettings(projectRoot);
+    const config = withToolchainOverrides(
+        loadProjectSettings(projectRoot), options ?? {}, defaultRegistry);
+    const effectiveToolchain = resolveToolchain(config, defaultRegistry);
+    for (const note of effectiveToolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
 
     // 3. Resolve the project natively: imports and the method binding decide
     //    everything about what is loaded.
@@ -81,11 +91,18 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
             + `${resolution.binding.selectedMethodologyName ?? '(none)'}`));
     }
 
+    // The validator's verdict is diagnostics, not an exception. A tool that
+    // rejects the source has done its job and its complaints belong in the
+    // report; only a tool that could not be run at all aborts the command,
+    // because selecting a missing tool must never downgrade to another provider.
+    let sysmlDiagnostics: Diagnostic[] = [];
     try {
-        const compiler = compileWithConfiguredTool(config, projectRoot);
-        if (compiler !== 'internal') console.log(chalk.gray(`Compiler: ${compiler}`));
+        const run = await runValidator({ config, projectDir: projectRoot, registry: defaultRegistry });
+        sysmlDiagnostics = run.diagnostics;
+        console.log(chalk.gray(
+            `Validator: ${run.provider}${run.providerVersion ? ` ${run.providerVersion}` : ''}`));
     } catch (error) {
-        console.error(chalk.red(`\n❌ Compilation failed: ${error instanceof Error ? error.message : error}\n`));
+        console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
         process.exit(1);
     }
 
@@ -231,6 +248,10 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
     const errors = result.violations.filter(v => v.severity === 'error');
     const warnings = result.violations.filter(v => v.severity === 'warning');
     const infos = result.violations.filter(v => v.severity === 'info');
+    // A validator rejection is a failed run even when every MEMO rule passed:
+    // the report would otherwise say "0 errors" about source the toolchain
+    // refused.
+    const sysmlErrors = countBySeverity(sysmlDiagnostics).error;
 
     // ─── Output format dispatch ──────────────────────────────────────────────
 
@@ -242,7 +263,7 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
         } else {
             process.stdout.write(xml);
         }
-        if (errors.length > 0) process.exitCode = 1;
+        if (errors.length > 0 || sysmlErrors > 0) process.exitCode = 1;
         return;
     }
 
@@ -261,8 +282,15 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
                 infos: infos.length,
                 completeness: completeness.overall,
                 rulesNotLoaded: constraintDiagnostics.length,
+                sysmlErrors,
             },
             rulesNotLoaded: constraintDiagnostics,
+            toolchain: {
+                validator: effectiveToolchain.validator,
+                lowering: effectiveToolchain.lowering,
+                packager: effectiveToolchain.packager,
+            },
+            diagnostics: sysmlDiagnostics,
             violations: result.violations.map(v => ({
                 ruleId: v.ruleId,
                 severity: v.severity,
@@ -292,11 +320,22 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
         } else {
             process.stdout.write(jsonStr + '\n');
         }
-        if (errors.length > 0) process.exitCode = 1;
+        if (errors.length > 0 || sysmlErrors > 0) process.exitCode = 1;
         return;
     }
 
     // ─── Default text output ─────────────────────────────────────────────────
+
+    // GNU one-liners, so an editor or CI annotator that already understands
+    // `file:line:col: severity:` picks them up without knowing anything about
+    // MEMO. The trailing `[domain/provider]` is additive.
+    if (sysmlDiagnostics.length > 0) {
+        const counts = countBySeverity(sysmlDiagnostics);
+        console.log(chalk.red.bold(
+            `SysML diagnostics (${counts.error} error, ${counts.warning} warning, ${counts.info} info):`));
+        console.log(formatDiagnosticsText(sysmlDiagnostics));
+        console.log();
+    }
 
     if (errors.length > 0) {
         console.log(chalk.red.bold(`Errors (${errors.length}):`));
@@ -336,7 +375,7 @@ export async function validateCommand(projectDir?: string, options?: { format?: 
     console.log(chalk.bold(`Overall: ${overallColor(completeness.overall + '%')} (${completeness.completeElements}/${completeness.totalElements} elements complete)`));
     console.log(chalk.gray(`Rules: ${result.rulesEvaluated} evaluated, ${result.rulesPassed} passed, ${result.violations.length} violations\n`));
 
-    if (errors.length > 0) {
+    if (errors.length > 0 || sysmlErrors > 0) {
         process.exitCode = 1;
     }
 }

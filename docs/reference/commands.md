@@ -36,6 +36,8 @@ memo init --list       # packages, templates, and examples together
 | `memo check [dir]` | Check SysML v2 tool compatibility. |
 | `memo round-trip [dir]` | Predict round-trip conformance for SysON, SysIDE, or Cameo. |
 | `memo rules …` | List, check, explain, and report coverage for consistency rules. |
+| `memo toolchain probe [dir]` | Resolve each toolchain role to a provider and report its executable and version. |
+| `memo config effective [dir]` | Print settings after flags, deprecated aliases, and defaults are applied. |
 
 ## Project creation
 
@@ -66,6 +68,13 @@ tree; existing sample files are never overwritten.
 | `plugin` | `list`, `create`, `run` |
 | `dhf` | `init`, `preview`, `status`, `snapshot`, `diff`, `redline`, `draft`, `review-packet` |
 | `rules` | `list`, `check`, `explain`, `coverage` |
+| `toolchain` | `probe` |
+| `config` | `effective` |
+
+Every setting under `toolchain` has a generated `--toolchain.<path>` flag on
+`memo validate`, `memo pack`, `memo toolchain probe`, `memo config effective`,
+and `memo-architect dev`. `memo toolchain probe --help` lists them for the
+installed provider set.
 
 ## Common examples
 

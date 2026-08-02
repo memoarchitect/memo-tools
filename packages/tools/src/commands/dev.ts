@@ -23,6 +23,9 @@ import { createProjectWatcher, createOntologyWatcher } from '../server/file-watc
 import { checkLockFile } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { enforceRuntimeBudget } from '../server/runtime-budget.js';
+import { withToolchainOverrides } from '../toolchain/schema.js';
+import { resolveToolchain } from '../toolchain/effective.js';
+import { defaultRegistry } from '../toolchain/default-registry.js';
 
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
@@ -86,6 +89,15 @@ export async function devCommand(options: {
     transformClientHtml?: (html: string) => string;
     /** Exit with code 75 after a reusable-source change so an outer supervisor can relaunch. */
     supervisedRuntime?: boolean;
+    /**
+     * Parsed `--toolchain.*` options, exactly as commander produced them.
+     *
+     * The server takes the same overrides the CLI does, so a session started
+     * with `--toolchain.validator=syside` draws from the same selection
+     * `memo validate --toolchain.validator=syside` reports on. A capability
+     * that exists only in one of them is a defect.
+     */
+    toolchainOptions?: Record<string, unknown>;
 }): Promise<void> {
     const bootstrapStartedAt = performance.now();
     const cwd = process.cwd();
@@ -96,10 +108,16 @@ export async function devCommand(options: {
 
     // ── bootstrap: runs once ───────────────────────────────────────────────────
     // The native entrypoint defines the project. Tool settings are optional.
-    const config = loadProjectSettings(cwd);
+    const config = withToolchainOverrides(
+        loadProjectSettings(cwd), options.toolchainOptions ?? {}, defaultRegistry);
+    const toolchain = resolveToolchain(config, defaultRegistry);
     const gitInfo = getGitInfo(cwd);
     let buildCount = 0;
     console.log(chalk.gray(`Project: ${config.projectName}`));
+    console.log(chalk.gray(
+        `Toolchain: validator=${toolchain.validator} lowering=${toolchain.lowering} `
+        + `packager=${toolchain.packager}`));
+    for (const note of toolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
 
     const nativeResolution = await resolveNativeProject(cwd);
     for (const d of nativeResolution.diagnostics) {

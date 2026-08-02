@@ -34,30 +34,35 @@ export type DiagramType =
     | 'bdd' | 'ibd' | 'req' | 'ucd' | 'act' | 'afd' | 'pkg' | 'par' | 'risk'
     | 'stm' | 'seq' | 'fmea' | 'alloc' | 'threat-model';
 
-export interface SysideToolConfig {
-    /** Executable name or path. Defaults to `syside` on PATH. */
-    executable?: string;
-    /** Optional syside.toml path, relative to the project directory. */
-    configFile?: string;
-    /** Treat Syside warnings as compilation errors. Defaults to true. */
-    warningsAsErrors?: boolean;
-    /** Syside validation scope. Defaults to `all`. Use `none` for syntax-only compilation. */
-    diagnose?: 'all' | 'external' | 'project' | 'none';
-}
-
-export interface SysandToolConfig {
-    /** Executable name or path. Defaults to `sysand` on PATH. */
-    executable?: string;
-    /** Optional sysand.toml path, relative to the project directory. */
-    configFile?: string;
-}
-
-/** External tool selection. Defaults preserve MEMO's built-in behavior. */
+/**
+ * Tool selection, one provider per role.
+ *
+ * Every value here is a plain `string`. A union type would re-hardcode the
+ * roster the provider registry exists to keep open: the legal values are
+ * whatever is registered, checked at resolution time against the registry, and
+ * a third-party adapter must be selectable without editing this file.
+ *
+ * Per-provider settings live under the provider's own ID (`syside`, `sysand`,
+ * …). They are typed as `unknown` here and read by that provider's adapter,
+ * which is the only module that knows the shape — see the index signature.
+ */
 export interface ToolchainConfig {
-    compiler?: 'internal' | 'syside';
-    packager?: 'internal' | 'sysand';
-    syside?: SysideToolConfig;
-    sysand?: SysandToolConfig;
+    /** "Is this valid SysML/KerML?" */
+    validator?: string;
+    /** "What can MEMO ingest from this revision?" */
+    lowering?: string;
+    /** How the project is packed and published. */
+    packager?: string;
+    /**
+     * @deprecated Alias that sets both `validator` and `lowering`.
+     *
+     * It predates the split of the two roles, which answer different questions
+     * and produce diagnostics in different domains. Kept so existing settings
+     * files keep working; `validator`/`lowering` win when both are present.
+     */
+    compiler?: string;
+    /** Per-provider settings, keyed by provider ID. Read only by that adapter. */
+    [providerId: string]: unknown;
 }
 
 /**
@@ -90,6 +95,6 @@ export interface MEMOConfig {
     /** Project-relative .sysml file that owns relationships with no better home. */
     canonicalRelationshipFile?: string;
 
-    /** Compiler and KPAR packager selection. */
+    /** Validator, lowering and packager provider selection. */
     toolchain?: ToolchainConfig;
 }

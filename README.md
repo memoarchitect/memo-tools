@@ -130,16 +130,18 @@ python3 -m pip install "mkdocs>=1.6" "mkdocs-material>=9.5" "pymdown-extensions>
 pnpm run docs:build
 ```
 
-### Compiler and packager selection
+### Toolchain selection
 
-Projects may select external tools in `memo.package.yaml` or
-`memo.config.yaml`. Omit `toolchain` (or use `internal`) to preserve MEMO's
-built-in parser and KPAR writer.
+Each toolchain role is filled by one provider: the **validator** answers "is
+this valid SysML/KerML?", **lowering** answers "what can MEMO ingest from this
+revision?", and the **packager** builds the archive. Omit `toolchain` entirely
+to use MEMO's built-in parser and KPAR writer, which need nothing installed.
 
 ```yaml
 toolchain:
-  compiler: syside       # internal | syside
-  packager: sysand       # internal | sysand
+  validator: syside
+  lowering: internal
+  packager: sysand
   syside:
     executable: ~/.local/bin/syside
     configFile: ./syside.toml
@@ -151,11 +153,24 @@ toolchain:
 ```
 
 `memo validate` and `memo pack` run `syside check --diagnose all
---warnings-as-errors` by default before MEMO's semantic validation, automatically
+--warnings-as-errors` by default when it is the selected validator, automatically
 including the resolved ontology directories. Set `warningsAsErrors: false` or use
-`diagnose: none` to relax the check. `memo pack` delegates
-archive creation to SysAnd when selected. Relative executable and config paths
-resolve from the project directory; bare executable names resolve through `PATH`.
+`diagnose: none` to relax the check. `memo pack` delegates archive creation to
+SysAnd when selected. Relative executable and config paths resolve from the
+project directory; bare executable names resolve through `PATH`. A selected tool
+that is not installed is a clear error, never a silent fallback.
+
+Every leaf under `toolchain` also has a generated flag, so a project can be run
+against a different toolchain without editing its settings:
+
+```bash
+memo toolchain probe                 # which provider, which binary, which version
+memo config effective                # settings + flags + defaults, fully resolved
+memo validate --toolchain.validator syside
+```
+
+`toolchain.compiler` is a deprecated alias kept for existing settings files; see
+`docs/reference/configuration.md`.
 
 ### Core library usage
 

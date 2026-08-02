@@ -38,7 +38,7 @@ export * from './model/relationship-legality.js';
 export * from './model/ontology-loader.js';
 export * from './model/manifest.js';
 export * from './model/content-store.js';
-export * from './model/toolchain.js';
+export * from './toolchain/index.js';
 export * from './model/methodology-loader.js';
 export * from './model/paths.js';
 
