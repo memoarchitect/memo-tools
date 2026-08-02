@@ -7,22 +7,22 @@
 //      Ontology watcher → notifyRestartRequired() (no model mutation)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints } from '@memoarchitect/tools';
+import { IncrementalProjectParser, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, loadProjectSettings } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO } from '@memoarchitect/tools';
-import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { createDevServer } from '../server/dev-server.js';
 import { createProjectWatcher, createOntologyWatcher } from '../server/file-watcher.js';
 import { checkLockFile } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
+import { enforceRuntimeBudget } from '../server/runtime-budget.js';
 
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
@@ -84,7 +84,10 @@ export async function devCommand(options: {
     exitWhenIdle?: boolean;
     /** Client-owned rewrite of the HTML shell (see DevServerOptions). */
     transformClientHtml?: (html: string) => string;
+    /** Exit with code 75 after a reusable-source change so an outer supervisor can relaunch. */
+    supervisedRuntime?: boolean;
 }): Promise<void> {
+    const bootstrapStartedAt = performance.now();
     const cwd = process.cwd();
     const port = options.port || 3000;
     const host = '127.0.0.1';
@@ -92,13 +95,8 @@ export async function devCommand(options: {
     console.log(chalk.bold('\n🚀 MEMO Dev Server\n'));
 
     // ── bootstrap: runs once ───────────────────────────────────────────────────
-    const configPath = findConfigFile(cwd);
-    if (!configPath) {
-        console.error(chalk.red('❌ No memo config found (memo.package.yaml or memo.config.yaml). Run `memo init` first.'));
-        process.exit(1);
-    }
-
-    const config = loadAndResolveConfig(configPath);
+    // The native entrypoint defines the project. Tool settings are optional.
+    const config = loadProjectSettings(cwd);
     const gitInfo = getGitInfo(cwd);
     let buildCount = 0;
     console.log(chalk.gray(`Project: ${config.projectName}`));
@@ -126,7 +124,7 @@ export async function devCommand(options: {
     let ontologyHash = '';
 
     try {
-        const loadResult = await loadOntologyRegistries(configPath);
+        const loadResult = await loadOntologyRegistries(cwd);
         if (loadResult.fileCount > 0) {
             ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
             ontologyRoots = loadResult.ontologyDirs;
@@ -177,8 +175,11 @@ export async function devCommand(options: {
     // ── end bootstrap ──────────────────────────────────────────────────────────
 
     // ── rebuildProject: hot path — no ontology reload ─────────────────────────
-    const methodologyConfigPath: string = configPath;
-    async function rebuildProject(): Promise<{ messages: ServerMessage[]; revision: number }> {
+    const projectParser = new IncrementalProjectParser(cwd);
+    async function rebuildProject(changedFiles?: readonly string[]): Promise<{
+        messages: ServerMessage[]; revision: number; coherent: boolean; firstErrorFile?: string;
+    }> {
+        const rebuildStartedAt = performance.now();
         buildCount++;
         try {
             methodologyDescriptor = await loadMethodologyDescriptor(cwd);
@@ -186,7 +187,7 @@ export async function devCommand(options: {
             // keep last good descriptor on transient parse failure
         }
         const sysmlFiles = findSysmlFiles(cwd);
-        const { documents, errors } = await parseFiles(sysmlFiles, cwd + '/');
+        const { documents, errors } = await projectParser.parse(sysmlFiles, changedFiles);
         const projectRegistries: BuilderRegistries | undefined = ontologyRegistries
             ? {
                 ...ontologyRegistries,
@@ -275,14 +276,22 @@ export async function devCommand(options: {
             viewpoints, architectureLayers, diagrams, registries: registriesDTO,
             revision: buildCount,
             sourceGraph: sourceGraphToDTO(sourceGraph),
+            sourceHashes: Object.fromEntries(sysmlFiles.map(file => [
+                relative(cwd, file).replaceAll('\\', '/'),
+                createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),
+            ])),
         });
         dto.metadata = metadata;
         (dto as any).ontologyHash = ontologyHash;
 
         const ontologyPackages = getPackageMetadata(cwd);
 
-        return {
+        const result: {
+            messages: ServerMessage[]; revision: number; coherent: boolean; firstErrorFile?: string;
+        } = {
             revision: buildCount,
+            coherent: errors.length === 0,
+            firstErrorFile: errors[0]?.file,
             messages: [
                 { type: 'model:update', payload: dto },
                 { type: 'validation:update', payload: validation },
@@ -291,6 +300,11 @@ export async function devCommand(options: {
                 { type: 'methodology:update', payload: methodologyDescriptor },
             ],
         };
+        if (changedFiles !== undefined) {
+            const budget = enforceRuntimeBudget('incrementalProjectRebuild', performance.now() - rebuildStartedAt);
+            console.log(chalk.gray(`  Incremental rebuild: ${budget.elapsedMs.toFixed(0)}ms / ${budget.budgetMs}ms`));
+        }
+        return result;
     }
 
     const sysmlCount = findSysmlFiles(cwd).length;
@@ -335,6 +349,24 @@ export async function devCommand(options: {
         },
     });
 
+    if (!initial.coherent) {
+        server.lockMutations({
+            type: 'app:restart-required',
+            reason: 'dependency-closure-uncomputable',
+            changedFile: initial.firstErrorFile ?? 'project source',
+            instruction: 'Fix the source diagnostic, then Relaunch Memo Architect. Model mutations are locked until a coherent workspace can be rebuilt.',
+        });
+    }
+
+    const restartStartedAt = Number(process.env.MEMO_RUNTIME_RESTART_STARTED_AT);
+    const budgetPath = Number.isFinite(restartStartedAt) && restartStartedAt > 0
+        ? 'supervisedRestart' : 'coldBootstrap';
+    const elapsed = budgetPath === 'supervisedRestart'
+        ? Date.now() - restartStartedAt
+        : performance.now() - bootstrapStartedAt;
+    const runtimeBudget = enforceRuntimeBudget(budgetPath, elapsed);
+    console.log(chalk.gray(`  ${budgetPath}: ${runtimeBudget.elapsedMs.toFixed(0)}ms / ${runtimeBudget.budgetMs}ms`));
+
     console.log(chalk.green(`\n  ➜ http://${host}:${port}\n`));
 
     // ── notifyRestartRequired: ontology watcher callback ───────────────────────
@@ -347,12 +379,29 @@ export async function devCommand(options: {
             type: 'app:restart-required',
             reason,
             changedFile,
-            instruction: 'Stop Architect (Ctrl+C) and start it again to apply ontology changes.',
+            instruction: reason === 'dependency-closure-uncomputable'
+                ? 'Fix the source diagnostic, then Relaunch Memo Architect. Model mutations are locked until a coherent workspace can be rebuilt.'
+                : reason === 'transaction-independence-uncomputable'
+                    ? 'Repeated external writes overlapped a server transaction. Model mutations are locked while Memo Architect relaunches from disk.'
+                : options.supervisedRuntime
+                    ? 'The model runtime is rebuilding from disk; Architect will reconnect automatically.'
+                    : 'Stop Architect (Ctrl+C) and start it again to apply reusable semantic changes.',
         };
+        server.lockMutations(msg);
         process.stderr.write(
             chalk.yellow(`\n  ⚠ Ontology changed (${changedFile}) — restart required. Changes ignored until restart.\n\n`)
         );
-        server.broadcast([msg]);
+        if (options.supervisedRuntime) {
+            // Give the WebSocket publication a chance to flush, then release
+            // the port and all watchers before asking the supervisor to start
+            // a fresh frozen semantic environment.
+            setTimeout(() => {
+                projectWatcher?.close();
+                ontologyWatcher?.close();
+                server.close();
+                process.exit(75);
+            }, 50);
+        }
     }
 
     // Project watcher — hot reload.
@@ -361,15 +410,30 @@ export async function devCommand(options: {
     // so open editors and views can tell whether the change was theirs instead
     // of refreshing on every unrelated save.
     projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
+        const transactions = server.consumeWriteTransactions(changedFiles);
+        if (transactions.escalationFile) {
+            notifyRestartRequired('transaction-independence-uncomputable', transactions.escalationFile);
+            return;
+        }
         const summary = changedFiles.length === 1
             ? changedFiles[0]
             : `${changedFiles.length} files`;
         console.log(chalk.gray(`  [${new Date().toLocaleTimeString()}] Rebuilding (${summary})...`));
-        const result = await rebuildProject();
-        server.broadcast(result.messages);
+        const result = await rebuildProject(changedFiles);
+        if (!result.coherent) {
+            notifyRestartRequired(
+                'dependency-closure-uncomputable',
+                result.firstErrorFile ?? changedFiles[0] ?? 'project source',
+            );
+            return;
+        }
+        server.broadcast(result.messages, changedFiles);
         server.notify([{
             type: 'source:changed',
-            payload: { files: changedFiles, revision: result.revision, at: Date.now() },
+            payload: {
+                files: changedFiles, revision: result.revision, at: Date.now(),
+                serverTransactions: transactions.matched,
+            },
         }]);
     }, 300, false, { ontologyRoots, provenance });
 

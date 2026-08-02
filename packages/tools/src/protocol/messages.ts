@@ -26,7 +26,20 @@ export interface WorkspaceRevision {
     workspaceSessionId: string;
     revision: number;
     baseRevision: number | null;
+    sourceGraphHash: string;
+    reusableRegistryHash: string;
+    projectRegistryHash: string;
+    changedSourceIds: string[];
+    modelDelta?: ModelDelta;
     snapshot?: boolean;
+}
+
+/** Incremental semantic-model changes between adjacent workspace revisions. */
+export interface ModelDelta {
+    upsertElements: Record<string, MemoModelDTO['elements'][string]>;
+    removeElementIds: string[];
+    /** Non-element collections/metadata are replaced atomically. */
+    patch: Omit<MemoModelDTO, 'elements'>;
 }
 
 interface WorkspacePublication {
@@ -58,6 +71,7 @@ export type ServerMessage =
     | LlmDraftResultMessage
     | LlmSuggestResultMessage
     | RestartRequiredMessage
+    | EditConflictMessage
     | DhfDocsMessage
     | DhfSettingsMessage
     | DhfTemplatesResultMessage
@@ -66,6 +80,8 @@ export type ServerMessage =
     | RelationshipCreateResultMessage
     | RelationshipDeleteResultMessage
     | ElementDeleteResultMessage
+    | ElementMutationResultMessage
+    | MethodologySourceResultMessage
     | ScreenCaptureUploadResultMessage
     | SourceChangedMessage;
 
@@ -113,6 +129,8 @@ export interface SourceChangedMessage {
         revision: number;
         /** Wall-clock time of the rebuild, for "updated 2s ago" affordances. */
         at: number;
+        /** Accepted server writes observed in this watcher batch, file → transaction ID. */
+        serverTransactions?: Record<string, string>;
     };
 }
 
@@ -120,6 +138,31 @@ export interface SourceChangedMessage {
 export interface MethodologyUpdateMessage {
     type: 'methodology:update';
     payload: MethodologyDescriptor;
+}
+
+export interface MethodologySourceRequestMessage {
+    type: 'methodology:source:request';
+    payload: { requestId: string; sourceFile: string };
+}
+
+export interface MethodologySourceSaveMessage {
+    type: 'methodology:source:save';
+    payload: { requestId: string; sourceFile: string; text: string; baseRevision: string };
+}
+
+export interface MethodologySourceResultMessage {
+    type: 'methodology:source:result';
+    payload: {
+        requestId: string;
+        sourceFile: string;
+        operation: 'load' | 'save';
+        success: boolean;
+        text?: string;
+        revision?: string;
+        transactionId?: string;
+        conflict?: boolean;
+        error?: string;
+    };
 }
 
 // ─── Client → Server ────────────────────────────────────────────────────────
@@ -139,6 +182,8 @@ export type ClientMessage =
     | DiagramParseMessage
     | DiagramSourceRequestMessage
     | DiagramSourceSaveMessage
+    | MethodologySourceRequestMessage
+    | MethodologySourceSaveMessage
     | OntologySaveSelectionMessage
     | OntologyInstallMessage
     | OntologyRemoveMessage
@@ -160,6 +205,15 @@ export type ClientMessage =
 
 export interface RequestRefreshMessage {
     type: 'request:refresh';
+}
+
+/** Preconditions carried by a browser mutation before Tools writes SysML. */
+export interface ModelMutationPrecondition {
+    workspaceSessionId: string;
+    baseRevision: number;
+    sourceFile: string;
+    expectedSourceHash: string;
+    targetElementIds: string[];
 }
 
 /** Client requests the server to persist ontology selection to memo.package.yaml */
@@ -196,9 +250,12 @@ export interface OntologyRemoveResultMessage {
 export interface ElementUpdateMessage {
     type: 'element:update';
     payload: {
+        requestId: string;
+        id: string;
         elementId: string;
         doc?: string;
         attributes?: Record<string, string>;
+        precondition: ModelMutationPrecondition;
     };
 }
 
@@ -206,17 +263,51 @@ export interface ElementUpdateMessage {
 export interface ElementCreateMessage {
     type: 'element:create';
     payload: {
+        requestId: string;
+        id: string;
         name: string;
         kind: string;
         construct: string;
         attributes?: Record<string, string>;
+        precondition: ModelMutationPrecondition;
+    };
+}
+
+export interface ElementMutationResultMessage {
+    type: 'element:mutation:result';
+    payload: {
+        requestId: string;
+        elementId: string;
+        success: boolean;
+        transactionId?: string;
+        conflict?: boolean;
+        sourceFile?: string;
+        expectedSourceHash?: string;
+        currentSourceHash?: string;
+        rejectedDraft?: unknown;
+        error?: string;
+    };
+}
+
+/** A scoped project-source conflict; other files remain editable. */
+export interface EditConflictMessage {
+    type: 'app:edit-conflict';
+    payload: {
+        sourceFile: string;
+        targetElementIds: string[];
+        baseRevision: number | string;
+        currentRevision: number | string;
+        expectedSourceHash: string;
+        currentSourceHash: string;
+        rejectedCommandId: string;
+        rejectedDraft: unknown;
     };
 }
 
 /** Client requests deletion of one project-owned element and its relationships. */
 export interface ElementDeleteMessage {
     type: 'element:delete';
-    payload: { requestId: string; elementId: string };
+    payload: { requestId: string; elementId: string; precondition: ModelMutationPrecondition };
 }
 
 /** Server confirms that the element and connected relationships were removed. */
@@ -268,7 +359,7 @@ export interface ScreenCaptureUploadResultMessage {
  */
 export interface RelationshipCreateMessage {
     type: 'relationship:create';
-    payload: RelationshipCreateRequest;
+    payload: RelationshipCreateRequest & { precondition: ModelMutationPrecondition };
 }
 
 /** Server response to relationship:create */
@@ -294,7 +385,7 @@ export interface RelationshipCreateResultMessage {
 /** Client requests deletion of one relationship usage */
 export interface RelationshipDeleteMessage {
     type: 'relationship:delete';
-    payload: RelationshipDeleteRequest;
+    payload: RelationshipDeleteRequest & { precondition: ModelMutationPrecondition };
 }
 
 /** Server response to relationship:delete */
@@ -403,9 +494,9 @@ export interface DiagramSourceSaveMessage {
          * produced the buffer. The server refuses the write when the file has
          * moved on since, so a stale editor cannot silently discard work that
          * arrived from another editor, another client, or the relationship
-         * writer. Omit only to force an unconditional overwrite.
+         * writer. There is no unconditional overwrite route.
          */
-        baseRevision?: string;
+        baseRevision: string;
     };
 }
 
@@ -422,6 +513,7 @@ export interface DiagramSourceResultMessage {
         error?: string;
         /** Content revision of the file as it now stands on disk. */
         revision?: string;
+        transactionId?: string;
         /**
          * Set when a save was refused because the file changed underneath the
          * edit. `text` and `revision` carry the current on-disk state so the
@@ -648,7 +740,8 @@ export interface LlmSuggestResultMessage {
 /** Server → Client: ontology changed on disk — client must reload after server restart */
 export interface RestartRequiredMessage {
     type: 'app:restart-required';
-    reason: 'ontology-source-changed' | 'ontology-selection-changed';
+    reason: 'ontology-source-changed' | 'ontology-selection-changed'
+        | 'dependency-closure-uncomputable' | 'transaction-independence-uncomputable';
     changedFile: string;
     instruction: string;
 }

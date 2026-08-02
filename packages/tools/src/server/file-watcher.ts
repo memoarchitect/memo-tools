@@ -158,11 +158,9 @@ export function createOntologyWatcher(
 
     const paths: string[] = [
         // Chokidar 4 watches concrete paths, not glob patterns.
-        ...ontologyRoots.flatMap(root => [
-            resolve(root, 'sysml'),
-            resolve(root, 'memo.package.yaml'),
-            resolve(root, 'memo.rendering.yaml'),
-        ]),
+        // Roots are resolved from the package's native `sysmlDir`, so do not
+        // re-impose the superseded `sysml/` directory convention here.
+        ...ontologyRoots,
         // Project-level ontology selection
         resolve(projectDir, 'memo.config.yaml'),
         resolve(projectDir, 'memo.config.yml'),

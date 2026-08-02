@@ -4,7 +4,8 @@
 // Used by the builder to parse .sysml files into AST documents.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { EmptyFileSystem, type LangiumDocument } from 'langium';
 import { parseHelper } from 'langium/test';
 import { createMemoSysMLServices } from '../language/memo-sysml-module.js';
@@ -79,6 +80,60 @@ export async function parseFiles(filePaths: string[], basePath: string = ''): Pr
     }
 
     return { documents, errors };
+}
+
+/**
+ * Coherent project document cache for the live runtime.
+ *
+ * The first build parses the complete project. Later builds parse only files
+ * reported by the watcher, discard deleted files, and return the complete
+ * cached document/error set to the semantic builder. This keeps snapshot
+ * semantics identical to a cold build while removing unchanged parser work
+ * from the project-save hot path.
+ */
+export class IncrementalProjectParser {
+    private readonly documents = new Map<string, ParsedDocument>();
+    private readonly errors = new Map<string, ParseError[]>();
+
+    constructor(private readonly basePath: string) {}
+
+    async parse(allFiles: string[], changedFiles?: readonly string[]): Promise<ParseResult> {
+        const absoluteFiles = new Set(allFiles.map(file => resolve(file)));
+        for (const cached of [...this.documents.keys()]) {
+            if (!absoluteFiles.has(cached)) {
+                this.documents.delete(cached);
+                this.errors.delete(cached);
+            }
+        }
+
+        const targets = changedFiles === undefined
+            ? [...absoluteFiles]
+            : [...new Set(changedFiles.map(file => resolve(this.basePath, file)))]
+                .filter(file => absoluteFiles.has(file) && existsSync(file));
+
+        for (const file of targets) {
+            const result = await parseFiles([file], this.basePath);
+            const document = result.documents[0];
+            if (document) this.documents.set(file, document);
+            else this.documents.delete(file);
+            this.errors.set(file, result.errors);
+        }
+
+        // A file newly discovered outside the watcher batch still needs a
+        // document; this covers atomic directory moves and watcher coalescing.
+        const missing = [...absoluteFiles].filter(file => !this.documents.has(file));
+        for (const file of missing) {
+            const result = await parseFiles([file], this.basePath);
+            const document = result.documents[0];
+            if (document) this.documents.set(file, document);
+            this.errors.set(file, result.errors);
+        }
+
+        return {
+            documents: [...this.documents.values()].sort((a, b) => a.filePath.localeCompare(b.filePath)),
+            errors: [...this.errors.values()].flat(),
+        };
+    }
 }
 
 /**

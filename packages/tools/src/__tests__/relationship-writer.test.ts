@@ -95,7 +95,7 @@ describe('isWritableRelationshipFile', () => {
     });
 
     it('accepts a file that does not exist yet inside the project', () => {
-        expect(isWritableRelationshipFile('model/relationships.sysml', options())).toBe(true);
+        expect(isWritableRelationshipFile('model/catalog/relationships.sysml', options())).toBe(true);
     });
 
     it('rejects a path that escapes the project', () => {
@@ -341,7 +341,7 @@ describe('writeRelationship', () => {
         expect(result.success).toBe(true);
         expect(result.sourceFile).toBe(CANONICAL_RELATIONSHIP_FILE);
         const written = readProjectFile(CANONICAL_RELATIONSHIP_FILE);
-        expect(written).toContain('package model_relationships {');
+        expect(written).toContain('package model_catalog_relationships {');
         expect(written).toContain('connection rel_satisfiedBy_controller_sr104 : SatisfiedBy');
     });
 

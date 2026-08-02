@@ -17,7 +17,8 @@ import type {
     RelationshipDeleteRequest, RelationshipDeleteResultMessage,
     ElementDeleteResultMessage,
     RelationshipDiagnostic, OntologyRegistriesDTO,
-    QueryContext, MEMOConfig, ProposedChange,
+    QueryContext, MEMOConfig, ProposedChange, RestartRequiredMessage, EditConflictMessage,
+    ModelMutationPrecondition,
 } from '@memoarchitect/tools';
 import type { BuilderRegistries } from '@memoarchitect/tools';
 import { findMemoManifests, validateRelationshipMutation, validateRelationshipDeletion } from '@memoarchitect/tools';
@@ -64,14 +65,36 @@ export interface DevServerOptions {
 
 export interface DevServer {
     /** Replace the current state and push it to every client. */
-    broadcast(messages: ServerMessage[]): void;
+    broadcast(messages: ServerMessage[], changedSourceIds?: readonly string[]): void;
     /**
      * Send transient messages to connected clients without recording them as
      * state. A client connecting later must not be told about an event it was
      * not present for — a stale "your file just changed" is worse than silence.
      */
     notify(messages: ServerMessage[]): void;
+    /** Match watcher events to writes accepted through this server. */
+    consumeWriteTransactions(files: readonly string[]): {
+        matched: Record<string, string>;
+        escalationFile?: string;
+    };
+    /** Reject every model mutation until a clean runtime is relaunched. */
+    lockMutations(message: RestartRequiredMessage): void;
     close(): void;
+}
+
+const MODEL_MUTATION_MESSAGES = new Set([
+    'element:update', 'element:create', 'element:delete', 'element:remap-kinds',
+    'relationship:create', 'relationship:delete',
+    'diagram:create', 'diagram:update', 'diagram:delete', 'diagram:layout:update', 'diagram:source:save',
+    'methodology:source:save', 'csv:import', 'screen-capture:upload',
+    'ontology:install', 'ontology:remove', 'ontology:save-selection',
+    'dhf:doc:save', 'dhf:doc:delete', 'dhf:settings:save', 'dhf:template:save',
+    'llm:chat:apply', 'llm:settings:save',
+]);
+
+/** Exported so the lockout boundary is mechanically testable. */
+export function isModelMutationMessage(type: string): boolean {
+    return MODEL_MUTATION_MESSAGES.has(type);
 }
 
 /**
@@ -156,21 +179,57 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     // three state payloads from a rebuild share one revision so the browser
     // cannot combine a model from one build with validation from another.
     const workspaceSessionId = randomUUID();
+    const writeTransactions = new Map<string, {
+        id: string; hash: string; createdAt: number; unmatchedWrites: number;
+    }>();
     let workspaceRevision = 1;
-    function stampWorkspace(messages: ServerMessage[], baseRevision: number | null, snapshot = false): ServerMessage[] {
+    let mutationLockout: RestartRequiredMessage | undefined;
+    function stampWorkspace(
+        messages: ServerMessage[], baseRevision: number | null, snapshot = false,
+        changedSourceIds: readonly string[] = [],
+    ): ServerMessage[] {
+        const model = messages.find(message => message.type === 'model:update') as ModelUpdateMessage | undefined;
+        const sourceGraphHash = createHash('sha256')
+            .update(JSON.stringify(model?.payload.sourceGraph ?? {})).digest('hex').slice(0, 16);
+        const reusableRegistryHash = String((model?.payload as any)?.ontologyHash ?? 'none');
+        const projectRegistryHash = createHash('sha256')
+            .update(JSON.stringify(model?.payload.registries ?? {})).digest('hex').slice(0, 16);
+        const previous = initialMessages.find(message => message.type === 'model:update') as ModelUpdateMessage | undefined;
+        const modelDelta = !snapshot && model && previous
+            ? {
+                upsertElements: Object.fromEntries(Object.entries(model.payload.elements).filter(([id, element]) =>
+                    JSON.stringify(previous.payload.elements[id]) !== JSON.stringify(element))),
+                removeElementIds: Object.keys(previous.payload.elements).filter(id => !(id in model.payload.elements)),
+                patch: Object.fromEntries(Object.entries(model.payload).filter(([key]) => key !== 'elements')),
+            }
+            : undefined;
         return messages.map(message => {
             if (message.type !== 'model:update' &&
                 message.type !== 'validation:update' &&
                 message.type !== 'completeness:update') return message;
             return {
                 ...message,
-                revision: { workspaceSessionId, revision: workspaceRevision, baseRevision, snapshot },
+                revision: {
+                    workspaceSessionId, revision: workspaceRevision, baseRevision, snapshot,
+                    sourceGraphHash, reusableRegistryHash, projectRegistryHash,
+                    changedSourceIds: [...changedSourceIds].sort(),
+                    modelDelta,
+                },
             } as ServerMessage;
         });
     }
     const initialSnapshot = stampWorkspace(initialMessages, null, true);
     initialMessages.length = 0;
     initialMessages.push(...initialSnapshot);
+
+    function recordWriteTransaction(sourceFile: string, text: string): string {
+        const id = randomUUID();
+        writeTransactions.set(sourceFile.replaceAll('\\', '/'), {
+            id, hash: createHash('sha256').update(text).digest('hex').slice(0, 16),
+            createdAt: Date.now(), unmatchedWrites: 0,
+        });
+        return id;
+    }
 
     // A source client can use Vite middleware. A packaged client can provide a
     // prebuilt dist/ directory. Tools does not resolve or depend on that client.
@@ -365,6 +424,40 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         }
     }
 
+    function broadcastEditConflict(payload: EditConflictMessage['payload']): void {
+        const message: EditConflictMessage = { type: 'app:edit-conflict', payload };
+        for (const client of clients) {
+            if (client.readyState === 1) client.send(JSON.stringify(message));
+        }
+    }
+
+    function checkMutationPrecondition(
+        precondition: ModelMutationPrecondition | undefined,
+        rejectedCommandId: string,
+        rejectedDraft: unknown,
+    ): string | undefined {
+        if (!precondition) return 'The mutation has no source precondition; reload before saving.';
+        if (precondition.workspaceSessionId !== workspaceSessionId) {
+            return 'The workspace runtime changed; no write was made.';
+        }
+        const projectPath = realpathSync(resolve(options.projectRoot));
+        const sourcePath = resolve(projectPath, precondition.sourceFile);
+        if (!sourcePath.startsWith(`${projectPath}/`)) return 'Mutation source is outside the project.';
+        const currentHash = existsSync(sourcePath) ? fileRevision(readFileSync(sourcePath, 'utf8')) : '';
+        if (currentHash === precondition.expectedSourceHash) return undefined;
+        broadcastEditConflict({
+            sourceFile: precondition.sourceFile,
+            targetElementIds: precondition.targetElementIds,
+            baseRevision: precondition.baseRevision,
+            currentRevision: workspaceRevision,
+            expectedSourceHash: precondition.expectedSourceHash,
+            currentSourceHash: currentHash,
+            rejectedCommandId,
+            rejectedDraft,
+        });
+        return `${precondition.sourceFile} changed on disk; no write was made.`;
+    }
+
     /** Latest model DTO — broadcast() replaces initialMessages on every rebuild. */
     const currentModel = (): MemoModelDTO | undefined =>
         (initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined)?.payload;
@@ -515,13 +608,15 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      * REL-xxx diagnostics the UI uses.
      */
     async function handleRelationshipCreate(
-        payload: RelationshipCreateRequest,
+        payload: RelationshipCreateRequest & { precondition?: ModelMutationPrecondition },
     ): Promise<RelationshipCreateResultMessage> {
         const requestId = payload?.requestId ?? '';
         const reject = (error: string, diagnostics?: RelationshipDiagnostic[]): RelationshipCreateResultMessage => ({
             type: 'relationship:create:result',
             payload: { requestId, success: false, error, diagnostics },
         });
+        const conflict = checkMutationPrecondition(payload.precondition, requestId, payload);
+        if (conflict) return reject(conflict);
 
         const model = currentModel();
         if (!model) return reject('The model is not loaded yet.');
@@ -563,6 +658,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
 
         console.log(`[Persisted] relationship ${result.relationshipId} (${validation.normalizedType}) ` +
             `to ${result.sourceFile} [${result.placementReason}]`);
+        if (result.sourceFile) {
+            recordWriteTransaction(result.sourceFile, readFileSync(resolve(options.projectRoot, result.sourceFile), 'utf8'));
+        }
 
         // The file watcher rebuilds and broadcasts the canonical model; this
         // response only confirms the write and carries the IDs the client needs
@@ -584,7 +682,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
 
     /** Delete one relationship usage, leaving both endpoint elements in place. */
     async function handleRelationshipDelete(
-        payload: RelationshipDeleteRequest,
+        payload: RelationshipDeleteRequest & { precondition?: ModelMutationPrecondition },
     ): Promise<RelationshipDeleteResultMessage> {
         const requestId = payload?.requestId ?? '';
         const relationshipId = payload?.relationshipId ?? '';
@@ -592,6 +690,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             type: 'relationship:delete:result',
             payload: { requestId, success: false, relationshipId, error, diagnostics },
         });
+        const conflict = checkMutationPrecondition(payload.precondition, requestId, payload);
+        if (conflict) return reject(conflict);
 
         const model = currentModel();
         if (!model) return reject('The model is not loaded yet.');
@@ -611,6 +711,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         }
 
         console.log(`[Persisted] removed relationship ${relationshipId} from ${result.sourceFile}`);
+        if (result.sourceFile) {
+            recordWriteTransaction(result.sourceFile, readFileSync(resolve(options.projectRoot, result.sourceFile), 'utf8'));
+        }
         return {
             type: 'relationship:delete:result',
             payload: {
@@ -626,6 +729,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     async function handleElementDelete(payload: {
         requestId?: string;
         elementId?: string;
+        precondition?: ModelMutationPrecondition;
     }): Promise<ElementDeleteResultMessage> {
         const requestId = payload?.requestId ?? '';
         const elementId = payload?.elementId ?? '';
@@ -633,6 +737,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             type: 'element:delete:result',
             payload: { requestId, elementId, success: false, error },
         });
+        const conflict = checkMutationPrecondition(payload.precondition, requestId, payload);
+        if (conflict) return reject(conflict);
         const model = currentModel();
         if (!model) return reject('The model is not loaded yet.');
         const element = model.elements[elementId];
@@ -642,6 +748,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         }
         const result = await removeElement(element, model, options.projectRoot);
         if (result.success) {
+            for (const sourceFile of result.sourceFiles ?? []) {
+                const path = resolve(options.projectRoot, sourceFile);
+                if (existsSync(path)) recordWriteTransaction(sourceFile, readFileSync(path, 'utf8'));
+            }
             // User-authored diagrams are sidecars rather than semantic
             // relationships, but they must not retain a stale element ID.
             const diagrams = loadUserDiagrams(options.projectRoot);
@@ -748,6 +858,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         for (const msg of initialMessages) {
             ws.send(JSON.stringify(msg));
         }
+        if (mutationLockout) ws.send(JSON.stringify(mutationLockout));
 
         // Send all sidecar layouts on connect
         const layouts = loadViewLayouts(options.projectRoot, currentDiagrams());
@@ -791,6 +902,12 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         ws.on('message', async (data: any) => {
             try {
                 const msg = JSON.parse(data.toString());
+                if (mutationLockout && isModelMutationMessage(msg.type)) {
+                    // A section 13.5 escalation is a hard server boundary;
+                    // stale and hand-authored clients cannot write through it.
+                    ws.send(JSON.stringify(mutationLockout));
+                    return;
+                }
                 if (msg.type === 'request:refresh') {
                     // A missed publication always falls back to one coherent
                     // snapshot, never a partial replay of old deltas.
@@ -801,23 +918,71 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // 1. Persist to FS
                     const { saveElementToFile } = await import('./persistor.js');
                     const { projectRoot } = options;
+                    const { requestId = '', id = '' } = msg.payload ?? {};
+                    const reply = (payload: Record<string, unknown>) => ws.send(JSON.stringify({
+                        type: 'element:mutation:result',
+                        payload: { requestId, elementId: id, ...payload },
+                    }));
 
                     const existing = currentModel()?.elements[msg.payload?.id];
                     if (existing?.provenance && !existing.provenance.declaration.writable) {
-                        ws.send(JSON.stringify({
-                            type: 'element:update:result',
-                            payload: {
-                                success: false,
-                                error: `Element "${existing.id}" is read-only ${existing.provenance.declaration.origin} content.`,
-                            },
-                        }));
+                        reply({ success: false, rejectedDraft: msg.payload,
+                            error: `Element "${existing.id}" is read-only ${existing.provenance.declaration.origin} content.` });
                         return;
                     }
+                    const precondition = msg.payload?.precondition;
+                    if (!precondition) {
+                        reply({ success: false, conflict: true, rejectedDraft: msg.payload,
+                            error: 'The edit has no source precondition; reload it before saving.' });
+                        return;
+                    }
+                    if (precondition) {
+                        if (precondition.workspaceSessionId !== workspaceSessionId) {
+                            reply({ success: false, conflict: true, rejectedDraft: msg.payload,
+                                error: 'The workspace runtime changed; no write was made.' });
+                            return;
+                        }
+                        const sourcePath = resolve(projectRoot, precondition.sourceFile);
+                        const projectPath = realpathSync(resolve(projectRoot));
+                        // A precondition that does not name a project file is
+                        // untrustworthy: do not silently turn it into a write.
+                        if (!sourcePath.startsWith(`${projectPath}/`) ||
+                            (msg.type === 'element:update' && !existsSync(sourcePath))) {
+                            reply({ success: false, conflict: true, rejectedDraft: msg.payload,
+                                error: 'Mutation source is not a current project file.' });
+                            return;
+                        }
+                        const currentHash = existsSync(sourcePath)
+                            ? fileRevision(readFileSync(sourcePath, 'utf8')) : '';
+                        if (precondition.expectedSourceHash !== currentHash) {
+                            broadcastEditConflict({
+                                sourceFile: precondition.sourceFile,
+                                targetElementIds: precondition.targetElementIds,
+                                baseRevision: precondition.baseRevision,
+                                currentRevision: workspaceRevision,
+                                expectedSourceHash: precondition.expectedSourceHash,
+                                currentSourceHash: currentHash,
+                                rejectedCommandId: requestId,
+                                rejectedDraft: msg.payload,
+                            });
+                            reply({ success: false, conflict: true, rejectedDraft: msg.payload,
+                                sourceFile: precondition.sourceFile,
+                                expectedSourceHash: precondition.expectedSourceHash,
+                                currentSourceHash: currentHash,
+                                error: `${precondition.sourceFile} changed on disk; no write was made.`,
+                            });
+                            return;
+                        }
+                    }
                     const result = saveElementToFile(projectRoot, msg.payload);
+                    let transactionId: string | undefined;
                     if (result.success) {
+                        transactionId = recordWriteTransaction(
+                            result.filePath, readFileSync(resolve(projectRoot, result.filePath), 'utf8'));
                         // The file watcher will catch this change and broadcast to all clients
                         console.log(`[Persisted] ${msg.type} to ${result.filePath}`);
                     }
+                    reply({ success: result.success, sourceFile: result.filePath, transactionId, error: result.error });
                 } else if (msg.type === 'screen-capture:upload') {
                     const { requestId, viewName, fileName, base64, mediaType } = msg.payload ?? {};
                     const reply = (payload: Record<string, unknown>) => ws.send(JSON.stringify({
@@ -963,6 +1128,52 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         type: 'diagram:parse:result',
                         payload: { diagramId: msg.payload.diagramId, elementIds, errors: [] },
                     }));
+                } else if (msg.type === 'methodology:source:request' || msg.type === 'methodology:source:save') {
+                    const { requestId, sourceFile } = msg.payload ?? {};
+                    const operation = msg.type === 'methodology:source:save' ? 'save' : 'load';
+                    const reply = (payload: Record<string, unknown>) => ws.send(JSON.stringify({
+                        type: 'methodology:source:result',
+                        payload: { requestId, sourceFile, operation, ...payload },
+                    }));
+                    try {
+                        const methodology = initialMessages.find(message => message.type === 'methodology:update') as any;
+                        const allowed = new Set<string>((methodology?.payload?.folders ?? []).flatMap((folder: any) =>
+                            (folder.sourceFiles ?? []).map((file: string) => resolve(options.projectRoot, file))));
+                        const path = resolve(options.projectRoot, String(sourceFile ?? ''));
+                        if (!allowed.has(path) || !path.endsWith('.sysml')) {
+                            throw new Error('The requested file is not in the resolved methodology source set.');
+                        }
+                        const onDisk = readFileSync(path, 'utf8');
+                        const revision = fileRevision(onDisk);
+                        if (operation === 'load') {
+                            reply({ success: true, text: onDisk, revision });
+                            return;
+                        }
+                        const { text, baseRevision } = msg.payload;
+                        if (typeof text !== 'string' || typeof baseRevision !== 'string') {
+                            throw new Error('Text and source revision are required.');
+                        }
+                        if (baseRevision !== revision) {
+                            const lockout: RestartRequiredMessage = {
+                                type: 'app:restart-required',
+                                reason: 'ontology-source-changed',
+                                changedFile: String(sourceFile),
+                                instruction: 'Reusable methodology source changed externally. Model mutations are locked; Relaunch Memo Architect.',
+                            };
+                            mutationLockout = lockout;
+                            for (const client of clients) {
+                                if (client.readyState === 1) client.send(JSON.stringify(lockout));
+                            }
+                            reply({ success: false, conflict: true, text: onDisk, revision,
+                                error: `${sourceFile} changed on disk; no write was made.` });
+                            return;
+                        }
+                        writeFileSync(path, text, 'utf8');
+                        const transactionId = recordWriteTransaction(String(sourceFile), text);
+                        reply({ success: true, revision: fileRevision(text), transactionId });
+                    } catch (error) {
+                        reply({ success: false, error: error instanceof Error ? error.message : String(error) });
+                    }
                 } else if (msg.type === 'diagram:source:request') {
                     const { requestId, diagramId } = msg.payload ?? {};
                     try {
@@ -985,6 +1196,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     const { requestId, diagramId, text, baseRevision } = msg.payload ?? {};
                     try {
                         if (typeof text !== 'string') throw new Error('SysML source text is required.');
+                        if (typeof baseRevision !== 'string') throw new Error('A source revision is required; reload the file before saving.');
                         const source = diagramSource(String(diagramId ?? ''));
 
                         // Refuse to overwrite work that arrived after this edit
@@ -992,9 +1204,19 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         // show the conflict instead of losing one of the two.
                         const onDisk = readFileSync(source.path, 'utf8');
                         const currentRevision = fileRevision(onDisk);
-                        if (typeof baseRevision === 'string' && baseRevision !== currentRevision) {
+                        if (baseRevision !== currentRevision) {
                             console.warn(`[Diagram] Refused stale save of ${source.sourceFile} ` +
                                 `(based on ${baseRevision}, disk is ${currentRevision})`);
+                            broadcastEditConflict({
+                                sourceFile: source.sourceFile,
+                                targetElementIds: currentDiagrams().find(d => d.id === diagramId)?.elementIds ?? [],
+                                baseRevision,
+                                currentRevision,
+                                expectedSourceHash: baseRevision,
+                                currentSourceHash: currentRevision,
+                                rejectedCommandId: requestId,
+                                rejectedDraft: { diagramId, text },
+                            });
                             ws.send(JSON.stringify({
                                 type: 'diagram:source:result',
                                 payload: {
@@ -1007,11 +1229,13 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         }
 
                         writeFileSync(source.path, text, 'utf8');
+                        const transactionId = recordWriteTransaction(source.sourceFile, text);
                         ws.send(JSON.stringify({
                             type: 'diagram:source:result',
                             payload: {
                                 requestId, diagramId, operation: 'save', success: true,
                                 sourceFile: source.sourceFile, revision: fileRevision(text),
+                                transactionId,
                                 parseErrors: await sysmlParseErrors(text),
                             },
                         }));
@@ -1166,19 +1390,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             parseRelationshipsCsv,
                             generateFile,
                             attachProvenance,
-                            findConfigFile,
+                            loadProjectSettings,
                         } = await import('@memoarchitect/tools');
-                        const { loadAndResolveConfig } = await import('./config-resolver.js');
-
-                        const configPath = findConfigFile(projectRoot);
-                        if (!configPath) {
-                            ws.send(JSON.stringify({
-                                type: 'import:result',
-                                payload: { success: false, elementsImported: 0, relationshipsImported: 0, errors: ['No memo config found'], warnings: [] },
-                            }));
-                            return;
-                        }
-                        const config = loadAndResolveConfig(configPath);
+                        const config = loadProjectSettings(projectRoot);
                         const { ontology } = await llmQueryContext();
 
                         const errors: string[] = [];
@@ -1556,11 +1770,11 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
     });
 
     return {
-        broadcast(messages: ServerMessage[]) {
+        broadcast(messages: ServerMessage[], changedSourceIds: readonly string[] = []) {
             // Update initial messages for new connections
             const baseRevision = workspaceRevision;
             workspaceRevision++;
-            const publication = stampWorkspace(messages, baseRevision);
+            const publication = stampWorkspace(messages, baseRevision, false, changedSourceIds);
             initialMessages.length = 0;
             initialMessages.push(...publication);
 
@@ -1577,6 +1791,36 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                 if (client.readyState === 1) {
                     for (const msg of messages) client.send(JSON.stringify(msg));
                 }
+            }
+        },
+        consumeWriteTransactions(files: readonly string[]) {
+            const matched: Record<string, string> = {};
+            let escalationFile: string | undefined;
+            for (const file of files) {
+                const normalized = file.replaceAll('\\', '/');
+                const transaction = writeTransactions.get(normalized);
+                if (!transaction) continue;
+                const path = resolve(options.projectRoot, normalized);
+                const currentHash = existsSync(path) ? fileRevision(readFileSync(path, 'utf8')) : '';
+                if (currentHash === transaction.hash) {
+                    matched[normalized] = transaction.id;
+                    writeTransactions.delete(normalized);
+                    continue;
+                }
+                transaction.unmatchedWrites++;
+                if (Date.now() - transaction.createdAt > 5000) {
+                    writeTransactions.delete(normalized);
+                } else if (transaction.unmatchedWrites >= 2) {
+                    escalationFile = normalized;
+                    writeTransactions.delete(normalized);
+                }
+            }
+            return { matched, escalationFile };
+        },
+        lockMutations(message: RestartRequiredMessage) {
+            mutationLockout = message;
+            for (const client of clients) {
+                if (client.readyState === 1) client.send(JSON.stringify(message));
             }
         },
         close() {

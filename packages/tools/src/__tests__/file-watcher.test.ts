@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createProjectWatcher, type FileWatcher } from '../server/file-watcher.js';
+import { createOntologyWatcher, createProjectWatcher, type FileWatcher } from '../server/file-watcher.js';
 
 describe('project file watcher', () => {
     const tempDirs: string[] = [];
@@ -87,6 +87,22 @@ describe('project file watcher', () => {
         writeFileSync(join(root, 'model/a.sysml'), 'package A { /* changed */ }\n', 'utf8');
         await expect.poll(() => seen.flat(), { timeout: 2000, interval: 20 })
             .toContain(join('model', 'a.sysml'));
+    });
+
+    it('watches a native package sysmlDir without assuming a sysml/ child', async () => {
+        const root = project({
+            'model/catalog/project.sysml': 'package Project {}\n',
+            'reusable-src/kinds.sysml': 'package Kinds {}\n',
+        });
+        const sourceRoot = join(root, 'reusable-src');
+        let changedFile = '';
+        watchers.push(createOntologyWatcher(root, [sourceRoot], file => { changedFile = file; }, 10));
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const file = join(sourceRoot, 'kinds.sysml');
+        writeFileSync(file, 'package Kinds { /* changed */ }\n', 'utf8');
+
+        await expect.poll(() => changedFile, { timeout: 2000, interval: 20 }).toBe(file);
     });
 
     it('ignores files the build does not read', async () => {

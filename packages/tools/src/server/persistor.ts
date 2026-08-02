@@ -5,11 +5,12 @@ import { generateUsage, type MemoElement } from '@memoarchitect/tools';
 /**
  * Persists an element change back to its source .sysml file.
  * 
- * If the element is new (no 'file' property), it records it in 'model/generated.sysml'.
+ * If the element is new (no 'file' property), it records it in the native
+ * project entrypoint, which is already inside the import closure.
  * Uses a regex-based usage block replacement for existing elements.
  */
 export function saveElementToFile(cwd: string, element: any): { success: boolean; filePath: string; error?: string } {
-    const relativePath = element.file || 'model/generated.sysml';
+    const relativePath = element.file || 'model/catalog/project.sysml';
     const filePath = resolve(cwd, relativePath);
 
     // 1. Ensure directory exists

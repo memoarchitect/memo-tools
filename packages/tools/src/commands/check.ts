@@ -1,9 +1,8 @@
 import { resolve } from 'node:path';
 import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
+import { parseFiles, buildMemoModel, loadOntologyRegistries, loadProjectSettings } from '@memoarchitect/tools';
 import type { BuilderRegistries, MemoModel, MemoElement, ParseError } from '@memoarchitect/tools';
-import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 
 const STANDARD_CONSTRUCTS = new Set([
@@ -145,18 +144,12 @@ export async function checkCommand(
 
     log(chalk.bold('\n🔍 MEMO SysML Compatibility Check\n'));
 
-    const configPath = findConfigFile(cwd);
-    if (!configPath) {
-        console.error(chalk.red('❌ No memo config found. Run `memo init` first.'));
-        process.exit(1);
-    }
-
-    const config = loadAndResolveConfig(configPath);
+    const config = loadProjectSettings(cwd);
     log(chalk.gray(`Project: ${config.projectName}`));
 
     let ontologyRegistries: BuilderRegistries | undefined;
     try {
-        const loadResult = await loadOntologyRegistries(configPath);
+        const loadResult = await loadOntologyRegistries(cwd);
         if (loadResult.fileCount > 0) {
             ontologyRegistries = loadResult.registries;
         }

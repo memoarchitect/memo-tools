@@ -32,7 +32,7 @@ import {
 // fixed in the engine.
 
 /** Default file used when the project has no better home for a relationship. */
-export const CANONICAL_RELATIONSHIP_FILE = 'model/relationships.sysml';
+export const CANONICAL_RELATIONSHIP_FILE = 'model/catalog/relationships.sysml';
 
 /** Directory segments holding view/presentation SysML — never a relationship home. */
 export const DEFAULT_PRESENTATION_DIRS = ['views'];

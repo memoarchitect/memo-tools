@@ -257,6 +257,8 @@ export interface MemoModelDTO {
      * whether a changed file affects what it is showing.
      */
     sourceGraph?: SourceGraphDTO;
+    /** Content hashes used as per-file web mutation preconditions. */
+    sourceHashes?: Record<string, string>;
 }
 
 /** Convert MemoModel to a plain JSON-serializable object */
@@ -269,6 +271,7 @@ export function modelToDTO(
         registries?: OntologyRegistriesDTO;
         revision?: number;
         sourceGraph?: SourceGraphDTO;
+        sourceHashes?: Record<string, string>;
     }
 ): MemoModelDTO {
     const elements: Record<string, MemoElement> = {};
@@ -285,6 +288,7 @@ export function modelToDTO(
         registries: options?.registries,
         revision: options?.revision,
         sourceGraph: options?.sourceGraph,
+        sourceHashes: options?.sourceHashes,
     };
 }
 

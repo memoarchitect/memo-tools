@@ -691,7 +691,10 @@ export async function loadOntologyRegistries(projectRoot: string): Promise<Ontol
         errors.push(`${diagnostic.code}: ${diagnostic.message}`);
     }
 
-    const ontologyDirs = resolution.selectedRoots.map(r => r.dir);
+    // Watch both distribution descriptors and their actual SysML source
+    // roots. Native packages may publish source outside the descriptor
+    // directory (for example ontology/memo.package.yaml -> ../src).
+    const ontologyDirs = [...new Set(resolution.selectedRoots.flatMap(r => [r.dir, r.sysmlDir]))];
 
     // A package is resolved in full or not at all.
     //
