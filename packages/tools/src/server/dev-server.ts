@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createServer as createHttpServer, type Server } from 'node:http';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync, createReadStream, statSync } from 'node:fs';
 import { extname } from 'node:path';
@@ -151,6 +151,26 @@ export function resolveProjectAssetRequest(projectRoot: string, requestUrl: stri
 export async function createDevServer(options: DevServerOptions): Promise<DevServer> {
     const { port, webPackagePath, initialMessages, transformClientHtml } = options;
     const host = '127.0.0.1';
+
+    // State publications are ordered independently of model semantics. The
+    // three state payloads from a rebuild share one revision so the browser
+    // cannot combine a model from one build with validation from another.
+    const workspaceSessionId = randomUUID();
+    let workspaceRevision = 1;
+    function stampWorkspace(messages: ServerMessage[], baseRevision: number | null, snapshot = false): ServerMessage[] {
+        return messages.map(message => {
+            if (message.type !== 'model:update' &&
+                message.type !== 'validation:update' &&
+                message.type !== 'completeness:update') return message;
+            return {
+                ...message,
+                revision: { workspaceSessionId, revision: workspaceRevision, baseRevision, snapshot },
+            } as ServerMessage;
+        });
+    }
+    const initialSnapshot = stampWorkspace(initialMessages, null, true);
+    initialMessages.length = 0;
+    initialMessages.push(...initialSnapshot);
 
     // A source client can use Vite middleware. A packaged client can provide a
     // prebuilt dist/ directory. Tools does not resolve or depend on that client.
@@ -772,8 +792,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             try {
                 const msg = JSON.parse(data.toString());
                 if (msg.type === 'request:refresh') {
-                    // Re-send current state
-                    for (const m of initialMessages) {
+                    // A missed publication always falls back to one coherent
+                    // snapshot, never a partial replay of old deltas.
+                    for (const m of stampWorkspace(initialMessages, null, true)) {
                         ws.send(JSON.stringify(m));
                     }
                 } else if (msg.type === 'element:update' || msg.type === 'element:create') {
@@ -1537,12 +1558,15 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
     return {
         broadcast(messages: ServerMessage[]) {
             // Update initial messages for new connections
+            const baseRevision = workspaceRevision;
+            workspaceRevision++;
+            const publication = stampWorkspace(messages, baseRevision);
             initialMessages.length = 0;
-            initialMessages.push(...messages);
+            initialMessages.push(...publication);
 
             for (const client of clients) {
                 if (client.readyState === 1) { // WebSocket.OPEN
-                    for (const msg of messages) {
+                    for (const msg of publication) {
                         client.send(JSON.stringify(msg));
                     }
                 }

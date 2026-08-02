@@ -242,8 +242,23 @@ describe('KK-1: deriveModelViews view kinds', () => {
 
 const GPCA_VIEWS_DIR = resolve(
     resolveContentPackageRoot(),
-    'examples/gpca-pump/model/views'
+    'examples/gpca-pump/model/catalog/viewpoints'
 );
+
+/** Files beneath catalog viewpoints, one directory per governed viewpoint. */
+function sysmlFilesUnder(dir: string): string[] {
+    const files: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) files.push(...sysmlFilesUnder(path));
+        else if (entry.name.endsWith('.sysml')) files.push(path);
+    }
+    return files;
+}
+
+function gpcaViewFiles(): string[] {
+    return sysmlFilesUnder(GPCA_VIEWS_DIR).filter(path => path.includes('/views/'));
+}
 
 /** Config covering the view kinds the GPCA views instantiate */
 const gpcaViewConfig: MEMOConfig = {
@@ -252,12 +267,12 @@ const gpcaViewConfig: MEMOConfig = {
 
 describe('KK-1 acceptance: GPCA views', () => {
     it('all 26 GPCA views resolve to exactly one of the 8 spec view kinds, with no validation warnings', async () => {
-        const files = readdirSync(GPCA_VIEWS_DIR).filter(f => f.endsWith('.sysml'));
+        const files = gpcaViewFiles();
         expect(files).toHaveLength(26);
 
         const docs: ParsedDocument[] = [];
-        for (const f of files) {
-            docs.push(await parseDoc(readFileSync(join(GPCA_VIEWS_DIR, f), 'utf-8'), f));
+        for (const file of files) {
+            docs.push(await parseDoc(readFileSync(file, 'utf-8'), file));
         }
         const model = buildMemoModel(docs, gpcaViewConfig);
         const { diagrams } = deriveModelViews(model);
@@ -289,7 +304,7 @@ describe('KK-1 acceptance: GPCA views', () => {
 
 describe('action-flow sample subtypes', () => {
     it('derives the three explicitly declared diagram types without collapsing them', async () => {
-        const samplesDir = resolve(resolveContentPackageRoot(), 'examples/sysml-diagram-samples/model/samples');
+        const samplesDir = resolve(resolveContentPackageRoot(), 'examples/sysml-diagram-samples/model/catalog/viewpoints/unassigned/views');
         const files = ['action_flow_view.sysml', 'functional_flow_view.sysml', 'operational_behaviour_view.sysml'];
         const docs: ParsedDocument[] = [];
         for (const file of files) {
@@ -310,10 +325,10 @@ describe('action-flow sample subtypes', () => {
 
 describe('KK-2/KK-3 acceptance: GPCA template views', () => {
     async function deriveGpcaViews() {
-        const files = readdirSync(GPCA_VIEWS_DIR).filter(f => f.endsWith('.sysml'));
+        const files = gpcaViewFiles();
         const docs: ParsedDocument[] = [];
-        for (const f of files) {
-            docs.push(await parseDoc(readFileSync(join(GPCA_VIEWS_DIR, f), 'utf-8'), f));
+        for (const file of files) {
+            docs.push(await parseDoc(readFileSync(file, 'utf-8'), file));
         }
         const model = buildMemoModel(docs, gpcaViewConfig);
         return deriveModelViews(model).diagrams;

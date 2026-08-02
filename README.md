@@ -69,6 +69,10 @@ memo init my-device --template samd
 memo init gpca --example gpca
 memo ontology show
 
+# Upgrade a pre-native project safely (reports only unless --write is supplied)
+memo convert . --diff
+memo convert . --write
+
 # Validate locally or in CI
 memo validate .
 memo validate . --format junit --output validation.xml
@@ -88,6 +92,12 @@ memo rules coverage
 ```
 
 Run `memo --help` or `memo <command> --help` for the complete command surface.
+
+`memo convert` moves legacy project content beneath `model/catalog/`, rewrites
+the corresponding packages/imports/artifact URIs, and creates the native project
+binding entrypoint where needed. It plans before touching the filesystem, refuses
+collisions, and is idempotent. Review its default dry-run output (or `--diff`)
+before using `--write`; then run `memo validate` and your external SysML gate.
 
 ### Jupyter analysis samples
 

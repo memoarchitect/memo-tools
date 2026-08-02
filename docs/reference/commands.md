@@ -16,6 +16,7 @@ memo init --list       # packages, templates, and examples together
 |---|---|
 | `memo validate [dir]` | Evaluate closure rules and completeness; supports `text`, `junit`, and `json`. |
 | `memo init [name]` | Create a project from the default, a template, or a worked example. |
+| `memo convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
 | `memo examples` | List worked-example IDs accepted by `memo init --example`. |
 | `memo templates` | List project-template IDs accepted by `memo init --template`. |
 | `memo pack` | Build a Knowledge Package Archive (`.kpar`). |

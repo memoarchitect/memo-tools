@@ -16,6 +16,23 @@ import type { ChatMessage } from '../llm/llm-provider.js';
 import type { ProposedChange } from '../llm/chat-engine.js';
 import type { LlmSettingsStatus, LLMProviderName } from '../llm/llm-settings.js';
 
+/**
+ * Transport ordering for one live project workspace. This intentionally sits
+ * beside the protocol rather than in the semantic DTO: restarts make a new
+ * session, while a client applies an incremental publication only when its
+ * `baseRevision` is the revision it already holds.
+ */
+export interface WorkspaceRevision {
+    workspaceSessionId: string;
+    revision: number;
+    baseRevision: number | null;
+    snapshot?: boolean;
+}
+
+interface WorkspacePublication {
+    revision?: WorkspaceRevision;
+}
+
 // ─── Server → Client ────────────────────────────────────────────────────────
 
 export type ServerMessage =
@@ -52,17 +69,17 @@ export type ServerMessage =
     | ScreenCaptureUploadResultMessage
     | SourceChangedMessage;
 
-export interface ModelUpdateMessage {
+export interface ModelUpdateMessage extends WorkspacePublication {
     type: 'model:update';
     payload: MemoModelDTO;
 }
 
-export interface ValidationUpdateMessage {
+export interface ValidationUpdateMessage extends WorkspacePublication {
     type: 'validation:update';
     payload: ValidationResult;
 }
 
-export interface CompletenessUpdateMessage {
+export interface CompletenessUpdateMessage extends WorkspacePublication {
     type: 'completeness:update';
     payload: CompletenessReport;
 }

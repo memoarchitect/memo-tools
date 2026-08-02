@@ -52,6 +52,7 @@ import { checkCommand } from '../commands/check.js';
 import { roundTripCommand } from '../commands/roundtrip.js';
 import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
+import { convertCommand } from '../commands/convert.js';
 
 const program = new Command();
 
@@ -90,6 +91,18 @@ program
     .option('--no-install', 'Create the project without running npm install')
     .action(async (name: string | undefined, options: { template?: string; ontology?: string; example?: string; list?: boolean; install?: boolean }) => {
         await initCommand(name, options);
+    });
+
+program
+    .command('convert')
+    .description('Restructure a project into the native catalog layout (dry run unless --write)')
+    .argument('[dir]', 'Project directory', '.')
+    .option('--write', 'Apply the plan. Without it the command only reports what would change.')
+    .option('--diff', 'Include per-file content hunks in the report')
+    .option('--json', 'Emit the plan as JSON')
+    .option('--normalize-names', 'Also rename in-place packages whose names do not mirror their location')
+    .action(async (dir: string, options: { write?: boolean; diff?: boolean; json?: boolean; normalizeNames?: boolean }) => {
+        await convertCommand(dir, options);
     });
 
 program
