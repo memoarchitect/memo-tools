@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { type LangiumDocument, EmptyFileSystem } from 'langium';
 import { parseHelper } from 'langium/test';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createMemoSysMLServices } from '../language/memo-sysml-module.js';
+import { parseFiles } from '../model/parser-utils.js';
 import type {
     Model,
     PackageDeclaration,
@@ -50,6 +54,49 @@ async function parseErrors(input: string): Promise<string[]> {
         .concat(doc.parseResult.parserErrors as any[])
         .map((e: any) => e.message);
 }
+
+describe('FulfillOrder activity fixture', () => {
+    const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../');
+    const workspaceFixture = resolve(workspaceRoot, 'sysml-v2-activity-example.sysml');
+    const referenceFixture = resolve(
+        workspaceRoot,
+        'memo/examples/sysml-diagram-samples/reference/sysml-v2-activity-example.sysml',
+    );
+
+    it('parses the Syside-accepted fixture with no errors and retains activity semantics', async () => {
+        const { documents, errors } = await parseFiles([workspaceFixture]);
+        expect(errors).toEqual([]);
+
+        const pkg = documents[0].document.parseResult.value.members[0] as PackageDeclaration;
+        const fulfillOrder = pkg.members.find((member: any) => member.name === 'FulfillOrder') as any;
+        expect(fulfillOrder.$type).toBe('ActionDefinition');
+
+        const accept = fulfillOrder.body.find((member: any) => member.$type === 'AcceptActionUsage');
+        expect(accept).toMatchObject({ name: 'receiveOrder', payloadName: 'order', payloadType: 'Order' });
+
+        const send = fulfillOrder.body.find((member: any) => member.$type === 'SendActionUsage');
+        expect(send.name).toBe('sendReceipt');
+        expect(send.receiver.segments).toEqual(['notifyCustomer', 'receipt']);
+        expect(send.target).toBe('customer');
+
+        const notifyCustomer = fulfillOrder.body.find((member: any) => member.name === 'notifyCustomer');
+        const receipt = notifyCustomer.body.find((member: any) => member.name === 'receipt');
+        expect(receipt).toMatchObject({ $type: 'ActionParameterMember', direction: 'out', type: 'Receipt' });
+
+        const guarded = fulfillOrder.body.find((member: any) =>
+            member.$type === 'SuccessionUsage' && member.steps[0]?.ref === 'routeOrder' && member.steps[0]?.guard,
+        );
+        expect(guarded.steps[0].guard).toMatchObject({ $type: 'LiteralExpr', boolValue: 'true' });
+    });
+
+    it('keeps the workspace fixture and reference copy identical modulo comment lines', () => {
+        const withoutCommentLines = (file: string) => readFileSync(file, 'utf-8')
+            .split(/\r?\n/)
+            .filter(line => !/^\s*\/\//.test(line))
+            .join('\n');
+        expect(withoutCommentLines(workspaceFixture)).toBe(withoutCommentLines(referenceFixture));
+    });
+});
 
 // ─── Typed attribute with a default ──────────────────────────────────────────
 

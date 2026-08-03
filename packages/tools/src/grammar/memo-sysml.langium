@@ -268,8 +268,25 @@ InterfaceUsage:
 // ActionUsage supports both typed (action name : Type;) and composite
 // (action name { nested-actions, flows, successions }) forms.
 ActionUsage:
-    behaviorKind=('action' | 'operator' | 'function') name=ID (':' type=QualifiedName)?
+    behaviorKind=('action' | 'operator' | 'function') name=ActionName (':' type=QualifiedName)?
     ('{' body+=ActionUsageBodyMember* '}' | ';');
+
+// Activity actions use their own concrete forms. Keep the payload and endpoint
+// references structural: they are semantic inputs for lowering, not display text.
+AcceptActionUsage:
+    'action' name=ActionName 'accept' payloadName=ID ':' payloadType=QualifiedName ';';
+
+SendActionUsage:
+    'then'? 'action' name=ActionName 'send' receiver=FeatureReference 'to' target=ReferenceName ';';
+
+FeatureReference:
+    segments+=ID ('.' segments+=ID)*;
+
+ActionName returns string:
+    ID | 'accept' | 'send' | 'terminate';
+
+TerminateUsage:
+    {infer TerminateUsage} 'then'? 'terminate' ';';
 
 PortUsage:
     direction=('in' | 'out' | 'inout')? 'port' isConjugated?='~'? name=ID ':' type=QualifiedName
@@ -310,7 +327,7 @@ ConnectionEnd:
 // Action defs can have in/out/inout parameters plus regular body members
 
 ActionDefBodyMember:
-    ActionParameterMember | DefinitionBodyMember;
+    ActionParameterMember | ActionUsage | AcceptActionUsage | SendActionUsage | TerminateUsage | ControlNodeUsage | RequireConstraintMember | UsageBodyMember;
 
 ActionParameterMember:
     direction=('in' | 'out' | 'inout') name=ID ':' type=QualifiedName ';';
@@ -321,7 +338,7 @@ ActionParameterMember:
 // FlowConnectionUsage / SuccessionUsage / ConnectionUsage are contributed by
 // UsageBodyMember; listing them again here would make the alternatives ambiguous.
 ActionUsageBodyMember:
-    ActionUsage | ControlNodeUsage | UsageBodyMember;
+    ActionParameterMember | ActionUsage | AcceptActionUsage | SendActionUsage | TerminateUsage | ControlNodeUsage | UsageBodyMember;
 
 // ─── Behavior: Control nodes (fork / join) ──────────────────────────────────
 // SysML v2 activity control nodes. A `fork` splits one incoming control flow
@@ -334,7 +351,7 @@ ActionUsageBodyMember:
 //   first parallelPrep then prime;
 //   first parallelPrep then selfTest;
 ControlNodeUsage:
-    controlKind=('fork' | 'join') name=ID ';';
+    controlKind=('fork' | 'join' | 'decide' | 'merge') name=ID ';';
 
 // ─── Behavior: Flow connection usage ────────────────────────────────────────
 // Syntax: flow of ItemType from source.port to target.port ;
@@ -347,16 +364,19 @@ FlowEnd:
 
 // Dot-separated qualified name for flow endpoints (e.g. receive.prescription)
 DottedName returns string:
-    ID ('.' ID)*;
+    DottedNameSegment ('.' DottedNameSegment)*;
+
+DottedNameSegment returns string:
+    ID | 'accept' | 'send' | 'terminate';
 
 // ─── Behavior: Succession usage ─────────────────────────────────────────────
 // Syntax: first start then action1 then action2 then done ;
 
 SuccessionUsage:
-    'first' steps+=SuccessionStep ('then' steps+=SuccessionStep)+ ';';
+    'succession'? 'first' steps+=SuccessionStep ('then' steps+=SuccessionStep)+ ';';
 
 SuccessionStep:
-    ref=SuccessionRef;
+    ref=SuccessionRef ('if' guard=OrExpr)?;
 
 SuccessionRef returns string:
     'start' | 'done' | ID;

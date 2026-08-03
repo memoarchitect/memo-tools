@@ -22,17 +22,8 @@ const ONTOLOGY_ROOT = resolve(CONTENT_ROOT, 'src');
 // conformed to MEMO's own authoring rules.
 const VENDOR_SKIP_DIRS = new Set(['examples', 'packages']);
 
-// `reference/` holds acceptance fixtures, not MEMO-authored model content.
-//
-// A fixture is there precisely *because* the internal grammar cannot read it
-// yet, and its filename is the upstream one, kept verbatim so the file can be
-// traced back to its source. Both facts are deliberate, so neither the
-// parse-clean expectation nor MEMO's own authoring conventions (ADR-1-12
-// naming) apply — they are rules about content this project authors.
-//
-// This is an exclusion from the *conventions*, not from scrutiny: the tripwire
-// at the bottom of this file asserts each fixture still fails to parse, so the
-// day the grammar gap closes, the suite says so instead of going quiet.
+// `reference/` holds externally named acceptance fixtures rather than
+// MEMO-authored model content, so it stays outside authoring-convention scans.
 const ACCEPTANCE_FIXTURE_DIRS = new Set(['reference']);
 
 function pathSegments(dir: string, file: string): string[] {
@@ -533,14 +524,7 @@ describe('DD-6: naming + casing lint (ADR-1-12)', () => {
 
 // ─── Acceptance fixtures the internal grammar cannot read yet ────────────────
 //
-// These are excluded from the conformance walk above, and this is the price of
-// that exclusion: an expectation that says out loud what is still missing, and
-// that fails the moment it stops being true.
-//
-// The failure message is the whole point. When the grammar gap closes, this
-// test goes red with instructions rather than the fixture quietly passing
-// through a suite that had stopped looking at it.
-describe('acceptance fixtures are tracked, not forgotten', () => {
+describe('acceptance fixtures are parsed explicitly', () => {
     const fixtures = collectAcceptanceFixtures(EXAMPLES_ROOT);
 
     it('there are fixtures to track', () => {
@@ -549,15 +533,10 @@ describe('acceptance fixtures are tracked, not forgotten', () => {
 
     for (const file of fixtures) {
         const rel = relative(CONTENT_ROOT, file);
-        it(`${rel} — still exceeds the internal grammar`, async () => {
+        it(`${rel} — zero parse errors`, async () => {
             const doc = await parse(readFileSync(file, 'utf-8'));
             const errors = [...doc.parseResult.lexerErrors, ...doc.parseResult.parserErrors];
-            expect(
-                errors.length,
-                `${rel} now parses cleanly. The internal grammar has caught up with it, so it is `
-                + 'no longer a fixture waiting on the parser: promote it into the sample project\'s '
-                + 'model/ directory under a snake_case name, and delete this expectation.',
-            ).toBeGreaterThan(0);
+            expect(errors, `${rel} parser errors: ${errors.map((error: any) => error.message).join('; ')}`).toEqual([]);
         });
     }
 });
