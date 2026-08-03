@@ -1663,22 +1663,13 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         ws.send(JSON.stringify({ type: 'llm:settings:save:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'llm:generate') {
-                    // Generate SysML v2 from natural language (#54)
+                    // Argument marshalling only: memo-tools owns generation,
+                    // validation, repair, and normalized diagnostics.
                     const { requestId, description } = msg.payload ?? {};
                     try {
-                        const { resolveLLMConfig, createProvider, generateSysml, findConfigFile } = await import('@memoarchitect/tools');
-                        const { loadAndResolveConfig } = await import('./config-resolver.js');
-
-                        const llmConfig = resolveLLMConfig();
-                        if (!llmConfig) {
-                            ws.send(JSON.stringify({ type: 'llm:generate:result', payload: { requestId, error: 'No LLM provider configured.' } }));
-                        } else {
-                            const configPath = findConfigFile(options.projectRoot);
-                            const config = configPath ? await loadAndResolveConfig(configPath) : {} as any;
-                            const provider = createProvider(llmConfig);
-                            const result = await generateSysml(description, config, provider);
-                            ws.send(JSON.stringify({ type: 'llm:generate:result', payload: { requestId, sysml: result.sysml, explanation: result.explanation, suggestedFile: result.suggestedFile } }));
-                        }
+                        const { generateValidatedSysml } = await import('../operations/ai-authoring.js');
+                        const result = await generateValidatedSysml({ projectRoot: options.projectRoot, description });
+                        ws.send(JSON.stringify({ type: 'llm:generate:result', payload: { requestId, ...result } }));
                     } catch (e: any) {
                         console.error('[LLM] generate failed:', e);
                         ws.send(JSON.stringify({ type: 'llm:generate:result', payload: { requestId, error: e?.message ?? String(e) } }));

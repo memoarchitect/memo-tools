@@ -8,6 +8,7 @@
 import type { OntologyView } from '../model/kind-registry.js';
 import type { LLMProvider, ChatMessage } from './llm-provider.js';
 import { serializeOntologyContext } from './model-context.js';
+import { sysmlMemoGuidancePrompt } from './sysml-guidance.js';
 
 /** Result of SysML generation */
 export interface GenerateResult {
@@ -26,7 +27,7 @@ export interface GenerateResult {
 
 const SYSTEM_PROMPT = `You are MEMO SysML Generator, an expert in SysML v2 syntax and medical device architecture modeling (ISO 14971, IEC 62304).
 
-You generate valid SysML v2 definitions based on natural language descriptions. The output must be syntactically correct SysML v2 that can be parsed by the MEMO tool.
+You generate a best-effort SysML v2 draft based on natural language descriptions. The server validates it and may ask you to repair it; do not claim it is valid before that validation happens.
 
 SysML v2 syntax reference:
 - Package: \`package MyPackage { ... }\`
@@ -61,7 +62,9 @@ IMPORTANT: Output ONLY the SysML code block and a brief explanation. Format your
 
 **Explanation:** Brief description of what was generated.
 
-**Suggested file:** filename.sysml`;
+**Suggested file:** filename.sysml
+
+${sysmlMemoGuidancePrompt()}`;
 
 /**
  * Generate SysML v2 code from a natural language description.
@@ -94,6 +97,28 @@ export async function generateSysml(
         ...parsed,
         usage: result.usage,
     };
+}
+
+/** Ask for one corrected candidate using normalized, structured diagnostics. */
+export async function repairSysml(
+    description: string,
+    candidate: string,
+    diagnostics: readonly unknown[],
+    ontology: { kinds: Record<string, any>; relationshipTypes: any[] },
+    provider: LLMProvider,
+): Promise<GenerateResult> {
+    const result = await provider.complete({
+        messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            {
+                role: 'user',
+                content: `Repair this SysML draft for: ${description}\n\nCurrent draft:\n\`\`\`sysml\n${candidate}\n\`\`\`\n\nStructured diagnostics:\n${JSON.stringify(diagnostics, null, 2)}\n\n${serializeOntologyContext(ontology)}`,
+            },
+        ],
+        temperature: 0.1,
+        maxTokens: 4096,
+    });
+    return { ...parseGenerateResponse(result.content), usage: result.usage };
 }
 
 /** Parse the LLM response into structured output */

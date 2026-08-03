@@ -771,7 +771,22 @@ export interface LlmGenerateMessage {
 /** Server → Client: generated SysML v2 code */
 export interface LlmGenerateResultMessage {
     type: 'llm:generate:result';
-    payload: { requestId: string; sysml?: string; explanation?: string; suggestedFile?: string; error?: string };
+    payload: {
+        requestId: string;
+        sysml?: string;
+        /** Original draft; used by the client to make the repair diff visible. */
+        initialSysml?: string;
+        explanation?: string;
+        suggestedFile?: string;
+        attempts?: number;
+        diagnostics?: import('../toolchain/diagnostic.js').Diagnostic[];
+        changeRecord?: {
+            guidanceVersion: string;
+            compiler: { id: string; version?: string };
+            libraries: Record<string, string>;
+        };
+        error?: string;
+    };
 }
 
 /** Client → Server: draft one or all sections of a DHF document type */

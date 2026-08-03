@@ -10,4 +10,5 @@ export * from './model-context.js';
 export * from './ask-engine.js';
 export * from './chat-engine.js';
 export * from './generate-engine.js';
+export * from './sysml-guidance.js';
 export * from './draft-engine.js';

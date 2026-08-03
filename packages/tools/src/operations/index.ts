@@ -5,3 +5,4 @@ export { saveElementToFile as createElement } from '../server/persistor.js';
 export { compileMarkdownDocument as generateDocument } from '../dhf/document-compiler.js';
 export { buildProjectSnapshot, serializeForInlineScript } from './project-snapshot.js';
 export { devCommand as startProjectServer } from '../commands/dev.js';
+export { generateValidatedSysml, validateGeneratedSysml, MAX_SYSML_GENERATION_ATTEMPTS } from './ai-authoring.js';
