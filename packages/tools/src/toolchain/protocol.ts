@@ -21,6 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MemoModelDTO, ParseError } from '../model/semantic.js';
+import type { SysmlIR } from '@memoarchitect/sysml-ir';
 
 /**
  * Protocol version, `major.minor.patch`.
@@ -39,7 +40,7 @@ export const SYSMLC_PROTOCOL_VERSION = '1.1.0';
  * delivers it. Two numbers, so that change costs one bump rather than a
  * protocol break.
  */
-export const SYSMLC_IR_VERSION = '1.0.0';
+export const SYSMLC_IR_VERSION = '2.0.0';
 
 /** The one custom request. Everything else on the wire is standard LSP. */
 export const EMIT_IR_REQUEST = 'memo/emitIr';
@@ -105,6 +106,8 @@ export interface MemoIr {
     parseErrors: ParseError[];
     /** True when lowering read the revision with no parse failures. */
     accepted: boolean;
+    /** Canonical AST-level IR. `model` is its Memo projection for compatibility. */
+    sysml: SysmlIR;
 }
 
 export interface EmitIrResult {

@@ -259,6 +259,8 @@ export interface MemoModelDTO {
     sourceGraph?: SourceGraphDTO;
     /** Content hashes used as per-file web mutation preconditions. */
     sourceHashes?: Record<string, string>;
+    /** Canonical SysML ingestion records; Memo elements are their projection. */
+    sysmlIr?: import('@memoarchitect/sysml-ir').SysmlIR;
 }
 
 /** Convert MemoModel to a plain JSON-serializable object */
@@ -289,6 +291,7 @@ export function modelToDTO(
         revision: options?.revision,
         sourceGraph: options?.sourceGraph,
         sourceHashes: options?.sourceHashes,
+        sysmlIr: undefined,
     };
 }
 

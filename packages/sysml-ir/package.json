@@ -1,0 +1,9 @@
+{
+  "name": "@memoarchitect/sysml-ir",
+  "version": "0.6.7",
+  "private": true,
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": { "generate": "node ../../scripts/generate-sysml-ir.mjs", "build": "tsc -p tsconfig.json", "test": "node ../../scripts/generate-sysml-ir.mjs --check" }
+}

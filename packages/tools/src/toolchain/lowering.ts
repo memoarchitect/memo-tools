@@ -19,6 +19,7 @@ import { findConfigFile, loadProjectSettings } from '../model/config-loader.js';
 import { loadOntologyRegistries } from '../model/ontology-loader.js';
 import { parseFiles } from '../model/parser-utils.js';
 import { modelToDTO, type ParseError } from '../model/semantic.js';
+import { lowerAstToSysmlIr, projectSysmlIrToMemo } from '../model/sysml-ir.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import type { MEMOConfig } from '../model/config.js';
@@ -99,12 +100,15 @@ export async function lowerProject(
     // agree because they resolve the same project.
     const registries = options.registries ?? await loadBuilderRegistries(root);
     const { documents, errors } = await parseFiles(resolveSources(root, options.files), `${root}/`);
-    const model = buildMemoModel(documents, config, errors, registries);
+    const built = buildMemoModel(documents, config, errors, registries);
+    const sysml = lowerAstToSysmlIr(documents, modelToDTO(built), root);
+    const model = projectSysmlIrToMemo(sysml, modelToDTO(built));
     return {
         irVersion: SYSMLC_IR_VERSION,
-        model: modelToDTO(model),
+        model,
         parseErrors: errors,
         accepted: errors.length === 0,
+        sysml,
     };
 }
 
