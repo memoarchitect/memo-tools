@@ -1,4 +1,4 @@
-// ─── The internal KPAR writer ────────────────────────────────────────────────
+// ─── The internal MEMO bundle writer ─────────────────────────────────────────
 //
 // Moved here from `commands/pack.ts` when packaging became a provider role.
 // It used to be the `else` branch of `if (packager === 'internal')`; it is now
@@ -62,14 +62,21 @@ function createTar(files: { path: string; content: Buffer }[]): Buffer {
     return Buffer.concat(blocks);
 }
 
-export async function writeInternalKpar(
+/**
+ * Write MEMO's private, gzip-tar project bundle.
+ *
+ * This deliberately is not called a KPAR.  A KPAR is an interoperable SysML
+ * package and must be produced/consumed by a real KPAR provider; this archive
+ * is only a convenient offline MEMO snapshot.
+ */
+export async function writeInternalMemoBundle(
     projectRoot: string,
     outputPath: string,
     projectName: string,
 ): Promise<void> {
     const files = collectProjectFiles(projectRoot, projectRoot);
     const manifest = {
-        format: 'kpar',
+        format: 'memo-bundle',
         version: '1.0.0',
         name: projectName,
         createdAt: new Date().toISOString(),

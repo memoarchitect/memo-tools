@@ -31,7 +31,7 @@ import type { MemoIr } from '../protocol.js';
 import type { ParseError } from '../../model/semantic.js';
 import { findBundledExecutable, probeVersion, resolveExecutable, whichExecutable } from '../process.js';
 import { getSysmlcClient } from '../sysmlc-client.js';
-import { writeInternalKpar } from './internal-kpar.js';
+import { writeInternalMemoBundle } from './internal-kpar.js';
 import type {
     Availability,
     LoweringDescriptor,
@@ -272,7 +272,7 @@ export const internalLoweringDescriptor: LoweringDescriptor = {
     },
 };
 
-/** Package role — the built-in gzip-tar KPAR writer. */
+/** Package role — the built-in gzip-tar MEMO bundle writer. */
 export const internalPackageDescriptor: PackageDescriptor = {
     id: INTERNAL_PROVIDER_ID,
     role: 'package',
@@ -288,7 +288,7 @@ export const internalPackageDescriptor: PackageDescriptor = {
             async run(): Promise<ProviderRunResult> {
                 const outputPath = context.outputPath;
                 if (!outputPath) throw new Error('Packaging requires an output path.');
-                await writeInternalKpar(
+                await writeInternalMemoBundle(
                     context.projectDir, outputPath, context.config.projectName || 'memo-project');
                 if (!existsSync(outputPath)) {
                     throw new Error(`${INTERNAL_PROVIDER_ID} completed but did not create ${outputPath}.`);

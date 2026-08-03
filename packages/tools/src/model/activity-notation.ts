@@ -204,6 +204,10 @@ export function activityNodeType(
     const tokens = [
         ...(fromControlKind ? [fromControlKind] : []),
         ...ontologyChain(element.kind, registries?.kinds),
+        // Native SysML nodes (AcceptActionUsage, DecisionNodeUsage, etc.) are
+        // already represented by their metaclass name in `kind`; do not rely
+        // on the generic `construct: action`, which would erase their symbol.
+        element.kind,
         element.construct,
     ];
 

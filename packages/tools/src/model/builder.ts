@@ -493,7 +493,7 @@ function extractFromPackage(
                 break;
             // ─── Definition members ─────────────────────────────────────
             case 'ActionDefinition':
-                extractActionDefinition(member as ActionDefinition, filePath, packageName, config, elements, registry);
+                extractActionDefinition(member as ActionDefinition, filePath, packageName, config, elements, deferredFlows, deferredSuccessions, registry, registries);
                 break;
             case 'ItemDefinition':
                 extractItemDefinition(member as ItemDefinition, filePath, packageName, config, elements, registry, registries);
@@ -619,7 +619,10 @@ function extractActionDefinition(
     packageName: string,
     config: MEMOConfig,
     elements: Map<string, MemoElement>,
-    registry: PackageRegistry
+    deferredFlows: DeferredFlow[],
+    deferredSuccessions: DeferredSuccession[],
+    registry: PackageRegistry,
+    registries?: BuilderRegistries,
 ): void {
     const id = actionDef.name;
 
@@ -656,6 +659,38 @@ function extractActionDefinition(
     };
 
     elements.set(id, element);
+    registry.registerElement(id, packageName);
+
+    // Standard SysML activity bodies may contain action/control usages directly
+    // (not wrapped in an ActionUsage). Preserve those declarations so a valid
+    // activity diagram cannot collapse to its enclosing action alone.
+    for (const member of bodyMembers) {
+        if (member.$type === 'ActionUsage') {
+            extractActionUsage(member as ActionUsage, filePath, packageName, config, elements, deferredFlows, deferredSuccessions, registry, registries, id);
+        } else if (member.$type === 'ControlNodeUsage') {
+            extractControlNode(member as ControlNodeUsage, filePath, packageName, elements, registry, id);
+        } else if (['AcceptActionUsage', 'SendActionUsage', 'DecisionNodeUsage', 'MergeNodeUsage', 'TerminateUsage'].includes(member.$type)) {
+            extractStandardActivityNode(member as any, filePath, packageName, elements, registry, id);
+        } else if (member.$type === 'SuccessionUsage') {
+            deferredSuccessions.push({ succession: member as SuccessionUsage, filePath, packageName, parentActionId: id });
+        }
+    }
+}
+
+function extractStandardActivityNode(node: { $type: string; name?: string; payloadName?: string; payloadType?: string }, filePath: string, packageName: string, elements: Map<string, MemoElement>, registry: PackageRegistry, parentActionId: string): void {
+    const typeToKind: Record<string, string> = {
+        AcceptActionUsage: 'AcceptActionUsage', SendActionUsage: 'SendActionUsage',
+        DecisionNodeUsage: 'DecisionNodeUsage', MergeNodeUsage: 'MergeNodeUsage', TerminateUsage: 'ActivityFinalNodeUsage',
+    };
+    const id = node.name ?? `${node.$type}-${elements.size}`;
+    const parameters: ActionParameter[] | undefined = node.$type === 'AcceptActionUsage' && node.payloadName
+        ? [{ name: node.payloadName, direction: 'out', type: node.payloadType ?? 'Item' }]
+        : undefined;
+    elements.set(id, {
+        id, name: node.name ?? node.$type, kind: typeToKind[node.$type] ?? node.$type,
+        construct: 'action', layer: 'behavior', file: filePath, package: packageName || undefined,
+        attributes: { ...(node.payloadName ? { payloadName: node.payloadName } : {}), ...(node.payloadType ? { payloadType: node.payloadType } : {}) }, parentAction: parentActionId, parameters,
+    });
     registry.registerElement(id, packageName);
 }
 
@@ -790,6 +825,9 @@ function extractActionUsage(
         attributes,
         doc,
         parentAction: parentActionId,
+        parameters: bodyMembers
+            .filter(member => member.$type === 'ActionParameterMember')
+            .map(member => ({ name: (member as ActionParameterMember).name, direction: (member as ActionParameterMember).direction as ActionParameter['direction'], type: (member as ActionParameterMember).type || 'Item' })),
     };
 
     elements.set(id, element);
@@ -850,7 +888,7 @@ function extractControlNode(
     const kind = node.controlKind === 'fork' ? 'ForkNode' : 'JoinNode';
     elements.set(id, {
         id,
-        name: node.controlKind,
+        name: node.name,
         kind,
         construct: 'action',
         layer: 'behavior',
@@ -987,11 +1025,13 @@ function resolveSuccession(
         const targetKnown = toRef === 'done' || allElementIds.has(targetId);
         if (!sourceKnown || !targetKnown) continue;
 
+        const guard = steps[i].guard as any;
+        const guardLabel = guard?.boolValue ?? guard?.text ?? guard?.value;
         const rel: MemoRelationship = {
             id: `rel-${++relationshipCounter}`,
             type: 'succession',
             sourceId,
-            sourceEnd: '',
+            sourceEnd: guardLabel === undefined ? '' : `[${guardLabel}]`,
             targetId,
             targetEnd: '',
             file: filePath,

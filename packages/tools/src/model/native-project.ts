@@ -223,6 +223,25 @@ export function discoverLibraryRoots(projectRoot: string): LibraryRoot[] {
         }
     }
 
+    // Imported KPARs are immutable, restart-scoped library roots.  Their cache
+    // is intentionally not part of the project source walk; only an explicit
+    // SysML import can select content from one of these roots.
+    const kparCache = join(resolve(projectRoot), '.memo', 'libraries', 'kpar', 'cache');
+    if (existsSync(kparCache)) {
+        try {
+            for (const entry of readdirSync(kparCache, { withFileTypes: true })) {
+                if (!entry.isDirectory()) continue;
+                const dir = join(kparCache, entry.name);
+                // KPARs that use a SysAnd descriptor instead of a MEMO package
+                // descriptor are still searchable at their extraction root.
+                const { path, manifest } = readPackageManifest(dir);
+                const sysmlDir = path && manifest.sysmlDir ? resolve(dir, manifest.sysmlDir) : dir;
+                if (!existsSync(sysmlDir)) continue;
+                roots.set(dir, { dir, sysmlDir, packageName: manifest.name ?? entry.name, packageVersion: manifest.version });
+            }
+        } catch { /* unavailable cache is simply an empty library source */ }
+    }
+
     let dir = resolve(projectRoot);
     while (true) {
         for (const container of ['node_modules/@memoarchitect', 'packages', 'memo_packages']) {

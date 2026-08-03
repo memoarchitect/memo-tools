@@ -613,16 +613,17 @@ describe('DD-3: kpar round-trip (GPCA pump)', () => {
 
     afterAll(() => {
         rmSync(extractDir, { recursive: true, force: true });
-        rmSync(join(GPCA_DIR, 'gpca-pump.kpar'), { force: true });
+        rmSync(join(GPCA_DIR, 'gpca-pump.memo-bundle'), { force: true });
     });
 
-    it('produces a .kpar file', () => {
-        expect(existsSync(join(GPCA_DIR, 'gpca-pump.kpar'))).toBe(true);
+    it('produces a private .memo-bundle file, never a KPAR', () => {
+        expect(existsSync(join(GPCA_DIR, 'gpca-pump.memo-bundle'))).toBe(true);
+        expect(existsSync(join(GPCA_DIR, 'gpca-pump.kpar'))).toBe(false);
     });
 
-    it('kpar extracts without errors', () => {
+    it('the MEMO bundle extracts without errors', () => {
         execSync(
-            `gunzip -c "${join(GPCA_DIR, 'gpca-pump.kpar')}" | tar xf -`,
+            `gunzip -c "${join(GPCA_DIR, 'gpca-pump.memo-bundle')}" | tar xf -`,
             { cwd: extractDir },
         );
         expect(existsSync(join(extractDir, 'manifest.json'))).toBe(true);

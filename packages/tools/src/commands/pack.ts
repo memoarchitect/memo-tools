@@ -14,7 +14,7 @@ export async function packCommand(
     const config = withToolchainOverrides(snapshot.config, options, defaultRegistry);
     const projectName = config.projectName || 'memo-project';
     const outputPath = resolve(snapshot.projectRoot, options.output
-        || `${projectName.replace(/[^a-zA-Z0-9_-]/g, '-')}.kpar`);
+        || `${projectName.replace(/[^a-zA-Z0-9_-]/g, '-')}.memo-bundle`);
 
     console.log(chalk.bold('\n📦 MEMO Pack\n'));
     console.log(chalk.gray(`  Project: ${projectName}`));

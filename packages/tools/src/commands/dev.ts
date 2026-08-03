@@ -145,7 +145,12 @@ export async function devCommand(options: {
         const loadResult = await loadOntologyRegistries(cwd);
         if (loadResult.fileCount > 0) {
             ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
-            ontologyRoots = loadResult.ontologyDirs;
+            // Include the resolved KPAR cache roots as restart-scoped library
+            // content. They must never be picked up by the project hot watcher.
+            ontologyRoots = [...new Set([
+                ...loadResult.ontologyDirs,
+                ...nativeResolution.selectedRoots.map(root => root.sysmlDir),
+            ])];
             provenance = loadResult.provenance;
             ontologyDocuments = loadResult.parsedDocuments;
             if (ontologyRegistries.kindRegistry) Object.freeze(ontologyRegistries.kindRegistry);

@@ -35,6 +35,7 @@ import {
 import { importCsvCommand, importRelCsvCommand, importTemplateCommand, importDiffCommand } from '../commands/import.js';
 import { importEaCommand, importCameoCommand } from '../commands/import-ea.js';
 import { importSysandCommand } from '../commands/import-sysand.js';
+import { importKpar, inspectKpar } from '../commands/package.js';
 import { importOwlCommand } from '../commands/import-owl.js';
 import { sysandPublishCommand } from '../commands/sysand-publish.js';
 import { lockCommand } from '../commands/lock.js';
@@ -181,6 +182,10 @@ program
     .description('List installed worked examples and the IDs accepted by memo init --example')
     .action(() => listExamplesCommand());
 
+const packageCmd = program.command('package').description('Inspect and import interoperable KPAR libraries');
+packageCmd.command('inspect').argument('<archive>').action((archive: string) => console.log(JSON.stringify(inspectKpar(archive), null, 2)));
+packageCmd.command('import').argument('<archive>').option('-C, --project <dir>', 'Project directory', '.').action((archive: string, options: { project: string }) => console.log(JSON.stringify(importKpar(options.project, archive), null, 2)));
+
 program
     .command('templates')
     .description('List installed project templates and the IDs accepted by memo init --template')
@@ -189,8 +194,8 @@ program
 withToolchainOptions(
     program
         .command('pack')
-        .description('Package the model as a Knowledge Package Archive (KPAR)')
-        .option('-o, --output <file>', 'Output .kpar path'),
+        .description('Package the model as a MEMO bundle (not an interoperable KPAR)')
+        .option('-o, --output <file>', 'Output .memo-bundle path'),
 ).action(async (options: Record<string, unknown>) => {
     await packCommand({ ...options, output: options.output as string | undefined });
 });

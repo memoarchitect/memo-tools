@@ -21,6 +21,9 @@ describe('canonical SysML IR', () => {
             const mapped = ir.sysml.elements.filter(element => element.kind === 'mapped');
             const generic = ir.sysml.elements.filter(element => element.kind === 'generic');
             expect(ir.sysml.elements).toHaveLength(mapped.length + generic.length);
+            // Conservation alone is insufficient: a broken projection that
+            // classified every declaration as generic would satisfy the count.
+            expect(mapped.length).toBeGreaterThan(0);
             expect(ir.sysml.diagnostics).toHaveLength(generic.length);
             for (const record of generic) {
                 expect(ir.sysml.diagnostics.some(diagnostic => diagnostic.elementId === record.identity.id && diagnostic.domain === 'memo-ingest')).toBe(true);
