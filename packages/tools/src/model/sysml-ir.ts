@@ -60,7 +60,12 @@ export function lowerAstToSysmlIr(documents: ParsedDocument[], model: MemoModelD
             }
         };
         for (const [index, member] of (document.document.parseResult.value.members ?? []).entries()) {
-            if (member.$type === 'PackageDeclaration') visitPackage(member, `members[${index}]`, '');
+            // The package's own name is where the qualified name starts. Passing
+            // '' here matched every element against `package === undefined`, so
+            // nothing inside a top-level package ever projected: conservation
+            // still held — every declaration was reported — but as a file full
+            // of unmapped generics rather than the elements MEMO does model.
+            if (member.$type === 'PackageDeclaration') visitPackage(member, `members[${index}]`, member.name);
             else {
                 // A top-level non-package declaration is rare but valid input;
                 // preserve it with the same guarantee.

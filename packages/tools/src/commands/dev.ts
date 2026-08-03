@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { IncrementalProjectParser, buildMemoModel, modelToDTO, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
+import { IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument, EffectiveRule } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
@@ -213,6 +213,10 @@ export async function devCommand(options: {
             }
             : undefined;
         const model = buildMemoModel(documents, config, errors, projectRegistries);
+        // Identities for the authoring write-back (§6.2). The surgical rebuild
+        // stays surgical — this lowers the documents it already parsed, and the
+        // provider-backed recompile happens on the write path, not here.
+        const irIdentities = irIdentityTable(lowerAstToSysmlIr(documents, modelToDTO(model), cwd));
         const nativeConstraints = collectNativeConstraints([...ontologyDocuments, ...documents]);
         const validation = validateModel(model, nativeConstraints, projectRegistries?.kindRegistry);
         const effectiveRuleSet = (() => {
@@ -314,6 +318,7 @@ export async function devCommand(options: {
             viewpoints, architectureLayers, diagrams, registries: registriesDTO,
             revision: buildCount,
             sourceGraph: sourceGraphToDTO(sourceGraph),
+            irIdentities,
             sourceHashes: Object.fromEntries(sysmlFiles.map(file => [
                 relative(cwd, file).replaceAll('\\', '/'),
                 createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),

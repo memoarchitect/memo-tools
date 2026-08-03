@@ -347,6 +347,17 @@ export interface ElementMutationResultMessage {
         currentSourceHash?: string;
         rejectedDraft?: unknown;
         error?: string;
+        /**
+         * The write was addressed to an IR identity the current revision does
+         * not have (§6.2). Reported separately from a source-hash conflict
+         * because the remedy is the same but the cause is not: the file may be
+         * untouched and the *address* out of date.
+         */
+        stale?: boolean;
+        /** IR identity of the written declaration, for the client's next edit. */
+        irIdentity?: string;
+        /** Advisory notes about a write that succeeded — see ElementWriteWarning. */
+        warnings?: Array<{ code: string; message: string }>;
     };
 }
 
@@ -354,6 +365,17 @@ export interface ElementMutationResultMessage {
 export interface EditConflictMessage {
     type: 'app:edit-conflict';
     payload: {
+        /**
+         * Why the edit was refused.
+         *
+         * `source-changed` — the file moved under the edit. `stale-identity` —
+         * the file may be untouched and the *address* out of date (§6.2). The
+         * remedy is the same reload, but telling the user the file changed when
+         * it did not is a false explanation, so the two are named apart.
+         */
+        reason?: 'source-changed' | 'stale-identity';
+        /** The server's own account of the refusal, when it has one. */
+        detail?: string;
         sourceFile: string;
         targetElementIds: string[];
         baseRevision: number | string;
@@ -429,8 +451,17 @@ export interface RelationshipCreateResultMessage {
     payload: {
         requestId: string;
         success: boolean;
-        /** Stable ID of the created connection usage */
+        /**
+         * Stable ID of the created connection usage.
+         *
+         * Absent when the relationship was written in a SysML production that
+         * takes no declared name — a succession or a flow. See `notation`.
+         */
         relationshipId?: string;
+        /** SysML production the relationship was written in. */
+        notation?: string;
+        /** The exact declaration text inserted. */
+        declaration?: string;
         /** Normalized camelCase relationship type */
         type?: string;
         sourceId?: string;

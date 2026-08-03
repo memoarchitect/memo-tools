@@ -7,6 +7,16 @@
 // Editing is CST-aware: the file is parsed, the edit is applied by source
 // offset so comments and unrelated declarations survive untouched, the result
 // is reparsed and validated, and only then does it atomically replace the file.
+//
+// Endpoints are addressed by **IR identity** when the caller quotes one (§6.2).
+// A relationship names two elements, so a request built against a stale
+// revision is a request to connect two things that may no longer be what the
+// client thought they were — it is refused, loudly, rather than written against
+// whatever now answers to those names.
+//
+// The notation is standard SysML, chosen in ./sysml-notation.ts: a succession
+// is written `succession first a if g then b;`, not encoded as a MEMO-flavoured
+// connection usage.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
@@ -20,6 +30,14 @@ import type {
     RelationshipDefinitionDTO,
 } from '../model/relationship-legality.js';
 import { parseText } from '../model/parser-utils.js';
+import {
+    StaleIrIdentityError,
+    type IrIdentityIndex,
+} from '../model/ir-identity.js';
+import {
+    notationFor, notationIsNameable, renderRelationship,
+    type RelationshipNotation,
+} from './sysml-notation.js';
 import {
     isConnectionUsage,
     isPackageDeclaration,
@@ -62,6 +80,14 @@ export interface RelationshipWriterOptions {
     presentationDirs?: string[];
     /** Filenames treated as a package's relationship collection. */
     relationshipFilePattern?: RegExp;
+    /**
+     * Identity index of the current revision.
+     *
+     * Present whenever a compiled revision exists. Absent only before the first
+     * successful lowering, and a request quoting an identity is then refused
+     * rather than written blind.
+     */
+    irIndex?: IrIdentityIndex;
 }
 
 /** Why a particular file was chosen, for logging and for the UI to show. */
@@ -85,12 +111,20 @@ export interface RelationshipWriteResult {
     success: boolean;
     /** Project-relative file actually written. */
     sourceFile?: string;
-    /** Stable ID (the connection usage name) of the created relationship. */
+    /**
+     * Stable ID (the connection usage name) of the created relationship.
+     *
+     * Absent for notations SysML does not name — see `notation`.
+     */
     relationshipId?: string;
+    /** SysML production the relationship was written in. */
+    notation?: RelationshipNotation;
     /** The exact declaration text inserted. */
     declaration?: string;
     placementReason?: PlacementReason;
     error?: string;
+    /** Set when the failure was a stale endpoint identity. */
+    stale?: boolean;
 }
 
 export interface RelationshipRemoveResult {
@@ -276,21 +310,22 @@ export function generateRelationshipId(
     return `${base}_${n}`;
 }
 
-/** Render the typed connection usage for a relationship. */
+/**
+ * Render a relationship as SysML source.
+ *
+ * The form comes from the language, not from this module — see
+ * `./sysml-notation.ts`. Kept as a named export because the shape "id,
+ * definition, endpoints" is what every caller has.
+ */
 export function generateRelationshipDeclaration(
     id: string,
     definition: RelationshipDefinitionDTO,
     sourceId: string,
     targetId: string,
     flowItem?: string,
+    guard?: string,
 ): string {
-    const head = `connection ${id} : ${definition.sysmlName} connect ` +
-        `${definition.sourceEnd.name} ::> ${sourceId} to ` +
-        `${definition.targetEnd.name} ::> ${targetId}`;
-    const item = flowItem?.trim();
-    return item
-        ? `${head} {\n        attribute transportedItem = ${JSON.stringify(item)};\n    }`
-        : `${head};`;
+    return renderRelationship({ id, definition, sourceId, targetId, flowItem, guard });
 }
 
 // ─── Create ─────────────────────────────────────────────────────────────────
@@ -308,12 +343,22 @@ export async function writeRelationship(
     model: Pick<MemoModelDTO, 'elements' | 'relationships'>,
     options: RelationshipWriterOptions,
 ): Promise<RelationshipWriteResult> {
+    // Endpoint identities first: a request built against a revision that has
+    // moved on must not be written at all, so this precedes every file decision.
+    try {
+        assertFreshEndpoints(request, options.irIndex);
+    } catch (e) {
+        if (e instanceof StaleIrIdentityError) return { success: false, stale: true, error: e.message };
+        throw e;
+    }
+
     const placement = resolveRelationshipPlacement(request, model, options);
     if (!isWritableRelationshipFile(placement.file, options)) {
         return { success: false, error: `No writable project file can own this relationship (${placement.file})` };
     }
 
     const absolutePath = resolve(options.projectRoot, placement.file);
+    const notation = notationFor(definition);
     const relationshipId = generateRelationshipId(
         definition.name,
         request.sourceId,
@@ -321,7 +366,7 @@ export async function writeRelationship(
         model.relationships.map(rel => rel.id),
     );
     const declaration = generateRelationshipDeclaration(
-        relationshipId, definition, request.sourceId, request.targetId, request.flowItem);
+        relationshipId, definition, request.sourceId, request.targetId, request.flowItem, request.guard);
 
     let updated: string;
     if (!existsSync(absolutePath)) {
@@ -341,7 +386,9 @@ export async function writeRelationship(
             error: `The updated source did not parse (${errors[0].message}); the file was left unchanged`,
         };
     }
-    const written = findConnectionUsage(document.parseResult.value as any, relationshipId);
+    const written = notationIsNameable(notation)
+        ? findConnectionUsage(document.parseResult.value as any, relationshipId) !== undefined
+        : containsDeclaration(document.parseResult.value as any, updated, declaration);
     if (!written) {
         return {
             success: false,
@@ -358,10 +405,50 @@ export async function writeRelationship(
     return {
         success: true,
         sourceFile: placement.file,
-        relationshipId,
+        // SysML's succession and flow productions take no declared name, so a
+        // relationship written in one is addressed by position. Reporting an ID
+        // it does not have would only make deletion fail later, further away.
+        ...(notationIsNameable(notation) ? { relationshipId } : {}),
+        notation,
         declaration,
         placementReason: placement.reason,
     };
+}
+
+/**
+ * Refuse a request whose endpoints were named against an older revision.
+ *
+ * Only quoted identities are checked. A caller that quotes none is asking for
+ * the by-name behaviour it always had, and gets it — the loud failure is for
+ * callers that *did* name a revision and named a stale one, which is the case
+ * where continuing would connect the wrong elements.
+ */
+function assertFreshEndpoints(
+    request: Pick<RelationshipCreateRequest, 'sourceId' | 'targetId' | 'sourceIdentity' | 'targetIdentity'>,
+    index: IrIdentityIndex | undefined,
+): void {
+    const ends: Array<['source' | 'target', string | undefined, string]> = [
+        ['source', request.sourceIdentity, request.sourceId],
+        ['target', request.targetIdentity, request.targetId],
+    ];
+    for (const [end, identityId, elementId] of ends) {
+        if (!identityId) continue;
+        if (!index) {
+            throw new StaleIrIdentityError(
+                identityId, 'no compiled revision is available to resolve the ' + end + ' endpoint against');
+        }
+        const record = index.byIdentity.get(identityId);
+        if (!record) {
+            throw new StaleIrIdentityError(identityId, `the ${end} endpoint is not in the current model revision`);
+        }
+        const named = record.memoElementId;
+        if (named !== elementId) {
+            throw new StaleIrIdentityError(
+                identityId,
+                `the ${end} endpoint now names ${named ? `"${named}"` : 'a declaration MEMO does not project'}, `
+                + `not "${elementId}"`);
+        }
+    }
 }
 
 /** Body of a freshly created relationship file. */
@@ -504,6 +591,29 @@ export async function removeRelationship(
 }
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Whether a parsed document contains exactly the declaration that was inserted.
+ *
+ * The confirmation for anonymous notations. A named connection can be looked up
+ * by name; a succession cannot, so the check is that some parsed node's own
+ * source range *is* the text that was inserted — which proves both that it
+ * survived the reparse and that the parser read it as one declaration rather
+ * than as a fragment of something larger.
+ */
+function containsDeclaration(model: { members?: any[] }, source: string, declaration: string): boolean {
+    const wanted = declaration.trim();
+    const stack: any[] = [...(model.members ?? [])];
+    while (stack.length > 0) {
+        const node = stack.pop();
+        if (!node || typeof node !== 'object') continue;
+        const cst = node.$cstNode;
+        if (cst && source.slice(cst.offset, cst.offset + cst.length).trim() === wanted) return true;
+        if (Array.isArray(node.members)) stack.push(...node.members);
+        if (Array.isArray(node.body)) stack.push(...node.body);
+    }
+    return false;
+}
 
 /** Depth-first search for a named connection usage anywhere in the document. */
 function findConnectionUsage(model: { members?: any[] }, name: string): ConnectionUsage | undefined {

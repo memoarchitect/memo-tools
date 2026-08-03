@@ -261,6 +261,14 @@ export interface MemoModelDTO {
     sourceHashes?: Record<string, string>;
     /** Canonical SysML ingestion records; Memo elements are their projection. */
     sysmlIr?: import('@memoarchitect/sysml-ir').SysmlIR;
+    /**
+     * Memo element ID → IR identity ID, for the revision this model is.
+     *
+     * The address an authoring write quotes (§6.2). Shipped instead of the
+     * whole IR because a surface that only needs to *name* an element does not
+     * need every declared property of every node.
+     */
+    irIdentities?: Record<string, string>;
 }
 
 /** Convert MemoModel to a plain JSON-serializable object */
@@ -274,6 +282,7 @@ export function modelToDTO(
         revision?: number;
         sourceGraph?: SourceGraphDTO;
         sourceHashes?: Record<string, string>;
+        irIdentities?: Record<string, string>;
     }
 ): MemoModelDTO {
     const elements: Record<string, MemoElement> = {};
@@ -292,6 +301,7 @@ export function modelToDTO(
         sourceGraph: options?.sourceGraph,
         sourceHashes: options?.sourceHashes,
         sysmlIr: undefined,
+        irIdentities: options?.irIdentities,
     };
 }
 

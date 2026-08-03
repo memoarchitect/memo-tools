@@ -120,6 +120,16 @@ export interface RelationshipCreateRequest {
     diagramId?: string;
     /** Optional item or information flow transported by the connector. */
     flowItem?: string;
+    /** Guard expression, for notations that take one (a guarded succession). */
+    guard?: string;
+    /**
+     * IR identity of the source element, from the revision the caller drew
+     * against. Checked before anything is written; a stale one is refused
+     * rather than resolved by name. See `model/ir-identity.ts`.
+     */
+    sourceIdentity?: string;
+    /** IR identity of the target element, checked the same way. */
+    targetIdentity?: string;
 }
 
 /** A request to delete one model relationship. */

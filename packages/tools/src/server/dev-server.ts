@@ -22,11 +22,14 @@ import type {
 } from '@memoarchitect/tools';
 import type { BuilderRegistries } from '@memoarchitect/tools';
 import { findMemoManifests, validateRelationshipMutation, validateRelationshipDeletion } from '@memoarchitect/tools';
+import { indexFromIdentityTable, type IrIdentityIndex } from '../model/ir-identity.js';
+import { recompileProject, writeElement, type AuthoringContext } from '../operations/authoring.js';
 import {
     isWritableRelationshipFile, removeRelationship, resolveRelationshipPlacement,
     writeRelationship, type RelationshipWriterOptions,
 } from './relationship-writer.js';
 import { removeElement } from './element-writer.js';
+import { assertSingleDomainMutation, MixedMutationDomainError } from './mutation-domain.js';
 import { classifyConflict } from './conflict-policy.js';
 import type { SemanticOrigin } from '../model/source-provenance.js';
 import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-policy-writer.js';
@@ -508,6 +511,55 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         (initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined)?.payload;
 
     /**
+     * Identities minted by the most recent authoring recompile.
+     *
+     * A write-back recompiles through the lowering provider and therefore knows
+     * the addresses its own edit produced before the file watcher has caught
+     * up. Holding them here is what lets a user make two edits in a row without
+     * the second one being addressed to a revision that no longer exists.
+     * Cleared by `broadcast`, because a published model supersedes it.
+     */
+    let writeBackIndex: IrIdentityIndex | undefined;
+
+    /** The index every write resolves its identities against. */
+    const irIndex = (): IrIdentityIndex =>
+        writeBackIndex ?? indexFromIdentityTable(currentModel()?.irIdentities);
+
+    /**
+     * Recompile after a semantic write, through the *selected* lowering
+     * provider (§6.2).
+     *
+     * Not a refresh optimisation: the watcher rebuild that follows is what
+     * publishes the new model. This exists so the identities handed back with
+     * the write are the ones the write created, rather than whatever the client
+     * happened to be holding. It costs a project lowering per authored change,
+     * which is the price of an address that is never a revision behind.
+     */
+    /** What every authoring operation is given: the project, its settings, and the index. */
+    async function authoringContext(): Promise<AuthoringContext> {
+        const { loadAndResolveConfig } = await import('./config-resolver.js');
+        const { findConfigFile } = await import('@memoarchitect/tools');
+        const configPath = findConfigFile(options.projectRoot);
+        return {
+            projectDir: options.projectRoot,
+            config: configPath ? loadAndResolveConfig(configPath) : undefined,
+            irIndex: irIndex(),
+        };
+    }
+
+    async function recompileAfterWrite(): Promise<void> {
+        try {
+            writeBackIndex = (await recompileProject(await authoringContext())).index;
+        } catch (e) {
+            // A recompile that fails leaves the previous index in place: the
+            // write itself already succeeded, and refusing to answer would be
+            // reporting a failure that did not happen. The next watcher rebuild
+            // republishes the identities either way.
+            console.warn(`[Authoring] Recompile after write failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+    }
+
+    /**
      * Build the query context the LLM engines read from, against whatever the
      * server currently holds. Every LLM handler needs the same four pieces, so
      * they share this rather than each re-deriving them.
@@ -563,7 +615,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             case 'create-element': {
                 const { ontology } = await llmQueryContext();
                 const kindDef = ontology.kinds[change.elementKind];
-                const result = saveElementToFile(options.projectRoot, {
+                const result = await saveElementToFile(options.projectRoot, {
                     id: change.elementId,
                     name: change.name,
                     kind: change.elementKind,
@@ -573,19 +625,21 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     attributes: change.attributes ?? {},
                 });
                 if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
+                await recompileAfterWrite();
                 return;
             }
 
             case 'update-element': {
                 const existing = currentModel()?.elements?.[change.elementId];
                 if (!existing) throw new Error(`Element "${change.elementId}" no longer exists.`);
-                const result = saveElementToFile(options.projectRoot, {
+                const result = await saveElementToFile(options.projectRoot, {
                     ...existing,
                     ...(change.changes.name !== undefined ? { name: change.changes.name } : {}),
                     ...(change.changes.doc !== undefined ? { doc: change.changes.doc } : {}),
                     attributes: { ...existing.attributes, ...(change.changes.attributes ?? {}) },
-                });
+                }, irIndex());
                 if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
+                await recompileAfterWrite();
                 return;
             }
 
@@ -641,6 +695,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             ontologyRoots: options.ontologyRoots,
             designatedFiles: options.relationshipFiles,
             canonicalFile: options.canonicalRelationshipFile,
+            irIndex: irIndex(),
         };
     }
 
@@ -701,11 +756,12 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             return reject(result.error ?? 'The relationship could not be written.', validation.diagnostics);
         }
 
-        console.log(`[Persisted] relationship ${result.relationshipId} (${validation.normalizedType}) ` +
-            `to ${result.sourceFile} [${result.placementReason}]`);
+        console.log(`[Persisted] relationship ${result.relationshipId ?? `(${result.notation})`} ` +
+            `(${validation.normalizedType}) to ${result.sourceFile} [${result.placementReason}]`);
         if (result.sourceFile) {
             recordWriteTransaction(result.sourceFile, readFileSync(resolve(options.projectRoot, result.sourceFile), 'utf8'));
         }
+        await recompileAfterWrite();
 
         // The file watcher rebuilds and broadcasts the canonical model; this
         // response only confirms the write and carries the IDs the client needs
@@ -716,6 +772,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                 requestId,
                 success: true,
                 relationshipId: result.relationshipId,
+                notation: result.notation,
+                declaration: result.declaration,
                 type: validation.normalizedType,
                 sourceId: payload.sourceId,
                 targetId: payload.targetId,
@@ -759,6 +817,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         if (result.sourceFile) {
             recordWriteTransaction(result.sourceFile, readFileSync(resolve(options.projectRoot, result.sourceFile), 'utf8'));
         }
+        await recompileAfterWrite();
         return {
             type: 'relationship:delete:result',
             payload: {
@@ -953,6 +1012,20 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     ws.send(JSON.stringify(mutationLockout));
                     return;
                 }
+                // One action writes one store (§6.2). A semantic mutation
+                // carrying canvas geometry is refused here rather than at the
+                // writer, so no handler has to remember the rule.
+                try {
+                    assertSingleDomainMutation(msg.type, msg.payload);
+                } catch (e) {
+                    if (!(e instanceof MixedMutationDomainError)) throw e;
+                    console.warn(`[Mutation] ${e.message}`);
+                    ws.send(JSON.stringify({
+                        type: 'app:error',
+                        payload: { requestId: msg.payload?.requestId, error: e.message },
+                    }));
+                    return;
+                }
                 if (msg.type === 'request:refresh') {
                     // A missed publication always falls back to one coherent
                     // snapshot, never a partial replay of old deltas.
@@ -960,8 +1033,6 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         ws.send(JSON.stringify(m));
                     }
                 } else if (msg.type === 'element:update' || msg.type === 'element:create') {
-                    // 1. Persist to FS
-                    const { saveElementToFile } = await import('./persistor.js');
                     const { projectRoot } = options;
                     const { requestId = '', id = '' } = msg.payload ?? {};
                     const reply = (payload: Record<string, unknown>) => ws.send(JSON.stringify({
@@ -1019,15 +1090,46 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             return;
                         }
                     }
-                    const result = saveElementToFile(projectRoot, msg.payload);
+                    // One operation: write the source, then recompile through
+                    // the selected lowering provider so the identity the client
+                    // edits next is the one this write produced. The file
+                    // watcher still publishes the model.
+                    const result = await writeElement(await authoringContext(), msg.payload);
                     let transactionId: string | undefined;
                     if (result.success) {
                         transactionId = recordWriteTransaction(
                             result.filePath, readFileSync(resolve(projectRoot, result.filePath), 'utf8'));
-                        // The file watcher will catch this change and broadcast to all clients
+                        if (result.revision) writeBackIndex = result.revision.index;
                         console.log(`[Persisted] ${msg.type} to ${result.filePath}`);
                     }
-                    reply({ success: result.success, sourceFile: result.filePath, transactionId, error: result.error });
+                    if (result.stale) {
+                        // The file may be byte-identical and the edit still
+                        // wrong, so this is announced as its own kind of
+                        // conflict rather than as "the file changed".
+                        broadcastEditConflict({
+                            reason: 'stale-identity',
+                            detail: result.error,
+                            sourceFile: result.filePath,
+                            targetElementIds: [id],
+                            baseRevision: precondition.baseRevision,
+                            currentRevision: workspaceRevision,
+                            expectedSourceHash: precondition.expectedSourceHash,
+                            currentSourceHash: precondition.expectedSourceHash,
+                            rejectedCommandId: requestId,
+                            rejectedDraft: msg.payload,
+                        });
+                    }
+                    reply({
+                        success: result.success,
+                        sourceFile: result.filePath,
+                        transactionId,
+                        error: result.error,
+                        // A stale address is a conflict, not a malformed request:
+                        // the client's answer to both is to reload and retry.
+                        ...(result.stale ? { conflict: true, stale: true, rejectedDraft: msg.payload } : {}),
+                        ...(result.warnings ? { warnings: result.warnings } : {}),
+                        ...(result.success ? { irIdentity: irIndex().byMemoElement[id] } : {}),
+                    });
                 } else if (msg.type === 'screen-capture:upload') {
                     const { requestId, viewName, fileName, base64, mediaType } = msg.payload ?? {};
                     const reply = (payload: Record<string, unknown>) => ws.send(JSON.stringify({
@@ -1127,10 +1229,12 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         for (const element of Object.values(elements) as any[]) {
                             const newKind = mappings[element.kind];
                             if (newKind) {
-                                const result = saveElementToFile(projectRoot, { ...element, kind: newKind });
+                                const result = await saveElementToFile(
+                                    projectRoot, { ...element, kind: newKind }, irIndex());
                                 if (result.success) remappedCount++;
                             }
                         }
+                        if (remappedCount > 0) await recompileAfterWrite();
                         console.log(`[Remap] Remapped ${remappedCount} elements across ${Object.keys(mappings).length} kind(s)`);
                         ws.send(JSON.stringify({ type: 'remap:result', payload: { success: true, count: remappedCount } }));
                     }
@@ -1859,6 +1963,9 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
             const baseRevision = workspaceRevision;
             workspaceRevision++;
             const publication = stampWorkspace(messages, baseRevision, false, changedSourceIds);
+            // A published model carries its own identities; the write-back's
+            // provisional index has been superseded.
+            writeBackIndex = undefined;
             initialMessages.length = 0;
             initialMessages.push(...publication);
 

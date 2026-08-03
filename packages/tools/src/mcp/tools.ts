@@ -217,7 +217,7 @@ define({
         },
         required: ['id', 'name', 'kind'],
     },
-}, (input, { ctx, ontology, projectRoot }) => {
+}, async (input, { ctx, ontology, projectRoot }) => {
     const id = String(input.id).trim();
     const kind = String(input.kind).trim();
     if (ctx.element(id)) throw new Error(`Element "${id}" already exists.`);
@@ -227,7 +227,7 @@ define({
         throw new Error(`"${kind}" is not a kind in this ontology. Valid kinds: ${Object.keys(kinds).join(', ')}`);
     }
 
-    const result = saveElementToFile(projectRoot, {
+    const result = await saveElementToFile(projectRoot, {
         id,
         name: String(input.name),
         kind,
