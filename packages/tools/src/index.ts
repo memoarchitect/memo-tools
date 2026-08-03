@@ -40,6 +40,7 @@ export * from './model/view-deriver.js';
 export * from './model/view-kinds.js';
 export * from './model/relationship-registry.js';
 export * from './model/relationship-legality.js';
+export * from './model/activity-notation.js';
 export * from './model/ontology-loader.js';
 export * from './model/manifest.js';
 export * from './model/content-store.js';

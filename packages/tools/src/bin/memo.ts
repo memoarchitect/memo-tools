@@ -52,9 +52,23 @@ import { checkCommand } from '../commands/check.js';
 import { roundTripCommand } from '../commands/roundtrip.js';
 import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
+import {
+    elementIdentitiesCommand,
+    elementWriteCommand,
+    type ElementIdentitiesOptions,
+    type ElementWriteOptions,
+} from '../commands/element.js';
 import { convertCommand } from '../commands/convert.js';
 import { configEffectiveCommand, toolchainProbeCommand } from '../commands/toolchain.js';
-import { conformanceDiffXmiCommand, conformanceRunCommand, type ConformanceCliOptions } from '../commands/conformance.js';
+import {
+    conformanceBnfCommand,
+    conformanceDiffXmiCommand,
+    conformanceRulesCommand,
+    conformanceRunCommand,
+    type BnfCliOptions,
+    type RulesCliOptions,
+    type ConformanceCliOptions,
+} from '../commands/conformance.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 
@@ -94,6 +108,48 @@ program
     .action(async (id: string, options: { provenance?: boolean; dir?: string }) => {
         await inspectCommand(id, options);
     });
+
+// ─── memo element ───────────────────────────────────────────────────────────
+//
+// The CLI surface for authoring write-back, so the operation Architect calls is
+// scriptable too (§1.2.2 rule 2). Same implementation, same lowering provider.
+
+const elementCmd = program
+    .command('element')
+    .description('Author project source through the toolchain');
+
+withToolchainOptions(
+    elementCmd
+        .command('identities')
+        .description('Print the IR identity to quote when writing to each element')
+        .argument('[dir]', 'Project directory', '.')
+        .option('--id <id>', 'Restrict output to one element')
+        .option('--format <format>', 'Output format: text, json', 'text'),
+).action(async (dir: string, opts: Record<string, unknown>) => {
+    await elementIdentitiesCommand(dir, opts as ElementIdentitiesOptions);
+});
+
+withToolchainOptions(
+    elementCmd
+        .command('write')
+        .description('Write one element back to source and recompile')
+        .argument('[dir]', 'Project directory', '.')
+        .option('--id <id>', 'Element ID to create or update')
+        .option('--name <name>', 'Display name')
+        .option('--kind <kind>', 'Ontology kind')
+        .option('--construct <construct>', 'SysML construct, e.g. part, action, requirement')
+        .option('--layer <layer>', 'MEMO layer')
+        .option('--doc <text>', 'Documentation body')
+        .option('--attribute <key=value...>', 'Attribute assignment, repeatable')
+        .option('--file <path>', 'Project-relative source file to write into')
+        .option('--ir-identity <identity>', 'IR identity of the declaration being updated')
+        .option('--renamed-from <id>', 'Previous element ID, when this write renames the declaration')
+        .option('--by-id', 'Resolve the identity from --id instead of quoting one (cannot detect a stale view)')
+        .option('--request <file>', 'JSON file holding the whole write request')
+        .option('--format <format>', 'Output format: text, json', 'text'),
+).action(async (dir: string, opts: Record<string, unknown>) => {
+    await elementWriteCommand(dir, opts as ElementWriteOptions);
+});
 
 program
     .command('init')
@@ -197,6 +253,32 @@ withToolchainOptions(
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     await conformanceDiffXmiCommand(dir, opts as ConformanceCliOptions);
 });
+
+conformanceCmd
+    .command('bnf')
+    .description("Score the grammar's rule coverage against the normative textual BNF")
+    .argument('[dir]', 'Unused; accepted so every conformance subcommand takes the same shape', '.')
+    .option('--corpus <dir>', 'Corpus directory (defaults to the vendored one)')
+    .option('--grammar <file>', "Grammar to score (defaults to MEMO's)")
+    .option('--missing', 'List the syntactic productions with no rule')
+    .option('--format <format>', 'Output format: text, json', 'text')
+    .option('-o, --output <file>', 'Write the report to a file instead of stdout')
+    .option('--baseline [file]', 'Compare against a frozen baseline and fail on any change')
+    .option('--update-baseline', 'Re-freeze the baseline from this run')
+    .action(async (dir: string, opts: Record<string, unknown>) => {
+        await conformanceBnfCommand(dir, opts as BnfCliOptions);
+    });
+
+conformanceCmd
+    .command('rules')
+    .description("Score MEMO's well-formedness constraints against Syside's published rule codes")
+    .argument('[dir]', 'Unused; accepted so every conformance subcommand takes the same shape', '.')
+    .option('--missing', 'List the codes with no implementation, and why')
+    .option('--format <format>', 'Output format: text, json', 'text')
+    .option('-o, --output <file>', 'Write the report to a file instead of stdout')
+    .action(async (dir: string, opts: Record<string, unknown>) => {
+        await conformanceRulesCommand(dir, opts as RulesCliOptions);
+    });
 
 // ─── memo config ────────────────────────────────────────────────────────────
 

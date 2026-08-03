@@ -47,6 +47,7 @@
     "check:baselines": "node scripts/verify-baseline.mjs",
     "check:corpus": "node scripts/convert-corpus.mjs",
     "check:conformance": "node scripts/check-conformance.mjs",
+    "check:metamodel": "node scripts/generate-sysml-ir.mjs --check",
     "corpus:vendor": "node scripts/vendor-corpus.mjs",
     "corpus:verify": "node scripts/vendor-corpus.mjs --verify",
     "check:transport": "node scripts/measure-transport-latency.mjs"

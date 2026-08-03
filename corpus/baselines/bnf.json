@@ -1,0 +1,3993 @@
+{
+  "reportVersion": "1.0.0",
+  "memoVersion": "0.6.7",
+  "corpus": {
+    "repository": "https://github.com/Systems-Modeling/SysML-v2-Release",
+    "commit": "de1070ae8e79c21532b8004fc663d47b35d0e9fa",
+    "commitDate": "2026-07-22T13:51:53-04:00",
+    "digest": "235552e1d5ecfffcd69f7dd48d74c41d58751249d9d3aa4d1fdac509ab4aaeaa",
+    "libraryVersions": {
+      "Kernel_Data_Type_Library": "1.1.0-dev.20260501",
+      "Kernel_Function_Library": "1.1.0-dev.20260501",
+      "Kernel_Semantic_Library": "1.1.0-dev.20260501",
+      "SysML_Analysis_Library": "2.1.0-dev.20260501",
+      "SysML_Cause_and_Effect_Library": "2.1.0-dev.20260501",
+      "SysML_Geometry_Library": "2.1.0-dev.20260501",
+      "SysML_Metadata_Library": "2.1.0-dev.20260501",
+      "SysML_Quantities_and_Units_Library": "2.1.0-dev.20260501",
+      "SysML_Requirement_Derivation_Library": "2.1.0-dev.20260501",
+      "SysML_Systems_Library": "2.1.0-dev.20260501"
+    }
+  },
+  "grammar": {
+    "path": "../../packages/tools/src/grammar/memo-sysml.langium",
+    "parserRules": 92,
+    "terminals": 9
+  },
+  "totals": {
+    "syntactic": {
+      "total": 526,
+      "covered": 34
+    },
+    "lexical": {
+      "total": 24,
+      "covered": 1
+    },
+    "nonNormativeRules": 66
+  },
+  "productions": [
+    {
+      "name": "ALPHABETIC_CHARACTER",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 70,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "AcceptNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1006,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AcceptNodeDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1010,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AcceptParameterPart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1014,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionBehaviorMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 923,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 902,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 905,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionBodyParameter",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1140,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionBodyParameterMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1137,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 898,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ActionDefinition"
+    },
+    {
+      "name": "ActionNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 958,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionNodeMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 930,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionNodePrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 968,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionNodeUsageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 965,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionTargetSuccession",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1169,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionTargetSuccessionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 933,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 941,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ActionUsage"
+    },
+    {
+      "name": "ActionUsageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 945,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActorMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1452,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ActorUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1455,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AliasMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 278,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AllocationDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 792,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AllocationUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 795,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AllocationUsageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 799,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AnalysisCaseDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1533,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AnalysisCaseUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1537,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AnnotatingElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 188,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AnnotatingMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 71,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Annotation",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 182,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Argument",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1006,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ArgumentExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1015,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ArgumentExpressionMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1012,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ArgumentExpressionValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1018,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ArgumentList",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1232,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ArgumentMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1003,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ArgumentValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1009,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AssertConstraintUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1390,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AssignmentNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1092,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AssignmentNodeDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1096,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AssignmentTargetBinding",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1108,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AssignmentTargetMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1102,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AssignmentTargetParameter",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1105,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Association",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 777,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AssociationStructure",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 781,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "AttributeDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 514,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "AttributeDefinition"
+    },
+    {
+      "name": "AttributeUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 517,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BASIC_INITIAL_CHARACTER",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 64,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "BASIC_NAME",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 53,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "BASIC_NAME_CHARACTER",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 67,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "BaseExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1182,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BasicDefinitionPrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 223,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BasicFeaturePrefix",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 577,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BasicUsagePrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 285,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Behavior",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 857,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BehaviorUsageElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 378,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BehaviorUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 270,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BinaryConnectorDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 799,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BinaryConnectorPart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 681,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BinaryInterfacePart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 773,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BinaryOperator",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 964,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BinaryOperatorExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 958,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BindingConnector",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 827,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BindingConnectorAsUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 706,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BindingConnectorDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 831,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BodyArgument",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1145,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BodyArgumentMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1142,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BodyArgumentValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1148,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BodyExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1253,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BooleanExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 908,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "BooleanValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1274,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "BooleanValue"
+    },
+    {
+      "name": "BracketExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1099,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "COMMENT_LINE_TEXT",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 44,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "COMMENT_TEXT",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 41,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "CalculationBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1363,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CalculationBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1370,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CalculationBodyPart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1366,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CalculationDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1355,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CalculationUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1359,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CaseBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1511,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CaseBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1517,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CaseDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1503,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CaseUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1507,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CastOperator",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 991,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ChainingPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 620,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Class",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 765,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ClassificationExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 979,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ClassificationTestOperator",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 988,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Classifier",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 533,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ClassifierDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 537,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "CollectExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1126,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Comment",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 199,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConcernDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1493,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConcernUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1497,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConditionalBinaryOperator",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 955,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConditionalBinaryOperatorExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 949,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConditionalExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 942,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConjugatedPortDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 643,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConjugatedPortDefinitionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 640,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConjugatedPortTyping",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 652,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Conjugation",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 463,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConjugationPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 406,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConnectionDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 668,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ConnectionDefinition"
+    },
+    {
+      "name": "ConnectionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 671,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ConnectionUsage"
+    },
+    {
+      "name": "Connector",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 789,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConnectorDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 796,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConnectorEnd",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 814,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConnectorEndMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 811,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConnectorPart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 678,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConstraintDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1382,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ConstraintDefinition"
+    },
+    {
+      "name": "ConstraintUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1386,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConstraintUsageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1397,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConstructorExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1215,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConstructorResult",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1222,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ConstructorResultMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1219,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ControlNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 973,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ControlNodePrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 976,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Crosses",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 660,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DECIMAL_DIGIT",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 75,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "DECIMAL_VALUE",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 91,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "DataType",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 759,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DecisionNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 989,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefaultInterfaceEnd",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 756,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefaultReferenceUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 336,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefaultTargetSuccession",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1181,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Definition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 232,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefinitionBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 238,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefinitionBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 241,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefinitionDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 235,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefinitionElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 184,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefinitionExtensionKeyword",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 226,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DefinitionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 250,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "DefinitionMember"
+    },
+    {
+      "name": "DefinitionPrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 229,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Dependency",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 168,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DependencyDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 56,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Differencing",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 513,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DifferencingPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 427,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Disjoining",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 484,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DisjoiningPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 415,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "DoActionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1219,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Documentation",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 208,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ESCAPE_SEQUENCE",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 81,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "EXPONENTIAL_VALUE",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 94,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "EffectBehaviorMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1318,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EffectBehaviorUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1321,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ElementFilterMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1461,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ElementReferenceMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1207,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EmptyActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1240,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EmptyEndMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1347,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EmptyFeature",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1058,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EmptyMultiplicity",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 563,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EmptyMultiplicityMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 560,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EmptyParameterMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1081,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EmptyResultMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1055,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EmptyUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1084,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EndFeaturePrefix",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 573,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EndUsagePrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 289,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EntryActionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1215,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EntryTransitionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1227,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EnumeratedValue",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 535,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EnumerationBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 526,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EnumerationDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 522,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EnumerationUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 538,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EnumerationUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 532,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "EventOccurrenceUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 592,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ExhibitStateUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1272,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ExitActionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1223,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Expose",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1624,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Expression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 895,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ExpressionBody",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1259,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ExpressionBodyMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1256,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ExpressionParameterMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1134,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ExtendedDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1699,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ExtendedUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1703,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ExtentExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1039,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Feature",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 562,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureBinding",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1078,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureChain",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 716,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureChainExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1122,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureChainMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1169,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureChainPrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 876,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 601,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureDirection",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 598,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 360,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureIdentification",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 610,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureInverting",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 725,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 519,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeaturePrefix",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 584,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureReference",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1201,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "FeatureReference"
+    },
+    {
+      "name": "FeatureReferenceExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1194,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureReferenceMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1198,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureRelationshipPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 614,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureSpecialization",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 642,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureSpecializationPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 632,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureTyping",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 674,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FeatureValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1362,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FilterPackage",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 317,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FilterPackageImport",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 172,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FilterPackageMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 321,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Flow",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1303,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1311,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 806,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowEnd",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1339,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "FlowEnd"
+    },
+    {
+      "name": "FlowEndMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1336,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowEndSubsetting",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 871,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowFeature",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1346,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1343,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowFeatureRedefinition",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1351,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowPayloadFeature",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 848,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowPayloadFeatureMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 845,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FlowUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 829,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ForLoopNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1155,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ForVariableDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1164,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ForVariableDeclarationMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1161,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ForkNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 999,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FramedConcernMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1441,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FramedConcernUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1445,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Function",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 872,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionBody",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 876,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionBodyPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 879,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionOperationExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1134,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionReference",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1166,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionReferenceArgument",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1154,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionReferenceArgumentMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1151,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionReferenceArgumentValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1157,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionReferenceExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1160,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "FunctionReferenceMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1163,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "GeneralType",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 456,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "GuardExpressionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1315,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "GuardedSuccession",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1184,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "GuardedSuccessionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 936,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "GuardedTargetSuccession",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1177,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Identification",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 152,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "IfNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1127,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "IfNodeParameterMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1144,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Import",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 297,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ImportDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 302,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ImportDeclaration"
+    },
+    {
+      "name": "IncludeUseCaseUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1572,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "IndexExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1104,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "IndividualDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 555,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "IndividualUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 579,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InitialNodeMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 926,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InstantiatedTypeMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1225,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InstantiatedTypeReference",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1229,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Interaction",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1297,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 728,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 731,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 724,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "InterfaceDefinition"
+    },
+    {
+      "name": "InterfaceEnd",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 785,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceEndMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 782,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceNonOccurrenceUsageElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 743,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceNonOccurrenceUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 740,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceOccurrenceUsageElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 753,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceOccurrenceUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 750,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfacePart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 770,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InterfaceUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 761,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "InterfaceUsage"
+    },
+    {
+      "name": "InterfaceUsageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 765,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Intersecting",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 509,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "IntersectingPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 423,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Invariant",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 913,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InvertingPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 625,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "InvocationExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1210,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ItemDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 615,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ItemDefinition"
+    },
+    {
+      "name": "ItemUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 619,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ItemUsage"
+    },
+    {
+      "name": "JoinNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 994,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "LINE_TERMINATOR",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 13,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "LINE_TEXT",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 17,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "LibraryPackage",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1446,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "LiteralBoolean",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1271,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "LiteralExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1264,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "LiteralInfinity",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1290,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "LiteralInteger",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1280,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "LiteralReal",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1283,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "LiteralString",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1277,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MULTILINE_NOTE",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 35,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "MemberElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 329,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MemberPrefix",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 260,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MembershipExpose",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1628,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MembershipImport",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 305,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MergeNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 984,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Message",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 809,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MessageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 814,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MessageEvent",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 826,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MessageEventMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 823,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetaCastOperator",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1036,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Metaclass",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1397,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetaclassificationExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 994,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetaclassificationTestOperator",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1033,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataAccessExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1204,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataArgument",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1024,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataArgumentMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1021,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataBody",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1423,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataBodyElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1426,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataBodyFeature",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1435,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataBodyFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1432,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataBodyUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1694,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataBodyUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1691,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1656,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "MetadataDefinition"
+    },
+    {
+      "name": "MetadataFeature",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1410,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataFeatureDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1419,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataReference",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1030,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1670,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataUsageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1678,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MetadataValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1027,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Multiplicity",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1371,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "Multiplicity"
+    },
+    {
+      "name": "MultiplicityBounds",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1388,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MultiplicityExpressionMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1392,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MultiplicityPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 636,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MultiplicityRange",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1378,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "MultiplicitySubset",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1374,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NAME",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 50,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "NAME_CHARACTER",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 78,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "NamedArgument",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1246,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamedArgumentList",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1239,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamedArgumentMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1243,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Namespace",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 243,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamespaceBody",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 252,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamespaceBodyElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 255,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamespaceDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 249,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamespaceExpose",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1631,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamespaceFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 274,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamespaceImport",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 311,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NamespaceMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 266,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "NamespaceMember"
+    },
+    {
+      "name": "NaryConnectorDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 804,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NaryConnectorPart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 685,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NaryInterfacePart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 777,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NodeParameter",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1075,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NodeParameterMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1072,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonBehaviorBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 914,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonFeatureChainPrimaryArgument",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1093,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonFeatureChainPrimaryArgumentMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1096,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonFeatureChainPrimaryArgumentValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1090,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonFeatureChainPrimaryExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1081,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonFeatureElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 332,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 270,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonOccurrenceUsageElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 349,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NonOccurrenceUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 258,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "NullExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1191,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ObjectiveMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1523,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ObjectiveRequirementUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1527,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OccurrenceDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 552,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OccurrenceDefinitionPrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 545,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OccurrenceUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 576,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OccurrenceUsageElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 358,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OccurrenceUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 262,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OccurrenceUsagePrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 568,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedAnnotation",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 185,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedConjugation",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 477,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedCrossFeature",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 595,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedCrossFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 592,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedCrossMultiplicity",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 822,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedCrossMultiplicityMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 819,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedCrossSubsetting",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 697,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedDisjoining",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 498,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 932,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedExpressionMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 929,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedExpressionReference",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 926,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedExpressionReferenceMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 923,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedFeatureChain",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 713,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedFeatureChainMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1173,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedFeatureChaining",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 720,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedFeatureInverting",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 739,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 526,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedFeatureTyping",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 680,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedMultiplicity",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1382,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedMultiplicityRange",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1385,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedRedefinition",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 708,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedReferenceSubsetting",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 694,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedRelatedElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 163,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedSpecialization",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 448,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedSubclassification",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 555,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedSubsetting",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 691,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "OwnedTypeFeaturing",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 752,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Package",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1442,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PackageBody",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1454,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PackageBodyElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 124,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PackageDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1451,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "PackageDeclaration"
+    },
+    {
+      "name": "PackageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 133,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "PackageMember"
+    },
+    {
+      "name": "ParameterRedefinition",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1250,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PartDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 624,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "PartDefinition"
+    },
+    {
+      "name": "PartUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 627,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "PartUsage"
+    },
+    {
+      "name": "PayloadFeature",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1323,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PayloadFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1320,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PayloadFeatureSpecializationPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1331,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PayloadParameter",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1021,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PayloadParameterMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1018,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PerformActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 948,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PerformActionUsageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 952,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PortConjugation",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 646,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PortDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 632,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "PortDefinition"
+    },
+    {
+      "name": "PortUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 649,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "PortUsage"
+    },
+    {
+      "name": "PortionKind",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 589,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PortionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 583,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PositionalArgumentList",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1235,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Predicate",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 902,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PrefixMetadataAnnotation",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1401,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PrefixMetadataFeature",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1407,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PrefixMetadataMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1404,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PrefixMetadataUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1667,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PrimaryArgument",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1075,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PrimaryArgumentMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1078,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PrimaryArgumentValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1072,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "PrimaryExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1068,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "QualifiedName",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 285,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "QualifiedName"
+    },
+    {
+      "name": "REGULAR_COMMENT",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 38,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "RESERVED_KEYWORD",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 114,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "RESERVED_SYMBOL",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 129,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "RealValue",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1286,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "RealValue"
+    },
+    {
+      "name": "Redefines",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 666,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Redefinition",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 702,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Redefinitions",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 663,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RefPrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 279,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ReferenceTyping",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1052,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ReferenceUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 339,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "References",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 657,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RelationshipBody",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 156,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RelationshipOwnedElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 159,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RenderingDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1646,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RenderingUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1650,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RequirementBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1408,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RequirementBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1411,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RequirementConstraintMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1426,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RequirementConstraintUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1434,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RequirementDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1404,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "RequirementDefinition"
+    },
+    {
+      "name": "RequirementKind",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1430,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RequirementUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1466,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "RequirementUsage"
+    },
+    {
+      "name": "RequirementVerificationMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1551,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RequirementVerificationUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1555,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ResultExpressionMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 889,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ReturnFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 885,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ReturnParameterMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1374,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "RootNamespace",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 238,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SINGLE_LINE_NOTE",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 32,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "SINGLE_QUOTE",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 56,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "STRING_CHARACTER",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 106,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "STRING_VALUE",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 103,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "SatisfactionFeatureValue",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1485,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SatisfactionParameter",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1482,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SatisfactionReferenceExpression",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1488,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SatisfactionSubjectMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1479,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SatisfyRequirementUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1470,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SelectExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1130,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SendNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1056,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SendNodeDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1062,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SenderReceiverPart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1066,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SequenceExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1108,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SequenceExpressionList",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1111,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SequenceExpressionListMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1119,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SequenceOperatorExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1114,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SourceEnd",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 610,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SourceEndMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 607,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SourceSuccession",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 604,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SourceSuccessionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 601,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Specialization",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 442,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "Specialization"
+    },
+    {
+      "name": "SpecializationPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 402,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SpecificType",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 451,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StakeholderMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1458,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StakeholderUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1461,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StateAcceptActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1246,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StateActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1233,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StateAssignmentActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1252,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StateBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1204,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StateDefBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1199,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StateDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1195,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "StateDefinition"
+    },
+    {
+      "name": "StatePerformActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1243,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StateSendActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1249,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StateUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1263,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "StateUsage"
+    },
+    {
+      "name": "StateUsageBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1267,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Step",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 863,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Structure",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 771,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StructureUsageElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 361,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "StructureUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 266,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Subclassification",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 549,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SubclassificationPart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 421,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SubjectMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1420,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SubjectUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1423,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Subsets",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 654,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Subsetting",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 685,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Subsettings",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 651,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Succession",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 841,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SuccessionAsUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 714,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SuccessionDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 845,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SuccessionFlow",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1307,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SuccessionFlowUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 833,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "SuperclassingPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 543,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TargetSuccession",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1173,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TargetTransitionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1292,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TargetTransitionUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1258,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TerminateNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1120,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TextualRepresentation",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 225,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TransitionAcceptActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1331,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TransitionAssignmentActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1337,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TransitionPerformActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1328,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TransitionSendActionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1334,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TransitionSuccession",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1343,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TransitionSuccessionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1340,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TransitionUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1281,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TransitionUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1255,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TriggerAction",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1312,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TriggerActionMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1309,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TriggerExpression",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1032,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TriggerFeatureValue",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1029,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TriggerValuePart",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1026,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Type",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 388,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeBody",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 431,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeBodyElement",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 434,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeDeclaration",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 396,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeFeatureMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 523,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeFeaturing",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 746,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeFeaturingPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 628,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypePrefix",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 392,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeReference",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1049,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeReferenceMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1043,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeRelationshipPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 409,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypeResultMember",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1046,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "TypedBy",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 648,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Typings",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 645,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UNRESTRICTED_NAME",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 59,
+      "lexical": true,
+      "status": "covered",
+      "implementedBy": "UNRESTRICTED_NAME"
+    },
+    {
+      "name": "UnaryOperator",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 976,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UnaryOperatorExpression",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 971,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UnextendedUsagePrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 303,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Unioning",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 505,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UnioningPart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 419,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "Usage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 309,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UsageBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 318,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UsageCompletion",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 315,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UsageDeclaration",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 312,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UsageElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 215,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UsageExtensionKeyword",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 300,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UsagePrefix",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 306,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UseCaseDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1564,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "UseCaseUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1568,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ValuePart",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 1359,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "VariantReference",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 343,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "VariantUsageElement",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 396,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "VariantUsageMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 254,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "VerificationCaseDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1543,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "VerificationCaseUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1547,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ViewBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1615,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ViewBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1618,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ViewDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1584,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ViewDefinition"
+    },
+    {
+      "name": "ViewDefinitionBody",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1588,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ViewDefinitionBodyItem",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1591,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ViewRenderingMember",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1596,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ViewRenderingUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1600,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "ViewUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1610,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ViewUsage"
+    },
+    {
+      "name": "ViewpointDefinition",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1636,
+      "lexical": false,
+      "status": "covered",
+      "implementedBy": "ViewpointDefinition"
+    },
+    {
+      "name": "ViewpointUsage",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1640,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "VisibilityIndicator",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 263,
+      "lexical": false,
+      "status": "missing"
+    },
+    {
+      "name": "WHITE_SPACE",
+      "source": "bnf/KerML-textual-bnf.kebnf",
+      "line": 21,
+      "lexical": true,
+      "status": "missing"
+    },
+    {
+      "name": "WhileLoopNode",
+      "source": "bnf/SysML-textual-bnf.kebnf",
+      "line": 1147,
+      "lexical": false,
+      "status": "missing"
+    }
+  ],
+  "nonNormativeRules": [
+    "AcceptActionUsage",
+    "ActionDefBodyMember",
+    "ActionName",
+    "ActionParameterMember",
+    "ActionUsageBodyMember",
+    "AddExpr",
+    "AliasDeclaration",
+    "AliasName",
+    "AllocateUsage",
+    "AndExpr",
+    "AttributeMember",
+    "AttributeValue",
+    "CmpExpr",
+    "ConnectionBodyMember",
+    "ConnectionEnd",
+    "ControlNodeUsage",
+    "DOC_COMMENT",
+    "DefinitionBodyMember",
+    "DocComment",
+    "DottedName",
+    "DottedNameSegment",
+    "EndDeclaration",
+    "EnumDefinition",
+    "EnumLiteral",
+    "EnumLiteralName",
+    "EnumValue",
+    "ExposeMember",
+    "ExposePath",
+    "FeatureName",
+    "FlowConnectionUsage",
+    "ID",
+    "INT",
+    "ImportPath",
+    "IntValue",
+    "ML_COMMENT",
+    "MemberName",
+    "MetadataApplication",
+    "MulExpr",
+    "OrExpr",
+    "PartMember",
+    "PostfixExpr",
+    "PrimaryExpr",
+    "QualifiedNameSegment",
+    "QualifiedNameTailSegment",
+    "REAL",
+    "RefMember",
+    "ReferenceName",
+    "RequireConstraintMember",
+    "SL_COMMENT",
+    "STRING",
+    "SendActionUsage",
+    "SetElement",
+    "SetLiteral",
+    "StringValue",
+    "SuccessionRef",
+    "SuccessionStep",
+    "SuccessionUsage",
+    "TerminateUsage",
+    "UnaryExpr",
+    "UsageBodyMember",
+    "UsageMember",
+    "UseCaseDeclaration",
+    "VerificationDefinition",
+    "VerificationUsage",
+    "ViewBodyMember",
+    "WS"
+  ]
+}

@@ -31,12 +31,12 @@
     "bytes": 1843255,
     "outsideUnit": 0,
     "byDomain": {
-      "sysml": 12892,
+      "sysml": 12794,
       "memo-ingest": 0,
       "memo-methodology": 0
     },
     "bySeverity": {
-      "error": 12892,
+      "error": 12794,
       "warning": 0,
       "info": 0
     }
@@ -64,21 +64,21 @@
         }
       ],
       "byDomain": {
-        "sysml": 67,
+        "sysml": 63,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 67,
+        "error": 63,
         "warning": 0,
         "info": 0
       },
-      "filesWithDiagnostics": 4,
+      "filesWithDiagnostics": 3,
       "topFindings": [
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 34
+          "count": 30
         },
         {
           "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
@@ -91,7 +91,7 @@
           "count": 8
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
           "domain": "sysml",
           "count": 3
         },
@@ -106,7 +106,7 @@
           "count": 2
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [pub",
           "domain": "sysml",
           "count": 2
         },
@@ -149,12 +149,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 27,
+        "sysml": 25,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 27,
+        "error": 25,
         "warning": 0,
         "info": 0
       },
@@ -163,7 +163,7 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 15
+          "count": 13
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
@@ -186,12 +186,12 @@
           "count": 1
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
           "domain": "sysml",
           "count": 1
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [pub",
           "domain": "sysml",
           "count": 1
         }
@@ -219,12 +219,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 418,
+        "sysml": 416,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 418,
+        "error": 416,
         "warning": 0,
         "info": 0
       },
@@ -233,7 +233,7 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 166
+          "count": 163
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N. [port]\n  N",
@@ -304,21 +304,21 @@
         }
       ],
       "byDomain": {
-        "sysml": 34,
+        "sysml": 30,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 34,
+        "error": 30,
         "warning": 0,
         "info": 0
       },
-      "filesWithDiagnostics": 4,
+      "filesWithDiagnostics": 3,
       "topFindings": [
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 26
+          "count": 22
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
@@ -364,12 +364,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 5491,
+        "sysml": 5468,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 5491,
+        "error": 5468,
         "warning": 0,
         "info": 0
       },
@@ -378,7 +378,7 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 3491
+          "count": 3468
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
@@ -421,7 +421,7 @@
           "count": 15
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
           "domain": "sysml",
           "count": 5
         }
@@ -449,12 +449,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 29,
+        "sysml": 27,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 29,
+        "error": 27,
         "warning": 0,
         "info": 0
       },
@@ -463,7 +463,7 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 24
+          "count": 22
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
@@ -494,34 +494,34 @@
         }
       ],
       "byDomain": {
-        "sysml": 16,
+        "sysml": 13,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 16,
+        "error": 13,
         "warning": 0,
         "info": 0
       },
       "filesWithDiagnostics": 3,
       "topFindings": [
         {
-          "key": "Expecting token of type '…' but found `…`.",
-          "domain": "sysml",
-          "count": 6
-        },
-        {
           "key": "Expecting end of file but found `…`.",
           "domain": "sysml",
           "count": 3
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
           "count": 3
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
+          "domain": "sysml",
+          "count": 3
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [pub",
           "domain": "sysml",
           "count": 3
         },
@@ -554,12 +554,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 612,
+        "sysml": 586,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 612,
+        "error": 586,
         "warning": 0,
         "info": 0
       },
@@ -568,7 +568,7 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 549
+          "count": 523
         },
         {
           "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
@@ -576,7 +576,7 @@
           "count": 23
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
           "domain": "sysml",
           "count": 16
         },
@@ -591,17 +591,12 @@
           "count": 8
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [attribute]\n  N. [part]\n  N. [port]\n  N. [in, port]\n  N. [out, po",
-          "domain": "sysml",
-          "count": 2
-        },
-        {
           "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
           "domain": "sysml",
-          "count": 2
+          "count": 4
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [pub",
           "domain": "sysml",
           "count": 1
         },
@@ -634,12 +629,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 196,
+        "sysml": 178,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 196,
+        "error": 178,
         "warning": 0,
         "info": 0
       },
@@ -648,7 +643,7 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 142
+          "count": 124
         },
         {
           "key": "Expecting end of file but found `…`.",
@@ -656,12 +651,12 @@
           "count": 14
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [pub",
           "domain": "sysml",
           "count": 14
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
           "domain": "sysml",
           "count": 9
         },
@@ -704,12 +699,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 497,
+        "sysml": 478,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 497,
+        "error": 478,
         "warning": 0,
         "info": 0
       },
@@ -718,7 +713,7 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 327
+          "count": 307
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
@@ -731,19 +726,19 @@
           "count": 13
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
           "domain": "sysml",
           "count": 12
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [pub",
           "domain": "sysml",
           "count": 12
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [in, ID]\n  N. [out, ID]\n  N. [inout, ID]\n  N. [attribute]\n  N. [p",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [in, ID]\n  N. [out, ID]\n  N. [inout, ID]\n  N. [operator]\n  N. [fu",
           "domain": "sysml",
-          "count": 7
+          "count": 8
         },
         {
           "key": "unexpected character: ->?<- at offset: N, skipped N characters.",
@@ -789,12 +784,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 5154,
+        "sysml": 5142,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 5154,
+        "error": 5142,
         "warning": 0,
         "info": 0
       },
@@ -803,12 +798,12 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 3545
+          "count": 3548
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
           "domain": "sysml",
-          "count": 914
+          "count": 879
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [:]\n  N. [=]\n  N. [{]\nbut found: '…'",
@@ -821,34 +816,34 @@
           "count": 141
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [attribute]\n  N. [part]\n  N. [port]\n  N. [in, port]\n  N. [out, po",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
           "domain": "sysml",
-          "count": 72
+          "count": 65
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [attribute]\n  N. [part]\n  N. [port]\n  N. [in, port]\n  N. [out, po",
           "domain": "sysml",
-          "count": 70
+          "count": 64
         },
         {
           "key": "Expecting end of file but found `…`.",
           "domain": "sysml",
-          "count": 46
+          "count": 50
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N. [port]\n  N",
           "domain": "sysml",
-          "count": 40
+          "count": 42
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [in, ID]\n  N. [out, ID]\n  N. [inout, ID]\n  N. [operator]\n  N. [fu",
+          "domain": "sysml",
+          "count": 36
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [part]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N",
           "domain": "sysml",
           "count": 27
-        },
-        {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [library]\nbut found: '…'",
-          "domain": "sysml",
-          "count": 26
         }
       ]
     },
@@ -874,12 +869,12 @@
         }
       ],
       "byDomain": {
-        "sysml": 351,
+        "sysml": 368,
         "memo-ingest": 0,
         "memo-methodology": 0
       },
       "bySeverity": {
-        "error": 351,
+        "error": 368,
         "warning": 0,
         "info": 0
       },
@@ -888,7 +883,7 @@
         {
           "key": "Expecting token of type '…' but found `…`.",
           "domain": "sysml",
-          "count": 215
+          "count": 224
         },
         {
           "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
@@ -906,12 +901,17 @@
           "count": 13
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "key": "Expecting: expecting at least one iteration which starts with one of these possible Token sequences::\n  <[then]>\nbut fou",
           "domain": "sysml",
           "count": 8
         },
         {
-          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [priva",
+          "domain": "sysml",
+          "count": 8
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [standard]\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [pub",
           "domain": "sysml",
           "count": 7
         },
@@ -927,11 +927,6 @@
         },
         {
           "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
-          "domain": "sysml",
-          "count": 1
-        },
-        {
-          "key": "unexpected character: ->$<- at offset: N, skipped N characters.",
           "domain": "sysml",
           "count": 1
         }

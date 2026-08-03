@@ -26,11 +26,11 @@
   "totals": {
     "libraries": 94,
     "counts": {
-      "missing-declared": 6087,
+      "missing-declared": 6077,
       "missing-implied": 1090,
       "extra": 7,
-      "differing-derived": 8,
-      "qualified-name": 9
+      "differing-derived": 15,
+      "qualified-name": 12
     }
   },
   "libraries": [
@@ -5425,13 +5425,13 @@
       "referenceDeclared": 49,
       "referenceImplied": 49,
       "referenceAnonymous": 2148,
-      "memo": 1,
+      "memo": 5,
       "counts": {
-        "missing-declared": 48,
+        "missing-declared": 42,
         "missing-implied": 0,
         "extra": 0,
-        "differing-derived": 1,
-        "qualified-name": 0
+        "differing-derived": 5,
+        "qualified-name": 2
       },
       "differences": [
         {
@@ -6426,13 +6426,13 @@
       "referenceDeclared": 66,
       "referenceImplied": 66,
       "referenceAnonymous": 1540,
-      "memo": 1,
+      "memo": 4,
       "counts": {
-        "missing-declared": 64,
+        "missing-declared": 60,
         "missing-implied": 0,
         "extra": 0,
-        "differing-derived": 1,
-        "qualified-name": 1
+        "differing-derived": 4,
+        "qualified-name": 2
       },
       "differences": [
         {

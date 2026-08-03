@@ -3,6 +3,7 @@
 export * from '../model/semantic.js';
 export * from '../model/source-affinity.js';
 export * from '../model/relationship-legality.js';
+export * from '../model/activity-notation.js';
 export * from '../model/view-deriver.js';
 export * from '../model/view-kinds.js';
 export * from '../analysis/dsm.js';

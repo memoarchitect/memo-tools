@@ -15,4 +15,5 @@ export * from './corpus.js';
 export * from './xmi.js';
 export * from './run.js';
 export * from './diff-xmi.js';
+export * from './bnf.js';
 export * from './baseline.js';

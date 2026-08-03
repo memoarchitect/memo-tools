@@ -48,8 +48,13 @@ NamespaceMember:
 // Qualified names (`::`) are for references only; deep namespaces are expressed by
 // NESTING packages (`package memo { package arch { … } }`). The model builder
 // reconstructs the full FQN from the nesting (builder.ts: parentPackage::pkg.name).
+// `standard` comes from the normative `LibraryPackage` production
+// (`bnf/KerML-textual-bnf.kebnf:1446`), where it is the flag that marks a
+// library package as part of the standard library rather than a user one. Every
+// one of the 94 vendored normative library files opens with `standard library
+// package`, so without it the parser fails on line 1 of the entire corpus.
 PackageDeclaration:
-    isLibrary?='library'? 'package' name=ID '{'
+    isStandard?='standard'? isLibrary?='library'? 'package' name=ID '{'
         members+=PackageMember*
     '}';
 
@@ -556,7 +561,7 @@ QualifiedName returns string:
     QualifiedNameSegment ('::' QualifiedNameTailSegment)*;
 
 QualifiedNameSegment returns string:
-    ID | 'library';
+    ID | 'library' | 'standard';
 
 // Non-first segments may be keywords so enum literals declared via
 // EnumLiteralName (e.g. DirectionKind::in, UseErrorCategoryKind::action)
@@ -571,14 +576,19 @@ QualifiedNameTailSegment returns string:
     | 'use' | 'fork' | 'join';
 
 // Allow keywords as identifiers in member/feature contexts
+// `standard` joins these for the same reason the others are here: making it a
+// keyword for `standard library package` would otherwise stop it being a name,
+// and MEMO's compliance ontology declares `attribute standard : String`.
 MemberName returns string:
     ID | 'requirement' | 'action' | 'item' | 'port' | 'interface' | 'connection'
-    | 'attribute' | 'constraint' | 'view' | 'viewpoint' | 'ref' | 'part' | 'state' | 'verification';
+    | 'attribute' | 'constraint' | 'view' | 'viewpoint' | 'ref' | 'part' | 'state' | 'verification'
+    | 'standard';
 
 FeatureName returns string:
     ID | 'part' | 'requirement' | 'action' | 'item' | 'port' | 'interface'
     | 'connection' | 'flow' | 'view' | 'viewpoint' | 'attribute' | 'constraint'
-    | 'ref' | 'allocate' | 'end' | 'enum' | 'function' | 'operator' | 'state' | 'verification';
+    | 'ref' | 'allocate' | 'end' | 'enum' | 'function' | 'operator' | 'state' | 'verification'
+    | 'standard';
 
 // ─── Hidden terminals (skipped by lexer) ─────────────────────────────────────
 

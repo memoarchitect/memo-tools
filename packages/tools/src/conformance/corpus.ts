@@ -28,6 +28,8 @@ export const XMI_EXTENSIONS = ['.sysmlx', '.kermlx'] as const;
 export const LIBRARY_SOURCE_TREE = 'sysml.library';
 export const LIBRARY_XMI_TREE = 'sysml.library.xmi';
 export const LIBRARY_XMI_IMPLIED_TREE = 'sysml.library.xmi.implied';
+/** The normative textual and graphical grammars. */
+export const BNF_TREE = 'bnf';
 
 export interface CorpusFileEntry {
     sha256: string;

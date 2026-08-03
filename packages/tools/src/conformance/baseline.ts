@@ -19,6 +19,7 @@
 
 import { DIAGNOSTIC_DOMAINS, type ConformanceReport } from './run.js';
 import { DIFFERENCE_CLASSES, type DiffXmiReport } from './diff-xmi.js';
+import type { BnfCoverageReport } from './bnf.js';
 
 export interface BaselineDifference {
     path: string;
@@ -153,6 +154,53 @@ export function compareDiffXmiBaseline(
     }
     for (const source of currentLibraries.keys()) {
         differences.push({ path: `libraries.${source}`, baseline: 'absent', current: 'present' });
+    }
+
+    return { comparable: true, differences };
+}
+
+/**
+ * Grammar coverage against the normative BNF (B5).
+ *
+ * Per-production status is compared, not only the totals. Two productions
+ * trading places — one implemented, one lost — leaves the total unmoved, and a
+ * gate that only watched the total would call that no change.
+ */
+export function compareBnfBaseline(
+    baseline: BnfCoverageReport,
+    current: BnfCoverageReport,
+): BaselineComparison {
+    if (baseline.reportVersion !== current.reportVersion) {
+        return incomparable(baseline.reportVersion, current.reportVersion, 'Report format version');
+    }
+    if (pinOf(baseline) !== pinOf(current)) {
+        return incomparable(pinOf(baseline), pinOf(current), 'Corpus pin');
+    }
+
+    const differences: BaselineDifference[] = [];
+    for (const group of ['syntactic', 'lexical'] as const) {
+        compareCounts(
+            `totals.${group}`,
+            baseline.totals[group] as unknown as Record<string, number>,
+            current.totals[group] as unknown as Record<string, number>,
+            ['total', 'covered'], differences,
+        );
+    }
+
+    const now = new Map(current.productions.map(production => [production.name, production]));
+    for (const production of baseline.productions) {
+        const after = now.get(production.name);
+        if (!after) {
+            differences.push({ path: `productions.${production.name}`, baseline: production.status, current: 'absent' });
+            continue;
+        }
+        now.delete(production.name);
+        if (production.status !== after.status) {
+            differences.push({ path: `productions.${production.name}`, baseline: production.status, current: after.status });
+        }
+    }
+    for (const [name, production] of now) {
+        differences.push({ path: `productions.${name}`, baseline: 'absent', current: production.status });
     }
 
     return { comparable: true, differences };
