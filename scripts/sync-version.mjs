@@ -11,6 +11,11 @@ const replace = (path, pattern, replacement) => {
   if (after !== before) changes.push({ path, after });
 };
 replace('package.json', /^(  "version": ")[^"]+(",)$/m, `$1${version}$2`);
+// The repo publishes two artifacts now: the tools package and the compiler it
+// ships as its own tool. They release together, so the compiler's own version
+// and its pin on the tools package both track VERSION.
+replace('packages/sysmlc/package.json', /^(  "version": ")[^"]+(",)$/m, `$1${version}$2`);
+replace('packages/sysmlc/package.json', /^(    "@memoarchitect\/tools": ")[^"]+(",)$/m, `$1${version}$2`);
 replace('pyproject.toml', /^(version = ")[^"]+("$)/m, `$1${version}$2`);
 replace('README.md', /memo-tools \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g, `memo-tools ${version}`);
 if (checkOnly && changes.length) {

@@ -13,10 +13,10 @@
 // Adding a provider is one new file plus one `register(...)` line.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { BuilderRegistries } from '../model/builder.js';
 import type { MEMOConfig } from '../model/config.js';
-import type { ParsedDocument } from '../model/parser-utils.js';
-import type { ParseError } from '../model/semantic.js';
 import type { Diagnostic } from './diagnostic.js';
+import type { MemoIr } from './protocol.js';
 
 /**
  * What question a provider answers.
@@ -70,6 +70,15 @@ export interface ProviderContext {
     includeDirs?: string[];
     /** Destination artifact, for the `package` role. */
     outputPath?: string;
+    /**
+     * Ontology registries the caller has already loaded.
+     *
+     * An offer, not an input: an in-process provider may use them instead of
+     * loading the same closure a second time, and a process provider ignores
+     * them and loads its own. Either way the value is the project's, so which
+     * one ran is not observable in the result.
+     */
+    registries?: BuilderRegistries;
 }
 
 export interface ProviderRunResult {
@@ -89,13 +98,16 @@ export interface ProviderRunResult {
 }
 
 /**
- * What the lowering role returns beyond diagnostics: the documents MEMO builds
- * its model from. This is the one role whose output is not just complaints.
+ * What the lowering role returns beyond diagnostics: the IR. This is the one
+ * role whose output is not just complaints.
+ *
+ * It used to be Langium documents, which is a shape only an in-process provider
+ * can return — an AST does not cross a pipe. Making it IR is what turned the
+ * lowering contract into something a separate process can honour, and therefore
+ * into something a third party could implement.
  */
 export interface LoweringRunResult extends ProviderRunResult {
-    documents: ParsedDocument[];
-    /** Raw parse errors, for the builder, alongside the normalized diagnostics. */
-    parseErrors: ParseError[];
+    ir: MemoIr;
 }
 
 /**

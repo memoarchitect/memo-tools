@@ -28,6 +28,7 @@ export * from './model/source-graph.js';
 export * from './model/source-provenance.js';
 export * from './model/short-id.js';
 export * from './model/parser-utils.js';
+export * from './model/sysml-files.js';
 export * from './model/builder.js';
 export * from './model/layer-resolver.js';
 export * from './model/kind-registry.js';

@@ -5,6 +5,7 @@
 // normalized `Diagnostic`s back. Nothing here branches on a provider name.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { BuilderRegistries } from '../model/builder.js';
 import type { MEMOConfig } from '../model/config.js';
 import { discoverLibraryRoots } from '../model/native-project.js';
 import type { Diagnostic } from './diagnostic.js';
@@ -28,6 +29,8 @@ export interface ToolchainRunOptions {
     /** Overrides the include paths derived from the project's library roots. */
     includeDirs?: string[];
     outputPath?: string;
+    /** Ontology registries the caller already loaded. See `ProviderContext`. */
+    registries?: BuilderRegistries;
 }
 
 function context(options: ToolchainRunOptions): ProviderContext {
@@ -36,6 +39,7 @@ function context(options: ToolchainRunOptions): ProviderContext {
         projectDir: options.projectDir,
         includeDirs: options.includeDirs ?? discoverLibraryRoots(options.projectDir).map(r => r.sysmlDir),
         outputPath: options.outputPath,
+        registries: options.registries,
     };
 }
 

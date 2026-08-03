@@ -10,9 +10,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export * from './diagnostic.js';
+export * from './protocol.js';
+export * from './lowering.js';
 export * from './registry.js';
 export * from './effective.js';
 export * from './schema.js';
 export * from './operations.js';
 export * from './default-registry.js';
-export { whichExecutable, resolveExecutable, resolveProjectPath } from './process.js';
+export { whichExecutable, resolveExecutable, resolveProjectPath, findBundledExecutable } from './process.js';
+export { getSysmlcClient, disposeSysmlcClients, SysmlcClient } from './sysmlc-client.js';

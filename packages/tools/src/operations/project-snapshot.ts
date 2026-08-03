@@ -1,5 +1,4 @@
 import { resolve } from 'node:path';
-import { buildMemoModel } from '../model/builder.js';
 import { computeCompleteness } from '../completeness/tracker.js';
 import { deriveModelViews } from '../model/view-deriver.js';
 import { findConfigFile } from '../model/config-loader.js';
@@ -7,7 +6,7 @@ import { loadOntologyRegistries } from '../model/ontology-loader.js';
 import { validateModel } from '../validator/rule-engine.js';
 import type { BuilderRegistries } from '../model/builder.js';
 import type { MEMOConfig } from '../model/config.js';
-import { modelToDTO } from '../model/semantic.js';
+import { dtoToModel, modelToDTO } from '../model/semantic.js';
 import type { ArchLayerDTO, DiagramDTO, MemoModelDTO, ViewpointDTO } from '../model/semantic.js';
 import type { CompletenessReport, ValidationResult } from '../validator/types.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
@@ -83,11 +82,8 @@ export async function buildProjectSnapshot(
     const config = configPath ? loadAndResolveConfig(configPath) : loadProjectSettings(cwd);
     const effective = resolveToolchain(config, registry);
 
-    // The validator answers "is this valid SysML?" and nothing else. Its
-    // failures are `sysml` errors; a failure to *run* it is still an exception,
-    // because a selected tool that is not there must never downgrade in silence.
-    const validatorRun = await runValidator({ config, projectDir: cwd, registry });
-
+    // Loaded before either role runs, so the closure is parsed once and offered
+    // to a provider that can use it rather than loaded again inside lowering.
     let ontologyRegistries: BuilderRegistries | undefined;
     try {
         const loadResult = await loadOntologyRegistries(cwd);
@@ -95,6 +91,11 @@ export async function buildProjectSnapshot(
     } catch {
         // Snapshot generation remains available with reduced kind resolution.
     }
+
+    // The validator answers "is this valid SysML?" and nothing else. Its
+    // failures are `sysml` errors; a failure to *run* it is still an exception,
+    // because a selected tool that is not there must never downgrade in silence.
+    const validatorRun = await runValidator({ config, projectDir: cwd, registry });
 
     // Lowering answers "what can MEMO ingest from this revision?". Its failures
     // are `memo-ingest` by construction — MEMO reporting the limits of its own
@@ -106,11 +107,18 @@ export async function buildProjectSnapshot(
     // `mergeDiagnostics` then collapses the duplicate when one provider filled
     // both roles, so a defect is reported once, in the domain with the most
     // authority.
-    const loweringRun = await runLowering({ config, projectDir: cwd, registry });
-    const { documents, parseErrors } = loweringRun;
+    //
+    // What comes back is IR, not an AST. That is what makes the lowering role
+    // implementable by a separate process at all — and it means this function
+    // no longer builds the model itself, it receives one. Rehydrating the DTO
+    // restores the indexes the validator and view deriver read; nothing else
+    // about it depends on which transport produced it.
+    const loweringRun = await runLowering({
+        config, projectDir: cwd, registry, registries: ontologyRegistries,
+    });
     const diagnostics = mergeDiagnostics(validatorRun.diagnostics, loweringRun.diagnostics);
 
-    const semanticModel = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    const semanticModel = dtoToModel(loweringRun.ir.model);
     const validation = validateModel(semanticModel, [], ontologyRegistries?.kindRegistry);
     const completeness = computeCompleteness(semanticModel, validation);
 

@@ -66,6 +66,36 @@ export function whichExecutable(command: string, env: NodeJS.ProcessEnv = proces
     return undefined;
 }
 
+/**
+ * A binary shipped in the same install, found without the user doing anything.
+ *
+ * "The user is responsible for PATH" is a rule about *third-party* tools. It
+ * has never applied to MEMO's own: a default install must work with nothing
+ * installed and nothing configured. So a bundled binary is looked up the way
+ * Node looks up a module — walk up from a starting directory checking each
+ * `node_modules/.bin` — which finds it whether the caller is a project, a
+ * global install, or a workspace checkout.
+ */
+export function findBundledExecutable(
+    name: string,
+    fromDirs: readonly string[],
+): string | undefined {
+    const suffixes = platform() === 'win32' ? ['.cmd', '.exe', ''] : [''];
+    for (const from of fromDirs) {
+        let dir = resolve(from);
+        for (;;) {
+            for (const suffix of suffixes) {
+                const candidate = resolve(dir, 'node_modules', '.bin', name + suffix);
+                if (isExecutableFile(candidate)) return candidate;
+            }
+            const parent = resolve(dir, '..');
+            if (parent === dir) break;
+            dir = parent;
+        }
+    }
+    return undefined;
+}
+
 export interface CaptureResult {
     status: number | null;
     stdout: string;
