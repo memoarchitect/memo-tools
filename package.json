@@ -46,6 +46,9 @@
     "check:budgets": "node scripts/runtime-budgets.mjs",
     "check:baselines": "node scripts/verify-baseline.mjs",
     "check:corpus": "node scripts/convert-corpus.mjs",
+    "check:conformance": "node scripts/check-conformance.mjs",
+    "corpus:vendor": "node scripts/vendor-corpus.mjs",
+    "corpus:verify": "node scripts/vendor-corpus.mjs --verify",
     "check:transport": "node scripts/measure-transport-latency.mjs"
   },
   "dependencies": {

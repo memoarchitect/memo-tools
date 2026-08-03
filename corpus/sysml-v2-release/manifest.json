@@ -1,0 +1,2584 @@
+{
+  "repository": "https://github.com/Systems-Modeling/SysML-v2-Release",
+  "commit": "de1070ae8e79c21532b8004fc663d47b35d0e9fa",
+  "commitDate": "2026-07-22T13:51:53-04:00",
+  "vendoredAt": "2026-08-03",
+  "libraryVersions": {
+    "Kernel_Data_Type_Library": "1.1.0-dev.20260501",
+    "Kernel_Function_Library": "1.1.0-dev.20260501",
+    "Kernel_Semantic_Library": "1.1.0-dev.20260501",
+    "SysML_Analysis_Library": "2.1.0-dev.20260501",
+    "SysML_Cause_and_Effect_Library": "2.1.0-dev.20260501",
+    "SysML_Geometry_Library": "2.1.0-dev.20260501",
+    "SysML_Metadata_Library": "2.1.0-dev.20260501",
+    "SysML_Quantities_and_Units_Library": "2.1.0-dev.20260501",
+    "SysML_Requirement_Derivation_Library": "2.1.0-dev.20260501",
+    "SysML_Systems_Library": "2.1.0-dev.20260501"
+  },
+  "digest": "235552e1d5ecfffcd69f7dd48d74c41d58751249d9d3aa4d1fdac509ab4aaeaa",
+  "trees": [
+    {
+      "id": "library-source",
+      "path": "sysml.library",
+      "role": "Positive parse+link corpus — the normative libraries in textual form.",
+      "files": 117,
+      "bytes": 1365146
+    },
+    {
+      "id": "library-xmi",
+      "path": "sysml.library.xmi",
+      "role": "Declared-semantics reference, before implication.",
+      "files": 94,
+      "bytes": 25874217
+    },
+    {
+      "id": "library-xmi-implied",
+      "path": "sysml.library.xmi.implied",
+      "role": "Differential oracle for derived semantics — the Pilot's own computed output, published as data.",
+      "files": 94,
+      "bytes": 125146695
+    },
+    {
+      "id": "library-kpar",
+      "path": "sysml.library.kpar",
+      "role": "Bundled-library input (Session 4).",
+      "files": 10,
+      "bytes": 248652
+    },
+    {
+      "id": "grammar",
+      "path": "bnf",
+      "role": "Parser conformance target (textual) and notation conformance target (graphical).",
+      "files": 3,
+      "bytes": 159249
+    },
+    {
+      "id": "examples-sysml",
+      "path": "sysml/src",
+      "role": "Regression corpus — the Release SysML examples.",
+      "files": 252,
+      "bytes": 410858
+    },
+    {
+      "id": "examples-kerml",
+      "path": "kerml/src",
+      "role": "Regression corpus — the Release KerML examples.",
+      "files": 58,
+      "bytes": 80164
+    }
+  ],
+  "files": {
+    "sysml.library/.gitignore": {
+      "sha256": "b7b5a9a5bdb3a876455f7320f221592c77a378fac89c0283dc6ebe19b124bf43",
+      "bytes": 6
+    },
+    "sysml.library/.project": {
+      "sha256": "947654e204befed70b48fe93578b9ef87ff945808e4f75e7ecb5174181a10297",
+      "bytes": 388
+    },
+    "sysml.library/.settings/org.eclipse.jdt.core.prefs": {
+      "sha256": "18ca6723cc7b2bf4a1a9dcfb85c5d9a6e3e5639f274f0cc78288d6cc68ef64f6",
+      "bytes": 587
+    },
+    "sysml.library/Domain Libraries/Analysis/.meta.json": {
+      "sha256": "7cf89681457c01cde0a60b7edafde3d81c6cfec46200959cbb9b1c9a0d7a204d",
+      "bytes": 321
+    },
+    "sysml.library/Domain Libraries/Analysis/.project.json": {
+      "sha256": "667970d6d25e443516328dbbb6b8149a350f5787684ab2c8cdeeb8e461a90132",
+      "bytes": 925
+    },
+    "sysml.library/Domain Libraries/Analysis/AnalysisTooling.sysml": {
+      "sha256": "6f71246f2a3f71ebd88df71736d7dca89af0eac8a3e7db5ea7e7a1970a7f7fd6",
+      "bytes": 798
+    },
+    "sysml.library/Domain Libraries/Analysis/SampledFunctions.sysml": {
+      "sha256": "66f11d0475d46e5350dfaf0ecb3ee44018b1d5d279cba03aa04dd6a6a0a39e23",
+      "bytes": 4021
+    },
+    "sysml.library/Domain Libraries/Analysis/StateSpaceRepresentation.sysml": {
+      "sha256": "389a50e3eaa384d4f8d823335dd8acdacbdd139c8053b34829bc559984629005",
+      "bytes": 4264
+    },
+    "sysml.library/Domain Libraries/Analysis/TradeStudies.sysml": {
+      "sha256": "411d0b517d29218084683305770b360ac72fa068adefd9e67f2a4f0a52abcfdc",
+      "bytes": 4754
+    },
+    "sysml.library/Domain Libraries/Cause and Effect/.meta.json": {
+      "sha256": "e5c4ba680275d34a8c6a4c735a06acbfeae2f00c5dcd1101d695336e09d8e150",
+      "bytes": 219
+    },
+    "sysml.library/Domain Libraries/Cause and Effect/.project.json": {
+      "sha256": "539b899eea294d71f53d09b7b80086528123505a68ff46c8c3a86435de1f1015",
+      "bytes": 778
+    },
+    "sysml.library/Domain Libraries/Cause and Effect/CausationConnections.sysml": {
+      "sha256": "ad96c5282470e30d859582560225a75091b7c8058c0b949608e9dd07c130b661",
+      "bytes": 2650
+    },
+    "sysml.library/Domain Libraries/Cause and Effect/CauseAndEffect.sysml": {
+      "sha256": "a2d39ed3e61477fde0273473a2c46d8eeb93ed81fcfdaeac5d48b9f942ac5403",
+      "bytes": 2441
+    },
+    "sysml.library/Domain Libraries/Geometry/.meta.json": {
+      "sha256": "aad547e418bd59b059ff896ac76440a9bf0459f79552f1707fd99db972921df5",
+      "bytes": 195
+    },
+    "sysml.library/Domain Libraries/Geometry/.project.json": {
+      "sha256": "2df5c4421e8aceca4bff3a9e8e40e44b34d57077174fd2be27f33e2f5bea03ac",
+      "bytes": 925
+    },
+    "sysml.library/Domain Libraries/Geometry/ShapeItems.sysml": {
+      "sha256": "c9f2a10226e8d1a1280aee1ddb2d3e3ec5fe3a9c236c628a4330ee51e36f16a0",
+      "bytes": 26661
+    },
+    "sysml.library/Domain Libraries/Geometry/SpatialItems.sysml": {
+      "sha256": "21f4b44f64212e7c4e5802b7d4deeaec26390fc7e4133be0793eee4f4d1c11aa",
+      "bytes": 6129
+    },
+    "sysml.library/Domain Libraries/Metadata/.meta.json": {
+      "sha256": "1d443989231d01e5f6c7b1cf0ca26376cd9886a877ff6149e3253f59d5633519",
+      "bytes": 325
+    },
+    "sysml.library/Domain Libraries/Metadata/.project.json": {
+      "sha256": "517001d77d95ea4db3764b622c24d19ae5875e1b822a0aaeadb51d951918d0e2",
+      "bytes": 618
+    },
+    "sysml.library/Domain Libraries/Metadata/ImageMetadata.sysml": {
+      "sha256": "b7fa6baf2ee3e3c0708c2b5901abd0d51deeba8e61652909cac57069b4e06731",
+      "bytes": 2099
+    },
+    "sysml.library/Domain Libraries/Metadata/ModelingMetadata.sysml": {
+      "sha256": "bb6c664cfe65dc298827c6cca8fc21941965db3a40a0412ba211cf6ff1cc254d",
+      "bytes": 2423
+    },
+    "sysml.library/Domain Libraries/Metadata/ParametersOfInterestMetadata.sysml": {
+      "sha256": "f5c6da3be824a82a34482f00a3e43976787c03ea1d30cbda84b1be838c557876",
+      "bytes": 1191
+    },
+    "sysml.library/Domain Libraries/Metadata/RiskMetadata.sysml": {
+      "sha256": "ee4f0734fa5995f435ca9c6144f48e3b7a10d422372a71c4396bba2401c14a6e",
+      "bytes": 2085
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/.meta.json": {
+      "sha256": "639a6370625b683201e631d5a1c2afb673f33ba46580f96b4660d0f18abafd0c",
+      "bytes": 1223
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/.project.json": {
+      "sha256": "dbafdb736019081c7b942bec7f6406ad56f91df033e3659b6d4f336fcf16594f",
+      "bytes": 786
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQ.sysml": {
+      "sha256": "1114a2f3556e757676768d05de2fbf8b1804fde5892d68c976e111db81117fda",
+      "bytes": 2096
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQAcoustics.sysml": {
+      "sha256": "91ff456731559717295f3ad27e93a9b88787a264f1fa895fd4efec9632182557",
+      "bytes": 26006
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQAtomicNuclear.sysml": {
+      "sha256": "ffd8c8667874fd31e36102eeb239923ab08463316a7b228376da282b9ca3c5be",
+      "bytes": 151607
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQBase.sysml": {
+      "sha256": "cc5dc730d2a7167e914431a6f12d0318f792a5c6e2a204a37df9ab33f5e98435",
+      "bytes": 12219
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQCharacteristicNumbers.sysml": {
+      "sha256": "c35c40236af5dacc75f5a0882da4244d4bb8551ebe0c8df4218c9e302e75d64d",
+      "bytes": 120115
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQChemistryMolecular.sysml": {
+      "sha256": "a6727de0079ffc45ccd020ba44e7202a9e59c4d148a9df8193037fee6da7711a",
+      "bytes": 71443
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQCondensedMatter.sysml": {
+      "sha256": "a0896bd6adf713243bd0009b3f09ea451a3e31cb772622b05f89a5404c229984",
+      "bytes": 59985
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQElectromagnetism.sysml": {
+      "sha256": "3517d4c9a31dc4e0fb4a6900d7a2c03d4dec3fba410fa04085bfb995adb2fae7",
+      "bytes": 115565
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQInformation.sysml": {
+      "sha256": "7b9e1e1b55e9b46556f822451515a6918d24cf61b018b01757cdad18c6856604",
+      "bytes": 41979
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQLight.sysml": {
+      "sha256": "a768a75b90bcae08d35662465331e96a7c785f4bf1df107663a2a6865604d643",
+      "bytes": 100171
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQMechanics.sysml": {
+      "sha256": "eb60fe410815a67f24cddcef0e5562479fa1faea8347e7a7199478a6fc559c5b",
+      "bytes": 73849
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQSpaceTime.sysml": {
+      "sha256": "47946e32f30110661ab586de2f851841d1fad0b35381e510c1eaabba039ecc39",
+      "bytes": 54700
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/ISQThermodynamics.sysml": {
+      "sha256": "37ff9990c0b9485dd0e0c901be3bb979a62d22b4598b7b9007e746f4b24c8c3b",
+      "bytes": 64628
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/MeasurementRefCalculations.sysml": {
+      "sha256": "51e15d389f3836df3782f87d6450a1d6a8ac08dfd9a2cfddef338ae56dd688dc",
+      "bytes": 1600
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/MeasurementReferences.sysml": {
+      "sha256": "32d25b13e96487f771b293ab8e9ca82a39ccd8da6553d944900ba3b500323bb8",
+      "bytes": 21401
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/Quantities.sysml": {
+      "sha256": "6e59653fe439e721f707e00bc25f3843b4973180194eaf5d826b7e283600cd45",
+      "bytes": 4580
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/QuantityCalculations.sysml": {
+      "sha256": "64e533c978cb73b29f0315e513af49f7ae488c1aa3c712cbf9443d9e07d009b4",
+      "bytes": 4218
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/SI.sysml": {
+      "sha256": "8fa533350656ac42f9ce3e9a4068ec1251d54e074af08109cdafc47ac0b24288",
+      "bytes": 30924
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/SIPrefixes.sysml": {
+      "sha256": "90e604fcda40f8ec920114a457097cb2fed6d898d422c80277b4c8e9c3e70638",
+      "bytes": 3400
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/TensorCalculations.sysml": {
+      "sha256": "bd58a683584fa725256d4687c9f6eb52c09fa17ea65e30d84c1313de1777b80c",
+      "bytes": 2446
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/Time.sysml": {
+      "sha256": "1eb02033463c740d35705d03a2dd7d64686d88c110ed7a30ef01e02bdb2dca47",
+      "bytes": 10429
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/USCustomaryUnits.sysml": {
+      "sha256": "aa5adac4685322aca75a9a144fbe5dc10f34ca4324e07393eb8ebfd324b34597",
+      "bytes": 30369
+    },
+    "sysml.library/Domain Libraries/Quantities and Units/VectorCalculations.sysml": {
+      "sha256": "1cf01f4cbcb0d26b443cd9efd9276224f35b8e18d18f3741dbbace8cd1f257be",
+      "bytes": 3057
+    },
+    "sysml.library/Domain Libraries/Requirement Derivation/.meta.json": {
+      "sha256": "2781c1e4a3d7de5e054fb68f2d3d8aa34a5174e546e224780f501133f9d28a17",
+      "bytes": 235
+    },
+    "sysml.library/Domain Libraries/Requirement Derivation/.project.json": {
+      "sha256": "0d0835d18cc922880309b9ef0300fbbe0c2c467fb737a51bd82dad9e9807c4ab",
+      "bytes": 646
+    },
+    "sysml.library/Domain Libraries/Requirement Derivation/DerivationConnections.sysml": {
+      "sha256": "40e8b13458c120bfa4f9a4059bfc4982ef959815e8580a6ac7f113bed36f55fc",
+      "bytes": 2305
+    },
+    "sysml.library/Domain Libraries/Requirement Derivation/RequirementDerivation.sysml": {
+      "sha256": "ee5bed2b7ad17e5c7505e6761d164e14de3d041d97e4bffc005853a130e09a20",
+      "bytes": 1269
+    },
+    "sysml.library/Kernel Libraries/Kernel Data Type Library/.meta.json": {
+      "sha256": "d28e9b532637d9a0cfd25d7a8e1b1348fd9d4a7a7d7e515ea01af9c11db22c03",
+      "bytes": 239
+    },
+    "sysml.library/Kernel Libraries/Kernel Data Type Library/.project.json": {
+      "sha256": "2a6b7629c4cfb0a2dcd6414972642ce10f77e22a27bae406f8cef48fbe0694e4",
+      "bytes": 325
+    },
+    "sysml.library/Kernel Libraries/Kernel Data Type Library/Collections.kerml": {
+      "sha256": "6caea283ebdb11d0a960615276358abcdc99aaa12c2aa05b42a740e8a73688b1",
+      "bytes": 6272
+    },
+    "sysml.library/Kernel Libraries/Kernel Data Type Library/ScalarValues.kerml": {
+      "sha256": "4db25ce00dd170fd67261f6e7e21a2616bda15d233579dc5fb3193aaf61fa5a5",
+      "bytes": 862
+    },
+    "sysml.library/Kernel Libraries/Kernel Data Type Library/VectorValues.kerml": {
+      "sha256": "7b22f8867e1cf46ac6a8226175db4405f6c29f047b3d6ad54a044fef3ce683dc",
+      "bytes": 1888
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/.meta.json": {
+      "sha256": "21428566a6b9ad7434aa034f6afaa9d0f08432cea827a4b5fa1d4634f212760b",
+      "bytes": 955
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/.project.json": {
+      "sha256": "33af299ddb70bb325fabb8f653c3ad6b802950698ed9128369603ca580a7af81",
+      "bytes": 468
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/BaseFunctions.kerml": {
+      "sha256": "c7700f36c786ff25796eb37d321a7a85f5f67b785e08a548c1cf4cd207c8b27f",
+      "bytes": 2044
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/BooleanFunctions.kerml": {
+      "sha256": "f836553db8e0ab1fb782043090198bdcd33ab6f168773e099fa2e192646ecc46",
+      "bytes": 962
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/CollectionFunctions.kerml": {
+      "sha256": "c33e76c32d8370fefef123692a93d621f09a4cb944f08dd3543461f1f73c1505",
+      "bytes": 2458
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/ComplexFunctions.kerml": {
+      "sha256": "cdb8ab38b5937f3716d66e2c71d6811d2ae7df08c1704f4dce7a815be1c01563",
+      "bytes": 2267
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/ControlFunctions.kerml": {
+      "sha256": "bd95a74d3ab9f44cfb1445cbaee8c509d78018feaa1eb408f5d91a6ac969c1b1",
+      "bytes": 3603
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/DataFunctions.kerml": {
+      "sha256": "896b81cd660948084efd0ee9ebc9125a1588b1e2d360bdebb03430d0317b7b5b",
+      "bytes": 2341
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/IntegerFunctions.kerml": {
+      "sha256": "3da7c23ee95290d768dae67e75287122d5512d054c0f9ca57b78a8aab81ee309",
+      "bytes": 2577
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/NaturalFunctions.kerml": {
+      "sha256": "f83daf1bbcf124fb9c535273c3c536d08424031991013f2f6c563706afde92ae",
+      "bytes": 1624
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/NumericalFunctions.kerml": {
+      "sha256": "ac1f12fc2880a2017a2d4caa6e8f839e0b6bc72b92b154a3db13b14fdd0caa93",
+      "bytes": 2787
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/OccurrenceFunctions.kerml": {
+      "sha256": "4bba1f6ffd309568f12da186a3b10bcf43473be558d91d89cb38f9e1037cd12f",
+      "bytes": 3713
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/RationalFunctions.kerml": {
+      "sha256": "a7ef0870a5282f5dc489ab85ef424b66cd8909f5f52b2efe5f14ed1765afc768",
+      "bytes": 2813
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/RealFunctions.kerml": {
+      "sha256": "4b469aafc18d801ae733734066d3e43aa767c44a89e912cf60772933ab568a76",
+      "bytes": 2717
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/ScalarFunctions.kerml": {
+      "sha256": "3a6baf3962079a395304f0a811f3b58da09f18f91aaf76ceef5f81ebeae7a258",
+      "bytes": 2595
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/SequenceFunctions.kerml": {
+      "sha256": "927237bb8156b6e8c9a6c3444999d7da98b58af00d7d2a63c487c9260165265e",
+      "bytes": 4501
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/StringFunctions.kerml": {
+      "sha256": "b3bbcad2251f9152f4b730754ad172e9a4e52d61fbdb9bdf55b968d92fcaa831",
+      "bytes": 1181
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/TrigFunctions.kerml": {
+      "sha256": "04af7eb3aa5be68c60bab85097b870b3a2540e646079c642d44b6a47150b0ce1",
+      "bytes": 1025
+    },
+    "sysml.library/Kernel Libraries/Kernel Function Library/VectorFunctions.kerml": {
+      "sha256": "2e9fdcd13a0cdf5db5bcc2326975430ac75432dccd45893740464d9a01487661",
+      "bytes": 8060
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/.meta.json": {
+      "sha256": "4be153ed02bfbf36ff60f009e6eda007448340060c59e5d674f80a08ab60d591",
+      "bytes": 783
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/.project.json": {
+      "sha256": "1413f30c4aac6c6209428ef741fbd8763f488ac5d1270a5754138b40e234e292",
+      "bytes": 468
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Base.kerml": {
+      "sha256": "56df84cda67f62c63d4e79e2786fc26046cfa361a958c4fcf0843d32a5707e09",
+      "bytes": 2338
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Clocks.kerml": {
+      "sha256": "960ac0884935e308beea55c78ed11b6946c37a386eb7958ef2c913aa275ae4c7",
+      "bytes": 3853
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/ControlPerformances.kerml": {
+      "sha256": "31385be7dca94bd0538f011d5c8f7925626d54f96970769f0fdb28b2186a9a03",
+      "bytes": 4496
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/FeatureReferencingPerformances.kerml": {
+      "sha256": "b6f9e5349c7c7f393591c0334c3bec86f1766b3e37209819179310c2f8fe1fb7",
+      "bytes": 7681
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/KerML.kerml": {
+      "sha256": "8fdf4b7416e981c895cd74b75dc14b18091d13cbcaff7cdded6f9c23e2483d58",
+      "bytes": 21440
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Links.kerml": {
+      "sha256": "dcf3c002717cb91f8e16f1890fdf5526f4e178ada898a189621c7d0c24b5ddc0",
+      "bytes": 2117
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Metaobjects.kerml": {
+      "sha256": "983dbd85a4b183d8859326ee512fc59d991fb98a115e009e72fad21d1f9d1685",
+      "bytes": 1648
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Objects.kerml": {
+      "sha256": "9057e2781fe8793d5108973c0647318caa26310be6231c6380152a4cbc894c25",
+      "bytes": 7249
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Observation.kerml": {
+      "sha256": "6bc57a73c43af6f61201b6eb659024a9f08f974643eb5a101e068e3637761ee4",
+      "bytes": 4578
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Occurrences.kerml": {
+      "sha256": "b3a62ce0bc3a4f7e667102b4c2f68a4928ca8efeda425c6a4c8bdeadfbc9bbc1",
+      "bytes": 37911
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Performances.kerml": {
+      "sha256": "fd965e184b300737a192530de0c800cdbee236cb6220612f370400da21dfb327",
+      "bytes": 8925
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/SpatialFrames.kerml": {
+      "sha256": "2a7790ebc2afacbd64eb781567906921e38eff385c917be03b090b8289353de7",
+      "bytes": 6944
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/StatePerformances.kerml": {
+      "sha256": "f02fb7e8de58f4304c95c575ee1bcb7d271d621ce8e336ce36ea80a4e956c3da",
+      "bytes": 5456
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Transfers.kerml": {
+      "sha256": "6697453f40187076ebda9ee475f7f974321eb8b48b93622879fe6560fa14dcf5",
+      "bytes": 10816
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/TransitionPerformances.kerml": {
+      "sha256": "1ce78437c817c8359a2cad43e8e72b23dd32b81d2a69dc1126c803fae72aae70",
+      "bytes": 2583
+    },
+    "sysml.library/Kernel Libraries/Kernel Semantic Library/Triggers.kerml": {
+      "sha256": "124cad3625935e078d1363e6100ee12537ca9c51445a18108e056db8b4885609",
+      "bytes": 4422
+    },
+    "sysml.library/Systems Library/.meta.json": {
+      "sha256": "c2b777400a8754c2e28712b2219ed426186b28ae689ce79b97203129817242fb",
+      "bytes": 881
+    },
+    "sysml.library/Systems Library/.project.json": {
+      "sha256": "477f83bec24f4e741bf75571ddba3fd2783f22903b423451d2d824c3e0acebab",
+      "bytes": 611
+    },
+    "sysml.library/Systems Library/Actions.sysml": {
+      "sha256": "afb17b47ea1228bef41ef791ba4ff4253c48a44589e7fd4978b1d7793ea4ff77",
+      "bytes": 14971
+    },
+    "sysml.library/Systems Library/Allocations.sysml": {
+      "sha256": "0ad900a4c25d88eb96da3d57e365f6c38cd87019bcaac5ab91eee9523b5f0ed1",
+      "bytes": 788
+    },
+    "sysml.library/Systems Library/AnalysisCases.sysml": {
+      "sha256": "2bb88f61178f2cefd5441600d2d980ed1e1a4ffc5cb7b3ca9207edee5c350f87",
+      "bytes": 1038
+    },
+    "sysml.library/Systems Library/Attributes.sysml": {
+      "sha256": "0ff9b0acc3f0a7bd68fefe6b110e9136f1911d0c483741804c3b8ca07f5f538d",
+      "bytes": 626
+    },
+    "sysml.library/Systems Library/Calculations.sysml": {
+      "sha256": "19f5c2ac553c0a034550292de6bfa601e6948fc81d5af781b59c940eee2e5f72",
+      "bytes": 990
+    },
+    "sysml.library/Systems Library/Cases.sysml": {
+      "sha256": "2c4c0cbaaa466f9f720ba69af3a019517ca0a7741a561f7880006bae946bf24f",
+      "bytes": 1619
+    },
+    "sysml.library/Systems Library/Connections.sysml": {
+      "sha256": "7303b68d46ee3115e26efbd22d209640cd0f81a71b4c0f0f46f011011153b1c6",
+      "bytes": 2133
+    },
+    "sysml.library/Systems Library/Constraints.sysml": {
+      "sha256": "84dd65984abd0c35c37b75ef5766bfa63c836aa75a1c75a9d3eb5f4230fa8fdd",
+      "bytes": 1263
+    },
+    "sysml.library/Systems Library/Flows.sysml": {
+      "sha256": "191a741036cdffddef310d8abbf10cf622724ca837d3e33953df95664890de41",
+      "bytes": 4766
+    },
+    "sysml.library/Systems Library/Interfaces.sysml": {
+      "sha256": "62b5c3c2bc3960e8d25633231c3933a81e422b3a904dc9541b8787113d076c66",
+      "bytes": 3467
+    },
+    "sysml.library/Systems Library/Items.sysml": {
+      "sha256": "5a3b2c2d2eb3104186a5e200c40647d1d798685a62db0301ce4ca361651015b7",
+      "bytes": 4121
+    },
+    "sysml.library/Systems Library/Metadata.sysml": {
+      "sha256": "c86a68a1b7f8f33f287d812780d2446021aeefb3284f28b9c10dfe2b1a13ded6",
+      "bytes": 884
+    },
+    "sysml.library/Systems Library/Parts.sysml": {
+      "sha256": "a22b926a7bbdcda20149200a61fd41c9f1e3924c8929ef7d68db529fb8e7bf51",
+      "bytes": 1882
+    },
+    "sysml.library/Systems Library/Ports.sysml": {
+      "sha256": "febd6617c3bb9d0f93c77722b98874d89b4973f7b93ee88509097b2e80bc6995",
+      "bytes": 1594
+    },
+    "sysml.library/Systems Library/Requirements.sysml": {
+      "sha256": "c436a8fe2959b380ee3d8ae7c1c206311aa9c1215d13800b215f9952e1216632",
+      "bytes": 5466
+    },
+    "sysml.library/Systems Library/StandardViewDefinitions.sysml": {
+      "sha256": "b29882b0240e3cc2721b66c6bc9fd1d2d2431a34e80e170cd465911ff8d833a5",
+      "bytes": 6115
+    },
+    "sysml.library/Systems Library/States.sysml": {
+      "sha256": "1a84e28d41a8d76ff1cbce81312257dac97b47bcd545c31f8a34f73098ac13bc",
+      "bytes": 3371
+    },
+    "sysml.library/Systems Library/SysML.sysml": {
+      "sha256": "9712ed6aec59e2ff31c915c58ec8d42158c415c9309e96532626f6ee5f8f159c",
+      "bytes": 30789
+    },
+    "sysml.library/Systems Library/UseCases.sysml": {
+      "sha256": "242e51944c32032215d76a9ff1fd967d8ba36efffd9d78da1c423a5b102a2cf6",
+      "bytes": 1271
+    },
+    "sysml.library/Systems Library/VerificationCases.sysml": {
+      "sha256": "dbee7255e16df9c5cf0bded96c43cb60b1e5026b6973c5fb1176316902ac47b9",
+      "bytes": 2488
+    },
+    "sysml.library/Systems Library/Views.sysml": {
+      "sha256": "0bcf10afd49dd09c8c64844da97fc4c01a4a35fefd4e4a179a8bc0a8a261c8a8",
+      "bytes": 3973
+    },
+    "sysml.library.xmi/Domain Libraries/Analysis/AnalysisTooling.sysmlx": {
+      "sha256": "1868d3af980c6675879daee355016daa95d6886fa34757199db154e62bc1d128",
+      "bytes": 6924
+    },
+    "sysml.library.xmi/Domain Libraries/Analysis/SampledFunctions.sysmlx": {
+      "sha256": "76a5e0f7a9db337e6bff9c29d946c1fc69ce80b4e13f2544b7b594bbab9c34fe",
+      "bytes": 263021
+    },
+    "sysml.library.xmi/Domain Libraries/Analysis/StateSpaceRepresentation.sysmlx": {
+      "sha256": "2aa357af0d7cb934bd052e844541e517364e96359ca03f498de418709718de81",
+      "bytes": 69317
+    },
+    "sysml.library.xmi/Domain Libraries/Analysis/TradeStudies.sysmlx": {
+      "sha256": "e933a7136b3421b40b69604f8e0b37a431248784c5a3bd299a5fb58cbd5f396f",
+      "bytes": 60802
+    },
+    "sysml.library.xmi/Domain Libraries/Cause and Effect/CausationConnections.sysmlx": {
+      "sha256": "8e1c3425ff6886c4003317edcbfff889da768ffa278a89fc7a3e48e6a75b541d",
+      "bytes": 45300
+    },
+    "sysml.library.xmi/Domain Libraries/Cause and Effect/CauseAndEffect.sysmlx": {
+      "sha256": "d59a643938695105c9a6c45f720afd88b284224f9fd64e0b60b1a7c1f0db3ab9",
+      "bytes": 33938
+    },
+    "sysml.library.xmi/Domain Libraries/Geometry/ShapeItems.sysmlx": {
+      "sha256": "608dc48f9771b042e69131f1fe28a2396e5fab417c97f0097d1233ed5d333aba",
+      "bytes": 1524866
+    },
+    "sysml.library.xmi/Domain Libraries/Geometry/SpatialItems.sysmlx": {
+      "sha256": "34c581c18ccf4e85be160511476b6d1b2ade1719b4dd321d51617461b94f2858",
+      "bytes": 147102
+    },
+    "sysml.library.xmi/Domain Libraries/Metadata/ImageMetadata.sysmlx": {
+      "sha256": "f989922d77ff6cd823e52741f2fa57837b95e4e911c7a2f645480a9e7122a5ab",
+      "bytes": 18223
+    },
+    "sysml.library.xmi/Domain Libraries/Metadata/ModelingMetadata.sysmlx": {
+      "sha256": "d2ace8ad177916511215ea97a6b6138a41ee3ee9d9e3d2eae33851de54394746",
+      "bytes": 26765
+    },
+    "sysml.library.xmi/Domain Libraries/Metadata/ParametersOfInterestMetadata.sysmlx": {
+      "sha256": "5ba5db588791f87027ea7d0e0afb4bb624d1f6445969218981b5859bbea05db0",
+      "bytes": 15946
+    },
+    "sysml.library.xmi/Domain Libraries/Metadata/RiskMetadata.sysmlx": {
+      "sha256": "1c364ba2f23389ef0c8770731b648fb51b0f1d26e8229a8cf33e9a99f961a510",
+      "bytes": 42206
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQ.sysmlx": {
+      "sha256": "81f4a92d6ffb50a89c40305c377fe1b0055cad008bcf0fb0ff6a41e732756503",
+      "bytes": 22036
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQAcoustics.sysmlx": {
+      "sha256": "d38eb3291592f96b4c40cb52f2df25288b72620f4bac1ab9971a8d68f76eb394",
+      "bytes": 267167
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQAtomicNuclear.sysmlx": {
+      "sha256": "60a712f3cbdd7a376cc4269c3d46fb7fda2bf54efcdc4620e47c4eeecd862559",
+      "bytes": 1616943
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQBase.sysmlx": {
+      "sha256": "3e48f35341fd4211dc4f7d50e1653777e281234661b9fed7591e7a13b1be1d1d",
+      "bytes": 154031
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQCharacteristicNumbers.sysmlx": {
+      "sha256": "062c21be7466120635ecdc2eb89d1f9243cd901fcd69c5e16cac422f550a33d0",
+      "bytes": 379062
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQChemistryMolecular.sysmlx": {
+      "sha256": "3602373d263a95d53513c1e02fd56af3056c9b15569f986e8fdc041a1d2553c6",
+      "bytes": 1212224
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQCondensedMatter.sysmlx": {
+      "sha256": "f45e81e2fbfe9232b45b82ff74656cec66dd6162372622726e243746b11d1e3f",
+      "bytes": 616422
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQElectromagnetism.sysmlx": {
+      "sha256": "10a5c8298ff820d722be3ee618505ad411d329bbe8aa89938a6c2d63bb159237",
+      "bytes": 2300826
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQInformation.sysmlx": {
+      "sha256": "ead8864771820e5530eb47cb543133b0a2af21c17eda4a89318c5ccf99c26c4a",
+      "bytes": 351773
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQLight.sysmlx": {
+      "sha256": "4dbd12d569c17be494b517a071da765b2b95465e00e3f8d06ec046640dbdd6ad",
+      "bytes": 1377754
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQMechanics.sysmlx": {
+      "sha256": "ed9ac8226daaa0f8e0d157caab59dbf47e26060730ee097c7dc8f6b3d3fdc7a2",
+      "bytes": 1262358
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQSpaceTime.sysmlx": {
+      "sha256": "1a3cdf63795becbbb72089d5fc251a7663fd8a78eb6f483b959878d02c7d72ee",
+      "bytes": 796633
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/ISQThermodynamics.sysmlx": {
+      "sha256": "b10b834c803905dd5d067c8afad1db97ce14e16d797293d8f54a8fbb56e75ca1",
+      "bytes": 1245700
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/MeasurementRefCalculations.sysmlx": {
+      "sha256": "ca55d2e4fecb230c52366e89b485d4bcce47e1366ad9bb39488c20684a987da3",
+      "bytes": 40610
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/MeasurementReferences.sysmlx": {
+      "sha256": "073b7f3fd3ac7440099e99ed74a76146ed5c7f35a25363ce0cc542c716fb6590",
+      "bytes": 374763
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/Quantities.sysmlx": {
+      "sha256": "53638a9655b618e2f78f6226f16d4ddb25f0e753e58de65d51c45d0d95dbed08",
+      "bytes": 67622
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/QuantityCalculations.sysmlx": {
+      "sha256": "94b12cab5c33a3a0309e96f11e08e7f7bd2d6e61c84c59fc2a02491e04a6b306",
+      "bytes": 156448
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/SI.sysmlx": {
+      "sha256": "9aa0d0ebaf386bd36eb47a179740f34d06ce75eb7c64f0021682199b8f021047",
+      "bytes": 2216791
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/SIPrefixes.sysmlx": {
+      "sha256": "c43c93dbed9670b61a8265e7291389ce586d75a562ad8b642b4084a41f303161",
+      "bytes": 131517
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/TensorCalculations.sysmlx": {
+      "sha256": "e1622fa380b1d2b9936a83cd1e1a27a0d9f28b35a555a8fb024560d6661976b0",
+      "bytes": 70513
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/Time.sysmlx": {
+      "sha256": "4c0eb585157fac685f269c2784ee9d3de92c7c2ccdd021bb95b1b6ca25d3448a",
+      "bytes": 105038
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/USCustomaryUnits.sysmlx": {
+      "sha256": "d3c8832be539d7d5b92140f7c45d3fc7ab3fc5471c0acdf1ed09fd671aed7085",
+      "bytes": 1378395
+    },
+    "sysml.library.xmi/Domain Libraries/Quantities and Units/VectorCalculations.sysmlx": {
+      "sha256": "01e470e5bd3256706112f5c9af38130b2add7b137903c7b7fd1709c60023e0bb",
+      "bytes": 99821
+    },
+    "sysml.library.xmi/Domain Libraries/Requirement Derivation/DerivationConnections.sysmlx": {
+      "sha256": "5e94930825dde82138b28d549337a57d4d56680b4fffdd2ce003c5837a8fdcc9",
+      "bytes": 30509
+    },
+    "sysml.library.xmi/Domain Libraries/Requirement Derivation/RequirementDerivation.sysmlx": {
+      "sha256": "ffff5ad71ad33b7100aac7d07ed686c2292fefcdbf70d8e0b30968d208ad89cc",
+      "bytes": 20170
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Data Type Library/Collections.kermlx": {
+      "sha256": "fb7151c330737ef6a48c054415fd757097960ca58fecd7b236e306d473a16367",
+      "bytes": 92060
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Data Type Library/ScalarValues.kermlx": {
+      "sha256": "1967f626530bae3a3fbe6548d99c53871e576ecefe511a996861649562c62a37",
+      "bytes": 9028
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Data Type Library/VectorValues.kermlx": {
+      "sha256": "aa2b7cecc5cb330c833b14acd60a9bf5aec79053b6e717eaff8c69a2abdbee4d",
+      "bytes": 14389
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/BaseFunctions.kermlx": {
+      "sha256": "9e8010559cff6dbdbb86360e43f35064c9e431bbcd07e2ca942ac4b6289542b8",
+      "bytes": 87627
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/BooleanFunctions.kermlx": {
+      "sha256": "2cdc359501eb983ce8191e4aff9798f0897f29420dc677c153e8dbe0cac9adc1",
+      "bytes": 35304
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/CollectionFunctions.kermlx": {
+      "sha256": "6f7c1251d03eef4bfcab9cb4a9f2d6e8185777b3ce992f33f904eb84b2235d70",
+      "bytes": 207686
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/ComplexFunctions.kermlx": {
+      "sha256": "e3a81f35ab5f2f63f223b588d95b12a15f946813e8de7564c60196a933584a26",
+      "bytes": 131007
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/ControlFunctions.kermlx": {
+      "sha256": "6dc5516d69ee272801e5c4db229110cff71ff9d7f2f9234770b202524515f793",
+      "bytes": 183342
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/DataFunctions.kermlx": {
+      "sha256": "c6242d3a557bbc1e1e14aef8d5b2590b3d2cf8746e64705636de74df950141ab",
+      "bytes": 112875
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/IntegerFunctions.kermlx": {
+      "sha256": "8adc6db1778f30d1aa572068bd453f01659e3527deac5c71cf509ec04c3800ec",
+      "bytes": 115161
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/NaturalFunctions.kermlx": {
+      "sha256": "4afef89ad82a284e5f7a6740af198e78ae64974b28b6ba90556bb07f5a47a9a9",
+      "bytes": 69842
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/NumericalFunctions.kermlx": {
+      "sha256": "b095a9c5e65a6407715e533be90c6400d5646bd98dba05d092f628c7df742d75",
+      "bytes": 122851
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/OccurrenceFunctions.kermlx": {
+      "sha256": "5c422b6df2e553a0f1f9c5ed0e572de918aa018d99c590ac9dd961cedaa4db71",
+      "bytes": 104144
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/RationalFunctions.kermlx": {
+      "sha256": "0110205365bb935381632ee503b5bf4ec97d4895a914ea12872e9adbb97b913f",
+      "bytes": 133699
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/RealFunctions.kermlx": {
+      "sha256": "8cd178a2ae1ce7c9524e58e09d52dd09e02e0ad335b3f3981aedc879c650e33d",
+      "bytes": 129745
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/ScalarFunctions.kermlx": {
+      "sha256": "d31323db15542ed5c56e9f71cb3f0fd10acd8124a2d33bfd26212002436b575c",
+      "bytes": 103014
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/SequenceFunctions.kermlx": {
+      "sha256": "b78df67453dfd8d58e499e511d0f7f5a909c55bf91febd65d380e2dd2e51e9ff",
+      "bytes": 374495
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/StringFunctions.kermlx": {
+      "sha256": "041bee4c2135c1ae6c5fc7c570ba3753ab2facb3580333bdd3505134a4584470",
+      "bytes": 50008
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/TrigFunctions.kermlx": {
+      "sha256": "435016f1893526877df6dbb73ab222603d072282c94b70d46a923d252d5e3315",
+      "bytes": 75963
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Function Library/VectorFunctions.kermlx": {
+      "sha256": "1737080621c1cb3ad11a4a40f0a3395f466815468b956d863ff9d7c605e35a61",
+      "bytes": 532657
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Base.kermlx": {
+      "sha256": "74cc5a6c64aff94870139f3591a368750d453845363f7e3eb12888166a91b5bd",
+      "bytes": 22568
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Clocks.kermlx": {
+      "sha256": "deb538bca39707a2dc99062446a39f9ea2251a4061e7ee3ace7af99c4a834701",
+      "bytes": 116841
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/ControlPerformances.kermlx": {
+      "sha256": "10b618a590513430ad32ab68bddbaf19bceff29d9decbf4f5512ba5df0231694",
+      "bytes": 105033
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/FeatureReferencingPerformances.kermlx": {
+      "sha256": "3edc1f3820b93cc507a2b0582fb7c7935125b204cd63c8b252cc816b60aa725b",
+      "bytes": 131951
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/KerML.kermlx": {
+      "sha256": "39d607fe9609c643e5090b7ecdcaaf2f4607e766edc61ea0c53fd4a18e514638",
+      "bytes": 531406
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Links.kermlx": {
+      "sha256": "1c3c81e6fbe3c3ed01ab14a170b709ba237fbc2a55543f3931ce9e7f7d3c99e8",
+      "bytes": 27462
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Metaobjects.kermlx": {
+      "sha256": "944a20db186cb9f8c0cd066382aeb879d797309758744c888f30689fb8a2eabe",
+      "bytes": 15044
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Objects.kermlx": {
+      "sha256": "49ac08cd743eb5f8ea2ad8f2c643caa8046b23d88dabd2325869f6a39a9ee6b9",
+      "bytes": 170628
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Observation.kermlx": {
+      "sha256": "045f0a449e2e8f9983986d64117866f77baae716e3e5e8a4f8deaa291a900f40",
+      "bytes": 96043
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Occurrences.kermlx": {
+      "sha256": "b9fcc7f9de6c52fc3aece0784d0903700b9397849501f0000eb9972815db0410",
+      "bytes": 817789
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Performances.kermlx": {
+      "sha256": "b246b3841e5818e450fdc74bc13f12d1d1f0e0f07d236468da270d4d97b5706b",
+      "bytes": 115847
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/SpatialFrames.kermlx": {
+      "sha256": "b5aa06cae3207662b7e5285d22acdff388a215b6cb1b4b69f2893ed4fee022d2",
+      "bytes": 221121
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/StatePerformances.kermlx": {
+      "sha256": "90afb1428c39cf7e5cf5016be8ba464d2e540662c9d5b1a4fa47a32361e172fb",
+      "bytes": 325206
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Transfers.kermlx": {
+      "sha256": "d57fd3c8951751425e8668676e39205d8b56221986e41e46e5e3abd5f217c4b0",
+      "bytes": 194007
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/TransitionPerformances.kermlx": {
+      "sha256": "6f678ddbbd033c3efe4566c515b7dbe396a8a03b52facdb11879e06e27878c2e",
+      "bytes": 105278
+    },
+    "sysml.library.xmi/Kernel Libraries/Kernel Semantic Library/Triggers.kermlx": {
+      "sha256": "7475635bc66f1ac7f686238a5e7c97f3bd0f911580570fb867c1c1cc81e7e09f",
+      "bytes": 82543
+    },
+    "sysml.library.xmi/Systems Library/Actions.sysmlx": {
+      "sha256": "a24c21ddc0b71da597657dab3bbe7bc8f7b737173e2171b1bad84e1b01189bd4",
+      "bytes": 227420
+    },
+    "sysml.library.xmi/Systems Library/Allocations.sysmlx": {
+      "sha256": "34f5e507df760d9310649363303fe3cc2ddc7385859991485d4d393daede7d9b",
+      "bytes": 8706
+    },
+    "sysml.library.xmi/Systems Library/AnalysisCases.sysmlx": {
+      "sha256": "f33588ff61d7f18cf7c5dd4cf0613494f81f8f627cb22a379dc5d249dcef7afe",
+      "bytes": 11217
+    },
+    "sysml.library.xmi/Systems Library/Attributes.sysmlx": {
+      "sha256": "f330f4d093f1bf03e79838da4c27c423b62b8274b64cb150a9556bbce628b0df",
+      "bytes": 3623
+    },
+    "sysml.library.xmi/Systems Library/Calculations.sysmlx": {
+      "sha256": "7e34ba480f2eff1213b094b5c0a7c5a61612e0a898e9796538d5eb3db60fc3f6",
+      "bytes": 10197
+    },
+    "sysml.library.xmi/Systems Library/Cases.sysmlx": {
+      "sha256": "6af12429cc3d95a9db35e68261a16b4232a08756f25718f9e558f9bd16e1b50d",
+      "bytes": 20914
+    },
+    "sysml.library.xmi/Systems Library/Connections.sysmlx": {
+      "sha256": "85883d70e8767378bd7db451af001e9c1748a18a8f8e162393302e57e01ed196",
+      "bytes": 19074
+    },
+    "sysml.library.xmi/Systems Library/Constraints.sysmlx": {
+      "sha256": "eb661721a80bb13310ea6d847c0cc4e89fe144bcdab106040a27fc647e3e68c6",
+      "bytes": 10577
+    },
+    "sysml.library.xmi/Systems Library/Flows.sysmlx": {
+      "sha256": "0848f7ad404a5ab9cf1774644c1babc1d1d0229a730c570009556cc427fe72e4",
+      "bytes": 101078
+    },
+    "sysml.library.xmi/Systems Library/Interfaces.sysmlx": {
+      "sha256": "19d5773b5e4d1a96d71130fdb178dfaf04866879fabe2a5674a3d50e5fc4b29e",
+      "bytes": 54658
+    },
+    "sysml.library.xmi/Systems Library/Items.sysmlx": {
+      "sha256": "d76c59d6055a9ce28b18b3b788b73f6ec521a7aa141b561227f9fd646ca64193",
+      "bytes": 148064
+    },
+    "sysml.library.xmi/Systems Library/Metadata.sysmlx": {
+      "sha256": "3ae26afd2ac60428526d814ba71ce284ad7edc15b129fa03c6cf6814efd73be5",
+      "bytes": 8470
+    },
+    "sysml.library.xmi/Systems Library/Parts.sysmlx": {
+      "sha256": "7d03ea7b77dce20be93ca6a5ec4a73b748ea3312755158b4f9d35273fa0e3b75",
+      "bytes": 30823
+    },
+    "sysml.library.xmi/Systems Library/Ports.sysmlx": {
+      "sha256": "852999366b644c54205e96295977c51ffbccd02552d7bf05fb533083e7866e77",
+      "bytes": 17056
+    },
+    "sysml.library.xmi/Systems Library/Requirements.sysmlx": {
+      "sha256": "cc6e467c15e7db7637329deb2a2a8b4038c4ed93f1003b2c86c4693726433b7f",
+      "bytes": 57697
+    },
+    "sysml.library.xmi/Systems Library/StandardViewDefinitions.sysmlx": {
+      "sha256": "ced374eacac2781d8835fff8694e0153c931a8888c2738804e7ec2d9d4e40acf",
+      "bytes": 12680
+    },
+    "sysml.library.xmi/Systems Library/States.sysmlx": {
+      "sha256": "ed1e74a25769db7a21071fca4f5c85a1f8dfe91f1593d7fb70272d01e44dd509",
+      "bytes": 62565
+    },
+    "sysml.library.xmi/Systems Library/SysML.sysmlx": {
+      "sha256": "3f297bea0840499febeaa35eb89f0fa2f5c07f2a5a0acc687c62d7fcdc5de511",
+      "bytes": 641899
+    },
+    "sysml.library.xmi/Systems Library/UseCases.sysmlx": {
+      "sha256": "c1251390e3b1da7d2fd77bef241e6aa3116a5f64ea8ed97b00d3c9790545ee93",
+      "bytes": 16762
+    },
+    "sysml.library.xmi/Systems Library/VerificationCases.sysmlx": {
+      "sha256": "d968b5e3c5e1d2f360fa4d4b643e402f60003ab706edba60bb859994c2411b74",
+      "bytes": 40177
+    },
+    "sysml.library.xmi/Systems Library/Views.sysmlx": {
+      "sha256": "58badd4212eb637a3171f6df33ee981bc0e119bbe2e7375e7ff3593f3f772b29",
+      "bytes": 57360
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Analysis/AnalysisTooling.sysmlx": {
+      "sha256": "f770aa8557694eec931cd45158a5509f87d4ec657df6d78deb92d03717d24b04",
+      "bytes": 15159
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Analysis/SampledFunctions.sysmlx": {
+      "sha256": "382dc3a7559cee5889fbfd22feceb8c6fc1329ca7d52ae423b7fa2f7e1a7190c",
+      "bytes": 1862214
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Analysis/StateSpaceRepresentation.sysmlx": {
+      "sha256": "46ae7928d2598e62f64428d043b8665330865dc25cd7f44396d731a204fa1264",
+      "bytes": 342237
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Analysis/TradeStudies.sysmlx": {
+      "sha256": "cb0702f5b31345e44816c291d693580a5aefdefc383dd98e98f8a14be902fccb",
+      "bytes": 320752
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Cause and Effect/CausationConnections.sysmlx": {
+      "sha256": "2b4cd08ca23722f86982a8c4991f8465f2490b556c8de9e3fd4d71ff5bc891f8",
+      "bytes": 180780
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Cause and Effect/CauseAndEffect.sysmlx": {
+      "sha256": "08625c4059fdb22de18cc66fcf4d8e43e8d233cb9a1dc49787fa9fe6d818e41e",
+      "bytes": 124982
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Geometry/ShapeItems.sysmlx": {
+      "sha256": "e308af105ad864b2ee63f53df6cd6c2451d28d6dd1f798fd97ca809d9a7aa94a",
+      "bytes": 7691732
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Geometry/SpatialItems.sysmlx": {
+      "sha256": "090262430f4c98d07892f0a9b00cd7c28ce0e897d73919b69c9fd31504c173cb",
+      "bytes": 658067
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Metadata/ImageMetadata.sysmlx": {
+      "sha256": "9339b6ec83aeaa2859cde3355d1b9713df2b63b13c3862fdb452fad44d85d1e8",
+      "bytes": 39416
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Metadata/ModelingMetadata.sysmlx": {
+      "sha256": "0ae245923641492571d3467ead04f3b698801858126152e95df3e521df8459b7",
+      "bytes": 57983
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Metadata/ParametersOfInterestMetadata.sysmlx": {
+      "sha256": "52b60de7604d5881bbcf32e34a16fc33684bea044bda111846209d0245ef2e06",
+      "bytes": 53408
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Metadata/RiskMetadata.sysmlx": {
+      "sha256": "c91f406dfb95edc92eb44a8f84b55ef3e11a04369d9eaf4d1c501c8b735805b1",
+      "bytes": 219042
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQ.sysmlx": {
+      "sha256": "f39ea977a4d127c166dbce876e41c44eb7f622113cc9426706b595d2a141d2a4",
+      "bytes": 68619
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQAcoustics.sysmlx": {
+      "sha256": "443e5823b070e9530c0db4e453f7b0cae06540b6556a89894aaee268ef5747bd",
+      "bytes": 1124141
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQAtomicNuclear.sysmlx": {
+      "sha256": "7301b4adbeaec98623725fde8e5de4e81bfb582c07e71829fdfc11098ebf97a0",
+      "bytes": 6827930
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQBase.sysmlx": {
+      "sha256": "d9c140d2bafb839cbd6cb0b45e3fc57fdbf33f526eb17579990fe2939594a751",
+      "bytes": 646313
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQCharacteristicNumbers.sysmlx": {
+      "sha256": "5f3852282aa32434a5056f741587c108f86c020061d2c8a4ed6d27fd889531ef",
+      "bytes": 384762
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQChemistryMolecular.sysmlx": {
+      "sha256": "1bb76c8b29dffb919afc6249f5657284b9fc339d20d8ada47c2413f8bf1bf4a2",
+      "bytes": 6077156
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQCondensedMatter.sysmlx": {
+      "sha256": "993b25341a28849260e585349e234568b95871f868d238250ef353aa3e446d2c",
+      "bytes": 2603197
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQElectromagnetism.sysmlx": {
+      "sha256": "7f553815d2d2c9199a4aa45506db340a95cdb5004af24c2350331132b17f7f29",
+      "bytes": 11724586
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQInformation.sysmlx": {
+      "sha256": "60bc06a3e539f71c18c0857b6810f22f97e7e82aa48b70d293f97668062ff91a",
+      "bytes": 911560
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQLight.sysmlx": {
+      "sha256": "94e56a93ddde42e33b6e9171acb8fd73d4f44c46f33caebe523d466b257f9d31",
+      "bytes": 6595462
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQMechanics.sysmlx": {
+      "sha256": "457e3bf5a6a71460e80cd2ab514e7f15d84ea0a9462fb1f6a6f4801e89ba30b2",
+      "bytes": 5985925
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQSpaceTime.sysmlx": {
+      "sha256": "77805deabd5635fcbb8949507426cb58a20d6f18238196c3b9e27c8158070e49",
+      "bytes": 3999587
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/ISQThermodynamics.sysmlx": {
+      "sha256": "455858e01caf46381b31a4668f2eff30e76a4405e58758f2bd54a0be7831b0de",
+      "bytes": 6346273
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/MeasurementRefCalculations.sysmlx": {
+      "sha256": "ecb6a431d9e74affa37432348a06c79fb9ad19ee13330b747b3b25a5032e6251",
+      "bytes": 112326
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/MeasurementReferences.sysmlx": {
+      "sha256": "dc996c556f79a9a7642120b8772412403120fc47863c8fc16ce73723e351f577",
+      "bytes": 2048347
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/Quantities.sysmlx": {
+      "sha256": "7615fcc8be1edf034745c1269cebba50416783a1273920551dda909b8c9013c3",
+      "bytes": 295533
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/QuantityCalculations.sysmlx": {
+      "sha256": "4792fc0e56d7e9d66a30a1780ebf8c6f797c8ebb5d2a0d0f271cecccce089518",
+      "bytes": 584138
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/SI.sysmlx": {
+      "sha256": "7a0738874cd858c6ff465b40abbff69754117874721dec6dce4220a5523d689c",
+      "bytes": 17014496
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/SIPrefixes.sysmlx": {
+      "sha256": "0a4db8e6f9a4d694b31eacb9c48c9984dd787f5fd9d15aae1b9be093d90c39cb",
+      "bytes": 793332
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/TensorCalculations.sysmlx": {
+      "sha256": "83cd314460db7f0ba953aa78b1dabf4f81d993a1a32893a2023e05f8934074bd",
+      "bytes": 230278
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/Time.sysmlx": {
+      "sha256": "5a3f97c7d3ea4d800209deae9d4aaff726d8493690051af7a1cc5479d1325a34",
+      "bytes": 381264
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/USCustomaryUnits.sysmlx": {
+      "sha256": "7b482a5b4004c0aeb3ca3055106a028f39658cbd1f39a8351c698ba90622b389",
+      "bytes": 9482150
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Quantities and Units/VectorCalculations.sysmlx": {
+      "sha256": "1937650c59c7a448246d225f187f2a585c0a12273cf4ec00ec4722d03272c55c",
+      "bytes": 357571
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Requirement Derivation/DerivationConnections.sysmlx": {
+      "sha256": "cffcca725dcfee9efe774c910fddbb55a90f2b29993b2f296379de7bcd09cab5",
+      "bytes": 149065
+    },
+    "sysml.library.xmi.implied/Domain Libraries/Requirement Derivation/RequirementDerivation.sysmlx": {
+      "sha256": "acd2f4561b14ec5a0d68052b75d61ef944a9005d658468dcc098142b1f82760f",
+      "bytes": 73587
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Data Type Library/Collections.kermlx": {
+      "sha256": "9a7b342251c27a4697d414518c44de193e4b43fcde53d6295d871c8b3729a017",
+      "bytes": 450610
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Data Type Library/ScalarValues.kermlx": {
+      "sha256": "dbe77d2f74678007addbe8cb41b398aa1192dcc99d55a44849f45f02cbb1141e",
+      "bytes": 9303
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Data Type Library/VectorValues.kermlx": {
+      "sha256": "1113e77783eafc1fda738b5b77138b27134fa3147ce31117477057581fcff9e3",
+      "bytes": 24766
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/BaseFunctions.kermlx": {
+      "sha256": "5926aecbf8862aca8cee3b82c63307814c3263726f6f12a5adbfa04f089767c0",
+      "bytes": 279783
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/BooleanFunctions.kermlx": {
+      "sha256": "68ffbea71669e59ddccfb3ce47adc0112140d062b7f6c04bf6d2e7b702611525",
+      "bytes": 77372
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/CollectionFunctions.kermlx": {
+      "sha256": "24a5e56810a5f8602230f53df5f65f458c4ae3b3e355e7ee606b6db1ad2fd0aa",
+      "bytes": 1279766
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/ComplexFunctions.kermlx": {
+      "sha256": "e8116991a3820653988a8ec6ea1e67b982988b611506b4b8db69efb2946c1dc4",
+      "bytes": 519310
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/ControlFunctions.kermlx": {
+      "sha256": "581d1ff1cdf1234bcd8279691e6430d011c28bc6c6a34c1e1a52c59e3956bb2c",
+      "bytes": 719808
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/DataFunctions.kermlx": {
+      "sha256": "0313d733a8b2077e4615e5e10f42c490b734d00185cd78bf0bfff048e69b9323",
+      "bytes": 300627
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/IntegerFunctions.kermlx": {
+      "sha256": "0eb8b798cdffcd99786cac8dff23e2cda517a6ccceaf7b2921ecdec0cf19bb05",
+      "bytes": 289729
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/NaturalFunctions.kermlx": {
+      "sha256": "79cbe79e03cbe215540524ac1c9f2eafe835ee52a7dc596cda2936ff2ad5cbbf",
+      "bytes": 153802
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/NumericalFunctions.kermlx": {
+      "sha256": "64e6f6470b0bde0c4419bb14e69db6a829877c957a49c62046d04612be7d1d44",
+      "bytes": 409787
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/OccurrenceFunctions.kermlx": {
+      "sha256": "f89782f56db5f5d3ca04a77e8a9bcf4a61bb55c5726ee0517091ba82a105f453",
+      "bytes": 482985
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/RationalFunctions.kermlx": {
+      "sha256": "37814a76880e4dde0ce30856840df0fe007284d4df43639993f7194e5c86fb3e",
+      "bytes": 359592
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/RealFunctions.kermlx": {
+      "sha256": "db6e7e8a985574785669736ded575682e97a00a8f21c31f10ef9175eccf90fd4",
+      "bytes": 344197
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/ScalarFunctions.kermlx": {
+      "sha256": "601279ed46ef1978f0cba2e5e8849bc3eddf917efc8751d876abf356109bfa6e",
+      "bytes": 225289
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/SequenceFunctions.kermlx": {
+      "sha256": "0ac9fd113f42bc67bc4d966d47e6efbe2d28dc5e5a88fd1bbee8fa4b9bf04fc4",
+      "bytes": 2234554
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/StringFunctions.kermlx": {
+      "sha256": "4ccaf6a5920108a8164ace3e5e7bab1e869615b5a307a2b0cfad48bde3ca73d2",
+      "bytes": 121277
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/TrigFunctions.kermlx": {
+      "sha256": "caeb6299ec22164c210e62df683dd7fb787e0aa93d6fdcb1b24a7e3f1f921f13",
+      "bytes": 436577
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Function Library/VectorFunctions.kermlx": {
+      "sha256": "7db2d07cd0fb54add5afcdd8d2b2185b01b4092a90de9602d9a046ee04867dc5",
+      "bytes": 3421894
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Base.kermlx": {
+      "sha256": "984234a4bbf7dcbde1f86066f3f7da6b93a1b228b10b93d90727532766952699",
+      "bytes": 35125
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Clocks.kermlx": {
+      "sha256": "390d292cd3863b4d994550b71b9e5ace81f0aafe5890b089e2255462ff1a4803",
+      "bytes": 645843
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/ControlPerformances.kermlx": {
+      "sha256": "069b406c03c2dd028c62532ca4f6b8c3b407c64afe45eda59674fe8d7ed9e03c",
+      "bytes": 399395
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/FeatureReferencingPerformances.kermlx": {
+      "sha256": "6210f4f5e4d256fb878ef0c3577aac92bbf34bb554631d3e689c48a0dcebc366",
+      "bytes": 391257
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/KerML.kermlx": {
+      "sha256": "3a7974a511c59e5b4d45161e8058acb8df0cf07fb0fb0347119edd40f616177d",
+      "bytes": 1311237
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Links.kermlx": {
+      "sha256": "e4c26750f0c183fc6868737d6c3120cdcd44c98de29a40aeddec86dd941aee19",
+      "bytes": 44247
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Metaobjects.kermlx": {
+      "sha256": "44a05881bee2633c5e5611738a60f5077933f9c50866c5c24d01617ff9364672",
+      "bytes": 23387
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Objects.kermlx": {
+      "sha256": "87009fd0d166acfd263a55b0020236331d4a35e39d5bab7f3b9d468046efa23a",
+      "bytes": 820498
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Observation.kermlx": {
+      "sha256": "0dd206a202f1c0ca274c087d4f3abf5b66cf30444306f75f1f4c30a3a554c99a",
+      "bytes": 451720
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Occurrences.kermlx": {
+      "sha256": "df48e94a5a28288c1e142cfa535bfb248c5ebcf2ea4a5257bd2132301c779457",
+      "bytes": 3052314
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Performances.kermlx": {
+      "sha256": "b59349bdb97c8dc89496ad430ccb8ba4b265b2e3b4e50bf5526b364f8def93fb",
+      "bytes": 256690
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/SpatialFrames.kermlx": {
+      "sha256": "29941c306261e7c9d1f8718e242751fd3671185c237e6a5052897a9566126fda",
+      "bytes": 1183176
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/StatePerformances.kermlx": {
+      "sha256": "cea82f3ab990aa68b987bc0b6a161e1f8a39f9188a81befe42f6e6031563404b",
+      "bytes": 1857183
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Transfers.kermlx": {
+      "sha256": "c454b7c6a5ce91e0b7d0e61f456a7a62e5359eac386ddbf862a58e0a795a7c6e",
+      "bytes": 642222
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/TransitionPerformances.kermlx": {
+      "sha256": "ebf1e4d092d29d82eeebf44627cbb56ae0eca3ab7ca786c5c2d4cd009364a801",
+      "bytes": 406204
+    },
+    "sysml.library.xmi.implied/Kernel Libraries/Kernel Semantic Library/Triggers.kermlx": {
+      "sha256": "d0f313a378dec9fd52ef2ed45122982431dd26e9ada3fe78714a383ec15c7bf4",
+      "bytes": 398545
+    },
+    "sysml.library.xmi.implied/Systems Library/Actions.sysmlx": {
+      "sha256": "830372f86a3617d8d93a0edafcb3250325276aaadb984146a6b977d691bc971d",
+      "bytes": 695060
+    },
+    "sysml.library.xmi.implied/Systems Library/Allocations.sysmlx": {
+      "sha256": "e1e442e4d8142820333a5bdacbc7b496763f38617c3ad0a9dc193b05160c52d2",
+      "bytes": 14287
+    },
+    "sysml.library.xmi.implied/Systems Library/AnalysisCases.sysmlx": {
+      "sha256": "bc9b936471fa400b6705983cf2e1667b67cad5de2b662487d748fe5ae9c0a807",
+      "bytes": 18132
+    },
+    "sysml.library.xmi.implied/Systems Library/Attributes.sysmlx": {
+      "sha256": "f330f4d093f1bf03e79838da4c27c423b62b8274b64cb150a9556bbce628b0df",
+      "bytes": 3623
+    },
+    "sysml.library.xmi.implied/Systems Library/Calculations.sysmlx": {
+      "sha256": "d420131a0070bc90d952fea66dea055d48a792e1f3f794080319082b7d43f1eb",
+      "bytes": 13519
+    },
+    "sysml.library.xmi.implied/Systems Library/Cases.sysmlx": {
+      "sha256": "298b26ba9a6a4961024ec49397f649292463c72c02bc1a27358c807bd03a775e",
+      "bytes": 48590
+    },
+    "sysml.library.xmi.implied/Systems Library/Connections.sysmlx": {
+      "sha256": "3b330a111b7d3826fc2e6f1e98800e1ff3ccb7019ebaf7b1055034ed455a835a",
+      "bytes": 26132
+    },
+    "sysml.library.xmi.implied/Systems Library/Constraints.sysmlx": {
+      "sha256": "e1086a1d2bf4ec8b8a881324e1d5887ad1c46929ff210cc71c6a642645f6a20d",
+      "bytes": 14060
+    },
+    "sysml.library.xmi.implied/Systems Library/Flows.sysmlx": {
+      "sha256": "3784e2062ac76273a87be094d0039018264e56fe1f8f3cde4ad1762bdfd4cb0b",
+      "bytes": 408675
+    },
+    "sysml.library.xmi.implied/Systems Library/Interfaces.sysmlx": {
+      "sha256": "2406be1ac1512ccabeab2917a9cf98aee3a1f5bd9313704d0fffa12586d62f3b",
+      "bytes": 264073
+    },
+    "sysml.library.xmi.implied/Systems Library/Items.sysmlx": {
+      "sha256": "13b7534ec003818d41c2f7b5c4a370f6551849f8023afd1375d7f3baeae1bf20",
+      "bytes": 838674
+    },
+    "sysml.library.xmi.implied/Systems Library/Metadata.sysmlx": {
+      "sha256": "fe6f8dac16471ffa2268894d8cbd13097afb1716f0b2b70d3a5a53a1b4790c86",
+      "bytes": 11196
+    },
+    "sysml.library.xmi.implied/Systems Library/Parts.sysmlx": {
+      "sha256": "28009958d01b1f9cc592a41b9d7e813139e69c54932746627c01873a9697072d",
+      "bytes": 75461
+    },
+    "sysml.library.xmi.implied/Systems Library/Ports.sysmlx": {
+      "sha256": "b2e2a29ec8447ba4e833557de197a3692ce68eb36c3566ebe80700ac900ff74a",
+      "bytes": 35164
+    },
+    "sysml.library.xmi.implied/Systems Library/Requirements.sysmlx": {
+      "sha256": "12014cf8a38c70ef8e27ccbdcd7e07d5ebb7682511ef0da37eef13fa976cf3e7",
+      "bytes": 153669
+    },
+    "sysml.library.xmi.implied/Systems Library/StandardViewDefinitions.sysmlx": {
+      "sha256": "f74f9eb45d51d0ba6cb54b085338e203cc0319cbd3392c9e00c7ae05cbe68ee0",
+      "bytes": 14974
+    },
+    "sysml.library.xmi.implied/Systems Library/States.sysmlx": {
+      "sha256": "eafbb21289d9e370b1fa380b3120f24ba0b3fd637b2ac109588c2e47f1290b90",
+      "bytes": 223354
+    },
+    "sysml.library.xmi.implied/Systems Library/SysML.sysmlx": {
+      "sha256": "ff4e4c483226d4c33697a6ecea94783ff9591ec161a4b0ab1add6314e5f3e574",
+      "bytes": 1488341
+    },
+    "sysml.library.xmi.implied/Systems Library/UseCases.sysmlx": {
+      "sha256": "64f9478669755689fd8dfb669096ba9243cdfb44f595c1aeff72fbb79ca6af1b",
+      "bytes": 31654
+    },
+    "sysml.library.xmi.implied/Systems Library/VerificationCases.sysmlx": {
+      "sha256": "1933b87ab21cf14d586772412bd0325ee69868f8fae25922a1a71adf2d9d30be",
+      "bytes": 166918
+    },
+    "sysml.library.xmi.implied/Systems Library/Views.sysmlx": {
+      "sha256": "346a2b8ce06963dd6ecef070845d7f3fbc42f84ba284079bc1b99fc482a1092f",
+      "bytes": 157698
+    },
+    "sysml.library.kpar/Kernel_Data_Type_Library-1.1.0-dev.20260501.kpar": {
+      "sha256": "435957d0c3245f90af7c7d3d7ab7b6678d4b50e0987d81682ace4370eafe8512",
+      "bytes": 3636
+    },
+    "sysml.library.kpar/Kernel_Function_Library-1.1.0-dev.20260501.kpar": {
+      "sha256": "bd44ea22f729aaa3d9a9363a77a57bbfed3ce387da80b90a931cd5fe58f04a5f",
+      "bytes": 14105
+    },
+    "sysml.library.kpar/Kernel_Semantic_Library-1.1.0-dev.20260501.kpar": {
+      "sha256": "9c5ca6152a5df719e448c60d5106c6f884e40264e2e7cbc7b5e93df7b3d31e20",
+      "bytes": 31530
+    },
+    "sysml.library.kpar/SysML_Analysis_Library-2.1.0-dev.20260501.kpar": {
+      "sha256": "acfb294ec4e1f515a1244210979376c8c5a32ac23f33bd829d746ff3835b24f3",
+      "bytes": 5438
+    },
+    "sysml.library.kpar/SysML_Cause_and_Effect_Library-2.1.0-dev.20260501.kpar": {
+      "sha256": "3aff0fbd507e4c902f68bab33864cca4f08967eaeb17fd4ec1ee0cf72fc20b32",
+      "bytes": 2620
+    },
+    "sysml.library.kpar/SysML_Geometry_Library-2.1.0-dev.20260501.kpar": {
+      "sha256": "50adc19cfaae219fa083c3d8f681b11a6e6b7740abc5469f5334388166660222",
+      "bytes": 7063
+    },
+    "sysml.library.kpar/SysML_Metadata_Library-2.1.0-dev.20260501.kpar": {
+      "sha256": "bfebcc1c43c3c449b033c012d1faae0a391d94b442e981f5e468a25364411956",
+      "bytes": 4020
+    },
+    "sysml.library.kpar/SysML_Quantities_and_Units_Library-2.1.0-dev.20260501.kpar": {
+      "sha256": "5faf347da0655591dec491bc9c61df7e2706af0b3be0be6ddaeabb96da2dc539",
+      "bytes": 152713
+    },
+    "sysml.library.kpar/SysML_Requirement_Derivation_Library-2.1.0-dev.20260501.kpar": {
+      "sha256": "3d747c68fab9a8db39471fb6326a537c557cef5d16135a42375aad65b2bfb9cd",
+      "bytes": 2172
+    },
+    "sysml.library.kpar/SysML_Systems_Library-2.1.0-dev.20260501.kpar": {
+      "sha256": "de4fba5c1c031ecff02b37ab4c807f29c039c6e65c7fbb0b07b32b6340626ea1",
+      "bytes": 25355
+    },
+    "bnf/KerML-textual-bnf.kebnf": {
+      "sha256": "2df526a1d36fc08a24adc05094fca069c3bef51aeb688f8328d408eee17103f8",
+      "bytes": 45378
+    },
+    "bnf/SysML-graphical-bnf.kgbnf": {
+      "sha256": "f70506f9f0b89b473cb46cb37115216dfb309940d227ee1b8be1f9cfbbd0983e",
+      "bytes": 63534
+    },
+    "bnf/SysML-textual-bnf.kebnf": {
+      "sha256": "b30e3af5ab0092ac9528ea714822412c7fe2467dff6983215eb9ac5e65139ed3",
+      "bytes": 50337
+    },
+    "sysml/src/examples/Analysis Examples/AnalysisAnnotation.sysml": {
+      "sha256": "c7654db1f5406300514648b960bfd859a4ca0b2a809545e895d6f4965fb0c165",
+      "bytes": 959
+    },
+    "sysml/src/examples/Analysis Examples/Dynamics.sysml": {
+      "sha256": "ed5c0c0b23f75bcddd853797ab8e97c394689652e0fef7214aa80baf4452818a",
+      "bytes": 2339
+    },
+    "sysml/src/examples/Analysis Examples/Turbojet Stage Analysis.sysml": {
+      "sha256": "a7c04ba7f34884333923ac27509f94027f5612e5b2af40e75a6f16caf7d14752",
+      "bytes": 4250
+    },
+    "sysml/src/examples/Analysis Examples/Vehicle Analysis Demo.sysml": {
+      "sha256": "d5c73158eb4fb8da08819fb4b20b06fe0153ec017355c40996a56fca550dd612",
+      "bytes": 9023
+    },
+    "sysml/src/examples/Arrowhead Framework Example/AHFCoreLib.sysml": {
+      "sha256": "08c81e862f96e1799a7e1ced4abc6171105c546de208d4fc309e1d8e1011e102",
+      "bytes": 1620
+    },
+    "sysml/src/examples/Arrowhead Framework Example/AHFNorwayTopics.sysml": {
+      "sha256": "a7b02539744dd06758b5bde8b0a3047749d61d69d4d1d102483907a7eadec30b",
+      "bytes": 5102
+    },
+    "sysml/src/examples/Arrowhead Framework Example/AHFProfileLib.sysml": {
+      "sha256": "ad560b0ecbfe615c500d8884307e3676666ae3fe1fcc7bcb213d392b97519cd6",
+      "bytes": 3442
+    },
+    "sysml/src/examples/Arrowhead Framework Example/AHFSequences.sysml": {
+      "sha256": "33ccdda01ec89aab46f02610e495924e3842b8745e44447b9f4b9997cc01ab9d",
+      "bytes": 4814
+    },
+    "sysml/src/examples/Association Examples/ProductSelection_N_ary.sysml": {
+      "sha256": "71b73c389b7826c5c435f50c63f1b8fd17d6dae6788b3c0d3b82ce6571c4e6d9",
+      "bytes": 596
+    },
+    "sysml/src/examples/Association Examples/ProductSelection_OwnedEnds.sysml": {
+      "sha256": "f826636f63fd9e3d78b6f173e668f09a11f159d20fda264dc8d32eed5c61d857",
+      "bytes": 1260
+    },
+    "sysml/src/examples/Association Examples/ProductSelection_UnownedEnds.sysml": {
+      "sha256": "b4fb425c73770ecf2569b98886b021354ed96baf25c04564d782a85c7156a0d3",
+      "bytes": 879
+    },
+    "sysml/src/examples/Camera Example/Camera.sysml": {
+      "sha256": "6ad1fad43c0fee8ca64ce01f7efb7b0477984711f4e59db85f801a8e56bd33bf",
+      "bytes": 238
+    },
+    "sysml/src/examples/Camera Example/PictureTaking.sysml": {
+      "sha256": "355a83a27952516c71ff6eb5a4a56354cf2ae9433f0e2ae5cc272bf27c6656ed",
+      "bytes": 261
+    },
+    "sysml/src/examples/Cause and Effect Examples/CauseAndEffectExample.sysml": {
+      "sha256": "cea13bb56e7e25fac50f49ddd8f7a6b25c00921df71a9642d339b74a55cf12d5",
+      "bytes": 1197
+    },
+    "sysml/src/examples/Cause and Effect Examples/MedicalDeviceFailure.sysml": {
+      "sha256": "3e1e7a586016266015c25b2695b0c892b56adb2a7fc7cf0832dc6d5bccb895e7",
+      "bytes": 491
+    },
+    "sysml/src/examples/Comment Examples/Comments.sysml": {
+      "sha256": "de15fe494f97ea705fd70c00957c0b93d569fa372b2b85771276a8eab74a9d5b",
+      "bytes": 384
+    },
+    "sysml/src/examples/Flashlight Example/Flashlight Example.sysml": {
+      "sha256": "0b90c2fa75f7ff82495418c3bc366802c6646f8618878845af0bc3975286f8f9",
+      "bytes": 1245
+    },
+    "sysml/src/examples/Geometry Examples/CarWithEnvelopingShape.sysml": {
+      "sha256": "570301dc80454a8520ba205c31ef438b7e054614e7366562d208fc206b7df6f1",
+      "bytes": 330
+    },
+    "sysml/src/examples/Geometry Examples/CarWithShapeAndCSG.sysml": {
+      "sha256": "2c6477586699165c00aa0f0ed4ce0f97478d1aa35ff72de5aa6225217cc2e4e2",
+      "bytes": 2520
+    },
+    "sysml/src/examples/Geometry Examples/ExternalShapeRefExample.sysml": {
+      "sha256": "666ab593484b975a36be6e6e33cbcb36d46f5729f445c6cff5e7637bf7249477",
+      "bytes": 684
+    },
+    "sysml/src/examples/Geometry Examples/SimpleQuadcopter.sysml": {
+      "sha256": "82e2de737e7ac1580a7f73cdebb81841a5f72851921c606059f41eaabd5af46e",
+      "bytes": 10751
+    },
+    "sysml/src/examples/Geometry Examples/VehicleGeometryAndCoordinateFrames.sysml": {
+      "sha256": "e097b0f8a2094ed5b53275e5b1324a828d8769d7f4f4db41dabf9f643e462c24",
+      "bytes": 5064
+    },
+    "sysml/src/examples/Import Tests/AliasImport.sysml": {
+      "sha256": "b243243ba39ca49c9ad53521418513ea3111b4e6be864023dfa1bb921baf96e2",
+      "bytes": 194
+    },
+    "sysml/src/examples/Import Tests/CircularImport.sysml": {
+      "sha256": "3ed6813e219e43b737251c69aaa421d0e993219cbf35d3f78819de8b6eef70d4",
+      "bytes": 372
+    },
+    "sysml/src/examples/Import Tests/PrivateImportTest.sysml": {
+      "sha256": "5111a800ab20f0018277bef5b4ed9d055327d03ac8afbdea2c2d3e5713113007",
+      "bytes": 591
+    },
+    "sysml/src/examples/Import Tests/QualifiedNameImportTest.sysml": {
+      "sha256": "2720d3539f24ebfc294bec9dad4c7537af099e46df8b02b31a197aca51d7a1ed",
+      "bytes": 242
+    },
+    "sysml/src/examples/Individuals Examples/AnalysisIndividualExample.sysml": {
+      "sha256": "d122c30c46a7a32d4ae513fa5afd12ce020f52bc03357d89b82ea3f2c7dca453",
+      "bytes": 2815
+    },
+    "sysml/src/examples/Individuals Examples/JohnIndividualExample.sysml": {
+      "sha256": "4a1c63acaa2f68177ba71936e7110a692b56bcc5acf240befc0b3124a4fbf4ad",
+      "bytes": 1431
+    },
+    "sysml/src/examples/Interaction Sequencing Examples/ServerSequenceModel.sysml": {
+      "sha256": "32d2847af1ee7eae4e1eba8431673e54e469cd893f9b9a7d8fcb56cdb404ff88",
+      "bytes": 1028
+    },
+    "sysml/src/examples/Interaction Sequencing Examples/ServerSequenceModelOutside.sysml": {
+      "sha256": "9e77acbd7479aabaf309f0f5e01cada6859b38b582dec5335fd6d707f1a9e6bd",
+      "bytes": 714
+    },
+    "sysml/src/examples/Interaction Sequencing Examples/ServerSequenceOutsideRealization-2.sysml": {
+      "sha256": "1c66e402fab39f0825b6b55f6ce2fcf346dfdbdf92a395cee45cb3fc91692145",
+      "bytes": 3259
+    },
+    "sysml/src/examples/Interaction Sequencing Examples/ServerSequenceOutsideRealization-3.sysml": {
+      "sha256": "9c0f256fd896b3e14e4641677b6c0090dc59336d3649be8d4996a5712767868d",
+      "bytes": 5158
+    },
+    "sysml/src/examples/Interaction Sequencing Examples/ServerSequenceRealization-2.sysml": {
+      "sha256": "791b64162fb088a5a3ba1d7913c4d7bea6e5906b4b3230dd587aae98a0ea3f51",
+      "bytes": 3235
+    },
+    "sysml/src/examples/Interaction Sequencing Examples/ServerSequenceRealization-3.sysml": {
+      "sha256": "415b2ac9e58d906039c420d366fa98c88dd03f2c0981c9a18a28520ad0dee25e",
+      "bytes": 4724
+    },
+    "sysml/src/examples/Mass Roll-up Example/MassConstraintExample.sysml": {
+      "sha256": "2c09d516aba3653a210b8f99d509f392a9aeb46441a21e7c8ac62af7d3201b3d",
+      "bytes": 1958
+    },
+    "sysml/src/examples/Mass Roll-up Example/MassRollup.sysml": {
+      "sha256": "380aab83552f64ed52a92d73c518d6b78aa227e1a6a2d7f60bad4583dcc9879d",
+      "bytes": 605
+    },
+    "sysml/src/examples/Mass Roll-up Example/Vehicles.sysml": {
+      "sha256": "f5de0deb796dc8628a6e4036edf9d6480c46c84278012b75250dcf7887f8a7b4",
+      "bytes": 683
+    },
+    "sysml/src/examples/Metadata Examples/IssueMetadataExample.sysml": {
+      "sha256": "873d5de264c3f7c7f5df84a3b589d07fc6c5d59e99db0a3e8e73e7c2f0f3e696",
+      "bytes": 1116
+    },
+    "sysml/src/examples/Metadata Examples/RationaleMetadataExample.sysml": {
+      "sha256": "f780fdd76f6aeee7208a3f1a73634b8bc2290c6ecfb1838efdc5af9878ab72e9",
+      "bytes": 833
+    },
+    "sysml/src/examples/Metadata Examples/RequirementMetadataExample.sysml": {
+      "sha256": "dd1a5577b2b2a4ee435c882b8f1c533fa3968104148bcd28014fb1baac55869e",
+      "bytes": 923
+    },
+    "sysml/src/examples/Metadata Examples/RiskMetadataExample.sysml": {
+      "sha256": "cd50bcde1413b13e5aaee6854e4d42200dc2ca7d6c865ea868a4e5f9c5076799",
+      "bytes": 384
+    },
+    "sysml/src/examples/Metadata Examples/VerificationMetadataExample.sysml": {
+      "sha256": "0c9ccc86dd459227164e54e6cb866795b1ef7ff212905ac9ba152fb3eb9bd631",
+      "bytes": 368
+    },
+    "sysml/src/examples/Packet Example/PacketUsage.sysml": {
+      "sha256": "571a03119991b8e385cfaf99d93fa8c84fc5f71a07bd0c130f210951104dfbaf",
+      "bytes": 366
+    },
+    "sysml/src/examples/Packet Example/Packets.sysml": {
+      "sha256": "101eb4e3c9163d0aacaeb293fd03b16d94616abb79cc04f63a7b94eb9242403d",
+      "bytes": 996
+    },
+    "sysml/src/examples/Requirements Examples/HSUVRequirements.sysml": {
+      "sha256": "6058165ce64aca5aab73b9a09eaeec7519942510c91fe71b3990f7bf612cdcae",
+      "bytes": 1106
+    },
+    "sysml/src/examples/Requirements Examples/RequirementDerivationExample.sysml": {
+      "sha256": "1575a8e09c008145ff619ef7d0ce7622d9e88c77811a6984578ef393d99e26c7",
+      "bytes": 772
+    },
+    "sysml/src/examples/Requirements Examples/VehicleRequirementDerivation.sysml": {
+      "sha256": "aa7dcf0498eb967f539fc81ef63c6f924c691edfe26c279a875c1a3a0729a8e8",
+      "bytes": 855
+    },
+    "sysml/src/examples/Room Model/RoomModel.sysml": {
+      "sha256": "da4c197311bfcb7b40c670a28dc8289adcc147bf0b1f9c4533a6803c213b7fa1",
+      "bytes": 2846
+    },
+    "sysml/src/examples/Simple Tests/ActionTest.sysml": {
+      "sha256": "f25839d6ed3237bbe454d71533646a0a6748384455d9870995299ed4149c38b8",
+      "bytes": 809
+    },
+    "sysml/src/examples/Simple Tests/AliasTest.sysml": {
+      "sha256": "c919d53cfe77577ef1483a66d117533dfdc1a6c7bd769d616bc7f56c5c2835fb",
+      "bytes": 372
+    },
+    "sysml/src/examples/Simple Tests/AllocationTest.sysml": {
+      "sha256": "0affe4f7d051a20476834783039e93ca9d77708a36b56d7428ebdddf6ffaa8be",
+      "bytes": 628
+    },
+    "sysml/src/examples/Simple Tests/AnalysisTest.sysml": {
+      "sha256": "2bbbd6da0943b4204f84c495944b79a2b9f7a173c3a8a2ab93d1cf8fb3ffac73",
+      "bytes": 488
+    },
+    "sysml/src/examples/Simple Tests/AssignmentTest.sysml": {
+      "sha256": "7d4b3e64602856f6e7f9ce142f2e15535e1ae3d6e96852a50f86d838877e8976",
+      "bytes": 873
+    },
+    "sysml/src/examples/Simple Tests/CalculationTest.sysml": {
+      "sha256": "7b174ccf61882a28d25fec84a4a48631556b6af38ce8e84731e85273ff50737c",
+      "bytes": 659
+    },
+    "sysml/src/examples/Simple Tests/CommentTest.sysml": {
+      "sha256": "385dc71179075e64044e17ca0af4a4f81ca0ac96528a045ed8678d6bf2e52e7a",
+      "bytes": 751
+    },
+    "sysml/src/examples/Simple Tests/ConjugationTest.sysml": {
+      "sha256": "68f8ce99b28425e0963dac05a35959d8e38b11a4a0b76a0aa40f7d335cdf80aa",
+      "bytes": 434
+    },
+    "sysml/src/examples/Simple Tests/ConnectionTest.sysml": {
+      "sha256": "8b0046d8d2e221923adba78cbed8359fbdacb85e623cf9ed1abd5ba3c0e3c2a7",
+      "bytes": 915
+    },
+    "sysml/src/examples/Simple Tests/ConstraintTest.sysml": {
+      "sha256": "1a4aa4b5bc29e17c88dc5c2a5bec99960c40fe1633f96fd5591531b1ee291c77",
+      "bytes": 2477
+    },
+    "sysml/src/examples/Simple Tests/ControlNodeTest.sysml": {
+      "sha256": "050aa194cc74842aa286896db589ddbba00745ea799fb4bfcd987ff53ea6be75",
+      "bytes": 329
+    },
+    "sysml/src/examples/Simple Tests/DecisionTest.sysml": {
+      "sha256": "9eac0766eb700d67cddf2c14b7379373c4774e6d7fa6c1eb0ef9e17d9adb67c6",
+      "bytes": 297
+    },
+    "sysml/src/examples/Simple Tests/DefaultValueTest.sysml": {
+      "sha256": "43100bb21269c18d5cec91f4c18617124a14282c5c23f2384a858d5ff6521f1e",
+      "bytes": 218
+    },
+    "sysml/src/examples/Simple Tests/DependencyTest.sysml": {
+      "sha256": "4fa7f0c7cc12999db50d15ede2aff38d2a049a62cff9503e66d0b3d7b7b54e01",
+      "bytes": 344
+    },
+    "sysml/src/examples/Simple Tests/EnumerationTest.sysml": {
+      "sha256": "f2c666064fcb7ac6bd1f32aef63982e4b2f17a85494878c37a3e1c23edb83e55",
+      "bytes": 1030
+    },
+    "sysml/src/examples/Simple Tests/FeaturePathTest.sysml": {
+      "sha256": "19d83b371973d6dcaa01b5dbde574415a968a69aa8016d4d1577e4a076bc595f",
+      "bytes": 493
+    },
+    "sysml/src/examples/Simple Tests/ImportTest.sysml": {
+      "sha256": "a03a2e8a669ef2383a5e1246c465cc81979f1bc740d490dce840262cbf01d883",
+      "bytes": 381
+    },
+    "sysml/src/examples/Simple Tests/IndividualTest.sysml": {
+      "sha256": "00aff4e95c78e1148bd366a446e4cb0380741373cfd822ef833e3ccc8ec4a1af",
+      "bytes": 593
+    },
+    "sysml/src/examples/Simple Tests/ItemTest.sysml": {
+      "sha256": "0d6e175435b71d0cbebf2eabaadee50e068688542742c7786305d2652f13b410",
+      "bytes": 265
+    },
+    "sysml/src/examples/Simple Tests/MetadataTest.sysml": {
+      "sha256": "db29263ceb3d7df48a96653dcbd981baf4e0ab20e73c253172477c9f09046edd",
+      "bytes": 867
+    },
+    "sysml/src/examples/Simple Tests/MultiplicityTest.sysml": {
+      "sha256": "71f079792d466a7f31cdb4bb3b019455beb3c6086a7ce68fb181a3260a92126f",
+      "bytes": 276
+    },
+    "sysml/src/examples/Simple Tests/OccurrenceTest.sysml": {
+      "sha256": "21841d0d2604b54a6a90cd8735b48ee2726166da824630a29680244e35ba82ae",
+      "bytes": 515
+    },
+    "sysml/src/examples/Simple Tests/ParameterTest.sysml": {
+      "sha256": "70e48bc2d2a98dc6e53c0ec6122136fa90ced0b881bb7064ab8c627bacf4de36",
+      "bytes": 340
+    },
+    "sysml/src/examples/Simple Tests/PartTest.sysml": {
+      "sha256": "488b1646e0233a93a41147c7b3ecfd7f73f377517c86c71c8a005b5615230904",
+      "bytes": 903
+    },
+    "sysml/src/examples/Simple Tests/RequirementTest.sysml": {
+      "sha256": "1cb52b8dc4129084b98c906061516cfb4c7a9f4e445d866a55b443ee17d87997",
+      "bytes": 478
+    },
+    "sysml/src/examples/Simple Tests/RootPackageTest.sysml": {
+      "sha256": "216198b63ebd9e7e9ff0b96b63a21d3efac19a628c4adce5bb7e14b6eedcc65a",
+      "bytes": 137
+    },
+    "sysml/src/examples/Simple Tests/StateTest.sysml": {
+      "sha256": "c1e55572d8366b744c14cc66dba8e484f0037369d975fc4e675ccfdc7709bfd4",
+      "bytes": 840
+    },
+    "sysml/src/examples/Simple Tests/StructuredControlTest.sysml": {
+      "sha256": "f423bf9c9453714041ff969a3ec8e47e07cbec54a3878b15c7d1504d7fb92b52",
+      "bytes": 532
+    },
+    "sysml/src/examples/Simple Tests/TextualRepresentationTest.sysml": {
+      "sha256": "25e576f71a09111faf1aa77d340b525fdd4f7fc809e3716e4a777c0e7a059f2a",
+      "bytes": 375
+    },
+    "sysml/src/examples/Simple Tests/TradeStudyTest.sysml": {
+      "sha256": "20c36d1fb7d3bc3af2b36bdba30197946376750fa65238075aa657147630669b",
+      "bytes": 393
+    },
+    "sysml/src/examples/Simple Tests/UseCaseTest.sysml": {
+      "sha256": "7059bbf738d26b673231af8f02dad7f83fd0fd6a56256b4b681f558e7c14231a",
+      "bytes": 557
+    },
+    "sysml/src/examples/Simple Tests/VariabilityTest.sysml": {
+      "sha256": "1426e577c0980ed68b2cd34434936df1a59e894fdbb71f8890b0ee1e1f136633",
+      "bytes": 589
+    },
+    "sysml/src/examples/Simple Tests/VerificationTest.sysml": {
+      "sha256": "502f31d3dd2dde0f0a2c1fac3351b699ece175decc3508ed2e270a2aa3d02000",
+      "bytes": 559
+    },
+    "sysml/src/examples/Simple Tests/ViewTest.sysml": {
+      "sha256": "053035ec20c48f38e316be9a4d37235d5ef4420c9b59cd4f92e8e30744e605a6",
+      "bytes": 546
+    },
+    "sysml/src/examples/State Space Representation Examples/CartSample.sysml": {
+      "sha256": "285823caa3f6193e296fb9686e02f7b261f149c481b4475bc94c3fe180608a19",
+      "bytes": 1827
+    },
+    "sysml/src/examples/State Space Representation Examples/EVSample.sysml": {
+      "sha256": "4834675f798fb275b847887b53661bc351be8094b2f320ee4819d2bb4b71d3db",
+      "bytes": 11002
+    },
+    "sysml/src/examples/Timeslice and Snapshot Examples/TimeVaryingAttribute.sysml": {
+      "sha256": "0f67453cd6604c15764d061da3c33bca1ac35a2f78c51c011f1220080c389c7d",
+      "bytes": 1397
+    },
+    "sysml/src/examples/Variability Examples/VehicleVariabilityModel.sysml": {
+      "sha256": "14664c9e34155062f97bbbfef32bdb60ae7a8d35ce8fd19051882fd5fc222dcc",
+      "bytes": 4718
+    },
+    "sysml/src/examples/Vehicle Example/SysML v2 Spec Annex A SimpleVehicleModel.sysml": {
+      "sha256": "77d7ee54951e01c885d69d19d7359242baf22c69dcfe2d4088b0b59d56ea578d",
+      "bytes": 73568
+    },
+    "sysml/src/examples/Vehicle Example/VehicleDefinitions.sysml": {
+      "sha256": "26aaac35d37d7298157ac6cbad7d4dbad5f638389561f4d0216975ff3ca0ffbd",
+      "bytes": 1051
+    },
+    "sysml/src/examples/Vehicle Example/VehicleIndividuals.sysml": {
+      "sha256": "e77520c0faa9d8e2b54118c894593456419a83b39a9d6cf86992e03daae639a4",
+      "bytes": 2826
+    },
+    "sysml/src/examples/Vehicle Example/VehicleUsages.sysml": {
+      "sha256": "895344628a0a5c74147aba9a32acc143efda109bae3947e16a44e43cb623983d",
+      "bytes": 2446
+    },
+    "sysml/src/examples/v1 Spec Examples/8.4.1 Wheel Hub Assembly/Wheel Package - Updated.sysml": {
+      "sha256": "62b1dbc8f228745b552e6435e4ce425400be232a2326120fe63ee31a07749498",
+      "bytes": 1752
+    },
+    "sysml/src/examples/v1 Spec Examples/8.4.1 Wheel Hub Assembly/Wheel Package.sysml": {
+      "sha256": "480f4c74503436b67a2a2b64e89f74ac91ae9bf5b21327a276b603f8028a637e",
+      "bytes": 1723
+    },
+    "sysml/src/examples/v1 Spec Examples/8.4.5 Constraining Decomposition/Vehicle Decomposition - Updated.sysml": {
+      "sha256": "239730f56667232e7ac77e8e0739c96158166109aadc37f125b898352b246648",
+      "bytes": 1194
+    },
+    "sysml/src/examples/v1 Spec Examples/8.4.5 Constraining Decomposition/Vehicle Decomposition.sysml": {
+      "sha256": "1058cbc3cf7c947c99e20a70606cec85290733caf4e8eea5d7bbe1fa7afd7517",
+      "bytes": 1092
+    },
+    "sysml/src/examples/v1 Spec Examples/D.4.7.8 Dynamics/HSUVDynamics.sysml": {
+      "sha256": "6ed6d95856f3e7eb7d0b51f9db6725040d3450b999a5b676a07ba2b7d54bced5",
+      "bytes": 2451
+    },
+    "sysml/src/training/01. Packages/Comment Example.sysml": {
+      "sha256": "54a68a8df67c40693c5be341df3fceaed6714f7912eabc78b53ad01ba0ddec61",
+      "bytes": 566
+    },
+    "sysml/src/training/01. Packages/Documentation Example.sysml": {
+      "sha256": "eb3c50cf3ac9cc4a90192688d103a2696cc2f912ead6c5a3c55b81f161e43ecf",
+      "bytes": 307
+    },
+    "sysml/src/training/01. Packages/Package Example.sysml": {
+      "sha256": "0d9011a7a0c393d434734fa3c615515ef0f12f70f5252856a4815e0c5df235ed",
+      "bytes": 226
+    },
+    "sysml/src/training/02. Part Definitions/Part Definition Example.sysml": {
+      "sha256": "521913a10985b6f0d8862f4e387ff844e9f2e862258e6f0bceeec1381da212b1",
+      "bytes": 361
+    },
+    "sysml/src/training/03. Generalization/Generalization Example.sysml": {
+      "sha256": "876c1fc34d0d6cc4c95e3401ab15fd98e6cee5290ac83b70348e521621d911b8",
+      "bytes": 334
+    },
+    "sysml/src/training/04. Subsetting/Subsetting Example.sysml": {
+      "sha256": "3e984c2497701a640a18c27d98270f10bf91fdc5fd039acd7be61fd9c85529a6",
+      "bytes": 342
+    },
+    "sysml/src/training/05. Redefinition/Redefinition Example.sysml": {
+      "sha256": "2a58dadc33f5a752bd4601db23fad1c0396067dff9d0c48c69ea80e6eb8c7e8d",
+      "bytes": 431
+    },
+    "sysml/src/training/06. Enumeration Definitions/Enumeration Definitions-1.sysml": {
+      "sha256": "d293a343a8957fbddcd4437fe7b576e10091a9d0c6a4c3cb718fbbd05a7f4149",
+      "bytes": 347
+    },
+    "sysml/src/training/06. Enumeration Definitions/Enumeration Definitions-2.sysml": {
+      "sha256": "30c8dd20e140e8e2c4d1e27e75e74f1cda233cd5c815da739b09963525bc25ec",
+      "bytes": 633
+    },
+    "sysml/src/training/07. Parts/Parts Example-1.sysml": {
+      "sha256": "390a2751034ecf5f75d7ebb5cf65119ce103e092c13114a80b15d2029afa3b89",
+      "bytes": 359
+    },
+    "sysml/src/training/07. Parts/Parts Example-2.sysml": {
+      "sha256": "9cf9a4c1c0d98cd972dcdc2f74f7a1703816cb69605114e5caf88cf6cd1fa215",
+      "bytes": 388
+    },
+    "sysml/src/training/08. Items/Items Example.sysml": {
+      "sha256": "a8f8cc4321933101c86bbc3651b4225b8a3f24a100a988f27bbef1d1738d68ca",
+      "bytes": 224
+    },
+    "sysml/src/training/09. Connections/Connections Example.sysml": {
+      "sha256": "b7e709dc11084c488177317dd04d95885b2d779f85efce0ad4c286c865796aad",
+      "bytes": 974
+    },
+    "sysml/src/training/10. Ports/Port Conjugation Example.sysml": {
+      "sha256": "0c7b995b29cc65d45817073688c73b4ac7004ab8000887311222d2b164082974",
+      "bytes": 313
+    },
+    "sysml/src/training/10. Ports/Port Example.sysml": {
+      "sha256": "3676915bf0f659529710c70cec5b404d95da03979d3dac951583932182d314f7",
+      "bytes": 435
+    },
+    "sysml/src/training/11. Interfaces/Interface Decomposition Example.sysml": {
+      "sha256": "c0d2e8cbbc99607647548c2f769a598a845d411787402aaeb5e8ded9157fe492",
+      "bytes": 453
+    },
+    "sysml/src/training/11. Interfaces/Interface Example.sysml": {
+      "sha256": "81c8f2930bd1bb6fef3162fb5ff01480c59af34a9f959ab646c4b91621771426",
+      "bytes": 408
+    },
+    "sysml/src/training/12. Binding Connectors/Binding Connectors Example-1.sysml": {
+      "sha256": "21108e56525e40539423821935378bba01e001a0cbd34ef8b67ddff7de22e919",
+      "bytes": 596
+    },
+    "sysml/src/training/12. Binding Connectors/Binding Connectors Example-2.sysml": {
+      "sha256": "c17da7fade4c5c1f6040f7fc8375bee5b9af3827a69e889bcfbec263e4fe0c4e",
+      "bytes": 549
+    },
+    "sysml/src/training/13. Flows/Flow Definition Example.sysml": {
+      "sha256": "4953942240e572a0bced3e6a481e7a0078ec5f1911f5d8d34c0e287037da224f",
+      "bytes": 423
+    },
+    "sysml/src/training/13. Flows/Flow Interface Example.sysml": {
+      "sha256": "1b2f2d51dd2bca13e5a20548080f6cab21a3862ba0d7850ac9e86489d10d6633",
+      "bytes": 537
+    },
+    "sysml/src/training/13. Flows/Flow Usage Example.sysml": {
+      "sha256": "3545248d2433ffdeef47d18b8b26ec06329c52b1dbfa4f19be4684b283118456",
+      "bytes": 372
+    },
+    "sysml/src/training/14. Action Definitions/Action Definition Example.sysml": {
+      "sha256": "6ba1e3a81b50e75330a5011eff2b48fc69e8b1db93d92caa7263d302f95ed9df",
+      "bytes": 499
+    },
+    "sysml/src/training/14. Action Definitions/Action Shorthand Example.sysml": {
+      "sha256": "40b3cc083d4e300526f4f4c11e5f416a34564ec4f42ee296ed89ca08d13256cd",
+      "bytes": 530
+    },
+    "sysml/src/training/14. Action Definitions/Action Succession Example-1.sysml": {
+      "sha256": "85b068216d5edf0b5ce0e2de30d2a928a46c5572a732f7c8f787199947d54ca9",
+      "bytes": 549
+    },
+    "sysml/src/training/14. Action Definitions/Action Succession Example-2.sysml": {
+      "sha256": "0fdb44f0efd3ae9f5c853652b2327d6f11f004fec90f605ad661001955ee64a6",
+      "bytes": 529
+    },
+    "sysml/src/training/15. Actions/Action Decomposition.sysml": {
+      "sha256": "f9245d4c83cb9dba2778f83e686bdb65f29615550bc29a264a99283cf71901e9",
+      "bytes": 582
+    },
+    "sysml/src/training/16. Conditional Succession/Conditional Succession Example-1.sysml": {
+      "sha256": "7c998f285cc6ab602898fba85dacabcff0f5be7ef81ef9168fdd0b86a8f7259a",
+      "bytes": 701
+    },
+    "sysml/src/training/16. Conditional Succession/Conditional Succession Example-2.sysml": {
+      "sha256": "14bccb577348cae5fe1b1773e1369243b44407b93419928d4610966f98bdaf63",
+      "bytes": 689
+    },
+    "sysml/src/training/17. Control/Camera.sysml": {
+      "sha256": "cd59a9c6fc168afd3784e338367dfbd36bc1cc08a66b7a6c6884766ee048b6a9",
+      "bytes": 487
+    },
+    "sysml/src/training/17. Control/Control Structures Example.sysml": {
+      "sha256": "70fa8b06ad95b75e404a10b4b9284667333b511eff9832514c72e2022f9b3171",
+      "bytes": 599
+    },
+    "sysml/src/training/17. Control/Decision Example.sysml": {
+      "sha256": "b8c23e53e8e0f8042861955fe90f1929f00763e913dbb8758e6ef9d7dc6a0fd7",
+      "bytes": 687
+    },
+    "sysml/src/training/17. Control/Fork Join Example.sysml": {
+      "sha256": "ea5b086aaf26c14ca1f9dc03262d4b0d92e746d914f157d08c67dc20337c64b4",
+      "bytes": 939
+    },
+    "sysml/src/training/17. Control/Merge Example.sysml": {
+      "sha256": "26d52bf0415681390c96022df5badfe925d603e98abc6d0e7481589b645d1deb",
+      "bytes": 811
+    },
+    "sysml/src/training/18. Action Performance/Action Performance Example.sysml": {
+      "sha256": "9cfed0dda2bd2cb1c1d775a2520abe8155725c5f159f9de45f531da45648c62c",
+      "bytes": 359
+    },
+    "sysml/src/training/19. Terminate Actions/Terminate Actions Example-1.sysml": {
+      "sha256": "68a22b8826dde8a1699c5357464dc060de22bb461d2bd2745ed5953fb82d7a79",
+      "bytes": 505
+    },
+    "sysml/src/training/19. Terminate Actions/Terminate Actions Example-2.sysml": {
+      "sha256": "518bd633e5987133c8a0ef7ab2a7ccdeb3da4f9c4b17ddc13b5093e59bb9d7a6",
+      "bytes": 324
+    },
+    "sysml/src/training/20. Assignment Actions/Assignment Example.sysml": {
+      "sha256": "e042634df4719f3e1b0c27950625557d5d243ad49710242a9fe227e005d4b1f9",
+      "bytes": 1166
+    },
+    "sysml/src/training/21. Asynchronous Messaging/Messaging Example.sysml": {
+      "sha256": "d977f1412a23475f45985227fda677da0223e80191043a4fe3900b5f0a373b2b",
+      "bytes": 665
+    },
+    "sysml/src/training/21. Asynchronous Messaging/Messaging with Ports.sysml": {
+      "sha256": "9afc396b62e3be85888f35feabb3327bfc068b1f95da2fd7f97f681840fcf582",
+      "bytes": 779
+    },
+    "sysml/src/training/22. Opaque Actions/Opaque Action Example.sysml": {
+      "sha256": "989053be5cba648732bb1f02412a63e50c2b4a621f3adb22ef19367b0ad42472",
+      "bytes": 307
+    },
+    "sysml/src/training/23. State Definitions/State Definition Example-1.sysml": {
+      "sha256": "bb96a947ac4f3648c75cb74ee36d3bf3b120ce80a833ae9791a877051d6c2dd0",
+      "bytes": 513
+    },
+    "sysml/src/training/23. State Definitions/State Definition Example-2.sysml": {
+      "sha256": "52c1ac545553470358affce66a40de21a51876ae10718a1a086419c2b0e6ef40",
+      "bytes": 378
+    },
+    "sysml/src/training/24. States/State Actions.sysml": {
+      "sha256": "38d8c51cde9cdf0aa774864e6dcc65d98aeb89e23ebe097704dfe8896bb36dd6",
+      "bytes": 700
+    },
+    "sysml/src/training/24. States/State Decomposition-1.sysml": {
+      "sha256": "ee8f049bfd5bb23e324f7f08faead640419122b7f909e36ce281ce8342557f58",
+      "bytes": 413
+    },
+    "sysml/src/training/24. States/State Decomposition-2.sysml": {
+      "sha256": "197be1fb0cc100b13c9daa41e25450076779fb6edcb2b54cd09c93bbe7b78cc6",
+      "bytes": 514
+    },
+    "sysml/src/training/25. Transitions/Change and Time Triggers.sysml": {
+      "sha256": "3633b959ba8b0c39f7bf22ff0bfcd8f5afdb133f444bf693423bbc6f30a708c6",
+      "bytes": 1064
+    },
+    "sysml/src/training/25. Transitions/Local Clock Example.sysml": {
+      "sha256": "7c4652c10baeeeeea932071346b5297aed4cb09b1073d01d1a0f78f13586e3dc",
+      "bytes": 586
+    },
+    "sysml/src/training/25. Transitions/Transition Actions.sysml": {
+      "sha256": "0c2e7db0d37ca8489f911b567e1a41ed8a7a21216b4b5646db99d370562742ba",
+      "bytes": 922
+    },
+    "sysml/src/training/26. State Exhibition/State Exhibition Example.sysml": {
+      "sha256": "c37cca84071070eae990d6f4733b789e22042a986cbc8a2616f04300d343e09d",
+      "bytes": 267
+    },
+    "sysml/src/training/27. Occurrences/Event Occurrence Example.sysml": {
+      "sha256": "a0711b453e25f88d39383ba74dca22edf8e6fd3e08ca4b3d96abf9546e5dc7c3",
+      "bytes": 573
+    },
+    "sysml/src/training/27. Occurrences/Interaction Example-1.sysml": {
+      "sha256": "d0fcda6e4b48ed7b0b57ee13152008d1fb4ee89343f48b0cc33fc484b4e3f39a",
+      "bytes": 695
+    },
+    "sysml/src/training/27. Occurrences/Interaction Example-2.sysml": {
+      "sha256": "001245283d57f289a673c87e973c834d357dfcf819d251145649595a0dc70ad0",
+      "bytes": 800
+    },
+    "sysml/src/training/27. Occurrences/Interaction Realization-1.sysml": {
+      "sha256": "c7abccdd482f6001056d080562e1f5ce9a983c7d93ece5496f7e847e1d2bbebd",
+      "bytes": 1827
+    },
+    "sysml/src/training/27. Occurrences/Interaction Realization-2.sysml": {
+      "sha256": "fee96e42ba9bdd7c31c79fcf5057ded0008a5e6a7a12c5b4ba4463d9b9e61d94",
+      "bytes": 2046
+    },
+    "sysml/src/training/27. Occurrences/Message Payload Example.sysml": {
+      "sha256": "cb4a16abdc6e60f570b30ba2d838999f933d0efd9348cf4bf8404019fc9f1fe2",
+      "bytes": 1141
+    },
+    "sysml/src/training/27. Occurrences/Time Slice and Snapshot Example.sysml": {
+      "sha256": "5ba8953e347346861fc549f871a41177d64409666424c23a69da92da8162cad3",
+      "bytes": 442
+    },
+    "sysml/src/training/28. Individuals/Individuals and Roles-1.sysml": {
+      "sha256": "60f6402e35fa411dff29755d441cc6f6954e647a41e225e80fedd892317379df",
+      "bytes": 499
+    },
+    "sysml/src/training/28. Individuals/Individuals and Snapshots Example.sysml": {
+      "sha256": "bc98281dd2d2b3066b936f13f77657237ddd30be6ff5f31f03ae79d76054a4a5",
+      "bytes": 466
+    },
+    "sysml/src/training/28. Individuals/Individuals and Time Slices.sysml": {
+      "sha256": "5768954807af2247983855032f5eb1adb3fda9c46ff3f98460b92bb0cc96deb0",
+      "bytes": 473
+    },
+    "sysml/src/training/29. Expressions/Car Mass Rollup Example 1.sysml": {
+      "sha256": "7f101db8137b93ae093870f23db4e7ede0a3912ff12bd170686db3836dd28f0f",
+      "bytes": 709
+    },
+    "sysml/src/training/29. Expressions/Car Mass Rollup Example 2.sysml": {
+      "sha256": "c83b5e531c4854406d9606f605fd911fb8159ca6273364583466bf5e2b70578d",
+      "bytes": 675
+    },
+    "sysml/src/training/29. Expressions/MassRollup1.sysml": {
+      "sha256": "289228badcbd9fd227ad6b0607cbcb5c351f58731d6747b1c0f08b40c592a7b6",
+      "bytes": 403
+    },
+    "sysml/src/training/29. Expressions/MassRollup2.sysml": {
+      "sha256": "da017e7651de908cd723278e2b454d41d1695509886905c219ac64b90a63ff53",
+      "bytes": 540
+    },
+    "sysml/src/training/30. Calculations/Calculation Definitions.sysml": {
+      "sha256": "c8b300bc5a70262107d067df1e868a59ecda60343ed6ebd36e780919ef635b77",
+      "bytes": 712
+    },
+    "sysml/src/training/30. Calculations/Calculation Usages-1.sysml": {
+      "sha256": "50d3f3d82c5eaa65f37c40a9462ea544ac44aa9dccd256667d54bd3bd9e91c24",
+      "bytes": 830
+    },
+    "sysml/src/training/30. Calculations/Calculation Usages-2.sysml": {
+      "sha256": "8b5b296fb4f4af5c7126264b20cac05b81242820c21e090bcbd5c78c90b4e7bc",
+      "bytes": 758
+    },
+    "sysml/src/training/31. Constraints/Analytical Constraints.sysml": {
+      "sha256": "8d4d3f3184a508f975e1e07a075ec5885024f7136a69a7a79b236d8a520582f3",
+      "bytes": 969
+    },
+    "sysml/src/training/31. Constraints/Constraint Assertions-1.sysml": {
+      "sha256": "e74f69c3b8f4dd0011fd1799bf9f3450e7ad10cdec5875df0ff1eda20400e839",
+      "bytes": 653
+    },
+    "sysml/src/training/31. Constraints/Constraint Assertions-2.sysml": {
+      "sha256": "905418655ca8f68497ca2ff72a53ee4c5d67c975b451cce2dd2566110923fb26",
+      "bytes": 739
+    },
+    "sysml/src/training/31. Constraints/Constraints Example-1.sysml": {
+      "sha256": "7ef69d5f949ae62c9305410cf56a06f0ff72dd780f46c746bea9f31b62f6530e",
+      "bytes": 643
+    },
+    "sysml/src/training/31. Constraints/Constraints Example-2.sysml": {
+      "sha256": "96627a47273a5762e6e1571517d67a6731b7b09b5c56b9d92574654fee38f39a",
+      "bytes": 671
+    },
+    "sysml/src/training/31. Constraints/Derivation Constraints.sysml": {
+      "sha256": "aa73335f565d75f468997d843e60560df14279c92ad02a347ae0e4caf53ee799",
+      "bytes": 613
+    },
+    "sysml/src/training/31. Constraints/Time Constraints.sysml": {
+      "sha256": "3acc92ed706c8c1a352929df9b2eee27b7bb2459a49a19838121dade80bc1108",
+      "bytes": 977
+    },
+    "sysml/src/training/32. Requirements/Requirement Definitions.sysml": {
+      "sha256": "bbf6164994aed96f962710105ec6be8ce97022b3e627a64ffcf9e39c2785bf6d",
+      "bytes": 1218
+    },
+    "sysml/src/training/32. Requirements/Requirement Groups.sysml": {
+      "sha256": "a4946e78a8602eac6eef372575636cfadd26c4e5228ed4f90510918fc7267c56",
+      "bytes": 720
+    },
+    "sysml/src/training/32. Requirements/Requirement Satisfaction.sysml": {
+      "sha256": "bf4f3f309b20a4e82c5f72ef4f4740de226142190a906d2d078e82b8b1f36032",
+      "bytes": 568
+    },
+    "sysml/src/training/32. Requirements/Requirement Usages.sysml": {
+      "sha256": "cf926c7f8a7f2d8ffa70f2f8ed0c1f0ade16c7cbc1fa06a2dff7e6146df9ae70",
+      "bytes": 600
+    },
+    "sysml/src/training/33. Analysis/Analysis Case Definition Example.sysml": {
+      "sha256": "58c782d8502c4d659c4c3000bc2831dc9abcaa823b3116cc80a52cfcf20d10a2",
+      "bytes": 2309
+    },
+    "sysml/src/training/33. Analysis/Analysis Case Usage Example.sysml": {
+      "sha256": "8061f236770a23a365026fa3565bdad1af381058deca50486d03d5efbe4fe93e",
+      "bytes": 851
+    },
+    "sysml/src/training/33. Analysis/Trade Study Analysis Example.sysml": {
+      "sha256": "c4708fca54c75cdff1e054c152fd50a9109773bfb267d54c57b9bcf841953070",
+      "bytes": 1357
+    },
+    "sysml/src/training/34. Verification/Verification Case Definition Example.sysml": {
+      "sha256": "6c947e54087a4e5ab1719e4043e0480211112a2ee6fc62d9b18814f3ee8f0b5c",
+      "bytes": 1287
+    },
+    "sysml/src/training/34. Verification/Verification Case Usage Example.sysml": {
+      "sha256": "f18e2dbdd9078aa3b9a3c223e2ea0251d90f7b0d64aee1dea22546cdc0977a38",
+      "bytes": 1177
+    },
+    "sysml/src/training/35. Use Cases/Use Case Definition Example.sysml": {
+      "sha256": "46d70e36666f54f5025de1d60c976ef24b56126a4a4a8f913cda8dacb1d7ad13",
+      "bytes": 679
+    },
+    "sysml/src/training/35. Use Cases/Use Case Usage Example.sysml": {
+      "sha256": "abaaebced5d4f1d137ad5d8e7307a5d159a04d08a926e1ce11d59ee4f7ee1252",
+      "bytes": 1062
+    },
+    "sysml/src/training/36. Variability/Variation Configuration.sysml": {
+      "sha256": "00475547ef422bd1264740ba8e281d39968af27d6e640be592e9b63f82dab3f1",
+      "bytes": 390
+    },
+    "sysml/src/training/36. Variability/Variation Definitions.sysml": {
+      "sha256": "d175901cc5f3c382e2e0bd894c3bf433b055b7a62203c14f097423dad584b7bf",
+      "bytes": 717
+    },
+    "sysml/src/training/36. Variability/Variation Usages.sysml": {
+      "sha256": "00a622b19bd0c0f0199e7a281676ea7dba1ac9f31276fe3f394d4859f90c86cd",
+      "bytes": 602
+    },
+    "sysml/src/training/37. Dependencies/Dependency Example.sysml": {
+      "sha256": "a67c6c5d00849b16f6a4f5f0a6867c94833fad77be9cf9afb28cdd4395dbcd9c",
+      "bytes": 488
+    },
+    "sysml/src/training/38. Allocation/Allocation Definition Example.sysml": {
+      "sha256": "01b3fd07fd12885dda5f7af570db6f52a60dbd4a891fc2c5de53183e3ddba741",
+      "bytes": 827
+    },
+    "sysml/src/training/38. Allocation/Allocation Usage Example.sysml": {
+      "sha256": "b3ffeaefc73bf13ae8f9c56e19e95a30e7e4140e1fa26aa6f1557a31c6bc4312",
+      "bytes": 683
+    },
+    "sysml/src/training/39. Metadata/Metadata Example-1.sysml": {
+      "sha256": "7854ed2310900fb26ba5422d79e10b8fccc784fa3f012b75e2ddbf86c85dbf5e",
+      "bytes": 612
+    },
+    "sysml/src/training/39. Metadata/Metadata Example-2.sysml": {
+      "sha256": "ab8f3ccc569c562876187629b7486207ff1a2aded1d2a35b88df599e78ce45b5",
+      "bytes": 659
+    },
+    "sysml/src/training/40. Filtering/Filtering Example-1.sysml": {
+      "sha256": "6e8dc71d4f3bf124d78300aebda432dfb48617d36442137edb0aa131bc7689bd",
+      "bytes": 824
+    },
+    "sysml/src/training/40. Filtering/Filtering Example-2.sysml": {
+      "sha256": "95fc48884d4b7baaa421692146126a6955e376d2337770e93663a0661bdf2c8f",
+      "bytes": 806
+    },
+    "sysml/src/training/41. Language Extension/Model Library Example.sysml": {
+      "sha256": "0e994cf5d207ca1bcb6832956504f807fde3ac976f2325f7e983290446743b1a",
+      "bytes": 867
+    },
+    "sysml/src/training/41. Language Extension/Semantic Metadata Example.sysml": {
+      "sha256": "3dee1f7403f9e8a9c7e450032ce66d85734fd1cd78a08d2d2e3dec4fa928030b",
+      "bytes": 615
+    },
+    "sysml/src/training/41. Language Extension/User Keyword Example.sysml": {
+      "sha256": "e0d44dbd4fdeb997810ab18fc8bff5c447a32334242efdbaf09646af5f83be7a",
+      "bytes": 651
+    },
+    "sysml/src/training/42. Views/Viewpoint Example.sysml": {
+      "sha256": "93dac2797ea78074199d9b7956e01f7ef0456c85fa2000f5a3b99a3cba4a96ad",
+      "bytes": 974
+    },
+    "sysml/src/training/42. Views/Views Example.sysml": {
+      "sha256": "ad1e0b92f7084f8b864b852aa4938f01d4676ab31733e60088d4117f30a90f99",
+      "bytes": 779
+    },
+    "sysml/src/validation/.gitignore": {
+      "sha256": "bb1aa666fd6ad90d04ecff9c442ea7fe66d702991388efa2512df1bb723e117f",
+      "bytes": 6
+    },
+    "sysml/src/validation/01-Parts Tree/1a-Parts Tree.sysml": {
+      "sha256": "68adac5f5b2a0f7d8d2ca2bb6ce4aca3d636317b74a3d2036f1df95379e3e514",
+      "bytes": 3110
+    },
+    "sysml/src/validation/01-Parts Tree/1c-Parts Tree Redefinition.sysml": {
+      "sha256": "ee3fd9b693eee0eda5543ba146b1c672dacc06ec913bd3da5da12c240ef6f13e",
+      "bytes": 2231
+    },
+    "sysml/src/validation/01-Parts Tree/1d-Parts Tree with Reference.sysml": {
+      "sha256": "f2762576cfb1564605ce162a2326f2b5e00f9a6eb25879831adbf854db3e4689",
+      "bytes": 1344
+    },
+    "sysml/src/validation/02-Parts Interconnection/2a-Parts Interconnection.sysml": {
+      "sha256": "9fc597156787d6bfa04c6c06b30026b0a6b99240e43320aeb0b4b1c5d5f7ed8f",
+      "bytes": 5072
+    },
+    "sysml/src/validation/02-Parts Interconnection/2c-Parts Interconnection-Multiple Decompositions.sysml": {
+      "sha256": "2d6e1789531ef65d4a7e221eae51fff7adafd739abe47c073f9f3cc7c27f187f",
+      "bytes": 1343
+    },
+    "sysml/src/validation/03-Function-based Behavior/3a-Function-based Behavior-1.sysml": {
+      "sha256": "e4093071e6c613cb5e66e79be116cc90e2732c141ef85ffd10ada7fc71dd4ce1",
+      "bytes": 4170
+    },
+    "sysml/src/validation/03-Function-based Behavior/3a-Function-based Behavior-2.sysml": {
+      "sha256": "1fd798b584fcf8294bb179e6ad09bb231a860b7f06c0ac3ebf7d5c326b81355b",
+      "bytes": 2526
+    },
+    "sysml/src/validation/03-Function-based Behavior/3a-Function-based Behavior-3.sysml": {
+      "sha256": "ee405fc045e2325625d2ab7d242f1852c4ca9d36a40d8919ad22d4bcc97fbbe0",
+      "bytes": 1982
+    },
+    "sysml/src/validation/03-Function-based Behavior/3c-Function-based Behavior-structure mod-1.sysml": {
+      "sha256": "a195aa08ccc55b28611590bf8318e68dc743a80bbab067f9e501223e4cf28a3d",
+      "bytes": 1281
+    },
+    "sysml/src/validation/03-Function-based Behavior/3c-Function-based Behavior-structure mod-2.sysml": {
+      "sha256": "d4c3a58f64733407d8f55882bb422abeba6a56071a381fa81c7e0cecefb3a37c",
+      "bytes": 1064
+    },
+    "sysml/src/validation/03-Function-based Behavior/3c-Function-based Behavior-structure mod-3.sysml": {
+      "sha256": "b06f8ff7362015304b73339a3444c3bb2b7b0f3ab367bf390cc849dd7ae10397",
+      "bytes": 782
+    },
+    "sysml/src/validation/03-Function-based Behavior/3d-Function-based Behavior-item.sysml": {
+      "sha256": "53a4dbd7dd39c808582e6fe3c791fbf642a9d17fc1775c2796d2c7fd359ad456",
+      "bytes": 1601
+    },
+    "sysml/src/validation/03-Function-based Behavior/3e-Function-based Behavior-item.sysml": {
+      "sha256": "53076ded62ac7995f3bba8365c635e725894074faf3b19787bec711136b781ba",
+      "bytes": 1750
+    },
+    "sysml/src/validation/04-Functional Allocation/4a-Functional Allocation.sysml": {
+      "sha256": "5606db54345e6a79c90c948f7d71a86222110422f90ad7b5f5e30bdee93d7638",
+      "bytes": 2843
+    },
+    "sysml/src/validation/05-State-based Behavior/5-State-based Behavior-1.sysml": {
+      "sha256": "09d33ca09f9121193374b09215f6a3fffe5654cdfde8c794a4f8637b71825485",
+      "bytes": 6080
+    },
+    "sysml/src/validation/05-State-based Behavior/5-State-based Behavior-1a.sysml": {
+      "sha256": "22bfc1ae2dbcb94db9844eddc16dda325645d2b0eb622bbfcfefe93bd6433ef8",
+      "bytes": 6105
+    },
+    "sysml/src/validation/05-State-based Behavior/5-State-based Behavior-2.sysml": {
+      "sha256": "218835c9dbefdc8f76098c342aa6bb3db66b85c9a298fabed8e518920d36f32f",
+      "bytes": 3110
+    },
+    "sysml/src/validation/06-Individual and Snapshots/6-Individual and Snapshots.sysml": {
+      "sha256": "31efc993fd2ead88e2edb0130fde4051c64a86dce7c31c1057b4131de507a848",
+      "bytes": 3689
+    },
+    "sysml/src/validation/07-Variant Configuration/7a-Variant Configuration - General Concept.sysml": {
+      "sha256": "a4e94ee32045fe6250ec8ca932405d53d16e2a6b89b14621b4de8aa86a45f8af",
+      "bytes": 981
+    },
+    "sysml/src/validation/07-Variant Configuration/7a1-Variant Configuration - General Concept-a.sysml": {
+      "sha256": "9d5321f0c569f5d36657b81b0c129138001939efecf8cb87c528f3eea629b0ab",
+      "bytes": 1531
+    },
+    "sysml/src/validation/07-Variant Configuration/7b-Variant Configurations.sysml": {
+      "sha256": "c0f5d9fc230789e6b4326d554a05e38cd4db48c2081d8d8a627eef52a5574fd7",
+      "bytes": 3937
+    },
+    "sysml/src/validation/08-Requirements/8-Requirements.sysml": {
+      "sha256": "be660d2f7935c481d4ab39fb68231a00d830489ef9365b68e8213e50015323c1",
+      "bytes": 5449
+    },
+    "sysml/src/validation/09-Verification/9-Verification-simplified.sysml": {
+      "sha256": "877d2ae9cfc2e51a37b0217ae94be7df0f810ecf36eddf31c9a27d14dc2a0356",
+      "bytes": 2911
+    },
+    "sysml/src/validation/10-Analysis and Trades/10a-Analysis.sysml": {
+      "sha256": "e24ec15d535a3bfbf8aaeb57e599503ce57de51bcc07790c77435b44501fc138",
+      "bytes": 1450
+    },
+    "sysml/src/validation/10-Analysis and Trades/10b-Trade-off Among Alternative Configurations.sysml": {
+      "sha256": "b64991322decd492c6bb14ea32ad8282499d66e9dc8f9be66da9f283c74f6c80",
+      "bytes": 2297
+    },
+    "sysml/src/validation/10-Analysis and Trades/10c-Fuel Economy Analysis.sysml": {
+      "sha256": "3bea4bbe7b04ba3572b3f7ccebd211897ad0521ef73009f31c32eed7296d3749",
+      "bytes": 4755
+    },
+    "sysml/src/validation/10-Analysis and Trades/10d-Dynamics Analysis.sysml": {
+      "sha256": "600106d6e2874f810ebb4c98f6fafd6b96b6f79842a9fdb7b42fd269aeb56c40",
+      "bytes": 2131
+    },
+    "sysml/src/validation/11-View and Viewpoint/11a-View-Viewpoint.sysml": {
+      "sha256": "f89e97e5a9a49c6c3f2fc59162f99a60d1cf6faa5599ecdf1db398c72f8e3514",
+      "bytes": 1144
+    },
+    "sysml/src/validation/11-View and Viewpoint/11b-Safety and Security Feature Views.sysml": {
+      "sha256": "d098663519952d3be7ded36d7fbd39ffdb21dd52c03448230d02b3e5f5b9ba27",
+      "bytes": 1606
+    },
+    "sysml/src/validation/12-Dependency Relationships/12a-Dependency.sysml": {
+      "sha256": "69966550379ca490de4dffa7b284be83983d0deaa565c073aec79c603f019bac",
+      "bytes": 293
+    },
+    "sysml/src/validation/12-Dependency Relationships/12b-Allocation-1.sysml": {
+      "sha256": "1a65dcbc5a7f0086111744d6d0f640a36c2721ee9156fbab34b09cfede1e7d24",
+      "bytes": 1318
+    },
+    "sysml/src/validation/12-Dependency Relationships/12b-Allocation.sysml": {
+      "sha256": "458ffde07b81f5ee23392c3ec2f57066f4e9e83b3329c1614663c41dfd48c733",
+      "bytes": 493
+    },
+    "sysml/src/validation/13-Model Containment/13a-Model Containment.sysml": {
+      "sha256": "0a7f5cb3d280ca39a6b657a1c2ccc9a87515722936bddbfcbbb86d0d77796687",
+      "bytes": 1428
+    },
+    "sysml/src/validation/13-Model Containment/13b-Safety and Security Features Element Group-1.sysml": {
+      "sha256": "9b8409690b432b74d05236e9642b8633ed6ac6c137b1ea25e29b994b90b3ba4e",
+      "bytes": 1340
+    },
+    "sysml/src/validation/13-Model Containment/13b-Safety and Security Features Element Group-2.sysml": {
+      "sha256": "592626e07a3c95392439f3a3f0ce91d44f8d6ef03d9cced3451bbdeabe91707f",
+      "bytes": 1304
+    },
+    "sysml/src/validation/13-Model Containment/13b-Safety and Security Features Element Group.sysml": {
+      "sha256": "f72bc1e710bd77742eb371d63b466987b3d6ceae7f37a266e0245c6565878cab",
+      "bytes": 886
+    },
+    "sysml/src/validation/14-Language Extensions/14a-Language Extensions.sysml": {
+      "sha256": "fbe9aaa70532d3303fd6fb39bc725cc9299e52c33a4960a97723a1f4154ecb82",
+      "bytes": 564
+    },
+    "sysml/src/validation/14-Language Extensions/14b-Language Extensions.sysml": {
+      "sha256": "9fd6886fe63e328c9cca645d137e1413ed93068f56ed05e3be0e837832e705a8",
+      "bytes": 939
+    },
+    "sysml/src/validation/14-Language Extensions/14c-Language Extensions.sysml": {
+      "sha256": "7760e8264bfa7b2ab6ecf4985110459c959d5c971712acd3f1f945317b3d92f4",
+      "bytes": 5200
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_01-Constants.sysml": {
+      "sha256": "e88230f7825608a153977c07b16bd48dbdd41dadbcf2c0d4ecdb001a91dddbe7",
+      "bytes": 2246
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_02-Basic Value Properties.sysml": {
+      "sha256": "fe562529159fc94cf23b1fc827cd3590dc3946265680a3d9324f79125637138b",
+      "bytes": 590
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_03-Value Expression.sysml": {
+      "sha256": "156b04676dd45d985aafaa04cd98cbc70727a5ff8b395444471e37abfc23eb07",
+      "bytes": 932
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_04-Logical Expressions.sysml": {
+      "sha256": "be7c568cf296df8e4bd866ce604cdb1e2cef3223f3c7c7a8d74863fd3fe82554",
+      "bytes": 724
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_05-Unification of Expression and Constraint Definition.sysml": {
+      "sha256": "c62afbf670da4a4fc2f337e5eca84e7b8f1790113fdad7cf5c21757c2b98e9a8",
+      "bytes": 1441
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_06-System of Quantities.sysml": {
+      "sha256": "876f29fc5476b05f9fa908d69176e00825d996ba9b5c622cd2fbb95867a004a8",
+      "bytes": 2785
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_07-System of Units and Scales.sysml": {
+      "sha256": "359274cb936c12607ffb487a01b30c89359ab75b6b4328f9393d8d5745b4c1d0",
+      "bytes": 3589
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_08-Range Restriction.sysml": {
+      "sha256": "21be841080c23b55243365352b93b11094977555ea0b8f417107c7316eb52a1a",
+      "bytes": 537
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_10-Primitive Data Types.sysml": {
+      "sha256": "25ff6e37d7090c1f16e24a0fe644ab69dde4745977afb3dae5f7161182bb2090",
+      "bytes": 1977
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_11-Variable Length Collection Types.sysml": {
+      "sha256": "28ea6f6aa4b222fdeead4b5f3bb5c1180a6d655d07b9fdeee2f285fd420d2408",
+      "bytes": 810
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_12-Compound Value Type.sysml": {
+      "sha256": "6d7232008b6d7522ae4e1b1cb9fa15c856e67054849696924594a7f4f2b0515c",
+      "bytes": 859
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_13-Discretely Sampled Function Value.sysml": {
+      "sha256": "72dedb9af384da9948e1e9e9a1e6b8ffe1bb970bcb277588147f93efa9bf853e",
+      "bytes": 2826
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_19-Materials with Properties.sysml": {
+      "sha256": "a8c4d8571ad672de9e300c7de2cac8c684bf6b403bc16fcf3a896a350b0218b3",
+      "bytes": 2656
+    },
+    "sysml/src/validation/15-Properties-Values-Expressions/15_19a-Materials with Properties.sysml": {
+      "sha256": "7d848239c6012cc15d04d4bd58b9d0e935972991cee7a9bb4569e9a7536fdd30",
+      "bytes": 2735
+    },
+    "sysml/src/validation/17-Sequence Modeling/17a-Sequence-Modeling.sysml": {
+      "sha256": "52c79bd6c698ee26840a9246b0fd4294d05e59b11f38f9f5a980535bb0d0761c",
+      "bytes": 1083
+    },
+    "sysml/src/validation/17-Sequence Modeling/17b-Sequence-Modeling.sysml": {
+      "sha256": "df9b1f3a76f0a0fb30bbf6f30705d64ac26cbe50b9143dcea5a877c7d69cdc1c",
+      "bytes": 857
+    },
+    "sysml/src/validation/18-Use Case/18-Use Case.sysml": {
+      "sha256": "debd6b83bb60278f6c8d160d0fb8ad31b9107295461d8070cbd8069db9b9e457",
+      "bytes": 2014
+    },
+    "kerml/src/examples/Address Book Example/AddressBookModel.kerml": {
+      "sha256": "6faaf00beec24102f1fcc2aadde480f758407fabf1aa98c95af29896e65c7939",
+      "bytes": 164
+    },
+    "kerml/src/examples/Association Examples/ProductSelection_N_ary.kerml": {
+      "sha256": "24d003483c8f693c92a33a80662a503311174fb72509e464475f09d9c7d25aba",
+      "bytes": 4894
+    },
+    "kerml/src/examples/Association Examples/ProductSelection_OwnedEnds.kerml": {
+      "sha256": "f777c3db82ffea3a95eba9403406ed2f3ec760ee6ddd21bb96ff577866ef3077",
+      "bytes": 2940
+    },
+    "kerml/src/examples/Association Examples/ProductSelection_UnownedEnds.kerml": {
+      "sha256": "bea388095b1babf1cf6503b34b741477bcebb48fdd15387f55ca77960d2c7d23",
+      "bytes": 1311
+    },
+    "kerml/src/examples/Behavior Examples/Camera.kerml": {
+      "sha256": "060a3d0e60a9f663ef6fa9dfb6004d9fba9849a0b0623bf3eff41577855b4eb0",
+      "bytes": 191
+    },
+    "kerml/src/examples/Behavior Examples/TakePicture.kerml": {
+      "sha256": "b3829d6059be1429c9b2ee90e38192b9e4ccaa12236498322aba83409ad1f8d7",
+      "bytes": 410
+    },
+    "kerml/src/examples/Individuals Examples/JohnIndividualExample.kerml": {
+      "sha256": "0f81f16144de4c7dadea4f252e925ce05c0ef735a361a7a6167c27f6926523d8",
+      "bytes": 2830
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-2-Atoms.kerml": {
+      "sha256": "9d972fecbc110cc1af256955add63a3f7d9875c99b4201faaa5ab2e635efc544",
+      "bytes": 356
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-2-ModelingInstances.kerml": {
+      "sha256": "d7022eb67c25572bd93cb3074f40cc02fd490c12c52f04ac0c45585eb25c834d",
+      "bytes": 740
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-3-2-WithoutConnectors.kerml": {
+      "sha256": "3a36d857d9b95ab2fcace2435a6831a42dfedc16754edd8d3254d5884f27b62a",
+      "bytes": 609
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-3-3-OneToOneConnectors.kerml": {
+      "sha256": "9242be07645265e42f0a3d7aa14cffb1fee327c7d9c56003793e4554b3e53989",
+      "bytes": 1633
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-3-4-OneToUnrestrictedConnectors.kerml": {
+      "sha256": "e5b8f343451101bbe425d9a9176556072275eb1198c660a86692ae4dea6623f1",
+      "bytes": 1704
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-3-5-TimingForStructures.kerml": {
+      "sha256": "9db4a32502dd287a03e0415818024d3ef9b626e60d36501d6878096496720ac2",
+      "bytes": 6190
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-3-6-Sequences.kerml": {
+      "sha256": "9e7fa6be31003d5fa939270673e45be94c005e729ae08e4ba3b09fcf4472e197",
+      "bytes": 1579
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-3-7-DecisionsAndMerges.kerml": {
+      "sha256": "e6c320b27fd51757a05b1d3fa84e26ef36b23527b53072b077259483626131d4",
+      "bytes": 4248
+    },
+    "kerml/src/examples/KerML Spec Annex A Examples/A-3-8-ChangingFeatureValues.kerml": {
+      "sha256": "80250dbcc2a53feb2dacda1c22aca6ae98c454b271df5cd64800a98c5226e05c",
+      "bytes": 7039
+    },
+    "kerml/src/examples/Mass Roll-up Example/MassRollup_1.kerml": {
+      "sha256": "b5c9a09ecf19b2c06ac9749d643506129d6a8ca86e07cd6c7d28a905c0029ec4",
+      "bytes": 257
+    },
+    "kerml/src/examples/Mass Roll-up Example/MassRollup_2.kerml": {
+      "sha256": "8c48b56644afbcf8cf231809b04929a154f8199cb0e17bcacdd4c0b2abf878d6",
+      "bytes": 332
+    },
+    "kerml/src/examples/Mass Roll-up Example/Vehicles_1.kerml": {
+      "sha256": "f92a6098b6278df75258c3affd2fa2cb28f8b6f39d4faccbdbb35386a59023f9",
+      "bytes": 890
+    },
+    "kerml/src/examples/Mass Roll-up Example/Vehicles_2.kerml": {
+      "sha256": "25eff39dce06fdb5837f27b34b004a8602661625260dd858543f64950341d773",
+      "bytes": 813
+    },
+    "kerml/src/examples/Mass Roll-up Example/Vehicles_3.kerml": {
+      "sha256": "cca90d03d1b354ea037e37b7e9eae415a1f8af85bd187c2bea6b58457035f7a5",
+      "bytes": 938
+    },
+    "kerml/src/examples/Massed Thing Example/MassedThings.kerml": {
+      "sha256": "3dee370ee373911ceca49199d0004b540c6286eaa0771db6c06ffaaa56d6eba0",
+      "bytes": 277
+    },
+    "kerml/src/examples/Named Collection Members Example/VehicleTanks.kerml": {
+      "sha256": "63f240ca34e0a24760f65ddb650ab855ca4a1fe6a75f0cd5a607ebc67287f348",
+      "bytes": 744
+    },
+    "kerml/src/examples/Packet Example/PacketUsage.kerml": {
+      "sha256": "f04cfefc3ac6a67b2ba53b0ea3ecbb449cf5cbd8beca87cf4827b11fc33f695c",
+      "bytes": 362
+    },
+    "kerml/src/examples/Packet Example/Packets.kerml": {
+      "sha256": "8d88def9c2d59677c9dbf7bb0b16b94c1c39bf43b32f627d92dc201ae0e2c33b",
+      "bytes": 966
+    },
+    "kerml/src/examples/Simple Tests/ArgumentResolution.kerml": {
+      "sha256": "3eea81c160be25f6ee891ec9dbcc8eeedd6019ab2d1fe435e275c6e0c22909e4",
+      "bytes": 207
+    },
+    "kerml/src/examples/Simple Tests/Associations.kerml": {
+      "sha256": "90a96c432ac322cf27681b29d36a9f89683baaff79214908a8e836d96377c250",
+      "bytes": 388
+    },
+    "kerml/src/examples/Simple Tests/Behaviors.kerml": {
+      "sha256": "1526ed5e97aeda790969aa9a2aa0d149055c12991d4ef2055c0f12d51425b32d",
+      "bytes": 381
+    },
+    "kerml/src/examples/Simple Tests/Circular.kerml": {
+      "sha256": "4719625817a3cb27c4a8faf428a10213c356d9e1ea68f54ce9f97ea8522da516",
+      "bytes": 172
+    },
+    "kerml/src/examples/Simple Tests/Classes.kerml": {
+      "sha256": "543ddde2612aea3e6269858826f47026efe3067af193f21a197d996806d42f77",
+      "bytes": 537
+    },
+    "kerml/src/examples/Simple Tests/Classifications.kerml": {
+      "sha256": "a7c5e67ea3db1f878afcc56f4319326947b19eac87a30a079a77af25c2d33cce",
+      "bytes": 132
+    },
+    "kerml/src/examples/Simple Tests/Classifiers.kerml": {
+      "sha256": "1bca0f3ca98026f802c475c61b6243c2d8c9994d9de980f715c6bc0c4af267e0",
+      "bytes": 374
+    },
+    "kerml/src/examples/Simple Tests/Comments.kerml": {
+      "sha256": "217ee9123694cbceff1964cf4b2e2be88c9453808a5f5df3abcc58ac67339261",
+      "bytes": 755
+    },
+    "kerml/src/examples/Simple Tests/Conjugation.kerml": {
+      "sha256": "2b0fc0e6698052fae5609209084b4d8d3ef0df71928afe176dd02c7095184d83",
+      "bytes": 99
+    },
+    "kerml/src/examples/Simple Tests/Connectors.kerml": {
+      "sha256": "abbdcb4f0c63d7c31823561c7ede2e75e944da47a67e249c0fb23a3025e5b381",
+      "bytes": 657
+    },
+    "kerml/src/examples/Simple Tests/Dependencies.kerml": {
+      "sha256": "530590c54d03b98c3b05b027244baeae8651bd3ad2044a46ed22d46ec66f1a4a",
+      "bytes": 352
+    },
+    "kerml/src/examples/Simple Tests/Expansion.kerml": {
+      "sha256": "799fa1522191dfbcb18535ca3cb95bbcf968e4060f7d99cd6d3a196539924d7d",
+      "bytes": 112
+    },
+    "kerml/src/examples/Simple Tests/Expressions.kerml": {
+      "sha256": "505c5c66669606cb4189d21bb26871a40dc78cd3bb68db23a86be72e0d7c3eef",
+      "bytes": 1809
+    },
+    "kerml/src/examples/Simple Tests/FeatureChains.kerml": {
+      "sha256": "497d7981b1afab4b39618f2b2ebaf25c100f32d3df7e27f3ca6899ba034a7fb0",
+      "bytes": 551
+    },
+    "kerml/src/examples/Simple Tests/FeatureInheritance.kerml": {
+      "sha256": "da001b741844b18b5e5187c8403ad9e66a2841d2965e96473a755a54f1c73731",
+      "bytes": 102
+    },
+    "kerml/src/examples/Simple Tests/Features.kerml": {
+      "sha256": "a7ed5717a0202ae6328356f74525633ae4556ff6960fb32056905d031c4ba32d",
+      "bytes": 1615
+    },
+    "kerml/src/examples/Simple Tests/Filtering.kerml": {
+      "sha256": "2a46dd1ab008f0f82d9bf96348fcfb9fe7b8cdde9e1a2c2178f2aa61c3a73595",
+      "bytes": 1184
+    },
+    "kerml/src/examples/Simple Tests/Imports.kerml": {
+      "sha256": "e78cc8deb4353ce40e3419bf7853a50a4ecbbffb7371f8a95c660143417032bc",
+      "bytes": 480
+    },
+    "kerml/src/examples/Simple Tests/Inheritance.kerml": {
+      "sha256": "469dd07481a3da0a864082b262ee688d900c6dc14bd99414e523fe371d4ac0cd",
+      "bytes": 235
+    },
+    "kerml/src/examples/Simple Tests/Inverses.kerml": {
+      "sha256": "ca0ae0b19ebc799e3b3645c6c3717b36aae35ee39398f2c690f50861f2dce694",
+      "bytes": 249
+    },
+    "kerml/src/examples/Simple Tests/MetadataTest.kerml": {
+      "sha256": "8f534f91c9b8813adff9eeddfa61dcb551d85ef58de4d84b1a77f0df8a567741",
+      "bytes": 1182
+    },
+    "kerml/src/examples/Simple Tests/Redefinition.kerml": {
+      "sha256": "a9660bd0dc11092720e7975d83b0d48929708b533cd806e5264c2d0992aa1896",
+      "bytes": 325
+    },
+    "kerml/src/examples/Simple Tests/Scoping.kerml": {
+      "sha256": "e1d71b9a292ed4e2789e8bdb20478282a811a497f5b03092054f945b893b05ca",
+      "bytes": 890
+    },
+    "kerml/src/examples/Simple Tests/TextualRepresentation.kerml": {
+      "sha256": "f783effcac236b519244c7973654a829ab86aefe8acbfd905f5300dc33e2bade",
+      "bytes": 343
+    },
+    "kerml/src/examples/Simple Tests/Types.kerml": {
+      "sha256": "dfb4f750c17e341e11e3c6c7848d77716a5fef16654675a628c688cc563efb8d",
+      "bytes": 964
+    },
+    "kerml/src/examples/Variable Feature Examples/Enhancements/ExtendedOccurrences.kerml": {
+      "sha256": "4346afb6b11b9029ad81579cac690265de3cc6cf4a7d1e45a22c80dd79107011",
+      "bytes": 2023
+    },
+    "kerml/src/examples/Variable Feature Examples/Enhancements/Moments.kerml": {
+      "sha256": "441f93819dfbd6dee83b84c672d392f80c4c8ede24c810351ad1d84e142df560",
+      "bytes": 1544
+    },
+    "kerml/src/examples/Variable Feature Examples/Enhancements/TimeVaryingFeaturesEnhanced.kerml": {
+      "sha256": "56c4fb2f40cb53930bd5bd1f213def7e3dfbfb6db3a3bc504c29f94e8b0b0979",
+      "bytes": 6820
+    },
+    "kerml/src/examples/Variable Feature Examples/Enhancements/TimeVaryingSteps.kerml": {
+      "sha256": "6ea7677b72645046564fe88cf346783ffe4ef3d4248be7a83ee4513ec18a6470",
+      "bytes": 2305
+    },
+    "kerml/src/examples/Variable Feature Examples/TimeVaryingCarDriver.kerml": {
+      "sha256": "d67c3870429ed0f7ced1bd21d9fe296b0d09c319f940982358ec2feb77e00568",
+      "bytes": 4313
+    },
+    "kerml/src/examples/Variable Feature Examples/TimeVaryingFeatures.kerml": {
+      "sha256": "7a99f4e28532620e4b6ebd5a327a8d896ca4c327e9ca604fab4e0d7e8b6dc7cd",
+      "bytes": 2637
+    },
+    "kerml/src/examples/Vehicle Example/VehicleDefinitions.kerml": {
+      "sha256": "8037bff947b8bebf862ac9e6838ec3550fa2fe84e18f3ac255942a9cbb84a353",
+      "bytes": 639
+    },
+    "kerml/src/examples/Vehicle Example/VehicleUsages.kerml": {
+      "sha256": "a1d4568426eb8847e36e0de8f6c25093a09304ca0f0bf5ad7e241cf9b6daf3ff",
+      "bytes": 3371
+    }
+  }
+}

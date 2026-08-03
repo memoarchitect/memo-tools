@@ -38,6 +38,8 @@ memo init --list       # packages, templates, and examples together
 | `memo rules …` | List, check, explain, and report coverage for consistency rules. |
 | `memo toolchain probe [dir]` | Resolve each toolchain role to a provider and report its executable and version. |
 | `memo config effective [dir]` | Print settings after flags, deprecated aliases, and defaults are applied. |
+| `memo conformance run [dir]` | Run the toolchain over the pinned SysML v2 Release corpus and count diagnostics by domain. |
+| `memo conformance diff-xmi [dir]` | Compare MEMO's computed semantics for a normative library against the Release `xmi.implied` file. |
 
 ## Project creation
 
@@ -70,11 +72,49 @@ tree; existing sample files are never overwritten.
 | `rules` | `list`, `check`, `explain`, `coverage` |
 | `toolchain` | `probe` |
 | `config` | `effective` |
+| `conformance` | `run`, `diff-xmi` |
 
 Every setting under `toolchain` has a generated `--toolchain.<path>` flag on
 `memo validate`, `memo pack`, `memo toolchain probe`, `memo config effective`,
 and `memo-architect dev`. `memo toolchain probe --help` lists them for the
 installed provider set.
+
+## Conformance
+
+Both subcommands read the corpus vendored at `corpus/sysml-v2-release/` — a
+pinned, checksummed copy of the OMG's published libraries, XMI serializations,
+grammars, and example models. Every result carries the pinned Release commit and
+the corpus digest.
+
+```bash
+memo conformance run                                  # every unit
+memo conformance run --unit library/systems-library   # one unit; a prefix selects a group
+memo conformance diff-xmi --library Parts.sysml
+memo conformance run --baseline                       # fail on any count that moved
+memo conformance run --update-baseline                # re-freeze after a deliberate change
+```
+
+| Option | Meaning |
+|---|---|
+| `--corpus <dir>` | Use a corpus other than the vendored one. |
+| `--unit <id...>` | Corpus units to run. A prefix such as `library` selects the group. |
+| `--library <path...>` | Library sources to compare, by corpus-relative path or bare filename. |
+| `--verify <scope>` | Checksum scope before running: `sources`, `full`, `skipped`. |
+| `--baseline [file]` | Compare against a frozen baseline and exit non-zero on any change. |
+| `--update-baseline` | Re-freeze the baseline from this run. |
+| `--format <format>` | `text` or `json`. |
+
+`run` exercises both the validator and the lowering role over the same file set,
+which is what makes the `sysml` and `memo-ingest` counts a measurement rather
+than a label. When one provider fills both roles, an ingest failure the
+validator already reported is counted once, under `sysml`.
+
+A baseline is refused rather than compared when the corpus pin differs, so
+moving the pin never reads as a regression. A count that *improved* also fails
+the gate: re-freezing is deliberate and reviewable.
+
+Neither subcommand is reachable from `validate`, `dev`, `build`, or an Architect
+refresh — they grade MEMO against the OMG's files, not against your project.
 
 ## Common examples
 

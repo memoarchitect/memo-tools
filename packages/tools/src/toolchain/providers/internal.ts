@@ -184,8 +184,8 @@ function toDiagnostics(errors: readonly ParseError[], domain: DiagnosticDomain):
 
 async function ir(context: ProviderContext): Promise<MemoIr> {
     return transport(context) === 'process'
-        ? client(context).emitIr()
-        : lowerProject(context.projectDir, context.registries);
+        ? client(context).emitIr(context.files)
+        : lowerProject(context.projectDir, { registries: context.registries, files: context.files });
 }
 
 /**
@@ -219,8 +219,8 @@ export const internalValidatorDescriptor: ValidatorDescriptor = {
                 // for an unchanged revision from cache, so a snapshot that runs
                 // both roles still compiles once.
                 const { parseErrors } = mode === 'process'
-                    ? await client(context).emitIr()
-                    : await checkProject(context.projectDir);
+                    ? await client(context).emitIr(context.files)
+                    : await checkProject(context.projectDir, context.files);
                 return {
                     provider: INTERNAL_PROVIDER_ID,
                     providerVersion: internalVersion(),

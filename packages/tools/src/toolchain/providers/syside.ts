@@ -80,7 +80,12 @@ export function buildSysideInvocation(context: ProviderContext): ToolInvocation 
     // them the model actually uses is decided by the project's imports, not by
     // this list — an include path a file never imports contributes nothing.
     for (const includeDir of [...new Set(context.includeDirs ?? [])]) args.push('--include', includeDir);
-    args.push(context.projectDir);
+    // `syside check` takes paths, so an explicit source list is passed through
+    // as the paths rather than approximated by the directory that contains
+    // them. A caller that named its files gets exactly those checked — which is
+    // what makes a conformance count comparable across providers.
+    if (context.files && context.files.length > 0) args.push(...[...context.files].sort());
+    else args.push(context.projectDir);
     return { command: command(context), args, provider: SYSIDE_PROVIDER_ID };
 }
 

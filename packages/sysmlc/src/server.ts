@@ -30,8 +30,8 @@ import {
     PROTOCOL_CAPABILITY_KEY,
     SYSMLC_IR_VERSION,
     SYSMLC_PROTOCOL_VERSION,
-    findSysmlFiles,
     lowerProject,
+    resolveSources,
     parseText,
     type EmitIrParams,
     type EmitIrResponse,
@@ -70,9 +70,13 @@ interface ProjectState {
  * compile it might avoid. A same-millisecond same-size edit would defeat it,
  * which is why it only ever *skips work*, never decides an answer.
  */
-function fingerprintProject(projectDir: string): string {
+function fingerprintProject(projectDir: string, files?: readonly string[]): string {
     const hash = createHash('sha256');
-    for (const file of findSysmlFiles(projectDir).sort()) {
+    // The requested source list is part of the fingerprint, not just its
+    // contents: two requests against one directory with different file sets are
+    // different questions, and a cache that could not tell them apart would
+    // answer the second with the first one's model.
+    for (const file of resolveSources(projectDir, files)) {
         try {
             const stat = statSync(file);
             hash.update(`${file}:${stat.size}:${stat.mtimeMs}\n`);
@@ -111,10 +115,10 @@ export class SysmlcServer {
         const state = this.state(projectDir);
         state.latestRequested = Math.max(state.latestRequested, params.revision);
 
-        const fingerprint = fingerprintProject(projectDir);
+        const fingerprint = fingerprintProject(projectDir, params.files);
         const ir = state.cached?.fingerprint === fingerprint
             ? state.cached.ir
-            : await lowerProject(projectDir);
+            : await lowerProject(projectDir, { files: params.files });
         state.cached = { fingerprint, ir };
 
         if (state.latestRequested > params.revision) {

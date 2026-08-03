@@ -1,0 +1,941 @@
+{
+  "reportVersion": "1.0.0",
+  "memoVersion": "0.6.7",
+  "corpus": {
+    "repository": "https://github.com/Systems-Modeling/SysML-v2-Release",
+    "commit": "de1070ae8e79c21532b8004fc663d47b35d0e9fa",
+    "commitDate": "2026-07-22T13:51:53-04:00",
+    "digest": "235552e1d5ecfffcd69f7dd48d74c41d58751249d9d3aa4d1fdac509ab4aaeaa",
+    "libraryVersions": {
+      "Kernel_Data_Type_Library": "1.1.0-dev.20260501",
+      "Kernel_Function_Library": "1.1.0-dev.20260501",
+      "Kernel_Semantic_Library": "1.1.0-dev.20260501",
+      "SysML_Analysis_Library": "2.1.0-dev.20260501",
+      "SysML_Cause_and_Effect_Library": "2.1.0-dev.20260501",
+      "SysML_Geometry_Library": "2.1.0-dev.20260501",
+      "SysML_Metadata_Library": "2.1.0-dev.20260501",
+      "SysML_Quantities_and_Units_Library": "2.1.0-dev.20260501",
+      "SysML_Requirement_Derivation_Library": "2.1.0-dev.20260501",
+      "SysML_Systems_Library": "2.1.0-dev.20260501"
+    },
+    "root": ".",
+    "verified": "sources"
+  },
+  "toolchain": {
+    "validator": "internal",
+    "lowering": "internal"
+  },
+  "totals": {
+    "units": 12,
+    "files": 403,
+    "bytes": 1843255,
+    "outsideUnit": 0,
+    "byDomain": {
+      "sysml": 12892,
+      "memo-ingest": 0,
+      "memo-methodology": 0
+    },
+    "bySeverity": {
+      "error": 12892,
+      "warning": 0,
+      "info": 0
+    }
+  },
+  "units": [
+    {
+      "id": "library/domain-libraries/analysis",
+      "path": "sysml.library/Domain Libraries/Analysis",
+      "kind": "library",
+      "files": 4,
+      "bytes": 13837,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 67,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 67,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 4,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 34
+        },
+        {
+          "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 12
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 8
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 3
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [:]\n  N. [=]\n  N. [{]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "unexpected character: ->?<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [=]\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 1
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [attribute]\n  N. [part]\n  N. [port]\n  N. [in, port]\n  N. [out, po",
+          "domain": "sysml",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "library/domain-libraries/cause-and-effect",
+      "path": "sysml.library/Domain Libraries/Cause and Effect",
+      "kind": "library",
+      "files": 2,
+      "bytes": 5091,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 27,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 27,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 2,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 15
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 6
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [part]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 1
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [=]\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 1
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 1
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "domain": "sysml",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "library/domain-libraries/geometry",
+      "path": "sysml.library/Domain Libraries/Geometry",
+      "kind": "library",
+      "files": 2,
+      "bytes": 32790,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 418,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 418,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 2,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 166
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N. [port]\n  N",
+          "domain": "sysml",
+          "count": 81
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 59
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [:]\n  N. [=]\n  N. [{]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 56
+        },
+        {
+          "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 27
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [=]\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 14
+        },
+        {
+          "key": "unexpected character: ->?<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 6
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [library]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [attribute]\n  N. [part]\n  N. [port]\n  N. [in, port]\n  N. [out, po",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "unexpected character: ->^<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "library/domain-libraries/metadata",
+      "path": "sysml.library/Domain Libraries/Metadata",
+      "kind": "library",
+      "files": 4,
+      "bytes": 7798,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 34,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 34,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 4,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 26
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 4
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [not]\n  N. [INT]\n  N. [STRING]\n  N. [true]\n  N. [false]\n  N. [ID]",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 1
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [:]\n  N. [=]\n  N. [{]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "library/domain-libraries/quantities-and-units",
+      "path": "sysml.library/Domain Libraries/Quantities and Units",
+      "kind": "library",
+      "files": 23,
+      "bytes": 1006787,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 5491,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 5491,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 23,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 3491
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 1429
+        },
+        {
+          "key": "unexpected character: ->^<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 313
+        },
+        {
+          "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 58
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [library]\nbut found: '…'3dVectorQuantityValue'…'",
+          "domain": "sysml",
+          "count": 52
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [=]\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 51
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [library]\nbut found: '…'3dCoordinateFrame'…'",
+          "domain": "sysml",
+          "count": 37
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [library]\n  N. [STRING]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 24
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N. [port]\n  N",
+          "domain": "sysml",
+          "count": 15
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "library/domain-libraries/requirement-derivation",
+      "path": "sysml.library/Domain Libraries/Requirement Derivation",
+      "kind": "library",
+      "files": 2,
+      "bytes": 3574,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 29,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 29,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 2,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 24
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "library/kernel-libraries/kernel-data-type-library",
+      "path": "sysml.library/Kernel Libraries/Kernel Data Type Library",
+      "kind": "library",
+      "files": 3,
+      "bytes": 9022,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 16,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 16,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 3,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 6
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 3
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 3
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "domain": "sysml",
+          "count": 3
+        },
+        {
+          "key": "unexpected character: ->?<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "library/kernel-libraries/kernel-function-library",
+      "path": "sysml.library/Kernel Libraries/Kernel Function Library",
+      "kind": "library",
+      "files": 17,
+      "bytes": 47268,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 612,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 612,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 17,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 549
+        },
+        {
+          "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 23
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 16
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 10
+        },
+        {
+          "key": "unexpected character: ->?<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 8
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [attribute]\n  N. [part]\n  N. [port]\n  N. [in, port]\n  N. [out, po",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "domain": "sysml",
+          "count": 1
+        },
+        {
+          "key": "unexpected character: ->&<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "library/kernel-libraries/kernel-semantic-library",
+      "path": "sysml.library/Kernel Libraries/Kernel Semantic Library",
+      "kind": "library",
+      "files": 16,
+      "bytes": 132457,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 196,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 196,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 16,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 142
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 14
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "domain": "sysml",
+          "count": 14
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 9
+        },
+        {
+          "key": "unexpected character: ->|<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 7
+        },
+        {
+          "key": "unexpected character: ->?<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 6
+        },
+        {
+          "key": "unexpected character: ->&<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "library/systems-library",
+      "path": "sysml.library/Systems Library",
+      "kind": "library",
+      "files": 21,
+      "bytes": 93615,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 497,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 497,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 21,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 327
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 110
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 13
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 12
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "domain": "sysml",
+          "count": 12
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [in, ID]\n  N. [out, ID]\n  N. [inout, ID]\n  N. [attribute]\n  N. [p",
+          "domain": "sysml",
+          "count": 7
+        },
+        {
+          "key": "unexpected character: ->?<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 4
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [:>>]\n  N. [ID]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N.",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N. [port]\n  N",
+          "domain": "sysml",
+          "count": 2
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [def]\n  N. [ID]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "examples/sysml",
+      "path": "sysml/src",
+      "kind": "examples",
+      "files": 251,
+      "bytes": 410852,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 5154,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 5154,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 248,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 3545
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 914
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [:]\n  N. [=]\n  N. [{]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 145
+        },
+        {
+          "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 141
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [attribute]\n  N. [part]\n  N. [port]\n  N. [in, port]\n  N. [out, po",
+          "domain": "sysml",
+          "count": 72
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 70
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 46
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N. [port]\n  N",
+          "domain": "sysml",
+          "count": 40
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [part]\n  N. [requirement]\n  N. [action]\n  N. [item]\n  N",
+          "domain": "sysml",
+          "count": 27
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [library]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 26
+        }
+      ]
+    },
+    {
+      "id": "examples/kerml",
+      "path": "kerml/src",
+      "kind": "examples",
+      "files": 58,
+      "bytes": 80164,
+      "outsideUnit": 0,
+      "roles": [
+        {
+          "role": "validator",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        },
+        {
+          "role": "lowering",
+          "provider": "internal",
+          "transport": "in-process",
+          "accepted": false
+        }
+      ],
+      "byDomain": {
+        "sysml": 351,
+        "memo-ingest": 0,
+        "memo-methodology": 0
+      },
+      "bySeverity": {
+        "error": 351,
+        "warning": 0,
+        "info": 0
+      },
+      "filesWithDiagnostics": 58,
+      "topFindings": [
+        {
+          "key": "Expecting token of type '…' but found `…`.",
+          "domain": "sysml",
+          "count": 215
+        },
+        {
+          "key": "unexpected character: ->#<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 76
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [start]\n  N. [done]\n  N. [ID]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 16
+        },
+        {
+          "key": "Expecting end of file but found `…`.",
+          "domain": "sysml",
+          "count": 13
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [alias]\n  N. [private]\n  N. [public",
+          "domain": "sysml",
+          "count": 8
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [library]\n  N. [package]\n  N. [private]\n  N. [public]\n  N. [impor",
+          "domain": "sysml",
+          "count": 7
+        },
+        {
+          "key": "unexpected character: ->?<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 7
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [ID]\n  N. [*]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 4
+        },
+        {
+          "key": "Expecting: one of these possible Token sequences:\n  N. [{]\n  N. [;]\nbut found: '…'",
+          "domain": "sysml",
+          "count": 1
+        },
+        {
+          "key": "unexpected character: ->$<- at offset: N, skipped N characters.",
+          "domain": "sysml",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

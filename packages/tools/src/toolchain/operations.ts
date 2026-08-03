@@ -28,6 +28,13 @@ export interface ToolchainRunOptions {
     registry?: ProviderRegistry;
     /** Overrides the include paths derived from the project's library roots. */
     includeDirs?: string[];
+    /**
+     * The exact sources to analyse, instead of the directory's own discovery.
+     * See `ProviderContext.files` — a conformance corpus is a file set, not a
+     * project, and every role has to be told the same set or the counts are not
+     * comparable.
+     */
+    files?: readonly string[];
     outputPath?: string;
     /** Ontology registries the caller already loaded. See `ProviderContext`. */
     registries?: BuilderRegistries;
@@ -38,6 +45,7 @@ function context(options: ToolchainRunOptions): ProviderContext {
         config: options.config,
         projectDir: options.projectDir,
         includeDirs: options.includeDirs ?? discoverLibraryRoots(options.projectDir).map(r => r.sysmlDir),
+        files: options.files,
         outputPath: options.outputPath,
         registries: options.registries,
     };

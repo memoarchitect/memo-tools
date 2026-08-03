@@ -50,6 +50,34 @@ export async function loadBuilderRegistries(projectDir: string): Promise<Builder
     }
 }
 
+export interface LoweringOptions {
+    /**
+     * Ontology registries the caller has already loaded. See `ProviderContext`.
+     */
+    registries?: BuilderRegistries;
+    /**
+     * The exact sources to read, instead of the directory's own discovery.
+     *
+     * Absolute paths, and never a project's normal input: a project is defined
+     * by what is in it. It exists for callers whose subject is a *file set*
+     * rather than a project — conformance runs a corpus unit whose Kernel
+     * libraries are `.kerml`, which the project walker does not collect, and a
+     * run that silently analysed none of them would report a clean pass on
+     * files it never opened.
+     */
+    files?: readonly string[];
+}
+
+/**
+ * The sources a run reads: the caller's explicit list, or the project's own.
+ *
+ * Sorted either way, because "both transports are byte-identical" only holds
+ * against an input order that does not depend on who built the list.
+ */
+export function resolveSources(root: string, files?: readonly string[]): string[] {
+    return (files ? files.map(file => resolve(root, file)) : findSysmlFiles(root)).slice().sort();
+}
+
 /**
  * Lower a project to IR.
  *
@@ -60,7 +88,7 @@ export async function loadBuilderRegistries(projectDir: string): Promise<Builder
  */
 export async function lowerProject(
     projectDir: string,
-    preloadedRegistries?: BuilderRegistries,
+    options: LoweringOptions = {},
 ): Promise<MemoIr> {
     const root = resolve(projectDir);
     const config = loadProjectConfig(root);
@@ -69,8 +97,8 @@ export async function lowerProject(
     // validate against — may hand them over rather than pay twice. It is the
     // same value either way: a process transport loads its own, and the two
     // agree because they resolve the same project.
-    const registries = preloadedRegistries ?? await loadBuilderRegistries(root);
-    const { documents, errors } = await parseFiles(findSysmlFiles(root), `${root}/`);
+    const registries = options.registries ?? await loadBuilderRegistries(root);
+    const { documents, errors } = await parseFiles(resolveSources(root, options.files), `${root}/`);
     const model = buildMemoModel(documents, config, errors, registries);
     return {
         irVersion: SYSMLC_IR_VERSION,
@@ -89,8 +117,9 @@ export async function lowerProject(
  */
 export async function checkProject(
     projectDir: string,
+    files?: readonly string[],
 ): Promise<{ accepted: boolean; parseErrors: ParseError[] }> {
     const root = resolve(projectDir);
-    const { errors } = await parseFiles(findSysmlFiles(root), `${root}/`);
+    const { errors } = await parseFiles(resolveSources(root, files), `${root}/`);
     return { accepted: errors.length === 0, parseErrors: errors };
 }

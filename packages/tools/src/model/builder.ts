@@ -1124,11 +1124,17 @@ function resolveRef(ref: string): string | undefined {
  * known element id, resolve its last dot segment instead.
  */
 function resolveEndpointId(
-    ref: string,
+    // An endpoint can parse without a reference — the Release examples contain
+    // connection forms the MEMO grammar accepts structurally but cannot bind.
+    // An unresolvable endpoint drops the relationship at the call site, which
+    // is the same outcome as any other unresolved reference; crashing the whole
+    // build over it is not (§1.1 — the compiler reports, it does not refuse).
+    ref: string | undefined,
     packageName: string,
     registry: PackageRegistry,
     allElementIds: Set<string>
 ): string | undefined {
+    if (!ref) return undefined;
     const direct = registry.resolveElementId(ref, packageName, allElementIds) || resolveRef(ref);
     if (direct && allElementIds.has(direct)) return direct;
     if (ref.includes('.')) {

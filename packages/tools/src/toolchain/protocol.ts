@@ -29,7 +29,7 @@ import type { MemoModelDTO, ParseError } from '../model/semantic.js';
  * and accepts any minor at or above nothing in particular — new optional fields
  * are a minor bump, a changed or removed field is a major one.
  */
-export const SYSMLC_PROTOCOL_VERSION = '1.0.0';
+export const SYSMLC_PROTOCOL_VERSION = '1.1.0';
 
 /**
  * IR payload version, tracked separately from the protocol that carries it.
@@ -73,6 +73,21 @@ export interface EmitIrParams {
     revision: number;
     /** The version the client is speaking, re-stated per request. */
     protocolVersion: string;
+    /**
+     * The exact sources to lower, instead of the project's own discovery.
+     *
+     * Added in protocol 1.1.0 — an optional field, so a 1.0.0 server still
+     * answers a 1.1.0 client's ordinary request. It exists for callers whose
+     * subject is a file set rather than a project: `memo conformance` runs a
+     * corpus unit whose files a project walker would not collect, and both
+     * transports have to be able to say which files those are or only the
+     * in-process one could run a corpus.
+     *
+     * A server that does not understand it lowers the project instead. That is
+     * a visibly different answer, not a silently wrong one — the result names
+     * the files it read.
+     */
+    files?: readonly string[];
 }
 
 /**

@@ -20,6 +20,7 @@ import { runLowering } from '../toolchain/operations.js';
 import { loadProjectConfig, lowerProject } from '../toolchain/lowering.js';
 import { disposeSysmlcClients } from '../toolchain/sysmlc-client.js';
 import { findBundledExecutable, whichExecutable } from '../toolchain/process.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 import {
     SYSMLC_PROTOCOL_VERSION,
     assertProtocolCompatible,
@@ -96,6 +97,36 @@ describe('both transports produce byte-identical results', () => {
             expect(spawned.accepted).toBe(inProcess.accepted);
         }, 120_000);
     }
+});
+
+describe('an explicit source list crosses the pipe too', () => {
+    // Protocol 1.1.0 added `files`. If only the in-process transport honoured
+    // it, "any provider can fill the lowering role" would quietly stop being
+    // true of the one case that needs it: a corpus is a file set, not a project.
+    it('agrees on a subset of a project, and the subset is smaller', async () => {
+        const projectDir = exampleProjects()[0];
+        const config = loadProjectConfig(projectDir);
+        const all = findSysmlFiles(projectDir).sort();
+        expect(all.length).toBeGreaterThan(1);
+        const subset = all.slice(0, Math.max(1, Math.floor(all.length / 2)));
+
+        const inProcess = await runLowering({
+            config: withTransport(config, 'in-process'), projectDir, files: subset,
+        });
+        const spawned = await runLowering({
+            config: withTransport(config, 'process'), projectDir, files: subset,
+        });
+        const whole = await runLowering({
+            config: withTransport(config, 'process'), projectDir,
+        });
+
+        expect(JSON.stringify(spawned.ir)).toEqual(JSON.stringify(inProcess.ir));
+        // The subset has to actually restrict the run. Without this the test
+        // would pass against a server that ignored `files` entirely — which is
+        // precisely the failure mode an optional protocol field invites.
+        expect(Object.keys(spawned.ir.model.elements).length)
+            .toBeLessThan(Object.keys(whole.ir.model.elements).length);
+    }, 120_000);
 });
 
 describe('a superseded revision never emits a stale result', () => {

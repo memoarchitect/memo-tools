@@ -68,6 +68,17 @@ export interface ProviderContext {
     projectDir: string;
     /** Resolved library roots offered to the tool as include paths. */
     includeDirs?: string[];
+    /**
+     * The exact sources to analyse, instead of the directory's own discovery.
+     *
+     * Not an optimisation. A provider discovers a *project*, and a conformance
+     * corpus is not one: its Kernel libraries are `.kerml`, which no project
+     * walker collects, and a run that quietly analysed none of them would
+     * report a clean pass on files it never opened. Every adapter must honour
+     * it or say what it did instead — silently widening the set back to the
+     * directory is the failure this field exists to prevent.
+     */
+    files?: readonly string[];
     /** Destination artifact, for the `package` role. */
     outputPath?: string;
     /**
