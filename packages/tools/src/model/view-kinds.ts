@@ -24,6 +24,18 @@ export const VIEW_KINDS = [
 
 export type ViewKind = (typeof VIEW_KINDS)[number];
 
+/** Compact identifier prefix used by views of each standard SysML view kind. */
+export const VIEW_KIND_SHORT_ID_PREFIX: Record<ViewKind, string> = {
+    general: 'GEN',
+    interconnection: 'INT',
+    actionflow: 'ACT',
+    statetransition: 'STM',
+    sequence: 'SEQ',
+    grid: 'GRID',
+    browser: 'BRW',
+    geometry: 'GEO',
+};
+
 const VIEW_KIND_SET: ReadonlySet<string> = new Set(VIEW_KINDS);
 
 export function isViewKind(value: string): value is ViewKind {

@@ -15,7 +15,7 @@
 
 import type { MemoModel, MemoElement, ViewpointDTO, DiagramDTO } from './semantic.js';
 import type { KindRegistry } from './kind-registry.js';
-import { resolveViewKind } from './view-kinds.js';
+import { resolveViewKind, VIEW_KIND_SHORT_ID_PREFIX } from './view-kinds.js';
 
 /** Kinds whose instances are treated as model-defined views. */
 function isViewElement(el: MemoElement, kindRegistry?: KindRegistry): boolean {
@@ -100,7 +100,7 @@ function viewpointLabel(ref: string): string {
 function resolveViewpoints(
     view: MemoElement,
     model: MemoModel,
-): Array<{ id: string; label: string; ref: string; group?: string; declaredLayers?: string[] }> {
+): Array<{ id: string; label: string; ref: string; group?: string; declaredLayers?: string[]; explorerLane?: string; explorerOrder?: number }> {
     // `viewpointDefinition` is the canonical property declared by MemoView.
     // Keep the former `viewpoint` spelling as a compatibility fallback for
     // projects authored before the ontology adopted the ISO 42010 vocabulary.
@@ -120,6 +120,10 @@ function resolveViewpoints(
             // that bind to it — a viewpoint states which layers it frames even
             // before any view exists.
             declaredLayers: splitList(authored?.attributes['includedLayers'] ?? ''),
+            explorerLane: authored?.attributes['explorerLane'],
+            explorerOrder: Number.isFinite(Number(authored?.attributes['explorerOrder']))
+                ? Number(authored?.attributes['explorerOrder'])
+                : undefined,
             ref,
         };
     });
@@ -156,10 +160,15 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             : false;
 
         const authoredViewpoints = resolveViewpoints(el, model);
+        // A renderer sample without a binding remains in Model > Samples, but
+        // an authored ISO 42010 binding is always authoritative. In
+        // particular, a real project may legitimately contain `samples` in
+        // its package name and still organize its views by viewpoint.
+        const usesRendererSampleFallback = isRendererSample && authoredViewpoints.length === 0;
         // A view with no viewpoint binding is genuinely unassigned. Do not
         // misclassify it as a "Document View" merely because its binding was
         // absent or could not be resolved.
-        const vpIds = isRendererSample
+        const vpIds = usesRendererSampleFallback
             ? ['__model']
             : authoredViewpoints.length > 0
                 ? authoredViewpoints.map(vp => vp.id)
@@ -168,11 +177,13 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         for (const authoredViewpoint of authoredViewpoints.length > 0
             ? authoredViewpoints
             : [{ id: '__unassigned', label: 'Unassigned Views', ref: '__unassigned' }]) {
-            if (!isRendererSample && !viewpointsById.has(authoredViewpoint.id)) {
+            if (!usesRendererSampleFallback && !viewpointsById.has(authoredViewpoint.id)) {
                 viewpointsById.set(authoredViewpoint.id, {
                     id: authoredViewpoint.id,
                     label: authoredViewpoint.label,
                     group: authoredViewpoint.group,
+                    explorerLane: authoredViewpoint.explorerLane,
+                    explorerOrder: authoredViewpoint.explorerOrder,
                     declaredLayers: authoredViewpoint.declaredLayers?.length
                         ? authoredViewpoint.declaredLayers : undefined,
                     visibleKinds: [],
@@ -246,6 +257,19 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                 ? { elementKinds: [...expandKinds(queryKinds, kindRegistry)] }
                 : {}),
             sourceFile: el.file,
+        });
+    }
+
+    // Views use their standard SysML view-kind family, rather than the generic
+    // MemoDiagramView element family: GEN-1, ACT-1, STM-1, and so on.
+    const diagramsByPrefix = new Map<string, DiagramDTO[]>();
+    for (const diagram of diagrams) {
+        const prefix = VIEW_KIND_SHORT_ID_PREFIX[diagram.viewKind as keyof typeof VIEW_KIND_SHORT_ID_PREFIX] ?? 'BRW';
+        diagramsByPrefix.set(prefix, [...(diagramsByPrefix.get(prefix) ?? []), diagram]);
+    }
+    for (const [prefix, views] of diagramsByPrefix) {
+        views.sort((a, b) => a.id.localeCompare(b.id)).forEach((diagram, index) => {
+            diagram.shortId = `${prefix}-${index + 1}`;
         });
     }
 

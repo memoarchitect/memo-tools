@@ -40,10 +40,12 @@ function getGitInfo(cwd: string): Partial<ModelMetadata> {
         }
         catch { return undefined; }
     };
+    const porcelain = git('git status --porcelain');
     return {
         gitUser: git('git config user.name') || undefined,
         gitBranch: git('git rev-parse --abbrev-ref HEAD') || undefined,
         gitCommitShort: git('git rev-parse --short HEAD') || undefined,
+        gitDirty: porcelain ? true : undefined,
     };
 }
 

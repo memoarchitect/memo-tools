@@ -84,8 +84,25 @@ describe('explicit renderer samples', () => {
         })]);
         expect(result.diagrams).toEqual([expect.objectContaining({
             id: 'VIEW-BHV-003',
+            shortId: 'ACT-1',
             name: 'GPCA Infusion Delivery Action Flow',
             viewpointId: 'VP-LOG',
         })]);
+    });
+
+    it('honors an authored viewpoint binding in a samples package', () => {
+        const viewpoint = element('functionalViewpoint', 'Viewpoint', 'samples');
+        viewpoint.attributes = { id: 'VP-FUNC', title: 'Functional Viewpoint' };
+        const view = element('sampleActionFlowView', 'DiagramView', 'samples');
+        view.attributes = { viewpointDefinition: 'functionalViewpoint' };
+        const model = {
+            elements: new Map([[viewpoint.id, viewpoint], [view.id, view]]),
+            relationships: [], incoming: new Map(),
+        } as unknown as MemoModel;
+
+        const result = deriveModelViews(model);
+
+        expect(result.viewpoints).toEqual([expect.objectContaining({ id: 'VP-FUNC' })]);
+        expect(result.diagrams).toEqual([expect.objectContaining({ viewpointId: 'VP-FUNC' })]);
     });
 });

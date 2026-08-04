@@ -157,12 +157,18 @@ export interface ViewpointDTO {
      * intent, and is what consumers should order or filter by.
      */
     declaredLayers?: string[];
+    /** Ontology-authored V-model lane: architecture or assurance. */
+    explorerLane?: string;
+    /** Position within the authored Explorer lane. Lower values come first. */
+    explorerOrder?: number;
     supportedDiagramTypes?: string[];
 }
 
 /** Diagram definition (serializable for WebSocket transport) */
 export interface DiagramDTO {
     id: string;
+    /** Compact, stable display identifier of the authored view, e.g. "GEN-3". */
+    shortId?: string;
     name: string;
     diagramType: string;
     /** SysML v2 spec view kind (one of the 8 standard kinds, see view-kinds.ts) */
@@ -225,6 +231,8 @@ export interface ModelMetadata {
     gitBranch?: string;
     /** Last commit short hash */
     gitCommitShort?: string;
+    /** True when the model project has uncommitted Git changes. */
+    gitDirty?: boolean;
 }
 
 /** Serializable version of MemoModel for JSON transport */
