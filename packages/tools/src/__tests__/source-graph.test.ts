@@ -79,6 +79,23 @@ describe('buildSourceGraph', () => {
         const graph = await parseProject({ 'model/solo.sysml': 'package Solo { }\n' });
         expect(graph.dependsOn.get('model/solo.sysml')).toEqual(new Set());
     });
+
+    it('survives a package with no name instead of taking the rebuild down', async () => {
+        // An unnamed package has no qualified name to index by. Indexing it
+        // anyway put an undefined key in the package→files map, and the prefix
+        // scan then called .startsWith on it — a TypeError that failed the
+        // whole rebuild, not just this file. Source that is mid-edit and not
+        // yet well-formed is an ordinary state (§1.1), so it has to be a file
+        // that contributes nothing rather than an exception.
+        const graph = await parseProject({
+            'model/anonymous.sysml': 'package { part def P; }\n',
+            'model/importer.sysml': 'package Importer { import Other::*; }\n',
+        });
+        expect([...graph.dependsOn.keys()].sort())
+            .toEqual(['model/anonymous.sysml', 'model/importer.sysml']);
+        // It resolves to nothing — it cannot satisfy an import it has no name for.
+        expect(graph.dependsOn.get('model/importer.sysml')).toEqual(new Set());
+    });
 });
 
 describe('viewSourceFiles', () => {

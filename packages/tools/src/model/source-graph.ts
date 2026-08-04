@@ -91,12 +91,13 @@ function resolveImportFiles(
     packageFiles: Map<string, Set<string>>,
 ): Set<string> {
     const files = new Set<string>();
+    if (!packageName) return files;
     const exact = packageFiles.get(packageName);
     if (exact) for (const file of exact) files.add(file);
 
     const prefix = `${packageName}::`;
     for (const [name, owners] of packageFiles) {
-        if (name.startsWith(prefix)) {
+        if (name && name.startsWith(prefix)) {
             for (const file of owners) files.add(file);
         }
     }
@@ -159,6 +160,7 @@ export function sourceGraphToDTO(graph: SourceGraph): SourceGraphDTO {
 }
 
 function addTo(index: Map<string, Set<string>>, key: string, value: string): void {
+    if (!key) return;
     let bucket = index.get(key);
     if (!bucket) {
         bucket = new Set();
