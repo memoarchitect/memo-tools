@@ -83,7 +83,7 @@ function computeOntologyHash(registries: BuilderRegistries): string {
 
 export async function devCommand(options: {
     port?: number; open?: boolean; clientRoot: string;
-    /** Stop as soon as the last browser disconnects. */
+    /** Stop 10 seconds after the last browser disconnects, unless one reconnects. */
     exitWhenIdle?: boolean;
     /** Client-owned rewrite of the HTML shell (see DevServerOptions). */
     transformClientHtml?: (html: string) => string;
@@ -378,12 +378,14 @@ export async function devCommand(options: {
     const initial = await rebuildProject();
 
     let shuttingDown = false;
+    let idleShutdownTimer: ReturnType<typeof setTimeout> | undefined;
     let projectWatcher: ReturnType<typeof createProjectWatcher> | undefined;
     let ontologyWatcher: ReturnType<typeof createOntologyWatcher> | undefined;
 
     const shutdown = (reason: string) => {
         if (shuttingDown) return;
         shuttingDown = true;
+        if (idleShutdownTimer) clearTimeout(idleShutdownTimer);
         console.log(chalk.gray(`\n  ${reason}`));
         projectWatcher?.close();
         ontologyWatcher?.close();
@@ -403,8 +405,18 @@ export async function devCommand(options: {
         canonicalRelationshipFile: config.canonicalRelationshipFile,
         transformClientHtml: options.transformClientHtml,
         onClientCountChanged: (count) => {
-            if (options.exitWhenIdle && count === 0) {
-                shutdown('No browser clients remain; shutting down.');
+            if (!options.exitWhenIdle) return;
+            if (count > 0) {
+                if (idleShutdownTimer) clearTimeout(idleShutdownTimer);
+                idleShutdownTimer = undefined;
+                return;
+            }
+            if (!idleShutdownTimer) {
+                console.log(chalk.gray('  No browser clients remain; shutting down in 10 seconds unless one reconnects.'));
+                idleShutdownTimer = setTimeout(() => {
+                    idleShutdownTimer = undefined;
+                    shutdown('No browser clients reconnected; shutting down.');
+                }, 10_000);
             }
         },
     });
