@@ -18,6 +18,7 @@ import type {
     ElementDeleteResultMessage,
     RelationshipDiagnostic, OntologyRegistriesDTO,
     QueryContext, MEMOConfig, ProposedChange, RestartRequiredMessage, EditConflictMessage,
+    SourceCoherenceMessage,
     ModelMutationPrecondition,
 } from '@memoarchitect/tools';
 import type { BuilderRegistries } from '@memoarchitect/tools';
@@ -70,6 +71,8 @@ export interface DevServerOptions {
 }
 
 export interface DevServer {
+    /** The port actually bound — the requested one, or the assigned one for port 0. */
+    readonly port: number;
     /** Replace the current state and push it to every client. */
     broadcast(messages: ServerMessage[], changedSourceIds?: readonly string[]): void;
     /**
@@ -85,6 +88,15 @@ export interface DevServer {
     };
     /** Reject every model mutation until a clean runtime is relaunched. */
     lockMutations(message: RestartRequiredMessage): void;
+    /**
+     * Publish whether the project source currently compiles.
+     *
+     * An incoherent source holds model mutations — the dependency closure is
+     * unknown, so a write cannot be placed safely — but it never demands a
+     * restart, and passing a coherent payload releases the hold. That is the
+     * difference between a typo and a stale semantic environment.
+     */
+    setSourceCoherence(payload: SourceCoherenceMessage['payload']): void;
     close(): void;
 }
 
@@ -190,6 +202,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     }>();
     let workspaceRevision = 1;
     let mutationLockout: RestartRequiredMessage | undefined;
+    /** Set while the project source does not compile; cleared by the next clean rebuild. */
+    let sourceIncoherence: SourceCoherenceMessage | undefined;
     function stampWorkspace(
         messages: ServerMessage[], baseRevision: number | null, snapshot = false,
         changedSourceIds: readonly string[] = [],
@@ -474,6 +488,12 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             expectedSourceHash: precondition.expectedSourceHash,
             currentSourceHash: currentHash,
             origin: originOf(sourcePath),
+            // Source incoherence is deliberately NOT folded in here. It is held
+            // earlier, on the message handler, so no mutation reaches this
+            // classifier while the project does not parse. Routing it through
+            // here instead would classify a stale hash as
+            // `dependency-closure-uncomputable` and demand a relaunch — which
+            // is the one outcome a source typo must never produce.
             dependencyClosureComputable: !mutationLockout,
         });
         if (decision.outcome === 'accept') return undefined;
@@ -963,6 +983,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             ws.send(JSON.stringify(msg));
         }
         if (mutationLockout) ws.send(JSON.stringify(mutationLockout));
+        // A client that connects while the source is broken must learn that the
+        // model it just received is the last good one, not the current file.
+        if (sourceIncoherence) ws.send(JSON.stringify(sourceIncoherence));
 
         // Send all sidecar layouts on connect
         const layouts = loadViewLayouts(options.projectRoot, currentDiagrams());
@@ -1010,6 +1033,13 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // A section 13.5 escalation is a hard server boundary;
                     // stale and hand-authored clients cannot write through it.
                     ws.send(JSON.stringify(mutationLockout));
+                    return;
+                }
+                if (sourceIncoherence && isModelMutationMessage(msg.type)) {
+                    // Held, not locked out: the write cannot be placed while the
+                    // closure is unknown, but the hold lifts by itself as soon
+                    // as the source parses again.
+                    ws.send(JSON.stringify(sourceIncoherence));
                     return;
                 }
                 // One action writes one store (§6.2). A semantic mutation
@@ -1957,7 +1987,9 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
         server.listen(port, host, () => resolve());
     });
 
+    const address = server.address();
     return {
+        port: typeof address === 'object' && address ? address.port : port,
         broadcast(messages: ServerMessage[], changedSourceIds: readonly string[] = []) {
             // Update initial messages for new connections
             const baseRevision = workspaceRevision;
@@ -2010,6 +2042,16 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
         },
         lockMutations(message: RestartRequiredMessage) {
             mutationLockout = message;
+            for (const client of clients) {
+                if (client.readyState === 1) client.send(JSON.stringify(message));
+            }
+        },
+        setSourceCoherence(payload: SourceCoherenceMessage['payload']) {
+            const message: SourceCoherenceMessage = { type: 'source:coherence', payload };
+            // Recovery is announced once, not on every clean rebuild after it —
+            // a coherent project is the ordinary case and says nothing.
+            if (payload.coherent && !sourceIncoherence) return;
+            sourceIncoherence = payload.coherent ? undefined : message;
             for (const client of clients) {
                 if (client.readyState === 1) client.send(JSON.stringify(message));
             }

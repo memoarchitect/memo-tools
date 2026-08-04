@@ -86,6 +86,7 @@ export type ServerMessage =
     | MethodologySourceResultMessage
     | RulePolicyWriteResultMessage
     | ScreenCaptureUploadResultMessage
+    | SourceCoherenceMessage
     | SourceChangedMessage;
 
 export interface ModelUpdateMessage extends WorkspacePublication {
@@ -842,6 +843,33 @@ export interface LlmSuggestMessage {
 export interface LlmSuggestResultMessage {
     type: 'llm:suggest:result';
     payload: { requestId: string; suggestions?: string[]; error?: string };
+}
+
+/**
+ * Server → Client: whether the project source currently compiles.
+ *
+ * Invalid source in the working tree is a normal state, not a fault: the
+ * compiler reports it and the editor keeps working. While `coherent` is false
+ * the server withholds the degraded model, so every client keeps the last
+ * successfully compiled scene on screen and hangs these diagnostics off it.
+ * The next coherent rebuild clears the condition on its own — a source typo is
+ * never a reason to restart the runtime.
+ *
+ * This is deliberately *not* a `RestartRequiredMessage`. That one means the
+ * frozen semantic environment is stale (the ontology moved under us), which
+ * only a fresh process can resolve.
+ */
+export interface SourceCoherenceMessage {
+    type: 'source:coherence';
+    payload: {
+        coherent: boolean;
+        /** Files that failed to parse, the first-error file first. Empty when coherent. */
+        files: string[];
+        /** Diagnostics from the failed parse. Empty when coherent. */
+        diagnostics: Array<{ file: string; message: string; line?: number; column?: number }>;
+        /** Revision of the model the client is still showing — the last good one. */
+        lastGoodRevision: number;
+    };
 }
 
 /** Server → Client: ontology changed on disk — client must reload after server restart */

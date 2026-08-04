@@ -14,7 +14,7 @@ import { execSync } from 'node:child_process';
 import chalk from 'chalk';
 import { IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
-import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument, EffectiveRule } from '@memoarchitect/tools';
+import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument, EffectiveRule, ParseError } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO } from '@memoarchitect/tools';
@@ -199,8 +199,11 @@ export async function devCommand(options: {
 
     // ── rebuildProject: hot path — no ontology reload ─────────────────────────
     const projectParser = new IncrementalProjectParser(cwd);
+    /** Revision of the newest rebuild that parsed — what a client is still showing. */
+    let lastGoodRevision = 0;
     async function rebuildProject(changedFiles?: readonly string[]): Promise<{
         messages: ServerMessage[]; revision: number; coherent: boolean; firstErrorFile?: string;
+        errors: readonly ParseError[];
     }> {
         const rebuildStartedAt = performance.now();
         buildCount++;
@@ -334,12 +337,15 @@ export async function devCommand(options: {
 
         const ontologyPackages = getPackageMetadata(cwd);
 
+        if (errors.length === 0) lastGoodRevision = buildCount;
         const result: {
             messages: ServerMessage[]; revision: number; coherent: boolean; firstErrorFile?: string;
+            errors: readonly ParseError[];
         } = {
             revision: buildCount,
             coherent: errors.length === 0,
             firstErrorFile: errors[0]?.file,
+            errors,
             messages: [
                 { type: 'model:update', payload: dto },
                 { type: 'validation:update', payload: validation },
@@ -404,11 +410,16 @@ export async function devCommand(options: {
     });
 
     if (!initial.coherent) {
-        server.lockMutations({
-            type: 'app:restart-required',
-            reason: 'dependency-closure-uncomputable',
-            changedFile: initial.firstErrorFile ?? 'project source',
-            instruction: 'Fix the source diagnostic, then Relaunch Memo Architect. Model mutations are locked until a coherent workspace can be rebuilt.',
+        // Starting on a project that does not parse is allowed — the user
+        // opened Architect precisely to see and fix it. There is no last good
+        // model yet, so what ships is whatever parsed, flagged as partial.
+        server.setSourceCoherence({
+            coherent: false,
+            files: [...new Set(initial.errors.map(error => error.file))],
+            diagnostics: initial.errors.map(error => ({
+                file: error.file, message: error.message, line: error.line, column: error.column,
+            })),
+            lastGoodRevision,
         });
     }
 
@@ -475,12 +486,26 @@ export async function devCommand(options: {
         console.log(chalk.gray(`  [${new Date().toLocaleTimeString()}] Rebuilding (${summary})...`));
         const result = await rebuildProject(changedFiles);
         if (!result.coherent) {
-            notifyRestartRequired(
-                'dependency-closure-uncomputable',
-                result.firstErrorFile ?? changedFiles[0] ?? 'project source',
-            );
+            // Saving a file that does not parse is an ordinary working state.
+            // Withhold the degraded model so every client keeps the last good
+            // scene, publish the diagnostics against it, and wait: the next
+            // clean save clears this by itself. Escalating to restart-required
+            // here made a typo cost a relaunch.
+            server.setSourceCoherence({
+                coherent: false,
+                files: [...new Set(result.errors.map(error => error.file))],
+                diagnostics: result.errors.map(error => ({
+                    file: error.file, message: error.message, line: error.line, column: error.column,
+                })),
+                lastGoodRevision,
+            });
+            console.log(chalk.yellow(
+                `  ⚠ ${result.firstErrorFile ?? 'project source'} does not parse — showing the last good model`
+                + ` (revision ${lastGoodRevision}). Mutations are held until it does.`
+            ));
             return;
         }
+        server.setSourceCoherence({ coherent: true, files: [], diagnostics: [], lastGoodRevision });
         server.broadcast(result.messages, changedFiles);
         server.notify([{
             type: 'source:changed',
