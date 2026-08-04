@@ -19,6 +19,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const baselineDir = resolve(here, '../packages/tools/src/__tests__/fixtures/baseline-s1');
 
 let failures = 0;
+let verified = 0;
 for (const spec of FIXTURES) {
     const baselinePath = resolve(baselineDir, `${spec.id}.json`);
     if (!existsSync(baselinePath)) {
@@ -33,12 +34,18 @@ for (const spec of FIXTURES) {
     const diffs = diff(expected, actual);
     if (diffs.length === 0) {
         console.log(`OK   ${spec.id}`);
+        verified++;
     } else {
         failures++;
         console.error(`FAIL ${spec.id}`);
         for (const d of diffs.slice(0, 20)) console.error(`       ${d}`);
         if (diffs.length > 20) console.error(`       … ${diffs.length - 20} more`);
     }
+}
+
+if (verified !== FIXTURES.length) {
+    failures++;
+    console.error(`INCOMPLETE baseline verification: checked ${verified}/${FIXTURES.length} fixtures.`);
 }
 
 console.log(failures === 0 ? '\nAll baselines match.' : `\n${failures} fixture(s) diverged.`);

@@ -281,8 +281,11 @@ ActionUsage:
 AcceptActionUsage:
     'action' name=ActionName 'accept' payloadName=ID ':' payloadType=QualifiedName ';';
 
+// `then` on a body member is a succession from the member before it, so it is
+// captured rather than consumed — a discarded `then` leaves the node floating
+// with no incoming control flow.
 SendActionUsage:
-    'then'? 'action' name=ActionName 'send' receiver=FeatureReference 'to' target=ReferenceName ';';
+    followsPrevious?='then'? 'action' name=ActionName 'send' receiver=FeatureReference 'to' target=ReferenceName ';';
 
 FeatureReference:
     segments+=ID ('.' segments+=ID)*;
@@ -291,7 +294,7 @@ ActionName returns string:
     ID | 'accept' | 'send' | 'terminate';
 
 TerminateUsage:
-    {infer TerminateUsage} 'then'? 'terminate' ';';
+    {infer TerminateUsage} followsPrevious?='then'? 'terminate' ';';
 
 PortUsage:
     direction=('in' | 'out' | 'inout')? 'port' isConjugated?='~'? name=ID ':' type=QualifiedName

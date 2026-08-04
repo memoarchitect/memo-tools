@@ -430,7 +430,52 @@ describe('Behavior builder: composite action usage', () => {
     });
 });
 
-describe('Behavior builder: fork/join control nodes', () => {
+describe('Behavior builder: control nodes', () => {
+    // Regression: the extractor mapped every non-fork controlKind to JoinNode,
+    // so `decide` and `merge` were stored as joins. Rendering survived it —
+    // activityNodeType reads the controlKind attribute before the kind — but
+    // anything keyed on kind saw a join where the model said decision.
+    it('gives each control kind the metaclass it names, not fork-or-join', async () => {
+        const doc = await parseDoc(`
+            package Test {
+                action route {
+                    action check : CheckAction;
+                    decide routeIt;
+                    action approve : ApproveAction;
+                    action reject : RejectAction;
+                    merge afterRoute;
+
+                    first check then routeIt;
+                    first routeIt then approve;
+                    first routeIt then reject;
+                    first approve then afterRoute;
+                    first reject then afterRoute;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], behaviorConfig);
+
+        const decision = model.elements.get('routeIt');
+        expect(decision).toBeDefined();
+        expect(decision!.kind).toBe('DecisionNode');
+        expect(decision!.attributes['controlKind']).toBe('decide');
+        expect(decision!.construct).toBe('action');
+        expect(decision!.layer).toBe('behavior');
+        expect(decision!.parentAction).toBe('route');
+
+        const merge = model.elements.get('afterRoute');
+        expect(merge).toBeDefined();
+        expect(merge!.kind).toBe('MergeNode');
+        expect(merge!.attributes['controlKind']).toBe('merge');
+
+        // Both branches of the decision reach the merge.
+        const succ = model.relationships.filter(r => r.type === 'succession');
+        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'routeIt', targetId: 'approve' }));
+        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'routeIt', targetId: 'reject' }));
+        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'approve', targetId: 'afterRoute' }));
+        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'reject', targetId: 'afterRoute' }));
+    });
+
     it('extracts fork/join as behavior-layer elements and wires successions through them', async () => {
         const doc = await parseDoc(`
             package Test {

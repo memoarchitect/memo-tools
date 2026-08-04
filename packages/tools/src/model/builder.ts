@@ -74,6 +74,7 @@ import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
+import { CONTROL_KIND_METACLASS } from './activity-notation.js';
 import type { ProvenanceTable, SemanticElementProvenance } from './source-provenance.js';
 
 /**
@@ -664,25 +665,52 @@ function extractActionDefinition(
     // Standard SysML activity bodies may contain action/control usages directly
     // (not wrapped in an ActionUsage). Preserve those declarations so a valid
     // activity diagram cannot collapse to its enclosing action alone.
+    // `previousStep` carries the member a `then` refers back to: in standard
+    // SysML a body member written `then action x ...` succeeds the step declared
+    // before it, with no `succession` usage naming either end.
+    let previousStep: string | undefined;
+    let terminateCount = 0;
     for (const member of bodyMembers) {
+        let step: string | undefined;
         if (member.$type === 'ActionUsage') {
             extractActionUsage(member as ActionUsage, filePath, packageName, config, elements, deferredFlows, deferredSuccessions, registry, registries, id);
+            step = (member as ActionUsage).name;
         } else if (member.$type === 'ControlNodeUsage') {
             extractControlNode(member as ControlNodeUsage, filePath, packageName, elements, registry, id);
+            step = (member as ControlNodeUsage).name;
         } else if (['AcceptActionUsage', 'SendActionUsage', 'DecisionNodeUsage', 'MergeNodeUsage', 'TerminateUsage'].includes(member.$type)) {
-            extractStandardActivityNode(member as any, filePath, packageName, elements, registry, id);
+            const node = member as any;
+            // A terminate node has no name to be given one by, and an id keyed
+            // on `elements.size` moves whenever anything else in the file does.
+            // Key it on the action that owns it instead, so a view can name it
+            // and a saved layout keeps pointing at the same node.
+            const fallback = node.$type === 'TerminateUsage'
+                ? `${id}__terminate${terminateCount++ === 0 ? '' : terminateCount}`
+                : `${node.$type}-${elements.size}`;
+            const nodeId: string = node.name ?? fallback;
+            step = nodeId;
+            extractStandardActivityNode(node, filePath, packageName, elements, registry, id, nodeId);
         } else if (member.$type === 'SuccessionUsage') {
             deferredSuccessions.push({ succession: member as SuccessionUsage, filePath, packageName, parentActionId: id });
         }
+
+        if (step && (member as any).followsPrevious && previousStep) {
+            deferredSuccessions.push({
+                succession: { steps: [{ ref: previousStep }, { ref: step }] } as unknown as SuccessionUsage,
+                filePath,
+                packageName,
+                parentActionId: id,
+            });
+        }
+        if (step) previousStep = step;
     }
 }
 
-function extractStandardActivityNode(node: { $type: string; name?: string; payloadName?: string; payloadType?: string }, filePath: string, packageName: string, elements: Map<string, MemoElement>, registry: PackageRegistry, parentActionId: string): void {
+function extractStandardActivityNode(node: { $type: string; name?: string; payloadName?: string; payloadType?: string }, filePath: string, packageName: string, elements: Map<string, MemoElement>, registry: PackageRegistry, parentActionId: string, id: string): void {
     const typeToKind: Record<string, string> = {
         AcceptActionUsage: 'AcceptActionUsage', SendActionUsage: 'SendActionUsage',
         DecisionNodeUsage: 'DecisionNodeUsage', MergeNodeUsage: 'MergeNodeUsage', TerminateUsage: 'ActivityFinalNodeUsage',
     };
-    const id = node.name ?? `${node.$type}-${elements.size}`;
     const parameters: ActionParameter[] | undefined = node.$type === 'AcceptActionUsage' && node.payloadName
         ? [{ name: node.payloadName, direction: 'out', type: node.payloadType ?? 'Item' }]
         : undefined;
@@ -870,11 +898,15 @@ function extractActionUsage(
 }
 
 /**
- * Extract a fork/join control node. Modeled as a behavior-layer element with
+ * Extract a control node. Modeled as a behavior-layer element with
  * `construct: 'action'` so it participates in succession ordering and swimlane
- * layout like any other flow step, but carries a distinct kind
- * (`ForkNode` / `JoinNode`) and a `controlKind` attribute so renderers draw it
- * as a synchronization bar rather than an action card.
+ * layout like any other flow step, but carries the metaclass its `controlKind`
+ * names and a `controlKind` attribute, so renderers draw the right symbol —
+ * a bar for fork/join, a diamond for decide/merge.
+ *
+ * The kind comes from `CONTROL_KIND_METACLASS`, the same binding
+ * `activityNodeType` classifies by; a second mapping here is how `decide` and
+ * `merge` came to be stored as `JoinNode`.
  */
 function extractControlNode(
     node: ControlNodeUsage,
@@ -885,7 +917,7 @@ function extractControlNode(
     parentActionId: string,
 ): void {
     const id = node.name;
-    const kind = node.controlKind === 'fork' ? 'ForkNode' : 'JoinNode';
+    const kind = CONTROL_KIND_METACLASS[node.controlKind];
     elements.set(id, {
         id,
         name: node.name,

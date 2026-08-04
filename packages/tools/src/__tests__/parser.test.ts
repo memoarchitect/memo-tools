@@ -56,11 +56,14 @@ async function parseErrors(input: string): Promise<string[]> {
 }
 
 describe('FulfillOrder activity fixture', () => {
+    // One copy, in the sample project's model with the rest of its SysML. It
+    // was previously duplicated into a `reference/` tree and again at the
+    // workspace root, which meant three files could disagree about what the
+    // grammar had to accept.
     const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../');
-    const workspaceFixture = resolve(workspaceRoot, 'sysml-v2-activity-example.sysml');
-    const referenceFixture = resolve(
+    const workspaceFixture = resolve(
         workspaceRoot,
-        'memo/examples/sysml-diagram-samples/reference/sysml-v2-activity-example.sysml',
+        'memo/examples/sysml-diagram-samples/model/sysml_v2_activity_example.sysml',
     );
 
     it('parses the Syside-accepted fixture with no errors and retains activity semantics', async () => {
@@ -89,13 +92,6 @@ describe('FulfillOrder activity fixture', () => {
         expect(guarded.steps[0].guard).toMatchObject({ $type: 'LiteralExpr', boolValue: 'true' });
     });
 
-    it('keeps the workspace fixture and reference copy identical modulo comment lines', () => {
-        const withoutCommentLines = (file: string) => readFileSync(file, 'utf-8')
-            .split(/\r?\n/)
-            .filter(line => !/^\s*\/\//.test(line))
-            .join('\n');
-        expect(withoutCommentLines(workspaceFixture)).toBe(withoutCommentLines(referenceFixture));
-    });
 });
 
 // ─── Typed attribute with a default ──────────────────────────────────────────

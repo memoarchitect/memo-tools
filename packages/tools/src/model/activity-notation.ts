@@ -113,7 +113,7 @@ const LEGACY_NODE_SPELLINGS: Readonly<Record<string, ActivityNodeType>> = {
  * the metamodel's `ControlNode` subtypes. A fifth control node upstream fails
  * that check rather than silently going unclassified.
  */
-const CONTROL_KIND_METACLASS: Readonly<Record<string, string>> = {
+export const CONTROL_KIND_METACLASS: Readonly<Record<string, string>> = {
     fork: 'ForkNode',
     join: 'JoinNode',
     decide: 'DecisionNode',

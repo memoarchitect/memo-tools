@@ -22,26 +22,13 @@ const ONTOLOGY_ROOT = resolve(CONTENT_ROOT, 'src');
 // conformed to MEMO's own authoring rules.
 const VENDOR_SKIP_DIRS = new Set(['examples', 'packages']);
 
-// `reference/` holds externally named acceptance fixtures rather than
-// MEMO-authored model content, so it stays outside authoring-convention scans.
-const ACCEPTANCE_FIXTURE_DIRS = new Set(['reference']);
-
 function pathSegments(dir: string, file: string): string[] {
     return relative(dir, file).split(/[/\\]/).slice(0, -1);
 }
 
 function collectSysmlFiles(dir: string): string[] {
-    return findSysmlFiles(dir).filter(file => !pathSegments(dir, file).some(
-        segment => VENDOR_SKIP_DIRS.has(segment) || ACCEPTANCE_FIXTURE_DIRS.has(segment)));
-}
-
-/** The fixtures the walker above deliberately leaves out. */
-function collectAcceptanceFixtures(dir: string): string[] {
-    return findSysmlFiles(dir).filter(file => {
-        const segments = pathSegments(dir, file);
-        return segments.some(segment => ACCEPTANCE_FIXTURE_DIRS.has(segment))
-            && !segments.some(segment => VENDOR_SKIP_DIRS.has(segment));
-    });
+    return findSysmlFiles(dir).filter(
+        file => !pathSegments(dir, file).some(segment => VENDOR_SKIP_DIRS.has(segment)));
 }
 
 const EXAMPLES_ROOT = resolve(CONTENT_ROOT, 'examples');
@@ -520,23 +507,4 @@ describe('DD-6: naming + casing lint (ADR-1-12)', () => {
         expect(result).toContain('lint passed');
         expect(result).not.toMatch(/P6/);
     });
-});
-
-// ─── Acceptance fixtures the internal grammar cannot read yet ────────────────
-//
-describe('acceptance fixtures are parsed explicitly', () => {
-    const fixtures = collectAcceptanceFixtures(EXAMPLES_ROOT);
-
-    it('there are fixtures to track', () => {
-        expect(fixtures.length).toBeGreaterThan(0);
-    });
-
-    for (const file of fixtures) {
-        const rel = relative(CONTENT_ROOT, file);
-        it(`${rel} — zero parse errors`, async () => {
-            const doc = await parse(readFileSync(file, 'utf-8'));
-            const errors = [...doc.parseResult.lexerErrors, ...doc.parseResult.parserErrors];
-            expect(errors, `${rel} parser errors: ${errors.map((error: any) => error.message).join('; ')}`).toEqual([]);
-        });
-    }
 });

@@ -15,7 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, symlinkSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -93,10 +93,18 @@ export function materializeDefault() {
     const dir = resolve(tmpdir(), 'memo-baseline-default-project');
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(dir, { recursive: true });
-    execFileSync('node', [cli, 'init', 'baseline-default'], {
+    // The baseline only needs the generated project content. Installing a
+    // second dependency tree makes this test network-dependent and prevented
+    // the verifier from ever reaching the remaining fixtures.
+    execFileSync('node', [cli, 'init', 'baseline-default', '--no-install'], {
         cwd: dir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'],
     });
-    return resolve(dir, 'baseline-default');
+    const projectDir = resolve(dir, 'baseline-default');
+    // Resolve the generated project's declared packages through this checkout's
+    // already-installed dependency tree. This is a read-only link, not an
+    // installation, and makes the fixture deterministic offline.
+    symlinkSync(resolve(toolsRoot, 'node_modules'), resolve(projectDir, 'node_modules'), 'dir');
+    return projectDir;
 }
 
 function run(args, cwd) {
