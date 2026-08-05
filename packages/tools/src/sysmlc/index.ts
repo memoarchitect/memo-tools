@@ -1,4 +1,4 @@
-// @memoarchitect/sysmlc — MEMO's compiler as a tool.
+// MEMO's compiler tooling, shipped by @memoarchitect/tools.
 //
 // The protocol itself lives in `@memoarchitect/tools`, because both sides of a
 // boundary have to agree on it and only one of them can own it. This package

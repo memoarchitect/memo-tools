@@ -7,13 +7,13 @@
 // into core code — that is the whole difference between "the default" and "the
 // special case".
 //
-// §1.2.1 removed the last asymmetry: MEMO's compiler ships as its own tool,
-// `@memoarchitect/sysmlc`, and this adapter can reach it over the same protocol
+// MEMO's compiler ships inside @memoarchitect/tools, and this adapter can reach
+// its CLI over the same protocol
 // a third party's compiler would speak. Two transports, one interface:
 //
 //   in-process   call `lowerProject` directly. The fast path, and the default,
 //                because it is what a clean install with an empty PATH has.
-//   process      spawn `sysmlc serve --stdio` and speak the protocol. Slower to
+//   process      spawn `memo-sysmlc serve --stdio` and speak the protocol. Slower to
 //                start, and the only transport that proves the contract is real
 //                — over a pipe you cannot pass an object by reference or skip
 //                serialization. CI runs this one.
@@ -49,7 +49,12 @@ import { providerSettings } from '../effective.js';
 export const INTERNAL_PROVIDER_ID = 'internal';
 
 /** The binary this adapter speaks to when the transport is `process`. */
-export const SYSMLC_COMMAND = 'sysmlc';
+export const SYSMLC_COMMAND = 'memo-sysmlc';
+
+interface CompilerInvocation {
+    command: string;
+    args: readonly string[];
+}
 
 const CAPABILITIES = ['check', 'lower', 'emit-ir'] as const;
 
@@ -73,7 +78,7 @@ const DEFAULT_TRANSPORT: Transport = 'in-process';
 export interface InternalToolConfig {
     /** `in-process` (default) or `process`. */
     transport?: Transport;
-    /** Path to a `sysmlc` binary. Defaults to the bundled one, then PATH. */
+    /** Path to a `memo-sysmlc` binary. Defaults to the bundled one, then PATH. */
     executable?: string;
 }
 
@@ -113,26 +118,44 @@ function internalVersion(): string | undefined {
 }
 
 /**
- * Where `sysmlc` is, without the user having been asked to do anything.
+ * Where `memo-sysmlc` is, without the user having been asked to do anything.
  *
  * Configured path first, then the binary bundled beside this install, then
  * PATH. The middle step is the one that matters: Architect depends on the
  * compiler package, so an Architect install already has it — resolving it is
  * MEMO's job, not the user's.
  */
-export function resolveSysmlcCommand(context: ProviderContext): string {
+function compilerInvocation(context: ProviderContext): CompilerInvocation {
     const configured = settings(context).executable;
-    if (configured) return resolveExecutable(configured, SYSMLC_COMMAND, context.projectDir);
+    if (configured) return { command: resolveExecutable(configured, SYSMLC_COMMAND, context.projectDir), args: [] };
     const bundled = findBundledExecutable(SYSMLC_COMMAND, [
         context.projectDir,
         dirname(fileURLToPath(import.meta.url)),
     ]);
-    return bundled ?? SYSMLC_COMMAND;
+    if (bundled) return { command: bundled, args: [] };
+
+    // A package cannot find its own npm bin link: npm creates that link for
+    // consumers. Run the compiled script directly so tools remains its own
+    // default compiler, whether installed standalone or as Architect's dep.
+    const scripts = [
+        // Compiled package: lib/toolchain/providers → lib/sysmlc/bin.
+        fileURLToPath(new URL('../../sysmlc/bin/memo-sysmlc.js', import.meta.url)),
+        // Source-mode test runner: src/toolchain/providers → lib/sysmlc/bin.
+        fileURLToPath(new URL('../../../lib/sysmlc/bin/memo-sysmlc.js', import.meta.url)),
+    ];
+    const script = scripts.find(existsSync);
+    if (script) return { command: process.execPath, args: [script] };
+    return { command: SYSMLC_COMMAND, args: [] };
+}
+
+export function resolveSysmlcCommand(context: ProviderContext): string {
+    return compilerInvocation(context).command;
 }
 
 function client(context: ProviderContext) {
+    const invocation = compilerInvocation(context);
     return getSysmlcClient({
-        command: resolveSysmlcCommand(context),
+        ...invocation,
         projectDir: context.projectDir,
         providerId: INTERNAL_PROVIDER_ID,
     });
@@ -142,20 +165,20 @@ function probeFor(context: ProviderContext): Availability {
     if (transport(context) === 'in-process') {
         return { available: true, transport: 'in-process', version: internalVersion() };
     }
-    const command = resolveSysmlcCommand(context);
-    const executable = whichExecutable(command);
+    const invocation = compilerInvocation(context);
+    const executable = whichExecutable(invocation.command);
     if (!executable) {
         return {
             available: false,
             transport: 'process',
-            detail: `"${command}" was not found on PATH or bundled with this install.`,
+            detail: `"${invocation.command}" was not found on PATH or bundled with this install.`,
         };
     }
     return {
         available: true,
         transport: 'process',
         executable,
-        version: probeVersion(executable) ?? internalVersion(),
+        version: probeVersion(executable, [...invocation.args, '--version']) ?? internalVersion(),
     };
 }
 
@@ -210,7 +233,7 @@ export const internalValidatorDescriptor: ValidatorDescriptor = {
             role: 'validator' as const,
             transport: mode,
             invocation: () => mode === 'process'
-                ? { command: resolveSysmlcCommand(context), args: ['serve', '--stdio'], provider: INTERNAL_PROVIDER_ID }
+                ? (() => { const invocation = compilerInvocation(context); return { command: invocation.command, args: [...invocation.args, 'serve', '--stdio'], provider: INTERNAL_PROVIDER_ID }; })()
                 : undefined,
             async run(): Promise<ProviderRunResult> {
                 // Checking needs parse errors and nothing else. Over the process
@@ -255,7 +278,7 @@ export const internalLoweringDescriptor: LoweringDescriptor = {
             role: 'lowering' as const,
             transport: mode,
             invocation: () => mode === 'process'
-                ? { command: resolveSysmlcCommand(context), args: ['serve', '--stdio'], provider: INTERNAL_PROVIDER_ID }
+                ? (() => { const invocation = compilerInvocation(context); return { command: invocation.command, args: [...invocation.args, 'serve', '--stdio'], provider: INTERNAL_PROVIDER_ID }; })()
                 : undefined,
             async run(): Promise<LoweringRunResult> {
                 const payload = await ir(context);

@@ -1,13 +1,13 @@
 // The §2.1 exit tests: MEMO's own compiler, reached as a tool.
 //
-// The point of shipping `sysmlc` is that a contract you can only reach
+// The point of shipping `memo-sysmlc` is that a contract you can only reach
 // in-process is a contract you can cheat — pass by reference, share state, skip
 // serialization. So the test that matters is not "the process transport works",
 // it is **the two transports are indistinguishable**. If they ever diverge, the
 // in-process path has grown a shortcut the protocol does not have, and the
 // boundary has stopped being one.
 //
-// These spawn a real `sysmlc` over a real pipe. That is deliberate: CI runs the
+// These spawn a real `memo-sysmlc` over a real pipe. That is deliberate: CI runs the
 // process transport precisely because it is not the default, and an unexercised
 // boundary rots.
 
@@ -19,7 +19,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { runLowering } from '../toolchain/operations.js';
 import { loadProjectConfig, lowerProject } from '../toolchain/lowering.js';
 import { disposeSysmlcClients } from '../toolchain/sysmlc-client.js';
-import { findBundledExecutable, whichExecutable } from '../toolchain/process.js';
+import { whichExecutable } from '../toolchain/process.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import {
     SYSMLC_PROTOCOL_VERSION,
@@ -179,7 +179,7 @@ describe('a clean install with an empty PATH still compiles and draws', () => {
         forgetLastGoodModel(projectDir);
         try {
             // Nothing is resolvable, by construction.
-            expect(whichExecutable('sysmlc')).toBeUndefined();
+            expect(whichExecutable('memo-sysmlc')).toBeUndefined();
             expect(whichExecutable('syside')).toBeUndefined();
 
             // And MEMO still works, because its own compiler is never something
@@ -196,20 +196,12 @@ describe('a clean install with an empty PATH still compiles and draws', () => {
     }, 120_000);
 });
 
-describe('Architect resolves the bundled binary with no user action', () => {
-    it('finds sysmlc from an install that depends on it, without PATH', () => {
-        const architect = resolve(HERE, '../../../../../memo-architect');
-        const manifest = JSON.parse(readFileSync(join(architect, 'package.json'), 'utf8'));
-        // Bundling is a declared dependency, not a build step someone remembers.
-        expect(Object.keys(manifest.dependencies)).toContain('@memoarchitect/sysmlc');
-
-        const path = process.env.PATH;
-        process.env.PATH = '';
-        try {
-            expect(findBundledExecutable('sysmlc', [architect])).toBeDefined();
-        } finally {
-            process.env.PATH = path;
-        }
+describe('tools bundles its default compiler with no user action', () => {
+    it('ships the memo-sysmlc script as part of the tools package', () => {
+        const repo = resolve(HERE, '../../../..');
+        const manifest = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'));
+        expect(manifest.bin['memo-sysmlc']).toBe('packages/tools/lib/sysmlc/bin/memo-sysmlc.js');
+        expect(existsSync(join(repo, 'packages/tools/lib/sysmlc/bin/memo-sysmlc.js'))).toBe(true);
     });
 });
 

@@ -2,7 +2,7 @@
 //
 // MEMO's own compiler is reached the way a third party's would be: as a process
 // speaking a declared protocol. This module is that declaration, and it is the
-// only thing both sides share — `@memoarchitect/sysmlc` implements it, the
+// only thing both sides share — the bundled `memo-sysmlc` CLI implements it, the
 // `internal` adapter consumes it, and neither imports the other's internals.
 //
 // The transport is LSP over stdio. That choice is not decoration: it gives
@@ -15,7 +15,7 @@
 //
 // **Versioned from day one.** The point of the boundary is that it outlives any
 // one implementation behind it — Track B's native engine is meant to replace
-// `sysmlc` without the adapter noticing. A boundary whose shape is only ever
+// `memo-sysmlc` without the adapter noticing. A boundary whose shape is only ever
 // "whatever the current build emits" cannot do that, so the version is checked
 // on every handshake rather than assumed.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export interface EmitIrSuperseded {
 
 export type EmitIrResponse = EmitIrResult | EmitIrSuperseded;
 
-/** One-shot `sysmlc check --format json` / `emit-ir --format json` output. */
+/** One-shot `memo-sysmlc check --format json` / `emit-ir --format json` output. */
 export interface SysmlcCheckOutput {
     protocolVersion: string;
     accepted: boolean;

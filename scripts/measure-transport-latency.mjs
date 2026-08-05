@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ─── Transport latency: in-process vs. spawned sysmlc ────────────────────────
+// ─── Transport latency: in-process vs. spawned memo-sysmlc ───────────────────
 //
 // §2.1's last exit test: measure live-refresh latency for a single-file edit
 // before and after, and if the process transport misses the refresh budget,
@@ -20,7 +20,7 @@
 //                              session did not change it. Measured as the
 //                              reference the other two are read against.
 //   lowering / in-process      a full `lowerProject` in this process, warm.
-//   lowering / process         the same work over a spawned `sysmlc serve
+//   lowering / process         the same work over a spawned `memo-sysmlc serve
 //                              --stdio`, server already running. Spawn and
 //                              handshake are excluded on purpose: they happen
 //                              once, and charging them to every refresh would

@@ -3,10 +3,6 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const checkOnly = process.argv.includes('--check');
 const version = readFileSync('VERSION', 'utf8').trim();
 if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) throw new Error('VERSION must contain a semantic version.');
-// Edits accumulate per file. sysmlc's package.json is rewritten twice — its own
-// version and its pin on tools — and reading from disk each time made the
-// second edit overwrite the first, so the compiler kept shipping the previous
-// version number with the new pin.
 const edited = new Map();
 const changes = [];
 const replace = (path, pattern, replacement) => {
@@ -19,11 +15,6 @@ const replace = (path, pattern, replacement) => {
   if (existing) existing.after = after; else changes.push({ path, after });
 };
 replace('package.json', /^(  "version": ")[^"]+(",)$/m, `$1${version}$2`);
-// The repo publishes two artifacts now: the tools package and the compiler it
-// ships as its own tool. They release together, so the compiler's own version
-// and its pin on the tools package both track VERSION.
-replace('packages/sysmlc/package.json', /^(  "version": ")[^"]+(",)$/m, `$1${version}$2`);
-replace('packages/sysmlc/package.json', /^(    "@memoarchitect\/tools": ")[^"]+(",)$/m, `$1${version}$2`);
 replace('pyproject.toml', /^(version = ")[^"]+("$)/m, `$1${version}$2`);
 replace('README.md', /memo-tools \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g, `memo-tools ${version}`);
 if (checkOnly && changes.length) {

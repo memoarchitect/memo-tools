@@ -1,4 +1,4 @@
-// ─── sysmlc serve --stdio ────────────────────────────────────────────────────
+// ─── memo-sysmlc serve --stdio ───────────────────────────────────────────────
 //
 // MEMO's compiler as a long-lived server. Node starts in 50–150 ms, which is
 // fine once and hopeless on every save, so the process transport is a server
@@ -189,7 +189,7 @@ export class SysmlcServer {
     }
 }
 
-/** Entry point for `sysmlc serve --stdio`. */
+/** Entry point for `memo-sysmlc serve --stdio`. */
 export function serveStdio(version?: string): void {
     // stdout is the protocol channel. Anything written to it that is not a
     // JSON-RPC message corrupts the stream, so stray logging goes to stderr.
@@ -204,7 +204,7 @@ export function serveStdio(version?: string): void {
 /** Read this package's own version, for `--version` and the handshake. */
 export function packageVersion(): string | undefined {
     try {
-        const path = fileURLToPath(new URL('../package.json', import.meta.url));
+        const path = fileURLToPath(new URL('../../../../package.json', import.meta.url));
         return JSON.parse(readFileSync(path, 'utf8')).version as string;
     } catch {
         return undefined;

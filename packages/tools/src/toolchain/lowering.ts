@@ -2,7 +2,7 @@
 //
 // "What can MEMO ingest from this revision?" is answered here and nowhere else.
 // The in-process transport calls `lowerProject` directly; the process transport
-// calls it inside `sysmlc`, over the protocol. That is the whole reason both
+// calls it inside `memo-sysmlc`, over the protocol. That is the whole reason both
 // transports can be byte-identical: there is one function, not two that are
 // meant to agree.
 //

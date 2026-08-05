@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// ─── sysmlc ──────────────────────────────────────────────────────────────────
+// ─── memo-sysmlc ─────────────────────────────────────────────────────────────
 //
 // MEMO's own compiler, shipped as a tool. Two modes and no more:
 //
-//   one-shot   `sysmlc check <dir>` and `sysmlc emit-ir <dir>` — for scripts,
+//   one-shot   `memo-sysmlc check <dir>` and `memo-sysmlc emit-ir <dir>` — for scripts,
 //              CI, and anyone who wants to see what MEMO reads without running
 //              MEMO. Pays Node's startup once, which is what one-shot is for.
-//   server     `sysmlc serve --stdio` — LSP. What Architect's live refresh
+//   server     `memo-sysmlc serve --stdio` — LSP. What Architect's live refresh
 //              talks to, and what an editor can talk to unchanged.
 //
 // The reason this exists at all is that in-process, a contract can be cheated:
@@ -33,7 +33,7 @@ import { packageVersion, serveStdio } from '../server.js';
  *
  * No domain suffix here. A domain answers "whose complaint is this?", and that
  * depends on which role the caller put this compiler in — a question the
- * compiler is not the one to answer. MEMO stamps it; `sysmlc` reports what it
+ * compiler is not the one to answer. MEMO stamps it; `memo-sysmlc` reports what it
  * found.
  */
 function formatGnu(error: ParseError): string {
@@ -53,7 +53,7 @@ function report(errors: readonly ParseError[], payload: unknown, format: string)
 
 const program = new Command();
 program
-    .name('sysmlc')
+    .name('memo-sysmlc')
     .description("MEMO's SysML v2 compiler")
     .version(packageVersion() ?? '0.0.0', '-V, --version')
     .option('--protocol-version', 'print the protocol version this build speaks and exit');
@@ -95,7 +95,7 @@ program
     .option('--stdio', 'communicate over stdin/stdout', false)
     .action((options: { stdio: boolean }) => {
         if (!options.stdio) {
-            process.stderr.write('sysmlc serve requires --stdio. No other transport is offered.\n');
+            process.stderr.write('memo-sysmlc serve requires --stdio. No other transport is offered.\n');
             process.exitCode = 2;
             return;
         }
