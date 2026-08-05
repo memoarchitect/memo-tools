@@ -1,6 +1,6 @@
 {
   "name": "@memoarchitect/sysmlc",
-  "version": "0.6.7",
+  "version": "0.7.0",
   "description": "sysmlc — MEMO's SysML v2 compiler as a tool: one-shot check/emit-ir, or an LSP server over stdio",
   "type": "module",
   "bin": {
@@ -27,7 +27,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@memoarchitect/tools": "0.6.7",
+    "@memoarchitect/tools": "0.7.0",
     "commander": "^12.1.0",
     "vscode-jsonrpc": "^8.2.0",
     "vscode-languageserver": "^9.0.1",

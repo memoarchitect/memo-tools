@@ -3,12 +3,20 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const checkOnly = process.argv.includes('--check');
 const version = readFileSync('VERSION', 'utf8').trim();
 if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) throw new Error('VERSION must contain a semantic version.');
+// Edits accumulate per file. sysmlc's package.json is rewritten twice — its own
+// version and its pin on tools — and reading from disk each time made the
+// second edit overwrite the first, so the compiler kept shipping the previous
+// version number with the new pin.
+const edited = new Map();
 const changes = [];
 const replace = (path, pattern, replacement) => {
-  const before = readFileSync(path, 'utf8');
+  const before = edited.get(path) ?? readFileSync(path, 'utf8');
   const after = before.replace(pattern, replacement);
   if (after === before && !pattern.test(before)) throw new Error(`${path}: version marker not found`);
-  if (after !== before) changes.push({ path, after });
+  if (after === before) return;
+  edited.set(path, after);
+  const existing = changes.find(change => change.path === path);
+  if (existing) existing.after = after; else changes.push({ path, after });
 };
 replace('package.json', /^(  "version": ")[^"]+(",)$/m, `$1${version}$2`);
 // The repo publishes two artifacts now: the tools package and the compiler it
