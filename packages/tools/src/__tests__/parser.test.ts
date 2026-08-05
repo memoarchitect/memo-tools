@@ -6,6 +6,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createMemoSysMLServices } from '../language/memo-sysml-module.js';
 import { parseFiles } from '../model/parser-utils.js';
+import { buildMemoModel } from '../model/builder.js';
+import { modelToDTO } from '../model/semantic.js';
 import type {
     Model,
     PackageDeclaration,
@@ -55,7 +57,7 @@ async function parseErrors(input: string): Promise<string[]> {
         .map((e: any) => e.message);
 }
 
-describe('FulfillOrder activity fixture', () => {
+describe('standard activity fixture', () => {
     // One copy, in the sample project's model with the rest of its SysML. It
     // was previously duplicated into a `reference/` tree and again at the
     // workspace root, which meant three files could disagree about what the
@@ -90,6 +92,30 @@ describe('FulfillOrder activity fixture', () => {
             member.$type === 'SuccessionUsage' && member.steps[0]?.ref === 'routeOrder' && member.steps[0]?.guard,
         );
         expect(guarded.steps[0].guard).toMatchObject({ $type: 'LiteralExpr', boolValue: 'true' });
+
+        const customerProcess = pkg.members.find((member: any) => member.name === 'CustomerProcess') as any;
+        expect(customerProcess.$type).toBe('ActionDefinition');
+        expect(customerProcess.body.filter((member: any) => member.$type === 'TerminateUsage').map((member: any) => member.name))
+            .toEqual(['rejected', 'closeOrder', 'orderComplete']);
+
+        const dto = modelToDTO(buildMemoModel(documents, { projectName: 'CustomerProcess' }, errors));
+        expect(dto.elements.rejected.kind).toBe('ActivityFinalNodeUsage');
+        expect(dto.elements.closeOrder.kind).toBe('ActivityFinalNodeUsage');
+        expect(dto.elements.orderComplete.kind).toBe('ActivityFinalNodeUsage');
+        expect(dto.relationships).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                type: 'succession', sourceId: 'validUserDecision',
+                sourceEnd: '[validUser == true]', targetId: 'browseCatalog',
+            }),
+            expect.objectContaining({
+                type: 'succession', sourceId: 'shoppingDecision',
+                sourceEnd: '[continueShopping == true]', targetId: 'browseCatalog',
+            }),
+            expect.objectContaining({
+                type: 'succession', sourceId: 'creditDecision',
+                sourceEnd: '[creditOK == false]', targetId: 'rejectCreditCard',
+            }),
+        ]));
     });
 
 });

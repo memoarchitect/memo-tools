@@ -1057,8 +1057,7 @@ function resolveSuccession(
         const targetKnown = toRef === 'done' || allElementIds.has(targetId);
         if (!sourceKnown || !targetKnown) continue;
 
-        const guard = steps[i].guard as any;
-        const guardLabel = guard?.boolValue ?? guard?.text ?? guard?.value;
+        const guardLabel = renderGuardExpression(steps[i].guard as any);
         const rel: MemoRelationship = {
             id: `rel-${++relationshipCounter}`,
             type: 'succession',
@@ -1070,6 +1069,43 @@ function resolveSuccession(
         };
 
         relationships.push(rel);
+    }
+}
+
+/**
+ * Preserve a SysML succession guard as readable diagram text.
+ *
+ * Guards use the same expression AST as constraints. Previously only literal
+ * `true`/`false` nodes happened to carry one of the three fields inspected by
+ * the builder, so a valid guard such as `validUser == true` silently vanished
+ * during lowering even though SysIDE accepted it.
+ */
+function renderGuardExpression(expr: any): string | undefined {
+    if (!expr) return undefined;
+    switch (expr.$type) {
+        case 'LiteralExpr':
+            return expr.boolValue ?? expr.intValue ?? expr.strValue;
+        case 'FeatureChain':
+            return Array.isArray(expr.segments) ? expr.segments.join('.') : undefined;
+        case 'UnaryExpr': {
+            const operand = renderGuardExpression(expr.operand);
+            return operand === undefined ? undefined : `${expr.op} ${operand}`;
+        }
+        case 'BinaryExpr': {
+            const left = renderGuardExpression(expr.left);
+            const right = renderGuardExpression(expr.right);
+            return left === undefined || right === undefined
+                ? undefined
+                : `${left} ${expr.op} ${right}`;
+        }
+        case 'CollectionOp': {
+            const target = renderGuardExpression(expr.target);
+            const argument = renderGuardExpression(expr.argument);
+            if (target === undefined) return undefined;
+            return `${target}->${expr.op}(${argument ?? ''})`;
+        }
+        default:
+            return expr.text ?? expr.value;
     }
 }
 

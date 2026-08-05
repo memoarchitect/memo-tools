@@ -293,8 +293,13 @@ FeatureReference:
 ActionName returns string:
     ID | 'accept' | 'send' | 'terminate';
 
+// SysML v2 terminate actions may be anonymous (`terminate;`, `then terminate;`)
+// or named (`action rejected terminate;`). A name is important in diagrams
+// with several distinct activity-final outcomes because it supplies the label
+// and a stable identity for each final node.
 TerminateUsage:
-    {infer TerminateUsage} followsPrevious?='then'? 'terminate' ';';
+    {infer TerminateUsage} followsPrevious?='then'?
+    (('action' name=ID)? 'terminate') ';';
 
 PortUsage:
     direction=('in' | 'out' | 'inout')? 'port' isConjugated?='~'? name=ID ':' type=QualifiedName
@@ -335,7 +340,7 @@ ConnectionEnd:
 // Action defs can have in/out/inout parameters plus regular body members
 
 ActionDefBodyMember:
-    ActionParameterMember | ActionUsage | AcceptActionUsage | SendActionUsage | TerminateUsage | ControlNodeUsage | RequireConstraintMember | UsageBodyMember;
+    ActionParameterMember | TerminateUsage | ActionUsage | AcceptActionUsage | SendActionUsage | ControlNodeUsage | RequireConstraintMember | UsageBodyMember;
 
 ActionParameterMember:
     direction=('in' | 'out' | 'inout') name=ID ':' type=QualifiedName ';';
@@ -346,7 +351,7 @@ ActionParameterMember:
 // FlowConnectionUsage / SuccessionUsage / ConnectionUsage are contributed by
 // UsageBodyMember; listing them again here would make the alternatives ambiguous.
 ActionUsageBodyMember:
-    ActionParameterMember | ActionUsage | AcceptActionUsage | SendActionUsage | TerminateUsage | ControlNodeUsage | UsageBodyMember;
+    ActionParameterMember | TerminateUsage | ActionUsage | AcceptActionUsage | SendActionUsage | ControlNodeUsage | UsageBodyMember;
 
 // ─── Behavior: Control nodes (fork / join) ──────────────────────────────────
 // SysML v2 activity control nodes. A `fork` splits one incoming control flow
