@@ -46,7 +46,7 @@
 //      metaclasses that do exist.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { SYSML_METACLASSES, allSuperTypes, conformsTo } from '@memoarchitect/sysml-ir';
+import { SYSML_METACLASSES, allSuperTypes, conformsTo } from '../sysml-ir/index.js';
 import type { MemoElement } from './semantic.js';
 import type { KindDefinitionDTO, OntologyRegistriesDTO } from './relationship-legality.js';
 

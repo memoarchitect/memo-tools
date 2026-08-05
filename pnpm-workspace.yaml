@@ -1,4 +1,3 @@
 packages:
   - "."
   - "packages/sysmlc"
-  - "packages/sysml-ir"

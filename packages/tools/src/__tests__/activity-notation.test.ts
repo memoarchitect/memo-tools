@@ -14,7 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { describe, expect, it } from 'vitest';
-import { SYSML_METACLASSES, conformsTo } from '@memoarchitect/sysml-ir';
+import { SYSML_METACLASSES, conformsTo } from '../sysml-ir/index.js';
 import {
     ACTIVITY_NOTATION_ROLES,
     activityNodeType,

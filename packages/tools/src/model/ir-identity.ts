@@ -19,7 +19,7 @@
 
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { SysmlIdentity, SysmlIR } from '@memoarchitect/sysml-ir';
+import type { SysmlIdentity, SysmlIR } from '../sysml-ir/index.js';
 
 /**
  * A write was made against an identity the current IR does not have.

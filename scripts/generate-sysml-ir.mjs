@@ -37,7 +37,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const SOURCE = resolve(root, 'packages/sysml-ir/ecore/SysML.ecore');
+const SOURCE = resolve(root, 'packages/tools/ecore/SysML.ecore');
 
 /**
  * Two outputs, because they have two audiences.
@@ -51,8 +51,8 @@ const SOURCE = resolve(root, 'packages/sysml-ir/ecore/SysML.ecore');
  * reaches for by default. The OCL still appears beside each declaration as a
  * doc comment in the metamodel file; comments do not survive to the bundle.
  */
-const OUTPUT = resolve(root, 'packages/sysml-ir/src/generated/sysml-metamodel.ts');
-const DERIVATIONS_OUTPUT = resolve(root, 'packages/sysml-ir/src/generated/sysml-derivations.ts');
+const OUTPUT = resolve(root, 'packages/tools/src/sysml-ir/generated/sysml-metamodel.ts');
+const DERIVATIONS_OUTPUT = resolve(root, 'packages/tools/src/sysml-ir/generated/sysml-derivations.ts');
 
 /** Pinned input, per plan §4.1 B2. A different file is a different metamodel. */
 const PROVENANCE = {
@@ -700,7 +700,7 @@ if (process.argv.includes('--check')) {
         if (readFileSync(path, 'utf8') !== generated) {
             throw new Error(
                 `Generated ${path.split('/').pop()} is stale or hand-edited. `
-                + 'Run `pnpm --filter @memoarchitect/sysml-ir generate` and commit the result.',
+                + 'Run `pnpm generate:ir` and commit the result.',
             );
         }
     }

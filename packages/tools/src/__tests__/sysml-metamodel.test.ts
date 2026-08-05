@@ -25,7 +25,7 @@ import {
     conformsTo,
     declaredFeatures,
     VISIBILITY_KIND_LITERALS,
-} from '@memoarchitect/sysml-ir';
+} from '../sysml-ir/index.js';
 
 const repoRoot = resolve(import.meta.dirname, '../../../..');
 const generator = resolve(repoRoot, 'scripts/generate-sysml-ir.mjs');
@@ -104,7 +104,7 @@ describe('generated SysML metamodel', () => {
         // input, and shipping it to every consumer would double the module for
         // an audience of one.
         const { SYSML_FEATURE_DERIVATIONS, derivationOf, operationBodyOf } =
-            await import('@memoarchitect/sysml-ir/lib/generated/sysml-derivations.js');
+            await import('../sysml-ir/generated/sysml-derivations.js');
         expect(Object.keys(SYSML_FEATURE_DERIVATIONS)).toHaveLength(SYSML_METAMODEL_COUNTS.derivations);
         expect(derivationOf('AcceptActionUsage', 'payloadArgument')).toBe('payloadArgument = argument(1)');
         // Seven operations state no body at all, `Namespace::resolveGlobal`
@@ -119,7 +119,7 @@ describe('generated SysML metamodel', () => {
         // strings; nothing in it executes. What proves that is the runtime
         // export surface: constants, the metadata table, and four reflective
         // helpers. A generated computation would have to appear here.
-        const module = await import('@memoarchitect/sysml-ir/lib/generated/sysml-metamodel.js');
+        const module = await import('../sysml-ir/generated/sysml-metamodel.js');
         const callable = Object.entries(module)
             .filter(([, value]) => typeof value === 'function')
             .map(([name]) => name)
@@ -127,7 +127,7 @@ describe('generated SysML metamodel', () => {
         expect(callable).toEqual(['allFeatures', 'allSuperTypes', 'conformsTo', 'declaredFeatures']);
         // And a derived feature is declared read-only, so a consumer cannot
         // mistake the declaration for a place to store a computed value.
-        const source = readFileSync(resolve(repoRoot, 'packages/sysml-ir/src/generated/sysml-metamodel.ts'), 'utf8');
+        const source = readFileSync(resolve(repoRoot, 'packages/tools/src/sysml-ir/generated/sysml-metamodel.ts'), 'utf8');
         const readonlyNames = new Set([...source.matchAll(/\n {4}readonly (\w+)\??: /g)].map(match => match[1]));
         const derivedNames = new Set(features.filter(feature => feature.derived || feature.volatile).map(feature => feature.name));
         expect([...readonlyNames].filter(name => !derivedNames.has(name))).toEqual([]);

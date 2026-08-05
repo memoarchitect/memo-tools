@@ -21,7 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MemoModelDTO, ParseError } from '../model/semantic.js';
-import type { SysmlIR } from '@memoarchitect/sysml-ir';
+import type { SysmlIR } from '../sysml-ir/index.js';
 
 /**
  * Protocol version, `major.minor.patch`.

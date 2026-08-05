@@ -9,7 +9,7 @@ import {
     type MappedSysmlElementIR,
     type SysmlIR,
     type SysmlSourceRange,
-} from '@memoarchitect/sysml-ir';
+} from '../sysml-ir/index.js';
 import type { ParsedDocument } from './parser-utils.js';
 import type { MemoModelDTO } from './semantic.js';
 

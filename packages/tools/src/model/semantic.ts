@@ -268,7 +268,7 @@ export interface MemoModelDTO {
     /** Content hashes used as per-file web mutation preconditions. */
     sourceHashes?: Record<string, string>;
     /** Canonical SysML ingestion records; Memo elements are their projection. */
-    sysmlIr?: import('@memoarchitect/sysml-ir').SysmlIR;
+    sysmlIr?: import('../sysml-ir/index.js').SysmlIR;
     /**
      * Memo element ID → IR identity ID, for the revision this model is.
      *
