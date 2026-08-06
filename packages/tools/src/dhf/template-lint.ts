@@ -242,11 +242,19 @@ function lintQueryBlock(
             }
         }
 
-        // Comparing an enum attribute against a value the enum does not declare
-        // matches nothing and renders the `empty:` message — a section that
-        // silently vanishes from a regulated document. `layer` has its own rule
-        // below for the same reason; this is that rule generalised to every
-        // enum the ontology defines.
+        // Two ways an enum comparison silently selects nothing, both of which
+        // render the `empty:` message and read like a real answer:
+        //
+        //   unknown-enum-value      — a value the enum does not declare (a typo)
+        //   unqualified-enum-value  — a real member written without its enum
+        //
+        // The second is a spelling rule, not a leniency the engine could absorb.
+        // The model stores `RequirementKind::software`, so that is the value;
+        // accepting the bare name too would mean two spellings for one thing,
+        // and would cost the reader the only clue to which enum is meant —
+        // `criticality == "high"` and `severity == "high"` are indistinguishable.
+        //
+        // `layer` has its own rule below for the same underlying reason.
         if (kinds.length > 0 && typeof spec.where === 'string') {
             const clause = parseWhereClause(spec.where);
             if (clause && clause.field !== 'layer') {
@@ -257,12 +265,18 @@ function lintQueryBlock(
                     if (!members) continue;
 
                     const wanted = unqualifyEnum(clause.value);
-                    const matches = clause.op === 'contains'
+                    const known = clause.op === 'contains'
                         ? [...members].some(m => m.toLowerCase().includes(wanted.toLowerCase()))
                         : members.has(wanted);
-                    if (!matches) {
+
+                    if (!known) {
                         add('error', 'unknown-enum-value',
                             `\`${clause.value}\` is not a value of ${declaredType} (have: ${[...members].sort().join(', ')})`);
+                    } else if (clause.op !== 'contains' && !clause.value.includes('::')) {
+                        add('error', 'unqualified-enum-value',
+                            `\`${clause.field} ${clause.op} "${clause.value}"\` names a ${declaredType} member without its enum, `
+                            + `and the model stores the qualified reference — write `
+                            + `\`${clause.field} ${clause.op} "${declaredType}::${clause.value}"\``);
                     }
                     break; // one report per clause, not one per kind
                 }

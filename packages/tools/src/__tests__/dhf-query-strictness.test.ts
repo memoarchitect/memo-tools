@@ -11,7 +11,6 @@ import {
     validateQuerySpec,
     executeQuery,
     processMemoQueryBlocks,
-    valuesEqual,
     unqualifyEnum,
     MemoQueryError,
     type MemoQuerySpec,
@@ -153,59 +152,58 @@ describe('validateQuerySpec', () => {
 // ─── enum-qualified values ───────────────────────────────────────────────────
 
 describe('enum-qualified comparison', () => {
-    // `builder.ts` stores an enum attribute as the reference the author wrote,
-    // so the model holds "RequirementKind::software" while a template author
-    // writes the value as it appears in the ontology's `enum def`. Comparing
-    // raw strings made that query match nothing and render the `empty:`
-    // message — a section that silently disappears from a regulated document.
-    it('matches an unqualified query value against a qualified stored value', () => {
-        expect(valuesEqual('RequirementKind::software', 'software')).toBe(true);
-    });
-
-    it('still matches when the query spells the qualifier out', () => {
-        expect(valuesEqual('RequirementKind::software', 'RequirementKind::software')).toBe(true);
-    });
-
-    it('does not match a different member', () => {
-        expect(valuesEqual('RequirementKind::software', 'hardware')).toBe(false);
-    });
-
-    // Relaxing only qualified→unqualified: a query naming an enum explicitly is
-    // asking for that enum, and must not be satisfied by a same-named member of
-    // another one.
-    it('does not match a qualified query against a differently-qualified value', () => {
-        expect(valuesEqual('CriticalityKind::high', 'SeverityKind::high')).toBe(false);
-    });
-
-    it('leaves non-enum values alone', () => {
-        expect(valuesEqual('IEC 62304', 'IEC 62304')).toBe(true);
-        expect(valuesEqual('IEC 62304', 'IEC 60601')).toBe(false);
-    });
-
-    it('unqualifies only when there is a qualifier', () => {
-        expect(unqualifyEnum('RequirementKind::software')).toBe('software');
-        expect(unqualifyEnum('software')).toBe('software');
-    });
-
-    // The regression this whole rule exists for: before, `requirementKind ==
-    // "software"` returned nothing against a real model and the section
-    // rendered its `empty:` message.
+    // Every enum-typed attribute in the ontology and its exemplars is written
+    // qualified, so the model holds "RequirementKind::software" and that is THE
+    // spelling a template uses. Accepting the bare member name too would mean
+    // two spellings for one value, and would cost the reader the only clue to
+    // which enum is meant: `criticality == "high"` and `severity == "high"` are
+    // indistinguishable, `CriticalityKind::high` is not.
     const MIXED_KINDS = [
         makeElement({ id: 'q1', name: 'Alarm latency', attributes: { requirementKind: 'RequirementKind::software' } }),
         makeElement({ id: 'q2', name: 'Enclosure ingress', attributes: { requirementKind: 'RequirementKind::hardware' } }),
         makeElement({ id: 'q3', name: 'Dose accuracy', attributes: { requirementKind: 'RequirementKind::system' } }),
     ];
 
-    it('filters on an unqualified enum value end to end', () => {
+    it('filters on the qualified value', () => {
         const ctx = makeCtx(MIXED_KINDS);
-        const result = executeQuery({ kind: 'Requirement', where: 'requirementKind == "software"' }, ctx);
+        const result = executeQuery(
+            { kind: 'Requirement', where: 'requirementKind == "RequirementKind::software"' }, ctx);
         expect(result.map(e => e.id)).toEqual(['q1']);
     });
 
     it('inverts correctly, so != is the complement and not everything', () => {
         const ctx = makeCtx(MIXED_KINDS);
-        const result = executeQuery({ kind: 'Requirement', where: 'requirementKind != "software"' }, ctx);
+        const result = executeQuery(
+            { kind: 'Requirement', where: 'requirementKind != "RequirementKind::software"' }, ctx);
         expect(result.map(e => e.id)).toEqual(['q2', 'q3']);
+    });
+
+    // The bare form matched nothing and rendered the `empty:` message. Exact
+    // comparison alone would keep that silence, so it is an error naming the
+    // spelling the author meant — the filter is never evaluated on a guess.
+    it('rejects a bare member name and names the qualified spelling', () => {
+        const ctx = makeCtx(MIXED_KINDS);
+        expect(() => executeQuery({ kind: 'Requirement', where: 'requirementKind == "software"' }, ctx))
+            .toThrow(/write `requirementKind == "RequirementKind::software"`/);
+    });
+
+    it('rejects a bare member name on != too, where the silence looks like everything', () => {
+        const ctx = makeCtx(MIXED_KINDS);
+        expect(() => executeQuery({ kind: 'Requirement', where: 'requirementKind != "software"' }, ctx))
+            .toThrow(MemoQueryError);
+    });
+
+    // A value that is no member of anything stored is an ordinary miss, not a
+    // spelling problem — the lint catches the typo against the ontology.
+    it('leaves a non-enum comparison alone', () => {
+        const ctx = makeCtx(MIXED_KINDS);
+        expect(executeQuery({ kind: 'Requirement', where: 'requirementKind == "firmware"' }, ctx)).toEqual([]);
+        expect(executeQuery({ kind: 'Requirement', where: 'layer == "implementation"' }, ctx)).toHaveLength(3);
+    });
+
+    it('unqualifies only when there is a qualifier', () => {
+        expect(unqualifyEnum('RequirementKind::software')).toBe('software');
+        expect(unqualifyEnum('software')).toBe('software');
     });
 });
 

@@ -146,21 +146,32 @@ describe('unknown-enum-value', () => {
             .toMatch(/hardware, software, system/);
     });
 
-    it('accepts a declared member', () => {
-        const raw = template(query('kind: Requirement', 'where: requirementKind == "software"'));
-        expect(rules(lint(raw, enumRegistry))).not.toContain('unknown-enum-value');
-    });
-
-    // The model stores the qualified reference, so a template that spells it
-    // out is correct too and must not be reported.
+    // The model stores the qualified reference, so that is the spelling.
     it('accepts a fully qualified member', () => {
         const raw = template(query('kind: Requirement', 'where: requirementKind == "RequirementKind::software"'));
-        expect(rules(lint(raw, enumRegistry))).not.toContain('unknown-enum-value');
+        expect(lint(raw, enumRegistry)).toEqual([]);
     });
 
-    it('checks contains against the member list too', () => {
+    // One value, one spelling. The bare name is a real member, so it is not a
+    // typo — it is the wrong spelling, and it selects nothing at runtime.
+    it('rejects a real member written without its enum, and names the fix', () => {
+        const raw = template(query('kind: Requirement', 'where: requirementKind == "software"'));
+        const findings = lint(raw, enumRegistry);
+        expect(rules(findings)).toContain('unqualified-enum-value');
+        expect(rules(findings)).not.toContain('unknown-enum-value');
+        expect(findings[0].message).toMatch(/write `requirementKind == "RequirementKind::software"`/);
+    });
+
+    it('rejects the bare form on != as well', () => {
+        const raw = template(query('kind: Requirement', 'where: requirementKind != "hardware"'));
+        expect(rules(lint(raw, enumRegistry))).toContain('unqualified-enum-value');
+    });
+
+    // `contains` is a substring test by construction, so the qualification rule
+    // does not apply to it — only the "is this a member at all" check does.
+    it('checks contains against the member list without demanding qualification', () => {
         const good = template(query('kind: Requirement', 'where: requirementKind contains "soft"'));
-        expect(rules(lint(good, enumRegistry))).not.toContain('unknown-enum-value');
+        expect(lint(good, enumRegistry)).toEqual([]);
         const bad = template(query('kind: Requirement', 'where: requirementKind contains "firmware"'));
         expect(rules(lint(bad, enumRegistry))).toContain('unknown-enum-value');
     });

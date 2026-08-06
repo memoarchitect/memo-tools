@@ -123,19 +123,23 @@ export function parseWhereClause(where: string): WhereClause | null {
 
 // ─── Enum-qualified values ────────────────────────────────────────────────────
 //
-// `builder.ts` stores an enum attribute as the reference the author wrote, so
-// the model holds `"RequirementKind::software"` — while a template author
-// writes `where: requirementKind == "software"`, which is the value as it
-// appears in the ontology's `enum def`. Comparing the raw strings makes that
-// query match nothing and render the `empty:` message: a section that silently
-// disappears from a regulated document, which is the same class of failure the
-// strict parser exists to stop, one layer further down.
+// `builder.ts` stores an enum attribute as the reference the author wrote, and
+// every enum-typed attribute in the ontology and its exemplars is written
+// qualified — the model holds `"RequirementKind::software"`, never `"software"`.
+// So the qualified form is THE spelling, and a template writes
+// `where: requirementKind == "RequirementKind::software"`.
 //
-// So `==` and `!=` compare on the unqualified member name whenever the query
-// side is unqualified. A qualified query value still compares exactly, and an
-// attribute that is not an enum has no `::` and is unaffected. Ambiguity across
-// enums (`SeverityKind::high` vs `CriticalityKind::high`) cannot arise here:
-// the comparison is scoped to one attribute, which has one type.
+// Comparison is exact. The alternative — accepting the bare member name too —
+// buys two spellings for one value, which is the defect this area exists to
+// remove, and it costs the reader the only clue to which enum is meant:
+// `criticality == "high"` and `severity == "high"` are indistinguishable,
+// `CriticalityKind::high` is not.
+//
+// Exact comparison alone would resurrect the silent failure, though: a bare
+// value simply matches nothing and the section renders its `empty:` message.
+// So a bare value that IS a member of the enum actually stored on that field is
+// an error naming the qualified spelling — the filter is not evaluated on a
+// guess. Same rule as everywhere else here: fail, never quietly narrow.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** The member name of an enum reference: `RequirementKind::software` → `software`. */
@@ -144,13 +148,17 @@ export function unqualifyEnum(value: string): string {
     return sep === -1 ? value : value.slice(sep + 2);
 }
 
-/** Equality between a stored attribute value and a `where:` value. */
-export function valuesEqual(stored: string, queryValue: string): boolean {
-    if (stored === queryValue) return true;
-    // Only relax in the qualified→unqualified direction. A query that spells the
-    // qualifier out is asking for that exact enum and should not match another.
-    if (queryValue.includes('::')) return false;
-    return unqualifyEnum(stored) === queryValue;
+/**
+ * The qualified value stored on `field` whose member name is `queryValue`, if
+ * any element has one — i.e. the spelling the author meant to write.
+ */
+function qualifiedSpellingOf(elements: MemoElement[], field: string, queryValue: string): string | undefined {
+    if (queryValue.includes('::')) return undefined;
+    for (const el of elements) {
+        const stored = String(getField(el, field) ?? '');
+        if (stored.includes('::') && unqualifyEnum(stored) === queryValue) return stored;
+    }
+    return undefined;
 }
 
 /** Explain why a `where:` expression is unsupported, for an actionable message. */
@@ -306,11 +314,25 @@ function applyFilter(elements: MemoElement[], where: string): MemoElement[] {
     if (!clause) throw new MemoQueryError(`cannot evaluate \`where: ${where}\` — ${diagnoseWhere(where)}`);
 
     const { field, op, value } = clause;
+
+    // A bare enum member never matches, because the model stores the qualified
+    // reference. Say so instead of returning an empty — or, for `!=`, a
+    // complete — set that reads like a real answer.
+    if (op === '==' || op === '!=') {
+        const qualified = qualifiedSpellingOf(elements, field, value);
+        if (qualified) {
+            throw new MemoQueryError(
+                `\`${field} ${op} "${value}"\` names an enum member without its enum, and the model stores `
+                + `\`${qualified}\` — write \`${field} ${op} "${qualified}"\``,
+            );
+        }
+    }
+
     switch (op) {
         case '==':
-            return elements.filter(el => valuesEqual(String(getField(el, field) ?? ''), value));
+            return elements.filter(el => String(getField(el, field) ?? '') === value);
         case '!=':
-            return elements.filter(el => !valuesEqual(String(getField(el, field) ?? ''), value));
+            return elements.filter(el => String(getField(el, field) ?? '') !== value);
         case 'contains': {
             const lv = value.toLowerCase();
             return elements.filter(el => String(getField(el, field) ?? '').toLowerCase().includes(lv));
