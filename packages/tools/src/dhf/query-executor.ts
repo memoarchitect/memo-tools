@@ -63,9 +63,147 @@ export function parseMemoQuery(blockContent: string): MemoQuerySpec | null {
     }
 }
 
+// ─── Strict validation ────────────────────────────────────────────────────────
+//
+// A query directive this engine does not understand must never be ignored.
+// `where:` used to fall through to `return elements` when no pattern matched,
+// so a filter the parser could not read produced the FULL, unfiltered set —
+// a compliance table that looks authoritative and is not. Everything below
+// exists to turn that class of silence into an error.
+//
+// Validation is deliberately separate from execution so `memo dhf lint` can
+// check a template without loading a model.
+// ──────────────────────────────────────────────────────────────────────────────
+
+/** A query directive that cannot be executed as written. */
+export class MemoQueryError extends Error {
+    constructor(message: string, readonly source?: string) {
+        super(source ? `${source}: ${message}` : message);
+        this.name = 'MemoQueryError';
+    }
+}
+
+const KNOWN_KEYS = new Set([
+    'kind', 'where', 'traverse', 'display', 'columns', 'sort', 'empty',
+    'group_by', 'limit', 'row_kind', 'col_kind', 'label', 'value',
+]);
+
+const KNOWN_DISPLAYS = new Set(['table', 'list', 'matrix', 'grouped', 'count', 'metric']);
+
+/** Comparison operators the filter engine can actually evaluate. */
+export type WhereOperator = '==' | '!=' | 'contains';
+
+export interface WhereClause {
+    field: string;
+    op: WhereOperator;
+    value: string;
+}
+
+const WHERE_PATTERNS: Array<{ re: RegExp; op: WhereOperator }> = [
+    { re: /^(\w+)\s*==\s*["']?([^"']*)["']?$/, op: '==' },
+    { re: /^(\w+)\s*!=\s*["']?([^"']*)["']?$/, op: '!=' },
+    { re: /^(\w+)\s+contains\s+["']?([^"']*)["']?$/i, op: 'contains' },
+];
+
+/**
+ * Parse a `where:` expression, or return null if this engine cannot evaluate it.
+ *
+ * Only a single comparison is supported. Boolean composition, parenthesised
+ * groups, dotted endpoint paths (`target.layer`) and `starts with` are all
+ * unsupported — callers must treat null as an error, never as "no filter".
+ */
+export function parseWhereClause(where: string): WhereClause | null {
+    const expr = where.trim();
+    for (const { re, op } of WHERE_PATTERNS) {
+        const m = expr.match(re);
+        if (m) return { field: m[1], op, value: m[2] };
+    }
+    return null;
+}
+
+/** Explain why a `where:` expression is unsupported, for an actionable message. */
+function diagnoseWhere(where: string): string {
+    const expr = where.trim();
+    if (/\b(and|or)\b/i.test(expr)) {
+        return 'boolean composition (`and` / `or`) is not supported — use a single comparison, or narrow with `kind:`';
+    }
+    if (/\bstarts with\b|\bends with\b|\bmatches\b/i.test(expr)) {
+        return 'only `==`, `!=` and `contains` are supported';
+    }
+    if (/^\w+\.\w+/.test(expr)) {
+        return 'dotted endpoint paths (e.g. `target.layer`) are not supported — a query selects elements, not relationships';
+    }
+    return 'expected `field == value`, `field != value`, or `field contains value`';
+}
+
+/**
+ * Validate a query spec against what the engine can execute.
+ * Returns a list of human-readable problems; empty means executable.
+ */
+export function validateQuerySpec(spec: MemoQuerySpec): string[] {
+    const problems: string[] = [];
+
+    for (const key of Object.keys(spec)) {
+        if (!KNOWN_KEYS.has(key)) {
+            problems.push(`unknown directive \`${key}:\` (known: ${[...KNOWN_KEYS].sort().join(', ')})`);
+        }
+    }
+
+    if (spec.where !== undefined) {
+        if (typeof spec.where !== 'string') {
+            problems.push('`where:` must be a string');
+        } else if (!parseWhereClause(spec.where)) {
+            problems.push(`cannot evaluate \`where: ${spec.where}\` — ${diagnoseWhere(spec.where)}`);
+        }
+    }
+
+    if (spec.sort !== undefined) {
+        if (typeof spec.sort !== 'string') {
+            problems.push('`sort:` must be a string');
+        } else if (/\s/.test(spec.sort.trim())) {
+            problems.push(`cannot evaluate \`sort: ${spec.sort}\` — only a bare field name is supported (no \`asc\`/\`desc\`)`);
+        }
+    }
+
+    for (const col of resolveColumns(spec)) {
+        if (/\s+as\s+/i.test(col)) {
+            problems.push(`column \`${col}\` uses an alias — \`as\` is not supported`);
+        } else if (col.includes('.')) {
+            problems.push(`column \`${col}\` uses a dotted path — a query selects elements, not relationships`);
+        }
+    }
+
+    if (spec.display !== undefined && !KNOWN_DISPLAYS.has(spec.display)) {
+        problems.push(`unknown \`display: ${spec.display}\` (known: ${[...KNOWN_DISPLAYS].sort().join(', ')})`);
+    }
+
+    if (spec.traverse !== undefined) {
+        const parts = String(spec.traverse).trim().split(/\s+/);
+        if (parts.length !== 2 || !['outgoing', 'incoming'].includes(parts[0])) {
+            problems.push(`cannot evaluate \`traverse: ${spec.traverse}\` — expected \`outgoing <relType>\` or \`incoming <relType>\``);
+        } else if (parts[1] !== '*' && /^[A-Z]/.test(parts[1])) {
+            // Relationship types are stored lower-camel (`AllocatedTo` → `allocatedTo`)
+            // and matched exactly, so a capitalised name silently matches nothing.
+            problems.push(`\`traverse: ${spec.traverse}\` names a relationship type in PascalCase — use \`${parts[1].charAt(0).toLowerCase() + parts[1].slice(1)}\``);
+        }
+    }
+
+    return problems;
+}
+
+/** Throw if the spec cannot be executed as written. */
+export function assertExecutable(spec: MemoQuerySpec, source?: string): void {
+    const problems = validateQuerySpec(spec);
+    if (problems.length > 0) {
+        throw new MemoQueryError(problems.join('; '), source);
+    }
+}
+
 // ─── Execute a query against the model context ────────────────────────────────
 
-export function executeQuery(spec: MemoQuerySpec, ctx: QueryContext): MemoElement[] {
+export function executeQuery(spec: MemoQuerySpec, ctx: QueryContext, source?: string): MemoElement[] {
+    assertExecutable(spec, source);
+
     let elements: MemoElement[] = [];
 
     // 1. Select by kind(s)
@@ -105,25 +243,22 @@ export function executeQuery(spec: MemoQuerySpec, ctx: QueryContext): MemoElemen
 }
 
 function applyFilter(elements: MemoElement[], where: string): MemoElement[] {
-    // Supports: "field == value", "field != value", "field contains value"
-    const eqMatch = where.match(/^(\w+)\s*==\s*["']?([^"']*)["']?$/);
-    const neqMatch = where.match(/^(\w+)\s*!=\s*["']?([^"']*)["']?$/);
-    const containsMatch = where.match(/^(\w+)\s+contains\s+["']?([^"']*)["']?$/i);
+    const clause = parseWhereClause(where);
+    // Never fall through to the unfiltered set: a filter the engine cannot read
+    // must fail, not quietly widen the result to everything.
+    if (!clause) throw new MemoQueryError(`cannot evaluate \`where: ${where}\` — ${diagnoseWhere(where)}`);
 
-    if (eqMatch) {
-        const [, field, value] = eqMatch;
-        return elements.filter(el => String(getField(el, field) ?? '') === value);
+    const { field, op, value } = clause;
+    switch (op) {
+        case '==':
+            return elements.filter(el => String(getField(el, field) ?? '') === value);
+        case '!=':
+            return elements.filter(el => String(getField(el, field) ?? '') !== value);
+        case 'contains': {
+            const lv = value.toLowerCase();
+            return elements.filter(el => String(getField(el, field) ?? '').toLowerCase().includes(lv));
+        }
     }
-    if (neqMatch) {
-        const [, field, value] = neqMatch;
-        return elements.filter(el => String(getField(el, field) ?? '') !== value);
-    }
-    if (containsMatch) {
-        const [, field, value] = containsMatch;
-        const lv = value.toLowerCase();
-        return elements.filter(el => String(getField(el, field) ?? '').toLowerCase().includes(lv));
-    }
-    return elements;
 }
 
 function applyTraverse(
@@ -276,11 +411,43 @@ function capitalize(s: string): string {
 
 const QUERY_BLOCK_RE = /```memo-query\n([\s\S]*?)```/g;
 
-export function processMemoQueryBlocks(content: string, ctx: QueryContext): string {
+export interface ProcessQueryOptions {
+    /** Template id or path, used to make error messages locatable. */
+    source?: string;
+    /**
+     * How to handle a block the engine cannot execute.
+     * `throw` (default) fails the compile — correct for `memo dhf export`, where
+     * a wrong table is worse than no document. `annotate` renders the error into
+     * the output instead, for previews where partial output beats none.
+     */
+    onError?: 'throw' | 'annotate';
+}
+
+export function processMemoQueryBlocks(
+    content: string,
+    ctx: QueryContext,
+    options: ProcessQueryOptions = {},
+): string {
+    const { source, onError = 'throw' } = options;
+    let blockIndex = 0;
+
     return content.replace(QUERY_BLOCK_RE, (_match, blockContent: string) => {
+        blockIndex++;
+        const where = source ? `${source} (memo-query block ${blockIndex})` : `memo-query block ${blockIndex}`;
+
         const spec = parseMemoQuery(blockContent);
-        if (!spec) return `\n> ⚠️ Invalid memo-query block\n`;
-        const elements = executeQuery(spec, ctx);
-        return renderQueryResult(spec, elements, ctx);
+        if (!spec) {
+            if (onError === 'throw') throw new MemoQueryError('block is not valid YAML', where);
+            return `\n> ⚠️ **${where}** — block is not valid YAML\n`;
+        }
+
+        try {
+            const elements = executeQuery(spec, ctx, where);
+            return renderQueryResult(spec, elements, ctx);
+        } catch (error) {
+            if (onError === 'throw') throw error;
+            const message = error instanceof Error ? error.message : String(error);
+            return `\n> ⚠️ **${message}**\n`;
+        }
     });
 }

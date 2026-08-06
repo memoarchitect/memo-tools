@@ -144,7 +144,7 @@ export async function compileMarkdownDocument(options: CompileOptions): Promise<
 
     const projectMeta = { ...extractProjectMeta(config), ...extraMeta };
     const content = runCompilePipeline(
-        tpl.body, dirname(tpl.sourcePath), ctx, config, customTemplateDir, projectMeta, warnings,
+        tpl.body, dirname(tpl.sourcePath), ctx, config, customTemplateDir, projectMeta, warnings, templateId,
     );
 
     const title = String(tpl.frontmatter.title ?? templateId);
@@ -167,6 +167,7 @@ function runCompilePipeline(
     customTemplateDir: string | undefined,
     projectMeta: Record<string, unknown>,
     warnings: string[],
+    source?: string,
 ): string {
     // 2. Resolve {{include:path}} partials
     let content = resolveIncludes(
@@ -217,7 +218,7 @@ function runCompilePipeline(
     });
 
     // 5. Execute memo-query blocks
-    content = processMemoQueryBlocks(content, ctx);
+    content = processMemoQueryBlocks(content, ctx, { source });
 
     // 6. Execute memo-script blocks
     content = processMemoScriptBlocks(content, ctx, projectMeta);

@@ -45,6 +45,7 @@ import { askCommand } from '../commands/ask.js';
 import { mcpCommand, mcpInitCommand } from '../commands/mcp.js';
 import { generateCommand } from '../commands/generate.js';
 import { dhfDraftCommand } from '../commands/dhf-draft.js';
+import { dhfLintCommand } from '../commands/dhf-lint.js';
 import { dhfInitCommand } from '../commands/dhf-init.js';
 import { dhfPreviewCommand } from '../commands/dhf-preview.js';
 import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../commands/plugin.js';
@@ -633,6 +634,16 @@ dhfCmd
     .option('-p, --port <port>', 'Server port', '3001')
     .action(async (options: { port: string }) => {
         await dhfPreviewCommand({ port: parseInt(options.port, 10) });
+    });
+
+dhfCmd
+    .command('lint')
+    .description('Validate DHF templates against the ontology they query')
+    .option('-f, --filter <prefix>', 'Only lint templates whose id starts with this prefix')
+    .option('--structural-only', 'Skip ontology resolution; check frontmatter and query syntax only')
+    .option('--json', 'Emit JSON for CI')
+    .action(async (options: { filter?: string; structuralOnly?: boolean; json?: boolean }) => {
+        await dhfLintCommand(options);
     });
 
 dhfCmd
