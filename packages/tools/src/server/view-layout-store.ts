@@ -61,6 +61,7 @@ export function isDefaultViewLayout(layout: DiagramLayout): boolean {
     // canvas field is unset until the user sets it.
     return canvas.autoLayout !== false
         && canvas.flowAnimation !== true
+        && Object.keys(canvas.portWalls ?? {}).length === 0
         && canvas.zoom === undefined
         && canvas.pan === undefined
         && canvas.grid === undefined

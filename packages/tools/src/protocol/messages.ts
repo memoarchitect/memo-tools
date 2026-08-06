@@ -678,6 +678,14 @@ export interface DiagramLayout {
         autoLayout?: boolean;
         /** Animate directional flow along connectors. */
         flowAnimation?: boolean;
+        /**
+         * Which wall each boundary port straddles, by port id. Unlike
+         * `nodes[].ports`, this is a constraint rather than geometry: automatic
+         * layout still places and orders the port, it just does so on the
+         * declared wall. It therefore survives a layout reset, which clears
+         * hand-authored positions but not the drawing's intent.
+         */
+        portWalls?: Record<string, 'top' | 'bottom' | 'left' | 'right'>;
     };
 }
 
