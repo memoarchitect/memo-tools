@@ -121,6 +121,38 @@ export function parseWhereClause(where: string): WhereClause | null {
     return null;
 }
 
+// ─── Enum-qualified values ────────────────────────────────────────────────────
+//
+// `builder.ts` stores an enum attribute as the reference the author wrote, so
+// the model holds `"RequirementKind::software"` — while a template author
+// writes `where: requirementKind == "software"`, which is the value as it
+// appears in the ontology's `enum def`. Comparing the raw strings makes that
+// query match nothing and render the `empty:` message: a section that silently
+// disappears from a regulated document, which is the same class of failure the
+// strict parser exists to stop, one layer further down.
+//
+// So `==` and `!=` compare on the unqualified member name whenever the query
+// side is unqualified. A qualified query value still compares exactly, and an
+// attribute that is not an enum has no `::` and is unaffected. Ambiguity across
+// enums (`SeverityKind::high` vs `CriticalityKind::high`) cannot arise here:
+// the comparison is scoped to one attribute, which has one type.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The member name of an enum reference: `RequirementKind::software` → `software`. */
+export function unqualifyEnum(value: string): string {
+    const sep = value.lastIndexOf('::');
+    return sep === -1 ? value : value.slice(sep + 2);
+}
+
+/** Equality between a stored attribute value and a `where:` value. */
+export function valuesEqual(stored: string, queryValue: string): boolean {
+    if (stored === queryValue) return true;
+    // Only relax in the qualified→unqualified direction. A query that spells the
+    // qualifier out is asking for that exact enum and should not match another.
+    if (queryValue.includes('::')) return false;
+    return unqualifyEnum(stored) === queryValue;
+}
+
 /** Explain why a `where:` expression is unsupported, for an actionable message. */
 function diagnoseWhere(where: string): string {
     const expr = where.trim();
@@ -276,9 +308,9 @@ function applyFilter(elements: MemoElement[], where: string): MemoElement[] {
     const { field, op, value } = clause;
     switch (op) {
         case '==':
-            return elements.filter(el => String(getField(el, field) ?? '') === value);
+            return elements.filter(el => valuesEqual(String(getField(el, field) ?? ''), value));
         case '!=':
-            return elements.filter(el => String(getField(el, field) ?? '') !== value);
+            return elements.filter(el => !valuesEqual(String(getField(el, field) ?? ''), value));
         case 'contains': {
             const lv = value.toLowerCase();
             return elements.filter(el => String(getField(el, field) ?? '').toLowerCase().includes(lv));

@@ -20,7 +20,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { parseFrontmatter, findVendorTemplatesDir, listBuiltinTemplates } from './template-resolver.js';
 import {
-    parseMemoQuery, validateQuerySpec, parseWhereClause,
+    parseMemoQuery, validateQuerySpec, parseWhereClause, unqualifyEnum,
     htmlCommentRanges, isCommentedOut, type MemoQuerySpec,
 } from './query-executor.js';
 import type { KindRegistry } from '../model/kind-registry.js';
@@ -68,49 +68,80 @@ const INCLUDE_RE = /\{\{include:([^}]+)\}\}/g;
 
 // ─── Attribute discovery ──────────────────────────────────────────────────────
 
+/** The `{ … }` body of `<something> def <name>` in an ontology source, or ''. */
+function definitionBody(name: string, registry: KindRegistry): string {
+    const entry = registry.entries().find(e => e.name === name);
+    if (!entry?.sourceFile || !existsSync(entry.sourceFile)) return '';
+
+    let source: string;
+    try {
+        source = readFileSync(entry.sourceFile, 'utf-8');
+    } catch {
+        return '';
+    }
+
+    const start = source.search(new RegExp(`def\\s+${name}\\b[^{]*\\{`));
+    if (start === -1) return '';
+
+    let depth = 0;
+    for (let i = source.indexOf('{', start); i < source.length; i++) {
+        if (source[i] === '{') depth++;
+        else if (source[i] === '}') { depth--; if (depth === 0) return source.slice(start, i); }
+    }
+    return '';
+}
+
 /**
- * Attribute names a kind declares, following its supertype chain.
+ * Attributes a kind declares, as name → declared type, following its supertype
+ * chain. The type is `undefined` when the declaration does not name one.
  *
  * Read from the ontology source rather than a table in this file: the registry
  * records each kind's `sourceFile` and `superType`, so the declaration itself
  * stays the single source of truth. A hardcoded list here would be exactly the
  * duplicate registry this work is trying to remove.
  */
-function attributesForKind(kind: string, registry: KindRegistry, seen = new Set<string>()): Set<string> {
-    const found = new Set<string>();
+function attributesForKind(
+    kind: string,
+    registry: KindRegistry,
+    seen = new Set<string>(),
+): Map<string, string | undefined> {
+    const found = new Map<string, string | undefined>();
     if (seen.has(kind)) return found;
     seen.add(kind);
 
+    // `attribute [redefines|:>>] name [: Type]`
+    for (const m of definitionBody(kind, registry).matchAll(
+        /^\s*attribute\s+(?:redefines\s+|:>>\s*)?(\w+)\s*(?::\s*([\w:]+))?/gm,
+    )) {
+        found.set(m[1], m[2]);
+    }
+
     const entry = registry.entries().find(e => e.name === kind);
-    if (!entry?.sourceFile || !existsSync(entry.sourceFile)) return found;
-
-    let source: string;
-    try {
-        source = readFileSync(entry.sourceFile, 'utf-8');
-    } catch {
-        return found;
-    }
-
-    // Isolate the definition body, then take its `attribute <name>` declarations.
-    const defRe = new RegExp(`def\\s+${kind}\\b[^{]*\\{`);
-    const start = source.search(defRe);
-    if (start !== -1) {
-        let depth = 0;
-        let end = start;
-        for (let i = source.indexOf('{', start); i < source.length; i++) {
-            if (source[i] === '{') depth++;
-            else if (source[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+    if (entry?.superType) {
+        for (const [name, type] of attributesForKind(entry.superType, registry, seen)) {
+            if (!found.has(name)) found.set(name, type);
         }
-        const body = source.slice(start, end);
-        for (const m of body.matchAll(/^\s*attribute\s+(?:redefines\s+)?(\w+)/gm)) {
-            found.add(m[1]);
-        }
-    }
-
-    if (entry.superType) {
-        for (const inherited of attributesForKind(entry.superType, registry, seen)) found.add(inherited);
     }
     return found;
+}
+
+/**
+ * The members an `enum def` declares, or null when `name` is not an enum in this
+ * ontology. Null and empty are different answers: an unparseable enum must not
+ * be read as "this enum has no valid values" and reject every query.
+ */
+function enumMembers(name: string, registry: KindRegistry): Set<string> | null {
+    const entry = registry.entries().find(e => e.name === name);
+    if (!entry || entry.sysmlConstruct !== 'enum def') return null;
+
+    // Not anchored to line start: SysML allows `enum def K { enum a; enum b; }`
+    // on one line, and an enum whose members the lint cannot see reads as
+    // "no valid values" and would reject every query against it.
+    const members = new Set<string>();
+    for (const m of definitionBody(name, registry).matchAll(/\benum\s+(\w+)\s*;/g)) {
+        members.add(m[1]);
+    }
+    return members.size > 0 ? members : null;
 }
 
 // ─── Checks ───────────────────────────────────────────────────────────────────
@@ -201,12 +232,39 @@ function lintQueryBlock(
         // traversal query.
         if (kinds.length > 0 && spec.traverse === undefined) {
             const declared = new Set<string>();
-            for (const kind of kinds) for (const attr of attributesForKind(kind, registry)) declared.add(attr);
+            for (const kind of kinds) for (const attr of attributesForKind(kind, registry).keys()) declared.add(attr);
             for (const col of resolveColumnList(spec)) {
                 if (col.includes('.') || /\s+as\s+/i.test(col)) continue; // already reported by validateQuerySpec
                 if (!BUILT_IN_FIELDS.has(col) && !declared.has(col)) {
                     add('error', 'unknown-column',
                         `column \`${col}\` is not an attribute of ${kinds.join('/')} — it will render as "—" for every row`);
+                }
+            }
+        }
+
+        // Comparing an enum attribute against a value the enum does not declare
+        // matches nothing and renders the `empty:` message — a section that
+        // silently vanishes from a regulated document. `layer` has its own rule
+        // below for the same reason; this is that rule generalised to every
+        // enum the ontology defines.
+        if (kinds.length > 0 && typeof spec.where === 'string') {
+            const clause = parseWhereClause(spec.where);
+            if (clause && clause.field !== 'layer') {
+                for (const kind of kinds) {
+                    const declaredType = attributesForKind(kind, registry).get(clause.field);
+                    if (!declaredType) continue;
+                    const members = enumMembers(declaredType, registry);
+                    if (!members) continue;
+
+                    const wanted = unqualifyEnum(clause.value);
+                    const matches = clause.op === 'contains'
+                        ? [...members].some(m => m.toLowerCase().includes(wanted.toLowerCase()))
+                        : members.has(wanted);
+                    if (!matches) {
+                        add('error', 'unknown-enum-value',
+                            `\`${clause.value}\` is not a value of ${declaredType} (have: ${[...members].sort().join(', ')})`);
+                    }
+                    break; // one report per clause, not one per kind
                 }
             }
         }

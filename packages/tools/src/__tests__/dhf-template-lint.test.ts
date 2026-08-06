@@ -5,7 +5,10 @@
 // in a regulated document, and none of them failed a build. These tests pin
 // the rules that turn each into an error.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { lintTemplateContent, type LintFinding } from '../dhf/template-lint.js';
 import { KindRegistry } from '../model/kind-registry.js';
 
@@ -97,6 +100,74 @@ describe('frontmatter rules', () => {
     it('accepts a single designation containing slashes', () => {
         const raw = GOOD_FRONTMATTER.replace('standard: IEC 60812:2018', 'standard: ISO/IEC/IEEE 42010:2022');
         expect(rules(lint(raw))).not.toContain('frontmatter-one-standard');
+    });
+});
+
+// ─── Enum values ─────────────────────────────────────────────────────────────
+
+describe('unknown-enum-value', () => {
+    // Comparing an enum attribute against a value the enum does not declare
+    // matches nothing and renders the `empty:` message — a section that
+    // silently vanishes from a regulated document. This needs a real source
+    // file, because both the attribute's type and the enum's members are read
+    // from the ontology rather than from a table in the lint.
+    let dir: string;
+    let enumRegistry: { kindRegistry: KindRegistry };
+
+    beforeAll(() => {
+        dir = mkdtempSync(join(tmpdir(), 'memo-lint-enum-'));
+        const file = join(dir, 'reqs.sysml');
+        writeFileSync(file, [
+            'package memo_assurance_requirements {',
+            '    enum def RequirementKind { enum system; enum software; enum hardware; }',
+            '    requirement def Requirement specializes VerifiableElement {',
+            '        attribute requirementKind : RequirementKind;',
+            '        attribute statement : String;',
+            '    }',
+            '}',
+            '',
+        ].join('\n'));
+
+        const registry = new KindRegistry();
+        (registry as unknown as { entries: () => unknown[] }).entries = () => ([
+            { name: 'Requirement', label: 'Requirement', layer: 'requirements', sysmlConstruct: 'requirement def', isAbstract: false, sourceFile: file },
+            { name: 'RequirementKind', label: 'RequirementKind', layer: 'requirements', sysmlConstruct: 'enum def', sourceFile: file },
+        ]);
+        enumRegistry = { kindRegistry: registry };
+    });
+
+    afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+    it('rejects a value the enum does not declare', () => {
+        const raw = template(query('kind: Requirement', 'where: requirementKind == "sofware"'));
+        const findings = lint(raw, enumRegistry);
+        expect(rules(findings)).toContain('unknown-enum-value');
+        expect(findings.find(f => f.rule === 'unknown-enum-value')!.message)
+            .toMatch(/hardware, software, system/);
+    });
+
+    it('accepts a declared member', () => {
+        const raw = template(query('kind: Requirement', 'where: requirementKind == "software"'));
+        expect(rules(lint(raw, enumRegistry))).not.toContain('unknown-enum-value');
+    });
+
+    // The model stores the qualified reference, so a template that spells it
+    // out is correct too and must not be reported.
+    it('accepts a fully qualified member', () => {
+        const raw = template(query('kind: Requirement', 'where: requirementKind == "RequirementKind::software"'));
+        expect(rules(lint(raw, enumRegistry))).not.toContain('unknown-enum-value');
+    });
+
+    it('checks contains against the member list too', () => {
+        const good = template(query('kind: Requirement', 'where: requirementKind contains "soft"'));
+        expect(rules(lint(good, enumRegistry))).not.toContain('unknown-enum-value');
+        const bad = template(query('kind: Requirement', 'where: requirementKind contains "firmware"'));
+        expect(rules(lint(bad, enumRegistry))).toContain('unknown-enum-value');
+    });
+
+    it('says nothing about a non-enum attribute', () => {
+        const raw = template(query('kind: Requirement', 'where: statement == "anything at all"'));
+        expect(rules(lint(raw, enumRegistry))).not.toContain('unknown-enum-value');
     });
 });
 
