@@ -191,6 +191,31 @@ export function validateQuerySpec(spec: MemoQuerySpec): string[] {
     return problems;
 }
 
+// ─── Commented-out blocks ─────────────────────────────────────────────────────
+//
+// A template may park a query it cannot run yet inside an HTML comment, with a
+// visible TODO beside it — the honest way to ship a section whose query shape
+// the engine does not support yet. A commented block renders nothing, so it
+// must neither be executed nor linted; otherwise "park it until the engine
+// catches up" is not available and the alternative is a table that renders
+// empty and reads like a clean audit.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const HTML_COMMENT_RE = /<!--[\s\S]*?-->/g;
+
+/** Character ranges of the HTML comments in `content`. */
+export function htmlCommentRanges(content: string): Array<[number, number]> {
+    const ranges: Array<[number, number]> = [];
+    for (const m of content.matchAll(HTML_COMMENT_RE)) {
+        ranges.push([m.index!, m.index! + m[0].length]);
+    }
+    return ranges;
+}
+
+export function isCommentedOut(ranges: Array<[number, number]>, offset: number): boolean {
+    return ranges.some(([start, end]) => offset >= start && offset < end);
+}
+
 /** Throw if the spec cannot be executed as written. */
 export function assertExecutable(spec: MemoQuerySpec, source?: string): void {
     const problems = validateQuerySpec(spec);
@@ -429,9 +454,13 @@ export function processMemoQueryBlocks(
     options: ProcessQueryOptions = {},
 ): string {
     const { source, onError = 'throw' } = options;
+    const commented = htmlCommentRanges(content);
     let blockIndex = 0;
 
-    return content.replace(QUERY_BLOCK_RE, (_match, blockContent: string) => {
+    return content.replace(QUERY_BLOCK_RE, (match, blockContent: string, offset: number) => {
+        // Leave a parked block exactly as written — it is documentation of a
+        // query the engine cannot run yet, not a query to run.
+        if (isCommentedOut(commented, offset)) return match;
         blockIndex++;
         const where = source ? `${source} (memo-query block ${blockIndex})` : `memo-query block ${blockIndex}`;
 

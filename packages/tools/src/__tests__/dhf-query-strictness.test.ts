@@ -192,6 +192,34 @@ describe('processMemoQueryBlocks', () => {
         expect(out).toMatch(/Enclosure ingress/);
         expect(out).not.toMatch(/Alarm latency/);
     });
+
+    // A relationship-shaped table cannot render until `select: relationships`
+    // exists. Parking it behind an HTML comment with a visible TODO is the
+    // honest way to ship the section — so the executor must leave it alone
+    // rather than throwing on it or, worse, rendering a table inside a comment.
+    const parked = [
+        '<!-- _[TODO: requires `select: relationships`]_',
+        block,
+        '-->',
+        '',
+        '_[TODO: requires `select: relationships`]_',
+    ].join('\n');
+
+    it('leaves a parked block untouched instead of throwing', () => {
+        const ctx = makeCtx(THREE_REQUIREMENTS);
+        const out = processMemoQueryBlocks(parked, ctx, { source: 'system/standards-traceability' });
+        expect(out).toBe(parked);
+    });
+
+    it('numbers only live blocks, so the reported index matches the document', () => {
+        const ctx = makeCtx(THREE_REQUIREMENTS);
+        const out = processMemoQueryBlocks(
+            parked + '\n\n' + block, ctx,
+            { source: 'x', onError: 'annotate' },
+        );
+        expect(out).toMatch(/memo-query block 1/);
+        expect(out).not.toMatch(/memo-query block 2/);
+    });
 });
 
 // ─── the block parser itself ─────────────────────────────────────────────────

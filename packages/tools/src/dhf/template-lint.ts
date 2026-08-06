@@ -19,7 +19,10 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { parseFrontmatter, findVendorTemplatesDir, listBuiltinTemplates } from './template-resolver.js';
-import { parseMemoQuery, validateQuerySpec, parseWhereClause, type MemoQuerySpec } from './query-executor.js';
+import {
+    parseMemoQuery, validateQuerySpec, parseWhereClause,
+    htmlCommentRanges, isCommentedOut, type MemoQuerySpec,
+} from './query-executor.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 
 export type LintSeverity = 'error' | 'warning';
@@ -131,8 +134,14 @@ function lintFrontmatter(
         }
     }
 
+    // Two designations joined by a slash ("IEC 60601 / IEC 62304") is the
+    // defect: a document claims one standard, and the others belong in
+    // `clauses:`. A slash *inside* one designation is not — "ISO/IEC/IEEE
+    // 42010:2022" is a single standard from a joint committee, and
+    // "IEC 62304:2006+AMD1:2015" has none at all. The separator is the space
+    // around the slash, which is what distinguishes the two.
     const standard = frontmatter.standard;
-    if (typeof standard === 'string' && standard.includes('/')) {
+    if (typeof standard === 'string' && /\s\/|\/\s/.test(standard)) {
         findings.push({
             severity: 'error', template: templateId, file, rule: 'frontmatter-one-standard',
             message: `\`standard: ${standard}\` names more than one standard — use a single designation and put the others in \`clauses:\``,
@@ -184,7 +193,13 @@ function lintQueryBlock(
         }
 
         // Columns must resolve, or every row renders "—" with no indication why.
-        if (kinds.length > 0) {
+        //
+        // Only when the rows are of `kind:`. With `traverse:`, `kind:` names the
+        // *seeds* and the rows are whatever the relationship lands on, whose
+        // kind is a fact about the project's model rather than the template —
+        // checking columns against the seeds would reject every correct
+        // traversal query.
+        if (kinds.length > 0 && spec.traverse === undefined) {
             const declared = new Set<string>();
             for (const kind of kinds) for (const attr of attributesForKind(kind, registry)) declared.add(attr);
             for (const col of resolveColumnList(spec)) {
@@ -250,14 +265,22 @@ export function lintTemplateContent(
     const findings: LintFinding[] = [];
     const { frontmatter, body } = parseFrontmatter(raw);
 
-    // Snippets under shared/ are fragments, not documents: they carry no
-    // frontmatter by design and are linted only for their query blocks.
-    if (!templateId.startsWith('shared/')) {
+    // Snippets are fragments, not documents: they carry no frontmatter by
+    // design and are linted only for their query blocks. They are ids'd from
+    // their own directory name, so `shared/snippets/approval-block.md` lists as
+    // `snippets/approval-block` — matching only `shared/` reported all four
+    // snippets as missing every required frontmatter key.
+    if (!templateId.startsWith('shared/') && !templateId.startsWith('snippets/')) {
         lintFrontmatter(templateId, file, frontmatter as Record<string, unknown>, findings);
     }
 
+    // A block parked inside an HTML comment renders nothing, so it is not a
+    // finding — the executor skips it for the same reason.
+    const commented = htmlCommentRanges(body);
+
     let block = 0;
     for (const m of body.matchAll(QUERY_BLOCK_RE)) {
+        if (isCommentedOut(commented, m.index!)) continue;
         block++;
         const spec = parseMemoQuery(m[1]);
         if (!spec) {

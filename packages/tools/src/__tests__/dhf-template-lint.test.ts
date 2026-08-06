@@ -82,6 +82,77 @@ describe('frontmatter rules', () => {
         const findings = lintTemplateContent('shared/snippets/approval-block', '/tmp/x.md', '## Approval\n');
         expect(findings).toEqual([]);
     });
+
+    // Snippets list under their own directory name, so the id is
+    // `snippets/approval-block`, not `shared/snippets/approval-block`. Matching
+    // only the `shared/` prefix reported all four shipped snippets as missing
+    // every required key.
+    it('does not demand frontmatter of a snippet listed under snippets/', () => {
+        const findings = lintTemplateContent('snippets/approval-block', '/tmp/x.md', '## Approval\n');
+        expect(findings).toEqual([]);
+    });
+
+    // "ISO/IEC/IEEE 42010:2022" is one standard from a joint committee, not
+    // three. The separator that means "two designations" is the space.
+    it('accepts a single designation containing slashes', () => {
+        const raw = GOOD_FRONTMATTER.replace('standard: IEC 60812:2018', 'standard: ISO/IEC/IEEE 42010:2022');
+        expect(rules(lint(raw))).not.toContain('frontmatter-one-standard');
+    });
+});
+
+// ─── Parked queries ──────────────────────────────────────────────────────────
+
+describe('commented-out blocks', () => {
+    // A template may park a query the engine cannot run yet behind an HTML
+    // comment and a visible TODO. That block renders nothing, so linting it
+    // would make "park it" impossible and force the alternative: a table that
+    // renders empty and reads like a clean audit.
+    const parked = template([
+        '<!-- _[TODO: requires `select: relationships`]_',
+        '```memo-query',
+        'kind: ConformsTo',
+        'where: target.clauseNumber starts with "5"',
+        'columns: source as Element, target.clauseNumber as Clause',
+        '```',
+        '-->',
+        '',
+        '_[TODO: requires `select: relationships`]_',
+    ].join('\n'));
+
+    it('reports nothing for a query parked inside an HTML comment', () => {
+        expect(lint(parked, ONTOLOGY)).toEqual([]);
+    });
+
+    it('still reports live blocks beside a parked one', () => {
+        const raw = parked + '\n\n' + query('kind: NotAKind');
+        const findings = lint(raw, ONTOLOGY);
+        expect(rules(findings)).toEqual(['unknown-kind']);
+        // Block numbering counts live blocks only, so the number in the message
+        // matches what a reader counts in the rendered document.
+        expect(findings[0].block).toBe(1);
+    });
+});
+
+// ─── Traversal ───────────────────────────────────────────────────────────────
+
+describe('columns under traverse', () => {
+    // With `traverse:`, `kind:` names the SEEDS; the rows are whatever the
+    // relationship lands on. Checking columns against the seeds rejects every
+    // correct traversal query — and most compliance queries reach the
+    // hardware/software boundary by relationship, not by kind.
+    it('does not check columns against the seed kind when traversing', () => {
+        const raw = template(query(
+            'kind: FailureMode',
+            'traverse: outgoing hasFailureMode',
+            'columns: name, effect, severityRating',
+        ));
+        expect(rules(lint(raw, ONTOLOGY))).not.toContain('unknown-column');
+    });
+
+    it('still checks columns when there is no traverse', () => {
+        const raw = template(query('kind: FailureMode', 'columns: name, notAnAttribute'));
+        expect(rules(lint(raw, ONTOLOGY))).toContain('unknown-column');
+    });
 });
 
 // ─── Text matching ───────────────────────────────────────────────────────────

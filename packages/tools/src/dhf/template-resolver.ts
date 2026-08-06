@@ -10,7 +10,7 @@
 // Also handles {{include:path}} partial resolution and {{project.*}} expansion.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { resolveContentPackageRoot, VENDOR_DHF_TEMPLATES_DIR } from '../model/paths.js';
 
@@ -105,6 +105,17 @@ export function resolveTemplatePath(
     return null;
 }
 
+/** Standard directories under the templates root, read from disk. */
+function standardDirs(vendorDir: string): string[] {
+    try {
+        return readdirSync(vendorDir, { withFileTypes: true })
+            .filter(e => e.isDirectory())
+            .map(e => e.name);
+    } catch {
+        return [];
+    }
+}
+
 function buildCandidatePaths(templateId: string, customDir?: string): string[] {
     const paths: string[] = [];
     const variants = [
@@ -122,8 +133,11 @@ function buildCandidatePaths(templateId: string, customDir?: string): string[] {
     if (vendorDir) {
         for (const v of variants) {
             paths.push(join(vendorDir, v));
-            // Also try standard-prefixed paths
-            for (const standard of ['iso-14971', 'iec-62304', 'iec-62366', '21cfr820', 'fda-cybersecurity', 'shared']) {
+            // Also try standard-prefixed paths. Read the directories that
+            // actually exist rather than listing them here: a hardcoded list is
+            // a fourth place a standard has to be registered, and it already
+            // silently omitted `iec-60601` and the system-level templates.
+            for (const standard of standardDirs(vendorDir)) {
                 paths.push(join(vendorDir, standard, v));
                 paths.push(join(vendorDir, standard, 'snippets', v));
             }
@@ -214,8 +228,6 @@ function getNestedValue(obj: Record<string, unknown>, key: string): unknown {
 }
 
 // ─── List all available built-in templates ────────────────────────────────────
-
-import { readdirSync } from 'node:fs';
 
 export interface BuiltinTemplateInfo {
     id: string;
