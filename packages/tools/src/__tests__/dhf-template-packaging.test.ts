@@ -34,6 +34,19 @@ describe.runIf(available)('DHF template packaging', () => {
         expect(covered).toBe(true);
     });
 
+    it('publishes the standards packs the templates cite', () => {
+        // Same bug, one axis over: the clause library was deliberately put
+        // under `src/artifacts/standards/` rather than a new top-level
+        // `src/standards/` precisely because `src/artifacts/` is already a
+        // `files` entry. This asserts that reasoning rather than trusting it.
+        const standardsDir = join(memoRoot, 'src/artifacts/standards');
+        expect(existsSync(standardsDir)).toBe(true);
+        const pkg = JSON.parse(readFileSync(join(memoRoot, 'package.json'), 'utf-8'));
+        const covered = (pkg.files as string[]).some(entry =>
+            'src/artifacts/standards'.startsWith(entry.replace(/\/$/, '')));
+        expect(covered).toBe(true);
+    });
+
     it('lists no path in files that does not exist', () => {
         // `ontology/memo.rendering.yaml` outlived the file the session-3 flip
         // deleted. A stale entry is harmless until it is load-bearing, and

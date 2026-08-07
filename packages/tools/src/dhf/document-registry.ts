@@ -8,7 +8,19 @@
 // equivalent record is the "design and development file" (ISO 13485 §7.3.10) —
 // the regulation text no longer says "DHF". Kept as "DHF" here since that's still
 // the term practitioners and eQMS tooling use; not a functional distinction.
+//
+// `standards` used to be a hardcoded array on every entry here — the second of
+// five places a clause reference lived, and one that disagreed with the others
+// (this file said IEC 60812:2018 for the FMEA while the template's frontmatter
+// said ISO 14971:2019). It is now DERIVED: a document type names the template
+// that carries its content, and the clause references come from that template's
+// frontmatter, resolved against the ontology's standards library. Adding a
+// standard changes no TypeScript, and the two registries cannot disagree
+// because there is only one.
 // ─────────────────────────────────────────────────────────────────────────────
+
+import { listBuiltinTemplates } from './template-resolver.js';
+import { parseClauseReference, formatClauseReference } from './standards-library.js';
 
 /** A section within a DHF document template */
 export interface DhfSection {
@@ -26,7 +38,17 @@ export interface DhfDocumentType {
     id: string;
     /** Full document title */
     title: string;
-    /** Regulatory standard references */
+    /**
+     * Id of the shipped template that carries this document's content, e.g.
+     * "iso-14971/rmp". It is where the clause claims are written down; a
+     * document type without one derives no standards, which is honest — it has
+     * no document to make a claim in.
+     */
+    template?: string;
+    /**
+     * Regulatory clause references, e.g. "IEC 62304:2006+AMD1:2015 §5.2".
+     * DERIVED from `template`'s frontmatter — never written here.
+     */
     standards: string[];
     /** Architecture layers this document draws from */
     layers: string[];
@@ -40,13 +62,44 @@ export interface DhfDocumentType {
     group: 'risk' | 'design' | 'verification' | 'compliance' | 'all';
 }
 
+/** A document type as authored: everything except the derived clause list. */
+type DhfDocumentTypeDeclaration = Omit<DhfDocumentType, 'standards'>;
+
+/**
+ * Clause references a template claims, in citation form.
+ *
+ * The template's own `standard:` supplies the designation for bare clause
+ * numbers; an entry carrying "§" brings its own. A template that names a
+ * standard and claims no clause still cites the standard — the claim is at
+ * document level, which is coarser but not absent.
+ */
+function standardsForTemplate(templateId: string | undefined): string[] {
+    if (!templateId) return [];
+    const template = templateIndex().get(templateId);
+    if (!template) return [];
+
+    const designation = template.frontmatter.standard;
+    const clauses = template.frontmatter.clauses ?? [];
+    if (clauses.length === 0) return designation ? [designation] : [];
+
+    return clauses.map(entry => formatClauseReference(parseClauseReference(entry, designation)));
+}
+
+let cachedIndex: Map<string, { frontmatter: { standard?: string; clauses?: string[] } }> | undefined;
+function templateIndex(): Map<string, { frontmatter: { standard?: string; clauses?: string[] } }> {
+    if (!cachedIndex) {
+        cachedIndex = new Map(listBuiltinTemplates().map(t => [t.id, { frontmatter: t.frontmatter }]));
+    }
+    return cachedIndex;
+}
+
 /** The 18 DHF document types for medical device development */
-export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
+const DHF_DOCUMENT_TYPE_DECLARATIONS: DhfDocumentTypeDeclaration[] = [
     // ─── Risk Management ─────────────────────────────────────────────────
     {
         id: 'rmp',
         title: 'Risk Management Plan',
-        standards: ['ISO 14971:2019 §4.4'],
+        template: 'iso-14971/rmp',
         layers: ['risk'],
         relevantKinds: ['Hazard', 'HazardousSituation', 'Harm', 'RiskControlMeasure', 'RiskAcceptabilityCriteria'],
         relevantRelationships: ['mitigates', 'causedBy', 'leadsTo'],
@@ -63,7 +116,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'har',
         title: 'Hazard Analysis Report',
-        standards: ['ISO 14971:2019 §5', 'ISO 14971:2019 §6'],
+        template: 'iso-14971/har',
         layers: ['risk'],
         relevantKinds: ['Hazard', 'HazardousSituation', 'Harm', 'RiskControlMeasure'],
         relevantRelationships: ['mitigates', 'causedBy', 'leadsTo', 'identifiedIn'],
@@ -79,7 +132,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'fmea',
         title: 'Failure Mode and Effects Analysis',
-        standards: ['IEC 60812:2018'],
+        template: 'iso-14971/fmea',
         layers: ['risk', 'functional', 'physical'],
         relevantKinds: ['Hazard', 'RiskControlMeasure', 'Function', 'Component', 'Subsystem'],
         relevantRelationships: ['mitigates', 'allocatedTo', 'performs'],
@@ -98,7 +151,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'rtm',
         title: 'Requirements Traceability Matrix',
-        standards: ['IEC 62304:2006 §5.1.1', 'ISO 13485:2016 §7.3.3'],
+        template: 'iec-62304/sw-traceability',
         layers: ['requirements', 'functional', 'verification'],
         relevantKinds: ['Requirement', 'Requirement', 'DesignInput', 'DesignOutput', 'TestCase', 'VerificationActivity'],
         relevantRelationships: ['traceTo', 'satisfies', 'verifies', 'derivedFrom'],
@@ -116,7 +169,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'sad',
         title: 'System Architecture Description',
-        standards: ['ISO/IEC/IEEE 42010:2022', 'IEC 62304:2006 §5.3'],
+        template: 'system/sad',
         layers: ['functional', 'logical', 'physical', 'software', 'interfaces'],
         relevantKinds: ['Function', 'Component', 'Subsystem', 'Interface', 'Port', 'SoftwareItem', 'SOUPComponent'],
         relevantRelationships: ['composedOf', 'allocatedTo', 'connectedTo', 'dependsOn', 'implements'],
@@ -133,7 +186,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'sds',
         title: 'Software Design Specification',
-        standards: ['IEC 62304:2006 §5.4'],
+        template: 'iec-62304/detailed-design',
         layers: ['software'],
         relevantKinds: ['SoftwareItem', 'SoftwareUnit', 'SoftwareSystem', 'SOUPComponent', 'Interface'],
         relevantRelationships: ['composedOf', 'dependsOn', 'implements', 'connectedTo'],
@@ -148,7 +201,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'soup',
         title: 'SOUP List (Software of Unknown Provenance)',
-        standards: ['IEC 62304:2006 §8.1.2'],
+        template: 'iec-62304/soup',
         layers: ['software'],
         relevantKinds: ['SOUPComponent'],
         relevantRelationships: ['dependsOn', 'usedBy'],
@@ -164,7 +217,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'dip',
         title: 'Design Input Plan',
-        standards: ['ISO 13485:2016 §7.3.3'],
+        template: '21cfr820/design-input',
         layers: ['requirements', 'business'],
         relevantKinds: ['DesignInput', 'Requirement', 'Need', 'UseCase'],
         relevantRelationships: ['traceTo', 'derivedFrom', 'satisfies'],
@@ -178,7 +231,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'dop',
         title: 'Design Output Plan',
-        standards: ['ISO 13485:2016 §7.3.4'],
+        template: '21cfr820/design-output',
         layers: ['functional', 'physical', 'software'],
         relevantKinds: ['DesignOutput', 'Component', 'SoftwareItem', 'Function'],
         relevantRelationships: ['satisfies', 'implements', 'allocatedTo'],
@@ -193,7 +246,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'vvp',
         title: 'Verification & Validation Plan',
-        standards: ['ISO 13485:2016 §7.3.6', 'IEC 62304:2006 §5.7'],
+        template: '21cfr820/vv-plan',
         layers: ['verification'],
         relevantKinds: ['TestCase', 'VerificationActivity', 'ValidationActivity', 'TestProtocol'],
         relevantRelationships: ['verifies', 'validates', 'traceTo'],
@@ -208,7 +261,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'vvr',
         title: 'Verification & Validation Report',
-        standards: ['ISO 13485:2016 §7.3.7', 'IEC 62304:2006 §5.8'],
+        template: '21cfr820/vv-report',
         layers: ['verification'],
         relevantKinds: ['TestCase', 'VerificationActivity', 'ValidationActivity', 'TestResult'],
         relevantRelationships: ['verifies', 'validates', 'traceTo'],
@@ -225,7 +278,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'sdp',
         title: 'Software Development Plan',
-        standards: ['IEC 62304:2006 §5.1'],
+        template: 'iec-62304/sdp',
         layers: ['software', 'verification'],
         relevantKinds: ['SoftwareItem', 'SoftwareUnit', 'SoftwareSystem', 'TestCase'],
         relevantRelationships: ['composedOf', 'verifies', 'implements'],
@@ -240,7 +293,8 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'csr',
         title: 'Clinical Safety Report',
-        standards: ['ISO 14971:2019 §10'],
+        // No shipped template claims this document, so it derives no
+        // clause references. Adding one is what gives it standards back.
         layers: ['risk', 'verification'],
         relevantKinds: ['Hazard', 'RiskControlMeasure', 'ClinicalEvidence', 'ValidationActivity'],
         relevantRelationships: ['mitigates', 'validates', 'supports'],
@@ -254,7 +308,8 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'uer',
         title: 'Usability Engineering Report',
-        standards: ['IEC 62366-1:2015'],
+        // No shipped template claims this document, so it derives no
+        // clause references. Adding one is what gives it standards back.
         layers: ['ui', 'requirements'],
         relevantKinds: ['UseCase', 'UserActivity', 'UserInterface', 'UsabilityRequirement'],
         relevantRelationships: ['performs', 'interactsWith', 'satisfies'],
@@ -269,7 +324,8 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'cybersecurity',
         title: 'Cybersecurity Documentation',
-        standards: ['IEC 81001-5-1:2021'],
+        // No shipped template claims this document, so it derives no
+        // clause references. Adding one is what gives it standards back.
         layers: ['software', 'interfaces'],
         relevantKinds: ['ThreatModel', 'SecurityControl', 'Interface', 'SOUPComponent'],
         relevantRelationships: ['mitigates', 'connectedTo', 'dependsOn'],
@@ -283,7 +339,8 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'labeling',
         title: 'Labeling Specification',
-        standards: ['21 CFR 801', 'MDR Annex I §23'],
+        // No shipped template claims this document, so it derives no
+        // clause references. Adding one is what gives it standards back.
         layers: ['requirements', 'ui'],
         relevantKinds: ['LabelingRequirement', 'Requirement'],
         relevantRelationships: ['traceTo', 'satisfies'],
@@ -297,7 +354,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'dhf-index',
         title: 'Design History File Index',
-        standards: ['ISO 13485:2016 §4.2.4', '21 CFR 820.30'],
+        template: '21cfr820/dhf-index',
         layers: [],
         relevantKinds: [],
         relevantRelationships: [],
@@ -312,7 +369,7 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
     {
         id: 'change-log',
         title: 'Design Change Log',
-        standards: ['ISO 13485:2016 §7.3.9'],
+        template: '21cfr820/change-record',
         layers: [],
         relevantKinds: [],
         relevantRelationships: [],
@@ -324,6 +381,16 @@ export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = [
         ],
     },
 ];
+
+/**
+ * The registered document types, each with its clause references filled in
+ * from its template. Derivation happens once, at load: the templates are
+ * shipped content that cannot change under a running process.
+ */
+export const DHF_DOCUMENT_TYPES: DhfDocumentType[] = DHF_DOCUMENT_TYPE_DECLARATIONS.map(d => ({
+    ...d,
+    standards: standardsForTemplate(d.template),
+}));
 
 /** Get a document type by ID */
 export function getDocumentType(id: string): DhfDocumentType | undefined {

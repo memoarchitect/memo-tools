@@ -69,10 +69,28 @@ describe('DHF Document Registry', () => {
         for (const doc of DHF_DOCUMENT_TYPES) {
             expect(doc.id).toBeTruthy();
             expect(doc.title).toBeTruthy();
-            expect(doc.standards.length).toBeGreaterThan(0);
             expect(doc.sections.length).toBeGreaterThan(0);
             expect(doc.group).toBeTruthy();
         }
+    });
+
+    it('derives clause references from the template each doc names', () => {
+        // `standards` is no longer authored here, so the invariant is not
+        // "everything has one" — it is "everything with a template has one".
+        for (const doc of DHF_DOCUMENT_TYPES.filter(d => d.template)) {
+            expect(doc.standards.length, doc.id).toBeGreaterThan(0);
+        }
+    });
+
+    it('names the document types that no shipped template covers', () => {
+        // These four claim nothing because nothing claims them: there is no
+        // template for a clinical safety report, a usability engineering
+        // report, a cybersecurity dossier or a labeling spec. Listing them
+        // here is what makes writing one of those templates — or silently
+        // dropping a template link — show up as a red test rather than as a
+        // document card with a blank standards line.
+        const untemplated = DHF_DOCUMENT_TYPES.filter(d => !d.template).map(d => d.id);
+        expect(untemplated.sort()).toEqual(['csr', 'cybersecurity', 'labeling', 'uer']);
     });
 
     it('getDocumentType finds by ID', () => {
