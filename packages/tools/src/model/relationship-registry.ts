@@ -81,6 +81,13 @@ export interface RelationshipRegistryEntry {
     superType?: string;
     /** End names from the connection definition */
     ends: RelationshipEnd[];
+    /**
+     * Attribute names declared on the connection definition, e.g.
+     * `sectionReference` on `TracesToDocument`. Inherited attributes are not
+     * folded in — walk `superType` for those. Absent on a manually registered
+     * entry, which is not the same as "declares none".
+     */
+    attributes?: string[];
 }
 
 /**
@@ -294,6 +301,7 @@ export class RelationshipRegistry {
 
                 // Extract end declarations
                 const ends: RelationshipEnd[] = [];
+                const attributes: string[] = [];
                 let description: string | undefined;
                 let isReflexive: boolean | undefined;
                 let isUnique: boolean | undefined;
@@ -307,6 +315,7 @@ export class RelationshipRegistry {
                     } else if (isDocComment(bodyMember) && description === undefined) {
                         description = cleanDocComment(bodyMember.content);
                     } else if (isAttributeMember(bodyMember)) {
+                        if (bodyMember.name) attributes.push(bodyMember.name);
                         // Only a valued attribute states anything — a bare
                         // `attribute isUnique : Boolean;` declares the slot.
                         if (bodyMember.name === 'isReflexive') {
@@ -328,6 +337,7 @@ export class RelationshipRegistry {
                     isReflexive,
                     isUnique,
                     ends,
+                    attributes,
                 });
             }
         }

@@ -21,9 +21,11 @@ import { join, dirname } from 'node:path';
 import { parseFrontmatter, findVendorTemplatesDir, listBuiltinTemplates } from './template-resolver.js';
 import {
     parseMemoQuery, validateQuerySpec, parseWhereClause, unqualifyEnum,
-    htmlCommentRanges, isCommentedOut, type MemoQuerySpec,
+    htmlCommentRanges, isCommentedOut, selectsRelationships, kindList,
+    endpointOf, RELATIONSHIP_FIELDS, type MemoQuerySpec,
 } from './query-executor.js';
 import type { KindRegistry } from '../model/kind-registry.js';
+import type { RelationshipRegistry } from '../model/relationship-registry.js';
 
 export type LintSeverity = 'error' | 'warning';
 
@@ -43,6 +45,11 @@ export interface LintFinding {
 export interface LintOptions {
     /** Resolved ontology kinds. Omit to run structural checks only. */
     kindRegistry?: KindRegistry;
+    /**
+     * Resolved ontology relationship types. Omit to skip the checks that only
+     * apply to `select: relationships` blocks.
+     */
+    relationshipRegistry?: RelationshipRegistry;
     /** Layer ids the ontology actually defines. Omit to skip layer checks. */
     knownLayers?: Set<string>;
     /** Restrict to templates whose id starts with this prefix. */
@@ -198,18 +205,28 @@ function lintQueryBlock(
 
     // 2. Compliance content must never be selected by matching text.
     //    A document whose contents depend on whether an engineer typed "emc"
-    //    into a name is a search result, not a traceable artifact.
+    //    into a name is a search result, not a traceable artifact. The rule is
+    //    about the field, not where it sits: `target.name contains` on a
+    //    relationship endpoint is the same defect one level out.
     if (typeof spec.where === 'string') {
         const clause = parseWhereClause(spec.where);
-        if (clause?.op === 'contains' && (clause.field === 'name' || clause.field === 'doc' || clause.field === 'description')) {
+        const leaf = clause ? clause.field.split('.').pop()! : '';
+        if (clause?.op === 'contains' && (leaf === 'name' || leaf === 'doc' || leaf === 'description')) {
             add('error', 'no-text-matching',
                 `\`where: ${spec.where}\` selects by text — filter on \`layer\`, on \`kind:\`, or by traversing a relationship instead`);
         }
     }
 
-    const kinds = spec.kind === undefined ? [] : (Array.isArray(spec.kind) ? spec.kind : [spec.kind]);
+    const kinds = kindList(spec);
 
-    // 3. Ontology-aware checks
+    // 3. Relationship queries: `kind:` names a relationship type, not an
+    //    element definition, so the element-shaped checks below do not apply.
+    if (selectsRelationships(spec)) {
+        lintRelationshipQuery(spec, kinds, options, add);
+        return;
+    }
+
+    // 4. Ontology-aware checks
     const registry = options.kindRegistry;
     if (registry) {
         const entries = registry.entries();
@@ -284,7 +301,7 @@ function lintQueryBlock(
         }
     }
 
-    // 4. Layer values must exist, or the query is silently empty forever.
+    // 5. Layer values must exist, or the query is silently empty forever.
     if (options.knownLayers && typeof spec.where === 'string') {
         const clause = parseWhereClause(spec.where);
         if (clause && clause.field === 'layer' && (clause.op === '==' || clause.op === '!=') && !options.knownLayers.has(clause.value)) {
@@ -292,6 +309,75 @@ function lintQueryBlock(
                 `\`${clause.value}\` is not a layer in this ontology (have: ${[...options.knownLayers].sort().join(', ')})`);
         }
     }
+}
+
+/**
+ * Checks that only make sense once the rows are relationships.
+ *
+ * Two things are checkable here and one is not. The relationship *type* is
+ * checkable: it is a `connection def` in the ontology, so a name no connection
+ * def declares selects nothing forever. A flat *column* is checkable: a link
+ * carries only its ends, its type and whatever the connection def declares, so
+ * `doc` — which no relationship has — renders "—" in every row. What is not
+ * checkable is a dotted path: `target.clauseNumber` resolves against whichever
+ * elements a project happens to link, and that is a fact about the project, not
+ * about the template. Reporting it would reject every correct query, exactly as
+ * `unknown-column` did under `traverse:`.
+ */
+function lintRelationshipQuery(
+    spec: MemoQuerySpec,
+    types: string[],
+    options: LintOptions,
+    add: (severity: LintSeverity, rule: string, message: string) => void,
+): void {
+    const registry = options.relationshipRegistry;
+    if (!registry) return;
+
+    for (const type of types) {
+        // PascalCase is already reported by validateQuerySpec with the fix.
+        if (/^[A-Z]/.test(type)) continue;
+        const entry = registry.getRelType(type);
+        if (!entry) {
+            add('error', 'unknown-relationship-type',
+                `\`kind: ${type}\` is not a connection definition in the ontology`);
+        } else if (entry.isAbstract) {
+            add('warning', 'abstract-relationship-type',
+                `\`kind: ${type}\` is abstract, so no project can instantiate it — this query can only ever be empty`);
+        }
+    }
+
+    const declared = new Set<string>(RELATIONSHIP_FIELDS);
+    for (const type of types) {
+        for (const attr of relationshipAttributes(type, registry)) declared.add(attr);
+    }
+
+    // With no `kind:`, the rows are every link in the model and no connection
+    // def's attributes are known, so only the built-in fields are checkable.
+    for (const col of resolveColumnList(spec)) {
+        if (endpointOf(col) || col.includes('.') || /\s+as\s+/i.test(col)) continue;
+        if (!declared.has(col)) {
+            add('error', 'unknown-column',
+                `column \`${col}\` is not a field of ${types.length > 0 ? types.join('/') : 'a relationship'}`
+                + ' — it will render as "—" for every row'
+                + (BUILT_IN_FIELDS.has(col) ? `; \`${col}\` is an element field, so write \`source.${col}\` or \`target.${col}\`` : ''));
+        }
+    }
+}
+
+/** Attributes a relationship type declares, following its supertype chain. */
+function relationshipAttributes(
+    type: string,
+    registry: RelationshipRegistry,
+    seen = new Set<string>(),
+): string[] {
+    if (seen.has(type)) return [];
+    seen.add(type);
+    const entry = registry.getRelType(type);
+    if (!entry) return [];
+    const inherited = entry.superType
+        ? relationshipAttributes(entry.superType.charAt(0).toLowerCase() + entry.superType.slice(1), registry, seen)
+        : [];
+    return [...(entry.attributes ?? []), ...inherited];
 }
 
 function resolveColumnList(spec: MemoQuerySpec): string[] {

@@ -12,16 +12,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { QueryContext } from './query-engine.js';
-import type { MemoElement } from '../model/semantic.js';
-import { executeQuery, renderQueryResult } from './query-executor.js';
+import { executeQuery, renderQueryResult, type QueryRow } from './query-executor.js';
 
 // ─── Script API ───────────────────────────────────────────────────────────────
 
 interface ScriptAPI {
-    query(spec: Record<string, unknown>): MemoElement[];
-    table(elements: MemoElement[], columns?: string[]): string;
-    list(elements: MemoElement[]): string;
-    count(elements: MemoElement[], label?: string): string;
+    // Rows are elements, or relationships when the spec says `select: relationships`.
+    query(spec: Record<string, unknown>): QueryRow[];
+    table(rows: QueryRow[], columns?: string[]): string;
+    list(rows: QueryRow[]): string;
+    count(rows: QueryRow[], label?: string): string;
     md(strings: TemplateStringsArray, ...values: unknown[]): string;
     project: Record<string, unknown>;
     ctx: QueryContext;
@@ -32,14 +32,14 @@ function buildAPI(ctx: QueryContext, projectMeta: Record<string, unknown>): Scri
         query(spec) {
             return executeQuery(spec as any, ctx);
         },
-        table(elements, columns = ['name', 'kind', 'layer', 'doc']) {
-            return renderQueryResult({ display: 'table', columns }, elements, ctx);
+        table(rows, columns = ['name', 'kind', 'layer', 'doc']) {
+            return renderQueryResult({ display: 'table', columns }, rows, ctx);
         },
-        list(elements) {
-            return renderQueryResult({ display: 'list' }, elements, ctx);
+        list(rows) {
+            return renderQueryResult({ display: 'list' }, rows, ctx);
         },
-        count(elements, label = 'Count') {
-            return `\n**${label}:** ${elements.length}\n`;
+        count(rows, label = 'Count') {
+            return `\n**${label}:** ${rows.length}\n`;
         },
         md(strings, ...values) {
             return strings.reduce((acc, str, i) => acc + str + (i < values.length ? String(values[i]) : ''), '');

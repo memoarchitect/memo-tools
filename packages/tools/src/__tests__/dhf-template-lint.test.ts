@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { lintTemplateContent, type LintFinding } from '../dhf/template-lint.js';
 import { KindRegistry } from '../model/kind-registry.js';
+import { RelationshipRegistry } from '../model/relationship-registry.js';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,25 @@ function stubRegistry(): KindRegistry {
     return registry;
 }
 
-const ONTOLOGY = { kindRegistry: stubRegistry(), knownLayers: new Set(['safety_risk', 'implementation', 'core']) };
+/** A registry with one concrete relation carrying an attribute, and one abstract. */
+function stubRelationshipRegistry(): RelationshipRegistry {
+    const registry = new RelationshipRegistry();
+    registry.register({
+        sysmlName: 'MemoRelationship', name: 'memoRelationship', label: 'Memo Relationship',
+        layer: 'core', isAbstract: true, ends: [], attributes: ['linkStatus'],
+    });
+    registry.register({
+        sysmlName: 'TracesToDocument', name: 'tracesToDocument', label: 'Traces To Document',
+        layer: 'artifacts', superType: 'MemoRelationship', ends: [], attributes: ['sectionReference'],
+    });
+    return registry;
+}
+
+const ONTOLOGY = {
+    kindRegistry: stubRegistry(),
+    relationshipRegistry: stubRelationshipRegistry(),
+    knownLayers: new Set(['safety_risk', 'implementation', 'core']),
+};
 
 // ─── Frontmatter ─────────────────────────────────────────────────────────────
 
@@ -321,5 +340,61 @@ describe('query executability', () => {
     it('flags a memo-query block that is not valid YAML', () => {
         const raw = template(query(':::not: [valid'));
         expect(rules(lint(raw))).toContain('query-invalid-yaml');
+    });
+});
+
+// ─── select: relationships ───────────────────────────────────────────────────
+//
+// A relationship query's `kind:` names a connection def, not an element
+// definition, so the element-shaped rules would report every correct one. What
+// stays checkable is the type itself and the flat columns; a dotted path is a
+// fact about the project's links, not about the template, so it is left alone.
+
+describe('relationship query rules', () => {
+    it('accepts a relationship query with dotted endpoint columns', () => {
+        const raw = template(query(
+            'select: relationships',
+            'kind: tracesToDocument',
+            'where: source.package == "memo_artifacts_standards_iec_62304"',
+            'columns: source.clauseNumber, target, sectionReference',
+            'sort: source.clauseNumber',
+        ));
+        expect(rules(lint(raw, ONTOLOGY))).toEqual([]);
+    });
+
+    it('rejects a type no connection def declares', () => {
+        const raw = template(query('select: relationships', 'kind: conformsToClause'));
+        expect(rules(lint(raw, ONTOLOGY))).toContain('unknown-relationship-type');
+    });
+
+    it('warns on an abstract relationship type, which nothing instantiates', () => {
+        const raw = template(query('select: relationships', 'kind: memoRelationship'));
+        expect(rules(lint(raw, ONTOLOGY))).toContain('abstract-relationship-type');
+    });
+
+    it('reports the PascalCase spelling, which selects nothing at runtime', () => {
+        const raw = template(query('select: relationships', 'kind: TracesToDocument'));
+        const findings = lint(raw, ONTOLOGY);
+        expect(rules(findings)).toEqual(['query-unexecutable']);
+        expect(findings[0].message).toMatch(/use `tracesToDocument`/);
+    });
+
+    // `doc` is an element field. On a link it renders "—" in every row, and the
+    // fix is to say which end you meant.
+    it('rejects an element field written flat on a relationship row', () => {
+        const raw = template(query('select: relationships', 'kind: tracesToDocument', 'columns: source, target, doc'));
+        const findings = lint(raw, ONTOLOGY);
+        expect(rules(findings)).toContain('unknown-column');
+        expect(findings[0].message).toMatch(/write `source\.doc` or `target\.doc`/);
+    });
+
+    it('accepts an attribute the connection def declares', () => {
+        const raw = template(query('select: relationships', 'kind: tracesToDocument', 'columns: source, sectionReference'));
+        expect(rules(lint(raw, ONTOLOGY))).toEqual([]);
+    });
+
+    it('still bans text matching one level out, on an endpoint field', () => {
+        const raw = template(query('select: relationships', 'kind: tracesToDocument', 'where: target.name contains "emc"'));
+        expect(rules(lint(raw, ONTOLOGY))).toContain('no-text-matching');
     });
 });

@@ -24,6 +24,7 @@ export async function dhfLintCommand(options: DhfLintOptions = {}): Promise<void
     const cwd = process.cwd();
 
     let kindRegistry;
+    let relationshipRegistry;
     let knownLayers: Set<string> | undefined;
 
     if (!options.structuralOnly) {
@@ -34,6 +35,7 @@ export async function dhfLintCommand(options: DhfLintOptions = {}): Promise<void
         try {
             const loaded = await loadOntologyRegistries(root);
             kindRegistry = loaded.registries.kindRegistry ?? undefined;
+            relationshipRegistry = loaded.registries.relationshipRegistry ?? undefined;
             if (kindRegistry) {
                 knownLayers = new Set(
                     kindRegistry.entries().map(e => e.layer).filter((l): l is string => Boolean(l) && l !== 'unknown'),
@@ -47,7 +49,7 @@ export async function dhfLintCommand(options: DhfLintOptions = {}): Promise<void
         }
     }
 
-    const report = lintTemplates({ kindRegistry, knownLayers, filter: options.filter });
+    const report = lintTemplates({ kindRegistry, relationshipRegistry, knownLayers, filter: options.filter });
 
     if (options.json) {
         console.log(JSON.stringify(report, null, 2));

@@ -10,6 +10,7 @@ import {
     parseWhereClause,
     validateQuerySpec,
     executeQuery,
+    renderQueryResult,
     processMemoQueryBlocks,
     unqualifyEnum,
     MemoQueryError,
@@ -84,9 +85,15 @@ describe('parseWhereClause', () => {
         ['boolean or', 'name contains "emc" or name contains "electromagnetic"'],
         ['parenthesised group', 'layer == "hardware" and (name contains "emc" or name contains "power")'],
         ['starts with', 'target.clauseNumber starts with "62304"'],
-        ['dotted path', 'target.layer == "hardware"'],
     ])('refuses %s', (_label, expr) => {
         expect(parseWhereClause(expr)).toBeNull();
+    });
+
+    // A dotted path parses — it means something on a relationship row. Whether
+    // it is legal is `validateQuerySpec`'s call, not the parser's.
+    it('parses a dotted endpoint path', () => {
+        expect(parseWhereClause('target.layer == "hardware"'))
+            .toEqual({ field: 'target.layer', op: '==', value: 'hardware' });
     });
 });
 
@@ -125,9 +132,9 @@ describe('validateQuerySpec', () => {
         expect(validateQuerySpec({ sort: 'severity desc' })[0]).toMatch(/desc/);
     });
 
-    it('rejects column aliases and dotted columns', () => {
+    it('rejects column aliases, and dotted columns on an element query', () => {
         expect(validateQuerySpec({ columns: 'target.clauseNumber as Clause' })).not.toHaveLength(0);
-        expect(validateQuerySpec({ columns: 'target.clauseNumber' })[0]).toMatch(/dotted path/);
+        expect(validateQuerySpec({ columns: 'target.clauseNumber' })[0]).toMatch(/select: relationships/);
     });
 
     it('rejects an unknown display mode instead of falling back to a table', () => {
@@ -146,6 +153,138 @@ describe('validateQuerySpec', () => {
 
     it('accepts a lower-camel traverse type', () => {
         expect(validateQuerySpec({ traverse: 'outgoing conformsTo' })).toEqual([]);
+    });
+});
+
+// ─── select: relationships ───────────────────────────────────────────────────
+//
+// `kind:` used to resolve only against the element index, so `kind: ConformsTo`
+// selected nothing — silently. Every clause-conformance and allocation table in
+// the shipped DHF templates has that shape, which made them structurally
+// unrenderable rather than merely empty.
+
+describe('select: relationships', () => {
+    const CLAUSES = [
+        makeElement({ id: 'c8', name: 'IEC60601_1Clause8', kind: 'StandardClause', layer: 'artifacts',
+            package: 'memo_artifacts_standards_iec_60601_1',
+            attributes: { clauseNumber: '8', title: 'protection against electrical hazards' } }),
+        makeElement({ id: 'c14', name: 'IEC60601_1Clause14', kind: 'StandardClause', layer: 'artifacts',
+            package: 'memo_artifacts_standards_iec_60601_1',
+            attributes: { clauseNumber: '14', title: 'programmable electrical medical systems' } }),
+        makeElement({ id: 'c522', name: 'IEC62304Clause5_2_2', kind: 'StandardClause', layer: 'artifacts',
+            package: 'memo_artifacts_standards_iec_62304',
+            attributes: { clauseNumber: '5.2.2', title: 'software requirements content' } }),
+    ];
+    const CLAIMANTS = [
+        makeElement({ id: 'battery', name: 'BatteryPack', kind: 'HardwareAssembly', layer: 'implementation' }),
+        makeElement({ id: 'sw', name: 'GPCA_Software', kind: 'SoftwareSystem', layer: 'implementation' }),
+        makeElement({ id: 'r1', name: 'OcclusionDetection', kind: 'Requirement', layer: 'implementation' }),
+    ];
+    const doc = makeElement({ id: 'docSrs', name: 'SoftwareRequirementsSpecification', kind: 'MarkdownDocumentSource', layer: 'artifacts' });
+
+    function rel(id: string, type: string, sourceId: string, targetId: string, attributes: Record<string, string> = {}): MemoRelationship {
+        return { id, type, sourceId, sourceEnd: 'a', targetId, targetEnd: 'b', file: 'x.sysml', attributes };
+    }
+    const RELS = [
+        rel('l1', 'conformsTo', 'battery', 'c8'),
+        rel('l2', 'conformsTo', 'sw', 'c14'),
+        rel('l3', 'conformsTo', 'r1', 'c522'),
+        rel('l4', 'tracesToDocument', 'c522', 'docSrs', { sectionReference: '3' }),
+        rel('l5', 'allocatedTo', 'sw', 'battery'),
+    ];
+    const ctx = () => makeCtx([...CLAUSES, ...CLAIMANTS, doc], RELS);
+
+    it('selects links by relationship type, which an element query never could', () => {
+        const rows = executeQuery({ select: 'relationships', kind: 'conformsTo' }, ctx());
+        expect(rows.map(r => r.id)).toEqual(['l1', 'l2', 'l3']);
+    });
+
+    it('selects every link when no kind is given', () => {
+        expect(executeQuery({ select: 'relationships' }, ctx())).toHaveLength(5);
+    });
+
+    it('rejects the PascalCase type instead of matching nothing', () => {
+        // `AllocatedTo` is stored as `allocatedTo`; the def-name spelling is a
+        // silent empty table, so it is an error naming the fix.
+        const problems = validateQuerySpec({ select: 'relationships', kind: 'ConformsTo' });
+        expect(problems).toHaveLength(1);
+        expect(problems[0]).toMatch(/use `conformsTo`/);
+    });
+
+    it('filters on an endpoint field through a dotted path', () => {
+        const rows = executeQuery({
+            select: 'relationships', kind: 'conformsTo',
+            where: 'target.package == "memo_artifacts_standards_iec_60601_1"',
+        }, ctx());
+        expect(rows.map(r => r.id)).toEqual(['l1', 'l2']);
+    });
+
+    it('renders both ends, and reads a column off the link itself', () => {
+        const out = renderQueryResult(
+            { select: 'relationships', kind: 'tracesToDocument', columns: 'source.clauseNumber, target, sectionReference' },
+            executeQuery({ select: 'relationships', kind: 'tracesToDocument' }, ctx()),
+            ctx(),
+        );
+        expect(out).toContain('| 5.2.2 | SoftwareRequirementsSpecification | 3 |');
+    });
+
+    it('names the endpoints when no columns are given', () => {
+        const out = renderQueryResult(
+            { select: 'relationships', kind: 'allocatedTo' },
+            executeQuery({ select: 'relationships', kind: 'allocatedTo' }, ctx()),
+            ctx(),
+        );
+        expect(out).toContain('| GPCA_Software | allocatedTo | BatteryPack |');
+    });
+
+    // Clause 14 sorted above clause 8 under a plain string compare, which reads
+    // as a broken conformance matrix.
+    it('sorts numbered fields numerically', () => {
+        const rows = executeQuery({
+            select: 'relationships', kind: 'conformsTo',
+            where: 'target.package == "memo_artifacts_standards_iec_60601_1"',
+            sort: 'target.clauseNumber',
+        }, ctx());
+        expect(rows.map(r => r.id)).toEqual(['l1', 'l2']);
+    });
+
+    it('groups by an endpoint field', () => {
+        const out = renderQueryResult(
+            { select: 'relationships', kind: 'conformsTo', display: 'grouped', group_by: 'source.kind' },
+            executeQuery({ select: 'relationships', kind: 'conformsTo' }, ctx()),
+            ctx(),
+        );
+        expect(out).toContain('**HardwareAssembly** (1)');
+        expect(out).toContain('**Requirement** (1)');
+    });
+
+    it('refuses traverse, which has no seed to walk from', () => {
+        expect(validateQuerySpec({ select: 'relationships', kind: 'conformsTo', traverse: 'outgoing composes' })[0])
+            .toMatch(/cannot be combined with `select: relationships`/);
+    });
+
+    it('refuses a dotted path that names neither end', () => {
+        expect(validateQuerySpec({ select: 'relationships', where: 'clause.clauseNumber == "8"' })[0])
+            .toMatch(/must start with `source\.` or `target\.`/);
+    });
+
+    it('refuses an unknown select value rather than falling back to elements', () => {
+        expect(validateQuerySpec({ select: 'links' as never })[0]).toMatch(/unknown `select/);
+    });
+
+    it('still rejects dotted paths on an element query', () => {
+        expect(validateQuerySpec({ kind: 'Requirement', where: 'target.layer == "logical"' })[0])
+            .toMatch(/add `select: relationships`/);
+    });
+
+    // The enum spelling rule is about the value, not about which side of a link
+    // it sits on.
+    it('reports an unqualified enum value on an endpoint field', () => {
+        const el = makeElement({ id: 'r2', name: 'Req', attributes: { requirementKind: 'RequirementKind::software' } });
+        const c = makeCtx([el, ...CLAUSES], [rel('l9', 'conformsTo', 'r2', 'c522')]);
+        expect(() => executeQuery(
+            { select: 'relationships', kind: 'conformsTo', where: 'source.requirementKind == "software"' }, c))
+            .toThrow(/write `source.requirementKind == "RequirementKind::software"`/);
     });
 });
 
