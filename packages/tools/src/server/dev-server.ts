@@ -179,8 +179,8 @@ export function resolveProjectAssetRequest(projectRoot: string, requestUrl: stri
     } catch {
         return undefined;
     }
-    if (!pathname.startsWith('/model/assets/')) return undefined;
-    const assetRoot = resolve(projectRoot, 'model', 'assets');
+    if (!pathname.startsWith('/model/')) return undefined;
+    const assetRoot = resolve(projectRoot, 'model');
     const requested = resolve(projectRoot, pathname.replace(/^\//, ''));
     const fromAssetRoot = relative(assetRoot, requested);
     if (!fromAssetRoot || fromAssetRoot === '..' || fromAssetRoot.startsWith('../') || fromAssetRoot.startsWith('..\\')) {
@@ -307,7 +307,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     /** Serve captures referenced by project-relative ScreenCapture.imageUri. */
     function serveProjectAsset(req: any, res: any): boolean {
         const requestUrl = req.url ?? '/';
-        if (!requestUrl.split('?')[0].startsWith('/model/assets/')) return false;
+        if (!requestUrl.split('?')[0].startsWith('/model/')) return false;
         const requested = resolveProjectAssetRequest(options.projectRoot, requestUrl);
         if (!requested || !existsSync(requested) || !statSync(requested).isFile()) {
             res.writeHead(404); res.end('Capture not found');
