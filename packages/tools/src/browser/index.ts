@@ -12,6 +12,7 @@ export * from '../import/recipes.js';
 export * from '../import/column-mapper.js';
 export type * from '../validator/types.js';
 export type * from '../protocol/messages.js';
+export type { StandardsReport } from '../dhf/standards-report.js';
 export type { MethodologyDescriptor } from '../model/methodology-loader.js';
 export type { OntologyPackageInfo } from '../model/ontology-loader.js';
 

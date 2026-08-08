@@ -47,6 +47,47 @@ describe('standards library', () => {
     });
 });
 
+describe('the regulatory regime axis', () => {
+    it('reads the regime vocabulary from the ontology enum, not from TypeScript', () => {
+        // If this list ever needs editing here, the axis has stopped being
+        // ontology data. Adding UKCA must be one enum member and no TS change.
+        expect(library.regimeVocabulary).toEqual(['CE', 'MDR', 'UKCA', 'FDA_510k', 'FDA_PMA']);
+    });
+
+    it('accepts only the qualified spelling of a regime', () => {
+        expect(library.unknownRegimes).toEqual([]);
+    });
+
+    it('names exactly the standards no regime mandates', () => {
+        // Empty `appliesToRegime` is an authored value meaning "no submission
+        // regime requires this" — a method or reference standard. Because it
+        // is meaningful, it must not also be able to mean "the author forgot",
+        // so the regime-free set is pinned here. A pack that loses its regimes
+        // fails this test instead of quietly dropping out of required().
+        const regimeFree = [...library.standards.values()]
+            .filter(s => s.regimes.length === 0)
+            .map(s => s.designation)
+            .sort();
+        expect(regimeFree).toEqual(['IEC 60812:2018', 'ISO/IEC/IEEE 42010:2022']);
+    });
+
+    it('cites only members the enum declares', () => {
+        for (const std of library.standards.values()) {
+            for (const regime of std.regimes) {
+                expect(library.regimeVocabulary, std.designation).toContain(regime);
+            }
+        }
+    });
+
+    it('scopes 21 CFR Part 820 to the FDA regimes only', () => {
+        // The axis is worth nothing if every standard applies everywhere. This
+        // is the case that makes a CE-only project's report shorter than a
+        // 510(k) project's.
+        expect(library.standards.get('21 CFR Part 820')?.regimes).toEqual(['FDA_510k', 'FDA_PMA']);
+        expect(library.standards.get('ISO 13485:2016')?.regimes).toEqual(['CE', 'MDR', 'UKCA']);
+    });
+});
+
 describe('clause reference grammar', () => {
     it('reads a bare entry against the document own standard', () => {
         const ref = parseClauseReference('5.4', 'IEC 62366-1:2015+AMD1:2020');

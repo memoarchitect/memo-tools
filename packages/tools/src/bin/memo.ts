@@ -48,6 +48,7 @@ import { dhfDraftCommand } from '../commands/dhf-draft.js';
 import { dhfLintCommand } from '../commands/dhf-lint.js';
 import { dhfInitCommand } from '../commands/dhf-init.js';
 import { dhfPreviewCommand } from '../commands/dhf-preview.js';
+import { standardsCheckCommand } from '../commands/standards.js';
 import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../commands/plugin.js';
 import { reqNewCommand } from '../commands/req.js';
 import { checkCommand } from '../commands/check.js';
@@ -700,6 +701,23 @@ dhfCmd
     .option('-o, --output <dir>', 'Output directory')
     .action(async (options: { format?: string; output?: string }) => {
         await dhfReviewPacketCommand(options);
+    });
+
+// ─── memo standards ─────────────────────────────────────────────────────────
+
+const standardsCmd = program
+    .command('standards')
+    .description('Regulatory standards conformance');
+
+standardsCmd
+    .command('check')
+    .description('Report clause coverage: required, claimed, and evidenced')
+    .option('-s, --standard <designation>', 'Only this standard (substring of the designation)')
+    .option('-r, --regime <regime...>', 'Scope to these regimes, overriding the project declaration')
+    .option('--gaps-only', 'Show only clauses nothing claims')
+    .option('--json', 'Emit JSON for CI and for the Architect')
+    .action(async (options: { standard?: string; regime?: string[]; gapsOnly?: boolean; json?: boolean }) => {
+        await standardsCheckCommand(options);
     });
 
 // ─── memo sysand ────────────────────────────────────────────────────────────

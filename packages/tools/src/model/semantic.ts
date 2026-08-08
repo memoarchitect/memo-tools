@@ -277,6 +277,16 @@ export interface MemoModelDTO {
      * need every declared property of every node.
      */
     irIdentities?: Record<string, string>;
+    /**
+     * Clause coverage report — the same computation `memo standards check`
+     * prints. The dev server computes it once per rebuild and ships it here so
+     * the Architect can badge document cards with gap counts without a second
+     * request and without a second computation.
+     *
+     * Absent when the standards library was not found, or when the server did
+     * not compute it (e.g. a static export build that does not need the badges).
+     */
+    standardsReport?: import('../dhf/standards-report.js').StandardsReport;
 }
 
 /** Convert MemoModel to a plain JSON-serializable object */

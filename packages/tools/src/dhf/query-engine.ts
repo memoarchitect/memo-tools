@@ -7,6 +7,7 @@
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import type { ValidationResult, CompletenessReport, Violation } from '../validator/types.js';
 import type { MEMOConfig } from '../model/config.js';
+import type { StandardsReport } from './standards-report.js';
 
 /** Query context — the interface templates use to access model data */
 export interface QueryContext {
@@ -59,6 +60,18 @@ export interface QueryContext {
     layerSummary(): Array<{ id: string; label: string; count: number; completeness: number; color: string }>;
     /** Cross-reference: get trace chains from an element */
     traceChain(elementId: string, maxDepth?: number): Array<{ element: MemoElement; relationship: MemoRelationship; depth: number }>;
+
+    // ─── Standards conformance ───────────────────────────────────────────
+    /**
+     * The clause coverage report, when the caller computed one.
+     *
+     * It is not derivable from the model alone: `required(project)` needs the
+     * clause library and the declared regimes, and the clauses a project has
+     * not claimed are not in its model by definition. Callers that can supply
+     * it do; a ```memo-standards``` block rendered without it says so rather
+     * than rendering an empty table.
+     */
+    standardsReport?: StandardsReport;
 }
 
 /** Create a QueryContext from model data */
@@ -67,6 +80,7 @@ export function createQueryContext(
     validation: ValidationResult,
     completeness: CompletenessReport,
     config: MEMOConfig,
+    standardsReport?: StandardsReport,
 ): QueryContext {
     // Pre-index violations by element
     const violationsByElement = new Map<string, Violation[]>();
@@ -171,5 +185,7 @@ export function createQueryContext(
             }
             return result;
         },
+
+        standardsReport,
     };
 }

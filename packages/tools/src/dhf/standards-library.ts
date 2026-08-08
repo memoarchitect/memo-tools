@@ -28,6 +28,14 @@ export const VENDOR_STANDARDS_DIR = `${VENDOR_ONTOLOGY_DIR}/src/artifacts/standa
 export interface StandardClauseInfo {
     /** SysML usage name, e.g. "iec62304Clause5_2_2" */
     name: string;
+    /**
+     * The `id` attribute, e.g. "STD-IEC-62304-5-2-2".
+     *
+     * Both this and `name` are carried because a ConformsTo edge addresses a
+     * clause by whichever the project authored, and the clause instances are
+     * library content that a consuming project's element index does not hold.
+     */
+    id?: string;
     /** The number a document cites, e.g. "5.2.2", "820.30(c)", "V.A" */
     clauseNumber: string;
     /** MEMO-authored scope phrase. Absent when MEMO has no verified reading. */
@@ -44,9 +52,27 @@ export interface RegulatoryStandardInfo {
     edition?: string;
     issuer?: string;
     amendments: string[];
+    /**
+     * Submission regimes this standard has standing in, as bare
+     * `RegulatoryRegimeKind` member names ("CE", "FDA_510k").
+     *
+     * Empty is authored, not missing: a method or reference standard that no
+     * regime mandates. See `appliesToRegime` in the ontology package header —
+     * the report prints these standards separately rather than dropping them.
+     */
+    regimes: string[];
     sourceFile: string;
     /** Clause number → clause, for every clause that composes into this standard. */
     clauses: Map<string, StandardClauseInfo>;
+}
+
+/** A regime citation in a pack that names no `RegulatoryRegimeKind` member. */
+export interface UnknownRegimeCitation {
+    /** Designation of the standard that cited it. */
+    designation: string;
+    /** The citation verbatim, e.g. "RegulatoryRegimeKind::EU_MDR" or "CE". */
+    raw: string;
+    reason: 'unqualified' | 'unknown-member';
 }
 
 export interface StandardsLibrary {
@@ -54,6 +80,15 @@ export interface StandardsLibrary {
     standards: Map<string, RegulatoryStandardInfo>;
     /** Clause instances that compose into no standard — a defect in a pack. */
     orphanClauses: StandardClauseInfo[];
+    /**
+     * `RegulatoryRegimeKind` members, read from the ontology's own enum
+     * declaration. Never a list in this file: the regimes MEMO recognises are
+     * ontology content, and a TypeScript copy would be a second place to
+     * maintain them.
+     */
+    regimeVocabulary: string[];
+    /** Regime citations that resolve to no member — a defect in a pack. */
+    unknownRegimes: UnknownRegimeCitation[];
     /** Directory the packs were read from, or null when none was found. */
     sourceDir: string | null;
 }
@@ -89,6 +124,44 @@ export function findVendorStandardsDir(startDir: string = process.cwd()): string
 /** Test hook: reset the cached standards directory. */
 export function resetStandardsDirCache(): void {
     cachedDir = undefined;
+    cachedRegimeVocabulary = undefined;
+}
+
+// ─── The regime vocabulary ────────────────────────────────────────────────────
+
+const ENUM_DEF_RE = (name: string) =>
+    new RegExp(`enum\\s+def\\s+${name}\\s*\\{([\\s\\S]*?)\\}`, 'm');
+
+let cachedRegimeVocabulary: string[] | undefined;
+
+/**
+ * Read the members of an ontology `enum def` out of the ontology source.
+ *
+ * The packs are at `<ontology>/src/artifacts/standards`, so the ontology's
+ * `src/` root is two levels up; the enum is found by walking it rather than by
+ * naming the file that happens to hold it today. What is hardcoded here is a
+ * locator, never a value: the members themselves come from the ontology, which
+ * is the whole reason a regime is an enum and not a string convention.
+ */
+export function readEnumMembers(standardsDir: string, enumName: string): string[] {
+    const srcRoot = resolve(standardsDir, '..', '..');
+    const stack = [srcRoot];
+    while (stack.length > 0) {
+        const dir = stack.pop()!;
+        let entries;
+        try { entries = readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+        for (const entry of entries) {
+            const path = join(dir, entry.name);
+            if (entry.isDirectory()) { stack.push(path); continue; }
+            if (!entry.name.endsWith('.sysml')) continue;
+            let source: string;
+            try { source = readFileSync(path, 'utf-8'); } catch { continue; }
+            const body = source.match(ENUM_DEF_RE(enumName))?.[1];
+            if (!body) continue;
+            return [...body.matchAll(/^\s*enum\s+(\w+)\s*;/gm)].map(m => m[1]);
+        }
+    }
+    return [];
 }
 
 // ─── Parsing ──────────────────────────────────────────────────────────────────
@@ -103,6 +176,23 @@ const COMPOSES_RE = /^\s*connection\s+\w+\s*:\s*Composes\s+connect\s+parent\s*::
 function attr(body: string, name: string): string | undefined {
     const m = body.match(new RegExp(`attribute\\s+:>>\\s+${name}\\s*=\\s*"([^"]*)"`));
     return m?.[1];
+}
+
+/**
+ * Read an enum-valued attribute, single or set-literal:
+ *
+ *   attribute :>> appliesToRegime = RegulatoryRegimeKind::CE;
+ *   attribute :>> appliesToRegime = (RegulatoryRegimeKind::CE, RegulatoryRegimeKind::MDR);
+ *
+ * Entries are returned verbatim so the caller can report an unqualified or
+ * misspelled one. The bare member name is not accepted anywhere in MEMO —
+ * one spelling, the qualified one — so it is returned and rejected rather
+ * than quietly matched.
+ */
+function attrEnumEntries(body: string, name: string): string[] {
+    const m = body.match(new RegExp(`attribute\\s+:>>\\s+${name}\\s*=\\s*([^;]+);`));
+    if (!m) return [];
+    return m[1].replace(/^\s*\(|\)\s*$/g, '').split(',').map(s => s.trim()).filter(Boolean);
 }
 
 function attrAll(body: string, name: string): string[] {
@@ -123,7 +213,18 @@ function attrAll(body: string, name: string): string[] {
  */
 export function loadStandardsLibrary(startDir?: string): StandardsLibrary {
     const dir = findVendorStandardsDir(startDir);
-    if (!dir) return { standards: new Map(), orphanClauses: [], sourceDir: null };
+    if (!dir) {
+        return {
+            standards: new Map(), orphanClauses: [],
+            regimeVocabulary: [], unknownRegimes: [], sourceDir: null,
+        };
+    }
+
+    if (cachedRegimeVocabulary === undefined) {
+        cachedRegimeVocabulary = readEnumMembers(dir, 'RegulatoryRegimeKind');
+    }
+    const regimeVocabulary = cachedRegimeVocabulary;
+    const unknownRegimes: UnknownRegimeCitation[] = [];
 
     const standardsByUsage = new Map<string, RegulatoryStandardInfo>();
     const clausesByUsage = new Map<string, StandardClauseInfo>();
@@ -134,7 +235,7 @@ export function loadStandardsLibrary(startDir?: string): StandardsLibrary {
     try {
         files = readdirSync(dir).filter(f => f.endsWith('.sysml')).sort();
     } catch {
-        return { standards: new Map(), orphanClauses: [], sourceDir: dir };
+        return { standards: new Map(), orphanClauses: [], regimeVocabulary, unknownRegimes, sourceDir: dir };
     }
 
     for (const file of files) {
@@ -147,12 +248,26 @@ export function loadStandardsLibrary(startDir?: string): StandardsLibrary {
             if (def === 'RegulatoryStandard') {
                 const designation = attr(body, 'designation');
                 if (!designation) continue;
+                const regimes: string[] = [];
+                for (const entry of attrEnumEntries(body, 'appliesToRegime')) {
+                    const parts = entry.split('::');
+                    if (parts.length !== 2 || parts[0] !== 'RegulatoryRegimeKind') {
+                        unknownRegimes.push({ designation, raw: entry, reason: 'unqualified' });
+                        continue;
+                    }
+                    if (!regimeVocabulary.includes(parts[1])) {
+                        unknownRegimes.push({ designation, raw: entry, reason: 'unknown-member' });
+                        continue;
+                    }
+                    regimes.push(parts[1]);
+                }
                 standardsByUsage.set(name, {
                     name,
                     designation,
                     edition: attr(body, 'edition'),
                     issuer: attr(body, 'issuer'),
                     amendments: attrAll(body, 'amendments'),
+                    regimes,
                     sourceFile: path,
                     clauses: new Map(),
                 });
@@ -161,6 +276,7 @@ export function loadStandardsLibrary(startDir?: string): StandardsLibrary {
                 if (!clauseNumber) continue;
                 clausesByUsage.set(name, {
                     name,
+                    id: attr(body, 'id'),
                     clauseNumber,
                     title: attr(body, 'title'),
                     normativeStrength: attr(body, 'normativeStrength'),
@@ -193,7 +309,7 @@ export function loadStandardsLibrary(startDir?: string): StandardsLibrary {
     const standards = new Map<string, RegulatoryStandardInfo>();
     for (const std of standardsByUsage.values()) standards.set(std.designation, std);
 
-    return { standards, orphanClauses, sourceDir: dir };
+    return { standards, orphanClauses, regimeVocabulary, unknownRegimes, sourceDir: dir };
 }
 
 // ─── The clause-reference grammar ─────────────────────────────────────────────

@@ -20,3 +20,8 @@ export * from './template-resolver.js';
 export * from './document-compiler.js';
 export * from './dhf-config-v2.js';
 export * from './markdown-to-ir.js';
+
+// ─── Standards conformance ───────────────────────────────────────────────────
+export * from './standards-library.js';
+export * from './standards-report.js';
+export * from './standards-block.js';

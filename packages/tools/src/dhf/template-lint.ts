@@ -24,6 +24,7 @@ import {
     htmlCommentRanges, isCommentedOut, selectsRelationships, kindList,
     endpointOf, RELATIONSHIP_FIELDS, type MemoQuerySpec,
 } from './query-executor.js';
+import { parseMemoStandards, validateStandardsSpec } from './standards-block.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 import type { RelationshipRegistry } from '../model/relationship-registry.js';
 
@@ -71,6 +72,7 @@ const REQUIRED_FRONTMATTER = ['id', 'title', 'standard', 'clauses', 'required_fo
 const BUILT_IN_FIELDS = new Set(['name', 'id', 'kind', 'layer', 'doc', 'description']);
 
 const QUERY_BLOCK_RE = /```memo-query\r?\n([\s\S]*?)```/g;
+const STANDARDS_BLOCK_RE = /```memo-standards\r?\n([\s\S]*?)```/g;
 const INCLUDE_RE = /\{\{include:([^}]+)\}\}/g;
 
 // ─── Attribute discovery ──────────────────────────────────────────────────────
@@ -449,6 +451,33 @@ export function lintTemplateContent(
             continue;
         }
         lintQueryBlock(templateId, file, block, spec, options, findings);
+    }
+
+    // `memo-standards` blocks are linted for the same reason: a directive the
+    // renderer does not understand must not be silently ignored. They resolve
+    // nothing against the ontology — their vocabulary is fixed and their data
+    // is the clause library — so this is a syntax check, not a model check.
+    let standardsBlock = 0;
+    for (const m of body.matchAll(STANDARDS_BLOCK_RE)) {
+        if (isCommentedOut(commented, m.index!)) continue;
+        standardsBlock++;
+        const spec = parseMemoStandards(m[1]);
+        if (!spec) {
+            findings.push({
+                severity: 'error', template: templateId, file, block: standardsBlock,
+                rule: 'standards-invalid-yaml', message: 'memo-standards block is not valid YAML',
+            });
+            continue;
+        }
+        try {
+            validateStandardsSpec(spec);
+        } catch (error) {
+            findings.push({
+                severity: 'error', template: templateId, file, block: standardsBlock,
+                rule: 'standards-directive',
+                message: error instanceof Error ? error.message : String(error),
+            });
+        }
     }
 
     if (templatesDir) lintIncludes(templateId, file, body, templatesDir, findings);

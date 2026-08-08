@@ -9,8 +9,9 @@
 //   5. Resolve {{diagram:id}} (SVG placeholder or embed)
 //   6. Resolve {{toc}} / {{glossary}}
 //   7. Execute ```memo-query``` blocks
-//   8. Execute ```memo-script``` blocks
-//   9. Return resolved markdown (+ export pipeline produces DOCX/PDF/HTML/MD)
+//   8. Execute ```memo-standards``` blocks (clause coverage)
+//   9. Execute ```memo-script``` blocks
+//  10. Return resolved markdown (+ export pipeline produces DOCX/PDF/HTML/MD)
 //
 // The existing snapshot/diff system operates on the resolved markdown files.
 // The existing LLM draft engine produces markdown with directives.
@@ -22,6 +23,7 @@ import type { QueryContext } from './query-engine.js';
 import { parseDirectives, applyDirectives } from './directive-parser.js';
 import { processMemoQueryBlocks } from './query-executor.js';
 import { processMemoScriptBlocks } from './script-runner.js';
+import { processMemoStandardsBlocks } from './standards-block.js';
 import { loadTemplate, resolveIncludes, resolveProjectDirectives, parseFrontmatter } from './template-resolver.js';
 import { extractProjectMeta, type DhfConfigV2 } from './dhf-config-v2.js';
 
@@ -158,7 +160,7 @@ export async function compileMarkdownDocument(options: CompileOptions): Promise<
     };
 }
 
-/** Steps 2–7 of the compile pipeline, shared by template and content compilation */
+/** Steps 2–8 of the compile pipeline, shared by template and content compilation */
 function runCompilePipeline(
     body: string,
     baseDir: string,
@@ -220,10 +222,14 @@ function runCompilePipeline(
     // 5. Execute memo-query blocks
     content = processMemoQueryBlocks(content, ctx, { source });
 
-    // 6. Execute memo-script blocks
+    // 6. Execute memo-standards blocks — clause coverage, which no query can
+    //    express: an unclaimed clause is not in the model.
+    content = processMemoStandardsBlocks(content, ctx, { source });
+
+    // 7. Execute memo-script blocks
     content = processMemoScriptBlocks(content, ctx, projectMeta);
 
-    // 7. Replace TOC placeholder with actual TOC (after query/script blocks are rendered)
+    // 8. Replace TOC placeholder with actual TOC (after query/script blocks are rendered)
     const toc = generateToc(content);
     content = content.replace('{{__TOC_PLACEHOLDER__}}', toc);
 

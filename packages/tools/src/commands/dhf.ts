@@ -21,6 +21,7 @@ import {
 } from '@memoarchitect/tools';
 import { readFileSync } from 'node:fs';
 import { loadDhfDocs, loadDhfSettings } from '../server/dhf-doc-store.js';
+import { buildStandardsReport } from './standards.js';
 import type { BuilderRegistries, DhfExportFormat, DhfDocument, MemoModel, MEMOConfig, DhfConfig } from '@memoarchitect/tools';
 import type { ValidationResult, CompletenessReport } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
@@ -61,7 +62,12 @@ async function loadModel(): Promise<LoadedModel> {
     const validation = validateModel(model);
     const completeness = computeCompleteness(model, validation);
     const dhfConfig = loadDhfConfig(cwd);
-    const queryCtx = createQueryContext(model, validation, completeness, config);
+    // The standards report rides on the context so a ```memo-standards``` block
+    // in an exported document is the same computation `memo standards check`
+    // prints. It cannot be derived from the model here: an unclaimed clause is
+    // not in the model, which is exactly what makes it worth reporting.
+    const standardsReport = buildStandardsReport({ model, registries: ontologyRegistries, projectRoot: cwd });
+    const queryCtx = createQueryContext(model, validation, completeness, config, standardsReport);
 
     return { model, config, validation, completeness, dhfConfig, queryCtx };
 }

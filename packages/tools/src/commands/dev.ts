@@ -26,6 +26,8 @@ import { enforceRuntimeBudget } from '../server/runtime-budget.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
+import { computeStandardsReport, readDeclaredRegimes } from '../dhf/standards-report.js';
+import { loadStandardsLibrary } from '../dhf/standards-library.js';
 
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
@@ -334,6 +336,24 @@ export async function devCommand(options: {
                 createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),
             ])),
         });
+        // Compute the clause coverage report and attach it to the model DTO
+        // so the Architect can badge document cards with gap counts without a
+        // second request. Same computation as `memo standards check`.
+        try {
+            const library = loadStandardsLibrary(cwd);
+            const kindRegistry = projectRegistries?.kindRegistry;
+            const declared = readDeclaredRegimes(model);
+            dto.standardsReport = computeStandardsReport({
+                library,
+                model,
+                kindRegistry,
+                regimes: declared.regimes,
+                regimeSource: declared.regimes.length > 0 ? 'project' : 'none',
+            });
+        } catch {
+            // Standards library not found or failed to load — not a build error.
+            // The Architect falls back to showing no gap badges.
+        }
         dto.metadata = metadata;
         (dto as any).ontologyHash = ontologyHash;
 
