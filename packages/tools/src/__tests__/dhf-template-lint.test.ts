@@ -58,7 +58,7 @@ function stubRelationshipRegistry(): RelationshipRegistry {
     const registry = new RelationshipRegistry();
     registry.register({
         sysmlName: 'MemoRelationship', name: 'memoRelationship', label: 'Memo Relationship',
-        layer: 'core', isAbstract: true, ends: [], attributes: ['linkStatus'],
+        layer: 'core', isAbstract: true, ends: [], attributes: ['status'],
     });
     registry.register({
         sysmlName: 'TracesToDocument', name: 'tracesToDocument', label: 'Traces To Document',

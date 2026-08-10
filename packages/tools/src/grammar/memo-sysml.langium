@@ -196,8 +196,13 @@ ViewDefinition:
 ConnectionBodyMember:
     EndDeclaration | DefinitionBodyMember;
 
+// An end may redefine the inherited end of its supertype — in MEMO every
+// relation binds its two ends to Connections::BinaryConnection::source and
+// ::target, so the ends of a MEMO relation are readable as ordinary SysML
+// connection ends by any conforming tool.
 EndDeclaration:
-    'end' name=FeatureName (':' isConjugated?='~'? type=QualifiedName)? multiplicity=Multiplicity? ';';
+    'end' name=FeatureName (':' isConjugated?='~'? type=QualifiedName)? multiplicity=Multiplicity?
+    (redefines?=(':>>' | 'redefines') redefinedEnd=QualifiedName)? ';';
 
 Multiplicity:
     '[' lower=INT '..' (upper=INT | unbounded?='*') ']'

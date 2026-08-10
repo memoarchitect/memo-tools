@@ -252,7 +252,11 @@ export function buildMemoModel(
         const idToShortId = assignSequentialShortIds(prefix, prefixElements.map(e => e.id));
         for (const el of prefixElements) {
             (el as MemoElement).shortId = idToShortId.get(el.id);
-            (el as MemoElement).uuid = stableElementUuid(el);
+            // `uuid` is part of the ontology's identification core, so a model
+            // may author it. An authored value wins: it is the whole point of
+            // writing one — the element keeps its identity across a file move
+            // or an id change, which the derived hash cannot survive.
+            (el as MemoElement).uuid = el.attributes.uuid?.trim() || stableElementUuid(el);
         }
     }
 

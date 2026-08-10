@@ -268,8 +268,13 @@ describe('MEMO ontology relationship properties', () => {
     //   Validates      — target is a requirement or an operational behavior.
     //   DerivesFrom    — target may be a Need, which is a requirement def.
     //   SatisfiedBy    — source may be a Need alongside Requirement.
+    //   Mitigates      — source may be a control, an action, or an FMEA action;
+    //                    its TARGET is now typed to RiskItem.
     const UNTYPED_END_EXEMPTIONS = ['MemoLink', 'Mitigates', 'Realizes', 'Validates', 'DerivesFrom', 'SatisfiedBy'];
-    const FULLY_UNTYPED = ['MemoLink', 'Mitigates', 'Realizes'];
+    // Relations with BOTH ends untyped. Mitigates left this set when its target
+    // end was typed to RiskItem; only decomposition-style relations that
+    // genuinely cross every metaclass remain.
+    const FULLY_UNTYPED = ['MemoLink', 'Realizes'];
 
     it('keeps the universal relation identifiable among fully untyped relations', async () => {
         const source = readFileSync(
@@ -284,8 +289,8 @@ describe('MEMO ontology relationship properties', () => {
             .filter(d => !d.isAbstract && !d.sourceEnd.type && !d.targetEnd.type);
         expect(bothEndsUntyped.map(d => d.sysmlName).sort()).toEqual([...FULLY_UNTYPED].sort());
 
-        // MemoLink is the only one of them that is universal by intent: Mitigates
-        // is keyed to a risk chain and Realizes to an abstraction/concretion fact.
+        // MemoLink is the only one of them that is universal by intent:
+        // Realizes states an abstraction/concretion fact across metaclasses.
         const link = bothEndsUntyped.find(d => d.sysmlName === 'MemoLink')!;
         expect(link.sourceEnd.name).toBe('linkSource');
         expect(link.targetEnd.name).toBe('linkTarget');
