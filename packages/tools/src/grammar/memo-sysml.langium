@@ -40,6 +40,7 @@ NamespaceMember:
     | AliasDeclaration
     | DefinitionMember
     | UseCaseDeclaration
+    | Dependency
     | DocComment;
 
 // ─── Package ─────────────────────────────────────────────────────────────────
@@ -74,8 +75,14 @@ PackageMember:
     | SuccessionUsage
     | AbstractConnectionUsage
     | ConnectionUsage
-    | AllocateUsage
     | SatisfyRequirementUsage
+    // Contributes AllocateUsage along with the thirteen other native
+    // mechanisms. MEMO declares its actors, stakeholders and concerns as
+    // PACKAGE members (`part usrClinician : User;`), so their native spellings
+    // have to be legal in the same place or the migration could not be a
+    // spelling change.
+    | ArcadiaMember
+    | Dependency
     | MetadataApplication
     | DocComment;
 
@@ -112,6 +119,8 @@ DefinitionMember:
     | PortDefinition
     | InterfaceDefinition
     | ConnectionDefinition
+    | AllocationDefinition
+    | ConcernDefinition
     | AttributeDefinition
     | ConstraintDefinition
     | EnumDefinition
@@ -140,8 +149,17 @@ MetadataDefinition:
 MetadataApplication:
     '@' type=QualifiedName ('{' body+=UsageBodyMember* '}' | ';');
 
+// `isVariation` is the second half of the normative `BasicDefinitionPrefix`
+// (`isAbstract ?= 'abstract' | isVariation ?= 'variation'`,
+// SysML-textual-bnf.kebnf:224). A variation definition is a CHOICE POINT: its
+// `variant` members are the alternatives, exactly one of which a configuration
+// picks. That is the construct ARCADIA configurations and situations need, and
+// the one AADL mode-conditioned configuration needs (plan §C4); MEMO could not
+// express either. It is declared on part / attribute / item, which is where a
+// choice point can occur in MEMO's content — not on every definition, because a
+// production nobody can reach is not coverage.
 PartDefinition:
-    isAbstract?='abstract'? 'part' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+    isAbstract?='abstract'? isVariation?='variation'? 'part' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=DefinitionBodyMember* '}' | ';');
 
 RequirementDefinition:
@@ -165,7 +183,7 @@ ActionDefinition:
     ('{' body+=ActionDefBodyMember* '}' | ';');
 
 ItemDefinition:
-    isAbstract?='abstract'? 'item' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+    isAbstract?='abstract'? isVariation?='variation'? 'item' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=DefinitionBodyMember* '}' | ';');
 
 PortDefinition:
@@ -182,17 +200,43 @@ ConnectionDefinition:
     isAbstract?='abstract'? 'connection' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=ConnectionBodyMember* '}' | ';');
 
+// SysML v2 allocation definition (`AllocationDefinition = OccurrenceDefinitionPrefix
+// 'allocation' 'def' Definition`, SysML-textual-bnf.kebnf:792). An allocation IS a
+// connection — `Allocations::Allocation :> BinaryConnection` — so it takes the same
+// body as a connection def, and `allocation def X :> Allocations::Allocation` is
+// what lets MEMO's AllocatedTo / DeploysTo / BuildsInto root on the standard's
+// allocation base instead of standing beside it (plan B2).
+AllocationDefinition:
+    isAbstract?='abstract'? 'allocation' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+    ('{' body+=ConnectionBodyMember* '}' | ';');
+
+// SysML v2 concern definition (`ConcernDefinition = OccurrenceDefinitionPrefix
+// 'concern' 'def' DefinitionDeclaration RequirementBody`, :1493). ISO 42010's
+// concern, which MEMO spells `part def Concern`. Its body is a requirement body,
+// so it may carry `subject`, `stakeholder`, and `frame` members. Those reach it
+// through DefinitionBodyMember rather than through a concern-only body rule —
+// the same choice the grammar already makes for `verify`, and for the same
+// reason: SysIDE is the compiler of record for where a member is legal, and a
+// per-construct body rule here would only duplicate that judgement less well.
+ConcernDefinition:
+    isAbstract?='abstract'? 'concern' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+    ('{' body+=DefinitionBodyMember* '}' | ';');
+
 AttributeDefinition:
-    isAbstract?='abstract'? 'attribute' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+    isAbstract?='abstract'? isVariation?='variation'? 'attribute' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=DefinitionBodyMember* '}' | ';');
 
 ConstraintDefinition:
     isAbstract?='abstract'? 'constraint' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=DefinitionBodyMember* '}' | ';');
 
+// An enum body may carry doc comments between its literals. SysIDE accepts
+// them and MEMO did not, so a documented enumeration — which is the only place
+// the meaning of a literal can be written down — failed to parse. `literals`
+// keeps its name and its contents so every existing consumer is unaffected.
 EnumDefinition:
     'enum' 'def' name=ID '{'
-        literals+=EnumLiteral*
+        (literals+=EnumLiteral | docs+=DocComment)*
     '}';
 
 ViewpointDefinition:
@@ -439,9 +483,23 @@ SuccessionRef returns string:
 
 // ─── Behavior: Allocate usage ───────────────────────────────────────────────
 // Syntax: allocate actionUsage to partUsage ;
-
+//
+// The `allocation` prefix is the TYPED form — `AllocationUsage = 'allocation'
+// UsageDeclaration UsageBody` (SysML-textual-bnf.kebnf:794), written in the
+// corpus as
+//
+//   allocation torqueGenAlloc : LogicalToPhysical allocate torqueGenerator to powerTrain;
+//
+// It is the same statement as bare `allocate` plus a name and an `allocation
+// def` to type it, which is what carries MEMO's per-allocation distinctions
+// (function allocation vs. deployment vs. build) without a private connection
+// def per case. Folded into this rule rather than added as a sibling, because
+// both forms end in the same `allocate … to …` and splitting them would make
+// the alternatives ambiguous.
 AllocateUsage:
-    'allocate' source=ReferenceName 'to' target=ReferenceName ';';
+    ('allocation' name=ID? (':' type=QualifiedName)?)?
+    'allocate' source=ReferenceName 'to' target=ReferenceName
+    ('{' body+=UsageBodyMember* '}' | ';');
 
 // ─── Requirements: native satisfaction and verification ─────────────────────
 //
@@ -478,6 +536,152 @@ RequirementVerificationMember:
     'verify' requirement=ReferenceName
     ('{' body+=UsageBodyMember* '}' | ';');
 
+// ─── ARCADIA mechanisms the language already spells ─────────────────────────
+//
+// Fourteen keywords MEMO had no production for, each one a mechanism MEMO
+// spells privately as a `connection def` or a `part def` (plan §4). Every form
+// below is taken from the normative BNF and checked against the training files
+// that use it; none is a MEMO extension. Each has a builder path projecting the
+// native usage onto the SAME trace edge MEMO's connection produces, so both
+// spellings mean one thing while the migration runs.
+
+// `PerformActionUsage = OccurrenceUsagePrefix 'perform' PerformActionUsageDeclaration
+// ActionBody` (:948). One end is written, the other is the owner — the same
+// shape as `verify`, with the ends swapped: `verify` names its source and owns
+// its target, `perform` owns its source (the performer) and names its target.
+//
+//   part actorPrescriber { perform oaPrescribe; }
+//   part camera { perform action takePhoto references takePicture; }
+PerformActionUsage:
+    'perform' (isAction?='action' name=ID (':' type=QualifiedName)? ('references' performed=ReferenceName)?
+              | performed=ReferenceName)
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// `IncludeUseCaseUsage = OccurrenceUsagePrefix 'include' …` (:1572). A use case
+// includes a sub-case; MEMO spells it `IncludesStep` / `Includes`.
+IncludeUseCaseUsage:
+    'include' (isUseCase?='use' 'case' name=ID (':' type=QualifiedName)?
+              | included=ReferenceName)
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// `ExhibitStateUsage = OccurrenceUsagePrefix 'exhibit' …` (:1272). A component
+// exhibits a state or mode; MEMO spells it `ExhibitsMode`.
+ExhibitStateUsage:
+    'exhibit' (isState?='state' name=ID (':' type=QualifiedName)?
+              | exhibited=ReferenceName)
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// `SubjectUsage : ReferenceUsage = 'subject' UsageExtensionKeyword* Usage`
+// (:1423) and `ObjectiveMember … 'objective' ObjectiveRequirementUsage` (:1523).
+//
+// The pair is what the standard uses instead of a verification link to a
+// non-requirement: the verified thing becomes the case's SUBJECT and the
+// requirement its OBJECTIVE, as in "34. Verification":
+//
+//   verification def VehicleMassTest {
+//       subject testVehicle : Vehicle;
+//       objective { verify vehicleMassRequirement; }
+//   }
+//
+// That is what memo-native-requirement-relations decision 1 remodels 61 of 99
+// VerifiedBy links onto, and it is also what makes that training file parse.
+SubjectMember:
+    'subject' name=MemberName (':' type=QualifiedName multiplicity=Multiplicity?)?
+    (bindingOp=('=' | ':>' | ':>>') boundRef=ReferenceName)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+ObjectiveMember:
+    'objective' name=ID? (':' type=QualifiedName)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// `ActorUsage : PartUsage = 'actor' UsageExtensionKeyword* Usage` (:1454) and
+// `StakeholderUsage : PartUsage = 'stakeholder' …` (:1460). ARCADIA operational
+// analysis and ISO 42010; MEMO spells them `part def User` / `Actor` and
+// `part def Stakeholder`.
+ActorMember:
+    'actor' name=MemberName (':' type=QualifiedName multiplicity=Multiplicity?)?
+    (bindingOp=('=' | ':>' | ':>>') boundRef=ReferenceName)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+StakeholderMember:
+    'stakeholder' name=MemberName (':' type=QualifiedName multiplicity=Multiplicity?)?
+    (bindingOp=('=' | ':>' | ':>>') boundRef=ReferenceName)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// `ConcernUsage = OccurrenceUsagePrefix 'concern' ConstraintUsageDeclaration
+// RequirementBody` (:1497) and `FramedConcernMember … 'frame' FramedConcernUsage`
+// (:1441). A viewpoint FRAMES a concern; MEMO spells that `FramesConcern` and
+// `HasConcern`.
+ConcernUsage:
+    'concern' name=ID (':' type=QualifiedName)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+FramedConcernMember:
+    'frame' (isConcern?='concern' name=ID (':' type=QualifiedName)?
+            | framed=ReferenceName)
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// `Dependency = ( PrefixMetadataAnnotation )* 'dependency' DependencyDeclaration
+// RelationshipBody` (:51), with `DependencyDeclaration = ( Identification 'from' )?
+// client ( ',' client )* 'to' supplier ( ',' supplier )*` (:56).
+//
+// THIS ONE CHANGES METACLASS. A dependency is a Relationship, not a Connection:
+// it has no ends to redefine, it takes n clients and n suppliers rather than a
+// source and a target, and it is annotated by a PREFIX metadata (`#refinement`)
+// rather than by a connection def's `metadata def`. So `Realizes` does not
+// become an allocation-shaped row — it becomes `#refinement dependency a to b;`,
+// and the registry and serializer both have to treat it differently.
+//
+// `Identification` may be empty, which is why `dependency from a to b;` and
+// `dependency Named from a to b;` are both the same alternative, and
+// `dependency a to b;` is the one without it.
+Dependency:
+    (prefixMetadata+=PrefixMetadataAnnotation)*
+    'dependency' (name=ID? 'from')?
+    clients+=ReferenceName (',' clients+=ReferenceName)*
+    'to' suppliers+=ReferenceName (',' suppliers+=ReferenceName)*
+    ('{' body+=DocComment* '}' | ';');
+
+// `#Name` — the standard's prefix form of a metadata application, distinct from
+// the `@Name` postfix form MetadataApplication already covers. A dependency can
+// only be annotated this way, and `#refinement` (ModelingMetadata.sysml:132) is
+// the annotation that makes a dependency a refinement.
+PrefixMetadataAnnotation:
+    '#' type=QualifiedName;
+
+// `TransitionUsage = 'transition' ( UsageDeclaration 'first' )? FeatureChainMember
+// … 'then' TransitionSuccessionMember ActionBody` (:1281). MEMO models this as
+// `part def Transition` with String pseudo-references; the language puts it
+// inside a `state def`, where source and target really are the states.
+//
+// The name is only writable with `first`, which is what disambiguates
+// `transition initial then off;` (no name, `initial` is the source) from
+// `transition off_to_starting first off … then starting;`.
+// The optional type comes from `UsageDeclaration = Identification
+// FeatureSpecializationPart?`, so `transition tStart : Transition first …` is
+// the normative spelling of a transition classified by a definition. MEMO needs
+// it: the builder resolves an element's kind from its written type and from
+// nothing else, so an untyped transition would have to be given the kind
+// `Transition` by a hardcoded name in TypeScript — which is the thing
+// [memo-tools-interprets-ontology-drives] forbids.
+TransitionUsage:
+    'transition' (name=ID (':' type=QualifiedName)? 'first')? source=ReferenceName
+    ('accept' trigger=ReferenceName)?
+    ('if' guard=OrExpr)?
+    ('do' effect=ReferenceName)?
+    'then' target=ReferenceName
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// `VariantUsageMember : VariantMembership = MemberPrefix 'variant'
+// VariantUsageElement` (:254). One alternative of a `variation` choice point —
+// either a nested usage (`variant part transmissionManual : TransmissionManual;`)
+// or a reference to an existing one (`variant manualTransmission;`).
+VariantMember:
+    'variant' (usageKind=('part' | 'attribute' | 'item' | 'action' | 'port' | 'ref'))? name=MemberName
+    (':' type=QualifiedName multiplicity=Multiplicity?)?
+    ('=' value=AttributeValue)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
 // Element references may be package-qualified (`a::b`) or feature-qualified
 // (`action.step`). Both forms occur in standard SysML relationship ends.
 ReferenceName returns string:
@@ -486,7 +690,23 @@ ReferenceName returns string:
 // ─── Body members ────────────────────────────────────────────────────────────
 
 DefinitionBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | RefMember | FeatureMembershipMember | RequireConstraintMember | RequirementVerificationMember | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | RefMember | FeatureMembershipMember | RequireConstraintMember | RequirementVerificationMember | ArcadiaMember | MetadataApplication | DocComment;
+
+// The fourteen native mechanisms, gathered once so both body rules stay
+// readable and neither can drift out of step with the other.
+ArcadiaMember:
+    PerformActionUsage
+    | IncludeUseCaseUsage
+    | ExhibitStateUsage
+    | SubjectMember
+    | ObjectiveMember
+    | ActorMember
+    | StakeholderMember
+    | ConcernUsage
+    | FramedConcernMember
+    | TransitionUsage
+    | VariantMember
+    | AllocateUsage;
 
 // ─── Constraint expression (KerML boolean subset — ADR-1-18) ─────────────────
 // Authored inside constraint def / requirement def bodies as:
@@ -530,7 +750,7 @@ PrimaryExpr infers ConstraintExpr:
 // value — the bare `name = value;` shorthand is non-standard and is not accepted.
 // Use `attribute redefines name = value;` (the form the serializer emits).
 UsageBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
 // Three forms:
@@ -554,7 +774,7 @@ UsageBodyMember:
 // defaults. SysIDE is the compiler of record, so the grammar follows it.
 
 AttributeMember:
-    'attribute' redefines?=('redefines' | ':>>')? name=MemberName
+    isVariation?='variation'? 'attribute' redefines?=('redefines' | ':>>')? name=MemberName
     (':' type=QualifiedName multiplicity=Multiplicity?
         ('=' value=AttributeValue ';' | '{' body+=UsageBodyMember* '}' | ';')
     | '=' value=AttributeValue ';'
@@ -616,7 +836,7 @@ EnumValue:
 // feature, so every existing `:>` consumer is unaffected.
 
 PartMember:
-    'part'
+    isVariation?='variation'? 'part'
     (bindingOp=':>>' name=MemberName ('=' boundRef=QualifiedName)?
     | name=MemberName
       (':' type=QualifiedName multiplicity=Multiplicity?)?

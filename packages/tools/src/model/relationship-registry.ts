@@ -15,6 +15,7 @@ import type {
     AttributeValue, BooleanValue, Multiplicity, PackageDeclaration,
 } from '../language/generated/ast.js';
 import {
+    isAllocationDefinition,
     isAttributeMember,
     isConnectionDefinition,
     isDocComment,
@@ -79,6 +80,15 @@ export interface RelationshipRegistryEntry {
     isUnique?: boolean;
     /** Supertype connection definition, when the relationship specializes one */
     superType?: string;
+    /**
+     * The construct the relation is declared with — `connection def` or
+     * `allocation def`. Both produce links and both live in this registry, but
+     * they are not interchangeable to a reader: an allocation def carries the
+     * standard's allocation semantics and serializes with `allocate`. The
+     * keyword-collision lint also needs it, since a name that agrees with its
+     * own construct is not a reinvention of the keyword.
+     */
+    sysmlConstruct?: string;
     /**
      * The SysML v2 keyword that writes this relation natively, when the language
      * already provides one — `satisfy`, `verify`, `allocate`. A relation with a
@@ -157,7 +167,93 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             { name: 'allocatedElement' },
         ],
     },
+
+    // ── The ARCADIA mechanisms (plan §8, Track B) ──
+    //
+    // Same contract as the three above: the keyword and the connection def are
+    // two spellings of one statement, and the builder must make them
+    // indistinguishable downstream. What differs from `satisfy` is WHICH end is
+    // written: `perform`, `include`, `exhibit` and `frame` all name their
+    // TARGET and take their source from the owner, which is the `verify` shape
+    // with the ends swapped.
+    performs: {
+        keyword: 'perform',
+        sysmlName: 'Performs',
+        layer: 'core',
+        description: 'An entity performs an activity or function (ARCADIA operational analysis). '
+            + 'Written natively as `perform <action>;` inside the performer. '
+            + 'Distinct from `allocatedTo`: `performs` says WHO does it, `allocatedTo` says WHERE it runs.',
+        ends: [
+            { name: 'performer' },
+            { name: 'performed', type: 'MemoAction' },
+        ],
+    },
+    includesStep: {
+        keyword: 'include',
+        sysmlName: 'IncludesStep',
+        layer: 'functional',
+        description: 'A flow or case includes a step or sub-case. '
+            + 'Written natively as `include <step>;` inside the including element.',
+        ends: [
+            { name: 'functionalFlow', type: 'FunctionalFlow' },
+            { name: 'step', type: 'FunctionalFlowStep' },
+        ],
+    },
+    exhibitsMode: {
+        keyword: 'exhibit',
+        sysmlName: 'ExhibitsMode',
+        layer: 'logical',
+        description: 'A component exhibits a mode or state. '
+            + 'Written natively as `exhibit <state>;` inside the component.',
+        ends: [
+            { name: 'component', type: 'LogicalComponent' },
+            { name: 'mode', type: 'LogicalMode' },
+        ],
+    },
+    framesConcern: {
+        keyword: 'frame',
+        sysmlName: 'FramesConcern',
+        layer: 'operational',
+        description: 'A viewpoint frames a stakeholder concern (ISO 42010). '
+            + 'Written natively as `frame <concern>;` inside the viewpoint.',
+        ends: [
+            // Mirrors the ontology exactly. `MemoPart` is right here and stays
+            // right: MEMO's Viewpoint is a `part def` by a recorded decision
+            // (ISO 42010 viewpoints carry allowedElementKinds and governing
+            // concerns, which the SysML `viewpoint` usage does not), so this is
+            // not one of the part-typed ends A0 had to relax.
+            { name: 'framingViewpoint', type: 'MemoPart' },
+            { name: 'framedConcern', type: 'Concern' },
+        ],
+    },
+    // The one row whose native spelling is NOT a connection. A refinement is a
+    // `Dependency` — n clients, n suppliers, no ends to redefine, annotated by
+    // a PREFIX metadata rather than by a `metadata def` on a connection def. So
+    // `nativeKeyword` here does not mean "write this as a connection usage with
+    // a keyword"; it means "do not write this as a connection at all".
+    realizes: {
+        keyword: 'dependency',
+        sysmlName: 'Realizes',
+        layer: 'core',
+        description: 'A concrete element realizes a more abstract one. '
+            + 'Written natively as `#refinement dependency <realizing> to <realized>;`, '
+            + 'which is a Dependency and not a connection — see ModelingMetadata::Refinement.',
+        ends: [
+            { name: 'realizing' },
+            { name: 'realized' },
+        ],
+    },
 };
+
+/**
+ * The metadata that makes a `dependency` a refinement, and the keyword that
+ * introduces it (`Domain Libraries/Metadata/ModelingMetadata.sysml:132`).
+ *
+ * A bare `dependency a to b;` is an unclassified dependency and means less than
+ * `Realizes` does; only the annotated form carries realization. Naming it once
+ * here keeps the builder, the serializer, and the tests reading the same word.
+ */
+export const REFINEMENT_METADATA = 'refinement';
 
 /**
  * Convert PascalCase to camelCase.
@@ -399,7 +495,14 @@ export class RelationshipRegistry {
                 continue;
             }
 
-            if (isConnectionDefinition(member)) {
+            // An `allocation def` is a relation with a different keyword, not a
+            // different thing: `Allocations::Allocation :> BinaryConnection`,
+            // it declares the same `end`s, and it produces the same links. The
+            // registry derived relations from `connection def` alone, so an
+            // allocation def would have been invisible to every tool that
+            // reads the registry — the authoring picker, the writer, the DSM,
+            // the legality check — while still being valid, checked ontology.
+            if (isConnectionDefinition(member) || isAllocationDefinition(member)) {
                 const sysmlName = member.name;
                 if (!sysmlName) continue;
 
@@ -438,6 +541,7 @@ export class RelationshipRegistry {
                     name,
                     label,
                     layer,
+                    sysmlConstruct: isAllocationDefinition(member) ? 'allocation def' : 'connection def',
                     description,
                     isAbstract: member.isAbstract || undefined,
                     superType: member.specialization?.superType || undefined,

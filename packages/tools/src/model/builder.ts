@@ -68,10 +68,26 @@ import type {
     ControlNodeUsage,
     SatisfyRequirementUsage,
     RequirementVerificationMember,
+    PerformActionUsage,
+    IncludeUseCaseUsage,
+    ExhibitStateUsage,
+    FramedConcernMember,
+    SubjectMember,
+    Dependency,
+    ActorMember,
+    StakeholderMember,
+    ConcernUsage,
+    TransitionUsage,
 } from '../language/generated/ast.js';
 import {
     isRequirementVerificationMember,
     isSatisfyRequirementUsage,
+    isPerformActionUsage,
+    isIncludeUseCaseUsage,
+    isExhibitStateUsage,
+    isFramedConcernMember,
+    isSubjectMember,
+    isDependency,
 } from '../language/generated/ast.js';
 import type { MEMOConfig } from './config.js';
 import type { KindDefinition } from './kind-registry.js';
@@ -88,7 +104,7 @@ import { PackageRegistry } from './package-registry.js';
 import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
-import { LANGUAGE_NATIVE_RELATIONS } from './relationship-registry.js';
+import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } from './relationship-registry.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
 import { CONTROL_KIND_METACLASS } from './activity-notation.js';
 import type { ProvenanceTable, SemanticElementProvenance } from './source-provenance.js';
@@ -237,7 +253,7 @@ export function buildMemoModel(
 
     // Phase 3d: Resolve allocations
     for (const { allocate, filePath, packageName } of deferredAllocates) {
-        resolveAllocate(allocate, filePath, packageName, elements, relationships, registry, allElementIds);
+        resolveAllocate(allocate, filePath, packageName, elements, relationships, registry, allElementIds, registries?.relationshipRegistry);
     }
 
     // Phase 3e: Resolve the native requirement relations. Unlike connections
@@ -521,6 +537,27 @@ function extractFromPackage(
                     packageName,
                 });
                 break;
+            // ─── Native declarations (plan §8) ──────────────────────────
+            //
+            // `actor u : User;`, `stakeholder s : Stakeholder;` and
+            // `concern c : Concern;` declare the same elements `part u : User;`
+            // declares — same id, same kind, same attributes, same doc. Only
+            // the metaclass differs, and the metaclass is what makes them
+            // legible to a conforming tool. Routing them through extractUsage
+            // is what keeps the migration in step 3 a spelling change rather
+            // than a content change.
+            case 'ActorMember':
+                extractUsage(member as ActorMember, 'actor', filePath, packageName, config, elements, registry, registries);
+                break;
+            case 'StakeholderMember':
+                extractUsage(member as StakeholderMember, 'stakeholder', filePath, packageName, config, elements, registry, registries);
+                break;
+            case 'ConcernUsage':
+                extractUsage(member as ConcernUsage, 'concern', filePath, packageName, config, elements, registry, registries);
+                break;
+            case 'TransitionUsage':
+                extractTransition(member as TransitionUsage, filePath, packageName, config, elements, registry, registries);
+                break;
             // ─── Definition members ─────────────────────────────────────
             case 'ActionDefinition':
                 extractActionDefinition(member as ActionDefinition, filePath, packageName, config, elements, deferredFlows, deferredSuccessions, registry, registries);
@@ -638,6 +675,74 @@ function extractUsage(
 
     elements.set(id, element);
     registry.registerElement(id, packageName);
+
+    // A native `transition` lives inside the state machine that owns it, which
+    // is where the language puts it and where MEMO's `part def Transition`
+    // never could. Extract it from the state usage's body so the two spellings
+    // yield the same element set.
+    for (const member of usage.body || []) {
+        if ((member as any).$type === 'TransitionUsage') {
+            extractTransition(member as TransitionUsage, filePath, packageName, config, elements, registry, registries);
+        }
+    }
+}
+
+/**
+ * Extract a native `transition` as a MemoElement.
+ *
+ * MEMO models a transition as `part def Transition` with `sourceState` and
+ * `targetState` as **Strings** (§13.3) — and in the shipped content those
+ * strings hold display names ("Idle"), not element ids, so nothing can follow
+ * them to the states they name. The native form's source and target are real
+ * references, so they are resolved to element ids here.
+ *
+ * Both are still written into the attribute map under the same keys the part
+ * def declares. That is deliberate: it keeps every existing consumer of
+ * `sourceState` / `targetState` working while the two spellings coexist, and it
+ * is what makes the eventual migration a change of value (display name →
+ * element id) that a diff can show, rather than a change of shape that it
+ * cannot.
+ *
+ * An anonymous transition (`transition initial then off;`) declares no element.
+ * It is a control statement, not a named thing the model traces to.
+ */
+function extractTransition(
+    transition: TransitionUsage,
+    filePath: string,
+    packageName: string,
+    config: MEMOConfig,
+    elements: Map<string, MemoElement>,
+    registry: PackageRegistry,
+    registries?: BuilderRegistries,
+): void {
+    if (!transition.name) return;
+
+    const attributes: Record<string, string> = {
+        ...extractAttributes(transition.body),
+        sourceState: transition.source,
+        targetState: transition.target,
+    };
+    if (transition.trigger) attributes.trigger = transition.trigger;
+    if (transition.effect) attributes.effectSummary = transition.effect;
+    const guard = renderGuardExpression(transition.guard);
+    if (guard !== undefined) attributes.guardSummary = guard;
+
+    const { kindDef, resolvedKind } = transition.type
+        ? resolveKindDef(transition.type, config, registries)
+        : { kindDef: undefined, resolvedKind: 'Unknown' };
+
+    elements.set(transition.name, {
+        id: transition.name,
+        name: attributes.name || transition.name,
+        kind: resolvedKind,
+        construct: 'transition',
+        layer: kindDef?.layer || 'unknown',
+        file: filePath,
+        package: packageName || undefined,
+        attributes,
+        doc: extractDocComment(transition.body),
+    });
+    registry.registerElement(transition.name, packageName);
 }
 
 /**
@@ -1155,7 +1260,8 @@ function resolveAllocate(
     elements: Map<string, MemoElement>,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>
+    allElementIds: Set<string>,
+    relationshipRegistry?: RelationshipRegistry,
 ): void {
     const sourceRef = allocate.source;
     const targetRef = allocate.target;
@@ -1177,7 +1283,50 @@ function resolveAllocate(
     // emitted `allocateTo` with invented ends while the connection emitted
     // `allocatedTo` with the ontology's, and consumers keyed on one silently
     // missed the other — the DHF allocation queries ask for `allocatedTo`.
-    relationships.push(nativeTraceEdge('allocatedTo', sourceId, targetId, filePath));
+    //
+    // A TYPED allocation — `allocation d : DeploysTo allocate m to node;` —
+    // carries which allocation it is, and that distinction has to survive.
+    // `DeploysTo` and `BuildsInto` are not `AllocatedTo` under another name:
+    // they are separate edges the deployment views and the DHF read by name.
+    // The `allocation def` naming them is what the typed form points at, so the
+    // edge is its camelCase name whenever the registry knows it; an unknown or
+    // absent type falls back to the base allocation, which is what bare
+    // `allocate` has always meant.
+    const typed = allocate.type ? pascalToCamelCase(allocate.type.split('::').pop()!) : undefined;
+    const edge = typed && relationshipRegistry?.has(typed) ? typed : 'allocatedTo';
+    relationships.push(
+        edge === 'allocatedTo'
+            ? nativeTraceEdge('allocatedTo', sourceId, targetId, filePath)
+            : typedAllocationEdge(edge, sourceId, targetId, filePath, relationshipRegistry),
+    );
+}
+
+/**
+ * The trace edge for an `allocation x : SomeAllocationDef allocate a to b;`.
+ *
+ * Ends come from the registry entry for the named definition, so a typed
+ * allocation and the equivalent `connection : SomeAllocationDef connect …`
+ * produce byte-identical links — the same guarantee the three
+ * LANGUAGE_NATIVE_RELATIONS rows carry, extended to every allocation def the
+ * ontology declares rather than to a fixed list of three.
+ */
+function typedAllocationEdge(
+    type: string,
+    sourceId: string,
+    targetId: string,
+    filePath: string,
+    relationshipRegistry: RelationshipRegistry | undefined,
+): MemoRelationship {
+    const ends = relationshipRegistry?.getRelType(type)?.ends ?? [];
+    return {
+        id: `rel-${++relationshipCounter}`,
+        type,
+        sourceId,
+        sourceEnd: ends[0]?.name ?? 'source',
+        targetId,
+        targetEnd: ends[1]?.name ?? 'target',
+        file: filePath,
+    };
 }
 
 /** Build the trace edge for a language-native relation, typed from the registry. */
@@ -1218,11 +1367,117 @@ function nativeUsageContext(node: { $container?: unknown }): {
             if (current.name) packages.unshift(current.name as string);
             continue;
         }
+        // An `objective` is a MEMBERSHIP, not the element that does the
+        // verifying — the standard writes `objective { verify r; }` inside the
+        // case, and the case is the verifier. A named objective would otherwise
+        // capture `ownerId` and the `verifiedBy` edge would point at a wrapper
+        // that is not an extracted element, silently dropping the link.
+        if (current.$type === 'ObjectiveMember') continue;
         if (ownerId === undefined && typeof current.name === 'string' && current.name) {
             ownerId = current.name;
         }
     }
     return { packageName: packages.join('::'), ownerId };
+}
+
+/**
+ * Project a native usage that names ONE end and takes the other from its owner.
+ *
+ * `perform`, `include`, `exhibit` and `frame` all have this shape, and it is
+ * `verify`'s shape with the ends swapped: `verify` names its source and owns
+ * its target, these four own their source and name their target. Sharing the
+ * resolution keeps the four from drifting apart, and keeps the rule that the
+ * owner supplies the unwritten end stated in exactly one place.
+ */
+function resolveOwnerRootedUsage(
+    node: { $container?: unknown },
+    written: string | undefined,
+    name: keyof typeof LANGUAGE_NATIVE_RELATIONS,
+    filePath: string,
+    relationships: MemoRelationship[],
+    registry: PackageRegistry,
+    allElementIds: Set<string>,
+): void {
+    if (!written) return;
+    const { packageName, ownerId } = nativeUsageContext(node);
+    const sourceId = ownerId
+        ? resolveEndpointId(ownerId, packageName, registry, allElementIds)
+        : undefined;
+    const targetId = resolveEndpointId(written, packageName, registry, allElementIds);
+    if (!sourceId || !targetId) return;
+    relationships.push(nativeTraceEdge(name, sourceId, targetId, filePath));
+}
+
+/**
+ * Project a verification case's `subject` onto the `verifiedBy` edge.
+ *
+ * This is the standard's answer to verifying something that is not a
+ * requirement: the verified element becomes the case's SUBJECT and the
+ * requirement its `objective { verify … }`. 61 of MEMO's 99 `VerifiedBy` links
+ * target a SystemFunction, a RiskControlMeasure, a SoftwareModule, a
+ * BehaviorProperty or a TimingConstraint — none of which native `verify`
+ * admits, because `verify` takes a RequirementUsage.
+ *
+ * The edge direction matches `VerifiedBy`: the subject is the source
+ * (verificationTarget) and the owning case the target (verificationCase).
+ *
+ * A `subject` that declares a fresh feature rather than pointing at an existing
+ * element — `subject testVehicle : Vehicle;` — binds nothing and contributes no
+ * edge. Only the referring forms (`subject v :> vehicleTestConfig;`,
+ * `subject v = vehicleTestConfig;`) name something already in the model.
+ */
+function resolveSubject(
+    subject: SubjectMember,
+    filePath: string,
+    relationships: MemoRelationship[],
+    registry: PackageRegistry,
+    allElementIds: Set<string>,
+): void {
+    if (!subject.boundRef) return;
+    const { packageName, ownerId } = nativeUsageContext(subject);
+    const sourceId = resolveEndpointId(subject.boundRef, packageName, registry, allElementIds);
+    const targetId = ownerId
+        ? resolveEndpointId(ownerId, packageName, registry, allElementIds)
+        : undefined;
+    if (!sourceId || !targetId) return;
+    relationships.push(nativeTraceEdge('verifiedBy', sourceId, targetId, filePath));
+}
+
+/**
+ * Project a `#refinement dependency a to b;` onto the `realizes` edge.
+ *
+ * The only native relation here that is not a connection. A Dependency takes n
+ * clients and n suppliers rather than a source and a target, so one written
+ * dependency can produce several edges — `dependency Schemata from s to a, b;`
+ * is two statements sharing a name, and it lowers to two links, which is what
+ * `Realizes` would have needed two connection usages to say.
+ *
+ * A dependency WITHOUT `#refinement` is an unclassified dependency. It means
+ * strictly less than `Realizes` does, so it contributes no `realizes` edge —
+ * inferring realization from a bare dependency would put a claim in the
+ * traceability matrix that the model never made.
+ */
+function resolveDependency(
+    dependency: Dependency,
+    filePath: string,
+    relationships: MemoRelationship[],
+    registry: PackageRegistry,
+    allElementIds: Set<string>,
+): void {
+    const isRefinement = (dependency.prefixMetadata ?? [])
+        .some(annotation => annotation.type?.split('::').pop() === REFINEMENT_METADATA);
+    if (!isRefinement) return;
+
+    const { packageName } = nativeUsageContext(dependency);
+    for (const client of dependency.clients ?? []) {
+        const sourceId = resolveEndpointId(client, packageName, registry, allElementIds);
+        if (!sourceId) continue;
+        for (const supplier of dependency.suppliers ?? []) {
+            const targetId = resolveEndpointId(supplier, packageName, registry, allElementIds);
+            if (!targetId) continue;
+            relationships.push(nativeTraceEdge('realizes', sourceId, targetId, filePath));
+        }
+    }
 }
 
 /**
@@ -1241,6 +1496,18 @@ function resolveNativeTraceUsages(
             resolveSatisfy(node, filePath, relationships, registry, allElementIds);
         } else if (isRequirementVerificationMember(node)) {
             resolveVerify(node, filePath, relationships, registry, allElementIds);
+        } else if (isPerformActionUsage(node)) {
+            resolveOwnerRootedUsage(node, node.performed, 'performs', filePath, relationships, registry, allElementIds);
+        } else if (isIncludeUseCaseUsage(node)) {
+            resolveOwnerRootedUsage(node, node.included, 'includesStep', filePath, relationships, registry, allElementIds);
+        } else if (isExhibitStateUsage(node)) {
+            resolveOwnerRootedUsage(node, node.exhibited, 'exhibitsMode', filePath, relationships, registry, allElementIds);
+        } else if (isFramedConcernMember(node)) {
+            resolveOwnerRootedUsage(node, node.framed, 'framesConcern', filePath, relationships, registry, allElementIds);
+        } else if (isSubjectMember(node)) {
+            resolveSubject(node, filePath, relationships, registry, allElementIds);
+        } else if (isDependency(node)) {
+            resolveDependency(node, filePath, relationships, registry, allElementIds);
         }
     }
 }

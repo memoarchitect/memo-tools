@@ -196,6 +196,26 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'sessio
         reason: 'Binding-aware latency accrual (AADL); names a flow, is not one.',
         removedBy: 'deliberate',
     },
+    // ── The two AADL bindings added by plan C1 ──
+    // Both are `allocation def`s rooted on Allocations::Allocation, which is
+    // the standard's own answer for "this is an allocation". The collision is
+    // on the ENGLISH word: AADL's `actual_memory_binding` and
+    // `actual_connection_binding` are bindings of a component to a resource,
+    // and SysML's `binding` is the binding connector `a = b`. Renaming to
+    // dodge the word would cost the AADL term, which is what makes the
+    // correspondence checkable — same judgement as FlowTraversesBinding.
+    'binding:MemoryBinding': {
+        reason: 'AADL actual_memory_binding — which memory a software component occupies. `bind` writes an anonymous binding connector, a different statement.',
+        removedBy: 'deliberate',
+    },
+    'binding:ConnectionBinding': {
+        reason: 'AADL actual_connection_binding — which medium carries an exchange. Same divergence as MemoryBinding.',
+        removedBy: 'deliberate',
+    },
+    'connection:ConnectionBinding': {
+        reason: 'Head word names the connection being bound, at the far end of the relation; the relation itself is an `allocation def`.',
+        removedBy: 'deliberate',
+    },
     'binding:FlowTraversesBinding': {
         reason: 'Tail word is the AADL binding it traverses, unrelated to SysML `binding` connectors.',
         removedBy: 'deliberate',
@@ -466,8 +486,12 @@ async function collisions(): Promise<Collision[]> {
     const definitions = [
         ...(registries.kindRegistry?.entries() ?? [])
             .map(entry => ({ name: entry.name, construct: entry.sysmlConstruct ?? '' })),
+        // The construct comes from the registry, not from an assumption that
+        // every relation is a `connection def` — since C1 the ontology also
+        // declares `allocation def`s, and the construct-alignment exemption is
+        // only sound if it reads the construct the definition actually used.
         ...(registries.relationshipRegistry?.entries() ?? [])
-            .map(entry => ({ name: entry.sysmlName, construct: 'connection def' })),
+            .map(entry => ({ name: entry.sysmlName, construct: entry.sysmlConstruct ?? 'connection def' })),
     ];
     if (definitions.length < 100) throw new Error(`registries loaded only ${definitions.length} definitions`);
 
