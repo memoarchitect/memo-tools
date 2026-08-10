@@ -57,7 +57,10 @@ const ELEMENTS: Array<[id: string, kind: string, construct: string]> = [
     ['act', 'OperationalActivity', 'action'],
     ['act2', 'OperationalActivity', 'action'],
     ['user', 'User', 'part'],
-    ['port', 'PhysicalPort', 'part'],
+    // `port`, not `part`, since Track A1: PhysicalPort is a `port def`. The
+    // rules that accept it (CR-ONT-066, CR-ONT-070) already read
+    // `construct == 'port'` — A0 wrote them for the metaclass A1 delivers.
+    ['port', 'PhysicalPort', 'port'],
     ['iface', 'Interface', 'interface'],
     ['vcase', 'VerificationCase', 'verification'],
     ['boundary', 'TrustBoundary', 'part'],

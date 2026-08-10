@@ -19,14 +19,14 @@
       {
         "id": "actGpcaOut",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "actGpcaSwIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
@@ -1335,35 +1335,35 @@
       {
         "id": "devDbIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "devGpcaOut",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "devOpCmdIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "devPatientIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "devPresIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
@@ -2945,84 +2945,84 @@
       {
         "id": "portConstIn",
         "kind": "SoftwarePort",
-        "construct": "part",
+        "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "portDbIn",
         "kind": "SoftwarePort",
-        "construct": "part",
+        "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "portGpcaSwOut",
         "kind": "SoftwarePort",
-        "construct": "part",
+        "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "portMainsInlet",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_physical"
       },
       {
         "id": "portMotorDrive",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_physical"
       },
       {
         "id": "portOpCmdIn",
         "kind": "SoftwarePort",
-        "construct": "part",
+        "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "portPatientIn",
         "kind": "SoftwarePort",
-        "construct": "part",
+        "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "portPatientPendant",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_physical"
       },
       {
         "id": "portPresIn",
         "kind": "SoftwarePort",
-        "construct": "part",
+        "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "portSensorHarness",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_physical"
       },
       {
         "id": "portSensorIn",
         "kind": "SoftwarePort",
-        "construct": "part",
+        "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "portServiceAccess",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_physical"
       },
@@ -4093,70 +4093,70 @@
       {
         "id": "snsConstOut",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsDbIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsDbOut",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsOpCmdIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsOpCmdOut",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsPatientIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsPatientOut",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsPresIn",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsPresOut",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "snsSensorOut",
         "kind": "PhysicalPort",
-        "construct": "part",
+        "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },

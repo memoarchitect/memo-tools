@@ -116,6 +116,38 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-10 (third time today) — one fixture, for Track A1
+ * (plans/memo-arcadia-native-coverage.md, session 2): PhysicalPort and
+ * SoftwarePort became `port def`s.
+ *
+ * A port is a port. Both were `part def … specializes InterfaceElement` for one
+ * reason — exchange endpoints were `MemoPart`-typed, so anything terminating an
+ * exchange had to be a part, and CR-ONT-002 justified that typing by the ports
+ * being parts. Track A0 cut the circle at the ends; KerML forbids a port from
+ * specializing a part-based type, so the specialization moved to `MemoPort`.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | 29 elements: `construct` `part` → `port`, and NOTHING else | 22 PhysicalPort + 7 SoftwarePort usages. Same ids, same kinds, same layers, same packages, same counts — only the metaclass moved. |
+ *
+ * `ui-regions`, `default`, and `extension-clinical` did not move: none of them
+ * declares a port.
+ *
+ * What deliberately did NOT move, and was checked rather than assumed: the DSM
+ * (both `computeDSM`'s default functional projection and an all-kinds variant)
+ * and the full per-type traceability tables — every relationship type with its
+ * complete sorted (source → target) set — are byte-identical across all four
+ * example projects that carry them. Exchanges are dependency edges; if the edge
+ * shape had moved, those tables would show it.
+ *
+ * One consequence is invisible here and worth recording: `resolveConnection`
+ * tags `sourcePortId`/`targetPortId` when an endpoint resolves to an element
+ * with `construct === 'port'`. That path existed but had never fired on real
+ * content — 0 tagged relationships before, 54 after. No builder change was
+ * needed; A1 is simply what turns it on.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

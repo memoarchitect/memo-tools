@@ -166,14 +166,10 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'sessio
         reason: 'A part def duplicating the existing state def ModeState/StateMachine; collapses onto `state` with B7.',
         removedBy: 'session 3',
     },
-    'port:PhysicalPort': {
-        reason: 'A part def, so it can terminate exchanges under part-typed ends (§5). Becomes a port def in A1.',
-        removedBy: 'session 2',
-    },
-    'port:SoftwarePort': {
-        reason: 'Same cause as PhysicalPort; becomes a port def in A1.',
-        removedBy: 'session 2',
-    },
+    // `port:PhysicalPort` and `port:SoftwarePort` were here until session 2.
+    // Both are `port def`s now (Track A1), so the construct-alignment
+    // exemption applies and neither reaches the allow-list — the first two
+    // entries this programme has burned down.
 
     // ── Deliberate: MEMO means something the keyword does not ──
     'flow:FunctionalFlow': {
