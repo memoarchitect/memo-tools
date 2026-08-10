@@ -169,6 +169,8 @@ type Node =
     | { kind: 'acyclic'; relationshipType: string }
     /** Elements standing at one declared end of every link of a relation. */
     | { kind: 'endsOf'; relationshipType: string; side: 'source' | 'target' }
+    /** The LINKS of a relation, as id-bearing values a quantifier can range over. */
+    | { kind: 'linksOf'; relationshipType: string }
     /** True when the current element's kind is, or specializes, a named kind. */
     | { kind: 'conformsTo'; kindName: string }
     | { kind: 'method'; target: Node; name: 'size' | 'notEmpty' | 'isEmpty' }
@@ -329,6 +331,18 @@ export function parseConstraintExpression(src: string): Node {
                 expect(')');
                 return { kind: 'endsOf', relationshipType, side };
             }
+            // `linksOf(rel)` ranges over the LINKS themselves, where `sourcesOf`
+            // and `targetsOf` range over the elements at their ends. A rule that
+            // has to match a link BY IDENTITY — rather than by what sits at
+            // either end — cannot be written with the other two. Generic: it
+            // knows no MEMO name, and which relation comes from the ontology.
+            if (tok.v === 'linksOf') {
+                next();
+                expect('(');
+                const relationshipType = expect('ident').v!;
+                expect(')');
+                return { kind: 'linksOf', relationshipType };
+            }
             // `conformsTo(Kind)` is SysML specialization, not kind equality:
             // it holds for the named kind and everything that specializes it.
             // Without it a rule could only compare `kind == "SoftwareModule"`,
@@ -374,6 +388,7 @@ function evalNode(node: Node, env: Env, model: MemoModel): Value {
         case 'allOfKind': return model.elementsByKind.get(node.kindName) ?? [];
         case 'acyclic': return relationshipAcyclic(model, node.relationshipType);
         case 'endsOf': return relationshipEnds(model, node.relationshipType, node.side);
+        case 'linksOf': return relationshipLinks(model, node.relationshipType);
         case 'conformsTo': return kindExtent(model, node.kindName).has(env.current.id);
         case 'method': {
             const len = lengthOf(evalNode(node.target, env, model));
@@ -414,6 +429,22 @@ function evalNode(node: Node, env: Env, model: MemoModel): Value {
  * indistinguishable. Duplicates are dropped — an element that is the source of
  * forty links is one subject for a type question.
  */
+/**
+ * The links of a relation, shaped so a quantifier can read `id`, `sourceId`,
+ * and `targetId` off them the same way it reads properties off an element.
+ * They are not elements and are never added to the model; this is a read-only
+ * projection for rules that must match a link by identity.
+ */
+function relationshipLinks(model: MemoModel, relationshipType: string): MemoElement[] {
+    const want = relationshipType.toLowerCase();
+    return model.relationships
+        .filter(r => r.type.toLowerCase() === want)
+        .map(r => ({
+            id: r.id, name: r.id, kind: r.type, construct: 'connection', layer: 'unknown',
+            file: r.file ?? '', attributes: { sourceId: r.sourceId, targetId: r.targetId, ...(r.attributes ?? {}) },
+        }) as unknown as MemoElement);
+}
+
 function relationshipEnds(model: MemoModel, relationshipType: string, side: 'source' | 'target'): MemoElement[] {
     const want = relationshipType.toLowerCase();
     const out = new Map<string, MemoElement>();

@@ -7086,6 +7086,236 @@
         "targetId": "computeFlow"
       },
       {
+        "type": "flow",
+        "sourceId": "gpcaDeviceSensors",
+        "targetId": "portSensorIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "operatorKeypad",
+        "targetId": "portPresIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portAlarmAlarmOut",
+        "targetId": "portImAlarmIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portAlarmAlarmOut",
+        "targetId": "portLogAlarmIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portAlarmAlarmOut",
+        "targetId": "portOutputAlarmIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConfigConfigOut",
+        "targetId": "portAlarmConfigIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConfigConfigOut",
+        "targetId": "portImConfigIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConfigConfigOut",
+        "targetId": "portLogConfigIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConfigConfigOut",
+        "targetId": "portOutputConfigIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConfigConfigOut",
+        "targetId": "portSysStatConfigIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConstIn",
+        "targetId": "portAlarmConstIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConstIn",
+        "targetId": "portConfigConstIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConstIn",
+        "targetId": "portSysStatConstIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portConstIn",
+        "targetId": "portTlmConstIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portDbIn",
+        "targetId": "portAlarmDbIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portDbIn",
+        "targetId": "portConfigDbIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portGpcaSwOut",
+        "targetId": "audibleAlarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portGpcaSwOut",
+        "targetId": "pumpMotorAssembly"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portImImOut",
+        "targetId": "portAlarmImIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portImImOut",
+        "targetId": "portLogImIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portImImOut",
+        "targetId": "portOutputImIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portImImOut",
+        "targetId": "portSysStatImIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portLogLogOut",
+        "targetId": "portOutputLogIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portOpCmdIn",
+        "targetId": "portAlarmOpCmdIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portOpCmdIn",
+        "targetId": "portConfigOpCmdIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portOpCmdIn",
+        "targetId": "portImOpCmdIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portOpCmdIn",
+        "targetId": "portTlmOpCmdIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portOutputGpcaSwOut",
+        "targetId": "portGpcaSwOut"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portPatientIn",
+        "targetId": "portImPatientIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portPresIn",
+        "targetId": "portConfigPresIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSensorIn",
+        "targetId": "portAlarmSensorIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSensorIn",
+        "targetId": "portSysStatSensorIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSysMonSysMonOut",
+        "targetId": "portAlarmSysMonIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSysMonSysMonOut",
+        "targetId": "portOutputSysMonIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSysStatSysStatOut",
+        "targetId": "portAlarmSysStatIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSysStatSysStatOut",
+        "targetId": "portConfigSysStatIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSysStatSysStatOut",
+        "targetId": "portImSysStatIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSysStatSysStatOut",
+        "targetId": "portLogSysStatIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portSysStatSysStatOut",
+        "targetId": "portOutputSysStatIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portTlmTlmModeOut",
+        "targetId": "portAlarmTlmModeIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portTlmTlmModeOut",
+        "targetId": "portConfigTlmModeIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portTlmTlmModeOut",
+        "targetId": "portImTlmModeIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portTlmTlmModeOut",
+        "targetId": "portLogTlmModeIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portTlmTlmModeOut",
+        "targetId": "portOutputTlmModeIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portTlmTlmModeOut",
+        "targetId": "portSysMonTlmModeIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "portTlmTlmModeOut",
+        "targetId": "portSysStatTlmModeIn"
+      },
+      {
         "type": "governs",
         "sourceId": "gpcaIntendedUse",
         "targetId": "entityGpcaPump"

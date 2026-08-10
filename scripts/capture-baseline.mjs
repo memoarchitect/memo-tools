@@ -176,6 +176,28 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-10 (fifth time today) — one fixture, for Track A3:
+ * the exchanges became flows.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | +46 relationships, all `flow` | One named flow per ComponentExchange, ends at the PORTS. The flow is the edge; the part above it carries the budget and assurance attributes. |
+ *
+ * ZERO removals: `ExchangesWith` keeps the component-level dependency it always
+ * carried, because AADL distinguishes that granularity from the port-level one
+ * and so does this. The DSM is unchanged in all four example projects.
+ *
+ * No element moved at all — the 46 exchange parts stay, which is the point of
+ * the split. The flows are named with their exchanges, and that shared
+ * identifier is the binding between the two halves; CR-ONT-076 checks it, and
+ * `exchange-flow-binding.test.ts` proves the rule rejects both an exchange with
+ * no flow and one whose flow is named something else. As with CR-ONT-074/075,
+ * the rule does not evaluate under GPCA's own methodology scope (only three
+ * rule ids do), so the unit test is what proves it fires — the pre-existing
+ * scope behaviour recorded in the plan's §18.4, not a defect in the rule.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
