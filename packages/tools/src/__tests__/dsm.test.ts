@@ -22,7 +22,7 @@ function makeFunctionalModel(): MemoModelDTO {
             // Flow: sf2 detects → sf3 manages alarm
             { id: 'r3', type: 'flow', sourceId: 'sf2', targetId: 'sf3', sourceEnd: '', targetEnd: '', file: '', flowItem: 'AlarmSignal' },
             // Allocation (not included in default filter but present)
-            { id: 'r4', type: 'allocateTo', sourceId: 'sf1', targetId: 'sys', sourceEnd: '', targetEnd: '', file: '' },
+            { id: 'r4', type: 'allocatedTo', sourceId: 'sf1', targetId: 'sys', sourceEnd: '', targetEnd: '', file: '' },
         ],
     };
 }

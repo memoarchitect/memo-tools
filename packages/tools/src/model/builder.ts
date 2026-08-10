@@ -21,11 +21,20 @@
 //   - ActionUsage supports composite actions with nested actions
 //   - FlowConnectionUsage → MemoRelationship of type "flow" with flowItem
 //   - SuccessionUsage → MemoRelationship pairs of type "succession"
-//   - AllocateUsage → MemoRelationship of type "allocateTo"
 //   - ItemDefinition → MemoElement with construct "item"
+//
+// Language-native trace relations:
+//   - AllocateUsage              → MemoRelationship "allocatedTo"
+//   - SatisfyRequirementUsage    → MemoRelationship "satisfiedBy"
+//   - RequirementVerificationMember → MemoRelationship "verifiedBy"
+//   Each is the SAME edge the corresponding MEMO `connection def` produces —
+//   see LANGUAGE_NATIVE_RELATIONS. A model may use either spelling and the
+//   graph is identical, which is what makes the migration off the private
+//   connection defs reversible one file at a time.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
+import { AstUtils } from 'langium';
 import type {
     Model,
     PackageDeclaration,
@@ -57,6 +66,12 @@ import type {
     SuccessionUsage,
     AllocateUsage,
     ControlNodeUsage,
+    SatisfyRequirementUsage,
+    RequirementVerificationMember,
+} from '../language/generated/ast.js';
+import {
+    isRequirementVerificationMember,
+    isSatisfyRequirementUsage,
 } from '../language/generated/ast.js';
 import type { MEMOConfig } from './config.js';
 import type { KindDefinition } from './kind-registry.js';
@@ -73,6 +88,7 @@ import { PackageRegistry } from './package-registry.js';
 import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
+import { LANGUAGE_NATIVE_RELATIONS } from './relationship-registry.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
 import { CONTROL_KIND_METACLASS } from './activity-notation.js';
 import type { ProvenanceTable, SemanticElementProvenance } from './source-provenance.js';
@@ -222,6 +238,15 @@ export function buildMemoModel(
     // Phase 3d: Resolve allocations
     for (const { allocate, filePath, packageName } of deferredAllocates) {
         resolveAllocate(allocate, filePath, packageName, elements, relationships, registry, allElementIds);
+    }
+
+    // Phase 3e: Resolve the native requirement relations. Unlike connections
+    // these are not package members — a `satisfy` sits in the body of the part
+    // that is the design context, and a `verify` in the body of the case that
+    // does the verifying — so they are found by walking containment rather than
+    // by the package-member switch, and their context comes from their owner.
+    for (const { document, filePath } of documents) {
+        resolveNativeTraceUsages(document.parseResult.value, filePath, relationships, registry, allElementIds);
     }
 
     // Keep ownership of a declaration separate from ownership of the type that
@@ -1140,17 +1165,121 @@ function resolveAllocate(
         sourceEl.allocatedTo = targetId;
     }
 
-    const rel: MemoRelationship = {
+    // `allocate a to b;` and `connection : AllocatedTo connect …` are the same
+    // statement, so they produce the same edge. They did not: the native form
+    // emitted `allocateTo` with invented ends while the connection emitted
+    // `allocatedTo` with the ontology's, and consumers keyed on one silently
+    // missed the other — the DHF allocation queries ask for `allocatedTo`.
+    relationships.push(nativeTraceEdge('allocatedTo', sourceId, targetId, filePath));
+}
+
+/** Build the trace edge for a language-native relation, typed from the registry. */
+function nativeTraceEdge(
+    name: keyof typeof LANGUAGE_NATIVE_RELATIONS,
+    sourceId: string,
+    targetId: string,
+    filePath: string,
+): MemoRelationship {
+    const [sourceEnd, targetEnd] = LANGUAGE_NATIVE_RELATIONS[name].ends;
+    return {
         id: `rel-${++relationshipCounter}`,
-        type: 'allocateTo',
+        type: name,
         sourceId,
-        sourceEnd: 'action',
+        sourceEnd: sourceEnd.name,
         targetId,
-        targetEnd: 'part',
+        targetEnd: targetEnd.name,
         file: filePath,
     };
+}
 
-    relationships.push(rel);
+/**
+ * The owner context of a native trace usage: the package it is declared in, and
+ * the nearest enclosing named element.
+ *
+ * `verify` needs the second one — the case that does the verifying is the owner
+ * of the member, never a written end — and `satisfy` needs the first to resolve
+ * its references the way every other endpoint is resolved.
+ */
+function nativeUsageContext(node: { $container?: unknown }): {
+    packageName: string;
+    ownerId?: string;
+} {
+    const packages: string[] = [];
+    let ownerId: string | undefined;
+    for (let current = node.$container as any; current; current = current.$container) {
+        if (current.$type === 'PackageDeclaration') {
+            if (current.name) packages.unshift(current.name as string);
+            continue;
+        }
+        if (ownerId === undefined && typeof current.name === 'string' && current.name) {
+            ownerId = current.name;
+        }
+    }
+    return { packageName: packages.join('::'), ownerId };
+}
+
+/**
+ * Project every `satisfy` and `verify` in a document onto the trace edge its
+ * MEMO connection-def equivalent produces.
+ */
+function resolveNativeTraceUsages(
+    model: Model,
+    filePath: string,
+    relationships: MemoRelationship[],
+    registry: PackageRegistry,
+    allElementIds: Set<string>,
+): void {
+    for (const node of AstUtils.streamAllContents(model)) {
+        if (isSatisfyRequirementUsage(node)) {
+            resolveSatisfy(node, filePath, relationships, registry, allElementIds);
+        } else if (isRequirementVerificationMember(node)) {
+            resolveVerify(node, filePath, relationships, registry, allElementIds);
+        }
+    }
+}
+
+function resolveSatisfy(
+    satisfy: SatisfyRequirementUsage,
+    filePath: string,
+    relationships: MemoRelationship[],
+    registry: PackageRegistry,
+    allElementIds: Set<string>,
+): void {
+    // A negated claim — `assert not satisfy r by p;` — states that the
+    // requirement is NOT satisfied. There is no MEMO connection for it, and
+    // emitting a `satisfiedBy` edge would make a design review's rejection read
+    // as coverage in the traceability matrix. It parses; it contributes no
+    // trace edge until the model has somewhere honest to put it.
+    if (satisfy.isNegated) return;
+
+    const { packageName } = nativeUsageContext(satisfy);
+    const sourceId = resolveEndpointId(satisfy.requirement, packageName, registry, allElementIds);
+    // Without `by`, the satisfying subject is inherited from the enclosing
+    // requirement rather than written. Nothing to bind, so no edge.
+    const targetId = satisfy.satisfyingFeature
+        ? resolveEndpointId(satisfy.satisfyingFeature, packageName, registry, allElementIds)
+        : undefined;
+    if (!sourceId || !targetId) return;
+
+    relationships.push(nativeTraceEdge('satisfiedBy', sourceId, targetId, filePath));
+}
+
+function resolveVerify(
+    verify: RequirementVerificationMember,
+    filePath: string,
+    relationships: MemoRelationship[],
+    registry: PackageRegistry,
+    allElementIds: Set<string>,
+): void {
+    const { packageName, ownerId } = nativeUsageContext(verify);
+    const sourceId = resolveEndpointId(verify.requirement, packageName, registry, allElementIds);
+    // The verifying case is the owner. A `verify` whose owner is not an
+    // extracted element — a bare `verification def`, say — has no second end
+    // to bind, so it stays a parse fact and not a graph fact.
+    const targetId = ownerId ? resolveEndpointId(ownerId, packageName, registry, allElementIds) : undefined;
+    if (!sourceId || !targetId) return;
+
+    relationships.push(nativeTraceEdge('verifiedBy', sourceId, targetId, filePath));
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

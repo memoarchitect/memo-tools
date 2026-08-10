@@ -12,7 +12,7 @@ import type { Violation } from './types.js';
  * Run behavior-specific structural validation.
  *
  * Checks:
- * 1. Unallocated ActionUsage — warning if an action usage has no allocateTo
+ * 1. Unallocated ActionUsage — warning if an action usage has no allocatedTo
  * 2. Orphan ActionUsage — warning if an action has no flow or succession edges
  * 3. Incompatible flow types — error if flow source/target params don't match flow item
  */

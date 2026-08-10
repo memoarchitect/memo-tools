@@ -66,6 +66,13 @@ export interface RelationshipDefinitionDTO {
      * silent, and repeats are refused — see DUPLICATES_ALLOWED_BY_DEFAULT.
      */
     isUnique?: boolean;
+    /**
+     * The SysML v2 keyword that writes this relation natively — `satisfy`,
+     * `verify`, `allocate` — when the language already provides one. Set means
+     * the relation is a usage, not a `connection def` instance, and must not be
+     * serialized as `connection : X connect a to b`.
+     */
+    nativeKeyword?: string;
     /** First declared end — the source/from end. */
     sourceEnd: RelationshipEndDTO;
     /** Second declared end — the target/to end. */

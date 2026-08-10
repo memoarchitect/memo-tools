@@ -16,7 +16,7 @@ function makeTestModel(): MemoModelDTO {
         relationships: [
             { id: 'r1', type: 'traceTo', sourceId: 'B', targetId: 'A', sourceEnd: '', targetEnd: '', file: '' },
             { id: 'r2', type: 'satisfy', sourceId: 'C', targetId: 'B', sourceEnd: '', targetEnd: '', file: '' },
-            { id: 'r3', type: 'allocateTo', sourceId: 'C', targetId: 'D', sourceEnd: '', targetEnd: '', file: '' },
+            { id: 'r3', type: 'allocatedTo', sourceId: 'C', targetId: 'D', sourceEnd: '', targetEnd: '', file: '' },
             { id: 'r4', type: 'mitigates', sourceId: 'D', targetId: 'E', sourceEnd: '', targetEnd: '', file: '' },
         ],
     };
@@ -29,7 +29,7 @@ describe('Impact Analysis', () => {
 
         expect(result.rootId).toBe('C');
         expect(result.rootName).toBe('Function C');
-        // C → B (satisfy), C → D (allocateTo), B → A (traceTo), D → E (mitigates)
+        // C → B (satisfy), C → D (allocatedTo), B → A (traceTo), D → E (mitigates)
         expect(result.nodes.map(n => n.elementId).sort()).toEqual(['A', 'B', 'D', 'E']);
         expect(result.nodes.find(n => n.elementId === 'B')!.depth).toBe(1);
         expect(result.nodes.find(n => n.elementId === 'E')!.depth).toBe(2);
@@ -40,11 +40,11 @@ describe('Impact Analysis', () => {
         const model = makeTestModel();
         const result = computeImpact(model, 'D', 'upstream');
 
-        // D ← C (allocateTo)
+        // D ← C (allocatedTo)
         expect(result.nodes.map(n => n.elementId)).toContain('C');
         // C ← B (satisfy) — B is upstream of C? No, B is a target of C.satisfy
         // Actually: C.satisfy → B, so incoming to B includes C, not incoming to C
-        // C.allocateTo → D, so incoming to D includes C. C upstream.
+        // C.allocatedTo → D, so incoming to D includes C. C upstream.
         // Incoming to C: nothing directly
         expect(result.nodes.length).toBe(1);
         expect(result.nodes[0].elementId).toBe('C');
@@ -91,7 +91,7 @@ describe('Impact Analysis', () => {
 
         expect(result.edges.length).toBeGreaterThanOrEqual(3);
         expect(result.edges.some(e => e.relType === 'satisfy')).toBe(true);
-        expect(result.edges.some(e => e.relType === 'allocateTo')).toBe(true);
+        expect(result.edges.some(e => e.relType === 'allocatedTo')).toBe(true);
         expect(result.edges.some(e => e.relType === 'mitigates')).toBe(true);
     });
 });

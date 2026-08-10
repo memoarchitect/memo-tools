@@ -583,7 +583,7 @@ describe('Dotted feature-chain endpoints', () => {
 
     it('resolves dotted allocate endpoints to leaf element ids', async () => {
         const model = buildMemoModel([await parseDoc(source)], testConfig);
-        const allocations = model.relationships.filter(r => r.type === 'allocateTo');
+        const allocations = model.relationships.filter(r => r.type === 'allocatedTo');
         expect(allocations.map(r => r.sourceId).sort()).toEqual(['receive', 'stepA']);
         expect(model.elements.get('receive')?.allocatedTo).toBe('laneA');
         expect(model.elements.get('stepA')?.allocatedTo).toBe('laneA');

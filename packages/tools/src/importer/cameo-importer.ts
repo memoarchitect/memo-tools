@@ -116,7 +116,7 @@ const XMI_REL_MAP: Record<string, string> = {
     'sysml:DeriveReqt': 'derives',
     'sysml:Refine': 'refines',
     'sysml:Trace': 'traceTo',
-    'sysml:Allocate': 'allocateTo',
+    'sysml:Allocate': 'allocatedTo',
     'sysml:Copy': 'traceTo',
 };
 

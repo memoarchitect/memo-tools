@@ -79,6 +79,14 @@ export interface RelationshipRegistryEntry {
     isUnique?: boolean;
     /** Supertype connection definition, when the relationship specializes one */
     superType?: string;
+    /**
+     * The SysML v2 keyword that writes this relation natively, when the language
+     * already provides one — `satisfy`, `verify`, `allocate`. A relation with a
+     * keyword is a *usage*, not a `connection def` instance: it must never be
+     * serialized as `connection : X connect a to b`, whatever the ontology
+     * happens to still declare alongside it.
+     */
+    nativeKeyword?: string;
     /** End names from the connection definition */
     ends: RelationshipEnd[];
     /**
@@ -89,6 +97,62 @@ export interface RelationshipRegistryEntry {
      */
     attributes?: string[];
 }
+
+/**
+ * The relations SysML v2 already writes with a keyword, and the MEMO trace edge
+ * each one produces.
+ *
+ * The end names and types mirror `memo_core_relationships`' `SatisfiedBy`,
+ * `VerifiedBy`, and `AllocatedTo`, because both spellings must produce the same
+ * graph — a model that says `satisfy r by p;` and one that says
+ * `connection : SatisfiedBy connect requiredElement ::> r to satisfyingElement
+ * ::> p;` are the same statement, and nothing downstream should be able to tell
+ * them apart. MEMO's end typing is stricter than the standard's
+ * (`MemoRequirementElement -> ArchitectureElement` against
+ * `RequirementUsage -> Feature`); keeping it here is what preserves that
+ * strictness once the connection defs are retired.
+ */
+export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
+    keyword: string;
+    sysmlName: string;
+    layer: string;
+    description: string;
+    ends: RelationshipEnd[];
+}> = {
+    satisfiedBy: {
+        keyword: 'satisfy',
+        sysmlName: 'SatisfiedBy',
+        layer: 'core',
+        description: 'A requirement is satisfied by an architecture element. '
+            + 'Written natively as `satisfy <requirement> by <element>;`.',
+        ends: [
+            { name: 'requiredElement', type: 'MemoRequirementElement' },
+            { name: 'satisfyingElement', type: 'ArchitectureElement' },
+        ],
+    },
+    verifiedBy: {
+        keyword: 'verify',
+        sysmlName: 'VerifiedBy',
+        layer: 'core',
+        description: 'An element is verified by a verification case. '
+            + 'Written natively as `verify <requirement>;` inside the case.',
+        ends: [
+            { name: 'verificationTarget', type: 'MemoPart' },
+            { name: 'verificationCase', type: 'MemoVerificationCase' },
+        ],
+    },
+    allocatedTo: {
+        keyword: 'allocate',
+        sysmlName: 'AllocatedTo',
+        layer: 'core',
+        description: 'A function is allocated to an architecture element. '
+            + 'Written natively as `allocate <source> to <target>;`.',
+        ends: [
+            { name: 'function', type: 'ArchitectureElement' },
+            { name: 'allocatedElement', type: 'ArchitectureElement' },
+        ],
+    },
+};
 
 /**
  * Convert PascalCase to camelCase.
@@ -234,6 +298,7 @@ export class RelationshipRegistry {
             isAbstract: entry.isAbstract,
             isReflexive: this.inherited(entry, 'isReflexive'),
             isUnique: this.inherited(entry, 'isUnique'),
+            nativeKeyword: entry.nativeKeyword,
             sourceEnd: toEndDTO(entry.ends[0], 'source'),
             targetEnd: toEndDTO(entry.ends[1], 'target'),
         }));
@@ -281,6 +346,43 @@ export class RelationshipRegistry {
                     this.walkPackage(member, layer);
                 }
             }
+        }
+        this.registerLanguageNatives();
+    }
+
+    /**
+     * Record the three relations SysML v2 spells with a keyword.
+     *
+     * The registry otherwise derives everything from `connection def`s, and
+     * `satisfy` / `verify` / `allocate` are usages — there is no definition to
+     * walk, so nothing would report them. That is not a cosmetic gap: the
+     * writer decides how to serialize a relation from its registry entry, and
+     * an entry that looks like every other connection def gets written as
+     * `connection : SatisfiedBy connect …` even when the source said `satisfy`.
+     *
+     * While the ontology still declares `SatisfiedBy` / `VerifiedBy` /
+     * `AllocatedTo` the derived entry is kept and only stamped with its
+     * keyword — the ends, layer, and doc comment it carries are real ontology
+     * facts and are better than anything invented here. When those definitions
+     * are deleted the synthetic entry stands on its own, so the relation does
+     * not vanish from the registry along with its retired spelling.
+     */
+    private registerLanguageNatives(): void {
+        for (const [name, native] of Object.entries(LANGUAGE_NATIVE_RELATIONS)) {
+            const existing = this.relTypes.get(name);
+            if (existing) {
+                existing.nativeKeyword = native.keyword;
+                continue;
+            }
+            this.relTypes.set(name, {
+                sysmlName: native.sysmlName,
+                name,
+                label: pascalToLabel(native.sysmlName),
+                layer: native.layer,
+                description: native.description,
+                nativeKeyword: native.keyword,
+                ends: native.ends,
+            });
         }
     }
 

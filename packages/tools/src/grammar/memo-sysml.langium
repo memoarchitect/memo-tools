@@ -74,6 +74,7 @@ PackageMember:
     | SuccessionUsage
     | ConnectionUsage
     | AllocateUsage
+    | SatisfyRequirementUsage
     | MetadataApplication
     | DocComment;
 
@@ -219,6 +220,7 @@ EnumLiteralName returns string:
     | 'in' | 'out' | 'inout' | 'part' | 'requirement' | 'action' | 'item' | 'port'
     | 'interface' | 'connection' | 'attribute' | 'constraint' | 'enum' | 'view' | 'viewpoint'
     | 'ref' | 'import' | 'package' | 'flow' | 'first' | 'allocate' | 'library' | 'private' | 'public' | 'state' | 'verification'
+    | 'satisfy' | 'verify'
     | 'use' | 'fork' | 'join';
 
 // ─── Usages (instances) ─────────────────────────────────────────────────────
@@ -405,6 +407,41 @@ SuccessionRef returns string:
 AllocateUsage:
     'allocate' source=ReferenceName 'to' target=ReferenceName ';';
 
+// ─── Requirements: native satisfaction and verification ─────────────────────
+//
+// The two relations SysML v2 already provides for requirement traceability.
+// MEMO spells them today as the `SatisfiedBy` / `VerifiedBy` connection defs;
+// the language spells them as usages, and every conforming tool reads the
+// language spelling. Both parse, and the model builder projects both onto the
+// same trace edge, so a model may use either while the migration runs.
+//
+// `SatisfyRequirementUsage` (SysML-textual-bnf.kebnf:1470) declares the
+// assertion prefix as `'assert' ('not')?`. The normative training files write
+// the bare form — `satisfy vehicleSpecification by vehicle_design;`
+// ("32. Requirements/Requirement Satisfaction.sysml") — so the prefix is
+// optional here and `isNegated` records a negative satisfaction claim, which
+// is the property a `connection def` cannot express at all.
+//
+// The `by` part is optional in the normative grammar: inside a requirement
+// body the satisfying subject is inherited rather than restated.
+SatisfyRequirementUsage:
+    (isAsserted?='assert' isNegated?='not'?)? 'satisfy' requirement=ReferenceName
+    ('by' satisfyingFeature=ReferenceName)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+// `RequirementVerificationMember` (SysML-textual-bnf.kebnf:1551) is a member of
+// a requirement body — in practice the `objective` of a verification case:
+//
+//   verification def VehicleMassTest {
+//       objective { verify vehicleMassRequirement; }
+//   }
+//
+// The verifying case is the enclosing element, not a written end, so the
+// builder takes it from the containment.
+RequirementVerificationMember:
+    'verify' requirement=ReferenceName
+    ('{' body+=UsageBodyMember* '}' | ';');
+
 // Element references may be package-qualified (`a::b`) or feature-qualified
 // (`action.step`). Both forms occur in standard SysML relationship ends.
 ReferenceName returns string:
@@ -413,7 +450,7 @@ ReferenceName returns string:
 // ─── Body members ────────────────────────────────────────────────────────────
 
 DefinitionBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | RefMember | RequireConstraintMember | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | RefMember | RequireConstraintMember | RequirementVerificationMember | MetadataApplication | DocComment;
 
 // ─── Constraint expression (KerML boolean subset — ADR-1-18) ─────────────────
 // Authored inside constraint def / requirement def bodies as:
@@ -457,7 +494,7 @@ PrimaryExpr infers ConstraintExpr:
 // value — the bare `name = value;` shorthand is non-standard and is not accepted.
 // Use `attribute redefines name = value;` (the form the serializer emits).
 UsageBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | SuccessionUsage | ConnectionUsage | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | MetadataApplication | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
 // Three forms:

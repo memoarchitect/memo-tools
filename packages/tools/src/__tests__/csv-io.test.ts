@@ -40,7 +40,7 @@ const testOntology: OntologyView = {
     relationshipTypes: [
         { name: 'mitigates', label: 'Mitigates', layer: 'risk', color: '#E74C3C' },
         { name: 'traceTo', label: 'Trace To', layer: 'requirements', color: '#4A90D9' },
-        { name: 'allocateTo', label: 'Allocate To', layer: 'functional', color: '#E67E22' },
+        { name: 'allocatedTo', label: 'Allocate To', layer: 'functional', color: '#E67E22' },
     ],
 };
 

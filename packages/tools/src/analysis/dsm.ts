@@ -35,14 +35,14 @@ export interface DSMResult {
 export interface DSMOptions {
     /** Element kinds to include (default: functional kinds) */
     kinds?: string[];
-    /** Relationship types to count as dependencies (default: flow, decomposedBy, allocateTo) */
+    /** Relationship types to count as dependencies (default: flow, decomposedBy, allocatedTo) */
     relationshipTypes?: string[];
     /** Whether to run clustering (default: true) */
     cluster?: boolean;
 }
 
 const DEFAULT_KINDS = ['Function', 'Function', 'ActionDefinition', 'ActionUsage'];
-const DEFAULT_REL_TYPES = ['flow', 'decomposedBy', 'composedOf', 'allocateTo', 'succession'];
+const DEFAULT_REL_TYPES = ['flow', 'decomposedBy', 'composedOf', 'allocatedTo', 'succession'];
 
 /**
  * Compute a Design Structure Matrix from model elements and relationships.

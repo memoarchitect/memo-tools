@@ -108,7 +108,7 @@ const EA_CONNECTOR_MAP: Record<string, string> = {
     'Derive': 'derives',
     'Satisfy': 'satisfy',
     'Verify': 'verify',
-    'Allocate': 'allocateTo',
+    'Allocate': 'allocatedTo',
     'Refine': 'refines',
     'InformationFlow': 'carriesExchangeItem',
 };

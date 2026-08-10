@@ -225,15 +225,15 @@ describe('Behavior grammar: fork/join control nodes', () => {
         const doc = await parse(`
             package Test {
                 action prepare {
-                    action verify : VerifyAction;
+                    action checkDose : VerifyAction;
                     fork splitPrep;
                     action primePump : PrimeAction;
                     action selfTest : TestAction;
                     join syncPrep;
                     action program : ProgramAction;
 
-                    first start then verify;
-                    first verify then splitPrep;
+                    first start then checkDose;
+                    first checkDose then splitPrep;
                     first splitPrep then primePump;
                     first splitPrep then selfTest;
                     first primePump then syncPrep;
@@ -480,13 +480,13 @@ describe('Behavior builder: control nodes', () => {
         const doc = await parseDoc(`
             package Test {
                 action prepare {
-                    action verify : VerifyAction;
+                    action checkDose : VerifyAction;
                     fork splitPrep;
                     action primePump : PrimeAction;
                     action selfTest : TestAction;
                     join syncPrep;
 
-                    first verify then splitPrep;
+                    first checkDose then splitPrep;
                     first splitPrep then primePump;
                     first splitPrep then selfTest;
                     first primePump then syncPrep;
@@ -626,7 +626,7 @@ describe('Behavior builder: successions', () => {
 });
 
 describe('Behavior builder: allocations', () => {
-    it('creates allocateTo relationships', async () => {
+    it('creates allocatedTo relationships', async () => {
         const doc = await parseDoc(`
             package Test {
                 action validate : SystemFunction;
@@ -636,7 +636,7 @@ describe('Behavior builder: allocations', () => {
         `);
         const model = buildMemoModel([doc], behaviorConfig);
 
-        const allocRels = model.relationships.filter(r => r.type === 'allocateTo');
+        const allocRels = model.relationships.filter(r => r.type === 'allocatedTo');
         expect(allocRels).toHaveLength(1);
         expect(allocRels[0].sourceId).toBe('validate');
         expect(allocRels[0].targetId).toBe('sw');
@@ -668,7 +668,7 @@ describe('Behavior builder: allocations', () => {
             }
         `);
         const model = buildMemoModel([doc], behaviorConfig);
-        const allocRels = model.relationships.filter(r => r.type === 'allocateTo');
+        const allocRels = model.relationships.filter(r => r.type === 'allocatedTo');
         expect(allocRels).toHaveLength(2);
     });
 });
