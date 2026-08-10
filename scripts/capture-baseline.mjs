@@ -148,6 +148,34 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-10 (fourth time today) — one fixture, for the
+ * removal of ComponentExchange's string port paths (§13.3, plan §19.4).
+ *
+ * `sourcePortPath` / `targetPortPath` were Strings — "TLM.TLM_MODE_OUT" and the
+ * like. Nothing can follow a string to an element, so everything built on them
+ * produced no traceability. Measured over the 92 sites before removal: 23 only
+ * restated the endpoint the ref already named, and 69 named a port ON the
+ * endpoint component, resolving to 49 distinct AADL features that existed
+ * nowhere else in the model. Deleting the strings without first declaring those
+ * 49 would have deleted the GPCA_SW.Impl feature topology from the example.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | +49 elements, all `SoftwarePort`; `layerCounts.logical` 126 → 175 | The 49 AADL software-module features, declared as real ports — which Track A1 making SoftwarePort a `port def` is what allows. |
+ * | gpca | +49 `composes` | Each module owns the features it declares, the same shape as the existing gpcaSoftware → top-level-port composition. |
+ * | gpca | violations unchanged | The additions are well-formed content, and CR-ONT-072/073 already resolve exchange endpoints through `allOfKind('MemoPort')`. |
+ *
+ * Nothing else moved, and the two checks that matter were run rather than
+ * assumed: the DSM is unchanged in all four example projects, and across the
+ * complete per-type traceability tables the ONLY delta is those +49 `composes`
+ * — **zero removals**, so no pre-existing edge changed type, endpoints, or
+ * disappeared. The 69 re-pointed exchange endpoints move an attribute value,
+ * not an edge.
+ *
+ * `ui-regions`, `default`, and `extension-clinical` did not move.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
