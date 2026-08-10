@@ -1375,6 +1375,34 @@
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
+        "id": "docHrs",
+        "kind": "MarkdownDocumentSource",
+        "construct": "part",
+        "layer": "artifacts",
+        "package": "memo_examples_gpca_pump_gpca_standards"
+      },
+      {
+        "id": "docRmf",
+        "kind": "MarkdownDocumentSource",
+        "construct": "part",
+        "layer": "artifacts",
+        "package": "memo_examples_gpca_pump_gpca_standards"
+      },
+      {
+        "id": "docSad",
+        "kind": "MarkdownDocumentSource",
+        "construct": "part",
+        "layer": "artifacts",
+        "package": "memo_examples_gpca_pump_gpca_standards"
+      },
+      {
+        "id": "docSrs",
+        "kind": "MarkdownDocumentSource",
+        "construct": "part",
+        "layer": "artifacts",
+        "package": "memo_examples_gpca_pump_gpca_standards"
+      },
+      {
         "id": "doorInterlockControl",
         "kind": "RiskControlMeasure",
         "construct": "part",
@@ -4745,6 +4773,31 @@
     "relationships": [
       {
         "type": "allocatedTo",
+        "sourceId": "acquireSensors",
+        "targetId": "gpcaDeviceSensors"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "actuateMotor",
+        "targetId": "pumpMotorAssembly"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "computeFlow",
+        "targetId": "infusionMgr"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "enforceLimits",
+        "targetId": "infusionMgr"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "evaluateAlarms",
+        "targetId": "alarm"
+      },
+      {
+        "type": "allocatedTo",
         "sourceId": "fnAcquireSensors",
         "targetId": "gpcaDeviceSensors"
       },
@@ -4829,32 +4882,7 @@
         "targetId": "exSensorVector"
       },
       {
-        "type": "allocateTo",
-        "sourceId": "acquireSensors",
-        "targetId": "gpcaDeviceSensors"
-      },
-      {
-        "type": "allocateTo",
-        "sourceId": "actuateMotor",
-        "targetId": "pumpMotorAssembly"
-      },
-      {
-        "type": "allocateTo",
-        "sourceId": "computeFlow",
-        "targetId": "infusionMgr"
-      },
-      {
-        "type": "allocateTo",
-        "sourceId": "enforceLimits",
-        "targetId": "infusionMgr"
-      },
-      {
-        "type": "allocateTo",
-        "sourceId": "evaluateAlarms",
-        "targetId": "alarm"
-      },
-      {
-        "type": "allocateTo",
+        "type": "allocatedTo",
         "sourceId": "logEvent",
         "targetId": "logging"
       },
@@ -5297,6 +5325,161 @@
         "type": "composes",
         "sourceId": "wfRespondToTherapyAlarm",
         "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "airDetectionControl",
+        "targetId": "iso14971Clause7"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "antiFreeFlowValve",
+        "targetId": "iec60601_1Clause9"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "batteryPack",
+        "targetId": "iec60601_1Clause8"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "config",
+        "targetId": "iec62304Clause5_3"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "controllerBoard",
+        "targetId": "iec60601_1_2Clause7"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "controllerBoard",
+        "targetId": "iec60601_1_2Clause8"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "doorInterlockControl",
+        "targetId": "iso14971Clause7"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "enclosure",
+        "targetId": "iec60601_1Clause9"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "flowCrossCheckControl",
+        "targetId": "iso14971Clause7"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "freeFlowValveControl",
+        "targetId": "iso14971Clause7"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "gpcaSoftware",
+        "targetId": "iec60601_1Clause14"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "gpcaSoftware",
+        "targetId": "iec62304Clause5_3"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "infusionMgr",
+        "targetId": "iec62304Clause5_3"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "lockoutControl",
+        "targetId": "iso14971Clause7"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "occlusionAlarmControl",
+        "targetId": "iso14971Clause7"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "powerSupply",
+        "targetId": "iec60601_1Clause8"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqBatteryBackup",
+        "targetId": "iec60601_1Clause8"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqDoorOpen",
+        "targetId": "iec62304Clause5_2_2"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqEventLogging",
+        "targetId": "iec62304Clause5_2_2"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqFlowCrossCheck",
+        "targetId": "iec62304Clause5_2_2"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqFlowCrossCheck",
+        "targetId": "iec62304Clause5_2_3"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqFreeFlowPrevention",
+        "targetId": "iec60601_1Clause9"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqMaxHourlyDose",
+        "targetId": "iec62304Clause5_2_2"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqOcclusion",
+        "targetId": "iec62304Clause5_2_2"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqPost",
+        "targetId": "iec60601_1_2Clause8"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqStuckButton",
+        "targetId": "iec62304Clause5_2_2"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqWatchdogSafeState",
+        "targetId": "iec62304Clause5_2_2"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "reqWatchdogSafeState",
+        "targetId": "iec62304Clause5_2_3"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "systemMonitor",
+        "targetId": "iec62304Clause5_3"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "tlm",
+        "targetId": "iec62304Clause5_3"
+      },
+      {
+        "type": "conformsTo",
+        "sourceId": "watchdogControl",
+        "targetId": "iso14971Clause7"
       },
       {
         "type": "connectsPhysically",
@@ -8009,6 +8192,46 @@
         "targetId": "seqMisprogram"
       },
       {
+        "type": "tracesToDocument",
+        "sourceId": "iec60601_1_2Clause7",
+        "targetId": "docHrs"
+      },
+      {
+        "type": "tracesToDocument",
+        "sourceId": "iec60601_1Clause14",
+        "targetId": "docSad"
+      },
+      {
+        "type": "tracesToDocument",
+        "sourceId": "iec60601_1Clause8",
+        "targetId": "docHrs"
+      },
+      {
+        "type": "tracesToDocument",
+        "sourceId": "iec60601_1Clause9",
+        "targetId": "docHrs"
+      },
+      {
+        "type": "tracesToDocument",
+        "sourceId": "iec62304Clause5_2_2",
+        "targetId": "docSrs"
+      },
+      {
+        "type": "tracesToDocument",
+        "sourceId": "iec62304Clause5_2_3",
+        "targetId": "docSrs"
+      },
+      {
+        "type": "tracesToDocument",
+        "sourceId": "iec62304Clause5_3",
+        "targetId": "docSad"
+      },
+      {
+        "type": "tracesToDocument",
+        "sourceId": "iso14971Clause7",
+        "targetId": "docRmf"
+      },
+      {
         "type": "validates",
         "sourceId": "reqCs09",
         "targetId": "valSummativeUsability"
@@ -8329,6 +8552,7 @@
       "Interface": 14,
       "InterfaceItem": 54,
       "LogicalComponent": 5,
+      "MarkdownDocumentSource": 4,
       "MemoCybersecurityAssessmentView": 1,
       "MemoCybersecurityThreatModelView": 1,
       "MemoDiagramView": 17,
@@ -8381,6 +8605,7 @@
       "WorkflowStep": 4
     },
     "layerCounts": {
+      "artifacts": 4,
       "behavior": 29,
       "core": 9,
       "cybersecurity": 11,
@@ -8938,7 +9163,7 @@
   },
   "errors": [],
   "summary": {
-    "elements": 677,
+    "elements": 681,
     "completeness": 100
   }
 }

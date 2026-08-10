@@ -16,6 +16,13 @@
 //   - Literals: integer, string ("…"), boolean.
 //   - `subject` root reference and `allOfKind("Kind")` extent accessor — these give
 //     uniqueAttribute-class rules a native form (EE-3 migration contract).
+//   - `sourcesOf(rel)` / `targetsOf(rel)` — the elements at one DECLARED end of a
+//     relation's links, and `conformsTo(Kind)` — SysML specialization conformance
+//     of the current element. Together these let a rule state what may sit at a
+//     relation's end, which is what the ontology asserted through end TYPES until
+//     the ends had to be relaxed for ports, behaviours, and actors (ARCADIA plan
+//     Track A0). They are generic operators; which relation and which kind come
+//     from the ontology rule, never from a table here.
 //
 // Navigation semantics (matches ClosureRule direction default 'any'):
 //   a feature-chain segment resolves to a RELATIONSHIP (collection, either
@@ -160,6 +167,10 @@ type Node =
     /** All elements of a named kind (the kind extent). */
     | { kind: 'allOfKind'; kindName: string }
     | { kind: 'acyclic'; relationshipType: string }
+    /** Elements standing at one declared end of every link of a relation. */
+    | { kind: 'endsOf'; relationshipType: string; side: 'source' | 'target' }
+    /** True when the current element's kind is, or specializes, a named kind. */
+    | { kind: 'conformsTo'; kindName: string }
     | { kind: 'method'; target: Node; name: 'size' | 'notEmpty' | 'isEmpty' }
     | { kind: 'quant'; target: Node; name: 'forAll' | 'exists' | 'select'; body: Node }
     | { kind: 'arith'; op: ArithOp; left: Node; right: Node }
@@ -306,6 +317,30 @@ export function parseConstraintExpression(src: string): Node {
                 expect(')');
                 return { kind: 'acyclic', relationshipType };
             }
+            // `sourcesOf(rel)` / `targetsOf(rel)` quantify over the LINKS of a
+            // relation rather than over elements of one kind, which is what a
+            // rule about a relation's ends needs and what no element-scoped
+            // predicate can reach. Bare identifier argument, like `acyclic`.
+            if (tok.v === 'sourcesOf' || tok.v === 'targetsOf') {
+                const side = tok.v === 'sourcesOf' ? 'source' : 'target';
+                next();
+                expect('(');
+                const relationshipType = expect('ident').v!;
+                expect(')');
+                return { kind: 'endsOf', relationshipType, side };
+            }
+            // `conformsTo(Kind)` is SysML specialization, not kind equality:
+            // it holds for the named kind and everything that specializes it.
+            // Without it a rule could only compare `kind == "SoftwareModule"`,
+            // which is an enumeration of subtypes hardcoded in the ontology —
+            // the thing type-checking existed to avoid.
+            if (tok.v === 'conformsTo') {
+                next();
+                expect('(');
+                const kindName = expect('ident').v!;
+                expect(')');
+                return { kind: 'conformsTo', kindName };
+            }
             if (KEYWORDS.has(tok.v!)) throw new Error(`Unexpected keyword '${tok.v}'`);
             return parseFeature();
         }
@@ -338,6 +373,8 @@ function evalNode(node: Node, env: Env, model: MemoModel): Value {
         case 'feature': return resolveFeature(node.root === 'subject' ? env.root : env.current, node.segments, model);
         case 'allOfKind': return model.elementsByKind.get(node.kindName) ?? [];
         case 'acyclic': return relationshipAcyclic(model, node.relationshipType);
+        case 'endsOf': return relationshipEnds(model, node.relationshipType, node.side);
+        case 'conformsTo': return kindExtent(model, node.kindName).has(env.current.id);
         case 'method': {
             const len = lengthOf(evalNode(node.target, env, model));
             if (node.name === 'size') return len;
@@ -366,6 +403,46 @@ function evalNode(node: Node, env: Env, model: MemoModel): Value {
         case 'or': return toBool(evalNode(node.left, env, model)) || toBool(evalNode(node.right, env, model));
         case 'not': return !toBool(evalNode(node.operand, env, model));
     }
+}
+
+/**
+ * The elements standing at one DECLARED end of every link of a relation.
+ *
+ * Directional on purpose, unlike {@link navigate}: a rule about what may sit at
+ * a relation's source end is a different statement from one about its target
+ * end, and reading both through the bidirectional name would make the two
+ * indistinguishable. Duplicates are dropped — an element that is the source of
+ * forty links is one subject for a type question.
+ */
+function relationshipEnds(model: MemoModel, relationshipType: string, side: 'source' | 'target'): MemoElement[] {
+    const want = relationshipType.toLowerCase();
+    const out = new Map<string, MemoElement>();
+    for (const relationship of model.relationships) {
+        if (relationship.type.toLowerCase() !== want) continue;
+        const element = model.elements.get(side === 'source' ? relationship.sourceId : relationship.targetId);
+        if (element) out.set(element.id, element);
+    }
+    return [...out.values()];
+}
+
+/**
+ * Element ids conforming to a kind, including everything that specializes it.
+ *
+ * `elementsByKind` already carries the inherited extents when the caller passed
+ * a KindRegistry (see {@link withSpecializationExtents}); the exact-kind bucket
+ * is unioned in so a leaf kind with no subtypes still answers. Cached per model
+ * because a `->forAll(conformsTo(…))` asks the same question once per end.
+ */
+const kindExtentCache = new WeakMap<MemoModel, Map<string, Set<string>>>();
+function kindExtent(model: MemoModel, kindName: string): Set<string> {
+    let perModel = kindExtentCache.get(model);
+    if (!perModel) kindExtentCache.set(model, perModel = new Map());
+    let extent = perModel.get(kindName);
+    if (!extent) {
+        extent = new Set((model.elementsByKind.get(kindName) ?? []).map(element => element.id));
+        perModel.set(kindName, extent);
+    }
+    return extent;
 }
 
 function relationshipAcyclic(model: MemoModel, relationshipType: string): boolean {

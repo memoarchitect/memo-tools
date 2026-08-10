@@ -262,19 +262,42 @@ describe('MEMO ontology relationship properties', () => {
     // earn its exemption. `memo_relationships.sysml` states the reason inline
     // above every entry here; adding a name to this list without one is a bug.
     //
-    //   MemoLink       — the fully generic escape hatch (both ends untyped).
-    //   Mitigates      — controls and hazards may be item defs (both ends untyped).
-    //   Realizes       — realization crosses structural and behavioral metaclasses.
-    //   Validates      — target is a requirement or an operational behavior.
-    //   DerivesFrom    — target may be a Need, which is a requirement def.
-    //   SatisfiedBy    — source may be a Need alongside Requirement.
-    //   Mitigates      — source may be a control, an action, or an FMEA action;
-    //                    its TARGET is now typed to RiskItem.
-    const UNTYPED_END_EXEMPTIONS = ['MemoLink', 'Mitigates', 'Realizes', 'Validates', 'DerivesFrom', 'SatisfiedBy'];
-    // Relations with BOTH ends untyped. Mitigates left this set when its target
-    // end was typed to RiskItem; only decomposition-style relations that
-    // genuinely cross every metaclass remain.
-    const FULLY_UNTYPED = ['MemoLink', 'Realizes'];
+    // Most of this list is Track A0 (plans/memo-arcadia-native-coverage.md §6):
+    // KerML forbids a port or a behaviour from specializing a part-based type,
+    // so a `MemoPart`-typed end forced every endpoint to be a part — which is
+    // why ports are part defs, why a function is a part with a separate action
+    // stapled to it, and why allocating a function to an actor is rejected. The
+    // constraints those types carried are now CR-ONT-060..073 in
+    // memo/src/rules/ontology/ontology_invariants.sysml, and
+    // relation-end-strictness.test.ts is what proves they fire. An end that
+    // loses its type WITHOUT a rule is the regression this exemption list
+    // exists to make visible.
+    //
+    //   MemoLink            — the fully generic escape hatch (both ends untyped).
+    //   Mitigates           — controls and hazards may be item defs.
+    //   Realizes            — realization crosses structural and behavioral metaclasses.
+    //   Validates           — target is a requirement or an operational behavior.
+    //   DerivesFrom         — target may be a Need, which is a requirement def.
+    //   SatisfiedBy         — A0: satisfied by a component, a port, a behaviour, or an actor.
+    //   VerifiedBy          — A0: most verification targets are requirement defs, not parts.
+    //   AllocatedTo         — A0: a function is a behaviour; an actor is not an ArchitectureElement.
+    //   Composes            — A0: a component owns ports, a workflow owns action steps.
+    //   Precedes            — A0: precedence orders behaviours as well as parts.
+    //   Performs            — A0: the performer may be a system action, as its own doc said.
+    //   Enables             — A0: an enabling function is a behaviour.
+    //   BindsToInterface    — A0: the bound end is an `interface def`, which no part type can hold.
+    //   CrossesTrustBoundary — A0: the boundary becomes a port def in A1.
+    const UNTYPED_END_EXEMPTIONS = [
+        'MemoLink', 'Mitigates', 'Realizes', 'Validates', 'DerivesFrom',
+        'SatisfiedBy', 'VerifiedBy', 'AllocatedTo', 'Composes', 'Precedes',
+        'Performs', 'Enables', 'BindsToInterface', 'CrossesTrustBoundary',
+    ];
+    // Relations with BOTH ends untyped: the ones whose two ends each cross a
+    // metaclass boundary. Six of the seven joined this set in A0.
+    const FULLY_UNTYPED = [
+        'MemoLink', 'Realizes', 'AllocatedTo', 'Composes', 'Precedes',
+        'BindsToInterface', 'CrossesTrustBoundary',
+    ];
 
     it('keeps the universal relation identifiable among fully untyped relations', async () => {
         const source = readFileSync(

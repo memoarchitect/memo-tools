@@ -562,6 +562,11 @@
         "targetId": "hzWrongDrug"
       },
       {
+        "type": "changes",
+        "sourceId": "uiElement12",
+        "targetId": "reqDrugIdentityDisplay"
+      },
+      {
         "type": "commentsOn",
         "sourceId": "cmtDecimalSalience",
         "targetId": "elMainScreen"
@@ -920,6 +925,11 @@
         "type": "satisfiedBy",
         "sourceId": "reqVolumeDisplay",
         "targetId": "fnPresentDeliveryStatus"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "uiElement12",
+        "targetId": "reqDrugIdentityDisplay"
       },
       {
         "type": "verifiedBy",

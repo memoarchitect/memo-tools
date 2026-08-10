@@ -107,10 +107,15 @@ export interface RelationshipRegistryEntry {
  * graph — a model that says `satisfy r by p;` and one that says
  * `connection : SatisfiedBy connect requiredElement ::> r to satisfyingElement
  * ::> p;` are the same statement, and nothing downstream should be able to tell
- * them apart. MEMO's end typing is stricter than the standard's
- * (`MemoRequirementElement -> ArchitectureElement` against
- * `RequirementUsage -> Feature`); keeping it here is what preserves that
- * strictness once the connection defs are retired.
+ * them apart.
+ *
+ * The ends that the ontology relaxed are relaxed here too, and for the same
+ * reason (ARCADIA plan Track A0): a part-typed end cannot admit a port, a
+ * behaviour, or an actor, and MEMO needs all three. The strictness did not move
+ * into this table — it moved to CR-ONT-060..073 in the ontology's own rules,
+ * where it can be stated across metaclasses. Re-tightening these ends would
+ * silently re-impose the constraint A0 removed, on the day the connection defs
+ * are retired and this table stops being a fallback.
  */
 export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
     keyword: string;
@@ -127,7 +132,7 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             + 'Written natively as `satisfy <requirement> by <element>;`.',
         ends: [
             { name: 'requiredElement', type: 'MemoRequirementElement' },
-            { name: 'satisfyingElement', type: 'ArchitectureElement' },
+            { name: 'satisfyingElement' },
         ],
     },
     verifiedBy: {
@@ -137,7 +142,7 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
         description: 'An element is verified by a verification case. '
             + 'Written natively as `verify <requirement>;` inside the case.',
         ends: [
-            { name: 'verificationTarget', type: 'MemoPart' },
+            { name: 'verificationTarget' },
             { name: 'verificationCase', type: 'MemoVerificationCase' },
         ],
     },
@@ -148,8 +153,8 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
         description: 'A function is allocated to an architecture element. '
             + 'Written natively as `allocate <source> to <target>;`.',
         ends: [
-            { name: 'function', type: 'ArchitectureElement' },
-            { name: 'allocatedElement', type: 'ArchitectureElement' },
+            { name: 'function' },
+            { name: 'allocatedElement' },
         ],
     },
 };

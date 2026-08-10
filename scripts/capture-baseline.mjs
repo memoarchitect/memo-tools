@@ -70,6 +70,31 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-10 — three fixtures, start of the ARCADIA
+ * native-coverage programme (plans/memo-arcadia-native-coverage.md, session 1).
+ *
+ * The baselines had gone red again for work that landed between the 2026-08-02
+ * re-freeze and now: the standards-conformance engine, the UI-screen-regions
+ * relationships, the lean rearchitecture's relation unification, and the
+ * removal of the COV-* coverage rules. Every "byte-identical" gate in the
+ * ARCADIA plan and in memo-native-requirement-relations reads this oracle, and
+ * an oracle that fails for four known reasons cannot report a fifth. Each
+ * difference below was traced to the change that caused it before re-freezing;
+ * anything not on this list is a regression.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | +4 elements, all `MarkdownDocumentSource` in layer `artifacts` | `gpca_standards.sysml` declares the four DHF document sources (HRS, RMF, SAD, SRS) the clause tables trace into. Standards-conformance work, "Un-park the clause-traceability tables and give them edges to show". |
+ * | gpca | +31 `conformsTo`, +8 `tracesToDocument` | The clause-traceability edges those tables exist to carry. Same change; they were declared but unreachable before. |
+ * | gpca | 6 `allocateTo` → 6 `allocatedTo` | Rename, not a re-link: same six source/target pairs. The `connection def` is `AllocatedTo`, so the registry's camelCase name is `allocatedTo`, and the native `allocate … to …` builder path now agrees with it. `allocateTo` was the defect — the two spellings of one statement were producing two different edge types. |
+ * | gpca | violations unchanged (106, 1 error) | Nothing above is rule-visible, which is the check that the additions are content and not behaviour. |
+ * | ui-regions | +2 relationships (`changes`, `tracesRisk`, both `uiElement12` → `reqDrugIdentityDisplay`) | "Add UI screen regions relationships" — project content, and the last two edges the screen-region example needed to trace a UI element to its requirement and its risk. |
+ * | default | 22 violations → 0 (18 errors, 4 warnings gone) | All 22 were `COV-*` standards-coverage rules, and `memo_rules_coverage` now declares none: regulatory coverage is project-profile dependent, so it is computed by the coverage report rather than asserted as a universal per-element constraint. A fresh project no longer fails for not having implemented every standard pack. |
+ *
+ * `extension-clinical` did not move.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
