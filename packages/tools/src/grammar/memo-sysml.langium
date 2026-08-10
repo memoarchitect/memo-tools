@@ -72,6 +72,7 @@ PackageMember:
     | UseCaseDeclaration
     | FlowConnectionUsage
     | SuccessionUsage
+    | AbstractConnectionUsage
     | ConnectionUsage
     | AllocateUsage
     | SatisfyRequirementUsage
@@ -120,8 +121,18 @@ DefinitionMember:
 
 // SysML v2 semantic-metadata definition — the standard, portable mechanism for
 // extending the ontology with domain semantics. Applied to elements via `@Name`.
+// The optional `<shortName>` is SysML v2's Identification short name, and for a
+// SemanticMetadata it is the KEYWORD the metadata introduces — `<derive>` in the
+// OMG's own `metadata def <derive> DerivedRequirementMetadata :> SemanticMetadata`
+// (Domain Libraries/Requirement Derivation/RequirementDerivation.sysml). Without
+// it a metadata def cannot say which word it defines, which is most of the point.
+//
+// The short name is lexed as ONE token rather than as `'<' ID '>'`, because the
+// word it introduces is almost always already a keyword — `<allocate>` and
+// `<derive>` both fail an ID match. A keyword is exactly what a metadata def
+// exists to introduce, so the production must not be restricted to non-keywords.
 MetadataDefinition:
-    'metadata' 'def' name=ID specialization=Specialization?
+    'metadata' 'def' shortName=SHORT_NAME? name=ID specialization=Specialization?
     ('{' body+=DefinitionBodyMember* '}' | ';');
 
 // Metadata application: `@AnnotationType;` or `@AnnotationType { redefinitions }`
@@ -343,6 +354,17 @@ ConnectionUsage:
 ConnectionEnd:
     endName=FeatureName '::>' ref=ReferenceName;
 
+// The BASE FEATURE of a connection definition — `abstract connection derivations
+// : Derivation[*];` in the OMG's DerivationConnections. It is not a link; it is
+// the feature every usage of that definition subsets, and it is what a
+// SemanticMetadata's `baseType` has to point at. Without one, `baseType` has
+// nothing to name.
+//
+// The leading `abstract` is what keeps this out of ConnectionUsage's way: that
+// rule always continues to `connect` or `{`, this one always ends at `;`.
+AbstractConnectionUsage:
+    isAbstract?='abstract' 'connection' name=ID ':' type=QualifiedName multiplicity=Multiplicity? ';';
+
 // ─── Behavior: Action definition body ───────────────────────────────────────
 // Action defs can have in/out/inout parameters plus regular body members
 
@@ -376,8 +398,22 @@ ControlNodeUsage:
 // ─── Behavior: Flow connection usage ────────────────────────────────────────
 // Syntax: flow of ItemType from source.port to target.port ;
 
+// A flow usage may carry a NAME and a BODY, both of which this production used
+// to drop. The normative grammar is
+// `FlowUsage = OccurrenceUsagePrefix 'flow' FlowDeclaration DefinitionBody`
+// with `FlowDeclaration : UsageDeclaration ValuePart? ('of' …)`
+// (SysML-textual-bnf.kebnf:829, :837) — so a conforming flow takes a name from
+// its UsageDeclaration and owns attributes in its body like any other usage.
+//
+// Dropping them was a MEMO divergence, not a language limit, and it was
+// load-bearing: an anonymous, attribute-less flow can carry no `id`, hold no
+// latency budget, and be referred to by nothing, which is irreconcilable with
+// the identification core every MEMO element rests on. That is the whole reason
+// FunctionalExchange and ComponentExchange exist as part defs beside the flows
+// they stand in for.
 FlowConnectionUsage:
-    'flow' 'of' itemType=QualifiedName 'from' source=FlowEnd 'to' target=FlowEnd ';';
+    'flow' name=ID? 'of' itemType=QualifiedName 'from' source=FlowEnd 'to' target=FlowEnd
+    ('{' body+=UsageBodyMember* '}' | ';');
 
 FlowEnd:
     ref=DottedName;
@@ -450,7 +486,7 @@ ReferenceName returns string:
 // ─── Body members ────────────────────────────────────────────────────────────
 
 DefinitionBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | RefMember | RequireConstraintMember | RequirementVerificationMember | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | RefMember | FeatureMembershipMember | RequireConstraintMember | RequirementVerificationMember | MetadataApplication | DocComment;
 
 // ─── Constraint expression (KerML boolean subset — ADR-1-18) ─────────────────
 // Authored inside constraint def / requirement def bodies as:
@@ -548,9 +584,15 @@ SetLiteral:
 SetElement:
     value=QualifiedName | stringValue=STRING;
 
-// Enum literal reference: e.g. SeverityLevel::Catastrophic
+// Enum literal reference (e.g. SeverityLevel::Catastrophic), or a metaclass
+// cast. `x meta SysML::Usage` is the standard's MetadataAccessExpression: it
+// yields the metaobject of `x` as an instance of the named metaclass, and it is
+// how a SemanticMetadata binds its required `baseType`
+// (`:>> baseType = derivations meta SysML::Usage`). Folded into this rule
+// rather than added as a sibling alternative, because both start with a
+// QualifiedName and only the trailing `meta` tells them apart.
 EnumValue:
-    enumRef=QualifiedName;
+    enumRef=QualifiedName ('meta' metaclass=QualifiedName)?;
 
 // ─── Nested part member ──────────────────────────────────────────────────────
 // Four forms:
@@ -593,6 +635,25 @@ RefMember:
     (':' isConjugated?='~'? type=QualifiedName multiplicity=Multiplicity?)?
     ('=' value=AttributeValue)?
     ';';
+
+// ─── Bare feature-membership member ──────────────────────────────────────────
+// SysML v2 lets a definition body subset or redefine an inherited feature
+// without restating its metaclass keyword. The standard library's own metadata
+// defs are written that way and cannot be written any other way:
+//
+//   :> annotatedElement : SysML::ConnectionDefinition;
+//   :>> baseType = derivations meta SysML::Usage;
+//
+// MEMO accepted only `attribute :>> name = value`, which covers redefinition of
+// an attribute and nothing else — not subsetting, and not a non-attribute
+// feature. `:>` is the form that matters here: `annotatedElement` is declared
+// once per accepted metaclass, so it must SUBSET rather than redefine, or the
+// second declaration would shadow the first.
+
+FeatureMembershipMember:
+    (isRedefinition?=':>>' | ':>') feature=QualifiedName
+    (':' type=QualifiedName)? multiplicity=Multiplicity?
+    ('=' value=AttributeValue)? ';';
 
 // ─── Doc comment ─────────────────────────────────────────────────────────────
 // Captured as a single terminal to prevent hidden ML_COMMENT from consuming it
@@ -653,6 +714,10 @@ hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
 // preventing conflict with ML_COMMENT for standalone /* ... */ comments.
 terminal DOC_COMMENT: /doc\s+\/\*[\s\S]*?\*\//;
 
+// A bracketed short name, e.g. `<derive>`. Whole-token so the inner word may be
+// a keyword. Cannot collide with the comparison operators: `<=` does not match
+// (a letter must follow `<`), and `a<b>c` is not valid MEMO in any position.
+terminal SHORT_NAME: /<[a-zA-Z_][a-zA-Z0-9_]*>/;
 terminal ID: /[a-zA-Z_][a-zA-Z0-9_]*/;
 // SysML v2 unrestricted name: any text in single quotes, used when a name would
 // otherwise collide with a reserved word (e.g. enum 'verification';).

@@ -1040,14 +1040,21 @@ function resolveFlowConnection(
     // Only create relationship if both endpoints reference known elements
     if (!allElementIds.has(sourceActionId) || !allElementIds.has(targetActionId)) return;
 
+    // A NAMED flow carries a stable ID that survives rebuilds; an anonymous one
+    // falls back to a positional counter that shifts whenever the file changes.
+    // Same rule `resolveConnection` applies to connection usages, and the same
+    // reason: authoring needs to inspect, delete, and deep-link a flow, and a
+    // positional id makes every one of those wrong after the next edit.
     const rel: MemoRelationship = {
-        id: `rel-${++relationshipCounter}`,
+        id: flow.name || `rel-${++relationshipCounter}`,
         type: 'flow',
         sourceId: sourceActionId,
         sourceEnd: sourcePort,
         targetId: targetActionId,
         targetEnd: targetPort,
         file: filePath,
+        named: flow.name ? true : undefined,
+        attributes: extractAttributes(flow.body),
         flowItem: flow.itemType || undefined,
     };
 
