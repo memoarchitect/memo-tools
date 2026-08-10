@@ -38,6 +38,13 @@ const A0_RULES = [
 ];
 
 /**
+ * The functional-chain rules, which exist because A0 made an action-def
+ * function possible at all. They are what makes ComponentFunction a definition
+ * rather than an enum member: an enum value cannot change a multiplicity.
+ */
+const FUNCTION_RULES = ['CR-ONT-074', 'CR-ONT-075'];
+
+/**
  * Elements typed with REAL ontology kinds, because `conformsTo` resolves
  * through the real specialization graph. A made-up kind would conform to
  * nothing and every rule would "fire" for the wrong reason.
@@ -45,7 +52,8 @@ const A0_RULES = [
 const ELEMENTS: Array<[id: string, kind: string, construct: string]> = [
     ['req', 'Requirement', 'requirement'],
     ['mod', 'SoftwareModule', 'part'],
-    ['fn', 'SystemFunction', 'part'],
+    ['fn', 'SystemFunction', 'action'],
+    ['cfn', 'ComponentFunction', 'action'],
     ['act', 'OperationalActivity', 'action'],
     ['act2', 'OperationalActivity', 'action'],
     ['user', 'User', 'part'],
@@ -69,6 +77,10 @@ const VALID_LINKS: RelSpec[] = [
     { type: 'enables', from: 'mod', to: 'act' },                // 069
     { type: 'bindsToInterface', from: 'port', to: 'iface' },    // 070
     { type: 'crossesTrustBoundary', from: 'boundary', to: 'asset' }, // 071
+    // The functional chain: a system function decomposes into a component
+    // function, which is allocated to exactly one component. 074 and 075.
+    { type: 'composes', from: 'fn', to: 'cfn' },
+    { type: 'allocatedTo', from: 'cfn', to: 'mod' },
 ];
 
 /**
@@ -143,15 +155,15 @@ beforeAll(async () => {
 }, 120_000);
 
 describe('Track A0 relation-end rules', () => {
-    it('all fourteen are declared in the ontology', () => {
+    it('all sixteen are declared in the ontology', () => {
         if (!available) return;
-        expect([...A0_RULES].filter(id => !rules.has(id))).toEqual([]);
+        expect([...A0_RULES, ...FUNCTION_RULES].filter(id => !rules.has(id))).toEqual([]);
     });
 
     it('accepts a model whose ends are all well typed', () => {
         if (!available) return;
         const model = buildModel(VALID_LINKS, { source: 'mod', target: 'port' });
-        const raised = A0_RULES.flatMap(id =>
+        const raised = [...A0_RULES, ...FUNCTION_RULES].flatMap(id =>
             evaluateConstraintNode(rules.get(id)!, rules.get(id)!.ast, model, kindRegistry));
         const detail = raised.map(v => `${v.ruleId}: ${v.description}`).join('\n  ');
         expect(raised.map(v => v.ruleId), `Valid model rejected:\n  ${detail}\n`).toEqual([]);
@@ -184,6 +196,46 @@ describe('Track A0 relation-end rules', () => {
         const model = buildModel(VALID_LINKS, { source: 'mod', target: 'req' });
         expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
             .map(v => v.ruleId)).toContain('CR-ONT-073');
+    });
+
+    // ─── The functional chain ────────────────────────────────────────────
+
+    it('CR-ONT-074 rejects a component function allocated to nothing', () => {
+        if (!available) return;
+        const constraint = rules.get('CR-ONT-074')!;
+        // Every valid link except the one that gives cfn its component.
+        const model = buildModel(VALID_LINKS.filter(l => !(l.type === 'allocatedTo' && l.from === 'cfn')));
+        expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
+            .map(v => v.elementId)).toContain('cfn');
+    });
+
+    it('CR-ONT-074 rejects a component function allocated to two components', () => {
+        if (!available) return;
+        const constraint = rules.get('CR-ONT-074')!;
+        const model = buildModel([...VALID_LINKS, { type: 'allocatedTo', from: 'cfn', to: 'port' }]);
+        expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
+            .map(v => v.elementId)).toContain('cfn');
+    });
+
+    it('CR-ONT-074 leaves an unallocated SYSTEM function alone', () => {
+        if (!available) return;
+        const constraint = rules.get('CR-ONT-074')!;
+        // A system responsibility no single component owns is a normal state of
+        // the chain. If this ever fires, the two definitions have collapsed
+        // into one and ComponentFunction has stopped meaning anything.
+        const model = buildModel(VALID_LINKS.filter(l => !(l.type === 'allocatedTo' && l.from === 'fn')));
+        expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
+            .map(v => v.elementId)).not.toContain('fn');
+    });
+
+    it('CR-ONT-075 rejects a function decomposed into a component', () => {
+        if (!available) return;
+        const constraint = rules.get('CR-ONT-075')!;
+        // Confusing allocation with decomposition: the component belongs on
+        // AllocatedTo, never on Composes.
+        const model = buildModel([...VALID_LINKS, { type: 'composes', from: 'fn', to: 'mod' }]);
+        expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
+            .map(v => v.elementId)).toContain('fn');
     });
 
     it('CR-ONT-072/073 accept an exchange with no endpoints declared', () => {

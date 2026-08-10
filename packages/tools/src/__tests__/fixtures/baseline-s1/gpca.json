@@ -703,6 +703,27 @@
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
+        "id": "cfnAggregateSensorStatus",
+        "kind": "ComponentFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
+      },
+      {
+        "id": "cfnDetectAirInLine",
+        "kind": "ComponentFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
+      },
+      {
+        "id": "cfnMeasureFlowRate",
+        "kind": "ComponentFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
+      },
+      {
         "id": "checkLockout",
         "kind": "ActionUsage",
         "construct": "action",
@@ -1818,77 +1839,77 @@
       {
         "id": "fnAcquireSensors",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnAnnunciate",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnCommandPump",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnEnforceLimits",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnLogEvents",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnManageInfusion",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnManagePower",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnMonitorAlarm",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnPresentStatus",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnSelfTest",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
         "id": "fnValidatePrescription",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
@@ -4783,6 +4804,21 @@
       },
       {
         "type": "allocatedTo",
+        "sourceId": "cfnAggregateSensorStatus",
+        "targetId": "gpcaDeviceSensors"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "cfnDetectAirInLine",
+        "targetId": "airInLineSensor"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "cfnMeasureFlowRate",
+        "targetId": "flowSensor"
+      },
+      {
+        "type": "allocatedTo",
         "sourceId": "computeFlow",
         "targetId": "infusionMgr"
       },
@@ -5055,6 +5091,21 @@
         "type": "causes",
         "sourceId": "pumpMotorAssembly",
         "targetId": "fteMotorRunaway"
+      },
+      {
+        "type": "composes",
+        "sourceId": "fnAcquireSensors",
+        "targetId": "cfnAggregateSensorStatus"
+      },
+      {
+        "type": "composes",
+        "sourceId": "fnAcquireSensors",
+        "targetId": "cfnDetectAirInLine"
+      },
+      {
+        "type": "composes",
+        "sourceId": "fnAcquireSensors",
+        "targetId": "cfnMeasureFlowRate"
       },
       {
         "type": "composes",
@@ -8524,6 +8575,7 @@
       "Benefit": 1,
       "Citation": 9,
       "ComponentExchange": 46,
+      "ComponentFunction": 3,
       "Contract": 4,
       "CyberHazard": 1,
       "CyberMitigation": 1,
@@ -8609,7 +8661,7 @@
       "behavior": 29,
       "core": 9,
       "cybersecurity": 11,
-      "functional": 85,
+      "functional": 88,
       "human-factors": 4,
       "implementation": 27,
       "logical": 126,
@@ -9163,7 +9215,7 @@
   },
   "errors": [],
   "summary": {
-    "elements": 681,
+    "elements": 684,
     "completeness": 100
   }
 }

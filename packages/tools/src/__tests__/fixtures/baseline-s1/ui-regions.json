@@ -110,42 +110,42 @@
       {
         "id": "fnManageInfusionDisplay",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnPresentBatteryStatus",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnPresentDeliveryStatus",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnPresentLocalTime",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnSetInfusionRate",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
         "id": "fnValidateDrugSelection",
         "kind": "SystemFunction",
-        "construct": "part",
+        "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },

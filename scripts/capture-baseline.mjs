@@ -95,6 +95,27 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-10 (second time today) — two fixtures, for the
+ * SystemFunction → `action def` move and the new ComponentFunction.
+ *
+ * A function is a behaviour. It was a `part def` only because relation ends
+ * were typed on MemoPart/ArchitectureElement and KerML forbids a behaviour from
+ * specializing a part-based type; Track A0 removed that cause earlier the same
+ * day, so the split — and the `action def SystemAction` that existed to carry
+ * the behaviour the part could not — is gone.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | 11 `SystemFunction` elements: `construct` `part` → `action` | The definition is now an `action def`. Same elements, same ids, same layer, same package — only the metaclass moved. |
+ * | gpca | +3 elements, all `ComponentFunction`; `layerCounts.functional` 85 → 88 | `cfnMeasureFlowRate`, `cfnDetectAirInLine`, `cfnAggregateSensorStatus` — the worked example of the functional chain continuing past the system boundary: a flowmeter's responsibility, an air detector's, and a subassembly's. |
+ * | gpca | +6 relationships (3 `composes`, 3 `allocatedTo`) | The decomposition of FUNC-001 into those three, and the component each is allocated to. Both relations already existed; A0's metaclass-neutral ends are what let an action stand at either end. |
+ * | gpca | violations unchanged (106) | The move is a metaclass change, not a content change, and the new content is well-formed. |
+ * | ui-regions | 6 `SystemFunction` elements: `construct` `part` → `action` | Same cause as gpca. No element or relationship count changes at all. |
+ *
+ * `default` and `extension-clinical` did not move.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
