@@ -291,7 +291,7 @@ UsageMember:
     | ViewUsage;
 
 PartUsage:
-    'part' name=ID (':' type=QualifiedName)?
+    isVariation?='variation'? 'part' name=ID (':' type=QualifiedName multiplicity=Multiplicity?)?
     ('{' body+=UsageBodyMember* '}' | ';');
 
 // SysML v2 `use case def` / `use case` share a single leading `use case` token

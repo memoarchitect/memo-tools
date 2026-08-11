@@ -74,6 +74,7 @@ import type {
     FramedConcernMember,
     SubjectMember,
     Dependency,
+    VariantMember,
     ActorMember,
     StakeholderMember,
     ConcernUsage,
@@ -88,6 +89,7 @@ import {
     isFramedConcernMember,
     isSubjectMember,
     isDependency,
+    isVariantMember,
 } from '../language/generated/ast.js';
 import type { MEMOConfig } from './config.js';
 import type { KindDefinition } from './kind-registry.js';
@@ -1508,8 +1510,43 @@ function resolveNativeTraceUsages(
             resolveSubject(node, filePath, relationships, registry, allElementIds);
         } else if (isDependency(node)) {
             resolveDependency(node, filePath, relationships, registry, allElementIds);
+        } else if (isVariantMember(node)) {
+            resolveVariant(node, filePath, relationships, registry, allElementIds);
         }
     }
+}
+
+/**
+ * Project `variant x;` onto a navigable choice-point edge.
+ *
+ * A variation's alternatives are memberships rather than connection usages,
+ * so they would otherwise disappear from the consumer model entirely.  The
+ * nearest owner is the variation point and the written member names the
+ * selected configuration.  Keeping this as a first-class edge lets DSMs and
+ * views distinguish a real choice from four unrelated parts.
+ */
+function resolveVariant(
+    variant: VariantMember,
+    filePath: string,
+    relationships: MemoRelationship[],
+    registry: PackageRegistry,
+    allElementIds: Set<string>,
+): void {
+    const { packageName, ownerId } = nativeUsageContext(variant);
+    const sourceId = ownerId
+        ? resolveEndpointId(ownerId, packageName, registry, allElementIds)
+        : undefined;
+    const targetId = resolveEndpointId(variant.name, packageName, registry, allElementIds);
+    if (!sourceId || !targetId) return;
+    relationships.push({
+        id: `rel-${++relationshipCounter}`,
+        type: 'variant',
+        sourceId,
+        sourceEnd: 'variationPoint',
+        targetId,
+        targetEnd: 'variant',
+        file: filePath,
+    });
 }
 
 function resolveSatisfy(

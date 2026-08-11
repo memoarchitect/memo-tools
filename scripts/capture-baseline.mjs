@@ -223,6 +223,17 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-11 — R1-S1 mode-conditioned configuration.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | +5 `ModeConfiguration` elements, +4 `variant` relationships | The GPCA therapy-mode example now makes one active configuration a native `variation` choice point. Four selectable configurations bind basal, square-bolus, patient-bolus, and paused/KVO to their existing `ModeState`; the fifth element is the choice point itself. The four new edges retain those alternatives for DSMs and views instead of dropping `variant` memberships during projection. |
+ *
+ * `ui-regions`, `default`, and `extension-clinical` do not use configurations
+ * and are byte-identical.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

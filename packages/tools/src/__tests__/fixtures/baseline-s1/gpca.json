@@ -31,6 +31,13 @@
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
+        "id": "activeTherapyConfiguration",
+        "kind": "ModeConfiguration",
+        "construct": "part",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
+      },
+      {
         "id": "actorNurse",
         "kind": "User",
         "construct": "actor",
@@ -197,6 +204,13 @@
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
+        "id": "basalConfiguration",
+        "kind": "ModeConfiguration",
+        "construct": "part",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "batteryMonitorLine",
@@ -2929,11 +2943,25 @@
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
+        "id": "patientBolusConfiguration",
+        "kind": "ModeConfiguration",
+        "construct": "part",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
+      },
+      {
         "id": "patientEventLogAsset",
         "kind": "CybersecurityAsset",
         "construct": "part",
         "layer": "cybersecurity",
         "package": "memo_examples_gpca_pump_gpca_cybersecurity"
+      },
+      {
+        "id": "pausedConfiguration",
+        "kind": "ModeConfiguration",
+        "construct": "part",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "pauseInfusion",
@@ -4502,6 +4530,13 @@
         "construct": "port",
         "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
+      },
+      {
+        "id": "squareBolusConfiguration",
+        "kind": "ModeConfiguration",
+        "construct": "part",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "ssAlarmPause",
@@ -9161,6 +9196,26 @@
         "targetId": "valSummativeUsability"
       },
       {
+        "type": "variant",
+        "sourceId": "activeTherapyConfiguration",
+        "targetId": "basalConfiguration"
+      },
+      {
+        "type": "variant",
+        "sourceId": "activeTherapyConfiguration",
+        "targetId": "patientBolusConfiguration"
+      },
+      {
+        "type": "variant",
+        "sourceId": "activeTherapyConfiguration",
+        "targetId": "pausedConfiguration"
+      },
+      {
+        "type": "variant",
+        "sourceId": "activeTherapyConfiguration",
+        "targetId": "squareBolusConfiguration"
+      },
+      {
         "type": "verifiedBy",
         "sourceId": "airDetectionControl",
         "targetId": "vcAirInLine"
@@ -9482,6 +9537,7 @@
       "MethodologyDefinition": 1,
       "MinimalCutSet": 2,
       "Mission": 1,
+      "ModeConfiguration": 5,
       "ModeState": 9,
       "Need": 4,
       "NotificationSpec": 20,
@@ -9530,7 +9586,7 @@
       "behavior": 23,
       "core": 9,
       "cybersecurity": 11,
-      "functional": 94,
+      "functional": 99,
       "human-factors": 4,
       "implementation": 27,
       "logical": 175,
@@ -10094,7 +10150,7 @@
   },
   "errors": [],
   "summary": {
-    "elements": 733,
+    "elements": 738,
     "completeness": 100
   }
 }

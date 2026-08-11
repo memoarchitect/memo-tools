@@ -212,6 +212,26 @@ describe('ARCADIA native mechanisms — grammar', () => {
         expect(pkg.members[2].body[0].isVariation).toBe(true);
     });
 
+    it('projects configuration variants onto navigable choice-point edges', async () => {
+        expect(await edgesOf(`
+            package P {
+                state basal : ModeState;
+                part basalConfiguration : ModeConfiguration {
+                    ref :>> activeMode = basal;
+                }
+                variation part activeConfiguration : ModeConfiguration[1] {
+                    variant basalConfiguration;
+                }
+            }
+        `)).toContainEqual({
+            type: 'variant',
+            sourceId: 'activeConfiguration',
+            sourceEnd: 'variationPoint',
+            targetId: 'basalConfiguration',
+            targetEnd: 'variant',
+        });
+    });
+
     it('leaves the words free where they are not keywords', async () => {
         // A keyword that swallowed these words as identifiers would break
         // existing content silently. `state`/`action`/`part` are already
