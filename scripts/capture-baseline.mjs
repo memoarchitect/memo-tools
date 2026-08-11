@@ -198,6 +198,19 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-10 (sixth time today) — Session 3, part 2.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | 5 `User` usages: `construct` `part` → `actor`; 19 `Transition` usages: `part` → `transition` | Native SysML spellings replace MEMO's compatibility usages; ids, kinds, layers, packages, attributes, and existing edges are unchanged. |
+ * | gpca | +9 `realizes` | New FunctionalFlowStep → WorkflowStep `<refinement>` dependencies close §13.1's IEC 62366 user-task-to-system-function trace. |
+ *
+ * The complete sorted relationship set was compared before re-freezing: there
+ * are zero removals and the nine rows above are the only additions. UI-regions,
+ * default, and extension-clinical do not carry migrated content and did not move.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

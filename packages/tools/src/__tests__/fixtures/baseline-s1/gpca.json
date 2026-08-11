@@ -33,35 +33,35 @@
       {
         "id": "actorNurse",
         "kind": "User",
-        "construct": "part",
+        "construct": "actor",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
       {
         "id": "actorPatient",
         "kind": "User",
-        "construct": "part",
+        "construct": "actor",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
       {
         "id": "actorPharmacist",
         "kind": "User",
-        "construct": "part",
+        "construct": "actor",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
       {
         "id": "actorPrescriber",
         "kind": "User",
-        "construct": "part",
+        "construct": "actor",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
       {
         "id": "actorTechnician",
         "kind": "User",
-        "construct": "part",
+        "construct": "actor",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
@@ -4660,133 +4660,133 @@
       {
         "id": "trAlarmPause",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trAllInhibited",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trBasalInhibit",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trInfusionComplete",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trInitiateWhileInhibited",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trManualInhibit",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolus",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusInhibit",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusToBasal",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusToSquare",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPausedStop",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trResume",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareBolus",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareInhibit",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareToBasal",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareToPatientBolus",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trStartTherapy",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSystemStart",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSystemStop",
         "kind": "Transition",
-        "construct": "part",
+        "construct": "transition",
         "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
@@ -7884,6 +7884,51 @@
         "type": "realizes",
         "sourceId": "fcPatientBolus",
         "targetId": "ssBolusDuringBasal"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsAlarmAnnunciate",
+        "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsAlarmEvaluate",
+        "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsAlarmSense",
+        "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsAlarmStopInfusion",
+        "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsBolusActuate",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsBolusCommand",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsBolusLog",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsBolusSense",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "fcsBolusValidate",
+        "targetId": "wsRequestBolus"
       },
       {
         "type": "realizes",

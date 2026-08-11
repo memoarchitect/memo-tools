@@ -107,64 +107,64 @@ const keyOf = (collision: Collision) => `${collision.keyword}:${collision.defini
 const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'session 3' | 'session 4' | 'deliberate' }> = {
     // ── Real reinventions: the language has the keyword, MEMO spells it privately ──
     'perform:Performs': {
-        reason: 'ARCADIA "entity performs activity" written as a connection def; SysML writes it `perform`.',
-        removedBy: 'session 3',
+        reason: 'All example usages now write `perform`; the compatibility connection def survives until memo-native-requirement-relations session 4 removes it.',
+        removedBy: 'session 4',
     },
     'exhibit:ExhibitsMode': {
-        reason: 'Mode exhibition written as a connection def; SysML writes it `exhibit`.',
-        removedBy: 'session 3',
+        reason: 'No example usage remains, but the compatibility connection def still collides and memo-native-requirement-relations session 4 owns its removal.',
+        removedBy: 'session 4',
     },
     'include:IncludesStep': {
-        reason: 'Capability includes a sub-case, written as a connection def; SysML writes it `include`.',
-        removedBy: 'session 3',
+        reason: 'All FunctionalFlowStep usages now write `include`; the compatibility definition remains until memo-native-requirement-relations session 4 removes it.',
+        removedBy: 'session 4',
     },
     'include:Includes': {
-        reason: 'Generic inclusion relation, same keyword as IncludesStep and retired with it.',
-        removedBy: 'session 3',
+        reason: 'UseCase → UseCase inclusion is semantically distinct from FunctionalFlow → FunctionalFlowStep; native `include` currently projects only the latter, so this compatibility definition is a deliberate divergence.',
+        removedBy: 'deliberate',
     },
     'message:InteractionMessage': {
-        reason: 'A part def with String sender/receiver/item pseudo-references (§13.3); SysML has `message` as a FlowUsage with typed ends.',
-        removedBy: 'session 3',
+        reason: 'No example usage remains, but the pseudo-reference compatibility definition still collides; memo-native-requirement-relations session 4 owns its removal.',
+        removedBy: 'session 4',
     },
     'transition:Transition': {
-        reason: 'Mode/state transition modelled as a part def; SysML writes it `transition` inside a state def.',
-        removedBy: 'session 3',
+        reason: 'All example transitions now write `transition`; the compatibility part def remains until memo-native-requirement-relations session 4 removes it.',
+        removedBy: 'session 4',
     },
     'transition:UITransition': {
-        reason: 'Screen-to-screen transition as a connection def; collapses onto `transition` with the UI state machine.',
-        removedBy: 'session 3',
+        reason: 'No example usage remains, but the UI compatibility connection def still collides and memo-native-requirement-relations session 4 owns its removal.',
+        removedBy: 'session 4',
     },
     'stakeholder:Stakeholder': {
-        reason: 'ISO 42010 stakeholder as a part def; SysML has the `stakeholder` keyword.',
-        removedBy: 'session 3',
+        reason: 'No example usage remains, but the ISO 42010 compatibility part def still collides and memo-native-requirement-relations session 4 owns its removal.',
+        removedBy: 'session 4',
     },
     'concern:Concern': {
-        reason: 'ISO 42010 concern as a part def; SysML has the `concern` keyword.',
-        removedBy: 'session 3',
+        reason: 'No example usage remains, but the ISO 42010 compatibility part def still collides and memo-native-requirement-relations session 4 owns its removal.',
+        removedBy: 'session 4',
     },
     'frame:FramesConcern': {
-        reason: 'Viewpoint frames a concern, as a connection def; SysML writes it `frame`.',
-        removedBy: 'session 3',
+        reason: 'No example usage remains, but the compatibility connection def still collides and memo-native-requirement-relations session 4 owns its removal.',
+        removedBy: 'session 4',
     },
     'concern:FramesConcern': {
-        reason: 'Same relation reached through its tail word; retired with the `frame` spelling.',
-        removedBy: 'session 3',
+        reason: 'The same surviving compatibility connection def reaches the `concern` keyword through its tail; memo-native-requirement-relations session 4 owns its removal.',
+        removedBy: 'session 4',
     },
     'actor:Actor': {
-        reason: 'Operational actor as a part def; SysML has the `actor` keyword (ARCADIA operational analysis).',
-        removedBy: 'session 3',
+        reason: 'Examples now write `actor`, but the abstract compatibility part def remains until memo-native-requirement-relations session 4 deletes it.',
+        removedBy: 'session 4',
     },
     'actor:NonHumanActor': {
-        reason: 'Specializes Actor and moves with it.',
-        removedBy: 'session 3',
+        reason: 'The compatibility specialization remains while Actor remains; its removal belongs to memo-native-requirement-relations session 4.',
+        removedBy: 'session 4',
     },
     'actor:ActsAsActor': {
-        reason: 'Relation whose whole content is "is an actor"; disappears once actors are written `actor`.',
-        removedBy: 'session 3',
+        reason: 'Examples now write `actor`, but the compatibility relation definition survives until memo-native-requirement-relations session 4 removes it.',
+        removedBy: 'session 4',
     },
     'state:LogicalState': {
-        reason: 'A part def duplicating the existing state def ModeState/StateMachine; collapses onto `state` with B7.',
-        removedBy: 'session 3',
+        reason: 'No example declares LogicalState, but the compatibility definition still collides and cannot leave before memo-native-requirement-relations session 4 deletes it.',
+        removedBy: 'session 4',
     },
     // `port:PhysicalPort` and `port:SoftwarePort` were here until session 2.
     // Both are `port def`s now (Track A1), so the construct-alignment
@@ -461,8 +461,8 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'sessio
         removedBy: 'deliberate',
     },
     'concern:HasConcern': {
-        reason: 'Attaches an ISO 42010 concern; retired with Concern itself, but by a different production.',
-        removedBy: 'session 3',
+        reason: 'No example uses it, but the compatibility definition remains and therefore still collides; memo-native-requirement-relations session 4 owns its deletion.',
+        removedBy: 'session 4',
     },
     'rendering:LayerRendering': {
         reason: 'Per-layer colour and icon for the Architect canvas; `rendering def` is the SysML textual-rendering mechanism.',
