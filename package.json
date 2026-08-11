@@ -32,7 +32,7 @@
     "generate:ir": "node scripts/generate-sysml-ir.mjs",
     "prepack": "pnpm clean && pnpm build",
     "dev": "tsc -p packages/tools/tsconfig.json --watch",
-    "test": "node scripts/check-config-boundary.mjs && cd packages/tools && vitest run",
+    "test": "node scripts/check-config-boundary.mjs && node scripts/check-syside-gate.mjs && cd packages/tools && vitest run",
     "test:coverage": "cd packages/tools && vitest run --coverage",
     "type-check": "tsc -p packages/tools/tsconfig.json --noEmit",
     "clean": "rm -rf packages/tools/lib packages/tools/src/language/generated",

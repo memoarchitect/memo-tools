@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { AstUtils, type AstNode } from 'langium';
+import { relative, resolve } from 'node:path';
 import { loadOntologyRegistries } from '../model/ontology-loader.js';
+import { parseFiles, parseText } from '../model/parser-utils.js';
+import { findSysmlFiles } from '../model/sysml-files.js';
 
 // ─── Keyword-collision lint (ARCADIA plan §11.1) ─────────────────────────────
 //
@@ -43,6 +46,7 @@ import { loadOntologyRegistries } from '../model/ontology-loader.js';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const GPCA_PROJECT = resolve(__dirname, '../../../../../memo/examples/gpca-pump');
+const EXTENSIONS = resolve(__dirname, '../../../../../memo/extensions');
 const BNF = resolve(__dirname, '../../../../corpus/sysml-v2-release/bnf/SysML-textual-bnf.kebnf');
 
 /**
@@ -93,8 +97,82 @@ interface Collision {
     construct: string;
 }
 
+interface FeatureCollision {
+    /** The reserved keyword used as a feature name. */
+    keyword: string;
+    /** The feature name, as written in source. */
+    feature: string;
+    /** Source file relative to the extensions root. */
+    source: string;
+    /** The Langium member form that declared the feature. */
+    construct: string;
+}
+
 /** Stable allow-list key, and the string a failure prints for copy-paste. */
 const keyOf = (collision: Collision) => `${collision.keyword}:${collision.definition}`;
+const featureKeyOf = (collision: FeatureCollision) => `${collision.keyword}:${collision.source}:${collision.feature}`;
+
+/**
+ * Definition-body members whose `name` is a feature, not a registry entry.
+ *
+ * These are deliberately read from the parsed source rather than the kind and
+ * relationship registries. A port payload such as `out item message` is not a
+ * definition and cannot appear in either registry — that was the hole R0-S2
+ * closes.
+ *
+ * SysML v2's normative BNF defines `DefinitionBodyItem` as definition, variant
+ * usage, non-occurrence usage, or occurrence usage (SysML textual BNF §8.2.2.6,
+ * vendored at `corpus/sysml-v2-release/bnf/SysML-textual-bnf.kebnf`). Each
+ * named usage is a feature. Match that complete family as represented by this
+ * parser: every named `*Usage`, `*Member`, or `EndDeclaration`. Definitions,
+ * packages, and enum literals have names but are not feature declarations.
+ */
+const NON_FEATURE_NAMED_TYPES = new Set([
+    'AliasDeclaration', 'EnumLiteral', 'MetadataDefinition', 'PackageDeclaration',
+    'PartDefinition', 'RequirementDefinition', 'VerificationDefinition',
+    'StateDefinition', 'ActionDefinition', 'ItemDefinition', 'PortDefinition',
+    'InterfaceDefinition', 'ConnectionDefinition', 'AllocationDefinition',
+    'ConcernDefinition', 'AttributeDefinition', 'ConstraintDefinition',
+    'EnumDefinition', 'ViewpointDefinition', 'ViewDefinition', 'UseCaseDeclaration',
+]);
+
+function isNamedFeature(node: AstNode): node is AstNode & { name: string } {
+    // This grammar node models both `use case def` and a use-case usage. The
+    // latter is a feature; the former is a definition and belongs to the
+    // registry-level lint above.
+    if (node.$type === 'UseCaseDeclaration') {
+        return !(node as AstNode & { isDefinition?: boolean }).isDefinition
+            && typeof (node as AstNode & { name?: unknown }).name === 'string';
+    }
+    if (NON_FEATURE_NAMED_TYPES.has(node.$type)) return false;
+    if (!(node.$type.endsWith('Usage') || node.$type.endsWith('Member') || node.$type === 'EndDeclaration')) return false;
+    return typeof (node as AstNode & { name?: unknown }).name === 'string';
+}
+
+function featureCollisionsIn(model: AstNode, source: string, keywords: Set<string>): FeatureCollision[] {
+    const found: FeatureCollision[] = [];
+    for (const node of AstUtils.streamAllContents(model)) {
+        if (!isNamedFeature(node)) continue;
+        const { name } = node;
+        const keyword = name.toLowerCase();
+        if (keywords.has(keyword)) found.push({ keyword, feature: name, source, construct: node.$type });
+    }
+    return found;
+}
+
+async function featureCollisionsFromSource(source: string, label: string): Promise<FeatureCollision[]> {
+    const parsed = await parseText(source);
+    if (parsed.errors.length > 0) throw new Error(`feature fixture did not parse: ${parsed.errors.map(error => error.message).join('; ')}`);
+    return featureCollisionsIn(parsed.document.parseResult.value, label, reservedKeywords());
+}
+
+async function extensionFeatureCollisions(): Promise<FeatureCollision[]> {
+    const files = findSysmlFiles(EXTENSIONS).sort();
+    const parsed = await parseFiles(files, EXTENSIONS);
+    if (parsed.errors.length > 0) throw new Error(`extension source did not parse: ${parsed.errors.map(error => `${error.file}: ${error.message}`).join('\n')}`);
+    return parsed.documents.flatMap(({ document, filePath }) =>
+        featureCollisionsIn(document.parseResult.value, relative(EXTENSIONS, resolve(EXTENSIONS, filePath)), reservedKeywords()));
+}
 
 /**
  * Every collision that exists today, with why it is there and what removes it.
@@ -474,6 +552,15 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'sessio
     },
 };
 
+/**
+ * Feature-name collisions that deliberately remain. The key includes the
+ * source path because features are local to their containing definition.
+ *
+ * This starts empty, but it is intentionally a reasoned escape hatch: a valid
+ * future divergence must be recorded rather than deleting the lint.
+ */
+const ALLOWED_FEATURES: Record<string, { reason: string; removedBy: 'deliberate' }> = {};
+
 /** Every (keyword, definition) pair the ontology collides on today. */
 async function collisions(): Promise<Collision[]> {
     const keywords = reservedKeywords();
@@ -549,5 +636,39 @@ describe('MEMO definition names against SysML v2 reserved keywords', () => {
         const live = new Set((await collisions()).map(keyOf));
         const stale = Object.keys(ALLOWED).filter(key => !live.has(key));
         expect(stale, `Allow-list entries whose definition or keyword no longer exists:\n  ${stale.join('\n  ')}\n`).toEqual([]);
+    });
+});
+
+describe('MEMO extension feature names against SysML v2 reserved keywords', () => {
+    it('rejects a reserved keyword used as an extension feature name', async () => {
+        // Deliberate negative: this is the exact shape that made `memo build`
+        // red while the prior registry-only lint stayed green.
+        const collisions = await featureCollisionsFromSource(`package Fixture {
+    port def Publisher {
+        out item message : Payload;
+    }
+}
+`, 'fixture.sysml');
+        expect(collisions.map(featureKeyOf)).toEqual(['message:fixture.sysml:message']);
+    });
+
+    it('every extension feature collision is a recorded decision', async () => {
+        if (!existsSync(EXTENSIONS)) return;
+        const unrecorded = (await extensionFeatureCollisions()).filter(collision => !(featureKeyOf(collision) in ALLOWED_FEATURES));
+        const detail = unrecorded
+            .map(c => `\n  '${featureKeyOf(c)}': reserved keyword '${c.keyword}' vs ${c.construct} ${c.feature}`)
+            .join('');
+        expect(
+            unrecorded.map(featureKeyOf),
+            `MEMO extension features collide with SysML v2 reserved keywords and are not in the allow-list.${detail}\n\n`
+            + 'Either rename the feature, or add the entry to ALLOWED_FEATURES with a reason.\n',
+        ).toEqual([]);
+    });
+
+    it('the feature allow-list holds no entry that has stopped colliding', async () => {
+        if (!existsSync(EXTENSIONS)) return;
+        const live = new Set((await extensionFeatureCollisions()).map(featureKeyOf));
+        const stale = Object.keys(ALLOWED_FEATURES).filter(key => !live.has(key));
+        expect(stale, `Feature allow-list entries whose collision no longer exists:\n  ${stale.join('\n  ')}\n`).toEqual([]);
     });
 });
