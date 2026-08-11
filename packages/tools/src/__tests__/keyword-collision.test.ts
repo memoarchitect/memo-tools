@@ -356,10 +356,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'sessio
         reason: 'An item def: what crosses an interface. `interface` names the boundary, not the payload.',
         removedBy: 'deliberate',
     },
-        'item:SoftwareItem': {
-        reason: 'IEC 62304 software item — a regulated term with a fixed meaning; never paraphrase it.',
-        removedBy: 'deliberate',
-    },
     'item:ConfigurationItem': {
         reason: 'IEC 62304 / ISO 13485 configuration item — a regulated term.',
         removedBy: 'deliberate',

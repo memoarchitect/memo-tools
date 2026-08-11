@@ -137,7 +137,7 @@ const EA_STEREOTYPE_MAP: Record<string, string> = {
     'designOutput': 'DesignOutput',
     // Software (IEC 62304)
     'SoftwareSystem': 'SoftwareSystem',
-    'SoftwareItem': 'SoftwareItem',
+    'SoftwareItem': 'SoftwareElement',
     'SoftwareUnit': 'SoftwareUnit',
     'SOUPItem': 'SOUPItem',
     'SoftwareRequirement': 'Requirement',

@@ -250,7 +250,7 @@ ViewDefinition:
 // ─── Connection definition body ─────────────────────────────────────────────
 
 ConnectionBodyMember:
-    EndDeclaration | DefinitionBodyMember;
+    EndDeclaration | FlowConnectionUsage | DefinitionBodyMember;
 
 // An end may redefine the inherited end of its supertype — in MEMO every
 // relation binds its two ends to Connections::BinaryConnection::source and
@@ -327,10 +327,14 @@ StateUsage:
     'state' name=ID ':' type=QualifiedName
     ('{' body+=UsageBodyMember* '}' | ';');
 
-// SysML v2 interface usage: `interface siData : Interface { … }`.
+// SysML v2 interface usage, including the normative typed-connect form:
+// `interface fuel : FuelInterface connect tank.port to engine.port { … }`.
 InterfaceUsage:
-    'interface' name=ID ':' type=QualifiedName
-    ('{' body+=UsageBodyMember* '}' | ';');
+    'interface' name=ID (':' type=QualifiedName)?
+    (   'connect' source=ReferenceName 'to' target=ReferenceName
+        ('{' body+=UsageBodyMember* '}' | ';')
+      | ('{' body+=UsageBodyMember* '}' | ';')
+    );
 
 // ActionUsage supports both typed (action name : Type;) and composite
 // (action name { nested-actions, flows, successions }) forms.

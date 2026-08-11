@@ -46,11 +46,36 @@ describe.runIf(existsSync(ROS_PROJECT))('a project that imports an extension', (
         });
         expect(kinds.getKind('ContainerImage')?.layer).toBe('realization');
 
-        // The relations an extension declares are registered too, which is
-        // what makes rule 1 of extensions/README.md worth allowing.
+        // ROS communication uses native item/port/interface families rather
+        // than custom publish/subscribe relations.
+        expect(kinds.getKind('RosMessage')).toMatchObject({
+            superType: 'MessagingMessage', layer: 'implementation',
+        });
+        expect(kinds.getKind('MessagingMessage')).toMatchObject({
+            superType: 'SoftwareItem', layer: 'implementation',
+        });
+        expect(kinds.getKind('SoftwareItem')).toMatchObject({
+            superType: 'MemoItem', sysmlConstruct: 'item def',
+        });
+        expect(kinds.getKind('SoftwareModule')).toMatchObject({
+            superType: 'SoftwareElement', sysmlConstruct: 'part def',
+        });
+        expect(kinds.getKind('SoftwareComponent')).toMatchObject({
+            superType: 'SoftwareElement', sysmlConstruct: 'part def',
+        });
+        expect(kinds.getKind('RosPublisher')).toMatchObject({
+            superType: 'MessagingPublisher', layer: 'logical',
+        });
+        expect(kinds.getKind('RosServiceInterface')).toMatchObject({
+            superType: 'SoftwareInterface', layer: 'logical',
+        });
+        expect(kinds.getKind('RosActionInterface')).toMatchObject({
+            superType: 'SoftwareInterface', layer: 'logical',
+        });
+
         const names = new Set(registries.relationshipRegistry!.entries().map(entry => entry.name));
-        expect(names).toContain('rosPublishesTo');
-        expect(names).toContain('rosSubscribesTo');
+        expect(names).not.toContain('rosPublishesTo');
+        expect(names).not.toContain('rosSubscribesTo');
         // And the base relations the ROS deployment chain reuses unchanged.
         for (const base of ['buildsInto', 'deploysTo', 'providesEnvironment']) {
             expect(names).toContain(base);

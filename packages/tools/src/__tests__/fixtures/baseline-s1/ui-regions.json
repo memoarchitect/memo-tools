@@ -215,35 +215,35 @@
       {
         "id": "rcClockFreshnessCheck",
         "kind": "RiskControlMeasure",
-        "construct": "item",
+        "construct": "part",
         "layer": "safety_risk",
         "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "rcDisplayFreshnessMonitor",
         "kind": "RiskControlMeasure",
-        "construct": "item",
+        "construct": "part",
         "layer": "safety_risk",
         "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "rcDrugLibraryGuard",
         "kind": "RiskControlMeasure",
-        "construct": "item",
+        "construct": "part",
         "layer": "safety_risk",
         "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "rcLowBatteryProminence",
         "kind": "RiskControlMeasure",
-        "construct": "item",
+        "construct": "part",
         "layer": "safety_risk",
         "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },
       {
         "id": "rcRateConfirm",
         "kind": "RiskControlMeasure",
-        "construct": "item",
+        "construct": "part",
         "layer": "safety_risk",
         "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
       },

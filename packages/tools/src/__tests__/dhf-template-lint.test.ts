@@ -48,7 +48,7 @@ function stubRegistry(): KindRegistry {
     (registry as unknown as { entries: () => unknown[] }).entries = () => ([
         { name: 'FailureMode', label: 'Failure Mode', layer: 'safety_risk', sysmlConstruct: 'item', isAbstract: false },
         { name: 'MemoPart', label: 'Memo Part', layer: 'core', sysmlConstruct: 'part', isAbstract: true },
-        { name: 'SoftwareItem', label: 'Software Item', layer: 'implementation', sysmlConstruct: 'part', isAbstract: true },
+        { name: 'SoftwareElement', label: 'Software Element', layer: 'implementation', sysmlConstruct: 'part', isAbstract: true },
     ]);
     return registry;
 }
@@ -288,7 +288,7 @@ describe('ontology-aware rules', () => {
     });
 
     it('warns that an abstract kind can only ever return nothing', () => {
-        const raw = template(query('kind: SoftwareItem'));
+        const raw = template(query('kind: SoftwareElement'));
         const findings = lint(raw, ONTOLOGY);
         const warning = findings.find(f => f.rule === 'abstract-kind');
         expect(warning?.severity).toBe('warning');

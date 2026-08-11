@@ -625,6 +625,35 @@ describe('InterfaceDefinition', () => {
         expect(ifDef.name).toBe('SoftwareInterface');
         expect(ifDef.specialization?.superType).toBe('Interface');
     });
+
+    it('parses native flows in an interface def and a typed connected usage', async () => {
+        const model = await parseValid(`
+            package Test {
+                item def Request;
+                port def Client { out item request : Request; }
+                port def Server { in item request : Request; }
+                interface def ServiceInterface {
+                    end client : Client;
+                    end server : Server;
+                    flow of Request from client.request to server.request;
+                }
+                part clientNode { port service : Client; }
+                part serverNode { port service : Server; }
+                interface service : ServiceInterface
+                    connect clientNode.service to serverNode.service;
+            }
+        `);
+        const pkg = model.members[0] as PackageDeclaration;
+        const ifDef = pkg.members[3] as InterfaceDefinition;
+        expect(ifDef.body.some((member: any) => member.$type === 'FlowConnectionUsage')).toBe(true);
+        expect(pkg.members[6]).toMatchObject({
+            $type: 'InterfaceUsage',
+            name: 'service',
+            type: 'ServiceInterface',
+            source: 'clientNode.service',
+            target: 'serverNode.service',
+        });
+    });
 });
 
 describe('AttributeDefinition', () => {

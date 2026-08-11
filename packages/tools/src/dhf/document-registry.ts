@@ -171,7 +171,7 @@ const DHF_DOCUMENT_TYPE_DECLARATIONS: DhfDocumentTypeDeclaration[] = [
         title: 'System Architecture Description',
         template: 'system/sad',
         layers: ['functional', 'logical', 'physical', 'software', 'interfaces'],
-        relevantKinds: ['Function', 'Component', 'Subsystem', 'Interface', 'Port', 'SoftwareItem', 'SOUPComponent'],
+        relevantKinds: ['Function', 'Component', 'Subsystem', 'Interface', 'Port', 'SoftwareElement', 'SOUPComponent'],
         relevantRelationships: ['composedOf', 'allocatedTo', 'connectedTo', 'dependsOn', 'implements'],
         group: 'design',
         sections: [
@@ -188,7 +188,7 @@ const DHF_DOCUMENT_TYPE_DECLARATIONS: DhfDocumentTypeDeclaration[] = [
         title: 'Software Design Specification',
         template: 'iec-62304/detailed-design',
         layers: ['software'],
-        relevantKinds: ['SoftwareItem', 'SoftwareUnit', 'SoftwareSystem', 'SOUPComponent', 'Interface'],
+        relevantKinds: ['SoftwareElement', 'SoftwareUnit', 'SoftwareSystem', 'SOUPComponent', 'Interface'],
         relevantRelationships: ['composedOf', 'dependsOn', 'implements', 'connectedTo'],
         group: 'design',
         sections: [
@@ -233,7 +233,7 @@ const DHF_DOCUMENT_TYPE_DECLARATIONS: DhfDocumentTypeDeclaration[] = [
         title: 'Design Output Plan',
         template: '21cfr820/design-output',
         layers: ['functional', 'physical', 'software'],
-        relevantKinds: ['DesignOutput', 'Component', 'SoftwareItem', 'Function'],
+        relevantKinds: ['DesignOutput', 'Component', 'SoftwareElement', 'Function'],
         relevantRelationships: ['satisfies', 'implements', 'allocatedTo'],
         group: 'design',
         sections: [
@@ -280,7 +280,7 @@ const DHF_DOCUMENT_TYPE_DECLARATIONS: DhfDocumentTypeDeclaration[] = [
         title: 'Software Development Plan',
         template: 'iec-62304/sdp',
         layers: ['software', 'verification'],
-        relevantKinds: ['SoftwareItem', 'SoftwareUnit', 'SoftwareSystem', 'TestCase'],
+        relevantKinds: ['SoftwareElement', 'SoftwareUnit', 'SoftwareSystem', 'TestCase'],
         relevantRelationships: ['composedOf', 'verifies', 'implements'],
         group: 'compliance',
         sections: [

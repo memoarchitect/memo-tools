@@ -211,6 +211,18 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-11 — metaclass-wrapper and ROS correction.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | 6 action usages resolve from generic `ActionUsage` to their concrete action-definition kinds; behavior 29 → 23, functional 85 → 91 | The six GPCA action definitions now specialize the MEMO action wrapper through `FunctionalAction`. Their usages were already typed by those definitions; valid action ancestry now lets the resolver classify them. |
+ * | ui-regions | 5 `RiskControlMeasure` usages: `construct` `item` → `part` | `RiskControlMeasure` is structurally a `MemoPart`; each usage now matches its definition's native metaclass. IDs, kinds, layers, and relationships are unchanged. |
+ *
+ * `default` and `extension-clinical` did not move. ROS is not one of the four
+ * frozen fixtures.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

@@ -11,9 +11,9 @@
       },
       {
         "id": "acquireSensors",
-        "kind": "ActionUsage",
+        "kind": "AcquireSensorData",
         "construct": "action",
-        "layer": "behavior",
+        "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_actions"
       },
       {
@@ -67,9 +67,9 @@
       },
       {
         "id": "actuateMotor",
-        "kind": "ActionUsage",
+        "kind": "ActuatePumpMotor",
         "construct": "action",
-        "layer": "behavior",
+        "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_actions"
       },
       {
@@ -795,9 +795,9 @@
       },
       {
         "id": "computeFlow",
-        "kind": "ActionUsage",
+        "kind": "ComputeFlowCommand",
         "construct": "action",
-        "layer": "behavior",
+        "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_actions"
       },
       {
@@ -1460,9 +1460,9 @@
       },
       {
         "id": "enforceLimits",
-        "kind": "ActionUsage",
+        "kind": "EnforceDoseLimits",
         "construct": "action",
-        "layer": "behavior",
+        "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_actions"
       },
       {
@@ -1530,9 +1530,9 @@
       },
       {
         "id": "evaluateAlarms",
-        "kind": "ActionUsage",
+        "kind": "EvaluateAlarmConditions",
         "construct": "action",
-        "layer": "behavior",
+        "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_actions"
       },
       {
@@ -2440,9 +2440,9 @@
       },
       {
         "id": "logEvent",
-        "kind": "ActionUsage",
+        "kind": "LogTherapyEvent",
         "construct": "action",
-        "layer": "behavior",
+        "layer": "functional",
         "package": "memo_examples_gpca_pump_gpca_behavior_actions"
       },
       {
@@ -9432,19 +9432,24 @@
       }
     ],
     "kindCounts": {
+      "AcquireSensorData": 1,
       "ActionDefinition": 6,
-      "ActionUsage": 23,
+      "ActionUsage": 17,
+      "ActuatePumpMotor": 1,
       "BehaviorProperty": 20,
       "Benefit": 1,
       "Citation": 9,
       "ComponentExchange": 46,
       "ComponentFunction": 3,
+      "ComputeFlowCommand": 1,
       "Contract": 4,
       "CyberHazard": 1,
       "CyberMitigation": 1,
       "CyberRisk": 1,
       "CybersecurityAsset": 2,
       "DetectionMethod": 3,
+      "EnforceDoseLimits": 1,
+      "EvaluateAlarmConditions": 1,
       "Evidence": 9,
       "FailureCause": 3,
       "FailureEffect": 3,
@@ -9467,6 +9472,7 @@
       "Interface": 14,
       "InterfaceItem": 54,
       "LogicalComponent": 5,
+      "LogTherapyEvent": 1,
       "MarkdownDocumentSource": 4,
       "MemoCybersecurityAssessmentView": 1,
       "MemoCybersecurityThreatModelView": 1,
@@ -9521,10 +9527,10 @@
     },
     "layerCounts": {
       "artifacts": 4,
-      "behavior": 29,
+      "behavior": 23,
       "core": 9,
       "cybersecurity": 11,
-      "functional": 88,
+      "functional": 94,
       "human-factors": 4,
       "implementation": 27,
       "logical": 175,
@@ -9564,6 +9570,11 @@
         "rule": "BV-001",
         "severity": "warning",
         "elementId": "deliverWithinLimits"
+      },
+      {
+        "rule": "BV-001",
+        "severity": "warning",
+        "elementId": "infusionDeliveryFlow"
       },
       {
         "rule": "BV-001",
@@ -9619,6 +9630,11 @@
         "rule": "BV-001",
         "severity": "warning",
         "elementId": "switchToBattery"
+      },
+      {
+        "rule": "BV-002",
+        "severity": "warning",
+        "elementId": "infusionDeliveryFlow"
       },
       {
         "rule": "CR-MED-031",
@@ -10073,7 +10089,7 @@
     ],
     "counts": {
       "error": 1,
-      "warning": 105
+      "warning": 107
     }
   },
   "errors": [],
