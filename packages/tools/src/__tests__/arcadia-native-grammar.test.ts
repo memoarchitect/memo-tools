@@ -47,6 +47,15 @@ async function elementsOf(source: string) {
     return elements.map(({ id, kind, name, construct, attributes }) => ({ id, kind, name, construct, attributes }));
 }
 
+/** Parse errors, for the negative cases where rejecting the source is the point. */
+async function errorsOf(source: string): Promise<string[]> {
+    const doc = await parse(source);
+    return [
+        ...doc.parseResult.lexerErrors.map(e => e.message),
+        ...doc.parseResult.parserErrors.map(e => e.message),
+    ];
+}
+
 async function parses(source: string): Promise<LangiumDocument<Model>> {
     const doc = await parse(source);
     const errors = [
@@ -217,12 +226,25 @@ describe('ARCADIA native mechanisms — grammar', () => {
             package P {
                 part sender : MemoPart;
                 part receiver : MemoPart;
-                message alarmNotification of AlarmSignal from sender.message to receiver.message;
+                message alarmNotification of AlarmSignal from sender to receiver;
             }
         `)).toContainEqual({
-            type: 'flow', sourceId: 'sender', sourceEnd: 'message',
-            targetId: 'receiver', targetEnd: 'message',
+            type: 'flow', sourceId: 'sender', sourceEnd: '',
+            targetId: 'receiver', targetEnd: '',
         });
+    });
+
+    it('rejects `message` as a name, because the compiler of record does', async () => {
+        // R0's lesson: MEMO's grammar accepting a SysML v2 reserved word as a
+        // name is how a green suite ships a red build. `message` is a keyword —
+        // it names the production above and nothing else.
+        expect(await errorsOf(`
+            package P {
+                part sender : MemoPart {
+                    out item message : AlarmSignal;
+                }
+            }
+        `)).not.toHaveLength(0);
     });
 
     it('projects configuration variants onto navigable choice-point edges', async () => {

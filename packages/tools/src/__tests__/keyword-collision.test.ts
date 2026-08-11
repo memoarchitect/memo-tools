@@ -643,13 +643,19 @@ describe('MEMO extension feature names against SysML v2 reserved keywords', () =
     it('rejects a reserved keyword used as an extension feature name', async () => {
         // Deliberate negative: this is the exact shape that made `memo build`
         // red while the prior registry-only lint stayed green.
+        //
+        // The fixture used `message` until the grammar stopped accepting it as
+        // a name at all. A word MEMO cannot parse as a name never reaches this
+        // lint, so it cannot exercise it — the negative control has to use a
+        // keyword the grammar still admits, which is precisely the set this
+        // lint exists to police.
         const collisions = await featureCollisionsFromSource(`package Fixture {
     port def Publisher {
-        out item message : Payload;
+        out item state : Payload;
     }
 }
 `, 'fixture.sysml');
-        expect(collisions.map(featureKeyOf)).toEqual(['message:fixture.sysml:message']);
+        expect(collisions.map(featureKeyOf)).toEqual(['state:fixture.sysml:state']);
     });
 
     it('every extension feature collision is a recorded decision', async () => {

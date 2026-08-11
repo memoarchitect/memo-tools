@@ -13,6 +13,11 @@ import { resolve } from 'node:path';
 
 const toolsRoot = resolve(import.meta.dirname, '..');
 const memoRoot = resolve(toolsRoot, '../memo');
+// SCOPE: the ontology and the extensions — NOT `memo/examples`, which is shipped
+// to users by `memo init --example` and does not currently pass SysIDE. That gap
+// is epic R8 in memo-meta/plans; `examples` joins this list in R8-S4, and this
+// comment goes with it. Anything checked by neither gate is a place a red build
+// can hide behind a green suite, which is the gap R0 existed to close.
 const sourceRoots = ['src', 'extensions'];
 const executable = process.env.SYSIDE_EXECUTABLE || 'syside';
 

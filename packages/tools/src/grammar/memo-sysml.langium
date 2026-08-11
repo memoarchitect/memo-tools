@@ -476,7 +476,7 @@ DottedName returns string:
     DottedNameSegment ('.' DottedNameSegment)*;
 
 DottedNameSegment returns string:
-    ID | 'accept' | 'send' | 'terminate' | 'message';
+    ID | 'accept' | 'send' | 'terminate';
 
 // ─── Behavior: Succession usage ─────────────────────────────────────────────
 // Syntax: first start then action1 then action2 then done ;
@@ -922,7 +922,7 @@ QualifiedNameTailSegment returns string:
 MemberName returns string:
     ID | 'requirement' | 'action' | 'item' | 'port' | 'interface' | 'connection'
     | 'attribute' | 'constraint' | 'view' | 'viewpoint' | 'ref' | 'part' | 'state' | 'verification'
-    | 'standard' | 'message';
+    | 'standard';
 
 FeatureName returns string:
     ID | 'part' | 'requirement' | 'action' | 'item' | 'port' | 'interface'
