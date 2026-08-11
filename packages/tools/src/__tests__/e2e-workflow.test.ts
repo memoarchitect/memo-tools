@@ -639,14 +639,14 @@ describe('DD-3: kpar round-trip (GPCA pump)', () => {
 
     it('manifest lists all source SysML files', () => {
         const manifest = JSON.parse(readFileSync(join(extractDir, 'manifest.json'), 'utf-8'));
-        // The kpar packs every source dir of the project (model/ + methodology/).
+        // The MEMO bundle packs every source dir of the project (model/ + methodology/).
         const sourceFiles = [
             ...collectSysmlFiles(join(GPCA_DIR, 'model')),
             ...collectSysmlFiles(join(GPCA_DIR, 'methodology')),
         ];
         const manifestSysml = (manifest.files as string[]).filter((f: string) => f.endsWith('.sysml'));
 
-        expect(manifest.format).toBe('kpar');
+        expect(manifest.format).toBe('memo-bundle');
         expect(manifestSysml.length).toBe(sourceFiles.length);
         for (const src of sourceFiles) {
             const rel = relative(GPCA_DIR, src);

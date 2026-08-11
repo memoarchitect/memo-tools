@@ -180,7 +180,7 @@ export function resolveProjectAssetRequest(projectRoot: string, requestUrl: stri
         return undefined;
     }
     if (!pathname.startsWith('/model/')) return undefined;
-    const assetRoot = resolve(projectRoot, 'model');
+    const assetRoot = resolve(projectRoot, 'model', 'assets');
     const requested = resolve(projectRoot, pathname.replace(/^\//, ''));
     const fromAssetRoot = relative(assetRoot, requested);
     if (!fromAssetRoot || fromAssetRoot === '..' || fromAssetRoot.startsWith('../') || fromAssetRoot.startsWith('..\\')) {
