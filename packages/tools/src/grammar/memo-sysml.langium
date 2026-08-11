@@ -476,7 +476,7 @@ DottedName returns string:
     DottedNameSegment ('.' DottedNameSegment)*;
 
 DottedNameSegment returns string:
-    ID | 'accept' | 'send' | 'terminate';
+    ID | 'accept' | 'send' | 'terminate' | 'message';
 
 // ─── Behavior: Succession usage ─────────────────────────────────────────────
 // Syntax: first start then action1 then action2 then done ;

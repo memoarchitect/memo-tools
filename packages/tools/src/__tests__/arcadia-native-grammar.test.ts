@@ -217,11 +217,11 @@ describe('ARCADIA native mechanisms — grammar', () => {
             package P {
                 part sender : MemoPart;
                 part receiver : MemoPart;
-                message alarmNotification of AlarmSignal from sender to receiver;
+                message alarmNotification of AlarmSignal from sender.message to receiver.message;
             }
         `)).toContainEqual({
-            type: 'flow', sourceId: 'sender', sourceEnd: '',
-            targetId: 'receiver', targetEnd: '',
+            type: 'flow', sourceId: 'sender', sourceEnd: 'message',
+            targetId: 'receiver', targetEnd: 'message',
         });
     });
 
