@@ -403,6 +403,41 @@ export class KindRegistry {
     }
 
     /**
+     * Give a kind the placement of the kind it specializes, wherever its own
+     * declaring path could not supply one.
+     *
+     * Layer, namespace and standard are derived from the declaring file's path
+     * under `src/<layer>/`. An EXTENSION declares its types in
+     * `extensions/<name>/src/`, which matches no layer — so `RosNode`,
+     * `CloudService` and `AadlThread` all landed in `unknown` and a project
+     * that included one showed most of its model as unplaced.
+     *
+     * The placement is read from the specialization, not from any list of
+     * names: `RosNode : SoftwareComponent` is implementation because
+     * `SoftwareComponent` is. Resolution repeats so a chain works regardless
+     * of source-file order (`RosContainerImage -> ContainerImage ->
+     * DeploymentUnit`), and a kind that specializes nothing placed stays
+     * `unknown`, which is the honest answer.
+     *
+     * Must be called after populateFromDocuments() is complete.
+     */
+    inheritPlacementFromSuperTypes(): void {
+        let progressed = true;
+        while (progressed) {
+            progressed = false;
+            for (const entry of this.kinds.values()) {
+                if (entry.layer !== 'unknown' || !entry.superType) continue;
+                const parent = this.kinds.get(entry.superType.split('::').pop() ?? '');
+                if (!parent || parent === entry || parent.layer === 'unknown') continue;
+                entry.layer = parent.layer;
+                if (!entry.namespace?.length && parent.namespace) entry.namespace = [...parent.namespace];
+                if (!entry.standard && parent.standard) entry.standard = parent.standard;
+                progressed = true;
+            }
+        }
+    }
+
+    /**
      * Compute the derivedBy reverse-lookup for all kinds.
      * Must be called after populateFromDocuments() is complete.
      */

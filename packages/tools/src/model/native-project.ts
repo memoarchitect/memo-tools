@@ -221,6 +221,16 @@ export function discoverLibraryRoots(projectRoot: string): LibraryRoot[] {
         for (const subpath of Object.values(found.manifest.packages ?? {})) {
             add(resolveManifestPath(found, subpath));
         }
+        // Extensions are reusable ontology packages, so they are library roots
+        // on the same terms as any other package: available, not selected.
+        // They were reachable only as example directories before, which meant
+        // a project could import an extension, resolve it under `syside`, and
+        // still have every extension type come back unregistered — no layer,
+        // no supertype, no legality. Listing them here is what makes an
+        // extension mean something to the tools and not just to the compiler.
+        for (const subpath of Object.values(found.manifest.extensions ?? {})) {
+            add(resolveManifestPath(found, subpath));
+        }
     }
 
     // Imported KPARs are immutable, restart-scoped library roots.  Their cache

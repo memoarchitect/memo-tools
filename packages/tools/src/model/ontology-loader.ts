@@ -762,6 +762,9 @@ export async function loadOntologyRegistries(projectRoot: string): Promise<Ontol
     }
 
     kindRegistry.populateFromDocuments(documents);
+    // Extension packages declare their types outside `src/<layer>/`, so their
+    // placement comes from the base type they specialize.
+    kindRegistry.inheritPlacementFromSuperTypes();
     kindRegistry.computeDerivedBy();
     relationshipRegistry.populateFromDocuments(documents);
 

@@ -119,9 +119,20 @@ export async function validateCommand(
         console.log(chalk.gray(`Ontology: locked to ${lockCheck.locked.ontology} v${lockCheck.locked.version}`));
     }
 
-    // 4. The project's own source is the closure minus the resolved roots.
+    // 4. The project's own source is everything parsed that belongs to no
+    //    library root — selected OR unused.
+    //
+    //    Subtracting only the SELECTED roots was wrong, and stayed invisible
+    //    while every reusable package a locator offered also happened to be
+    //    imported. Listing extension packages as library roots produced the
+    //    first counterexample: a project that imports no extension reached
+    //    them through no import, so they were `unusedRoots` — and every usage
+    //    they declare was counted as that project's own model content. A file
+    //    from a root the project never imported is not project source; it is
+    //    not in the model at all.
+    const resolvedRoots = [...(resolution?.selectedRoots ?? []), ...(resolution?.unusedRoots ?? [])];
     const documents = (resolution?.documents ?? []).filter(
-        d => !(resolution?.selectedRoots ?? []).some(r => d.filePath.startsWith(r.sysmlDir)),
+        d => !resolvedRoots.some(r => d.filePath.startsWith(r.sysmlDir)),
     );
     const parseErrors: import('@memoarchitect/tools').ParseError[] = [];
     if (documents.length === 0) {

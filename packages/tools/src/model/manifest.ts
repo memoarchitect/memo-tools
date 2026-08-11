@@ -15,6 +15,14 @@ export interface MemoManifest {
     };
     templates: Record<string, string>;
     examples: Record<string, string>;
+    /**
+     * Reusable ontology packages that specialize the base and are selected by a
+     * methodology or a project binding. They are a modelling mechanism, not
+     * sample content, so they are their own section rather than an example.
+     * Optional: a manifest published before extensions were promoted out of
+     * `examples/` still loads.
+     */
+    extensions?: Record<string, string>;
 }
 
 export interface LoadedMemoManifest {
@@ -36,6 +44,9 @@ export function loadMemoManifest(manifestPath: string): LoadedMemoManifest {
     if (parsed?.manifest !== 1 || !isStringRecord(parsed.packages)
         || !isStringRecord(parsed.templates) || !isStringRecord(parsed.examples)) {
         throw new Error(`Unsupported or malformed MEMO manifest: ${path}`);
+    }
+    if (parsed.extensions !== undefined && !isStringRecord(parsed.extensions)) {
+        throw new Error(`MEMO manifest has an invalid extensions section: ${path}`);
     }
     const init = parsed.init;
     if (!init || typeof init.defaultExtends !== 'string' || typeof init.rootImport !== 'string'

@@ -480,9 +480,17 @@ package custom_device_model {
         const { stdout } = runMayFail('validate', projectDir);
 
         expect(stdout).toContain('Model:');
-        // Three modelled parts plus the two methodology elements the native
-        // entrypoint contributes: the binding and the methodology it selects.
-        expect(stdout).toContain('5 elements');
+        // Three modelled parts plus the one element the native entrypoint
+        // contributes: the binding.
+        //
+        // This asserted 5, and the reason it gave — "the binding and the
+        // methodology it selects" — was not the reason it passed. The selected
+        // methodology is declared in the ontology root and never counts as
+        // project content. The fifth element was the GPCA EXAMPLE's methodology
+        // definition, reaching this project because `validate` subtracted only
+        // the library roots the project imported and treated every other
+        // resolved root as the project's own source. It does not any more.
+        expect(stdout).toContain('4 elements');
         expect(stdout).toContain('1 relationships');
         expect(stdout).toContain('Completeness by Layer');
         // The project is resolved from its entrypoint, and the binding names

@@ -32,6 +32,11 @@ function collectSysmlFiles(dir: string): string[] {
 }
 
 const EXAMPLES_ROOT = resolve(CONTENT_ROOT, 'examples');
+// Extensions are ontology, not examples: reusable packages that specialize the
+// base, living beside `src/` rather than under `examples/`. They are authored
+// source and are held to the same conformance rules — and a project that
+// imports one resolves its package from here.
+const EXTENSIONS_ROOT = resolve(CONTENT_ROOT, 'extensions');
 const GPCA_MODEL_DIR = resolve(EXAMPLES_ROOT, 'gpca-pump/model');
 const STDLIB_WRAPPER_DIR = resolve(ONTOLOGY_ROOT, 'core', 'stdlib');
 
@@ -60,6 +65,7 @@ const KERNEL_IMPORT_RE = new RegExp(
 
 const sysmlFiles = [
     ...collectSysmlFiles(ONTOLOGY_ROOT),
+    ...collectSysmlFiles(EXTENSIONS_ROOT),
     ...collectSysmlFiles(EXAMPLES_ROOT),
 ];
 
@@ -91,6 +97,7 @@ describe('SysML v2 Conformance: ontology packages parse with zero diagnostics', 
 describe('DD-2: only required ScalarValues may be imported directly (ADR-1-13)', () => {
     const roots = [
         { label: 'ontology', dir: ONTOLOGY_ROOT },
+        { label: 'extensions', dir: EXTENSIONS_ROOT },
         { label: 'examples', dir: EXAMPLES_ROOT },
     ];
 
@@ -163,7 +170,7 @@ describe('DD-4: Syside compatibility — structural invariants', () => {
     }
 
     function collectAllSysml(): { relPath: string; text: string; allPackages: string[]; leafPackages: string[]; imports: string[] }[] {
-        const dirs = [ONTOLOGY_ROOT, EXAMPLES_ROOT];
+        const dirs = [ONTOLOGY_ROOT, EXTENSIONS_ROOT, EXAMPLES_ROOT];
         const entries: { relPath: string; text: string; allPackages: string[]; leafPackages: string[]; imports: string[] }[] = [];
         const root = CONTENT_ROOT;
         for (const dir of dirs) {
@@ -411,7 +418,7 @@ describe('DD-6: naming + casing lint (ADR-1-12)', () => {
     const ATTR_RE = /(?:^|\n)\s*attribute\s+(\w+)\s*(?::|;|=)/g;
 
     function collectAllSysml(): { relPath: string; text: string }[] {
-        const dirs = [ONTOLOGY_ROOT, EXAMPLES_ROOT];
+        const dirs = [ONTOLOGY_ROOT, EXTENSIONS_ROOT, EXAMPLES_ROOT];
         const entries: { relPath: string; text: string }[] = [];
         const root = CONTENT_ROOT;
         for (const dir of dirs) {

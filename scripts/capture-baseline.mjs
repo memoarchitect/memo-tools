@@ -38,7 +38,7 @@ export const FIXTURES = [
     { id: 'gpca', dir: resolve(memoRoot, 'examples/gpca-pump') },
     { id: 'ui-regions', dir: resolve(memoRoot, 'examples/ui-screen-regions') },
     { id: 'default', init: true },
-    { id: 'extension-clinical', dir: resolve(memoRoot, 'examples/extensions/clinical') },
+    { id: 'extension-clinical', dir: resolve(memoRoot, 'extensions/clinical') },
 ];
 
 /**
