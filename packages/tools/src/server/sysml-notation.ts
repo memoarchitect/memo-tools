@@ -19,7 +19,7 @@
 import type { RelationshipDefinitionDTO } from '../model/relationship-legality.js';
 
 /** The SysML production a relationship is written as. */
-export type RelationshipNotation = 'succession' | 'flow' | 'connection';
+export type RelationshipNotation = 'succession' | 'flow' | 'satisfy' | 'connection';
 
 export interface RelationshipNotationRequest {
     /** Connection usage name, when the form carries one. */
@@ -55,6 +55,13 @@ const NATIVE_FORMS: Record<string, RelationshipNotation> = {
  * everything else is a typed connection usage, which is the general case.
  */
 export function notationFor(definition: RelationshipDefinitionDTO): RelationshipNotation {
+    // `satisfy` has a complete two-ended package-member form. The other native
+    // requirement relations need an owning case or a typed allocation usage,
+    // respectively, so their authoring paths are deliberately not guessed here.
+    // A connection definition may remain in the ontology during the migration,
+    // but its registry metadata is the authority for how a new satisfaction is
+    // written.
+    if (definition.nativeKeyword === 'satisfy') return 'satisfy';
     return NATIVE_FORMS[definition.sysmlName]
         ?? NATIVE_FORMS[`${definition.sysmlName}Usage`]
         ?? 'connection';
@@ -80,9 +87,19 @@ export function renderRelationship(request: RelationshipNotationRequest): string
             return renderSuccession(request);
         case 'flow':
             return renderFlow(request);
+        case 'satisfy':
+            return renderSatisfy(request);
         default:
             return renderConnection(request);
     }
+}
+
+/** `satisfy requirement by satisfyingElement;` */
+function renderSatisfy(request: RelationshipNotationRequest): string {
+    // The registry deliberately gives satisfaction the same direction as the
+    // native form: requirement first, satisfying element second. That is also
+    // the builder's `satisfiedBy` edge, so a write and rebuild is lossless.
+    return `satisfy ${request.sourceId} by ${request.targetId};`;
 }
 
 /** `succession first source [if guard] then target;` */

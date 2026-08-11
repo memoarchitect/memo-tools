@@ -32,6 +32,11 @@ const satisfiedBy: RelationshipDefinitionDTO = {
     targetEnd: { name: 'requiredElement', type: 'VerifiableElement' },
 };
 
+const nativeSatisfiedBy: RelationshipDefinitionDTO = {
+    ...satisfiedBy,
+    nativeKeyword: 'satisfy',
+};
+
 let projectRoot: string;
 
 function options(overrides: Partial<RelationshipWriterOptions> = {}): RelationshipWriterOptions {
@@ -258,6 +263,11 @@ describe('generateRelationshipDeclaration', () => {
         expect(generateRelationshipDeclaration('rel_1', satisfiedBy, 'controller', 'sr104', 'Alarm status'))
             .toContain('attribute transportedItem = "Alarm status";');
     });
+
+    it('writes a native satisfaction with the SysML order, not a connection usage', () => {
+        expect(generateRelationshipDeclaration('rel_1', nativeSatisfiedBy, 'sr104', 'controller'))
+            .toBe('satisfy sr104 by controller;');
+    });
 });
 
 // ─── Writing ────────────────────────────────────────────────────────────────
@@ -288,6 +298,40 @@ describe('writeRelationship', () => {
             request(), satisfiedBy, model([controller, requirement]), options());
         expect(result.sourceFile).toBe('model/catalog/architecture.sysml');
         expect(result.placementReason).toBe('source-element-file');
+    });
+
+    it('writes native satisfy syntax and rebuilds it as the same trace edge', async () => {
+        writeProjectFile('model/catalog/architecture.sysml', [
+            'package Pump {',
+            '    part controller : SoftwareComponent;',
+            '    requirement sr104 : SoftwareRequirement;',
+            '}',
+            '',
+        ].join('\n'));
+
+        const result = await writeRelationship(
+            request({ sourceId: 'sr104', targetId: 'controller', direction: 'incoming' }),
+            nativeSatisfiedBy, model([controller, requirement]), options());
+        expect(result).toMatchObject({
+            success: true,
+            notation: 'satisfy',
+            declaration: 'satisfy sr104 by controller;',
+        });
+        expect(result.relationshipId).toBeUndefined();
+
+        const written = readProjectFile('model/catalog/architecture.sysml');
+        expect(written).toContain('satisfy sr104 by controller;');
+        expect(written).not.toContain('connection rel_satisfiedBy');
+
+        const { documents, errors } = await parseFiles(
+            [resolve(projectRoot, 'model/catalog/architecture.sysml')], projectRoot + '/');
+        expect(errors).toEqual([]);
+        const rebuilt = buildMemoModel(documents, {} as MEMOConfig, errors);
+        expect(rebuilt.relationships).toContainEqual(expect.objectContaining({
+            type: 'satisfiedBy',
+            sourceId: 'sr104', targetId: 'controller',
+            sourceEnd: 'requiredElement', targetEnd: 'satisfyingElement',
+        }));
     });
 
     it('preserves comments, imports and unrelated declarations', async () => {
