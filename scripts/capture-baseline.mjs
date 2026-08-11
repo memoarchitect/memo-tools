@@ -234,6 +234,14 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-11 — R1-S2 native message.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | +1 `flow` relationship | `alarmNotification` is the native SysML `message` from the safety-monitoring component to the operator interface. `Message : FlowUsage` lowers to the same consumable flow edge as MEMO's compatibility messaging vocabulary. |
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

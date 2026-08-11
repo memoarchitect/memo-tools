@@ -63,6 +63,7 @@ import type {
     ConnectionDefinition,
     ActionParameterMember,
     FlowConnectionUsage,
+    MessageUsage,
     SuccessionUsage,
     AllocateUsage,
     ControlNodeUsage,
@@ -136,7 +137,7 @@ interface DeferredConnection {
 
 /** Deferred flow to resolve after all elements are extracted */
 interface DeferredFlow {
-    flow: FlowConnectionUsage;
+    flow: FlowConnectionUsage | MessageUsage;
     filePath: string;
     packageName: string;
     parentActionId?: string;
@@ -521,6 +522,16 @@ function extractFromPackage(
                 // and the endpoints resolve against the package scope.
                 deferredFlows.push({
                     flow: member as FlowConnectionUsage,
+                    filePath,
+                    packageName,
+                });
+                break;
+            case 'MessageUsage':
+                // `Message : FlowUsage`: native messages deliberately lower
+                // through the same path as MEMO's flow-shaped compatibility
+                // vocabulary, so consumers retain one trace-edge spelling.
+                deferredFlows.push({
+                    flow: member as MessageUsage,
                     filePath,
                     packageName,
                 });
@@ -1124,7 +1135,7 @@ function resolveConnection(
  * Flow endpoints use dot notation: "actionName.paramName"
  */
 function resolveFlowConnection(
-    flow: FlowConnectionUsage,
+    flow: FlowConnectionUsage | MessageUsage,
     filePath: string,
     packageName: string,
     parentActionId: string | undefined,

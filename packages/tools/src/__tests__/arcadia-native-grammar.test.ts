@@ -212,6 +212,19 @@ describe('ARCADIA native mechanisms — grammar', () => {
         expect(pkg.members[2].body[0].isVariation).toBe(true);
     });
 
+    it('message lowers to the same flow edge as the compatibility vocabulary', async () => {
+        expect(await edgesOf(`
+            package P {
+                part sender : MemoPart;
+                part receiver : MemoPart;
+                message alarmNotification of AlarmSignal from sender to receiver;
+            }
+        `)).toContainEqual({
+            type: 'flow', sourceId: 'sender', sourceEnd: '',
+            targetId: 'receiver', targetEnd: '',
+        });
+    });
+
     it('projects configuration variants onto navigable choice-point edges', async () => {
         expect(await edgesOf(`
             package P {

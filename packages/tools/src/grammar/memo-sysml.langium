@@ -282,6 +282,7 @@ EnumLiteralName returns string:
 
 UsageMember:
     PartUsage
+    | MessageUsage
     | RequirementUsage
     | VerificationUsage
     | StateUsage
@@ -292,6 +293,10 @@ UsageMember:
 
 PartUsage:
     isVariation?='variation'? 'part' name=ID (':' type=QualifiedName multiplicity=Multiplicity?)?
+    ('{' body+=UsageBodyMember* '}' | ';');
+
+MessageUsage:
+    'message' name=ID? 'of' itemType=QualifiedName 'from' source=FlowEnd 'to' target=FlowEnd
     ('{' body+=UsageBodyMember* '}' | ';');
 
 // SysML v2 `use case def` / `use case` share a single leading `use case` token
@@ -754,7 +759,7 @@ PrimaryExpr infers ConstraintExpr:
 // value — the bare `name = value;` shorthand is non-standard and is not accepted.
 // Use `attribute redefines name = value;` (the form the serializer emits).
 UsageBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
 // Three forms:
@@ -917,7 +922,7 @@ QualifiedNameTailSegment returns string:
 MemberName returns string:
     ID | 'requirement' | 'action' | 'item' | 'port' | 'interface' | 'connection'
     | 'attribute' | 'constraint' | 'view' | 'viewpoint' | 'ref' | 'part' | 'state' | 'verification'
-    | 'standard';
+    | 'standard' | 'message';
 
 FeatureName returns string:
     ID | 'part' | 'requirement' | 'action' | 'item' | 'port' | 'interface'
