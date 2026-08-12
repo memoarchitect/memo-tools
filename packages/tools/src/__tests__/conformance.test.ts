@@ -49,13 +49,20 @@ const STANDARD_LIBRARY_PACKAGES = [
     'ControlPerformances', 'TransitionPerformances',
     'StatePerformances', 'Triggers',
     'KerML', 'SysML',
+    // Domain Libraries/Metadata. `#refinement` is declared by the standard
+    // library, so a model that means refinement imports ModelingMetadata
+    // rather than MEMO declaring a parallel metadata def beside it.
+    'ModelingMetadata',
 ];
 
 // ScalarValues must be visible in each independent source package for SysIDE
-// to resolve String, Boolean, Integer, and Real. Other direct library imports
-// remain prohibited by ADR-1-13.
+// to resolve String, Boolean, Integer, and Real. ModelingMetadata is likewise
+// importable: it declares `#refinement`, and ADR-1-13 exists to stop MEMO
+// re-deriving kernel semantics, not to make a model re-declare a metadata def
+// the standard already ships. Other direct library imports remain prohibited.
+const DIRECTLY_IMPORTABLE_LIBRARY_PACKAGES = ['ScalarValues', 'ModelingMetadata'];
 const FORBIDDEN_DIRECT_LIBRARY_PACKAGES = STANDARD_LIBRARY_PACKAGES.filter(
-    name => name !== 'ScalarValues',
+    name => !DIRECTLY_IMPORTABLE_LIBRARY_PACKAGES.includes(name),
 );
 
 const KERNEL_IMPORT_RE = new RegExp(
