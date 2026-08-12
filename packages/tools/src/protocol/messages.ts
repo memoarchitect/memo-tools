@@ -690,6 +690,11 @@ export interface DiagramLayout {
         autoLayout?: boolean;
         /** Animate directional flow along connectors. */
         flowAnimation?: boolean;
+        /** IBD display choices persist with the view rather than component state. */
+        portDisplay?: 'all' | 'ports' | 'none';
+        connectionDisplay?: 'summary' | 'all' | 'none';
+        showPortText?: boolean;
+        showConnectionText?: boolean;
         /**
          * Which wall each boundary port straddles, by port id. Unlike
          * `nodes[].ports`, this is a constraint rather than geometry: automatic
