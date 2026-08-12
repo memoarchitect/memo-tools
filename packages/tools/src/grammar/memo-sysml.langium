@@ -147,7 +147,20 @@ MetadataDefinition:
 // Metadata application: `@AnnotationType;` or `@AnnotationType { redefinitions }`
 // applies a metadata def to the enclosing element (standard SysML v2 `@` annotation).
 MetadataApplication:
-    '@' type=QualifiedName ('{' body+=UsageBodyMember* '}' | ';');
+    '@' type=QualifiedName ('{' body+=MetadataBodyMember* '}' | ';');
+
+// Inside a metadata body the `attribute` keyword is NOT accepted — SysIDE's
+// own expected-token list at that position offers `:>>` and `redefines` but
+// not `attribute`, because the members of a metadata usage are already
+// features of its definition. So the bare redefinition is the conforming
+// spelling here and `attribute :>> x = …` is the error, the reverse of every
+// other body in this grammar. Measured against `syside check`, which is the
+// compiler of record.
+MetadataBodyMember:
+    MetadataFeatureMember | UsageBodyMember;
+
+MetadataFeatureMember:
+    redefines?=('redefines' | ':>>') name=MemberName '=' value=AttributeValue ';';
 
 // `isVariation` is the second half of the normative `BasicDefinitionPrefix`
 // (`isAbstract ?= 'abstract' | isVariation ?= 'variation'`,
@@ -760,8 +773,14 @@ PrimaryExpr infers ConstraintExpr:
 // Standard SysML v2 requires a redefinition operator (`redefines` / `:>>`) to bind a
 // value — the bare `name = value;` shorthand is non-standard and is not accepted.
 // Use `attribute redefines name = value;` (the form the serializer emits).
+// StateUsage is a body member because a SysML v2 state machine OWNS its
+// substates — nesting is the containment. MEMO could not parse a nested state
+// while transitions were a part def wired to flat states by Composes edges;
+// it landed when that reinvention was retired. TransitionUsage is NOT listed
+// here: it already arrives through ArcadiaMember, and naming it twice makes
+// the alternation ambiguous.
 UsageBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | StateUsage | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
 // Three forms:
@@ -822,8 +841,12 @@ SetElement:
 // (`:>> baseType = derivations meta SysML::Usage`). Folded into this rule
 // rather than added as a sibling alternative, because both start with a
 // QualifiedName and only the trailing `meta` tells them apart.
+// Also the bare feature-reference value (`ref :>> activeMode = a.b.c;`). A
+// nested state is reached by a dotted path, so a value that names one needs
+// the `.` tail; `::` alone only reaches package members, which is all MEMO
+// needed while every state sat flat in a package.
 EnumValue:
-    enumRef=QualifiedName ('meta' metaclass=QualifiedName)?;
+    enumRef=QualifiedName ('.' tail+=ID)* ('meta' metaclass=QualifiedName)?;
 
 // ─── Nested part member ──────────────────────────────────────────────────────
 // Four forms:
