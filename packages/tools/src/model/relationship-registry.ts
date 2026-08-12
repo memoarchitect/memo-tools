@@ -223,7 +223,7 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             // concerns, which the SysML `viewpoint` usage does not), so this is
             // not one of the part-typed ends A0 had to relax.
             { name: 'framingViewpoint', type: 'MemoPart' },
-            { name: 'framedConcern', type: 'Concern' },
+            { name: 'framedConcern', type: 'MemoPart' },
         ],
     },
     // The one row whose native spelling is NOT a connection. A refinement is a

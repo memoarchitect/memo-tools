@@ -16,7 +16,7 @@ import { findSysmlFiles } from '../model/sysml-files.js';
 //
 // So: flag every MEMO definition whose name's head or tail word is a reserved
 // keyword, and require each survivor to be a RECORDED decision rather than an
-// accident. The allow-list below is the programme's burndown — session 3 drains
+// accident. The allow-list below is the programme's burndown — session 4 drains
 // it, and when it holds only deliberate divergences the migration is done.
 //
 // Two rules keep this honest, and both are load-bearing:
@@ -184,65 +184,9 @@ async function extensionFeatureCollisions(): Promise<FeatureCollision[]> {
  */
 const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'session 3' | 'session 4' | 'deliberate' }> = {
     // ── Real reinventions: the language has the keyword, MEMO spells it privately ──
-    'perform:Performs': {
-        reason: 'All example usages now write `perform`; the compatibility connection def survives until memo-native-requirement-relations session 4 removes it.',
-        removedBy: 'session 4',
-    },
-    'exhibit:ExhibitsMode': {
-        reason: 'No example usage remains, but the compatibility connection def still collides and memo-native-requirement-relations session 4 owns its removal.',
-        removedBy: 'session 4',
-    },
-    'include:IncludesStep': {
-        reason: 'All FunctionalFlowStep usages now write `include`; the compatibility definition remains until memo-native-requirement-relations session 4 removes it.',
-        removedBy: 'session 4',
-    },
     'include:Includes': {
         reason: 'UseCase → UseCase inclusion is semantically distinct from FunctionalFlow → FunctionalFlowStep; native `include` currently projects only the latter, so this compatibility definition is a deliberate divergence.',
         removedBy: 'deliberate',
-    },
-    'message:InteractionMessage': {
-        reason: 'No example usage remains, but the pseudo-reference compatibility definition still collides; memo-native-requirement-relations session 4 owns its removal.',
-        removedBy: 'session 4',
-    },
-    'transition:Transition': {
-        reason: 'All example transitions now write `transition`; the compatibility part def remains until memo-native-requirement-relations session 4 removes it.',
-        removedBy: 'session 4',
-    },
-    'transition:UITransition': {
-        reason: 'No example usage remains, but the UI compatibility connection def still collides and memo-native-requirement-relations session 4 owns its removal.',
-        removedBy: 'session 4',
-    },
-    'stakeholder:Stakeholder': {
-        reason: 'No example usage remains, but the ISO 42010 compatibility part def still collides and memo-native-requirement-relations session 4 owns its removal.',
-        removedBy: 'session 4',
-    },
-    'concern:Concern': {
-        reason: 'No example usage remains, but the ISO 42010 compatibility part def still collides and memo-native-requirement-relations session 4 owns its removal.',
-        removedBy: 'session 4',
-    },
-    'frame:FramesConcern': {
-        reason: 'No example usage remains, but the compatibility connection def still collides and memo-native-requirement-relations session 4 owns its removal.',
-        removedBy: 'session 4',
-    },
-    'concern:FramesConcern': {
-        reason: 'The same surviving compatibility connection def reaches the `concern` keyword through its tail; memo-native-requirement-relations session 4 owns its removal.',
-        removedBy: 'session 4',
-    },
-    'actor:Actor': {
-        reason: 'Examples now write `actor`, but the abstract compatibility part def remains until memo-native-requirement-relations session 4 deletes it.',
-        removedBy: 'session 4',
-    },
-    'actor:NonHumanActor': {
-        reason: 'The compatibility specialization remains while Actor remains; its removal belongs to memo-native-requirement-relations session 4.',
-        removedBy: 'session 4',
-    },
-    'actor:ActsAsActor': {
-        reason: 'Examples now write `actor`, but the compatibility relation definition survives until memo-native-requirement-relations session 4 removes it.',
-        removedBy: 'session 4',
-    },
-    'state:LogicalState': {
-        reason: 'No example declares LogicalState, but the compatibility definition still collides and cannot leave before memo-native-requirement-relations session 4 deletes it.',
-        removedBy: 'session 4',
     },
     // `port:PhysicalPort` and `port:SoftwarePort` were here until session 2.
     // Both are `port def`s now (Track A1), so the construct-alignment
@@ -534,10 +478,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'sessio
         reason: 'Relates an architecture decision record to what it decides; `decide` is a control node in an action body.',
         removedBy: 'deliberate',
     },
-    'concern:HasConcern': {
-        reason: 'No example uses it, but the compatibility definition remains and therefore still collides; memo-native-requirement-relations session 4 owns its deletion.',
-        removedBy: 'session 4',
-    },
     'rendering:LayerRendering': {
         reason: 'Per-layer colour and icon for the Architect canvas; `rendering def` is the SysML textual-rendering mechanism.',
         removedBy: 'deliberate',
@@ -574,6 +514,10 @@ async function collisions(): Promise<Collision[]> {
         // declares `allocation def`s, and the construct-alignment exemption is
         // only sound if it reads the construct the definition actually used.
         ...(registries.relationshipRegistry?.entries() ?? [])
+            // A native relation is a projection of a SysML construct, not a
+            // declared MEMO definition. Its legacy sysmlName remains the graph
+            // contract while the ontology definition has been retired.
+            .filter(entry => !entry.nativeKeyword)
             .map(entry => ({ name: entry.sysmlName, construct: entry.sysmlConstruct ?? 'connection def' })),
     ];
     if (definitions.length < 100) throw new Error(`registries loaded only ${definitions.length} definitions`);
