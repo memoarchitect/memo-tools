@@ -88,23 +88,23 @@
       },
       {
         "id": "evDrugLibrarySelection",
-        "kind": "Evidence",
+        "kind": "MemoEvidence",
         "construct": "part",
-        "layer": "verification_validation",
+        "layer": "core",
         "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       },
       {
         "id": "evInfusionStatusContent",
-        "kind": "Evidence",
+        "kind": "MemoEvidence",
         "construct": "part",
-        "layer": "verification_validation",
+        "layer": "core",
         "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       },
       {
         "id": "evRateChange",
-        "kind": "Evidence",
+        "kind": "MemoEvidence",
         "construct": "part",
-        "layer": "verification_validation",
+        "layer": "core",
         "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
       },
       {
@@ -1023,9 +1023,9 @@
       }
     ],
     "kindCounts": {
-      "Evidence": 3,
       "Hazard": 5,
       "MemoDiagramView": 4,
+      "MemoEvidence": 3,
       "MemoScreenLayoutView": 2,
       "ModelComment": 3,
       "ModelNote": 1,
@@ -1043,7 +1043,7 @@
       "VerificationCase": 3
     },
     "layerCounts": {
-      "core": 5,
+      "core": 8,
       "functional": 6,
       "human-factors": 5,
       "implementation": 14,
@@ -1051,7 +1051,7 @@
       "requirements": 13,
       "safety_risk": 10,
       "unknown": 6,
-      "verification_validation": 6
+      "verification_validation": 3
     },
     "diagrams": []
   },

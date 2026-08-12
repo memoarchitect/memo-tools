@@ -342,10 +342,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'sessio
         reason: 'A UI event kind (tap, drag, long-press); `event` in SysML writes an event occurrence usage.',
         removedBy: 'deliberate',
     },
-    'event:FaultTreeEvent': {
-        reason: 'A fault-tree node (IEC 61025), a safety-analysis artifact.',
-        removedBy: 'deliberate',
-    },
     'event:LogTherapyEvent': {
         reason: 'A clinical logging action in the GPCA behaviour; "event" is the therapy record it writes.',
         removedBy: 'deliberate',
