@@ -43,7 +43,7 @@ function makeModel(elements: MemoElement[] = [], relationships: MemoRelationship
         if (!incoming.has(rel.targetId)) incoming.set(rel.targetId, []);
         incoming.get(rel.targetId)!.push(rel);
     }
-    return { elements: elementMap, relationships, errors: [], elementsByKind, elementsByLayer, relationshipsByType, outgoing, incoming };
+    return { elements: elementMap, relationships, errors: [], packages: [], elementsByKind, elementsByLayer, relationshipsByType, outgoing, incoming };
 }
 
 function makeValidation(violations: any[] = []): ValidationResult {

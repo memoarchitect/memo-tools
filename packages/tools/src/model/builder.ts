@@ -98,6 +98,7 @@ import type {
     MemoElement,
     MemoRelationship,
     MemoModel,
+    MemoPackageDTO,
     ParseError,
     ActionParameter,
     PortSpec,
@@ -359,12 +360,34 @@ export function buildMemoModel(
         elements,
         relationships,
         errors,
+        packages: collectPackages(registry),
         elementsByKind,
         elementsByLayer,
         relationshipsByType,
         outgoing,
         incoming,
     };
+}
+
+/**
+ * The declared packages, in the shape the model carries them.
+ *
+ * Read from the registry rather than from element membership so a package that
+ * declares nothing is still reported: an explorer builds its containment tree
+ * from this list, and a newly created package has no members yet by definition.
+ */
+function collectPackages(registry: PackageRegistry): MemoPackageDTO[] {
+    const packages: MemoPackageDTO[] = [];
+    for (const entry of registry.getPackages().values()) {
+        const separator = entry.qualifiedName.lastIndexOf('::');
+        packages.push({
+            qualifiedName: entry.qualifiedName,
+            name: separator === -1 ? entry.qualifiedName : entry.qualifiedName.slice(separator + 2),
+            ...(separator === -1 ? {} : { parent: entry.qualifiedName.slice(0, separator) }),
+            file: entry.file,
+        });
+    }
+    return packages.sort((a, b) => a.qualifiedName.localeCompare(b.qualifiedName));
 }
 
 function applySemanticProvenance(

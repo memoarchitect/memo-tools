@@ -30,7 +30,7 @@ function makeModel(elements: MemoElement[], relationships: MemoRelationship[]): 
         (relByType.get(r.type) ?? relByType.set(r.type, []).get(r.type)!).push(r);
     }
     return {
-        elements: byId, relationships, errors: [],
+        elements: byId, relationships, errors: [], packages: [],
         elementsByKind: byKind, elementsByLayer: byLayer,
         relationshipsByType: relByType, outgoing, incoming,
     };

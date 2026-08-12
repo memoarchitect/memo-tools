@@ -71,6 +71,26 @@ export interface MemoElement {
     provenance?: SemanticElementProvenance;
 }
 
+/**
+ * A package declared by project source.
+ *
+ * Containment in MEMO is package membership — an element's `package` names the
+ * package that declares it. The packages themselves are carried separately
+ * because a package that declares nothing yet is still a package: deriving the
+ * list from element membership alone would make an empty one invisible, and a
+ * container that disappears when you empty it is not a container.
+ */
+export interface MemoPackageDTO {
+    /** Fully qualified name, `Parent::Child`. */
+    qualifiedName: string;
+    /** Declared name — the last segment of `qualifiedName`. */
+    name: string;
+    /** Qualified name of the declaring package, absent at file top level. */
+    parent?: string;
+    /** Project-relative file declaring it. */
+    file: string;
+}
+
 /** A typed relationship between two elements */
 export interface MemoRelationship {
     /** Unique relationship id (auto-generated) */
@@ -125,6 +145,8 @@ export interface MemoModel {
     relationships: MemoRelationship[];
     /** Parse errors encountered */
     errors: ParseError[];
+    /** Packages declared by project source, including empty ones. */
+    packages: MemoPackageDTO[];
 
     // ─── Derived indexes (computed by builder) ──────────────────────────
 
@@ -242,6 +264,8 @@ export interface MemoModelDTO {
     enumerations?: EnumDefinitionDTO[];
     relationships: MemoRelationship[];
     errors: ParseError[];
+    /** Packages declared by project source, including empty ones. */
+    packages?: MemoPackageDTO[];
     /** Viewpoint definitions from config (for client-side filtering) */
     viewpoints?: ViewpointDTO[];
     /** Architecture layer definitions from config */
@@ -321,6 +345,7 @@ export function modelToDTO(
         enumerations: options?.enumerations,
         relationships: model.relationships,
         errors: model.errors,
+        packages: model.packages,
         viewpoints: options?.viewpoints,
         architectureLayers: options?.architectureLayers,
         diagrams: options?.diagrams,
@@ -363,6 +388,7 @@ export function dtoToModel(dto: MemoModelDTO): MemoModel {
         elements,
         relationships,
         errors: dto.errors,
+        packages: dto.packages ?? [],
         elementsByKind,
         elementsByLayer,
         relationshipsByType,

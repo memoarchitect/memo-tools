@@ -83,6 +83,7 @@ export type ServerMessage =
     | RelationshipDeleteResultMessage
     | ElementDeleteResultMessage
     | ElementMutationResultMessage
+    | PackageMutationResultMessage
     | MethodologySourceResultMessage
     | RulePolicyWriteResultMessage
     | ScreenCaptureUploadResultMessage
@@ -358,6 +359,31 @@ export interface ElementMutationResultMessage {
         /** IR identity of the written declaration, for the client's next edit. */
         irIdentity?: string;
         /** Advisory notes about a write that succeeded — see ElementWriteWarning. */
+        warnings?: Array<{ code: string; message: string }>;
+    };
+}
+
+/**
+ * Result of a containment edit: creating, renaming or removing a package, or
+ * moving an element into one.
+ *
+ * One message type for all four because they answer the same question — what
+ * does the model contain now — and a client that acts on containment reacts to
+ * them identically.
+ */
+export interface PackageMutationResultMessage {
+    type: 'package:mutation:result';
+    payload: {
+        requestId: string;
+        success: boolean;
+        /** Project-relative files the operation wrote. */
+        filePaths?: string[];
+        /** Qualified name the operation produced or acted on. */
+        qualifiedName?: string;
+        error?: string;
+        /** The move was addressed to an IR identity the revision does not have. */
+        stale?: boolean;
+        /** Advisory notes about a write that succeeded — see PACKAGE_EDIT_IS_TEXT_ONLY. */
         warnings?: Array<{ code: string; message: string }>;
     };
 }

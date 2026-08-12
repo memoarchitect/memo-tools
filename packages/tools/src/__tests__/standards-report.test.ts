@@ -51,7 +51,7 @@ function model(elements: MemoElement[], relationships: MemoRelationship[]): Memo
         incoming.set(rel.targetId, [...(incoming.get(rel.targetId) ?? []), rel]);
     }
     return {
-        elements: byId, relationships, errors: [],
+        elements: byId, relationships, errors: [], packages: [],
         elementsByKind: byKind, elementsByLayer: new Map(),
         relationshipsByType: byType, outgoing, incoming,
     };

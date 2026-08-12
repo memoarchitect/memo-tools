@@ -30,6 +30,11 @@ import {
     writeRelationship, type RelationshipWriterOptions,
 } from './relationship-writer.js';
 import { removeElement } from './element-writer.js';
+import { DEFAULT_ELEMENT_FILE } from './persistor.js';
+import {
+    createPackage, deletePackage, moveElementToPackage, movePackage, renamePackage,
+    type PackageWriteResult,
+} from './package-writer.js';
 import { assertSingleDomainMutation, MixedMutationDomainError } from './mutation-domain.js';
 import { classifyConflict } from './conflict-policy.js';
 import type { SemanticOrigin } from '../model/source-provenance.js';
@@ -101,7 +106,8 @@ export interface DevServer {
 }
 
 const MODEL_MUTATION_MESSAGES = new Set([
-    'element:update', 'element:create', 'element:delete', 'element:remap-kinds',
+    'element:update', 'element:create', 'element:delete', 'element:remap-kinds', 'element:move-package',
+    'package:create', 'package:rename', 'package:delete', 'package:move',
     'relationship:create', 'relationship:delete',
     'diagram:create', 'diagram:update', 'diagram:delete', 'diagram:layout:update', 'diagram:source:save',
     'methodology:source:save', 'csv:import', 'screen-capture:upload',
@@ -850,6 +856,79 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         };
     }
 
+    /**
+     * Apply one package mutation, resolving what the client named to a file.
+     *
+     * The client addresses a package by qualified name because that is what its
+     * tree is built from; which file declares it is the server's question, and
+     * answering it here keeps the browser from guessing at project layout. A
+     * package with no members yet still has a file — the model carries the
+     * declared packages, not only the ones with contents.
+     */
+    async function handlePackageMutation(
+        type: 'package:create' | 'package:rename' | 'package:delete' | 'package:move' | 'element:move-package',
+        payload: Record<string, any>,
+    ): Promise<PackageWriteResult> {
+        const { projectRoot } = options;
+        const model = currentModel();
+        if (!model) return { success: false, filePaths: [], error: 'The model is not loaded yet.' };
+
+        /** The file declaring a package: its own declaration, else its members'. */
+        const fileOf = (qualifiedName: string): string | undefined =>
+            model.packages?.find(pkg => pkg.qualifiedName === qualifiedName)?.file
+            ?? Object.values(model.elements).find(el => el.package === qualifiedName)?.file;
+
+        if (type === 'package:create') {
+            const parent: string | undefined = payload.parent || undefined;
+            const file = payload.file || (parent ? fileOf(parent) : undefined) || DEFAULT_ELEMENT_FILE;
+            if (parent && !fileOf(parent)) {
+                return { success: false, filePaths: [], error: `Package "${parent}" was not found.` };
+            }
+            return createPackage(projectRoot, { file, parent, name: String(payload.name ?? '') });
+        }
+
+        const qualifiedName = String(payload.qualifiedName ?? '');
+        if (type === 'package:rename' || type === 'package:delete' || type === 'package:move') {
+            const file = fileOf(qualifiedName);
+            if (!file) return { success: false, filePaths: [], error: `Package "${qualifiedName}" was not found.` };
+            if (type === 'package:rename') {
+                return renamePackage(projectRoot, { file, qualifiedName, name: String(payload.name ?? '') });
+            }
+            if (type === 'package:delete') return deletePackage(projectRoot, { file, qualifiedName });
+            const targetParent: string | undefined = payload.targetParent || undefined;
+            const targetFile = targetParent ? fileOf(targetParent) : file;
+            if (targetParent && !targetFile) {
+                return { success: false, filePaths: [], error: `Package "${targetParent}" was not found.` };
+            }
+            return movePackage(projectRoot, { file, qualifiedName, targetParent, targetFile: targetFile! });
+        }
+
+        const elementId = String(payload.elementId ?? '');
+        const element = model.elements[elementId];
+        if (!element) return { success: false, filePaths: [], error: `Element "${elementId}" was not found.` };
+        if (element.provenance && !element.provenance.declaration.writable) {
+            return {
+                success: false, filePaths: [],
+                error: `Element "${elementId}" is read-only ${element.provenance.declaration.origin} content.`,
+            };
+        }
+        const targetPackage: string | undefined = payload.targetPackage || undefined;
+        const targetFile = targetPackage ? fileOf(targetPackage) : element.file;
+        if (targetPackage && !targetFile) {
+            return { success: false, filePaths: [], error: `Package "${targetPackage}" was not found.` };
+        }
+        const irIdentity = irIndex().byMemoElement[elementId];
+        if (!irIdentity) {
+            return {
+                success: false, filePaths: [],
+                error: `"${elementId}" has no address in the current revision; reload before moving it.`,
+            };
+        }
+        return moveElementToPackage(projectRoot, {
+            elementId, irIdentity, sourceFile: element.file, targetFile: targetFile!, targetPackage,
+        }, irIndex());
+    }
+
     async function handleElementDelete(payload: {
         requestId?: string;
         elementId?: string;
@@ -1160,6 +1239,27 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         ...(result.warnings ? { warnings: result.warnings } : {}),
                         ...(result.success ? { irIdentity: irIndex().byMemoElement[id] } : {}),
                     });
+                } else if (msg.type === 'package:create' || msg.type === 'package:rename' ||
+                           msg.type === 'package:delete' || msg.type === 'package:move' ||
+                           msg.type === 'element:move-package') {
+                    // Containment is package membership, so every one of these is
+                    // a source edit on a `package` declaration — never a
+                    // directory, and never an attribute standing in for one.
+                    const { requestId = '' } = msg.payload ?? {};
+                    const reply = (payload: Record<string, unknown>) => ws.send(JSON.stringify({
+                        type: 'package:mutation:result',
+                        payload: { requestId, ...payload },
+                    }));
+                    try {
+                        const result = await handlePackageMutation(msg.type, msg.payload ?? {});
+                        if (result.success) {
+                            await recompileAfterWrite();
+                            console.log(`[Persisted] ${msg.type} to ${result.filePaths.join(', ')}`);
+                        }
+                        reply({ ...result });
+                    } catch (e: any) {
+                        reply({ success: false, filePaths: [], error: e?.message ?? String(e) });
+                    }
                 } else if (msg.type === 'screen-capture:upload') {
                     const { requestId, viewName, fileName, base64, mediaType } = msg.payload ?? {};
                     const reply = (payload: Record<string, unknown>) => ws.send(JSON.stringify({

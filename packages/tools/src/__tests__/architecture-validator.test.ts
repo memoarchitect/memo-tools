@@ -13,7 +13,7 @@ function model(elements: MemoElement[], relationships: MemoRelationship[]): Memo
         outgoing.set(relationship.sourceId, [...(outgoing.get(relationship.sourceId) ?? []), relationship]);
         incoming.set(relationship.targetId, [...(incoming.get(relationship.targetId) ?? []), relationship]);
     }
-    return { elements: byId, relationships, errors: [], elementsByKind: new Map([['Block', elements]]), elementsByLayer: new Map(), relationshipsByType: new Map(), outgoing, incoming };
+    return { elements: byId, relationships, errors: [], packages: [], elementsByKind: new Map([['Block', elements]]), elementsByLayer: new Map(), relationshipsByType: new Map(), outgoing, incoming };
 }
 
 describe('AR-IBD-001 nested-part connectivity', () => {

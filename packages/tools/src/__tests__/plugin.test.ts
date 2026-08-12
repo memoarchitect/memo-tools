@@ -28,7 +28,7 @@ function createMockContext(): PluginContext {
     const model = {
         elements: new Map(elements.map(e => [e.id, e])),
         relationships: [] as MemoRelationship[],
-        errors: [],
+        errors: [], packages: [],
         elementsByKind: new Map([['Hazard', elements]]),
         elementsByLayer: new Map([['risk', elements]]),
         relationshipsByType: new Map(),

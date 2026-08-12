@@ -395,7 +395,7 @@ function createTestModel(
     return {
         elements: elemMap,
         relationships,
-        errors: [],
+        errors: [], packages: [],
         elementsByKind: new Map(),
         elementsByLayer: new Map(),
         relationshipsByType: new Map(),

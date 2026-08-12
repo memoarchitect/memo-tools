@@ -32,6 +32,7 @@ import {
     StaleIrIdentityError,
     type IrIdentityIndex,
 } from '../model/ir-identity.js';
+import { insertIntoBody, locatePackages } from './package-source.js';
 
 /** Default home for an element the request does not place. */
 export const DEFAULT_ELEMENT_FILE = 'model/catalog/project.sysml';
@@ -46,6 +47,15 @@ export interface ElementWriteRequest {
     attributes?: Record<string, string>;
     /** Project-relative source file. */
     file?: string;
+    /**
+     * Qualified name of the package that should declare this element.
+     *
+     * Creation only — a package change on an existing declaration is a move,
+     * which is ./package-writer.ts's job because it has to cut the declaration
+     * out of where it currently is. Absent means the file's last package, which
+     * is what a request that does not care about placement gets.
+     */
+    package?: string;
     /**
      * IR identity of the declaration being edited.
      *
@@ -166,27 +176,47 @@ export async function saveElementToFile(
         }
         updated = spliceIndented(content, located.start, located.end, usage);
         replaced = true;
+    } else if (element.package) {
+        const target = (await locatePackages(content)).find(pkg => pkg.qualifiedName === element.package);
+        if (!target) {
+            return {
+                success: false, filePath: relativePath,
+                error: `${relativePath} does not declare package "${element.package}"; nothing was written.`,
+            };
+        }
+        updated = insertIntoBody(content, target, `${usage}\n`);
     } else {
         updated = appendToLastPackage(content, usage);
     }
 
-    // Parse-before-commit: source that does not parse never reaches disk. The
-    // editor model (§1.1) says a *user* may save anything; it does not say a
-    // machine-generated splice may corrupt a file the user did not touch.
+    const committed = await commitSource(filePath, relativePath, updated);
+    if (!committed.success) return { success: false, filePath: relativePath, error: committed.error };
+    return { success: true, filePath: relativePath, replaced, ...(warnings.length ? { warnings } : {}) };
+}
+
+/**
+ * Parse-before-commit, then write atomically.
+ *
+ * Source that does not parse never reaches disk. The editor model (§1.1) says a
+ * *user* may save anything; it does not say a machine-generated splice may
+ * corrupt a file the user did not touch.
+ */
+export async function commitSource(
+    absolutePath: string, relativePath: string, updated: string,
+): Promise<{ success: boolean; error?: string }> {
     const { errors } = await parseText(updated);
     if (errors.length > 0) {
         return {
-            success: false, filePath: relativePath,
-            error: `The updated source did not parse (${errors[0].message}); the file was left unchanged.`,
+            success: false,
+            error: `The updated source did not parse (${errors[0].message}); ${relativePath} was left unchanged.`,
         };
     }
-
     try {
-        atomicWrite(filePath, updated);
+        atomicWrite(absolutePath, updated);
     } catch (e) {
-        return { success: false, filePath: relativePath, error: `Could not write ${relativePath}: ${String(e)}` };
+        return { success: false, error: `Could not write ${relativePath}: ${String(e)}` };
     }
-    return { success: true, filePath: relativePath, replaced, ...(warnings.length ? { warnings } : {}) };
+    return { success: true };
 }
 
 /** Source range of the declaration an identity names, in this file's text. */
