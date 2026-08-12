@@ -1,8 +1,0 @@
-{
-  "name": "p",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "@memoarchitect/ontology": "0.7.0"
-  }
-}
