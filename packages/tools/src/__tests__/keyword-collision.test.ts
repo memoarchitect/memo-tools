@@ -177,12 +177,15 @@ async function extensionFeatureCollisions(): Promise<FeatureCollision[]> {
 /**
  * Every collision that exists today, with why it is there and what removes it.
  *
- * `removedBy` names the session of plans/memo-arcadia-native-coverage.md §16
- * that retires the entry, or `deliberate` for a divergence that is meant to
- * survive the programme. An entry is not permission to add more: a NEW
- * definition that collides fails this test until someone writes down why.
+ * `removedBy` was the burndown: it named the session that retired an entry,
+ * or `deliberate` for a divergence meant to survive. The burndown is finished
+ * — R2 drained the last session rows when it deleted the private requirement
+ * relations — so only `deliberate` remains, and the session literals are gone
+ * rather than left as an unreachable option. An entry is not permission to add
+ * more: a NEW definition that collides fails this test until someone writes
+ * down why.
  */
-const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'session 3' | 'session 4' | 'deliberate' }> = {
+const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
     // ── Real reinventions: the language has the keyword, MEMO spells it privately ──
     'include:Includes': {
         reason: 'UseCase → UseCase inclusion is semantically distinct from FunctionalFlow → FunctionalFlowStep; native `include` currently projects only the latter, so this compatibility definition is a deliberate divergence.',

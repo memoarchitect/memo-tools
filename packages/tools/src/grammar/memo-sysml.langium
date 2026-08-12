@@ -84,7 +84,15 @@ PackageMember:
     | ArcadiaMember
     | Dependency
     | MetadataApplication
+    | BindingUsage
     | DocComment;
+
+// `bind a = b;` — the native spelling of port delegation, where an enclosing
+// port and a nested part's port are the same feature. MEMO wrote these as
+// flows, which SysIDE rejects: a flow's source must be an output, and a
+// delegation runs `in` to `in`.
+BindingUsage:
+    'bind' source=ReferenceName '=' target=ReferenceName ';';
 
 // Namespace indirection used by the canonical memo::* facade. Each source file
 // owns a unique package for reliable SysIDE indexing; aliases reconstruct the
@@ -803,11 +811,17 @@ UsageBodyMember:
 // theoretical once rules and policies started declaring typed attributes with
 // defaults. SysIDE is the compiler of record, so the grammar follows it.
 
+// A fifth form is `default`, which supplies an overridable initial value where
+// a bare `=` BINDS one. The difference is not cosmetic: a bound value cannot be
+// redefined by a usage, so `= x` in a definition forbids every specialization
+// from disagreeing. Any attribute a subtype may legitimately override has to be
+// spelled `default`.
 AttributeMember:
     isVariation?='variation'? 'attribute' redefines?=('redefines' | ':>>')? name=MemberName
     (':' type=QualifiedName multiplicity=Multiplicity?
-        ('=' value=AttributeValue ';' | '{' body+=UsageBodyMember* '}' | ';')
-    | '=' value=AttributeValue ';'
+        (isDefault?='default'? '=' value=AttributeValue ';' | isDefault?='default' value=AttributeValue ';' | '{' body+=UsageBodyMember* '}' | ';')
+    | isDefault?='default'? '=' value=AttributeValue ';'
+    | isDefault?='default' value=AttributeValue ';'
     | '{' body+=UsageBodyMember* '}');
 
 AttributeValue:

@@ -262,7 +262,8 @@ describe('MEMO ontology relationship properties', () => {
     // earn its exemption. `memo_relationships.sysml` states the reason inline
     // above every entry here; adding a name to this list without one is a bug.
     //
-    // Most of this list is Track A0 (plans/memo-arcadia-native-coverage.md §6):
+    // Most of this list is Track A0 (the ARCADIA programme Track A0; its outcomes are recorded in
+    // plans/reference/memo-r1-arcadia-residue.md):
     // KerML forbids a port or a behaviour from specializing a part-based type,
     // so a `MemoPart`-typed end forced every endpoint to be a part — which is
     // why ports are part defs, why a function is a part with a separate action

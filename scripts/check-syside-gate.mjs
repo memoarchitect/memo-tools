@@ -13,12 +13,13 @@ import { resolve } from 'node:path';
 
 const toolsRoot = resolve(import.meta.dirname, '..');
 const memoRoot = resolve(toolsRoot, '../memo');
-// SCOPE: the ontology and the extensions — NOT `memo/examples`, which is shipped
-// to users by `memo init --example` and does not currently pass SysIDE. That gap
-// is epic R8 in memo-meta/plans; `examples` joins this list in R8-S4, and this
-// comment goes with it. Anything checked by neither gate is a place a red build
-// can hide behind a green suite, which is the gap R0 existed to close.
-const sourceRoots = ['src', 'extensions'];
+// SCOPE: the ontology, the extensions, AND `memo/examples` — everything MEMO
+// ships. `examples` is shipped to users by `memo init --example` and was
+// checked by neither gate until R8-S4, which is how 733 SysIDE errors and two
+// defects introduced by R0 and R1 themselves survived a green build and 1858
+// green tests. Anything checked by neither gate is a place a red build can hide
+// behind a green suite, which is the gap R0 existed to close.
+const sourceRoots = ['src', 'extensions', 'examples'];
 const executable = process.env.SYSIDE_EXECUTABLE || 'syside';
 
 for (const sourceRoot of sourceRoots) {
@@ -64,4 +65,4 @@ if (result.status !== 0) {
     process.exit(result.status ?? 1);
 }
 
-console.log('✔ SysIDE gate: ontology and extensions resolve cleanly.');
+console.log('✔ SysIDE gate: ontology, extensions, and examples resolve cleanly.');

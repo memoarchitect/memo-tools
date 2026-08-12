@@ -71,7 +71,7 @@ export const FIXTURES = [
 
 /**
  * BASELINE RE-FROZEN 2026-08-10 — three fixtures, start of the ARCADIA
- * native-coverage programme (plans/memo-arcadia-native-coverage.md, session 1).
+ * native-coverage programme (the ARCADIA programme, session 1 (plans/reference/memo-r1-arcadia-residue.md)).
  *
  * The baselines had gone red again for work that landed between the 2026-08-02
  * re-freeze and now: the standards-conformance engine, the UI-screen-regions
@@ -117,7 +117,7 @@ export const FIXTURES = [
 
 /**
  * BASELINE RE-FROZEN 2026-08-10 (third time today) — one fixture, for Track A1
- * (plans/memo-arcadia-native-coverage.md, session 2): PhysicalPort and
+ * (the ARCADIA programme, session 2 (plans/reference/memo-r1-arcadia-residue.md)): PhysicalPort and
  * SoftwarePort became `port def`s.
  *
  * A port is a port. Both were `part def … specializes InterfaceElement` for one
