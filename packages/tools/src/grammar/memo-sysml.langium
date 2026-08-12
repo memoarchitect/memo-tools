@@ -596,7 +596,9 @@ ExhibitStateUsage:
 // VerifiedBy links onto, and it is also what makes that training file parse.
 SubjectMember:
     'subject' name=MemberName (':' type=QualifiedName multiplicity=Multiplicity?)?
-    (bindingOp=('=' | ':>' | ':>>') boundRef=ReferenceName)?
+    (bindingOp=('=' | ':>' | ':>>')
+        ('(' boundRefs+=ReferenceName (',' boundRefs+=ReferenceName)* ')'
+        | boundRefs+=ReferenceName))?
     ('{' body+=UsageBodyMember* '}' | ';');
 
 ObjectiveMember:

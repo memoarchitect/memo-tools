@@ -1437,7 +1437,9 @@ function resolveOwnerRootedUsage(
  * A `subject` that declares a fresh feature rather than pointing at an existing
  * element — `subject testVehicle : Vehicle;` — binds nothing and contributes no
  * edge. Only the referring forms (`subject v :> vehicleTestConfig;`,
- * `subject v = vehicleTestConfig;`) name something already in the model.
+ * `subject v = vehicleTestConfig;`) name something already in the model. A
+ * multi-valued subject is one parameter whose binding is a parenthesized list;
+ * each bound element is one `verifiedBy` fact for the owning case.
  */
 function resolveSubject(
     subject: SubjectMember,
@@ -1446,14 +1448,16 @@ function resolveSubject(
     registry: PackageRegistry,
     allElementIds: Set<string>,
 ): void {
-    if (!subject.boundRef) return;
+    if (!subject.boundRefs?.length) return;
     const { packageName, ownerId } = nativeUsageContext(subject);
-    const sourceId = resolveEndpointId(subject.boundRef, packageName, registry, allElementIds);
     const targetId = ownerId
         ? resolveEndpointId(ownerId, packageName, registry, allElementIds)
         : undefined;
-    if (!sourceId || !targetId) return;
-    relationships.push(nativeTraceEdge('verifiedBy', sourceId, targetId, filePath));
+    if (!targetId) return;
+    for (const boundRef of subject.boundRefs) {
+        const sourceId = resolveEndpointId(boundRef, packageName, registry, allElementIds);
+        if (sourceId) relationships.push(nativeTraceEdge('verifiedBy', sourceId, targetId, filePath));
+    }
 }
 
 /**

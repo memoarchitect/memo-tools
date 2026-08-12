@@ -383,6 +383,22 @@ describe('ARCADIA native mechanisms — builder projection', () => {
         expect(native).toEqual(connection);
     });
 
+    it('a multi-valued case subject preserves every verification target', async () => {
+        const native = await edgesOf(`
+            package Test {
+                action fnComputeRate : SystemFunction;
+                action fnDrivePump : SystemFunction;
+                verification vcRate : VerificationCase {
+                    subject verified : Anything[*] = (fnComputeRate, fnDrivePump);
+                }
+            }
+        `);
+        expect(native).toEqual(expect.arrayContaining([
+            expect.objectContaining({ type: 'verifiedBy', sourceId: 'fnComputeRate', targetId: 'vcRate' }),
+            expect.objectContaining({ type: 'verifiedBy', sourceId: 'fnDrivePump', targetId: 'vcRate' }),
+        ]));
+    });
+
     it('an objective does not capture the verifying case', async () => {
         // `objective` is a membership, not an element. If it captured ownership
         // the `verify` inside would bind to a wrapper that is not an extracted
