@@ -1,16 +1,41 @@
 # Project Configuration
 
-Projects use `memo.package.yaml` or `memo.config.yaml` to identify
-their content package/profile and toolchain.
+**Settings, not meaning.** This page covers application settings: which external
+tools run, where a package's source sits, how commands behave. None of it
+decides what your model contains.
 
-## Select the methodology
+> Delete every YAML file in a project and the model still means exactly what it
+> meant before.
 
-```yaml
-extends: "@memoarchitect/methodology-default"
+What the model contains is decided in SysML — the import graph starting at
+`model/catalog/project.sysml`, and the `ProjectMethodBinding` there that names
+the methodology. That half is documented in the ontology reference:
+[Native project format](https://memoarchitect.com/memo/reference/native-project-format/).
+
+`memo.config.yaml` is gone, along with `extends:`, `methodology:`, `ontologies:`
+and `modules:`. They selected model content from a file no conformant SysML v2
+tool reads. A project that still carries one gets a diagnostic naming the native
+construct that replaced the field — it is never read as a fallback:
+
+```text
+memo.package.yaml: `extends` is not read.
+  Write a native `private import` of the package in model/catalog/project.sysml.
 ```
 
-The lock file records the resolved dependency graph. Commit it when your team
-needs repeatable resolution.
+## The files MEMO reads
+
+| File | What it is for |
+| --- | --- |
+| `memo.tools.yaml` | This page: toolchain selection, executable paths, command behaviour |
+| `memo.package.yaml` | Locator only — `name`, `version`, `description`, `license`, `tags`, `sysmlDir`. Settings may also be read from here when there is no `memo.tools.yaml` |
+| `memo.lock.yaml` | Generated: the packages, versions and hashes the imports resolved to |
+| `syside.toml`, `.project.json` | External tool adapters |
+
+A settings file inherits nothing. There is no `extends` chain to resolve, because
+inheritance was how one project's settings reached into another package's model.
+
+The lock file records what the import graph resolved to. It cannot introduce a
+package no import named. Commit it when your team needs repeatable resolution.
 
 ## Select external tools
 

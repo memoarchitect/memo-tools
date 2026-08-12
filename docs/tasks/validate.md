@@ -31,8 +31,8 @@ Use JSON for custom reporting and JUnit for CI test reports.
 
 ## External validator checks
 
-Projects may select SysIDE as the validator in `memo.package.yaml` or
-`memo.config.yaml`. `memo validate` runs it before MEMO semantic validation and
+Projects may select SysIDE as the validator in `memo.tools.yaml` (or
+`memo.package.yaml`). `memo validate` runs it before MEMO semantic validation and
 reports its diagnostics as GNU one-liners, carrying SysIDE's own rule codes
 through unchanged.
 

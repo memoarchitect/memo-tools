@@ -56,10 +56,13 @@ The engine contains **no content knowledge** — no package names, namespace
 strings, template catalogs, examples, or template layouts are hardcoded. Everything
 comes from the ontology package's `memo.manifest.yaml`:
 
-1. A project's `memo.package.yaml` declares `extends: "<logical package>"`.
+1. A project's `model/catalog/project.sysml` imports the packages it uses. The
+   import graph — not a settings key — decides what is in the model; a package
+   no import reaches contributes nothing, however many manifests point at it.
 2. The resolver locates the project-local `@memoarchitect/ontology` package in
-   `node_modules`,
-   reads its manifest, and maps the logical name to a subpath.
+   `node_modules`, reads its manifest, and maps the imported package to a
+   subpath. `memo.package.yaml` may supply `sysmlDir` as a locator; it selects
+   nothing.
 3. `memo init --list` reads the manifest's `templates` and `examples` maps;
    `--template` and `--example` copy the selected ontology-owned directory.
 4. `memo.lock.yaml` pins the resolved identity and version; `memo validate`
