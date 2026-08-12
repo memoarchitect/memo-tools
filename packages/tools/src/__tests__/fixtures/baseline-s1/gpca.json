@@ -2503,65 +2503,65 @@
       },
       {
         "id": "modeACTIVE",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "modeBASAL",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "modeIDLE",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "modeOFF",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "modeON",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "modePAUSED",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "modePBOLUS",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "modeSQUARE",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "modeTHERAPY",
-        "kind": "ModeState",
+        "kind": "MemoState",
         "construct": "state",
-        "layer": "functional",
+        "layer": "core",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
@@ -9538,12 +9538,12 @@
       "MemoDiagramView": 17,
       "MemoDocumentView": 6,
       "MemoScenario": 9,
+      "MemoState": 9,
       "MemoUsabilityEngineeringView": 1,
       "MethodologyDefinition": 1,
       "MinimalCutSet": 2,
       "Mission": 1,
       "ModeConfiguration": 5,
-      "ModeState": 9,
       "Need": 4,
       "NotificationSpec": 20,
       "OperationalActivity": 14,
@@ -9587,9 +9587,9 @@
     "layerCounts": {
       "artifacts": 4,
       "behavior": 23,
-      "core": 9,
+      "core": 18,
       "cybersecurity": 10,
-      "functional": 78,
+      "functional": 69,
       "human-factors": 4,
       "implementation": 27,
       "logical": 175,

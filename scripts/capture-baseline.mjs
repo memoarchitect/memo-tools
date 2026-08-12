@@ -253,6 +253,15 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-11 — R3-S2 behaviour-state collapse.
+ *
+ * GPCA's nine `ModeState` usages are now `MemoState[stateKind=mode]`; ids,
+ * state construct, and relationships are unchanged. The shared state base is
+ * defined in core, so the projection's layer changes from `functional` to
+ * `core` as an intentional consequence of eliminating the taxonomy.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

@@ -207,7 +207,7 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             + 'Written natively as `exhibit <state>;` inside the component.',
         ends: [
             { name: 'component', type: 'LogicalComponent' },
-            { name: 'mode', type: 'LogicalMode' },
+            { name: 'mode', type: 'MemoState' },
         ],
     },
     framesConcern: {
