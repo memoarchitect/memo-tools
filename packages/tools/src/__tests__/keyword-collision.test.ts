@@ -310,10 +310,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'session 2' | 'sessio
         reason: 'ISO 42010 viewpoint carrying allowedElementKinds, governing concerns and model kinds — richer than the SysML `viewpoint` usage, which MEMO views still conform to.',
         removedBy: 'deliberate',
     },
-    'verification:VerificationScenario': {
-        reason: 'An action def: the steps a verification case runs. The case itself is a verification def.',
-        removedBy: 'deliberate',
-    },
     'case:VerificationCase': {
         reason: 'Declared `verification def`, whose full keyword is `verification case def`; the construct-alignment exemption only sees the first token.',
         removedBy: 'deliberate',

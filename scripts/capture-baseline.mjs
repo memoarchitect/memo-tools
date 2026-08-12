@@ -242,6 +242,17 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-11 — R3-S1 scenario-family collapse.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | 6 `OperativeScenario`, 2 `FunctionalScenario`, and 1 `ThreatScenario` usages become 9 `MemoScenario` usages | The three name-only scenario families are now selected by `scenarioKind`; their existing ids, action construct, and relationships are unchanged. Functional and threat examples now inherit the base kind's operational layer, which is the intentional cost of one shared definition. |
+ * | gpca | 19 native `Transition` usages change `layer` `functional` → `unknown` | This is pre-existing R1-S1 native-transition residue exposed by the re-capture: native transitions are usages, not ontology definitions, so no kind registry entry assigns them a layer. It is recorded here rather than hidden by a stale baseline. |
+ *
+ * `ui-regions`, `default`, and `extension-clinical` are byte-identical.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

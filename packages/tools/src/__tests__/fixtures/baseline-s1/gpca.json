@@ -2888,42 +2888,42 @@
       },
       {
         "id": "osAirInLine",
-        "kind": "OperativeScenario",
+        "kind": "MemoScenario",
         "construct": "action",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
       {
         "id": "osEmptyReservoir",
-        "kind": "OperativeScenario",
+        "kind": "MemoScenario",
         "construct": "action",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
       {
         "id": "osLockoutBolus",
-        "kind": "OperativeScenario",
+        "kind": "MemoScenario",
         "construct": "action",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
       {
         "id": "osNominalTherapy",
-        "kind": "OperativeScenario",
+        "kind": "MemoScenario",
         "construct": "action",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
       {
         "id": "osOcclusionAlarm",
-        "kind": "OperativeScenario",
+        "kind": "MemoScenario",
         "construct": "action",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
       {
         "id": "osPowerLoss",
-        "kind": "OperativeScenario",
+        "kind": "MemoScenario",
         "construct": "action",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
@@ -4540,16 +4540,16 @@
       },
       {
         "id": "ssAlarmPause",
-        "kind": "FunctionalScenario",
+        "kind": "MemoScenario",
         "construct": "action",
-        "layer": "functional",
+        "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_system"
       },
       {
         "id": "ssBolusDuringBasal",
-        "kind": "FunctionalScenario",
+        "kind": "MemoScenario",
         "construct": "action",
-        "layer": "functional",
+        "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_system"
       },
       {
@@ -4596,9 +4596,9 @@
       },
       {
         "id": "tamperedConfigurationScenario",
-        "kind": "ThreatScenario",
+        "kind": "MemoScenario",
         "construct": "action",
-        "layer": "cybersecurity",
+        "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_cybersecurity"
       },
       {
@@ -4696,133 +4696,133 @@
         "id": "trAlarmPause",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trAllInhibited",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trBasalInhibit",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trInfusionComplete",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trInitiateWhileInhibited",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trManualInhibit",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolus",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusInhibit",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusToBasal",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusToSquare",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPausedStop",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trResume",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareBolus",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareInhibit",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareToBasal",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareToPatientBolus",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trStartTherapy",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSystemStart",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSystemStop",
         "kind": "Transition",
         "construct": "transition",
-        "layer": "functional",
+        "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
@@ -9522,7 +9522,6 @@
       "FunctionalExchange": 4,
       "FunctionalFlow": 3,
       "FunctionalFlowStep": 9,
-      "FunctionalScenario": 2,
       "HardwareAssembly": 17,
       "Harm": 3,
       "Hazard": 7,
@@ -9538,6 +9537,7 @@
       "MemoCybersecurityThreatModelView": 1,
       "MemoDiagramView": 17,
       "MemoDocumentView": 6,
+      "MemoScenario": 9,
       "MemoUsabilityEngineeringView": 1,
       "MethodologyDefinition": 1,
       "MinimalCutSet": 2,
@@ -9550,7 +9550,6 @@
       "OperationalCapability": 2,
       "OperationalEntity": 8,
       "OperationalWorkflow": 3,
-      "OperativeScenario": 6,
       "OverallResidualRiskEvaluation": 1,
       "PhysicalAssembly": 1,
       "PhysicalPort": 22,
@@ -9573,7 +9572,6 @@
       "SystemFunction": 11,
       "TestArtifact": 2,
       "Threat": 2,
-      "ThreatScenario": 1,
       "TimingConstraint": 3,
       "Transition": 19,
       "TrustBoundary": 1,
@@ -9590,17 +9588,17 @@
       "artifacts": 4,
       "behavior": 23,
       "core": 9,
-      "cybersecurity": 11,
-      "functional": 99,
+      "cybersecurity": 10,
+      "functional": 78,
       "human-factors": 4,
       "implementation": 27,
       "logical": 175,
       "methodology": 2,
-      "operational": 45,
+      "operational": 48,
       "realization": 23,
       "requirements": 148,
       "safety_risk": 104,
-      "unknown": 26,
+      "unknown": 45,
       "verification_validation": 38
     },
     "diagrams": []

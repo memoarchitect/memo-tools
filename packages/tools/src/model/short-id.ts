@@ -52,9 +52,7 @@ const KIND_PREFIX_OVERRIDES: Record<string, string> = {
     // Operational
     Stakeholder: 'STK',
     OperationalScenario: 'SCN',
-    OperativeScenario: 'SCN',
-    FunctionalScenario: 'SCN',
-    UiScenario: 'SCN',
+    MemoScenario: 'SCN',
     Mission: 'MSNS',
     Capability: 'CAP',
     // Compliance / DHF
