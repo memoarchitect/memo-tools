@@ -246,7 +246,7 @@ export function buildMemoModel(
 
     // Phase 3b: Resolve flow connections
     for (const { flow, filePath, packageName, parentActionId } of deferredFlows) {
-        resolveFlowConnection(flow, filePath, packageName, parentActionId, relationships, allElementIds);
+        resolveFlowConnection(flow, filePath, packageName, parentActionId, relationships, allElementIds, elements);
     }
 
     // Phase 3c: Resolve successions
@@ -689,6 +689,12 @@ function extractUsage(
     elements.set(id, element);
     registry.registerElement(id, packageName);
 
+    // A port's body may declare further ports. Recurse only after the parent is
+    // in the map, so the child's `owner` points at an element that exists.
+    if (construct === 'port') {
+        extractDefinitionPorts(usage, filePath, packageName, config, elements, registry, registries);
+    }
+
     // A native `transition` lives inside the state machine that owns it, which
     // is where the language puts it and where MEMO's `part def Transition`
     // never could. Extract it from the state usage's body so the two spellings
@@ -907,11 +913,22 @@ function extractItemDefinition(
 }
 
 /**
- * Walk a definition body to extract port usages as owned port elements.
- * Sets owner on ports and ownedPorts on the definition.
+ * Walk an owner's body to extract port usages as owned port elements.
+ * Sets owner on ports and ownedPorts on the owner.
+ *
+ * The owner may be a definition (`part def Board { port p : DataPort; }`) or a
+ * USAGE — including another port. SysML v2 nests ports inside ports, which is
+ * how a panel cluster says "this one boundary feature carries these three
+ * connectors". Without the usage case a model that nests natively simply loses
+ * the children: they are declared, they resolve, and they never become
+ * elements, so they vanish from every diagram and every count. The only
+ * alternative spelling is a `Composes` connection from a port to a port, which
+ * CR-ONT-065 forbids — a whole in a decomposition has to be a part, an action
+ * or a state. So the native form was the only correct one, and it was the one
+ * that did not work.
  */
 function extractDefinitionPorts(
-    def: PartDefinition | PortDefinition | InterfaceDefinition | ConnectionDefinition,
+    def: PartDefinition | PortDefinition | InterfaceDefinition | ConnectionDefinition | UsageNode,
     filePath: string,
     packageName: string,
     config: MEMOConfig,
@@ -1140,20 +1157,45 @@ function resolveFlowConnection(
     packageName: string,
     parentActionId: string | undefined,
     relationships: MemoRelationship[],
-    allElementIds: Set<string>
+    allElementIds: Set<string>,
+    elements: Map<string, MemoElement>
 ): void {
     const sourceRef = flow.source?.ref;
     const targetRef = flow.target?.ref;
     if (!sourceRef || !targetRef) return;
 
-    // Parse dot notation: "receive.prescription" → actionId="receive", port="prescription"
-    const sourceParts = sourceRef.split('.');
-    const targetParts = targetRef.split('.');
+    /**
+     * A dotted endpoint has two shapes and they resolve differently.
+     *
+     * `receive.prescription` names an action and one of its PARAMETERS. The
+     * parameter is not an element, so the endpoint is the action and the
+     * parameter is the end label — the original reading, kept below.
+     *
+     * `touchscreen.touchUsbIo` names a port and a port NESTED inside it. The
+     * nested port IS an element in its own right, so the endpoint is the child.
+     * Reading it the first way silently retargets the flow at the parent, which
+     * is not a resolution failure anyone sees: it produces a plausible
+     * relationship pointing at the wrong feature, and it only surfaces later as
+     * a payload mismatch on whichever flow happened to carry a different item
+     * from its parent's.
+     *
+     * Walk the path through `owner` and take the deepest real element.
+     */
+    const resolveEndpoint = (ref: string): { id: string; end: string } => {
+        const parts = ref.split('.');
+        let id = parts[0];
+        let i = 1;
+        while (i < parts.length) {
+            const child = elements.get(parts[i]);
+            if (!child || child.owner !== id) break;
+            id = parts[i];
+            i++;
+        }
+        return { id, end: parts.slice(i).join('.') };
+    };
 
-    const sourceActionId = sourceParts[0];
-    const sourcePort = sourceParts.length > 1 ? sourceParts.slice(1).join('.') : '';
-    const targetActionId = targetParts[0];
-    const targetPort = targetParts.length > 1 ? targetParts.slice(1).join('.') : '';
+    const { id: sourceActionId, end: sourcePort } = resolveEndpoint(sourceRef);
+    const { id: targetActionId, end: targetPort } = resolveEndpoint(targetRef);
 
     // Only create relationship if both endpoints reference known elements
     if (!allElementIds.has(sourceActionId) || !allElementIds.has(targetActionId)) return;

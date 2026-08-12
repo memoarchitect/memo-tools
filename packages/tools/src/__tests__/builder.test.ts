@@ -651,6 +651,189 @@ describe('Port wiring (M-2)', () => {
         expect(control.portSpec!.direction).toBe('out');
     });
 
+    // SysML v2 nests ports inside ports, which is how one boundary feature says
+    // it carries several connectors. The builder used to walk port bodies only
+    // on port DEFINITIONS, so a natively nested usage lost its children —
+    // declared, resolving, and absent from the model. The only other spelling
+    // is a `Composes` connection from a port to a port, which CR-ONT-065
+    // forbids outright.
+    it('extracts ports nested inside a port usage', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                part def PanelBoard {
+                    port panelCluster : SensorPort {
+                        in port encoderA : SensorPort;
+                        in port encoderB : SensorPort;
+                    }
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.elements.size).toBe(3);
+
+        const cluster = model.elements.get('panelCluster')!;
+        expect(cluster.owner).toBe('PanelBoard');
+        expect(cluster.ownedPorts).toEqual(['encoderA', 'encoderB']);
+
+        const a = model.elements.get('encoderA')!;
+        expect(a).toBeDefined();
+        expect(a.owner).toBe('panelCluster');
+        expect(a.construct).toBe('port');
+        expect(a.portSpec!.direction).toBe('in');
+
+        expect(model.elements.get('encoderB')!.owner).toBe('panelCluster');
+    });
+
+    it('nests ports more than one level deep', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port outer : SensorPort {
+                    port middle : SensorPort {
+                        port inner : SensorPort;
+                    }
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.elements.get('outer')!.ownedPorts).toEqual(['middle']);
+        expect(model.elements.get('middle')!.owner).toBe('outer');
+        expect(model.elements.get('middle')!.ownedPorts).toEqual(['inner']);
+        expect(model.elements.get('inner')!.owner).toBe('middle');
+    });
+
+    it('leaves ownedPorts unset on a port that nests nothing', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port lone : SensorPort;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.elements.get('lone')!.ownedPorts).toBeUndefined();
+    });
+
+    // Nesting a port makes it unreachable by bare name, so flows to it must be
+    // written `parent.child`. That is the same spelling as an action parameter
+    // (`receive.prescription`), which is NOT an element — so the two have to be
+    // told apart by whether the trailing segment is a real element owned by the
+    // one before it. Read the wrong way, a flow silently retargets at the
+    // parent and only surfaces later as a payload mismatch.
+    it('resolves a flow endpoint through a nested port path', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port outer : SensorPort {
+                    port innerIn : SensorPort;
+                }
+                port sourcePort : SensorPort;
+                flow of SensorReading from sourcePort to outer.innerIn;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.relationships).toHaveLength(1);
+        const rel = model.relationships[0];
+        expect(rel.targetId).toBe('innerIn');
+        expect(rel.targetEnd).toBe('');
+    });
+
+    it('still reads a dotted endpoint whose tail is not an element as an end label', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port sourcePort : SensorPort;
+                port targetPort : SensorPort;
+                flow of SensorReading from sourcePort to targetPort.payload;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.relationships).toHaveLength(1);
+        const rel = model.relationships[0];
+        expect(rel.targetId).toBe('targetPort');
+        expect(rel.targetEnd).toBe('payload');
+    });
+
+    // `of <itemType>` is optional in SysML v2 and the pinned corpus writes
+    // untyped flows throughout. The grammar used to require it, which did not
+    // reject such a flow — it failed to match the production and vanished with
+    // no diagnostic at all.
+    it('builds a flow that names no item type', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port sourcePort : SensorPort;
+                port targetPort : SensorPort;
+                flow from sourcePort to targetPort;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.relationships).toHaveLength(1);
+        const rel = model.relationships[0];
+        expect(rel.type).toBe('flow');
+        expect(rel.sourceId).toBe('sourcePort');
+        expect(rel.targetId).toBe('targetPort');
+        expect(rel.flowItem).toBeUndefined();
+    });
+
+    // The corpus writes port-to-port wiring with neither `from` nor an item:
+    // `flow supplierPort.fuelSupply to consumerPort.fuelSupply;`.
+    it('builds a flow written in the two-end shorthand', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port sourcePort : SensorPort;
+                port targetPort : SensorPort;
+                flow sourcePort to targetPort;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.relationships).toHaveLength(1);
+        const rel = model.relationships[0];
+        expect(rel.type).toBe('flow');
+        expect(rel.sourceId).toBe('sourcePort');
+        expect(rel.targetId).toBe('targetPort');
+        expect(rel.flowItem).toBeUndefined();
+        // No name was declared, so it must not have swallowed the source as one.
+        expect(rel.named).toBeUndefined();
+    });
+
+    it('reads the shorthand with dotted ends', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port supplierPort : SensorPort;
+                port consumerPort : SensorPort;
+                flow supplierPort.fuelSupply to consumerPort.fuelSupply;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.relationships).toHaveLength(1);
+        const rel = model.relationships[0];
+        expect(rel.sourceId).toBe('supplierPort');
+        expect(rel.sourceEnd).toBe('fuelSupply');
+        expect(rel.targetId).toBe('consumerPort');
+        expect(rel.targetEnd).toBe('fuelSupply');
+    });
+
+    it('still reads a NAMED flow as a name, not as a shorthand source', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port sourcePort : SensorPort;
+                port targetPort : SensorPort;
+                flow fuelCommandFlow of SensorReading from sourcePort to targetPort;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.relationships).toHaveLength(1);
+        const rel = model.relationships[0];
+        expect(rel.id).toBe('fuelCommandFlow');
+        expect(rel.named).toBe(true);
+        expect(rel.flowItem).toBe('SensorReading');
+        expect(rel.sourceId).toBe('sourcePort');
+    });
+
     it('tags port IDs on connection endpoints', async () => {
         const doc = await parseDoc(`
             package TestPkg {

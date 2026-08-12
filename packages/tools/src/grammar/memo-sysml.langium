@@ -485,8 +485,23 @@ ControlNodeUsage:
 // the identification core every MEMO element rests on. That is the whole reason
 // FunctionalExchange and ComponentExchange exist as part defs beside the flows
 // they stand in for.
+// `of <itemType>` is OPTIONAL, because it is optional in SysML v2. The pinned
+// corpus writes untyped flows throughout — `flow from focus.image to
+// shoot.image;` — and `syside check`, the compiler of record, accepts them
+// (measured 2026-08-12). Requiring the item type here did not reject such a
+// model: it failed to match the production, so the flow parsed to nothing and
+// was dropped without a diagnostic. A relationship that silently does not
+// exist is worse than one that fails loudly.
+// The two-end shorthand — `flow supplierPort.fuelSupply to
+// consumerPort.fuelSupply;` — drops `from` as well. The corpus uses it for
+// port-to-port wiring, where naming the ends twice adds nothing. It takes no
+// name and no item type: those forms all spell `from`, which is what keeps the
+// two branches distinguishable.
 FlowConnectionUsage:
-    'flow' name=ID? 'of' itemType=QualifiedName 'from' source=FlowEnd 'to' target=FlowEnd
+    'flow' (
+        name=ID? ('of' itemType=QualifiedName)? 'from' source=FlowEnd
+        | source=FlowEnd
+    ) 'to' target=FlowEnd
     ('{' body+=UsageBodyMember* '}' | ';');
 
 FlowEnd:

@@ -12,8 +12,8 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
 const TMP = resolve(__dirname, '__tmp_inspect__');
@@ -31,9 +31,21 @@ beforeAll(() => {
     if (!available) return;
     rmSync(TMP, { recursive: true, force: true });
     mkdirSync(TMP, { recursive: true });
-    execFileSync('node', [cli, 'init', 'p'], {
+    // `--no-install` keeps this test off the network. `memo init` otherwise
+    // shells out to a real `npm install`, so the suite failed here on any
+    // machine where `@memoarchitect/ontology` could not be resolved from a
+    // registry — in `beforeAll`, before a line of the code under test ran. What
+    // is being tested is provenance, not npm.
+    execFileSync('node', [cli, 'init', 'p', '--no-install'], {
         cwd: TMP, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'],
     });
+    // The ontology still has to be resolvable from the temp project, since
+    // provenance distinguishes ontology-owned definitions from project-owned
+    // ones. Link the one this repo already depends on rather than fetching it.
+    const ontologyRoot = dirname(require.resolve('@memoarchitect/ontology/package.json'));
+    const scopeDir = join(project, 'node_modules', '@memoarchitect');
+    mkdirSync(scopeDir, { recursive: true });
+    symlinkSync(ontologyRoot, join(scopeDir, 'ontology'), 'dir');
 
     // A project-local definition — the section 19 ownership case.
     const file = join(project, 'model/catalog/architecture/system.sysml');
