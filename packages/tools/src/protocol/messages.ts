@@ -631,6 +631,18 @@ export interface DiagramNodeLayout {
     width?: number;
     height?: number;
     color?: string;
+    /** Border colour override. Omitted means the notation's automatic colour. */
+    borderColor?: string;
+    /** Label colour override. Omitted means the notation's automatic colour. */
+    textColor?: string;
+    /** Label size in px. Omitted means the notation's automatic size. */
+    fontSize?: number;
+    /** Label weight. Omitted means the notation's automatic weight. */
+    fontWeight?: number;
+    /** Horizontal label alignment. Omitted means the notation's automatic alignment. */
+    textAlign?: 'left' | 'center' | 'right';
+    /** Vertical label alignment. Omitted means the notation's automatic alignment. */
+    verticalAlign?: 'top' | 'middle' | 'bottom';
     /** Fill opacity 0..1, for dimming context around the parts under review. */
     opacity?: number;
     /** Per-diagram boundary-port positions, relative to the owning node. */
@@ -686,6 +698,14 @@ export interface DiagramLayout {
          * hand-authored positions but not the drawing's intent.
          */
         portWalls?: Record<string, 'top' | 'bottom' | 'left' | 'right'>;
+        /** Model enum that classifies blocks for this view's legend. */
+        legend?: {
+            enum: string;
+            /** Element attribute carrying one literal of `enum`. */
+            attribute: string;
+            /** Literal → author-chosen colour. No renderer palette is implied. */
+            colors: Record<string, string>;
+        };
     };
 }
 

@@ -17,7 +17,7 @@ import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchit
 import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument, EffectiveRule, ParseError } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
-import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO } from '@memoarchitect/tools';
+import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO, EnumDefinitionDTO } from '@memoarchitect/tools';
 import { createDevServer } from '../server/dev-server.js';
 import { createProjectWatcher, createOntologyWatcher } from '../server/file-watcher.js';
 import { checkLockFile } from '../lock.js';
@@ -49,6 +49,19 @@ function getGitInfo(cwd: string): Partial<ModelMetadata> {
         gitCommitShort: git('git rev-parse --short HEAD') || undefined,
         gitDirty: porcelain ? true : undefined,
     };
+}
+
+/** Presentation enums are model facts, so ship their literal sets to the canvas. */
+function collectEnumerations(documents: readonly ParsedDocument[]): EnumDefinitionDTO[] {
+    const found = new Map<string, EnumDefinitionDTO>();
+    const visit = (member: any): void => {
+        if (member?.$type === 'EnumDefinition' && member.name) {
+            found.set(member.name, { name: member.name, literals: (member.literals ?? []).map((literal: any) => literal.name).filter(Boolean) });
+        }
+        for (const child of member?.members ?? []) visit(child);
+    };
+    for (const document of documents) for (const member of document.document.parseResult.value.members) visit(member);
+    return [...found.values()];
 }
 
 
@@ -335,6 +348,7 @@ export async function devCommand(options: {
                 relative(cwd, file).replaceAll('\\', '/'),
                 createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),
             ])),
+            enumerations: collectEnumerations(documents),
         });
         // Compute the clause coverage report and attach it to the model DTO
         // so the Architect can badge document cards with gap counts without a

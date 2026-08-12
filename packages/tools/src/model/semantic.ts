@@ -238,6 +238,8 @@ export interface ModelMetadata {
 /** Serializable version of MemoModel for JSON transport */
 export interface MemoModelDTO {
     elements: Record<string, MemoElement>;
+    /** Enum definitions available to a view for typed presentation categories. */
+    enumerations?: EnumDefinitionDTO[];
     relationships: MemoRelationship[];
     errors: ParseError[];
     /** Viewpoint definitions from config (for client-side filtering) */
@@ -289,6 +291,12 @@ export interface MemoModelDTO {
     standardsReport?: import('../dhf/standards-report.js').StandardsReport;
 }
 
+/** A SysML enum and its literals, preserved for view declarations. */
+export interface EnumDefinitionDTO {
+    name: string;
+    literals: string[];
+}
+
 /** Convert MemoModel to a plain JSON-serializable object */
 export function modelToDTO(
     model: MemoModel,
@@ -301,6 +309,7 @@ export function modelToDTO(
         sourceGraph?: SourceGraphDTO;
         sourceHashes?: Record<string, string>;
         irIdentities?: Record<string, string>;
+        enumerations?: EnumDefinitionDTO[];
     }
 ): MemoModelDTO {
     const elements: Record<string, MemoElement> = {};
@@ -309,6 +318,7 @@ export function modelToDTO(
     }
     return {
         elements,
+        enumerations: options?.enumerations,
         relationships: model.relationships,
         errors: model.errors,
         viewpoints: options?.viewpoints,
