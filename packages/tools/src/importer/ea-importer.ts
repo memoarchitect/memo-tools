@@ -11,6 +11,7 @@
 import type { KindRegistry } from '../model/kind-registry.js';
 import type { RelationshipRegistry } from '../model/relationship-registry.js';
 import { wrapPackage } from '../serializer/sysml-generator.js';
+import { toModelType } from '../model/naming.js';
 
 /** An element extracted from an EA project */
 export interface EaElement {
@@ -399,7 +400,7 @@ function resolveRelType(
 ): string | undefined {
     // 1. Try stereotype first (most specific)
     if (stereotype) {
-        const camel = stereotype.charAt(0).toLowerCase() + stereotype.slice(1);
+        const camel = toModelType(stereotype);
         if (relRegistry?.has(camel)) return camel;
         if (EA_CONNECTOR_MAP[stereotype]) return EA_CONNECTOR_MAP[stereotype];
         // Stereotype as-is (e.g. "mitigates" → "mitigates")

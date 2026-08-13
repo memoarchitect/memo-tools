@@ -62,6 +62,7 @@ import type {
     InterfaceDefinition,
     ConnectionDefinition,
     ActionParameterMember,
+    BindingUsage,
     FlowConnectionUsage,
     MessageUsage,
     SuccessionUsage,
@@ -112,6 +113,7 @@ import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } fro
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
 import { CONTROL_KIND_METACLASS } from './activity-notation.js';
 import type { ProvenanceTable, SemanticElementProvenance } from './source-provenance.js';
+import { toModelType } from './naming.js';
 
 /**
  * Optional registries for dual-mode resolution.
@@ -142,6 +144,23 @@ interface DeferredFlow {
     filePath: string;
     packageName: string;
     parentActionId?: string;
+}
+
+/**
+ * Deferred binding to resolve after all elements are extracted.
+ *
+ * `bind outer = inner;` is port DELEGATION: the enclosing part's boundary port
+ * and its interior port are the same feature, not two features with something
+ * travelling between them. That distinction is why it cannot be spelled as a
+ * flow — a flow's source must resolve to an output and a delegation runs `in`
+ * to `in` (or `out` to `out`), which SysIDE rejects. SysML v2 keeps the two
+ * apart the same way: training ch. 13 wires siblings with `flow`, ch. 12
+ * delegates across a boundary with `bind`.
+ */
+interface DeferredBinding {
+    binding: BindingUsage;
+    filePath: string;
+    packageName: string;
 }
 
 /** Deferred succession to resolve after all elements are extracted */
@@ -228,6 +247,7 @@ export function buildMemoModel(
     const deferredFlows: DeferredFlow[] = [];
     const deferredSuccessions: DeferredSuccession[] = [];
     const deferredAllocates: DeferredAllocate[] = [];
+    const deferredBindings: DeferredBinding[] = [];
 
     // Phase 1: Build package registry from all documents
     const registry = new PackageRegistry();
@@ -236,7 +256,7 @@ export function buildMemoModel(
     // Phase 2: Extract elements from all documents (populates registry)
     for (const { document, filePath } of documents) {
         const model = document.parseResult.value;
-        extractFromModel(model, filePath, config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, errors, registry, registries);
+        extractFromModel(model, filePath, config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, deferredBindings, errors, registry, registries);
     }
 
     // Phase 3: Resolve connections using the registry (all elements now known)
@@ -248,6 +268,11 @@ export function buildMemoModel(
     // Phase 3b: Resolve flow connections
     for (const { flow, filePath, packageName, parentActionId } of deferredFlows) {
         resolveFlowConnection(flow, filePath, packageName, parentActionId, relationships, allElementIds, elements);
+    }
+
+    // Phase 3b2: Resolve port delegations
+    for (const { binding, filePath, packageName } of deferredBindings) {
+        resolveBinding(binding, filePath, packageName, relationships, allElementIds, elements);
     }
 
     // Phase 3c: Resolve successions
@@ -465,13 +490,14 @@ function extractFromModel(
     deferredFlows: DeferredFlow[],
     deferredSuccessions: DeferredSuccession[],
     deferredAllocates: DeferredAllocate[],
+    deferredBindings: DeferredBinding[],
     errors: ParseError[],
     registry: PackageRegistry,
     registries?: BuilderRegistries
 ): void {
     for (const member of model.members) {
         if (member.$type === 'PackageDeclaration') {
-            extractFromPackage(member as PackageDeclaration, filePath, '', config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, errors, registry, registries);
+            extractFromPackage(member as PackageDeclaration, filePath, '', config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, deferredBindings, errors, registry, registries);
         }
     }
 }
@@ -486,6 +512,7 @@ function extractFromPackage(
     deferredFlows: DeferredFlow[],
     deferredSuccessions: DeferredSuccession[],
     deferredAllocates: DeferredAllocate[],
+    deferredBindings: DeferredBinding[],
     errors: ParseError[],
     registry: PackageRegistry,
     registries?: BuilderRegistries
@@ -495,7 +522,7 @@ function extractFromPackage(
     for (const member of pkg.members) {
         switch (member.$type) {
             case 'PackageDeclaration':
-                extractFromPackage(member as PackageDeclaration, filePath, packageName, config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, errors, registry, registries);
+                extractFromPackage(member as PackageDeclaration, filePath, packageName, config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, deferredBindings, errors, registry, registries);
                 break;
             case 'PartUsage':
                 extractUsage(member as PartUsage, 'part', filePath, packageName, config, elements, registry, registries);
@@ -535,6 +562,16 @@ function extractFromPackage(
                 // Defer connection resolution until all elements are extracted
                 deferredConnections.push({
                     conn: member as ConnectionUsage,
+                    filePath,
+                    packageName,
+                });
+                break;
+            case 'BindingUsage':
+                // Port delegation. Deferred for the same reason as flows: both
+                // ends are dotted paths that only resolve once every nested
+                // port is an element.
+                deferredBindings.push({
+                    binding: member as BindingUsage,
                     filePath,
                     packageName,
                 });
@@ -1171,6 +1208,77 @@ function resolveConnection(
 }
 
 /**
+ * Resolve a dotted endpoint path to the deepest element it names.
+ *
+ * A dotted endpoint has two shapes and they resolve differently.
+ *
+ * `receive.prescription` names an action and one of its PARAMETERS. The
+ * parameter is not an element, so the endpoint is the action and the parameter
+ * is the end label.
+ *
+ * `touchscreen.touchUsbIo` names a port and a port NESTED inside it, and
+ * `coffeeMachine.serviceInterface.diagnostics` nests one level deeper again.
+ * The nested port IS an element in its own right, so the endpoint is the child.
+ * Reading it the first way silently retargets the edge at the parent, which is
+ * not a resolution failure anyone sees: it produces a plausible relationship
+ * pointing at the wrong feature, and it only surfaces later as a payload
+ * mismatch on whichever edge happened to carry a different item from its
+ * parent's.
+ *
+ * Walk the path through `owner` and take the deepest real element.
+ */
+function resolveEndpoint(
+    ref: string,
+    elements: Map<string, MemoElement>
+): { id: string; end: string } {
+    const parts = ref.split('.');
+    let id = parts[0];
+    let i = 1;
+    while (i < parts.length) {
+        const child = elements.get(parts[i]);
+        if (!child || child.owner !== id) break;
+        id = parts[i];
+        i++;
+    }
+    return { id, end: parts.slice(i).join('.') };
+}
+
+/**
+ * Resolve a `bind outer = inner;` port delegation into a MemoRelationship.
+ *
+ * Unlike a flow this carries no item: delegation is identity, so there is
+ * nothing travelling and nothing to label the edge with. Consumers that render
+ * an itemless edge already suppress the label.
+ */
+function resolveBinding(
+    binding: BindingUsage,
+    filePath: string,
+    _packageName: string,
+    relationships: MemoRelationship[],
+    allElementIds: Set<string>,
+    elements: Map<string, MemoElement>
+): void {
+    const sourceRef = binding.source;
+    const targetRef = binding.target;
+    if (!sourceRef || !targetRef) return;
+
+    const { id: sourceId, end: sourceEnd } = resolveEndpoint(sourceRef, elements);
+    const { id: targetId, end: targetEnd } = resolveEndpoint(targetRef, elements);
+
+    if (!allElementIds.has(sourceId) || !allElementIds.has(targetId)) return;
+
+    relationships.push({
+        id: `rel-${++relationshipCounter}`,
+        type: 'bind',
+        sourceId,
+        sourceEnd,
+        targetId,
+        targetEnd,
+        file: filePath,
+    });
+}
+
+/**
  * Resolve a flow connection usage into a MemoRelationship.
  * Flow endpoints use dot notation: "actionName.paramName"
  */
@@ -1187,38 +1295,8 @@ function resolveFlowConnection(
     const targetRef = flow.target?.ref;
     if (!sourceRef || !targetRef) return;
 
-    /**
-     * A dotted endpoint has two shapes and they resolve differently.
-     *
-     * `receive.prescription` names an action and one of its PARAMETERS. The
-     * parameter is not an element, so the endpoint is the action and the
-     * parameter is the end label — the original reading, kept below.
-     *
-     * `touchscreen.touchUsbIo` names a port and a port NESTED inside it. The
-     * nested port IS an element in its own right, so the endpoint is the child.
-     * Reading it the first way silently retargets the flow at the parent, which
-     * is not a resolution failure anyone sees: it produces a plausible
-     * relationship pointing at the wrong feature, and it only surfaces later as
-     * a payload mismatch on whichever flow happened to carry a different item
-     * from its parent's.
-     *
-     * Walk the path through `owner` and take the deepest real element.
-     */
-    const resolveEndpoint = (ref: string): { id: string; end: string } => {
-        const parts = ref.split('.');
-        let id = parts[0];
-        let i = 1;
-        while (i < parts.length) {
-            const child = elements.get(parts[i]);
-            if (!child || child.owner !== id) break;
-            id = parts[i];
-            i++;
-        }
-        return { id, end: parts.slice(i).join('.') };
-    };
-
-    const { id: sourceActionId, end: sourcePort } = resolveEndpoint(sourceRef);
-    const { id: targetActionId, end: targetPort } = resolveEndpoint(targetRef);
+    const { id: sourceActionId, end: sourcePort } = resolveEndpoint(sourceRef, elements);
+    const { id: targetActionId, end: targetPort } = resolveEndpoint(targetRef, elements);
 
     // Only create relationship if both endpoints reference known elements
     if (!allElementIds.has(sourceActionId) || !allElementIds.has(targetActionId)) return;
@@ -1778,10 +1856,7 @@ function resolveEndpointId(
 }
 
 /**
- * Normalize relationship type name:
- *   PascalCase → camelCase for matching against config.relationshipTypes[].name
- *   "Mitigates" → "mitigates", "TraceTo" → "traceTo", "AllocateTo" → "allocateTo"
+ * Relationship type names are normalized by the shared helper in `naming.ts`,
+ * which is the single definition of the source-name → model-key rule.
  */
-function normalizeRelType(name: string): string {
-    return name.charAt(0).toLowerCase() + name.slice(1);
-}
+const normalizeRelType = toModelType;

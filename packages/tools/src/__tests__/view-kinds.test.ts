@@ -349,8 +349,10 @@ describe('KK-2/KK-3 acceptance: GPCA template views', () => {
         const interconnect = diagrams.find(d => d.name === 'GPCA Device Interconnect View');
         expect(interconnect).toBeDefined();
         expect(interconnect!.viewKind).toBe('interconnection');
+        // `flow` carries what moves and `bind` carries port delegation; both
+        // replace the deleted ExchangesWith, which could say neither.
         expect(interconnect!.relationshipTypes).toEqual(
-            expect.arrayContaining(['ExchangesWith', 'Composes'])
+            expect.arrayContaining(['flow', 'bind', 'Composes'])
         );
         expect(interconnect!.diagramType).toBe('ibd');
     });

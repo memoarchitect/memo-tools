@@ -754,6 +754,50 @@ describe('Port wiring (M-2)', () => {
         expect(rel.targetEnd).toBe('payload');
     });
 
+    // Port delegation is `bind`, not `flow`: the boundary port and the interior
+    // port are the same feature, so a delegation runs `in` to `in` and SysIDE
+    // rejects it as a flow. The grammar has carried BindingUsage for a while;
+    // the builder had no case for it, so every `bind` parsed and then vanished
+    // with no diagnostic — the same silent-drop failure the untyped flow had.
+    it('builds a port delegation written as a binding', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port outerIn : SensorPort;
+                port innerIn : SensorPort;
+                bind outerIn = innerIn;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.relationships).toHaveLength(1);
+        const rel = model.relationships[0];
+        expect(rel.type).toBe('bind');
+        expect(rel.sourceId).toBe('outerIn');
+        expect(rel.targetId).toBe('innerIn');
+        expect(rel.flowItem).toBeUndefined();
+    });
+
+    it('resolves both binding endpoints through nested port paths', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                port boundary : SensorPort {
+                    port diagnostics : SensorPort;
+                }
+                port interior : SensorPort {
+                    port statusOut : SensorPort;
+                }
+                bind interior.statusOut = boundary.diagnostics;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.relationships).toHaveLength(1);
+        const rel = model.relationships[0];
+        expect(rel.type).toBe('bind');
+        expect(rel.sourceId).toBe('statusOut');
+        expect(rel.targetId).toBe('diagnostics');
+    });
+
     // `of <itemType>` is optional in SysML v2 and the pinned corpus writes
     // untyped flows throughout. The grammar used to require it, which did not
     // reject such a flow — it failed to match the production and vanished with

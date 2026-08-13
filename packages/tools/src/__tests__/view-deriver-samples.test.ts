@@ -32,7 +32,7 @@ describe('explicit renderer samples', () => {
             viewKind: 'DiagramViewKind::interconnection',
             diagramType: 'ibd',
             'selectionQuery.includeElementKinds': 'LogicalComponent',
-            'selectionQuery.includeRelationshipKinds': 'ExchangesWith',
+            'selectionQuery.includeRelationshipKinds': 'flow',
         };
         const elements = new Map([[part.id, part], [view.id, view]]);
         const included = { type: 'includedIn', sourceId: part.id, targetId: view.id };

@@ -32,6 +32,7 @@
 import type { QueryContext } from './query-engine.js';
 import type { MemoElement, MemoRelationship } from '../model/semantic.js';
 import * as yaml from 'yaml';
+import { toModelType } from '../model/naming.js';
 
 // ─── Query Block Schema ───────────────────────────────────────────────────────
 
@@ -339,9 +340,7 @@ export function kindList(spec: MemoQuerySpec): string[] {
     return Array.isArray(spec.kind) ? spec.kind : [spec.kind];
 }
 
-function pascalToCamel(name: string): string {
-    return name.charAt(0).toLowerCase() + name.slice(1);
-}
+const pascalToCamel = toModelType;
 
 // ─── Commented-out blocks ─────────────────────────────────────────────────────
 //

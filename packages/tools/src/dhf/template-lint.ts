@@ -27,6 +27,7 @@ import {
 import { parseMemoStandards, validateStandardsSpec } from './standards-block.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 import type { RelationshipRegistry } from '../model/relationship-registry.js';
+import { toModelType } from '../model/naming.js';
 
 export type LintSeverity = 'error' | 'warning';
 
@@ -377,7 +378,7 @@ function relationshipAttributes(
     const entry = registry.getRelType(type);
     if (!entry) return [];
     const inherited = entry.superType
-        ? relationshipAttributes(entry.superType.charAt(0).toLowerCase() + entry.superType.slice(1), registry, seen)
+        ? relationshipAttributes(toModelType(entry.superType), registry, seen)
         : [];
     return [...(entry.attributes ?? []), ...inherited];
 }

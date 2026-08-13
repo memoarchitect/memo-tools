@@ -195,6 +195,13 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         const vps = vpIds.map(id => viewpointsById.get(id)).filter((vp): vp is ViewpointDTO => Boolean(vp));
 
         const queryKinds = splitList(el.attributes['selectionQuery.includeElementKinds']);
+        // Carried in the spelling SOURCE used — `Composes` for a MEMO
+        // `connection def`, `flow`/`bind` for a native keyword — because this
+        // list is a declaration, and a viewpoint that says "Composes" should
+        // read back as "Composes". A `MemoRelationship.type` is lowerCamelCase,
+        // so any consumer that MATCHES against the model must normalize first
+        // with `toModelType` / `toModelTypeSet` from `model/naming.ts`. Do not
+        // normalize here: it would lowercase what the UI displays.
         const queryRels = splitList(el.attributes['selectionQuery.includeRelationshipKinds']);
         for (const vp of vps) {
             // Palette/filter eligibility follows the ontology specialization

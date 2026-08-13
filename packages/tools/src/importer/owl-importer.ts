@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { wrapPackage } from '../serializer/sysml-generator.js';
+import { toModelType } from '../model/naming.js';
 
 /** An OWL class mapped to a MEMO kind */
 export interface OwlClass {
@@ -506,9 +507,7 @@ function toSysmlPackageName(name: string): string {
         .replace(/^(\d)/, '_$1') || 'Imported';
 }
 
-function toCamelCase(name: string): string {
-    return name.charAt(0).toLowerCase() + name.slice(1);
-}
+const toCamelCase = toModelType;
 
 function capitalizeFirst(s: string): string {
     return s.charAt(0).toUpperCase() + s.slice(1);

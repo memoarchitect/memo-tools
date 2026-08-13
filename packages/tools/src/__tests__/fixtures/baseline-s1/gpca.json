@@ -40,35 +40,35 @@
       {
         "id": "actorNurse",
         "kind": "User",
-        "construct": "actor",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
       {
         "id": "actorPatient",
         "kind": "User",
-        "construct": "actor",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
       {
         "id": "actorPharmacist",
         "kind": "User",
-        "construct": "actor",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
       {
         "id": "actorPrescriber",
         "kind": "User",
-        "construct": "actor",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
       {
         "id": "actorTechnician",
         "kind": "User",
-        "construct": "actor",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
@@ -2502,69 +2502,6 @@
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
-        "id": "modeACTIVE",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
-        "id": "modeBASAL",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
-        "id": "modeIDLE",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
-        "id": "modeOFF",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
-        "id": "modeON",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
-        "id": "modePAUSED",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
-        "id": "modePBOLUS",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
-        "id": "modeSQUARE",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
-        "id": "modeTHERAPY",
-        "kind": "MemoState",
-        "construct": "state",
-        "layer": "core",
-        "package": "memo_examples_gpca_pump_gpca_behavior_modes"
-      },
-      {
         "id": "needAuditableRecord",
         "kind": "Need",
         "construct": "requirement",
@@ -4694,133 +4631,133 @@
       },
       {
         "id": "trAlarmPause",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trAllInhibited",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trBasalInhibit",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trInfusionComplete",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trInitiateWhileInhibited",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trManualInhibit",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolus",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusInhibit",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusToBasal",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPatientBolusToSquare",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trPausedStop",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trResume",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareBolus",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareInhibit",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareToBasal",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSquareToPatientBolus",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trStartTherapy",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSystemStart",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
       },
       {
         "id": "trSystemStop",
-        "kind": "Transition",
+        "kind": "Unknown",
         "construct": "transition",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_gpca_behavior_modes"
@@ -5386,6 +5323,106 @@
         "targetId": "riskMatrix"
       },
       {
+        "type": "bind",
+        "sourceId": "actGpcaOut",
+        "targetId": "devGpcaOut"
+      },
+      {
+        "type": "bind",
+        "sourceId": "devDbIn",
+        "targetId": "snsDbIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "devOpCmdIn",
+        "targetId": "snsOpCmdIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "devPatientIn",
+        "targetId": "snsPatientIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "devPresIn",
+        "targetId": "snsPresIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portConstIn",
+        "targetId": "portAlarmConstIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portConstIn",
+        "targetId": "portConfigConstIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portConstIn",
+        "targetId": "portSysStatConstIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portConstIn",
+        "targetId": "portTlmConstIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portDbIn",
+        "targetId": "portAlarmDbIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portDbIn",
+        "targetId": "portConfigDbIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portOpCmdIn",
+        "targetId": "portAlarmOpCmdIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portOpCmdIn",
+        "targetId": "portConfigOpCmdIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portOpCmdIn",
+        "targetId": "portImOpCmdIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portOpCmdIn",
+        "targetId": "portTlmOpCmdIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portOutputGpcaSwOut",
+        "targetId": "portGpcaSwOut"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portPatientIn",
+        "targetId": "portImPatientIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portPresIn",
+        "targetId": "portConfigPresIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portSensorIn",
+        "targetId": "portAlarmSensorIn"
+      },
+      {
+        "type": "bind",
+        "sourceId": "portSensorIn",
+        "targetId": "portSysStatSensorIn"
+      },
+      {
         "type": "bindsToInterface",
         "sourceId": "portMotorDrive",
         "targetId": "pumpMotorDrive"
@@ -5812,41 +5849,6 @@
       },
       {
         "type": "composes",
-        "sourceId": "modeACTIVE",
-        "targetId": "modeBASAL"
-      },
-      {
-        "type": "composes",
-        "sourceId": "modeACTIVE",
-        "targetId": "modePBOLUS"
-      },
-      {
-        "type": "composes",
-        "sourceId": "modeACTIVE",
-        "targetId": "modeSQUARE"
-      },
-      {
-        "type": "composes",
-        "sourceId": "modeON",
-        "targetId": "modeIDLE"
-      },
-      {
-        "type": "composes",
-        "sourceId": "modeON",
-        "targetId": "modeTHERAPY"
-      },
-      {
-        "type": "composes",
-        "sourceId": "modeTHERAPY",
-        "targetId": "modeACTIVE"
-      },
-      {
-        "type": "composes",
-        "sourceId": "modeTHERAPY",
-        "targetId": "modePAUSED"
-      },
-      {
-        "type": "composes",
         "sourceId": "osAirInLine",
         "targetId": "oaRespondToAirInLine"
       },
@@ -5969,16 +5971,6 @@
         "type": "composes",
         "sourceId": "tlm",
         "targetId": "portTlmTlmModeOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "topLevelModeMachine",
-        "targetId": "modeOFF"
-      },
-      {
-        "type": "composes",
-        "sourceId": "topLevelModeMachine",
-        "targetId": "modeON"
       },
       {
         "type": "composes",
@@ -6796,301 +6788,6 @@
         "targetId": "dmStuckInputMonitor"
       },
       {
-        "type": "exchangesWith",
-        "sourceId": "actGpcaOut",
-        "targetId": "devGpcaOut"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "actorNurse",
-        "targetId": "entityGpcaPump"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "actorPatient",
-        "targetId": "entityGpcaPump"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "alarm",
-        "targetId": "infusionMgr"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "alarm",
-        "targetId": "logging"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "alarm",
-        "targetId": "outputBus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "config",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "config",
-        "targetId": "infusionMgr"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "config",
-        "targetId": "logging"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "config",
-        "targetId": "outputBus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "config",
-        "targetId": "systemStatus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "devDbIn",
-        "targetId": "snsDbIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "devOpCmdIn",
-        "targetId": "snsOpCmdIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "devPatientIn",
-        "targetId": "snsPatientIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "devPresIn",
-        "targetId": "snsPresIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "entityGpcaPump",
-        "targetId": "actorNurse"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "entityPharmacyDb",
-        "targetId": "entityGpcaPump"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "entityPrescription",
-        "targetId": "actorNurse"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "infusionMgr",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "infusionMgr",
-        "targetId": "logging"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "infusionMgr",
-        "targetId": "outputBus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "infusionMgr",
-        "targetId": "systemStatus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "logging",
-        "targetId": "outputBus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "outputBus",
-        "targetId": "portGpcaSwOut"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portConstIn",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portConstIn",
-        "targetId": "config"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portConstIn",
-        "targetId": "systemStatus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portConstIn",
-        "targetId": "tlm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portDbIn",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portDbIn",
-        "targetId": "config"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portGpcaSwOut",
-        "targetId": "actGpcaSwIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portOpCmdIn",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portOpCmdIn",
-        "targetId": "config"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portOpCmdIn",
-        "targetId": "infusionMgr"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portOpCmdIn",
-        "targetId": "tlm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portPatientIn",
-        "targetId": "infusionMgr"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portPresIn",
-        "targetId": "config"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portSensorIn",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "portSensorIn",
-        "targetId": "systemStatus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "snsConstOut",
-        "targetId": "portConstIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "snsDbOut",
-        "targetId": "portDbIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "snsOpCmdOut",
-        "targetId": "portOpCmdIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "snsPatientOut",
-        "targetId": "portPatientIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "snsPresOut",
-        "targetId": "portPresIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "snsSensorOut",
-        "targetId": "portSensorIn"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "systemMonitor",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "systemMonitor",
-        "targetId": "outputBus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "systemStatus",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "systemStatus",
-        "targetId": "config"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "systemStatus",
-        "targetId": "infusionMgr"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "systemStatus",
-        "targetId": "logging"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "systemStatus",
-        "targetId": "outputBus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "tlm",
-        "targetId": "alarm"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "tlm",
-        "targetId": "config"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "tlm",
-        "targetId": "infusionMgr"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "tlm",
-        "targetId": "logging"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "tlm",
-        "targetId": "outputBus"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "tlm",
-        "targetId": "systemMonitor"
-      },
-      {
-        "type": "exchangesWith",
-        "sourceId": "tlm",
-        "targetId": "systemStatus"
-      },
-      {
         "type": "exploits",
         "sourceId": "unauthorizedConfigChangeThreat",
         "targetId": "weakServiceAuthentication"
@@ -7102,8 +6799,33 @@
       },
       {
         "type": "flow",
+        "sourceId": "actorNurse",
+        "targetId": "entityGpcaPump"
+      },
+      {
+        "type": "flow",
+        "sourceId": "actorPatient",
+        "targetId": "entityGpcaPump"
+      },
+      {
+        "type": "flow",
         "sourceId": "actuateMotor",
         "targetId": "logEvent"
+      },
+      {
+        "type": "flow",
+        "sourceId": "alarm",
+        "targetId": "infusionMgr"
+      },
+      {
+        "type": "flow",
+        "sourceId": "alarm",
+        "targetId": "logging"
+      },
+      {
+        "type": "flow",
+        "sourceId": "alarm",
+        "targetId": "outputBus"
       },
       {
         "type": "flow",
@@ -7112,8 +6834,48 @@
       },
       {
         "type": "flow",
+        "sourceId": "config",
+        "targetId": "alarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "config",
+        "targetId": "infusionMgr"
+      },
+      {
+        "type": "flow",
+        "sourceId": "config",
+        "targetId": "logging"
+      },
+      {
+        "type": "flow",
+        "sourceId": "config",
+        "targetId": "outputBus"
+      },
+      {
+        "type": "flow",
+        "sourceId": "config",
+        "targetId": "systemStatus"
+      },
+      {
+        "type": "flow",
         "sourceId": "enforceLimits",
         "targetId": "computeFlow"
+      },
+      {
+        "type": "flow",
+        "sourceId": "entityGpcaPump",
+        "targetId": "actorNurse"
+      },
+      {
+        "type": "flow",
+        "sourceId": "entityPharmacyDb",
+        "targetId": "entityGpcaPump"
+      },
+      {
+        "type": "flow",
+        "sourceId": "entityPrescription",
+        "targetId": "actorNurse"
       },
       {
         "type": "flow",
@@ -7127,8 +6889,33 @@
       },
       {
         "type": "flow",
+        "sourceId": "infusionMgr",
+        "targetId": "alarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "infusionMgr",
+        "targetId": "logging"
+      },
+      {
+        "type": "flow",
+        "sourceId": "infusionMgr",
+        "targetId": "outputBus"
+      },
+      {
+        "type": "flow",
+        "sourceId": "infusionMgr",
+        "targetId": "systemStatus"
+      },
+      {
+        "type": "flow",
         "sourceId": "lcSafetyMonitoring",
         "targetId": "lcOperatorInterface"
+      },
+      {
+        "type": "flow",
+        "sourceId": "logging",
+        "targetId": "outputBus"
       },
       {
         "type": "flow",
@@ -7177,33 +6964,8 @@
       },
       {
         "type": "flow",
-        "sourceId": "portConstIn",
-        "targetId": "portAlarmConstIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portConstIn",
-        "targetId": "portConfigConstIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portConstIn",
-        "targetId": "portSysStatConstIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portConstIn",
-        "targetId": "portTlmConstIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portDbIn",
-        "targetId": "portAlarmDbIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portDbIn",
-        "targetId": "portConfigDbIn"
+        "sourceId": "portGpcaSwOut",
+        "targetId": "actGpcaSwIn"
       },
       {
         "type": "flow",
@@ -7239,51 +7001,6 @@
         "type": "flow",
         "sourceId": "portLogLogOut",
         "targetId": "portOutputLogIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portOpCmdIn",
-        "targetId": "portAlarmOpCmdIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portOpCmdIn",
-        "targetId": "portConfigOpCmdIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portOpCmdIn",
-        "targetId": "portImOpCmdIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portOpCmdIn",
-        "targetId": "portTlmOpCmdIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portOutputGpcaSwOut",
-        "targetId": "portGpcaSwOut"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portPatientIn",
-        "targetId": "portImPatientIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portPresIn",
-        "targetId": "portConfigPresIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portSensorIn",
-        "targetId": "portAlarmSensorIn"
-      },
-      {
-        "type": "flow",
-        "sourceId": "portSensorIn",
-        "targetId": "portSysStatSensorIn"
       },
       {
         "type": "flow",
@@ -7356,6 +7073,106 @@
         "targetId": "portSysStatTlmModeIn"
       },
       {
+        "type": "flow",
+        "sourceId": "snsConstOut",
+        "targetId": "portConstIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "snsDbOut",
+        "targetId": "portDbIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "snsOpCmdOut",
+        "targetId": "portOpCmdIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "snsPatientOut",
+        "targetId": "portPatientIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "snsPresOut",
+        "targetId": "portPresIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "snsSensorOut",
+        "targetId": "portSensorIn"
+      },
+      {
+        "type": "flow",
+        "sourceId": "systemMonitor",
+        "targetId": "alarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "systemMonitor",
+        "targetId": "outputBus"
+      },
+      {
+        "type": "flow",
+        "sourceId": "systemStatus",
+        "targetId": "alarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "systemStatus",
+        "targetId": "config"
+      },
+      {
+        "type": "flow",
+        "sourceId": "systemStatus",
+        "targetId": "infusionMgr"
+      },
+      {
+        "type": "flow",
+        "sourceId": "systemStatus",
+        "targetId": "logging"
+      },
+      {
+        "type": "flow",
+        "sourceId": "systemStatus",
+        "targetId": "outputBus"
+      },
+      {
+        "type": "flow",
+        "sourceId": "tlm",
+        "targetId": "alarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "tlm",
+        "targetId": "config"
+      },
+      {
+        "type": "flow",
+        "sourceId": "tlm",
+        "targetId": "infusionMgr"
+      },
+      {
+        "type": "flow",
+        "sourceId": "tlm",
+        "targetId": "logging"
+      },
+      {
+        "type": "flow",
+        "sourceId": "tlm",
+        "targetId": "outputBus"
+      },
+      {
+        "type": "flow",
+        "sourceId": "tlm",
+        "targetId": "systemMonitor"
+      },
+      {
+        "type": "flow",
+        "sourceId": "tlm",
+        "targetId": "systemStatus"
+      },
+      {
         "type": "governs",
         "sourceId": "gpcaIntendedUse",
         "targetId": "entityGpcaPump"
@@ -7419,51 +7236,6 @@
         "type": "includedIn",
         "sourceId": "ftaOverdose",
         "targetId": "hazardAnalysisView"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcAlarmStop",
-        "targetId": "fcsAlarmAnnunciate"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcAlarmStop",
-        "targetId": "fcsAlarmEvaluate"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcAlarmStop",
-        "targetId": "fcsAlarmSense"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcAlarmStop",
-        "targetId": "fcsAlarmStopInfusion"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fcsBolusActuate"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fcsBolusCommand"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fcsBolusLog"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fcsBolusSense"
-      },
-      {
-        "type": "includesStep",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fcsBolusValidate"
       },
       {
         "type": "initiates",
@@ -7749,6 +7521,51 @@
         "type": "performs",
         "sourceId": "actorTechnician",
         "targetId": "oaMaintain"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcAlarmStop",
+        "targetId": "fcsAlarmAnnunciate"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcAlarmStop",
+        "targetId": "fcsAlarmEvaluate"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcAlarmStop",
+        "targetId": "fcsAlarmSense"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcAlarmStop",
+        "targetId": "fcsAlarmStopInfusion"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcPatientBolus",
+        "targetId": "fcsBolusActuate"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcPatientBolus",
+        "targetId": "fcsBolusCommand"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcPatientBolus",
+        "targetId": "fcsBolusLog"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcPatientBolus",
+        "targetId": "fcsBolusSense"
+      },
+      {
+        "type": "performs",
+        "sourceId": "fcPatientBolus",
+        "targetId": "fcsBolusValidate"
       },
       {
         "type": "precedes",
@@ -9537,7 +9354,6 @@
       "MemoDocumentView": 6,
       "MemoEvidence": 11,
       "MemoScenario": 9,
-      "MemoState": 9,
       "MemoUsabilityEngineeringView": 1,
       "MethodologyDefinition": 1,
       "MinimalCutSet": 2,
@@ -9571,8 +9387,8 @@
       "SystemFunction": 11,
       "Threat": 2,
       "TimingConstraint": 3,
-      "Transition": 19,
       "TrustBoundary": 1,
+      "Unknown": 19,
       "UseCase": 1,
       "UseContext": 1,
       "UseError": 4,
@@ -9585,7 +9401,7 @@
     "layerCounts": {
       "artifacts": 4,
       "behavior": 23,
-      "core": 29,
+      "core": 20,
       "cybersecurity": 10,
       "functional": 69,
       "human-factors": 4,
@@ -10151,7 +9967,7 @@
   },
   "errors": [],
   "summary": {
-    "elements": 738,
+    "elements": 729,
     "completeness": 100
   }
 }
