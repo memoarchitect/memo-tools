@@ -700,6 +700,20 @@ function extractUsage(
     const attributes = extractAttributes(usage.body);
     const doc = extractDocComment(usage.body);
 
+    // A view's `expose <path>;` members declare its element membership
+    // natively — SysML v2's own visibility mechanism, in place of the MEMO
+    // `IncludedIn` relationship. Collected as a comma-separated attribute so
+    // `resolveViewElementIds` in view-deriver.ts can resolve each path
+    // against the model the same way it resolves `selectionQuery.*`.
+    if (construct === 'view') {
+        const exposePaths = (usage.body || [])
+            .filter(member => (member as any).$type === 'ExposeMember')
+            .map(member => (member as any).path as string);
+        if (exposePaths.length > 0) {
+            attributes['expose'] = exposePaths.join(',');
+        }
+    }
+
     // Nested part members that are view METADATA, not containment: reference
     // bindings (`part viewpoint :> vp;`) and the `:>>` redefinition of an
     // inherited feature whose body is attributes (`part :>> selectionQuery
@@ -793,8 +807,17 @@ function extractUsage(
     // element with `owner` set — exactly as a nested port is — only after the
     // parent is in the map. buildMemoModel synthesizes the `composes` edge from
     // the resulting `owner` chain.
+    //
+    // A part usage may also declare its OWN boundary ports directly in its
+    // body (`part x : T { in port p : DataPort; }`), distinct from a nested
+    // part's ports and from any ports the type `T` declares at the def level
+    // (that path is `extractDefinitionPorts` at package scope, line ~668).
+    // Without this, an inline-authored port silently has no element: it
+    // parses, every relationship endpoint referencing it resolves to a
+    // dangling id, and nothing downstream reports why.
     if (construct === 'part') {
         extractNestedParts(usage, filePath, packageName, config, elements, registry, registries);
+        extractDefinitionPorts(usage, filePath, packageName, config, elements, registry, registries);
     }
 
     // A native `transition` lives inside the state machine that owns it, which

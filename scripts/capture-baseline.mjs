@@ -262,6 +262,19 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-13 — R10-S4 `IncludedIn` retired.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | -5 `includedIn` relationships | `gpca_trace.sysml`'s five `IncludedIn` edges to `rmfView`/`vvView`/`usabilityView`/`hazardAnalysisView` were the last real usages left; view membership for those five is now carried by native `expose` members on the views themselves, which contribute no relationship (expose is model-element data, not an edge). |
+ *
+ * `ui-regions`, `default`, and `extension-clinical` do not declare `IncludedIn`
+ * and are byte-identical. `syside check src extensions examples` and every
+ * example's rendered element set (proven with the migration's own equality
+ * assertion, since removed) are unchanged by the swap.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

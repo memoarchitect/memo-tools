@@ -7213,31 +7213,6 @@
         "targetId": "riskBefore"
       },
       {
-        "type": "includedIn",
-        "sourceId": "evidenceLockout",
-        "targetId": "rmfView"
-      },
-      {
-        "type": "includedIn",
-        "sourceId": "evidenceSafetyAlarmSuite",
-        "targetId": "vvView"
-      },
-      {
-        "type": "includedIn",
-        "sourceId": "evidenceUsability",
-        "targetId": "usabilityView"
-      },
-      {
-        "type": "includedIn",
-        "sourceId": "fmeaDelivery",
-        "targetId": "hazardAnalysisView"
-      },
-      {
-        "type": "includedIn",
-        "sourceId": "ftaOverdose",
-        "targetId": "hazardAnalysisView"
-      },
-      {
         "type": "initiates",
         "sourceId": "actorNurse",
         "targetId": "ucDeliverPcaTherapy"

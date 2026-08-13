@@ -35,11 +35,10 @@ describe('explicit renderer samples', () => {
             'selectionQuery.includeRelationshipKinds': 'flow',
         };
         const elements = new Map([[part.id, part], [view.id, view]]);
-        const included = { type: 'includedIn', sourceId: part.id, targetId: view.id };
         const model = {
             elements,
-            relationships: [included],
-            incoming: new Map([[view.id, [included]]]),
+            relationships: [],
+            incoming: new Map(),
         } as unknown as MemoModel;
 
         const result = deriveModelViews(model);

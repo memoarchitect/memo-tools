@@ -49,12 +49,103 @@ function splitList(raw: string | undefined): string[] {
 }
 
 /**
+ * Push `ownerId`'s owned elements onto `out`; `deep` recurses through the
+ * whole subtree. Containment is split across two fields depending on
+ * construct — `owner` for nested ports and parts (`extractDefinitionPorts`,
+ * `extractNestedParts`), `parentAction` for nested actions
+ * (`extractActionUsage`) — so both are checked here or `expose foo::**` would
+ * silently drop an entire construct family from the selection.
+ */
+function collectOwned(ownerId: string, deep: boolean, model: MemoModel, out: string[]): void {
+    for (const el of model.elements.values()) {
+        if (el.owner !== ownerId && el.parentAction !== ownerId) continue;
+        out.push(el.id);
+        if (deep) collectOwned(el.id, true, model, out);
+    }
+}
+
+/**
+ * Resolve one native `expose <path>;` member to the element ids it names.
+ *
+ * `ExposePath` has two shapes (`memo-sysml.langium`'s `ExposePath`):
+ *   - a package-qualified name, optionally suffixed `::*` (direct members) or
+ *     `::**` (members of the package and any nested package) — the form used
+ *     to expose a whole model, e.g. `expose myExample::**;`
+ *   - a dotted element reference, optionally suffixed the same way, walking
+ *     owned children the way `bind`/`flow` endpoints do — the form used to
+ *     expose one part and (with a suffix) its owned ports/nested parts, e.g.
+ *     `expose coffeeMachine::**;`
+ * No suffix names exactly the one element or the one package member itself
+ * (a bare package name with no suffix selects nothing, since a package is not
+ * an element).
+ */
+function resolveExposePath(path: string, model: MemoModel): string[] {
+    const suffixMatch = path.match(/::(\*\*|\*)$/);
+    const suffix = suffixMatch?.[1] as '*' | '**' | undefined;
+    const base = suffixMatch ? path.slice(0, -suffixMatch[0].length) : path;
+
+    const pkg = model.packages.find(p => p.qualifiedName === base);
+    if (pkg) {
+        if (!suffix) return [];
+        const ids: string[] = [];
+        for (const el of model.elements.values()) {
+            if (el.package === base || (suffix === '**' && el.package?.startsWith(`${base}::`))) {
+                ids.push(el.id);
+            }
+        }
+        return ids;
+    }
+
+    const segments = base.split(/::|\./).filter(Boolean);
+    if (segments.length === 0) return [];
+    let id = segments[0];
+    if (!model.elements.has(id)) return [];
+    let i = 1;
+    while (i < segments.length) {
+        const child = model.elements.get(segments[i]);
+        if (!child || (child.owner !== id && child.parentAction !== id)) break;
+        id = segments[i];
+        i++;
+    }
+
+    // SysIDE rejects a bare `expose SomeDefinition;` — "Expected Feature
+    // element but found ActionDefinition" — because a definition is not
+    // itself a feature, only its members are. `X::**`/`X::*` on a definition
+    // is legal, and it means exactly that: the definition's owned features,
+    // never the definition itself. A usage, by contrast, IS a feature, so it
+    // belongs in its own exposed set the same way `coffeeMachine::**`
+    // includes `coffeeMachine`.
+    const baseEl = model.elements.get(id);
+    const ids: string[] = baseEl && !baseEl.kind.endsWith('Definition') ? [id] : [];
+    if (suffix) collectOwned(id, suffix === '**', model, ids);
+    return ids;
+}
+
+/**
+ * Resolve every `expose` path declared on a view to the element ids it
+ * selects. A view exposing its own enclosing package (`expose
+ * myPackage::*;`, e.g. a document view scoping to "everything declared
+ * alongside me") would otherwise select the view element itself — excluded
+ * here the same way the kind/layer selection above excludes it.
+ */
+export function resolveExposeIds(view: MemoElement, model: MemoModel): string[] {
+    const ids = new Set<string>();
+    for (const path of splitList(view.attributes['expose'])) {
+        for (const id of resolveExposePath(path, model)) {
+            if (id !== view.id) ids.add(id);
+        }
+    }
+    return [...ids];
+}
+
+/**
  * Resolve the element ids a view selects.
  *
  * Membership comes from two declared sources, both owned by the model:
  *   1. `selectionQuery.includeElementKinds` (specializations included); when no
  *      kinds are given, `includeLayers` selects whole layers instead
- *   2. explicit `IncludedIn` relationships targeting the view
+ *   2. native `expose` members (see `resolveExposeIds`) — the sole source of
+ *      explicit per-element membership since R10-S4 retired `IncludedIn`
  */
 export function resolveViewElementIds(
     view: MemoElement,
@@ -83,9 +174,7 @@ export function resolveViewElementIds(
         const authored = [...model.elements.values()].find(element => element.attributes.id === reference);
         if (authored) ids.add(authored.id);
     }
-    for (const rel of model.incoming.get(view.id) ?? []) {
-        if (rel.type.toLowerCase() === 'includedin' && rel.sourceId !== view.id) ids.add(rel.sourceId);
-    }
+    for (const id of resolveExposeIds(view, model)) ids.add(id);
     return [...ids];
 }
 
