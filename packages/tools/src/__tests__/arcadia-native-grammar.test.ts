@@ -418,7 +418,10 @@ describe('ARCADIA native mechanisms — builder projection', () => {
         }]);
     });
 
-    it('#refinement dependency matches the Realizes connection', async () => {
+    it('#refinement dependency matches the Realizes connection, plus the generic dependency edge', async () => {
+        // A refinement IS a dependency (R10-S6), so it produces both: the
+        // generic `dependency` edge every `dependency` statement gets, and
+        // `realizes` on top for the #refinement claim specifically.
         const native = await edgesOf(`
             package Test {
                 part swModule : SoftwareModule;
@@ -433,7 +436,12 @@ describe('ARCADIA native mechanisms — builder projection', () => {
                 connection : Realizes connect realizing ::> swModule to realized ::> lcPump;
             }
         `);
-        expect(native).toEqual(connection);
+        expect(native.filter(e => e.type === 'realizes')).toEqual(connection);
+        expect(native.filter(e => e.type === 'dependency')).toEqual([{
+            type: 'dependency',
+            sourceId: 'swModule', sourceEnd: 'client',
+            targetId: 'lcPump', targetEnd: 'supplier',
+        }]);
     });
 
     it('@Rationale/@StatusInfo metadata on a connection usage populate rel.attributes (R10-S5)', async () => {
@@ -462,17 +470,21 @@ describe('ARCADIA native mechanisms — builder projection', () => {
         expect(rel.attributes?.status).toBe('StatusKind::closed');
     });
 
-    it('a bare dependency claims no realization', async () => {
+    it('a bare dependency claims no realization, only the generic edge', async () => {
         // A dependency without #refinement means strictly less than Realizes.
         // Inferring one would put a claim in the traceability matrix that the
-        // model never made.
-        expect(await edgesOf(`
+        // model never made. It still gets the generic `dependency` edge —
+        // ModuleUses/MonitorsChannel migrate onto this (R10-S6), and before
+        // this a bare dependency built to nothing at all.
+        const edges = await edgesOf(`
             package Test {
                 part a : SoftwareModule;
                 part b : LogicalComponent;
                 dependency from a to b;
             }
-        `)).toEqual([]);
+        `);
+        expect(edges.map(e => e.type)).toEqual(['dependency']);
+        expect(edges.some(e => e.type === 'realizes')).toBe(false);
     });
 
     it('one dependency with several suppliers lowers to several edges', async () => {
@@ -484,7 +496,10 @@ describe('ARCADIA native mechanisms — builder projection', () => {
                 #refinement dependency Schemata from a to b, c;
             }
         `);
-        expect(edges.map(e => [e.sourceId, e.targetId])).toEqual([['a', 'b'], ['a', 'c']]);
+        expect(edges.filter(e => e.type === 'realizes').map(e => [e.sourceId, e.targetId]))
+            .toEqual([['a', 'b'], ['a', 'c']]);
+        expect(edges.filter(e => e.type === 'dependency').map(e => [e.sourceId, e.targetId]))
+            .toEqual([['a', 'b'], ['a', 'c']]);
     });
 
     it('actor, stakeholder and concern declare the same elements part does', async () => {

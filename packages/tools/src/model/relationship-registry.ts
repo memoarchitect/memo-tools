@@ -199,6 +199,21 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             { name: 'step', type: 'FunctionalFlowStep' },
         ],
     },
+    dependency: {
+        keyword: 'dependency',
+        sysmlName: 'Dependency',
+        layer: 'core',
+        description: 'One element depends on another, with no further claim '
+            + '(R10-S6). Collapses MEMO\'s former `ModuleUses`/`MonitorsChannel` '
+            + 'split, which native `dependency` does not distinguish. Written '
+            + 'natively as `dependency <client> to <supplier>;`. `#refinement '
+            + 'dependency` additionally produces a `realizes` edge — a '
+            + 'refinement IS a dependency, so both edges are emitted.',
+        ends: [
+            { name: 'client' },
+            { name: 'supplier' },
+        ],
+    },
     participatesIn: {
         keyword: 'actor',
         sysmlName: 'ParticipatesIn',

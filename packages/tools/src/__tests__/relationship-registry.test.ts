@@ -288,16 +288,18 @@ describe('MEMO ontology relationship properties', () => {
     //   Enables             — A0: an enabling function is a behaviour.
     //   BindsToInterface    — A0: the bound end is an `interface def`, which no part type can hold.
     //   CrossesTrustBoundary — A0: the boundary becomes a port def in A1.
+    //   Dependency          — R10-S6: a bare `dependency` relates any two elements, the same as `MemoLink`/`Realizes`.
     const UNTYPED_END_EXEMPTIONS = [
         'MemoLink', 'Mitigates', 'Realizes', 'Validates', 'DerivesFrom',
         'SatisfiedBy', 'VerifiedBy', 'AllocatedTo', 'Composes', 'Precedes',
         'Performs', 'Enables', 'BindsToInterface', 'CrossesTrustBoundary',
+        'Dependency',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a
     // metaclass boundary. Six of the seven joined this set in A0.
     const FULLY_UNTYPED = [
         'MemoLink', 'Realizes', 'AllocatedTo', 'Composes', 'Precedes',
-        'BindsToInterface', 'CrossesTrustBoundary',
+        'BindsToInterface', 'CrossesTrustBoundary', 'Dependency',
     ];
 
     it('keeps the universal relation identifiable among fully untyped relations', async () => {

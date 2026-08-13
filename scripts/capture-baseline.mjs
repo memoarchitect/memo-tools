@@ -286,6 +286,18 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-13 — R10-S6 `ModuleUses`/`MonitorsChannel`
+ * retired, generic `dependency` edge added.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | +19 relationships | Neither connection def was used in gpca, but gpca's 19 existing `#refinement dependency` statements now ALSO produce a generic `dependency` edge alongside `realizes` — a refinement IS a dependency (R10-S6), so both are emitted. Before this a bare (non-`#refinement`) `dependency` built to nothing at all, which is what `ModuleUses`/`MonitorsChannel`'s migration needed fixed; making `#refinement dependency` emit the generic edge too, rather than only when unclassified, is what keeps one dependency statement's meaning from depending on which edge type happens to be looking. |
+ *
+ * `ui-regions`, `default`, and `extension-clinical` declare no `dependency`
+ * of any kind and are byte-identical.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

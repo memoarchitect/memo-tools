@@ -466,10 +466,9 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'ISO 14971 / IEC 62366 intended use; a regulated term.',
         removedBy: 'deliberate',
     },
-    'use:ModuleUses': {
-        reason: 'Module dependency (SEI uses-relation); `use` is the use-case keyword.',
-        removedBy: 'deliberate',
-    },
+    // `use:ModuleUses` was here until R10-S6: `ModuleUses` is deleted in
+    // favour of native `dependency`, and `dependency` collapses it with
+    // `MonitorsChannel` too — see `dependency` in relationship-registry.ts.
     'decide:Decides': {
         reason: 'Relates an architecture decision record to what it decides; `decide` is a control node in an action body.',
         removedBy: 'deliberate',

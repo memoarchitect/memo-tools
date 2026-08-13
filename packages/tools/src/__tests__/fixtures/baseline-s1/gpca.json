@@ -6193,6 +6193,101 @@
         "targetId": "therapyConfigurationAsset"
       },
       {
+        "type": "dependency",
+        "sourceId": "actuatorCommandInterface",
+        "targetId": "pumpMotorDrive"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcAlarmStop",
+        "targetId": "ssAlarmPause"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcPatientBolus",
+        "targetId": "ssBolusDuringBasal"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsAlarmAnnunciate",
+        "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsAlarmEvaluate",
+        "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsAlarmSense",
+        "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsAlarmStopInfusion",
+        "targetId": "wsRespondAlarm"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsBolusActuate",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsBolusCommand",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsBolusLog",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsBolusSense",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "fcsBolusValidate",
+        "targetId": "wsRequestBolus"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "osAirInLine",
+        "targetId": "ucDeliverPcaTherapy"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "osEmptyReservoir",
+        "targetId": "ucDeliverPcaTherapy"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "osLockoutBolus",
+        "targetId": "ucDeliverPcaTherapy"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "osNominalTherapy",
+        "targetId": "ucDeliverPcaTherapy"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "osOcclusionAlarm",
+        "targetId": "ucDeliverPcaTherapy"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "osPowerLoss",
+        "targetId": "ucDeliverPcaTherapy"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "sensorInputInterface",
+        "targetId": "hwSoftwareBus"
+      },
+      {
         "type": "deploysTo",
         "sourceId": "gpcaSoftware",
         "targetId": "controllerBoard"

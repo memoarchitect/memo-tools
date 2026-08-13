@@ -1743,7 +1743,8 @@ function resolveActorParticipation(
 }
 
 /**
- * Project a `#refinement dependency a to b;` onto the `realizes` edge.
+ * Project every `dependency a to b;` onto the generic `dependency` edge, and
+ * additionally onto `realizes` when it carries `#refinement` (R10-S6).
  *
  * The only native relation here that is not a connection. A Dependency takes n
  * clients and n suppliers rather than a source and a target, so one written
@@ -1751,10 +1752,21 @@ function resolveActorParticipation(
  * is two statements sharing a name, and it lowers to two links, which is what
  * `Realizes` would have needed two connection usages to say.
  *
- * A dependency WITHOUT `#refinement` is an unclassified dependency. It means
- * strictly less than `Realizes` does, so it contributes no `realizes` edge —
- * inferring realization from a bare dependency would put a claim in the
- * traceability matrix that the model never made.
+ * A dependency WITHOUT `#refinement` is an unclassified dependency: it means
+ * strictly less than `Realizes` does, so it contributes only the generic
+ * `dependency` edge, never `realizes` — inferring realization from a bare
+ * dependency would put a claim in the traceability matrix that the model
+ * never made. `#refinement` adds `realizes` on top; it does not replace the
+ * generic edge, because a refinement dependency IS a dependency.
+ *
+ * Before R10-S6 a bare (non-`#refinement`) dependency built to nothing at
+ * all — the same silent-drop shape as `BindingUsage`/`ExposeMember` — which
+ * is what `ModuleUses`/`MonitorsChannel`'s migration to plain `dependency`
+ * would otherwise have hit. Both collapse onto this one generic edge; native
+ * `dependency` does not distinguish "uses a module" from "monitors a
+ * channel" any more than `actor` distinguished an initiating actor from a
+ * participating one, so that distinction now lives in the dependency's own
+ * name/doc, not in a relationship type.
  */
 function resolveDependency(
     dependency: Dependency,
@@ -1765,7 +1777,6 @@ function resolveDependency(
 ): void {
     const isRefinement = (dependency.prefixMetadata ?? [])
         .some(annotation => annotation.type?.split('::').pop() === REFINEMENT_METADATA);
-    if (!isRefinement) return;
 
     const { packageName } = nativeUsageContext(dependency);
     for (const client of dependency.clients ?? []) {
@@ -1774,7 +1785,8 @@ function resolveDependency(
         for (const supplier of dependency.suppliers ?? []) {
             const targetId = resolveEndpointId(supplier, packageName, registry, allElementIds);
             if (!targetId) continue;
-            relationships.push(nativeTraceEdge('realizes', sourceId, targetId, filePath));
+            relationships.push(nativeTraceEdge('dependency', sourceId, targetId, filePath));
+            if (isRefinement) relationships.push(nativeTraceEdge('realizes', sourceId, targetId, filePath));
         }
     }
 }
