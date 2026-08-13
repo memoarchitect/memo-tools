@@ -294,6 +294,29 @@ export function buildMemoModel(
         resolveNativeTraceUsages(document.parseResult.value, filePath, relationships, registry, allElementIds);
     }
 
+    // Phase 3f: Synthesize containment edges from native nesting. A natively
+    // nested part carries its parent in `owner` (set during extraction); MEMO's
+    // consumers read containment as a `composes` relationship (parent → child),
+    // so emit one per nesting. A model that nests natively then looks identical
+    // to one that wrote `Composes`, which is what lets R10-S7 delete the
+    // relationship without the containment vanishing. Ports carry `owner` too,
+    // so this is confined to part-to-part nesting.
+    for (const el of elements.values()) {
+        if (el.construct !== 'part' || !el.owner) continue;
+        const parent = elements.get(el.owner);
+        if (!parent || parent.construct !== 'part') continue;
+        relationships.push({
+            id: `rel-${++relationshipCounter}`,
+            type: 'composes',
+            sourceId: el.owner,
+            sourceEnd: 'parent',
+            targetId: el.id,
+            targetEnd: 'child',
+            file: el.file,
+            named: false,
+        });
+    }
+
     // Keep ownership of a declaration separate from ownership of the type that
     // classifies it.  A project usage of `Hazard` is editable project content;
     // its classifier is a read-only ontology definition.
@@ -677,10 +700,13 @@ function extractUsage(
     const attributes = extractAttributes(usage.body);
     const doc = extractDocComment(usage.body);
 
-    // Nested part members: capture reference bindings (`part viewpoint :> vp;`)
-    // and one level of nested part bodies (`part selectionQuery { ... }`) as
-    // plain / prefixed attributes, so SysML-modelled views expose their
-    // viewpoint binding and selection-query metadata to consumers.
+    // Nested part members that are view METADATA, not containment: reference
+    // bindings (`part viewpoint :> vp;`) and the `:>>` redefinition of an
+    // inherited feature whose body is attributes (`part :>> selectionQuery
+    // { ... }`). These are flattened onto the owner as plain / prefixed
+    // attributes so SysML-modelled views expose their viewpoint binding and
+    // selection-query metadata to consumers. A typed nested part is NOT metadata
+    // — it is real containment and is extracted as its own element below.
     for (const member of usage.body || []) {
         if ((member as any).$type !== 'PartMember') continue;
         const pm = member as any;
@@ -701,7 +727,13 @@ function extractUsage(
             // model one view against several viewpoints without cloning it.
             const previous = attributes[key];
             attributes[key] = previous ? `${previous},${value}` : value;
-        } else if (pm.body && pm.name) {
+        } else if (!pm.type && pm.body && pm.name) {
+            // R10-S3 guard: an UNTYPED nested part with an attribute body is
+            // view metadata — the `part :>> selectionQuery { ... }` (or the
+            // un-redefined `part selectionQuery { ... }`) that view derivation
+            // reads as `selectionQuery.*` attributes. It carries no kind, so it
+            // is not a contained element. Flatten it; a TYPED nested part
+            // (`part valve : Valve`) is real containment and is extracted below.
             const nested = extractAttributes(pm.body);
             for (const [k, v] of Object.entries(nested)) {
                 attributes[`${pm.name}.${k}`] = v;
@@ -753,6 +785,16 @@ function extractUsage(
     // in the map, so the child's `owner` points at an element that exists.
     if (construct === 'port') {
         extractDefinitionPorts(usage, filePath, packageName, config, elements, registry, registries);
+    }
+
+    // A part's body may nest further parts. SysML v2 expresses containment by
+    // nesting; MEMO historically expressed it with a `Composes` connection, and
+    // the two must yield the same model. Extract each nested part as its own
+    // element with `owner` set — exactly as a nested port is — only after the
+    // parent is in the map. buildMemoModel synthesizes the `composes` edge from
+    // the resulting `owner` chain.
+    if (construct === 'part') {
+        extractNestedParts(usage, filePath, packageName, config, elements, registry, registries);
     }
 
     // A native `transition` lives inside the state machine that owns it, which
@@ -1017,6 +1059,48 @@ function extractDefinitionPorts(
         if (ownerEl) {
             ownerEl.ownedPorts = ownedPortIds;
         }
+    }
+}
+
+/**
+ * Walk a part usage's body to extract nested parts as owned elements, setting
+ * `owner` on each child.
+ *
+ * `extractUsage` flattens the `PartMember` shapes that are view metadata — a
+ * reference binding (`part viewpoint :> vp;`) and an untyped body
+ * (`part :>> selectionQuery { ... }`). A TYPED nested part
+ * (`part valve : Valve { ... }`) is real containment: without this it is
+ * declared, resolves, and never becomes an element — the same silent drop
+ * nested ports had before `extractDefinitionPorts` walked port usages. The
+ * `composes` edge that makes containment legible to consumers is synthesized
+ * from the `owner` chain in buildMemoModel.
+ */
+function extractNestedParts(
+    owner: UsageNode,
+    filePath: string,
+    packageName: string,
+    config: MEMOConfig,
+    elements: Map<string, MemoElement>,
+    registry: PackageRegistry,
+    registries?: BuilderRegistries
+): void {
+    const ownerId = owner.name;
+
+    for (const member of owner.body || []) {
+        if ((member as any).$type !== 'PartMember') continue;
+        const pm = member as any;
+        // Only a TYPED nested part is containment. Untyped bodies (view
+        // selectionQuery) and reference bindings are view metadata, flattened
+        // to attributes in extractUsage — skip them here or a view's metadata
+        // becomes a phantom element and its selection query is lost.
+        if (!pm.type || pm.boundRef || !pm.name) continue;
+
+        extractUsage(
+            { name: pm.name, type: pm.type, body: pm.body },
+            'part', filePath, packageName, config, elements, registry, registries,
+        );
+        const childEl = elements.get(pm.name);
+        if (childEl) childEl.owner = ownerId;
     }
 }
 

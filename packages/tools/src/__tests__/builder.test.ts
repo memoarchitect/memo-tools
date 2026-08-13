@@ -703,6 +703,84 @@ describe('Port wiring (M-2)', () => {
         expect(model.elements.get('inner')!.owner).toBe('middle');
     });
 
+    // R10-S3 GUARD (written first): a view's `part :>> selectionQuery { ... }`
+    // body is deliberately NOT a contained element — it redefines an inherited
+    // feature, and view derivation reads it as `selectionQuery.*` attributes.
+    // The nested-part extraction below must leave this case exactly as it was,
+    // or every view loses its selection metadata and renders empty.
+    it('flattens a view selectionQuery redefinition to attributes, not an element', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                view aView : MemoDiagramView {
+                    attribute :>> diagramType = "ibd";
+                    part :>> selectionQuery {
+                        attribute :>> includeElementKinds = ("LogicalComponent");
+                        attribute :>> includeRelationshipKinds = ("flow");
+                        attribute :>> includeLayers = ("logical_structure");
+                    }
+                    part :>> viewpointDefinition = someViewpoint;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        const view = model.elements.get('aView')!;
+        expect(view.construct).toBe('view');
+        // The selectionQuery body stays flattened onto the view.
+        expect(view.attributes['selectionQuery.includeElementKinds']).toBe('LogicalComponent');
+        expect(view.attributes['selectionQuery.includeRelationshipKinds']).toBe('flow');
+        expect(view.attributes['selectionQuery.includeLayers']).toBe('logical_structure');
+        // The `:>>` viewpoint binding stays flattened too.
+        expect(view.attributes['viewpointDefinition']).toBe('someViewpoint');
+        // Neither the redefinition nor its members may become elements, and no
+        // spurious `composes` edge may be synthesized from them.
+        expect(model.elements.has('selectionQuery')).toBe(false);
+        expect(model.relationships.filter(r => r.type === 'composes')).toEqual([]);
+    });
+
+    // R10-S3: a natively nested part is real containment. It must become its own
+    // element with `owner` set — the way a nested port already does — and the
+    // builder must synthesize the `composes` edge from the nesting so consumers
+    // that read containment as a relationship keep working.
+    it('extracts a natively nested part as an element with owner and a composes edge', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                part pump : Software {
+                    part valve : Software {
+                        part seal : Software;
+                    }
+                    part motor : Software;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        // Every nested part is now a first-class element.
+        const valve = model.elements.get('valve')!;
+        expect(valve).toBeDefined();
+        expect(valve.construct).toBe('part');
+        expect(valve.owner).toBe('pump');
+
+        const motor = model.elements.get('motor')!;
+        expect(motor.owner).toBe('pump');
+
+        // Nesting is recursive.
+        const seal = model.elements.get('seal')!;
+        expect(seal).toBeDefined();
+        expect(seal.owner).toBe('valve');
+
+        // The containment relationship is synthesized parent → child.
+        const composes = model.relationships
+            .filter(r => r.type === 'composes')
+            .map(r => [r.sourceId, r.targetId])
+            .sort();
+        expect(composes).toEqual([['pump', 'motor'], ['pump', 'valve'], ['valve', 'seal']].sort());
+        const pumpValve = model.relationships.find(
+            r => r.type === 'composes' && r.sourceId === 'pump' && r.targetId === 'valve');
+        expect(pumpValve!.sourceEnd).toBe('parent');
+        expect(pumpValve!.targetEnd).toBe('child');
+    });
+
     it('leaves ownedPorts unset on a port that nests nothing', async () => {
         const doc = await parseDoc(`
             package TestPkg {
