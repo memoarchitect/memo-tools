@@ -1287,7 +1287,7 @@ function resolveConnection(
 
     // A named connection usage carries its own stable ID; anonymous ones fall
     // back to a positional counter that shifts whenever the file changes.
-    const attributes = extractAttributes(conn.body);
+    const attributes = { ...extractAttributes(conn.body), ...extractRelationshipMetadata(conn.body) };
     const rel: MemoRelationship = {
         id: conn.name || `rel-${++relationshipCounter}`,
         type: normalizedType,
@@ -1865,7 +1865,7 @@ function extractAttributes(body: any[] | undefined): Record<string, string> {
     const attrs: Record<string, string> = {};
 
     for (const member of body) {
-        if (member.$type === 'AttributeMember' || member.$type === 'RefMember') {
+        if (member.$type === 'AttributeMember' || member.$type === 'RefMember' || member.$type === 'MetadataFeatureMember') {
             const attr = member as AttributeMember;
             if (attr.value) {
                 attrs[attr.name] = extractAttributeValue(attr.value);
@@ -1885,6 +1885,33 @@ function extractAttributes(body: any[] | undefined): Record<string, string> {
         }
     }
 
+    return attrs;
+}
+
+/**
+ * Read the standard `Rationale`/`StatusInfo` metadata (ModelingMetadata.sysml)
+ * off a connection usage's body into the same flat attribute keys the deleted
+ * `MemoRelationship.rationale`/`.status` used to occupy (R10-S5, 2026-08-13).
+ *
+ * `extractAttributes` only walks `AttributeMember`/`RefMember`/
+ * `MetadataFeatureMember`; a `MetadataApplication` in a usage body (the `@Foo
+ * {...}` form) is invisible to it, so without this a `@Rationale`/`@StatusInfo`
+ * annotation would parse and silently vanish from the model — the same
+ * BindingUsage/ExposeMember shape this epic exists to stop repeating.
+ */
+function extractRelationshipMetadata(body: any[] | undefined): Record<string, string> {
+    if (!body) return {};
+    const attrs: Record<string, string> = {};
+    for (const member of body) {
+        if (member.$type !== 'MetadataApplication') continue;
+        const metadataType = (member.type as string | undefined)?.split('::').pop();
+        const fields = extractAttributes(member.body);
+        if (metadataType === 'Rationale' && fields.text) {
+            attrs.rationale = fields.text;
+        } else if (metadataType === 'StatusInfo' && fields.status) {
+            attrs.status = fields.status;
+        }
+    }
     return attrs;
 }
 

@@ -436,6 +436,32 @@ describe('ARCADIA native mechanisms — builder projection', () => {
         expect(native).toEqual(connection);
     });
 
+    it('@Rationale/@StatusInfo metadata on a connection usage populate rel.attributes (R10-S5)', async () => {
+        // MemoRelationship.rationale/.status were deleted in favour of the
+        // standard Rationale/StatusInfo metadata (ModelingMetadata.sysml).
+        // Without extractRelationshipMetadata in builder.ts, a `@Rationale`/
+        // `@StatusInfo` application parses (it's an ordinary MetadataApplication
+        // in the usage body) but contributes nothing to the model — the same
+        // silent-drop shape as BindingUsage and ExposeMember.
+        const doc = await parseDoc(`
+            package Test {
+                part swModule : SoftwareModule;
+                part lcPump : LogicalComponent;
+                connection linkModule : MemoLink
+                    connect linkSource ::> swModule to linkTarget ::> lcPump {
+                    @Rationale { :>> text = "why this link exists"; }
+                    @StatusInfo { :>> status = StatusKind::closed; }
+                }
+            }
+        `);
+        const [rel] = buildMemoModel([doc], config).relationships;
+        expect(rel.attributes?.rationale).toBe('why this link exists');
+        // Enum attributes are stored fully qualified everywhere else in the
+        // model (`RequirementKind::software`, not `software`) — StatusKind
+        // follows the same convention.
+        expect(rel.attributes?.status).toBe('StatusKind::closed');
+    });
+
     it('a bare dependency claims no realization', async () => {
         // A dependency without #refinement means strictly less than Realizes.
         // Inferring one would put a claim in the traceability matrix that the
