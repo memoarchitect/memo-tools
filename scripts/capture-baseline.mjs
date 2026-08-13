@@ -275,6 +275,17 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-13 — R10-S6 `Initiates`/`ParticipatesIn` retired.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | 1 `initiates` edge (actorNurse → ucDeliverPcaTherapy) becomes a `participatesIn` edge instead | `Initiates` and `ParticipatesIn` collapsed onto the single native `actor` keyword, which does not distinguish an initiating actor from a participating one; `gpca_operational.sysml`'s `ucDeliverPcaTherapy` now declares all four actors (`actor nurseInitiator = actorNurse;` etc.) natively, and the builder projects every one of them onto `participatesIn` (R10-S6, `resolveActorParticipation` in builder.ts). |
+ *
+ * `ui-regions`, `default`, and `extension-clinical` do not declare `Initiates`
+ * or `ParticipatesIn` and are byte-identical.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

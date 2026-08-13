@@ -7213,11 +7213,6 @@
         "targetId": "riskBefore"
       },
       {
-        "type": "initiates",
-        "sourceId": "actorNurse",
-        "targetId": "ucDeliverPcaTherapy"
-      },
-      {
         "type": "inputToGate",
         "sourceId": "fteCrossCheckFails",
         "targetId": "ftgMotorAnd"
@@ -7441,6 +7436,11 @@
         "type": "mitigates",
         "sourceId": "watchdogControl",
         "targetId": "overdoseHazard"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "actorNurse",
+        "targetId": "ucDeliverPcaTherapy"
       },
       {
         "type": "participatesIn",

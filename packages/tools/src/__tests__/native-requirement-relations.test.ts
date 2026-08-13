@@ -249,14 +249,16 @@ describe('registry: the natives are registered as usages, not connection defs', 
         const native = dtos.filter(dto => dto.nativeKeyword);
         // Session 1 registered three; the ARCADIA plan's Track B added five
         // more (`perform`, `include`, `exhibit`, `frame`, and the refinement
-        // `dependency`). The assertion is the whole set rather than a
-        // containment check, so a keyword added without a builder projection —
-        // which would serialize as a connection and silently diverge — fails
-        // here rather than in a traceability matrix months later.
+        // `dependency`); R10-S6 added `actor` (`participatesIn`), collapsing
+        // `ParticipatesIn`/`Initiates`. The assertion is the whole set rather
+        // than a containment check, so a keyword added without a builder
+        // projection — which would serialize as a connection and silently
+        // diverge — fails here rather than in a traceability matrix months
+        // later.
         expect(native.map(dto => dto.name).sort())
             .toEqual([
                 'allocatedTo', 'exhibitsMode', 'framesConcern', 'includesStep',
-                'performs', 'realizes', 'satisfiedBy', 'verifiedBy',
+                'participatesIn', 'performs', 'realizes', 'satisfiedBy', 'verifiedBy',
             ]);
     });
 });

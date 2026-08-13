@@ -92,6 +92,7 @@ import {
     isSubjectMember,
     isDependency,
     isVariantMember,
+    isActorMember,
 } from '../language/generated/ast.js';
 import type { MEMOConfig } from './config.js';
 import type { KindDefinition } from './kind-registry.js';
@@ -1711,6 +1712,37 @@ function resolveSubject(
 }
 
 /**
+ * Project a native `actor` onto the `participatesIn` edge (R10-S6).
+ *
+ * Same shape as `resolveSubject`: only the REFERRING form —
+ * `actor driver = existingPart;` — names something already in the model, so
+ * only that form produces an edge. A fresh declaration (`actor x : Person;`,
+ * no `boundRef`) introduces a locally-scoped actor the model does not yet
+ * have an element for; collapsing `MemoRelationship`'s `Initiates` and
+ * `ParticipatesIn` onto the single native `actor` keyword means the
+ * initiating/participating distinction is no longer a typed relationship —
+ * it lives in how the actor is named, the same way `Composes` gave up its
+ * whole/part distinction to plain nesting.
+ *
+ * The owner is the TARGET and the written reference the SOURCE — `verify`'s
+ * shape, not `perform`'s: the use case is what the actor participates IN.
+ */
+function resolveActorParticipation(
+    actor: ActorMember,
+    filePath: string,
+    relationships: MemoRelationship[],
+    registry: PackageRegistry,
+    allElementIds: Set<string>,
+): void {
+    if (!actor.boundRef) return;
+    const { packageName, ownerId } = nativeUsageContext(actor);
+    const sourceId = resolveEndpointId(actor.boundRef, packageName, registry, allElementIds);
+    const targetId = ownerId ? resolveEndpointId(ownerId, packageName, registry, allElementIds) : undefined;
+    if (!sourceId || !targetId) return;
+    relationships.push(nativeTraceEdge('participatesIn', sourceId, targetId, filePath));
+}
+
+/**
  * Project a `#refinement dependency a to b;` onto the `realizes` edge.
  *
  * The only native relation here that is not a connection. A Dependency takes n
@@ -1773,6 +1805,8 @@ function resolveNativeTraceUsages(
             resolveOwnerRootedUsage(node, node.framed, 'framesConcern', filePath, relationships, registry, allElementIds);
         } else if (isSubjectMember(node)) {
             resolveSubject(node, filePath, relationships, registry, allElementIds);
+        } else if (isActorMember(node)) {
+            resolveActorParticipation(node, filePath, relationships, registry, allElementIds);
         } else if (isDependency(node)) {
             resolveDependency(node, filePath, relationships, registry, allElementIds);
         } else if (isVariantMember(node)) {

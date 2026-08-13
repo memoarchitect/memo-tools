@@ -199,6 +199,19 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             { name: 'step', type: 'FunctionalFlowStep' },
         ],
     },
+    participatesIn: {
+        keyword: 'actor',
+        sysmlName: 'ParticipatesIn',
+        layer: 'operational',
+        description: 'An actor participates in a use case (R10-S6). Collapses '
+            + 'MEMO\'s former `ParticipatesIn`/`Initiates` split, which native '
+            + '`actor` does not distinguish. Written natively as '
+            + '`actor <role> = <existingElement>;` inside the use case.',
+        ends: [
+            { name: 'participatingActor', type: 'OperationalParticipant' },
+            { name: 'useCase', type: 'UseCase' },
+        ],
+    },
     exhibitsMode: {
         keyword: 'exhibit',
         sysmlName: 'ExhibitsMode',
