@@ -7368,61 +7368,6 @@
         "targetId": "entityGpcaPump"
       },
       {
-        "type": "involvesFunction",
-        "sourceId": "fcAlarmStop",
-        "targetId": "fnAcquireSensors"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcAlarmStop",
-        "targetId": "fnAnnunciate"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcAlarmStop",
-        "targetId": "fnManageInfusion"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcAlarmStop",
-        "targetId": "fnMonitorAlarm"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fnAcquireSensors"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fnCommandPump"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fnEnforceLimits"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fnLogEvents"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcPatientBolus",
-        "targetId": "fnManageInfusion"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcStartup",
-        "targetId": "fnPresentStatus"
-      },
-      {
-        "type": "involvesFunction",
-        "sourceId": "fcStartup",
-        "targetId": "fnSelfTest"
-      },
-      {
         "type": "mitigates",
         "sourceId": "airDetectionControl",
         "targetId": "airEmbolismHazard"
@@ -7638,24 +7583,14 @@
         "targetId": "fcsBolusValidate"
       },
       {
-        "type": "precedes",
-        "sourceId": "oaLoadReservoir",
-        "targetId": "oaProgram"
+        "type": "performs",
+        "sourceId": "fcStartup",
+        "targetId": "fnPresentStatus"
       },
       {
-        "type": "precedes",
-        "sourceId": "oaPrescribe",
-        "targetId": "oaLoadReservoir"
-      },
-      {
-        "type": "precedes",
-        "sourceId": "oaProgram",
-        "targetId": "oaStartTherapy"
-      },
-      {
-        "type": "precedes",
-        "sourceId": "oaStartTherapy",
-        "targetId": "oaRequestBolus"
+        "type": "performs",
+        "sourceId": "fcStartup",
+        "targetId": "fnSelfTest"
       },
       {
         "type": "producesEvent",
@@ -8539,6 +8474,21 @@
       },
       {
         "type": "succession",
+        "sourceId": "oaLoadReservoir",
+        "targetId": "oaProgram"
+      },
+      {
+        "type": "succession",
+        "sourceId": "oaPrescribe",
+        "targetId": "oaLoadReservoir"
+      },
+      {
+        "type": "succession",
+        "sourceId": "oaProgram",
+        "targetId": "oaStartTherapy"
+      },
+      {
+        "type": "succession",
         "sourceId": "oaRecoverAfterPowerLoss__start",
         "targetId": "switchToBattery"
       },
@@ -8561,6 +8511,11 @@
         "type": "succession",
         "sourceId": "oaRespondToOcclusion__start",
         "targetId": "pauseInfusion"
+      },
+      {
+        "type": "succession",
+        "sourceId": "oaStartTherapy",
+        "targetId": "oaRequestBolus"
       },
       {
         "type": "succession",

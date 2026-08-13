@@ -334,10 +334,8 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'An FMEA corrective action — a document row, not a behaviour.',
         removedBy: 'deliberate',
     },
-    'action:ActionInvokesFunction': {
-        reason: 'Relation from a UI action to the system function it invokes; names its source end.',
-        removedBy: 'deliberate',
-    },
+    // `action:ActionInvokesFunction` was here until R10-S6: deleted in
+    // favour of native `perform`, which already collapses onto `performs`.
     'action:ElementTriggersAction': {
         reason: 'Relation from a UI element to the action it triggers; names its target end.',
         removedBy: 'deliberate',
@@ -446,10 +444,9 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'A screen state in the UI layer; a part def carrying layout and data bindings.',
         removedBy: 'deliberate',
     },
-    'state:PresentsState': {
-        reason: 'Relates a screen to the system state it presents.',
-        removedBy: 'deliberate',
-    },
+    // `state:PresentsState` was here until R10-S6: deleted, zero usages
+    // anywhere in the tree, and native `exhibit state` does not actually fit
+    // `UIState` (a part def, not a state def).
     'use:UseContext': {
         reason: 'IEC 62366 use context — where and by whom the device is used.',
         removedBy: 'deliberate',

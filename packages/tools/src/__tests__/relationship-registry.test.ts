@@ -283,22 +283,22 @@ describe('MEMO ontology relationship properties', () => {
     //   VerifiedBy          — A0: most verification targets are requirement defs, not parts.
     //   AllocatedTo         — A0: a function is a behaviour; an actor is not an ArchitectureElement.
     //   Composes            — A0: a component owns ports, a workflow owns action steps.
-    //   Precedes            — A0: precedence orders behaviours as well as parts.
     //   Performs            — A0: the performer may be a system action, as its own doc said.
     //   Enables             — A0: an enabling function is a behaviour.
     //   BindsToInterface    — A0: the bound end is an `interface def`, which no part type can hold.
     //   CrossesTrustBoundary — A0: the boundary becomes a port def in A1.
     //   Dependency          — R10-S6: a bare `dependency` relates any two elements, the same as `MemoLink`/`Realizes`.
+    //   (`Precedes` was here until R10-S6, deleted in favour of native `succession`.)
     const UNTYPED_END_EXEMPTIONS = [
         'MemoLink', 'Mitigates', 'Realizes', 'Validates', 'DerivesFrom',
-        'SatisfiedBy', 'VerifiedBy', 'AllocatedTo', 'Composes', 'Precedes',
+        'SatisfiedBy', 'VerifiedBy', 'AllocatedTo', 'Composes',
         'Performs', 'Enables', 'BindsToInterface', 'CrossesTrustBoundary',
         'Dependency',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a
     // metaclass boundary. Six of the seven joined this set in A0.
     const FULLY_UNTYPED = [
-        'MemoLink', 'Realizes', 'AllocatedTo', 'Composes', 'Precedes',
+        'MemoLink', 'Realizes', 'AllocatedTo', 'Composes',
         'BindsToInterface', 'CrossesTrustBoundary', 'Dependency',
     ];
 

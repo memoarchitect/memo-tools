@@ -298,6 +298,19 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-13 — R10-S6 `InvolvesFunction`/
+ * `ActionInvokesFunction`/`Precedes` retired.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | -9 relationships | 11 `InvolvesFunction` edges deleted with no replacement: `fcPatientBolus`/`fcAlarmStop` already named every one of those functions via their existing `perform <step>;` chain plus each step's own `ref :>> function`, so the connection was a flattened restatement, not new information. `fcStartup` had no step chain, so its 2 functions became direct `perform` statements on `fcStartup` itself. Net -11 + 2 = -9. `Precedes` → `succession` (4 edges) is a 1:1 type swap with no count change. |
+ * | ui-regions | 3 `actionInvokesFunction` edges become `performs` edges, ends renamed (`uiAction`/`systemFunction` → `performer`/`performed`) | `ActionInvokesFunction` collapsed onto native `perform`, the same collapse `Initiates`/`ParticipatesIn` had onto `actor`. |
+ *
+ * `default` and `extension-clinical` declare none of the three and are
+ * byte-identical.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

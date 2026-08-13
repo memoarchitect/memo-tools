@@ -467,21 +467,6 @@
     ],
     "relationships": [
       {
-        "type": "actionInvokesFunction",
-        "sourceId": "uiaEditRate",
-        "targetId": "fnSetInfusionRate"
-      },
-      {
-        "type": "actionInvokesFunction",
-        "sourceId": "uiaOpenSettings",
-        "targetId": "fnManageInfusionDisplay"
-      },
-      {
-        "type": "actionInvokesFunction",
-        "sourceId": "uiaSelectDrug",
-        "targetId": "fnValidateDrugSelection"
-      },
-      {
         "type": "allocatedTo",
         "sourceId": "fnManageInfusionDisplay",
         "targetId": "uiPumpPanel"
@@ -815,6 +800,21 @@
         "type": "notesOn",
         "sourceId": "noteCaptureReview",
         "targetId": "capMain"
+      },
+      {
+        "type": "performs",
+        "sourceId": "uiaEditRate",
+        "targetId": "fnSetInfusionRate"
+      },
+      {
+        "type": "performs",
+        "sourceId": "uiaOpenSettings",
+        "targetId": "fnManageInfusionDisplay"
+      },
+      {
+        "type": "performs",
+        "sourceId": "uiaSelectDrug",
+        "targetId": "fnValidateDrugSelection"
       },
       {
         "type": "producesEvidence",
