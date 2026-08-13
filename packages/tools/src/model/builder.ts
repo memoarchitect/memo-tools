@@ -1275,11 +1275,15 @@ function resolveConnection(
     allElementIds: Set<string>
 ): void {
     const typeName = conn.type; // e.g. "Mitigates", "TraceTo"
-    if (!typeName) return;
     if (!conn.source || !conn.target) return;
 
-    // Normalize: "Mitigates" → "mitigates", "TraceTo" → "traceTo"
-    const normalizedType = normalizeRelType(typeName);
+    // An untyped connection (`connection connect a to b;`, no `: SomeDef`) is
+    // the native binary connection with nothing further classifying it — the
+    // keyword IS the type, `connect`, the same as `flow`/`bind` (R10-S6,
+    // `ConnectsPhysically`'s migration). Before this it built to nothing at
+    // all: the same silent-drop shape as `BindingUsage`/`ExposeMember`.
+    // A typed connection normalizes its definition name: "Mitigates" → "mitigates".
+    const normalizedType = typeName ? normalizeRelType(typeName) : 'connect';
 
     // Resolve source and target using registry for cross-file resolution
     const sourceId = resolveEndpointId(conn.source.ref, packageName, registry, allElementIds);

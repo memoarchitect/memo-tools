@@ -6148,22 +6148,22 @@
         "targetId": "iso14971Clause7"
       },
       {
-        "type": "connectsPhysically",
+        "type": "connect",
         "sourceId": "entityDrugReservoir",
         "targetId": "entityGpcaPump"
       },
       {
-        "type": "connectsPhysically",
+        "type": "connect",
         "sourceId": "entityGpcaPump",
         "targetId": "entityNeedle"
       },
       {
-        "type": "connectsPhysically",
+        "type": "connect",
         "sourceId": "entityNeedle",
         "targetId": "actorPatient"
       },
       {
-        "type": "connectsPhysically",
+        "type": "connect",
         "sourceId": "entityPowerInfrastructure",
         "targetId": "entityGpcaPump"
       },

@@ -311,6 +311,17 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-13 — R10-S6 `ConnectsPhysically` retired.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | 4 relationships renamed `connectsPhysically` → `connect` | `ConnectsPhysically` is deleted in favour of the untyped native connection; `resolveConnection` (builder.ts) no longer bails on a missing `conn.type` and stamps `connect` instead — the same fix shape as `dependency`'s bare form, and before it a bare `connection connect a to b;` built to nothing at all. |
+ *
+ * `ui-regions`, `default`, and `extension-clinical` declare no
+ * `ConnectsPhysically` and are byte-identical.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

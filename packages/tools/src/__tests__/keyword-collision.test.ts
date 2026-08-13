@@ -270,10 +270,10 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'A connection def named for what it does; `connect` writes a connection usage, and the def is what the usage is typed by.',
         removedBy: 'deliberate',
     },
-    'connect:ConnectsPhysically': {
-        reason: 'Same shape as ComponentConnects, restricted to physical assemblies.',
-        removedBy: 'deliberate',
-    },
+    // `connect:ConnectsPhysically` was here until R10-S6: deleted in favour
+    // of native `connect`. Untyped connections built to nothing before this
+    // (`resolveConnection` bailed on a missing `conn.type`) — the same
+    // silent-drop shape as `BindingUsage`/`ExposeMember`.
     'crosses:CrossesTrustBoundary': {
         reason: 'Security relation: an exchange item crosses a trust boundary. `crosses` in SysML is the crossing-connector keyword, a different statement.',
         removedBy: 'deliberate',
