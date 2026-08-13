@@ -186,11 +186,12 @@ async function extensionFeatureCollisions(): Promise<FeatureCollision[]> {
  * down why.
  */
 const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
-    // ── Real reinventions: the language has the keyword, MEMO spells it privately ──
-    'include:Includes': {
-        reason: 'UseCase → UseCase inclusion is semantically distinct from FunctionalFlow → FunctionalFlowStep; native `include` currently projects only the latter, so this compatibility definition is a deliberate divergence.',
-        removedBy: 'deliberate',
-    },
+    // `include:Includes` was here until R10-S6: `resolveOwnerRootedUsage` is
+    // owner-type-agnostic, so native `include` already projects UseCase →
+    // UseCase inclusion the same way it projects FunctionalFlow → Step —
+    // the "currently projects only the latter" reasoning that kept this row
+    // was never re-verified after the ARCADIA productions landed. Deleted
+    // with `connection def Includes`; both use natively spell `includesStep`.
     // `port:PhysicalPort` and `port:SoftwarePort` were here until session 2.
     // Both are `port def`s now (Track A1), so the construct-alignment
     // exemption applies and neither reaches the allow-list — the first two
