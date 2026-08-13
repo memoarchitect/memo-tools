@@ -322,6 +322,31 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-08-13 — R10-S7 `Composes` → native nesting.
+ *
+ * Every hand-authored architecture/functional/operational/workflow/UI
+ * decomposition across the examples moved from flat parts plus an explicit
+ * `Composes` edge to real nesting. `buildMemoModel`'s Phase 3f, which
+ * synthesizes a `composes` relationship from a nested part's `owner` chain
+ * (R10-S3), was extended to do the same from a nested action's
+ * `parentAction` chain — CR-ONT-065/066 already sanction an action-typed
+ * composes end alongside a part, and without this an entire natively nested
+ * function or activity tree loses the `composes` edges DSM and traceability
+ * consumers read, the exact silent-drop shape this epic exists to close.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | -73 `composes` (port targets), no replacement | GPCA_Device's, GPCA_HW_Sensors's, GPCA_HW_Actuators's, and every software module's ports moved from a flat declaration plus a `Composes` edge (`gpca_interfaces.sysml` / `gpca_trace.sysml`) to nesting inside their owning part's body (`gpca_architecture.sysml`). Nested ports were already established practice with no synthesized edge before this story landed — `interconnection_view.sysml` nests ports with zero `Composes` lines — so this is the same pattern reaching the one file that had not yet been migrated to it, not a new gap. |
+ * | gpca | +22 `composes`, all pre-existing action nesting (`infusionDeliveryFlow`'s six steps, five scenario activities' internal steps) | These nestings already existed; nobody had written an explicit `Composes` edge for them because nothing needed one before a `composes`-reading consumer existed for the action case. The Phase 3f extension now synthesizes them the same as any other nested action, which is a completion of the pattern, not new content. |
+ * | gpca | 73 elements: `package` moves from `gpca_interfaces` to `gpca_architecture` | The 73 ports physically relocated into their owning part's body, in the file that part is declared in. |
+ * | ui-regions | 0 net change (111 → 106 → 111 before the Phase 3f extension, back to 111 after) | `elMainScreen`'s and `fnManageInfusionDisplay`'s trees moved from flat-plus-`Composes` to nesting. The four part-typed edges (`elMainScreen`/`elDrugSelectorRegion`/…) synthesized immediately, matching R10-S3's existing part coverage; the five action-typed edges (`fnManageInfusionDisplay` → its five children) did not until the Phase 3f extension landed, which is what the extension was for. `uiElement12`'s and the comment-reply's two `Composes` edges are untouched — `Composes` survives for exactly this: content memo-architect's own UI (`UiScreensWorkspace.tsx`, `UnifiedPropertiesPanel.tsx`) appends at runtime as a flat element plus a relationship edge, which is a graph write, not a source-text nesting edit; rewriting the editor to do the latter is out of scope here. |
+ *
+ * `default` and `extension-clinical` declare no example content this story
+ * touched and are byte-identical, including through the Phase 3f extension —
+ * neither nests one action inside another.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

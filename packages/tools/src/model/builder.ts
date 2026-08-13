@@ -317,6 +317,35 @@ export function buildMemoModel(
             named: false,
         });
     }
+    // A nested action carries its parent in `parentAction` rather than
+    // `owner` (the two are set by separate extraction paths), and
+    // CR-ONT-065/066 already treat an action-typed end as a legitimate
+    // composes participant alongside parts — a functional decomposition
+    // (`action fnParent { action fnChild : SystemFunction { ... } }`) needs
+    // the same synthesis or a natively nested function tree loses the
+    // `composes` edges DSM and traceability consumers read, the exact
+    // silent-drop shape R10-S7 exists to close, not open. Every action
+    // usage nests some way — a flow step under its flow, a control node
+    // under its action — so this is not confined to decomposition the way
+    // the part path is; a nested action's owner IS its containing action
+    // for every shape the grammar produces, so there is no narrower
+    // predicate to gate this on without re-deriving one from AST shape
+    // that `parentAction` already erased.
+    for (const el of elements.values()) {
+        if (el.construct !== 'action' || !el.parentAction) continue;
+        const parent = elements.get(el.parentAction);
+        if (!parent || parent.construct !== 'action') continue;
+        relationships.push({
+            id: `rel-${++relationshipCounter}`,
+            type: 'composes',
+            sourceId: el.parentAction,
+            sourceEnd: 'parent',
+            targetId: el.id,
+            targetEnd: 'child',
+            file: el.file,
+            named: false,
+        });
+    }
 
     // Keep ownership of a declaration separate from ownership of the type that
     // classifies it.  A project usage of `Hazard` is editable project content;

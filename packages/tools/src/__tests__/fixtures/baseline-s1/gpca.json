@@ -21,14 +21,14 @@
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "actGpcaSwIn",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "activeTherapyConfiguration",
@@ -1351,35 +1351,35 @@
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "devGpcaOut",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "devOpCmdIn",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "devPatientIn",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "devPresIn",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "dhfIndexView",
@@ -2912,231 +2912,231 @@
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmDbIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmImIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmSensorIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmSysMonIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portAlarmTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portConfigConfigOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portConfigConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portConfigDbIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portConfigOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portConfigPresIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portConfigSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portConfigTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portDbIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portGpcaSwOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portImAlarmIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portImConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portImImOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portImOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portImPatientIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portImSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portImTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portLogAlarmIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portLogConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portLogImIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portLogLogOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portLogSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portLogTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portMainsInlet",
@@ -3157,70 +3157,70 @@
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portOutputAlarmIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portOutputConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portOutputGpcaSwOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portOutputImIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portOutputLogIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portOutputSysMonIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portOutputSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portOutputTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portPatientIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portPatientPendant",
@@ -3234,7 +3234,7 @@
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portSensorHarness",
@@ -3248,7 +3248,7 @@
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portServiceAccess",
@@ -3262,77 +3262,77 @@
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portSysMonTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portSysStatConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portSysStatConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portSysStatImIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portSysStatSensorIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portSysStatSysStatOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portSysStatTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portTlmConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portTlmOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "portTlmTlmModeOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "powerSupply",
@@ -4403,70 +4403,70 @@
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsDbIn",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsDbOut",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsOpCmdIn",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsOpCmdOut",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsPatientIn",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsPatientOut",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsPresIn",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsPresOut",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "snsSensorOut",
         "kind": "PhysicalPort",
         "construct": "port",
         "layer": "realization",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
+        "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
         "id": "squareBolusConfiguration",
@@ -5509,91 +5509,6 @@
       },
       {
         "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmAlarmOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmConfigIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmConstIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmDbIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmImIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmOpCmdIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmSensorIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmSysMonIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmSysStatIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "alarm",
-        "targetId": "portAlarmTlmModeIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "config",
-        "targetId": "portConfigConfigOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "config",
-        "targetId": "portConfigConstIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "config",
-        "targetId": "portConfigDbIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "config",
-        "targetId": "portConfigOpCmdIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "config",
-        "targetId": "portConfigPresIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "config",
-        "targetId": "portConfigSysStatIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "config",
-        "targetId": "portConfigTlmModeIn"
-      },
-      {
-        "type": "composes",
         "sourceId": "fnAcquireSensors",
         "targetId": "cfnAggregateSensorStatus"
       },
@@ -5609,41 +5524,6 @@
       },
       {
         "type": "composes",
-        "sourceId": "gpcaActuators",
-        "targetId": "actGpcaOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaActuators",
-        "targetId": "actGpcaSwIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDevice",
-        "targetId": "devDbIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDevice",
-        "targetId": "devGpcaOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDevice",
-        "targetId": "devOpCmdIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDevice",
-        "targetId": "devPatientIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDevice",
-        "targetId": "devPresIn"
-      },
-      {
-        "type": "composes",
         "sourceId": "gpcaDevice",
         "targetId": "gpcaActuators"
       },
@@ -5656,56 +5536,6 @@
         "type": "composes",
         "sourceId": "gpcaDevice",
         "targetId": "gpcaSoftware"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsConstOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsDbIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsDbOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsOpCmdIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsOpCmdOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsPatientIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsPatientOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsPresIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsPresOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaDeviceSensors",
-        "targetId": "snsSensorOut"
       },
       {
         "type": "composes",
@@ -5735,41 +5565,6 @@
       {
         "type": "composes",
         "sourceId": "gpcaSoftware",
-        "targetId": "portConstIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaSoftware",
-        "targetId": "portDbIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaSoftware",
-        "targetId": "portGpcaSwOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaSoftware",
-        "targetId": "portOpCmdIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaSoftware",
-        "targetId": "portPatientIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaSoftware",
-        "targetId": "portPresIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaSoftware",
-        "targetId": "portSensorIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "gpcaSoftware",
         "targetId": "systemMonitor"
       },
       {
@@ -5784,68 +5579,113 @@
       },
       {
         "type": "composes",
-        "sourceId": "infusionMgr",
-        "targetId": "portImAlarmIn"
+        "sourceId": "infusionDeliveryFlow",
+        "targetId": "acquireSensors"
       },
       {
         "type": "composes",
-        "sourceId": "infusionMgr",
-        "targetId": "portImConfigIn"
+        "sourceId": "infusionDeliveryFlow",
+        "targetId": "actuateMotor"
       },
       {
         "type": "composes",
-        "sourceId": "infusionMgr",
-        "targetId": "portImImOut"
+        "sourceId": "infusionDeliveryFlow",
+        "targetId": "computeFlow"
       },
       {
         "type": "composes",
-        "sourceId": "infusionMgr",
-        "targetId": "portImOpCmdIn"
+        "sourceId": "infusionDeliveryFlow",
+        "targetId": "enforceLimits"
       },
       {
         "type": "composes",
-        "sourceId": "infusionMgr",
-        "targetId": "portImPatientIn"
+        "sourceId": "infusionDeliveryFlow",
+        "targetId": "evaluateAlarms"
       },
       {
         "type": "composes",
-        "sourceId": "infusionMgr",
-        "targetId": "portImSysStatIn"
+        "sourceId": "infusionDeliveryFlow",
+        "targetId": "logEvent"
       },
       {
         "type": "composes",
-        "sourceId": "infusionMgr",
-        "targetId": "portImTlmModeIn"
+        "sourceId": "oaCompleteNominalTherapy",
+        "targetId": "deliverWithinLimits"
       },
       {
         "type": "composes",
-        "sourceId": "logging",
-        "targetId": "portLogAlarmIn"
+        "sourceId": "oaCompleteNominalTherapy",
+        "targetId": "recordTherapyEvent"
       },
       {
         "type": "composes",
-        "sourceId": "logging",
-        "targetId": "portLogConfigIn"
+        "sourceId": "oaRecoverAfterPowerLoss",
+        "targetId": "confirmRestart"
       },
       {
         "type": "composes",
-        "sourceId": "logging",
-        "targetId": "portLogImIn"
+        "sourceId": "oaRecoverAfterPowerLoss",
+        "targetId": "restorePrescription"
       },
       {
         "type": "composes",
-        "sourceId": "logging",
-        "targetId": "portLogLogOut"
+        "sourceId": "oaRecoverAfterPowerLoss",
+        "targetId": "switchToBattery"
       },
       {
         "type": "composes",
-        "sourceId": "logging",
-        "targetId": "portLogSysStatIn"
+        "sourceId": "oaRejectBolusDuringLockout",
+        "targetId": "checkLockout"
       },
       {
         "type": "composes",
-        "sourceId": "logging",
-        "targetId": "portLogTlmModeIn"
+        "sourceId": "oaRejectBolusDuringLockout",
+        "targetId": "rejectAndLog"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaReplaceEmptyReservoir",
+        "targetId": "replaceReservoir"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaReplaceEmptyReservoir",
+        "targetId": "resumeTherapy"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaReplaceEmptyReservoir",
+        "targetId": "stopAndAnnunciate"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaRespondToAirInLine",
+        "targetId": "annunciateAir"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaRespondToAirInLine",
+        "targetId": "reprimeAndRestart"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaRespondToAirInLine",
+        "targetId": "stopOrKvo"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaRespondToOcclusion",
+        "targetId": "annunciateOcclusion"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaRespondToOcclusion",
+        "targetId": "pauseInfusion"
+      },
+      {
+        "type": "composes",
+        "sourceId": "oaRespondToOcclusion",
+        "targetId": "resolveAndResume"
       },
       {
         "type": "composes",
@@ -5876,101 +5716,6 @@
         "type": "composes",
         "sourceId": "osPowerLoss",
         "targetId": "oaRecoverAfterPowerLoss"
-      },
-      {
-        "type": "composes",
-        "sourceId": "outputBus",
-        "targetId": "portOutputAlarmIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "outputBus",
-        "targetId": "portOutputConfigIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "outputBus",
-        "targetId": "portOutputGpcaSwOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "outputBus",
-        "targetId": "portOutputImIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "outputBus",
-        "targetId": "portOutputLogIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "outputBus",
-        "targetId": "portOutputSysMonIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "outputBus",
-        "targetId": "portOutputSysStatIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "outputBus",
-        "targetId": "portOutputTlmModeIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "systemMonitor",
-        "targetId": "portSysMonSysMonOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "systemMonitor",
-        "targetId": "portSysMonTlmModeIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "systemStatus",
-        "targetId": "portSysStatConfigIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "systemStatus",
-        "targetId": "portSysStatConstIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "systemStatus",
-        "targetId": "portSysStatImIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "systemStatus",
-        "targetId": "portSysStatSensorIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "systemStatus",
-        "targetId": "portSysStatSysStatOut"
-      },
-      {
-        "type": "composes",
-        "sourceId": "systemStatus",
-        "targetId": "portSysStatTlmModeIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "tlm",
-        "targetId": "portTlmConstIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "tlm",
-        "targetId": "portTlmOpCmdIn"
-      },
-      {
-        "type": "composes",
-        "sourceId": "tlm",
-        "targetId": "portTlmTlmModeOut"
       },
       {
         "type": "composes",
