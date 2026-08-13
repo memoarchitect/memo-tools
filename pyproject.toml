@@ -1,6 +1,6 @@
 [project]
 name = "memo-tools-docs"
-version = "0.8.0"
+version = "0.8.1"
 description = "Documentation for MEMO Tools"
 requires-python = ">=3.10"
 dependencies = [
