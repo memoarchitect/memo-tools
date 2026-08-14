@@ -282,6 +282,21 @@ export async function devCommand(options: {
         viewpoints.push(...derivedViews.viewpoints);
 
         const diagrams: DiagramDTO[] = [];
+        const generatedLayerIds = [...model.elementsByLayer.entries()]
+            .filter(([, elements]) => elements.length > 0)
+            .map(([layerId]) => layerId);
+        // Every view needs an owner. Per-layer summaries are generated rather
+        // than authored in SysML, so they belong to one generated viewpoint
+        // instead of leaking into the UI's unowned `__model` bucket.
+        if (generatedLayerIds.length > 0) {
+            viewpoints.push({
+                id: '__generated',
+                label: 'Generated',
+                visibleKinds: [],
+                visibleRelationships: [],
+                visibleLayers: generatedLayerIds,
+            });
+        }
         for (const [layerId, layerElements] of model.elementsByLayer.entries()) {
             if (layerElements.length === 0) continue;
             const label = layerId.charAt(0).toUpperCase() + layerId.slice(1);
@@ -290,7 +305,7 @@ export async function devCommand(options: {
                 name: `${label} Layer`,
                 diagramType: 'bdd',
                 viewKind: 'general',
-                viewpointId: '__model',
+                viewpointId: '__generated',
                 auto: true,
                 description: `${label} architecture layer — ${layerElements.length} elements`,
                 elementIds: layerElements.map(e => e.id),
