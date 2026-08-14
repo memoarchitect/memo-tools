@@ -1,6 +1,6 @@
 {
   "name": "@memoarchitect/tools",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "description": "MEMO tools \u2014 SysML v2 parser, semantic model, validation, project operations, and CLI",
   "type": "module",
   "main": "./packages/tools/lib/index.js",
