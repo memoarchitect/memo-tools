@@ -28,6 +28,7 @@ import type { MemoModelDTO, MemoRelationship } from '../model/semantic.js';
 import type {
     RelationshipCreateRequest,
     RelationshipDefinitionDTO,
+    RelationshipUpdateRequest,
 } from '../model/relationship-legality.js';
 import { parseText } from '../model/parser-utils.js';
 import {
@@ -132,6 +133,13 @@ export interface RelationshipRemoveResult {
     sourceFile?: string;
     /** The declaration removed, so the caller can offer an exact undo. */
     removedDeclaration?: string;
+    error?: string;
+}
+
+export interface RelationshipUpdateResult {
+    success: boolean;
+    sourceFile?: string;
+    declaration?: string;
     error?: string;
 }
 
@@ -458,6 +466,77 @@ function newRelationshipFile(relativePath: string, declaration: string): string 
         .replace(/[^A-Za-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, '') || 'relationships';
     return `package ${packageName} {\n    ${declaration}\n}\n`;
+}
+
+/** Fully qualify a nested endpoint from the semantic ownership chain. */
+function endpointPath(elementId: string, model: Pick<MemoModelDTO, 'elements'>): string {
+    const path = [elementId];
+    const visited = new Set(path);
+    let owner = model.elements[elementId]?.owner;
+    while (owner && !visited.has(owner)) {
+        path.unshift(owner);
+        visited.add(owner);
+        owner = model.elements[owner]?.owner;
+    }
+    return path.join('.');
+}
+
+/**
+ * Atomically replace one relationship declaration at the exact range supplied
+ * by the current compiled model. This also supports anonymous SysML `flow` and
+ * `succession` usages, which deliberately have no stable declared name.
+ */
+export async function updateRelationship(
+    request: RelationshipUpdateRequest,
+    relationship: MemoRelationship,
+    definition: RelationshipDefinitionDTO,
+    model: Pick<MemoModelDTO, 'elements'>,
+    options: RelationshipWriterOptions,
+): Promise<RelationshipUpdateResult> {
+    try {
+        assertFreshEndpoints(request, options.irIndex);
+    } catch (e) {
+        if (e instanceof StaleIrIdentityError) return { success: false, error: e.message };
+        throw e;
+    }
+    if (!relationship.file || !isWritableRelationshipFile(relationship.file, options)) {
+        return { success: false, error: `${relationship.file || 'The source file'} is not a writable project file` };
+    }
+    const range = relationship.sourceRange;
+    if (!range) return { success: false, error: 'The relationship has no source range in the current model revision' };
+
+    const absolutePath = resolve(options.projectRoot, relationship.file);
+    if (!existsSync(absolutePath)) return { success: false, error: `${relationship.file} no longer exists` };
+    const source = readFileSync(absolutePath, 'utf8');
+    if (range.offset < 0 || range.length <= 0 || range.offset + range.length > source.length) {
+        return { success: false, error: 'The relationship source range is stale' };
+    }
+
+    const declaration = generateRelationshipDeclaration(
+        relationship.id,
+        definition,
+        endpointPath(request.sourceId, model),
+        endpointPath(request.targetId, model),
+        relationship.flowItem,
+        relationship.attributes?.guard,
+    );
+    const updated = source.slice(0, range.offset) + declaration + source.slice(range.offset + range.length);
+    const reparsed = await parseText(updated);
+    if (reparsed.errors.length > 0) {
+        return { success: false, error: `The updated source did not parse (${reparsed.errors[0].message}); the file was left unchanged` };
+    }
+    const notation = notationFor(definition);
+    const present = notationIsNameable(notation)
+        ? findConnectionUsage(reparsed.document.parseResult.value as any, relationship.id) !== undefined
+        : containsDeclaration(reparsed.document.parseResult.value as any, updated, declaration);
+    if (!present) return { success: false, error: 'The updated relationship was not present after reparsing; the file was left unchanged' };
+
+    try {
+        atomicWrite(absolutePath, updated);
+    } catch (e) {
+        return { success: false, error: `Could not write ${relationship.file}: ${String(e)}` };
+    }
+    return { success: true, sourceFile: relationship.file, declaration };
 }
 
 /**

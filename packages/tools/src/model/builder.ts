@@ -1330,6 +1330,9 @@ function resolveConnection(
         targetId,
         targetEnd: conn.target.endName,
         file: filePath,
+        sourceRange: conn.$cstNode
+            ? { offset: conn.$cstNode.offset, length: conn.$cstNode.length }
+            : undefined,
         named: conn.name ? true : undefined,
         attributes,
         flowItem: attributes.transportedItem || attributes.flowItem || undefined,
@@ -1455,6 +1458,9 @@ function resolveFlowConnection(
         targetId: targetActionId,
         targetEnd: targetPort,
         file: filePath,
+        sourceRange: flow.$cstNode
+            ? { offset: flow.$cstNode.offset, length: flow.$cstNode.length }
+            : undefined,
         named: flow.name ? true : undefined,
         attributes: extractAttributes(flow.body),
         flowItem: flow.itemType || undefined,

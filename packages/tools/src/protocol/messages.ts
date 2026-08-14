@@ -11,6 +11,7 @@ import type { EffectiveRule, RuleResolutionDiagnostic } from '../model/methodolo
 import type {
     RelationshipCreateRequest,
     RelationshipDeleteRequest,
+    RelationshipUpdateRequest,
     RelationshipDiagnostic,
 } from '../model/relationship-legality.js';
 import type { ChatMessage } from '../llm/llm-provider.js';
@@ -81,6 +82,7 @@ export type ServerMessage =
     | DhfTemplateSaveResultMessage
     | RelationshipCreateResultMessage
     | RelationshipDeleteResultMessage
+    | RelationshipUpdateResultMessage
     | ElementDeleteResultMessage
     | ElementMutationResultMessage
     | PackageMutationResultMessage
@@ -236,6 +238,7 @@ export type ClientMessage =
     | ElementDeleteMessage
     | RelationshipCreateMessage
     | RelationshipDeleteMessage
+    | RelationshipUpdateMessage
     | ScreenCaptureUploadMessage
     | CsvImportMessage
     | DiagramCreateMessage
@@ -523,6 +526,27 @@ export interface RelationshipDeleteResultMessage {
     };
 }
 
+/** Client requests an atomic endpoint change for one relationship usage. */
+export interface RelationshipUpdateMessage {
+    type: 'relationship:update';
+    payload: RelationshipUpdateRequest & { precondition: ModelMutationPrecondition };
+}
+
+/** Server response to relationship:update. */
+export interface RelationshipUpdateResultMessage {
+    type: 'relationship:update:result';
+    payload: {
+        requestId: string;
+        success: boolean;
+        relationshipId: string;
+        sourceId?: string;
+        targetId?: string;
+        sourceFile?: string;
+        diagnostics?: RelationshipDiagnostic[];
+        error?: string;
+    };
+}
+
 /** Client sends CSV data for bulk import of elements and/or relationships */
 export interface CsvImportMessage {
     type: 'csv:import';
@@ -672,7 +696,7 @@ export interface DiagramNodeLayout {
     /** Fill opacity 0..1, for dimming context around the parts under review. */
     opacity?: number;
     /** Per-diagram boundary-port positions, relative to the owning node. */
-    ports?: Record<string, { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right' }>;
+    ports?: Record<string, { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right'; size?: number }>;
 }
 
 /** Per-edge visual override */

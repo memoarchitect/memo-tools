@@ -15,6 +15,7 @@ import type {
     ServerMessage, ModelUpdateMessage, DiagramDTO, MemoModelDTO,
     RelationshipCreateRequest, RelationshipCreateResultMessage,
     RelationshipDeleteRequest, RelationshipDeleteResultMessage,
+    RelationshipUpdateRequest, RelationshipUpdateResultMessage,
     ElementDeleteResultMessage,
     RelationshipDiagnostic, OntologyRegistriesDTO,
     QueryContext, MEMOConfig, ProposedChange, RestartRequiredMessage, EditConflictMessage,
@@ -27,7 +28,7 @@ import { indexFromIdentityTable, type IrIdentityIndex } from '../model/ir-identi
 import { recompileProject, writeElement, type AuthoringContext } from '../operations/authoring.js';
 import {
     isWritableRelationshipFile, removeRelationship, resolveRelationshipPlacement,
-    writeRelationship, type RelationshipWriterOptions,
+    updateRelationship, writeRelationship, type RelationshipWriterOptions,
 } from './relationship-writer.js';
 import { removeElement } from './element-writer.js';
 import { DEFAULT_ELEMENT_FILE } from './persistor.js';
@@ -108,7 +109,7 @@ export interface DevServer {
 const MODEL_MUTATION_MESSAGES = new Set([
     'element:update', 'element:create', 'element:delete', 'element:remap-kinds', 'element:move-package',
     'package:create', 'package:rename', 'package:delete', 'package:move',
-    'relationship:create', 'relationship:delete',
+    'relationship:create', 'relationship:delete', 'relationship:update',
     'diagram:create', 'diagram:update', 'diagram:delete', 'diagram:layout:update', 'diagram:source:save',
     'methodology:source:save', 'csv:import', 'screen-capture:upload',
     'ontology:install', 'ontology:remove', 'ontology:save-selection',
@@ -856,6 +857,65 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         };
     }
 
+    /** Move relationship endpoints as one source edit, including anonymous flows. */
+    async function handleRelationshipUpdate(
+        payload: RelationshipUpdateRequest & { precondition?: ModelMutationPrecondition },
+    ): Promise<RelationshipUpdateResultMessage> {
+        const requestId = payload?.requestId ?? '';
+        const relationshipId = payload?.relationshipId ?? '';
+        const reject = (error: string, diagnostics?: RelationshipDiagnostic[]): RelationshipUpdateResultMessage => ({
+            type: 'relationship:update:result',
+            payload: { requestId, relationshipId, success: false, error, diagnostics },
+        });
+        const conflict = checkMutationPrecondition(payload.precondition, requestId, payload);
+        if (conflict) return reject(conflict);
+
+        const model = currentModel();
+        if (!model) return reject('The model is not loaded yet.');
+        const relationship = model.relationships.find(candidate => candidate.id === relationshipId);
+        if (!relationship) return reject(`Relationship "${relationshipId}" was not found.`);
+
+        const mutation = {
+            ...payload,
+            type: relationship.type,
+            direction: 'outgoing' as const,
+            selectedElementId: payload.sourceId,
+            owningFile: relationship.file,
+            flowItem: relationship.flowItem,
+        };
+        // The relationship being replaced cannot consume its own uniqueness or
+        // endpoint multiplicity while validating the proposed endpoints.
+        const validationModel = {
+            ...model,
+            relationships: model.relationships.filter(candidate => candidate.id !== relationshipId),
+        };
+        const validation = validateRelationshipMutation(mutation, validationModel, serverRegistries());
+        if (!validation.valid || !validation.definition) {
+            const first = validation.diagnostics.find(diagnostic => diagnostic.severity === 'error');
+            return reject(first?.message ?? 'The relationship update is not valid.', validation.diagnostics);
+        }
+
+        const result = await updateRelationship(payload, relationship, validation.definition, model, relationshipWriterOptions());
+        if (!result.success) return reject(result.error ?? 'The relationship could not be updated.');
+
+        if (result.sourceFile) {
+            recordWriteTransaction(result.sourceFile, readFileSync(resolve(options.projectRoot, result.sourceFile), 'utf8'));
+        }
+        await recompileAfterWrite();
+        return {
+            type: 'relationship:update:result',
+            payload: {
+                requestId,
+                relationshipId,
+                success: true,
+                sourceId: payload.sourceId,
+                targetId: payload.targetId,
+                sourceFile: result.sourceFile,
+                diagnostics: validation.diagnostics.filter(diagnostic => diagnostic.severity === 'warning'),
+            },
+        };
+    }
+
     /**
      * Apply one package mutation, resolving what the client named to a file.
      *
@@ -1343,6 +1403,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     ws.send(JSON.stringify(await handleRelationshipCreate(msg.payload)));
                 } else if (msg.type === 'relationship:delete') {
                     ws.send(JSON.stringify(await handleRelationshipDelete(msg.payload)));
+                } else if (msg.type === 'relationship:update') {
+                    ws.send(JSON.stringify(await handleRelationshipUpdate(msg.payload)));
                 } else if (msg.type === 'element:delete') {
                     ws.send(JSON.stringify(await handleElementDelete(msg.payload)));
                 } else if (msg.type === 'element:remap-kinds') {

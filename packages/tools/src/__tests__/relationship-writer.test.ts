@@ -9,6 +9,7 @@ import {
     isWritableRelationshipFile,
     removeRelationship,
     resolveRelationshipPlacement,
+    updateRelationship,
     writeRelationship,
     type RelationshipWriterOptions,
 } from '../server/relationship-writer.js';
@@ -35,6 +36,15 @@ const satisfiedBy: RelationshipDefinitionDTO = {
 const nativeSatisfiedBy: RelationshipDefinitionDTO = {
     ...satisfiedBy,
     nativeKeyword: 'satisfy',
+};
+
+const flowDefinition: RelationshipDefinitionDTO = {
+    name: 'flow',
+    sysmlName: 'FlowConnectionUsage',
+    label: 'Flow',
+    layer: 'logical',
+    sourceEnd: { name: 'source' },
+    targetEnd: { name: 'target' },
 };
 
 let projectRoot: string;
@@ -127,6 +137,37 @@ describe('isWritableRelationshipFile', () => {
     it('rejects the diagram presentation section', () => {
         writeProjectFile('model/views/logical_view.sysml', 'package v {}\n');
         expect(isWritableRelationshipFile('model/views/logical_view.sysml', options())).toBe(false);
+    });
+});
+
+describe('updateRelationship', () => {
+    it('atomically reconnects an anonymous nested flow by source range', async () => {
+        const declaration = 'flow of Signal from pump.a to pump.b;';
+        const source = `package Pump {\n    ${declaration}\n}\n`;
+        const file = 'model/catalog/system.sysml';
+        writeProjectFile(file, source);
+        const pump = element('pump', 'PhysicalAssembly', file);
+        const a = { ...element('a', 'Port', file), construct: 'port', owner: 'pump' };
+        const b = { ...element('b', 'Port', file), construct: 'port', owner: 'pump' };
+        const c = { ...element('c', 'Port', file), construct: 'port', owner: 'pump' };
+        const relationship: MemoRelationship = {
+            id: 'rel-1', type: 'flow', sourceId: 'a', sourceEnd: '', targetId: 'b', targetEnd: '',
+            file, flowItem: 'Signal', attributes: {},
+            sourceRange: { offset: source.indexOf(declaration), length: declaration.length },
+        };
+
+        const result = await updateRelationship(
+            { requestId: 'update-1', relationshipId: relationship.id, sourceId: 'a', targetId: 'c' },
+            relationship,
+            flowDefinition,
+            model([pump, a, b, c]),
+            options(),
+        );
+
+        expect(result.error).toBeUndefined();
+        expect(result.success).toBe(true);
+        expect(readProjectFile(file)).toContain('flow of Signal from pump.a to pump.c;');
+        expect(readProjectFile(file)).not.toContain('pump.b;');
     });
 });
 

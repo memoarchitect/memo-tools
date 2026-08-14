@@ -107,6 +107,8 @@ export interface MemoRelationship {
     targetEnd: string;
     /** Source file path (relative) */
     file: string;
+    /** Exact declaration range in the owning source revision. */
+    sourceRange?: { offset: number; length: number };
     /**
      * True when `id` is the connection usage's declared name in SysML, so it
      * addresses exactly one declaration and survives a rebuild. Anonymous

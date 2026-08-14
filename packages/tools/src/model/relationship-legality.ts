@@ -148,6 +148,17 @@ export interface RelationshipDeleteRequest {
     sourceFile?: string;
 }
 
+/** Move one or both endpoints of an existing relationship declaration. */
+export interface RelationshipUpdateRequest {
+    requestId: string;
+    relationshipId: string;
+    sourceId: string;
+    targetId: string;
+    diagramId?: string;
+    sourceIdentity?: string;
+    targetIdentity?: string;
+}
+
 /** Machine-readable codes so callers can branch without matching on prose. */
 export type RelationshipDiagnosticCode =
     | 'REL-001'   // unknown relationship type

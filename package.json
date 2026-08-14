@@ -1,6 +1,6 @@
 {
   "name": "@memoarchitect/tools",
-  "version": "0.8.3",
+  "version": "0.8.6",
   "description": "MEMO tools \u2014 SysML v2 parser, semantic model, validation, project operations, and CLI",
   "type": "module",
   "main": "./packages/tools/lib/index.js",
@@ -84,6 +84,7 @@
     "!packages/tools/lib/__tests__/",
     "!packages/tools/lib/**/*.test.*",
     "packages/tools/src/grammar/",
+    "corpus/sysml-v2-release/bnf/SysML-graphical-bnf.kgbnf",
     "README.md",
     "LICENSE"
   ],
