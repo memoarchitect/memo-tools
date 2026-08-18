@@ -35,7 +35,7 @@ for (const sourceRoot of sourceRoots) {
 // unrelated ad-hoc projects.
 // `pipe` rather than `inherit` so a licence failure can be told apart from a
 // model failure. SysIDE's output is replayed either way, so nothing is hidden.
-const result = spawnSync(executable, ['check', ...sourceRoots], {
+const result = spawnSync(executable, ['check', '--diagnose', 'all', '--warnings-as-errors', ...sourceRoots], {
     cwd: memoRoot,
     encoding: 'utf8',
 });

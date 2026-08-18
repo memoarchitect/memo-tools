@@ -135,8 +135,8 @@ describe('resolveNativeProject', () => {
         expect(r.diagnostics[0].message).toContain('lib_missing');
     });
 
-    it('does not report standard-library imports as unresolved', async () => {
-        writeEntrypoint('    private import ScalarValues::*;\n');
+    it('does not report Metaobjects standard-library imports as unresolved', async () => {
+        writeEntrypoint('    private import Metaobjects::SemanticMetadata;\n');
         const r = await resolveNativeProject(TMP);
         expect(r.diagnostics).toEqual([]);
     });

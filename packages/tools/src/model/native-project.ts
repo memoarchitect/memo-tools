@@ -42,7 +42,7 @@ const STANDARD_LIBRARY_PACKAGES = new Set([
     'ScalarValues', 'Base', 'Occurrences', 'Objects', 'Performances', 'Transfers',
     'Parts', 'Items', 'Ports', 'Connections', 'Interfaces', 'Actions', 'States',
     'Constraints', 'Requirements', 'Cases', 'AnalysisCases', 'VerificationCases',
-    'UseCases', 'Views', 'Metadata', 'Allocations', 'Calculations', 'Attributes',
+    'UseCases', 'Views', 'Metadata', 'Metaobjects', 'Allocations', 'Calculations', 'Attributes',
     'Collections', 'SequenceFunctions', 'ControlFunctions', 'BaseFunctions',
     'NumericalFunctions', 'StringFunctions', 'BooleanFunctions', 'DataFunctions',
     'ISQ', 'SI', 'Quantities', 'MeasurementReferences', 'Time', 'SpatialFrames',

@@ -40,4 +40,11 @@ describe('SysIDE suite gate', () => {
         const checked = text.includes("'examples'") || text.includes('syside check src extensions examples');
         expect(checked).toBe(true);
     });
+
+    it('requests full diagnostics and promotes warnings to errors', () => {
+        const gate = resolve(__dirname, '../../../../scripts/check-syside-gate.mjs');
+        const text = readFileSync(gate, 'utf8');
+        expect(text).toContain("'--diagnose', 'all'");
+        expect(text).toContain("'--warnings-as-errors'");
+    });
 });

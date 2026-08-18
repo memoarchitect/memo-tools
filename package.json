@@ -55,7 +55,7 @@
     "check:transport": "node scripts/measure-transport-latency.mjs"
   },
   "dependencies": {
-    "@memoarchitect/ontology": "0.8.1",
+    "@memoarchitect/ontology": "0.8.22",
     "chalk": "^5.3.0",
     "chokidar": "^4.0.0",
     "commander": "^12.1.0",
