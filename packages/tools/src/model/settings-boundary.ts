@@ -77,7 +77,7 @@ const SEMANTIC_FIELDS: Record<string, string> = {
 };
 
 /** `sysmlDir` locates source; it is the one entry above that is still read. */
-const LOCATOR_FIELDS = new Set(['sysmlDir', 'name', 'version', 'description', 'license', 'tags']);
+const LOCATOR_FIELDS = new Set(['sysmlDir', 'entrypoint', 'include', 'name', 'version', 'description', 'license', 'tags']);
 
 /** Files that were entirely semantic and no longer exist as inputs. */
 const RETIRED_FILES: Record<string, string> = {

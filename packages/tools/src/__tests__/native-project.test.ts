@@ -43,6 +43,7 @@ function library(name: string, packageName: string, body: string): void {
 beforeEach(() => {
     rmSync(TMP, { recursive: true, force: true });
     mkdirSync(TMP, { recursive: true });
+    write('memo.package.yaml', 'name: demo\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n');
 
     library('lib-a', 'lib_a', `
 package lib_a {
@@ -80,15 +81,62 @@ ${extra}
 }
 
 describe('findProjectRoot', () => {
-    it('identifies a project by its native entrypoint, not by a settings file', () => {
+    it('identifies a project by its configured native entrypoint', () => {
         writeEntrypoint();
         expect(findProjectRoot(join(TMP, 'model', 'catalog'))).toBe(TMP);
-        // No settings file exists at all, and the project is still a project.
         expect(findProjectRoot(resolve(TMP, '..', '..'))).not.toBe(TMP);
+    });
+
+    it('uses a project-relative manifest entrypoint when configured', () => {
+        write('memo.package.yaml', 'name: demo\nentrypoint: src/project.sysml\ninclude: [src]\n');
+        write('src/project.sysml', 'package demo_project {}\n');
+        expect(findProjectRoot(join(TMP, 'src'))).toBe(TMP);
+        expect(findProjectRoot(join(TMP, 'model'))).toBe(TMP);
     });
 });
 
 describe('resolveNativeProject', () => {
+    it('roots explicit scope and the binding at a configured entrypoint', async () => {
+        write('memo.package.yaml', 'name: demo\nentrypoint: src/project.sysml\ninclude: [src]\n');
+        write('src/project.sysml', `
+package demo_project {
+    private import lib_a::*;
+    part binding : ProjectMethodBinding {
+        ref :>> selectedMethodology = chosenMethod;
+        attribute :>> scopeMode = ScopeModeKind::explicit;
+    }
+}
+`);
+        write('src/unimported.sysml', 'package unimported { part def Noise; }\n');
+        const r = await resolveNativeProject(TMP);
+        expect(r.entrypoint).toBe(join(TMP, 'src/project.sysml'));
+        expect(r.closure.has('demo_project')).toBe(true);
+        expect(r.closure.has('lib_a')).toBe(true);
+        expect(r.closure.has('unimported')).toBe(false);
+        expect(r.binding?.sourceFile).toBe(join(TMP, 'src/project.sysml'));
+    });
+
+    it('loads an imported OTS repository from an explicit include root', async () => {
+        write('memo.package.yaml', 'name: demo\nentrypoint: src/project.sysml\ninclude: [src, ../ots]\n');
+        write('src/project.sysml', `
+package demo_project {
+    private import ots_lib::*;
+    part binding : ProjectMethodBinding {
+        ref :>> selectedMethodology = chosenMethod;
+    }
+}
+`);
+        const otsRoot = resolve(TMP, '..', 'ots');
+        mkdirSync(otsRoot, { recursive: true });
+        writeFileSync(join(otsRoot, 'ots.sysml'), 'package ots_lib { part def OtsPart; }\n');
+        try {
+            const r = await resolveNativeProject(TMP);
+            expect(r.closure.has('ots_lib')).toBe(true);
+        } finally {
+            rmSync(otsRoot, { recursive: true, force: true });
+        }
+    });
+
     it('reads the binding and its typed methodology reference from SysML', async () => {
         writeEntrypoint();
         const r = await resolveNativeProject(TMP);
@@ -159,7 +207,7 @@ package demo_project {
         expect(r.diagnostics.map(d => d.code)).toContain('unresolved-methodology');
     });
 
-    it('refuses to pick between two project bindings', async () => {
+    it('does not let an unimported source file supply a second project binding', async () => {
         writeEntrypoint();
         write('model/catalog/second.sysml', `
 package demo_second {
@@ -170,7 +218,8 @@ package demo_second {
 }
 `);
         const r = await resolveNativeProject(TMP);
-        expect(r.diagnostics.map(d => d.code)).toContain('multiple-bindings');
+        expect(r.diagnostics.map(d => d.code)).not.toContain('multiple-bindings');
+        expect(r.binding?.usageName).toBe('binding');
     });
 
     it('rejects a binding that declares allAvailable and lists modules', async () => {
@@ -193,7 +242,8 @@ package demo_project {
         // A settings file naming lib-b as a dependency must not pull it in.
         // Before the flip this field was the dependency graph.
         writeFileSync(join(TMP, 'memo.package.yaml'),
-            'name: demo\nextends: "@memoarchitect/lib-b"\nmethodology: "@memoarchitect/lib-b"\n');
+            'name: demo\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n'
+            + 'extends: "@memoarchitect/lib-b"\nmethodology: "@memoarchitect/lib-b"\n');
         const r = await resolveNativeProject(TMP);
         expect(r.closure.has('lib_b')).toBe(false);
         expect(r.selectedRoots.map(root => root.packageName)).toEqual(['@memoarchitect/lib-a']);

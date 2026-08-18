@@ -23,11 +23,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { existsSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { ParsedDocument } from './parser-utils.js';
 import { parseFiles } from './parser-utils.js';
 import { readPackageManifest } from './package-manifest.js';
 import { discoverMemoManifests, findMemoManifests, resolveManifestPath } from './manifest.js';
+import { importKpar } from '../commands/package.js';
 import type { SemanticOrigin } from './source-provenance.js';
 
 /**
@@ -48,8 +49,24 @@ const STANDARD_LIBRARY_PACKAGES = new Set([
     'ISQ', 'SI', 'Quantities', 'MeasurementReferences', 'Time', 'SpatialFrames',
 ]);
 
-/** The conventional native entrypoint, relative to the project root. */
+/** Conventional template value for the required project root descriptor. */
 export const PROJECT_ENTRYPOINT = join('model', 'catalog', 'project.sysml');
+
+/**
+ * Resolve the project's required native entrypoint. `entrypoint` is a project locator:
+ * it names the SysML file from which project identity and import scope start;
+ * it does not contribute any model semantics itself.
+ */
+export function projectEntrypoint(projectRoot: string): string | undefined {
+    const root = resolve(projectRoot);
+    const configured = readPackageManifest(root).manifest.entrypoint;
+    if (!configured) return undefined;
+    // A manifest may only point inside its own project. Keep a malformed path
+    // visible to the caller as a missing entrypoint instead of escaping root.
+    const candidate = resolve(root, configured);
+    if (candidate !== root && !candidate.startsWith(root + sep)) return configured;
+    return relative(root, candidate);
+}
 
 /** Where a resolvable SysML package's source lives. */
 export interface LibraryRoot {
@@ -138,7 +155,8 @@ export interface NativeDiagnostic {
         | 'unresolved-import'
         | 'unresolved-module'
         | 'scope-mode-conflict'
-        | 'settings-graph-mismatch';
+        | 'settings-graph-mismatch'
+        | 'invalid-kpar';
     message: string;
     file?: string;
 }
@@ -171,16 +189,14 @@ export interface NativeProjectResolution {
 // ─── Project root ─────────────────────────────────────────────────────────────
 
 /**
- * Find the project root by walking up for the native entrypoint.
- *
- * The marker is `model/catalog/project.sysml`, not a YAML file. A project is
- * identified by the SysML that defines it, so a workspace stays a workspace
- * after every application setting is deleted.
+ * Find the project root by walking up for a root descriptor whose explicit
+ * `entrypoint` names an existing SysML root file.
  */
 export function findProjectRoot(startDir: string): string | undefined {
     let dir = resolve(startDir);
     while (true) {
-        if (existsSync(join(dir, PROJECT_ENTRYPOINT))) return dir;
+        const entrypoint = projectEntrypoint(dir);
+        if (entrypoint && existsSync(join(dir, entrypoint))) return dir;
         const parent = dirname(dir);
         if (parent === dir) return undefined;
         dir = parent;
@@ -537,12 +553,39 @@ function originFor(root: LibraryRoot | undefined, suppliesMethodology: boolean):
 export async function resolveNativeProject(projectRoot: string): Promise<NativeProjectResolution> {
     const diagnostics: NativeDiagnostic[] = [];
     const root = resolve(projectRoot);
-    const entrypoint = join(root, PROJECT_ENTRYPOINT);
+    const entrypointPath = projectEntrypoint(root);
+    const entrypoint = entrypointPath ? resolve(root, entrypointPath) : undefined;
+    const includes = readPackageManifest(root).manifest.include ?? [];
+
+    // `include` accepts SysML source roots and interoperable KPAR archives.
+    // Archive import is intentionally local and content-addressed: it copies
+    // the archive into .memo, validates its ZIP boundaries, and extracts it
+    // once. The import graph below still decides whether any package in it is
+    // selected.
+    for (const include of includes) {
+        const path = resolve(root, include);
+        if (extname(path).toLowerCase() !== '.kpar') continue;
+        try {
+            importKpar(root, path);
+        } catch (error) {
+            diagnostics.push({
+                code: 'invalid-kpar',
+                message: `Could not import KPAR ${include}: ${error instanceof Error ? error.message : String(error)}`,
+                file: path,
+            });
+        }
+    }
 
     const libraryRoots = discoverLibraryRoots(root);
     const fileToRoot = new Map<string, LibraryRoot | undefined>();
 
-    const projectFiles = collectSysmlFiles(root).filter(f => !libraryRoots.some(r => f.startsWith(r.sysmlDir + sep)));
+    // Match SysIDE's source-root contract exactly: only explicitly included
+    // directories are project model source. Includes may name a sibling OTS
+    // repository; imports, rather than physical location, decide scope.
+    const projectFiles = [...new Set(includes.filter(include => extname(include).toLowerCase() !== '.kpar').flatMap(include => {
+        const sourceRoot = resolve(root, include);
+        return collectSysmlFiles(sourceRoot);
+    }))].filter(f => !libraryRoots.some(r => f.startsWith(r.sysmlDir + sep)));
     for (const f of projectFiles) fileToRoot.set(f, undefined);
 
     const libraryFiles: string[] = [];
@@ -557,12 +600,12 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
     const parsed = await parseFiles([...projectFiles, ...libraryFiles], '');
     const documents = parsed.documents;
 
-    if (!existsSync(entrypoint)) {
+    if (!entrypoint || !existsSync(entrypoint)) {
         diagnostics.push({
             code: 'no-entrypoint',
             message:
-                `No native entrypoint at ${PROJECT_ENTRYPOINT}. A MEMO project declares its identity and `
-                + `method binding in SysML; run \`memo init\` to scaffold one.`,
+                `No native entrypoint configured in memo.package.yaml${entrypointPath ? ` at ${entrypointPath}` : ''}. `
+                + 'A MEMO project declares its identity and method binding in its configured SysML root file.',
             file: entrypoint,
         });
     }
@@ -573,12 +616,13 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
         for (const file of entry.files) filePackages.set(file, entry.qualifiedName);
     }
 
-    // Seed the closure with every package declared by project-owned source.
+    // The entrypoint, not every source file on disk, starts the closure. This
+    // keeps an unimported source area out of explicit scope and makes the same
+    // SysML file authoritative for Architect and the command-line tools.
     const closure = new Map<string, ResolvedPackage>();
     const queue: Array<{ name: string; depth: number; via?: string }> = [];
     for (const entry of index.values()) {
-        const isProjectOwned = [...entry.files].some(f => fileToRoot.get(f) === undefined);
-        if (isProjectOwned) queue.push({ name: entry.qualifiedName, depth: 0 });
+        if (entrypoint && entry.files.has(entrypoint)) queue.push({ name: entry.qualifiedName, depth: 0 });
     }
 
     const methodologyPackages = new Set<string>();
@@ -633,14 +677,14 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
     const unusedRoots = libraryRoots.filter(r => !usedRootDirs.has(r.dir));
 
     // ── The binding ──────────────────────────────────────────────────────────
-    const projectBindings = bindings.filter(b => fileToRoot.get(b.sourceFile) === undefined);
+    const projectBindings = bindings.filter(b => b.sourceFile === entrypoint);
     let binding: NativeMethodBinding | undefined;
     if (projectBindings.length === 0) {
-        if (existsSync(entrypoint)) {
+        if (entrypoint && existsSync(entrypoint)) {
             diagnostics.push({
                 code: 'no-binding',
                 message:
-                    `No ProjectMethodBinding found in project source. ${PROJECT_ENTRYPOINT} must declare one; `
+                    `No ProjectMethodBinding found in ${entrypointPath}. It must declare one; `
                     + `it is what selects the project's methodology.`,
                 file: entrypoint,
             });
@@ -687,7 +731,7 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
 
     return {
         projectRoot: root,
-        entrypoint: existsSync(entrypoint) ? entrypoint : undefined,
+        entrypoint: entrypoint && existsSync(entrypoint) ? entrypoint : undefined,
         binding,
         methodologies,
         closure,

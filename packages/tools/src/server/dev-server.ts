@@ -31,7 +31,7 @@ import {
     updateRelationship, writeRelationship, type RelationshipWriterOptions,
 } from './relationship-writer.js';
 import { removeElement } from './element-writer.js';
-import { DEFAULT_ELEMENT_FILE } from './persistor.js';
+import { projectEntrypoint } from '../model/native-project.js';
 import {
     createPackage, deletePackage, moveElementToPackage, movePackage, renamePackage,
     type PackageWriteResult,
@@ -940,7 +940,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
 
         if (type === 'package:create') {
             const parent: string | undefined = payload.parent || undefined;
-            const file = payload.file || (parent ? fileOf(parent) : undefined) || DEFAULT_ELEMENT_FILE;
+            const file = payload.file || (parent ? fileOf(parent) : undefined) || projectEntrypoint(projectRoot);
+            if (!file) {
+                return { success: false, filePaths: [], error: 'No project entrypoint configured in memo.package.yaml.' };
+            }
             if (parent && !fileOf(parent)) {
                 return { success: false, filePaths: [], error: `Package "${parent}" was not found.` };
             }

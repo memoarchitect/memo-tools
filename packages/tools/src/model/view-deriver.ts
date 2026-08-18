@@ -353,6 +353,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                 ? { elementKinds: [...expandKinds(queryKinds, kindRegistry)] }
                 : {}),
             sourceFile: el.file,
+            package: el.package,
         });
     }
 

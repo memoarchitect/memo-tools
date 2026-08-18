@@ -218,6 +218,8 @@ export interface DiagramDTO {
     elementKinds?: string[];
     /** SysML source containing the view definition (project-relative). */
     sourceFile?: string;
+    /** SysML package that owns the view; independent of source-file location. */
+    package?: string;
     /**
      * Every project-relative file whose change can alter what this view
      * renders: its own source, the files owning its elements, and the

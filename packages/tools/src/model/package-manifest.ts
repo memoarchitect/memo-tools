@@ -41,6 +41,10 @@ export interface MemoManifest {
     tags?: string[];
     /** Where this package's .sysml sources sit, relative to the descriptor. */
     sysmlDir?: string;
+    /** Project-relative native SysML entrypoint; absent uses MEMO's conventional path. */
+    entrypoint?: string;
+    /** Project-relative SysML source roots, using SysIDE's `include` vocabulary. */
+    include?: string[];
     /** Everything as parsed, for the boundary check to inspect. */
     raw: Record<string, unknown>;
 }
@@ -65,6 +69,8 @@ export function readManifest(filePath: string): MemoManifest {
         license: str(doc.license),
         tags: strList(doc.tags),
         sysmlDir: str(doc.sysmlDir),
+        entrypoint: str(doc.entrypoint),
+        include: strList(doc.include),
         raw: doc,
     };
 }
