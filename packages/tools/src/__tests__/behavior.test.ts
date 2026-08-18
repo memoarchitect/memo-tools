@@ -168,11 +168,27 @@ describe('Behavior grammar: succession usage', () => {
                 action performInfusion {
                     action receive : ReceivePrescription;
                     action validate : ValidatePrescription;
-                    first start then receive then validate then done;
+                    first start then receive; first receive then validate; first validate then done;
                 }
             }
         `);
         expect(doc.parseResult.parserErrors).toHaveLength(0);
+    });
+
+    // KerML `SuccessionDeclaration` (:845) admits exactly one `then`. SysIDE —
+    // the compiler of record — rejects the chained form, so accepting it here
+    // let a model parse in MEMO and fail the gate that matters.
+    it('rejects a chained succession, which is not valid SysML', async () => {
+        const doc = await parse(`
+            package Test {
+                action performInfusion {
+                    action receive;
+                    action validate;
+                    first start then receive then validate then done;
+                }
+            }
+        `);
+        expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
     });
 
     it('parses multiple succession chains', async () => {
@@ -303,7 +319,7 @@ describe('Behavior grammar: full infusion pump example', () => {
                     flow of StatusReport from deliver.infusionStatus to monitor.infusionStatus;
                     flow of AlarmSignal from monitor.alarm to handleAlarm.alarm;
 
-                    first start then receive then validate then prepare then deliver then done;
+                    first start then receive; first receive then validate; first validate then prepare; first prepare then deliver; first deliver then done;
                     first deliver then monitor;
                     first monitor then handleAlarm;
                 }
@@ -578,7 +594,7 @@ describe('Behavior builder: successions', () => {
                 action process {
                     action a : A;
                     action b : B;
-                    first start then a then b then done;
+                    first start then a; first a then b; first b then done;
                 }
             }
         `);
@@ -721,7 +737,7 @@ describe('Behavior builder: model indexes', () => {
                     action a : A;
                     action b : B;
                     flow of TypeX from a.x to b.x;
-                    first start then a then b then done;
+                    first start then a; first a then b; first b then done;
                 }
             }
         `);
@@ -773,7 +789,7 @@ describe('Behavior validation', () => {
                 action def DoWork { out result : Data; }
                 action process {
                     action work : DoWork;
-                    first start then work then done;
+                    first start then work; first work then done;
                 }
                 allocate work to sw;
             }
@@ -796,7 +812,7 @@ describe('Behavior validation', () => {
                     action b : B;
                     action orphan : Orphan;
                     flow of X from a.x to b.x;
-                    first start then a then b then done;
+                    first start then a; first a then b; first b then done;
                 }
             }
         `);
@@ -817,7 +833,7 @@ describe('Behavior validation', () => {
                     action a : A;
                     action b : B;
                     flow of X from a.x to b.x;
-                    first start then a then b then done;
+                    first start then a; first a then b; first b then done;
                 }
             }
         `);
@@ -838,7 +854,7 @@ describe('Behavior validation', () => {
                     action send : Sender;
                     action recv : Receiver;
                     flow of MessageType from send.msg to recv.data;
-                    first start then send then recv then done;
+                    first start then send; first send then recv; first recv then done;
                 }
             }
         `);

@@ -84,6 +84,10 @@ afterEach(() => {
 function project(files: Record<string, string>): string {
     const root = mkdtempSync(join(tmpdir(), 'memo-domain-'));
     tempDirs.push(root);
+    // The descriptor carries the project locators. There is no conventional
+    // fallback: a directory with a `project.sysml` and no `entrypoint` naming
+    // it is not a project, so the helper has to write both.
+    write(root, 'memo.package.yaml', 'name: routing-test\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n');
     write(root, 'model/catalog/project.sysml', 'package ProjectCatalog {\n}\n');
     for (const [path, content] of Object.entries(files)) write(root, path, content);
     return root;

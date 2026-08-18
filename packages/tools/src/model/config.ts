@@ -97,4 +97,14 @@ export interface MEMOConfig {
 
     /** Validator, lowering and packager provider selection. */
     toolchain?: ToolchainConfig;
+
+    /**
+     * Identities assigned on earlier builds, from `memo.identity.yaml`.
+     *
+     * The builder is pure — it has no project root and does no file access — so
+     * the caller loads this and persists what comes back. Absent, every element
+     * is treated as new: correct for a first build, and the reason a lost
+     * registry re-mints identities rather than reproducing them.
+     */
+    priorIdentities?: import('./identity-registry.js').IdentityRegistry;
 }

@@ -262,10 +262,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'An action def: a user-interaction sequence, not an item transfer.',
         removedBy: 'deliberate',
     },
-    'flow:FlowCommand': {
-        reason: 'An item def — the commanded infusion flow rate. Clinical fluid flow, not SysML `flow`.',
-        removedBy: 'deliberate',
-    },
     'connect:ComponentConnects': {
         reason: 'A connection def named for what it does; `connect` writes a connection usage, and the def is what the usage is typed by.',
         removedBy: 'deliberate',
@@ -310,8 +306,12 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'The query a view runs to select content; a query, not a view.',
         removedBy: 'deliberate',
     },
-    'viewpoint:Viewpoint': {
-        reason: 'ISO 42010 viewpoint carrying allowedElementKinds, governing concerns and model kinds — richer than the SysML `viewpoint` usage, which MEMO views still conform to.',
+    'case:EnablesUseCase': {
+        reason: 'Tail-word artifact: the relation names the UseCase it targets, so "Case" is the last word of "UseCase". A connection def, not a case.',
+        removedBy: 'deliberate',
+    },
+    'case:RealizesUseCase': {
+        reason: 'Same tail-word artifact as EnablesUseCase — a workflow-to-use-case trace, not a case.',
         removedBy: 'deliberate',
     },
     'case:VerificationCase': {
@@ -342,10 +342,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
     },
     'event:UIEvent': {
         reason: 'A UI event kind (tap, drag, long-press); `event` in SysML writes an event occurrence usage.',
-        removedBy: 'deliberate',
-    },
-    'event:LogTherapyEvent': {
-        reason: 'A clinical logging action in the GPCA behaviour; "event" is the therapy record it writes.',
         removedBy: 'deliberate',
     },
         'event:SequenceOfEvents': {
@@ -424,8 +420,8 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'A software bill-of-materials row; `entry` is a state-machine entry action.',
         removedBy: 'deliberate',
     },
-    'occurrence:ScenarioOccurrence': {
-        reason: 'A recorded run of a scenario; `occurrence def` is the KerML root of occurrences generally.',
+    'require:RequiresCapability': {
+        reason: 'ARCADIA "mission requires capability": relates an IntendedUse to an OperationalCapability. Same English "requires" as RequiresResource below; `require` asserts a requirement inside a requirement def.',
         removedBy: 'deliberate',
     },
     'require:RequiresResource': {
@@ -468,6 +464,14 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
     // `MonitorsChannel` too — see `dependency` in relationship-registry.ts.
     'decide:Decides': {
         reason: 'Relates an architecture decision record to what it decides; `decide` is a control node in an action body.',
+        removedBy: 'deliberate',
+    },
+    'rendering:EnumRendering': {
+        reason: 'Same divergence as LayerRendering below: MEMO "rendering" is visual presentation, `rendering def` is the SysML textual-notation mechanism.',
+        removedBy: 'deliberate',
+    },
+    'enum:EnumRendering': {
+        reason: 'A part carrying the display label for one enumeration VALUE. It is not an enumeration — it is metadata about one — so it cannot be spelled with the `enum` keyword the lint would otherwise prefer.',
         removedBy: 'deliberate',
     },
     'rendering:LayerRendering': {

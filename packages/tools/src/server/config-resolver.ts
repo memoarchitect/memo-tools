@@ -1,3 +1,4 @@
+import { readIdentityRegistry } from '../model/identity-registry.js';
 // ─── Settings Resolution ──────────────────────────────────────────────────────
 //
 // There is nothing left to resolve.
@@ -23,7 +24,11 @@ export interface ConfigChainEntry {
 
 /** Load application settings from a file. No inheritance is applied. */
 export function loadAndResolveConfig(configPath: string): MEMOConfig {
-    return loadConfig(configPath);
+    const config = loadConfig(configPath);
+    // Same reason as loadProjectSettings: the registry is loaded once, where
+    // the project root is known, not per call site.
+    config.priorIdentities = readIdentityRegistry(dirname(resolve(configPath)));
+    return config;
 }
 
 /**

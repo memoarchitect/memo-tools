@@ -2,6 +2,8 @@ import { resolve } from 'node:path';
 import { computeCompleteness } from '../completeness/tracker.js';
 import { deriveModelViews } from '../model/view-deriver.js';
 import { findConfigFile } from '../model/config-loader.js';
+import { identityKey, writeIdentityRegistry } from '../model/identity-registry.js';
+import type { IdentityRegistry } from '../model/identity-registry.js';
 import { loadOntologyRegistries } from '../model/ontology-loader.js';
 import { validateModel } from '../validator/rule-engine.js';
 import type { BuilderRegistries } from '../model/builder.js';
@@ -74,8 +76,9 @@ export async function buildProjectSnapshot(
     // a project with none is complete, because settings carry no meaning.
     if (!findProjectRoot(cwd)) {
         throw new Error(
-            'No model/catalog/project.sysml found. A MEMO project declares its identity and method '
-            + 'binding in SysML — run `memo init` to scaffold one.',
+            'No MEMO project found. A project is located by the `entrypoint` in its '
+            + '`memo.package.yaml`, which names the SysML file declaring its identity '
+            + 'and method binding — run `memo init` to scaffold one.',
         );
     }
     const configPath = findConfigFile(cwd);
@@ -141,6 +144,25 @@ export async function buildProjectSnapshot(
     // did not keeps the previous picture on screen next to its diagnostics.
     const lowered = loweringRun.accepted;
     if (lowered) lastGoodModel.set(cwd, model);
+
+    // Persist the identities this build assigned, but only from a build that
+    // actually produced a model. Writing from a failed build would record
+    // identities for a half-parsed model and retire numbers against elements
+    // that do not exist. Prior entries are merged, not replaced, so a deleted
+    // element keeps its number reserved.
+    if (lowered) {
+        try {
+            const assigned: IdentityRegistry = {};
+            for (const el of semanticModel.elements.values()) {
+                if (!el.shortId && !el.uuid) continue;
+                assigned[identityKey(el)] = { shortId: el.shortId, uuid: el.uuid };
+            }
+            writeIdentityRegistry(cwd, assigned, config.priorIdentities ?? {});
+        } catch {
+            // A read-only checkout still builds; it just cannot record new
+            // identities. That is a degraded mode, not a failed build.
+        }
+    }
     const retained = lowered ? undefined : lastGoodModel.get(cwd);
 
     return {

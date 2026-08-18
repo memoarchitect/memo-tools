@@ -1004,7 +1004,7 @@ describe('M-1 fixture: ports and interfaces', () => {
                     action receive : ReceiveOrder;
                     action regulate : RegulateFlow;
                     flow of DrugOrder from receive.prescription to regulate.order;
-                    first start then receive then regulate then done;
+                    first start then receive; first receive then regulate; first regulate then done;
                 }
 
                 // Connection usage

@@ -46,8 +46,9 @@ async function loadContext(projectDir?: string) {
     const projectRoot = findProjectRoot(cwd);
     if (!projectRoot) {
         console.error(chalk.red(
-            '❌ No model/catalog/project.sysml found. A MEMO project declares its identity and method '
-            + 'binding in SysML — run `memo init` to scaffold one.'));
+            '❌ No MEMO project found. A project is located by the `entrypoint` in its '
+            + '`memo.package.yaml`, which names the SysML file declaring its identity '
+            + 'and method binding — run `memo init` to scaffold one.'));
         process.exit(1);
     }
 

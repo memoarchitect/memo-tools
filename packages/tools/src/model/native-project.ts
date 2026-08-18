@@ -56,6 +56,12 @@ export const PROJECT_ENTRYPOINT = join('model', 'catalog', 'project.sysml');
  * Resolve the project's required native entrypoint. `entrypoint` is a project locator:
  * it names the SysML file from which project identity and import scope start;
  * it does not contribute any model semantics itself.
+ *
+ * There is NO conventional fallback. A project without an `entrypoint` in its
+ * `memo.package.yaml` is not a project, even if a file happens to sit at
+ * `model/catalog/project.sysml` — that path is a scaffolding default, not a
+ * location the resolver assumes. Callers must report the missing locator
+ * rather than a missing file, because the file is usually there.
  */
 export function projectEntrypoint(projectRoot: string): string | undefined {
     const root = resolve(projectRoot);

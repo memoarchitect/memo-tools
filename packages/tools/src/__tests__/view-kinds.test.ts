@@ -149,7 +149,7 @@ describe('KK-1: deriveModelViews view kinds', () => {
     it('derives the shipped UI screen-region views as geometry', async () => {
         const contentRoot = resolveContentPackageRoot();
         const definitionPath = join(
-            contentRoot, 'src/viewpoints/ui_layout/screen_layout_view/screen_layout_view.sysml',
+            contentRoot, 'src/viewpoints/ui_layout/views/screen_layout_view/screen_layout_view.sysml',
         );
         // Views are nested beneath the viewpoint that governs them, one file
         // per view, so the example's views are read from that tree rather than
@@ -336,7 +336,7 @@ describe('KK-2/KK-3 acceptance: GPCA template views', () => {
 
     it('KK-2: ships a General view whose layoutHint drives the template mode', async () => {
         const diagrams = await deriveGpcaViews();
-        const decomp = diagrams.find(d => d.name === 'GPCA System Decomposition View');
+        const decomp = diagrams.find(d => d.name === 'GPCA_SystemDecompositionView');
         expect(decomp).toBeDefined();
         expect(decomp!.viewKind).toBe('general');
         // The renderer honors this presentation hint as the initial mode
@@ -346,7 +346,7 @@ describe('KK-2/KK-3 acceptance: GPCA template views', () => {
 
     it('KK-3: ships an Interconnection view with parts, ports, and typed connectors declared', async () => {
         const diagrams = await deriveGpcaViews();
-        const interconnect = diagrams.find(d => d.name === 'GPCA Device Interconnect View');
+        const interconnect = diagrams.find(d => d.name === 'GPCA_DeviceInterconnectView');
         expect(interconnect).toBeDefined();
         expect(interconnect!.viewKind).toBe('interconnection');
         // `flow` carries what moves and `bind` carries port delegation; both
@@ -359,7 +359,7 @@ describe('KK-2/KK-3 acceptance: GPCA template views', () => {
 
     it('KK-4: ships an Action Flow view selecting the infusion delivery actions', async () => {
         const diagrams = await deriveGpcaViews();
-        const actionFlow = diagrams.find(d => d.name === 'GPCA Infusion Delivery Action Flow');
+        const actionFlow = diagrams.find(d => d.name === 'GPCA_InfusionDeliveryActionFlowView');
         expect(actionFlow).toBeDefined();
         expect(actionFlow!.viewKind).toBe('actionflow');
         expect(actionFlow!.diagramType).toBe('afd');
@@ -367,7 +367,7 @@ describe('KK-2/KK-3 acceptance: GPCA template views', () => {
 
     it('KK-8: ships a Browser view over the functions layer (declared kind, no legacy diagramType)', async () => {
         const diagrams = await deriveGpcaViews();
-        const browser = diagrams.find(d => d.name === 'GPCA Function Browser');
+        const browser = diagrams.find(d => d.name === 'GPCA_FunctionBrowserView');
         expect(browser).toBeDefined();
         expect(browser!.viewKind).toBe('browser');
     });

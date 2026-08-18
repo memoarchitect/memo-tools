@@ -108,6 +108,7 @@ import type {
 import type { ParsedDocument } from './parser-utils.js';
 import { PackageRegistry } from './package-registry.js';
 import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
+import { identityKey, priorShortIds } from './identity-registry.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
 import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } from './relationship-registry.js';
@@ -371,15 +372,31 @@ export function buildMemoModel(
         prefixElements.push(element);
         elementsByPrefix.set(prefix, prefixElements);
     }
+    // Identities assigned on earlier builds win. Both of these are quoted
+    // outside the model, so recomputing them from current content — which is
+    // what happened before `memo.identity.yaml` — silently repointed every
+    // external reference whenever a file moved or an element was inserted.
+    const priorIdentities = config.priorIdentities ?? {};
+    const priorShortIdsByElement = priorShortIds(priorIdentities);
     for (const [prefix, prefixElements] of elementsByPrefix) {
-        const idToShortId = assignSequentialShortIds(prefix, prefixElements.map(e => e.id));
+        const idToShortId = assignSequentialShortIds(
+            prefix,
+            prefixElements.map(e => e.id),
+            priorShortIdsByElement,
+        );
         for (const el of prefixElements) {
             (el as MemoElement).shortId = idToShortId.get(el.id);
             // `uuid` is part of the ontology's identification core, so a model
             // may author it. An authored value wins: it is the whole point of
             // writing one — the element keeps its identity across a file move
             // or an id change, which the derived hash cannot survive.
-            (el as MemoElement).uuid = el.attributes.uuid?.trim() || stableElementUuid(el);
+            // Precedence: an authored uuid, then the one this project already
+            // assigned, then a fresh derivation. The middle term is what makes a
+            // uuid survive a file move — the derivation hashes the file path, so
+            // without it the same element gets a new identity when it moves.
+            (el as MemoElement).uuid = el.attributes.uuid?.trim()
+                || priorIdentities[identityKey(el)]?.uuid
+                || stableElementUuid(el);
         }
     }
 
@@ -1321,7 +1338,9 @@ function resolveConnection(
 
     // A named connection usage carries its own stable ID; anonymous ones fall
     // back to a positional counter that shifts whenever the file changes.
-    const attributes = { ...extractAttributes(conn.body), ...extractRelationshipMetadata(conn.body) };
+    // `extractAttributes` lifts metadata applications itself now, so the
+    // connection path no longer needs its own second pass.
+    const attributes = extractAttributes(conn.body);
     const rel: MemoRelationship = {
         id: conn.name || `rel-${++relationshipCounter}`,
         type: normalizedType,
@@ -1471,7 +1490,13 @@ function resolveFlowConnection(
 
 /**
  * Resolve a succession usage into pairs of MemoRelationships.
- * "first start then A then B then done" → (start→A), (A→B), (B→done)
+ * "first A then B" → (A→B).
+ *
+ * The grammar admits exactly one `then` per statement, matching KerML
+ * `SuccessionDeclaration` (:845), so `steps` is always a pair here. The loop
+ * below is still written over the whole array: it costs nothing, and it keeps
+ * this function correct for the chained input the deferred-succession path at
+ * the call site synthesizes.
  */
 function resolveSuccession(
     succession: SuccessionUsage,
@@ -1970,31 +1995,56 @@ function extractAttributes(body: any[] | undefined): Record<string, string> {
         }
     }
 
+    // Metadata applications last, so an annotation overrides a directly declared
+    // attribute of the same name. That order is what R10-S5 established for
+    // connections and it is preserved here rather than re-litigated: while the
+    // identification core is migrating off the base defs, an element may carry
+    // both spellings, and the annotation is the newer statement of intent.
+    Object.assign(attrs, extractMetadataApplications(body));
+
     return attrs;
 }
 
 /**
- * Read the standard `Rationale`/`StatusInfo` metadata (ModelingMetadata.sysml)
- * off a connection usage's body into the same flat attribute keys the deleted
- * `MemoRelationship.rationale`/`.status` used to occupy (R10-S5, 2026-08-13).
- *
- * `extractAttributes` only walks `AttributeMember`/`RefMember`/
- * `MetadataFeatureMember`; a `MetadataApplication` in a usage body (the `@Foo
- * {...}` form) is invisible to it, so without this a `@Rationale`/`@StatusInfo`
- * annotation would parse and silently vanish from the model — the same
- * BindingUsage/ExposeMember shape this epic exists to stop repeating.
+ * Standard metadata whose field name differs from the flat key MEMO reads.
+ * Everything else lifts under its own field name, which is what makes one
+ * `metadata def` usable as a carrier for any element.
  */
-function extractRelationshipMetadata(body: any[] | undefined): Record<string, string> {
+const METADATA_KEY_ALIASES: Record<string, Record<string, string>> = {
+    Rationale: { text: 'rationale' },
+};
+
+/**
+ * Lift every `@Foo { ... }` metadata application in a body into the flat
+ * attribute map, under each field's own name.
+ *
+ * `extractAttributes`'s member walk covers `AttributeMember`/`RefMember`/
+ * `MetadataFeatureMember`; a `MetadataApplication` is a different node type and
+ * is invisible to it, so without this an annotation parses cleanly in both
+ * parsers and then silently vanishes from the model — the BindingUsage /
+ * ExposeMember / untyped-flow shape this codebase has already hit three times.
+ *
+ * This started (R10-S5, 2026-08-13) as a connection-only reader hardcoded to
+ * `Rationale.text` and `StatusInfo.status`, because those were the two base-type
+ * attributes being deleted at the time. It is general now for one reason: a
+ * `metadata def` is the only carrier in SysML v2 that attaches to ANY metaclass,
+ * so it is how MEMO can hold common fields (`id`, `uuid`, `sourceReference`, …)
+ * without re-declaring them per metaclass. A carrier the builder cannot read is
+ * not a carrier, so the reader has to be as general as the mechanism.
+ *
+ * Fields lift under their own names; `METADATA_KEY_ALIASES` covers the standard
+ * definitions whose field name differs from the key MEMO reads.
+ */
+function extractMetadataApplications(body: any[] | undefined): Record<string, string> {
     if (!body) return {};
     const attrs: Record<string, string> = {};
     for (const member of body) {
         if (member.$type !== 'MetadataApplication') continue;
-        const metadataType = (member.type as string | undefined)?.split('::').pop();
-        const fields = extractAttributes(member.body);
-        if (metadataType === 'Rationale' && fields.text) {
-            attrs.rationale = fields.text;
-        } else if (metadataType === 'StatusInfo' && fields.status) {
-            attrs.status = fields.status;
+        const metadataType = (member.type as string | undefined)?.split('::').pop() ?? '';
+        const aliases = METADATA_KEY_ALIASES[metadataType] ?? {};
+        for (const [field, value] of Object.entries(extractAttributes(member.body))) {
+            if (value === '') continue;
+            attrs[aliases[field] ?? field] = value;
         }
     }
     return attrs;

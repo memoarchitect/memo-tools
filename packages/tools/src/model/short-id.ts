@@ -118,9 +118,27 @@ export function prefixToFamily(prefix: string): string {
 /**
  * Assign sequential short IDs to a group of elements sharing one prefix.
  *
- * Elements are sorted by their SysML id (lexicographic) for a deterministic,
- * stable order — adding a new element appends it at its sort position, and
- * deleting one does not renumber the survivors.
+ * A short ID is a traceability handle: once an element has one it keeps it, and
+ * a number belonging to a deleted element is never handed to a different one.
+ * So assignment is MONOTONIC, not positional — a new element takes the next
+ * free number, and neither adding nor deleting renumbers anything that already
+ * had an ID.
+ *
+ * `prior` carries the assignments made on earlier runs, including entries for
+ * elements that have since been deleted: those set the high-water mark and are
+ * what stops a retired number being reused. Called without it, every element is
+ * new and numbering starts at 1.
+ *
+ * This function used to sort lexicographically and number by position, which
+ * renumbered on every insert — `bravo` moved REQ-1 → REQ-2 the moment an
+ * `alpha` appeared, and deleting shifted the survivors back. The doc comment
+ * already claimed the behaviour implemented here; the code did not match it,
+ * and MCP, the LLM tools and the constraint evaluator were all reading the
+ * unstable value.
+ *
+ * There is no renumbering, by design. Numbers only ever go up and gaps are
+ * expected — a gap is the record that something was deleted, and closing it
+ * would repoint every external reference to the numbers above it.
  *
  * Format: {PREFIX}-{n}  e.g. "HZD-1", "HZD-2", "OPR-1", "OPR-2"
  *
@@ -129,12 +147,37 @@ export function prefixToFamily(prefix: string): string {
 export function assignSequentialShortIds(
     prefix: string,
     elementIds: string[],
+    prior?: ReadonlyMap<string, string> | Record<string, string>,
 ): Map<string, string> {
-    const sorted = [...elementIds].sort((a, b) => a.localeCompare(b));
+    const priorEntries: Iterable<[string, string]> = prior instanceof Map
+        ? prior.entries()
+        : Object.entries(prior ?? {});
+
     const out = new Map<string, string>();
-    for (let i = 0; i < sorted.length; i++) {
-        out.set(sorted[i], `${prefix}-${i + 1}`);
+    const carried = new Map<string, string>();
+    let highWater = 0;
+
+    // Every prior assignment in this prefix family raises the high-water mark,
+    // including one whose element is gone — that is what retires the number.
+    for (const [id, shortId] of priorEntries) {
+        const parsed = parseShortId(shortId);
+        if (!parsed || parsed.prefix !== prefix) continue;
+        highWater = Math.max(highWater, parsed.seq);
+        carried.set(id, shortId);
     }
+
+    for (const id of elementIds) {
+        const existing = carried.get(id);
+        if (existing) out.set(id, existing);
+    }
+
+    // Newcomers take the next free numbers. Sorted only so that several
+    // elements added between two runs are numbered deterministically.
+    const unassigned = elementIds.filter(id => !out.has(id)).sort((a, b) => a.localeCompare(b));
+    for (const id of unassigned) {
+        out.set(id, `${prefix}-${++highWater}`);
+    }
+
     return out;
 }
 

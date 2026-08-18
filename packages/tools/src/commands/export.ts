@@ -32,7 +32,7 @@ async function resolveForExport(cwd: string) {
     const projectRoot = findProjectRoot(cwd);
     if (!projectRoot) {
         console.error(chalk.red(
-            '❌ No model/catalog/project.sysml found. Run `memo init` to scaffold one.'));
+            '❌ No MEMO project found. A project is located by the `entrypoint` in its `memo.package.yaml` — run `memo init` to scaffold one.'));
         process.exit(1);
     }
     const config = loadProjectSettings(projectRoot);

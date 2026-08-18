@@ -7,6 +7,8 @@
 import { resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
+import { identityKey, writeIdentityRegistry } from '../model/identity-registry.js';
+import type { IdentityRegistry } from '../model/identity-registry.js';
 import {
     buildMemoModel,
     loadOntologyRegistries,
@@ -46,8 +48,9 @@ export async function validateCommand(
     const projectRoot = findProjectRoot(cwd);
     if (!projectRoot) {
         console.error(chalk.red(
-            '❌ No model/catalog/project.sysml found. A MEMO project declares its identity and method '
-            + 'binding in SysML — run `memo init` to scaffold one.'));
+            '❌ No MEMO project found. A project is located by the `entrypoint` in its '
+            + '`memo.package.yaml`, which names the SysML file declaring its identity '
+            + 'and method binding — run `memo init` to scaffold one.'));
         process.exit(1);
     }
     console.log(chalk.gray(`Project root: ${projectRoot}`));
@@ -144,6 +147,21 @@ export async function validateCommand(
     // 5. Build model
     const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
+
+    // Record the identities this build assigned. `validate` is the command that
+    // runs most, so it is where a project first acquires memo.identity.yaml;
+    // without this the registry would only appear on a pack or an Architect
+    // build, and every validate in between would re-mint identities.
+    try {
+        const assigned: IdentityRegistry = {};
+        for (const el of model.elements.values()) {
+            if (!el.shortId && !el.uuid) continue;
+            assigned[identityKey(el)] = { shortId: el.shortId, uuid: el.uuid };
+        }
+        writeIdentityRegistry(projectRoot, assigned, config.priorIdentities ?? {});
+    } catch {
+        // A read-only checkout still validates; it just cannot record identities.
+    }
 
     // 6. Validate — native ontology constraints (constraint def bodies) + structural checks.
     //    Constraint defs live in the ontology packages (parsed by loadOntologyRegistries),

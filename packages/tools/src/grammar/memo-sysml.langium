@@ -310,7 +310,8 @@ UsageMember:
     | InterfaceUsage
     | ActionUsage
     | PortUsage
-    | ViewUsage;
+    | ViewUsage
+    | ViewpointUsage;
 
 PartUsage:
     isVariation?='variation'? 'part' name=ID (':' type=QualifiedName multiplicity=Multiplicity?)?
@@ -400,6 +401,15 @@ PortUsage:
 ViewUsage:
     'view' name=ID (':' type=QualifiedName)?
     ('{' body+=ViewBodyMember* '}' | ';');
+
+// `ViewpointUsage = OccurrenceUsagePrefix 'viewpoint' ConstraintUsageDeclaration
+// RequirementBody` (SysML :1640). The definition form was here and the usage
+// form was not, so `viewpoint vpModelContent : MemoViewpoint { … }` could not
+// parse — and that is how the ontology's whole viewpoint catalog is written.
+// Same definition/usage pairing as ViewDefinition/ViewUsage above.
+ViewpointUsage:
+    'viewpoint' name=ID (':' type=QualifiedName)?
+    ('{' body+=UsageBodyMember* '}' | ';');
 
 ViewBodyMember:
     UsageBodyMember | ExposeMember;
@@ -517,8 +527,17 @@ DottedNameSegment returns string:
 // ─── Behavior: Succession usage ─────────────────────────────────────────────
 // Syntax: first start then action1 then action2 then done ;
 
+// KerML `SuccessionDeclaration` (:845) is
+//   ( 'first' ConnectorEndMember 'then' ConnectorEndMember )?
+// — exactly ONE `then`. A chain is written as consecutive pairwise statements,
+// `first a then b; first b then c;`, which is how every succession in the
+// ontology and its examples is already written.
+//
+// This used to be `('then' …)+`, which accepted `first a then b then c;`. That
+// is not valid SysML and SysIDE — the compiler of record — rejects it, so the
+// permissive form let a model parse here and fail the gate that matters.
 SuccessionUsage:
-    'succession'? 'first' steps+=SuccessionStep ('then' steps+=SuccessionStep)+ ';';
+    'succession'? 'first' steps+=SuccessionStep 'then' steps+=SuccessionStep ';';
 
 SuccessionStep:
     ref=SuccessionRef ('if' guard=OrExpr)?;
@@ -631,7 +650,14 @@ ExhibitStateUsage:
 // That is what memo-native-requirement-relations decision 1 remodels 61 of 99
 // VerifiedBy links onto, and it is also what makes that training file parse.
 SubjectMember:
-    'subject' name=MemberName (':' type=QualifiedName multiplicity=Multiplicity?)?
+    // `redefines?` comes BEFORE the name, as in RefMember and AttributeMember.
+    // Without it, `subject :>> supportingSystem = X;` — an unnamed usage that
+    // redefines an inherited subject — cannot parse, because `name` was
+    // mandatory. `Identification` (KerML :152) makes BOTH name parts optional,
+    // so the unnamed redefining form is well-formed SysML and SysIDE accepts
+    // it. Any UseCase specialization that binds the inherited
+    // `subject supportingSystem` hits this.
+    'subject' (redefines?=(':>>' | 'redefines'))? name=MemberName (':' type=QualifiedName multiplicity=Multiplicity?)?
     (bindingOp=('=' | ':>' | ':>>')
         ('(' boundRefs+=ReferenceName (',' boundRefs+=ReferenceName)* ')'
         | boundRefs+=ReferenceName))?
@@ -737,7 +763,7 @@ ReferenceName returns string:
 // ─── Body members ────────────────────────────────────────────────────────────
 
 DefinitionBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | RefMember | FeatureMembershipMember | RequireConstraintMember | RequirementVerificationMember | ArcadiaMember | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | ViewpointUsage | RefMember | FeatureMembershipMember | RequireConstraintMember | RequirementVerificationMember | ArcadiaMember | MetadataApplication | DocComment;
 
 // The fourteen native mechanisms, gathered once so both body rules stay
 // readable and neither can drift out of step with the other.
@@ -803,7 +829,7 @@ PrimaryExpr infers ConstraintExpr:
 // here: it already arrives through ArcadiaMember, and naming it twice makes
 // the alternation ambiguous.
 UsageBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | StateUsage | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | ViewpointUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | StateUsage | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
 // Three forms:

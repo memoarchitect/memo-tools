@@ -317,17 +317,30 @@ export async function initCommand(name: string | undefined, options: InitOptions
     for (const semanticField of ['extends', 'type', 'usage', 'methodology', 'ontologies', 'modules']) {
         delete descriptor[semanticField];
     }
-    writeFileSync(configPath, stringifyYaml(descriptor, { lineWidth: 0 }));
 
-    const entrypoint = resolve(target.projectDir, 'model', 'catalog', 'project.sysml');
-    if (!existsSync(entrypoint)) {
+    // The `entrypoint` locator is written here rather than inherited from
+    // whatever the template's descriptor happened to carry. There is no
+    // conventional fallback any more, so a template that omitted the locator
+    // would scaffold a directory no MEMO command can resolve — the failure
+    // would surface much later, as "no project found" next to a file that is
+    // plainly present. A template MAY still choose its own location (a project
+    // rooted at `src/project.sysml`); that choice is respected and only the
+    // default is filled in.
+    const entrypointRel = typeof descriptor.entrypoint === 'string' && descriptor.entrypoint.trim()
+        ? descriptor.entrypoint.trim()
+        : 'model/catalog/project.sysml';
+    descriptor.entrypoint = entrypointRel;
+
+    if (!existsSync(resolve(target.projectDir, entrypointRel))) {
         console.error(chalk.red(
-            `❌ Template "${templateId}" produced no model/catalog/project.sysml. `
+            `❌ Template "${templateId}" produced no ${entrypointRel}. `
             + `A MEMO project's identity and method binding are SysML — a template without an `
             + `entrypoint cannot express either.`));
         process.exit(1);
     }
-    console.log(chalk.gray(`  Native entrypoint: model/catalog/project.sysml (methodology from ${ontology})`));
+
+    writeFileSync(configPath, stringifyYaml(descriptor, { lineWidth: 0 }));
+    console.log(chalk.gray(`  Native entrypoint: ${entrypointRel} (methodology from ${ontology})`));
 
     if (options.install !== false) {
         try {

@@ -138,6 +138,26 @@ describe('ARCADIA native mechanisms — grammar', () => {
         `);
     });
 
+    it('subject: the unnamed redefining form binds an inherited subject', async () => {
+        // `Identification` (KerML :152) makes both name parts optional, so an
+        // unnamed usage that redefines an inherited feature is well-formed and
+        // SysIDE accepts it. `SubjectMember` required a name, so a use case
+        // binding the `subject supportingSystem` it inherits could not parse —
+        // and every MEMO `UseCase` inherits exactly that feature.
+        await parses(`
+            package P {
+                part def Device;
+                use case def BaseCase {
+                    subject supportingSystem : Device[0..1];
+                }
+                part theDevice : Device;
+                use case concreteCase : BaseCase {
+                    subject :>> supportingSystem = theDevice;
+                }
+            }
+        `);
+    });
+
     it('actor, stakeholder, concern, frame', async () => {
         await parses(`
             package P {
@@ -468,6 +488,52 @@ describe('ARCADIA native mechanisms — builder projection', () => {
         // model (`RequirementKind::software`, not `software`) — StatusKind
         // follows the same convention.
         expect(rel.attributes?.status).toBe('StatusKind::closed');
+    });
+
+    it('metadata lifts on any element, not just connections, under its own field names', async () => {
+        // A `metadata def` is the only carrier in SysML v2 that attaches to any
+        // metaclass, so it is how MEMO can hold common fields without
+        // re-declaring an identification core per metaclass. The reader was
+        // connection-only and hardcoded to two names, which meant a `@Foo` on a
+        // part parsed cleanly in both parsers and then vanished from the model.
+        const doc = await parseDoc(`
+            package Test {
+                metadata def MemoIdentity {
+                    attribute id : String;
+                    attribute sourceReference : String[0..1];
+                }
+                part pump : LogicalComponent {
+                    @MemoIdentity { :>> id = "PRT-001"; :>> sourceReference = "CITE-003"; }
+                }
+                action measure : SystemFunction {
+                    @MemoIdentity { :>> id = "ACT-001"; }
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], config);
+        const pump = model.elements.get('pump');
+        expect(pump?.attributes?.id).toBe('PRT-001');
+        expect(pump?.attributes?.sourceReference).toBe('CITE-003');
+        // Behaviours too — the metaclass the base-class carrier could not reach.
+        expect(model.elements.get('measure')?.attributes?.id).toBe('ACT-001');
+    });
+
+    it('a metadata application overrides a directly declared attribute of the same name', async () => {
+        // Order matters while the identification core migrates off the base
+        // defs: an element may carry both spellings, and the annotation is the
+        // newer statement of intent. R10-S5 established this order for
+        // connections; it is preserved rather than re-litigated.
+        const doc = await parseDoc(`
+            package Test {
+                metadata def MemoIdentity { attribute id : String; }
+                part pump : LogicalComponent {
+                    attribute :>> id = "OLD-001";
+                    @MemoIdentity { :>> id = "NEW-001"; }
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], config);
+        expect(model.elements.get('pump')?.attributes?.id).toBe('NEW-001');
     });
 
     it('a bare dependency claims no realization, only the generic edge', async () => {

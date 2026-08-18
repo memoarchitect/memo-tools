@@ -16,6 +16,7 @@
 
 import { existsSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
+import { readIdentityRegistry } from './identity-registry.js';
 import type { MEMOConfig } from './config.js';
 import { CONFIG_SEARCH_ORDER, readManifest } from './package-manifest.js';
 
@@ -75,5 +76,10 @@ export function defaultConfig(projectName: string): MEMOConfig {
  */
 export function loadProjectSettings(projectRoot: string): MEMOConfig {
     const path = findConfigFile(projectRoot);
-    return path ? loadConfig(path) : defaultConfig(basename(resolve(projectRoot)));
+    const config = path ? loadConfig(path) : defaultConfig(basename(resolve(projectRoot)));
+    // Identities assigned on earlier builds. Attached here rather than at each
+    // of the eight `buildMemoModel` call sites, so a command cannot forget it
+    // and silently re-mint every shortId and uuid.
+    config.priorIdentities = readIdentityRegistry(resolve(projectRoot));
+    return config;
 }
