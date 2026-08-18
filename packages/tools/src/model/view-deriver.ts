@@ -171,7 +171,8 @@ export function resolveViewElementIds(
     for (const reference of explicitIdList) {
         const direct = model.elements.get(reference);
         if (direct) { ids.add(direct.id); continue; }
-        const authored = [...model.elements.values()].find(element => element.attributes.id === reference);
+        const authored = [...model.elements.values()].find(
+            element => (element.attributes.providedId || element.attributes.id) === reference);
         if (authored) ids.add(authored.id);
     }
     for (const id of resolveExposeIds(view, model)) ids.add(id);
@@ -199,7 +200,7 @@ function resolveViewpoints(
     return splitList(raw).map(ref => {
         const authored = model.elements.get(ref);
         return {
-            id: authored?.attributes['id'] || ref,
+            id: authored?.attributes['providedId'] || authored?.attributes['id'] || ref,
             label: authored?.attributes['title']
                 || authored?.attributes['name']
                 || `${viewpointLabel(ref)} Viewpoint`,
@@ -330,7 +331,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         diagrams.push({
             id: isRendererSample
                 ? `diag-sample-${el.id}`
-                : el.attributes['id'] || el.id,
+                : el.attributes['providedId'] || el.attributes['id'] || el.id,
             // `name` remains the user-facing title in the transport DTO; the
             // stable authored ID above owns routing and persistence.
             name: el.attributes['title'] || el.attributes['name'] || el.name,

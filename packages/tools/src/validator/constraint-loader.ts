@@ -92,7 +92,7 @@ function walk(
         } catch (error) {
             diagnostics?.push({
                 kind: 'compile-failed',
-                ruleId: extractAttributes(node.body ?? [])['id'] ?? '(unknown)',
+                ruleId: authoredId(extractAttributes(node.body ?? [])) ?? '(unknown)',
                 file,
                 message: error instanceof Error ? error.message : String(error),
             });
@@ -107,10 +107,24 @@ function mapTailoring(raw?: string): 'invariant' | 'assurance' | 'methodology' {
     return raw === 'invariant' || raw === 'methodology' ? raw : 'assurance';
 }
 
+
+/**
+ * The authored identifier of a definition.
+ *
+ * `providedId` is where hand-authored ids live since the identification core
+ * moved onto `@MemoIdentity`; `id` is the pre-migration spelling and is still
+ * read so a project on the older ontology keeps working. A rule with neither
+ * does not compile — silently, which is why this is one function and not an
+ * inline lookup repeated at each call site.
+ */
+function authoredId(attrs: Record<string, string>): string | undefined {
+    return attrs['providedId'] || attrs['id'] || undefined;
+}
+
 function tryCompile(def: any, file?: string): CompiledConstraint | undefined {
     const body: any[] = def.body ?? [];
     const attrs = extractAttributes(body);
-    const id = attrs['id'];
+    const id = authoredId(attrs);
     if (!id) return undefined;
 
     // The boolean body: first require/assert constraint member.
@@ -159,11 +173,32 @@ function parseScope(scope: string): { kind: string; attribute?: string; value?: 
     return { kind: match[1], attribute: match[2], value: match[3] };
 }
 
+/**
+ * The rule loader's own attribute reader.
+ *
+ * Deliberately separate from the builder's: rules are compiled before a model
+ * exists, so this walks the raw AST. It must stay in step with the builder on
+ * one point — a `MetadataApplication` (`@Foo { … }`) is a different node type
+ * from an `AttributeMember`, so a reader that only walks the latter sees
+ * nothing on an annotated definition. That is how every A0 rule silently
+ * stopped compiling when the authored ids moved onto `@MemoIdentity`:
+ * `tryCompile` returns undefined without an id, the rule is skipped, and the
+ * engine enforces nothing while the suite stays green.
+ */
 function extractAttributes(body: any[]): Record<string, string> {
     const attrs: Record<string, string> = {};
     for (const member of body) {
         if (member.$type === 'AttributeMember' && member.value) {
             attrs[member.name] = extractValue(member.value);
+        }
+    }
+    // Metadata last, so an annotation wins over a directly declared attribute
+    // of the same name — the precedence the builder uses.
+    for (const member of body) {
+        if (member.$type !== 'MetadataApplication') continue;
+        for (const field of member.body ?? []) {
+            if (!field?.name || !field.value) continue;
+            attrs[field.name] = extractValue(field.value);
         }
     }
     return attrs;
