@@ -281,7 +281,7 @@ describe('MEMO ontology relationship properties', () => {
     //   DerivesFrom         — target may be a Need, which is a requirement def.
     //   SatisfiedBy         — A0: satisfied by a component, a port, a behaviour, or an actor.
     //   VerifiedBy          — A0: most verification targets are requirement defs, not parts.
-    //   AllocatedTo         — A0: a function is a behaviour; an actor is not an ArchitectureElement.
+    //   AllocatedTo         — A0: a function is a behaviour; an actor is a MemoPart.
     //   Composes            — A0: a component owns ports, a workflow owns action steps.
     //   Performs            — A0: the performer may be a system action, as its own doc said.
     //   Enables             — A0: an enabling function is a behaviour.

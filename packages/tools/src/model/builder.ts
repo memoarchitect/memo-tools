@@ -385,7 +385,7 @@ export function buildMemoModel(
 
     // Phase 4: Validate relationship end types (warnings only).
     // A kind conforms to an end type if it equals it or specializes it
-    // (transitively) — e.g. HardwareAssembly conforms to ArchitectureElement.
+    // (transitively) — e.g. HardwareAssembly conforms to MemoPart.
     if (registries?.relationshipRegistry) {
         // Same resolver the authoring UI and the server persistence path use,
         // so a link the panel offers is a link the builder accepts.

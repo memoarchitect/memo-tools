@@ -21,18 +21,17 @@ import type { MemoElement, MemoModelDTO, MemoRelationship } from '../model/seman
 // ─── Fixture ontology ───────────────────────────────────────────────────────
 //
 // A miniature of the MEMO shape: an abstract MemoPart root, two abstract
-// mid-tiers, and concrete kinds three levels down, so conformance has a real
+// mid-tier, and concrete kinds three levels down, so conformance has a real
 // chain to walk rather than a single hop.
 
 const kinds: KindDefinitionDTO[] = [
     { name: 'MemoPart', label: 'Memo Part', layer: 'core', construct: 'part def', isAbstract: true },
-    { name: 'VerifiableElement', label: 'Verifiable Element', layer: 'core', construct: 'part def', superType: 'MemoPart', isAbstract: true },
-    { name: 'ArchitectureElement', label: 'Architecture Element', layer: 'core', construct: 'part def', superType: 'MemoPart', isAbstract: true },
-    // Requirement :> VerifiableElement :> MemoPart
+    { name: 'VerifiableElement', label: 'Verifiable Element', layer: 'core', construct: 'requirement def', isAbstract: true },
+    // Requirement :> VerifiableElement (the requirement metaclass is separate from MemoPart)
     { name: 'Requirement', label: 'Requirement', layer: 'requirements', construct: 'requirement def', superType: 'VerifiableElement' },
     { name: 'SoftwareRequirement', label: 'Software Requirement', layer: 'requirements', construct: 'requirement def', superType: 'Requirement' },
-    // SoftwareComponent :> LogicalComponent :> ArchitectureElement :> MemoPart
-    { name: 'LogicalComponent', label: 'Logical Component', layer: 'logical', construct: 'part def', superType: 'ArchitectureElement' },
+    // SoftwareComponent :> LogicalComponent :> MemoPart
+    { name: 'LogicalComponent', label: 'Logical Component', layer: 'logical', construct: 'part def', superType: 'MemoPart' },
     { name: 'SoftwareComponent', label: 'Software Component', layer: 'software', construct: 'part def', superType: 'LogicalComponent' },
     { name: 'VerificationCase', label: 'Verification Case', layer: 'verification', construct: 'verification def', superType: 'VerifiableElement' },
     // Deliberately outside both mid-tiers — conforms only to MemoPart.
@@ -49,12 +48,12 @@ const registries: OntologyRegistriesDTO = {
             targetEnd: { name: 'to', type: 'MemoPart' },
         },
         {
-            // Architecture element satisfies a requirement — the element can only
+            // A MEMO part satisfies a requirement — the element can only
             // ever be the source here.
             name: 'satisfiedBy', sysmlName: 'SatisfiedBy', label: 'Satisfied By',
             layer: 'requirements',
             description: 'A design element satisfies a requirement.',
-            sourceEnd: { name: 'satisfyingElement', type: 'ArchitectureElement' },
+            sourceEnd: { name: 'satisfyingElement', type: 'MemoPart' },
             targetEnd: { name: 'requiredElement', type: 'VerifiableElement' },
         },
         {
@@ -74,7 +73,7 @@ const registries: OntologyRegistriesDTO = {
             // A requirement may have at most one owner.
             name: 'ownedBy', sysmlName: 'OwnedBy', label: 'Owned By',
             layer: 'requirements',
-            sourceEnd: { name: 'owner', type: 'ArchitectureElement', multiplicity: { lower: 0, upper: 1 } },
+            sourceEnd: { name: 'owner', type: 'MemoPart', multiplicity: { lower: 0, upper: 1 } },
             targetEnd: { name: 'ownedRequirement', type: 'Requirement' },
         },
         {
@@ -151,15 +150,14 @@ describe('kindConformsTo', () => {
     });
 
     it('matches through transitive specialization', () => {
-        // SoftwareComponent :> LogicalComponent :> ArchitectureElement :> MemoPart
+        // SoftwareComponent :> LogicalComponent :> MemoPart
         expect(kindConformsTo('SoftwareComponent', 'LogicalComponent', kinds)).toBe(true);
-        expect(kindConformsTo('SoftwareComponent', 'ArchitectureElement', kinds)).toBe(true);
         expect(kindConformsTo('SoftwareComponent', 'MemoPart', kinds)).toBe(true);
     });
 
     it('rejects a kind from a sibling branch', () => {
         expect(kindConformsTo('SoftwareComponent', 'VerifiableElement', kinds)).toBe(false);
-        expect(kindConformsTo('OperationalActivity', 'ArchitectureElement', kinds)).toBe(false);
+        expect(kindConformsTo('OperationalActivity', 'LogicalComponent', kinds)).toBe(false);
     });
 
     it('does not match in the wrong direction along the chain', () => {
@@ -184,13 +182,13 @@ describe('kindConformsTo', () => {
 
 describe('legalRelationshipDirections', () => {
     it('offers only outgoing when the element fits the source end alone', () => {
-        // SoftwareComponent is an ArchitectureElement but not a VerifiableElement.
+        // SoftwareComponent is a MemoPart but not a VerifiableElement.
         const satisfiedBy = findRelationshipDefinition('satisfiedBy', registries)!;
         expect(legalRelationshipDirections(controller, satisfiedBy, registries)).toEqual(['outgoing']);
     });
 
     it('offers only incoming when the element fits the target end alone', () => {
-        // SoftwareRequirement is a VerifiableElement but not an ArchitectureElement.
+        // SoftwareRequirement is a VerifiableElement but not a LogicalComponent.
         const satisfiedBy = findRelationshipDefinition('satisfiedBy', registries)!;
         expect(legalRelationshipDirections(requirement, satisfiedBy, registries)).toEqual(['incoming']);
     });
@@ -219,7 +217,7 @@ describe('legalRelationshipTypes', () => {
         const options = legalRelationshipTypes(controller, requirement, registries);
         const names = options.map(o => o.definition.name);
         expect(names).toContain('satisfiedBy');
-        expect(names).toContain('tracesTo');
+        expect(names).not.toContain('tracesTo');
         // A requirement is not a VerificationCase, so verifiedBy cannot apply
         // with the requirement on the target end.
         expect(names).not.toContain('verifiedBy');
@@ -237,7 +235,7 @@ describe('legalRelationshipTypes', () => {
         const options = legalRelationshipTypes(requirement, controller, registries);
         const satisfies = options.find(o => o.definition.name === 'satisfiedBy')!;
         expect(satisfies.direction).toBe('incoming');
-        // The architecture element still ends up on the satisfying end.
+        // The MemoPart still ends up on the satisfying end.
         expect(satisfies.sourceId).toBe(controller.id);
         expect(satisfies.targetId).toBe(requirement.id);
     });
@@ -247,7 +245,7 @@ describe('legalRelationshipTypes', () => {
         // relations only those with MemoPart source ends can apply.
         const options = legalRelationshipTypes(activity, verification, typedOnly);
         const outgoing = options.filter(o => o.direction === 'outgoing');
-        expect(outgoing.map(o => o.definition.name).sort()).toEqual(['tracesTo', 'verifiedBy']);
+        expect(outgoing.map(o => o.definition.name).sort()).toEqual(['satisfiedBy', 'verifiedBy']);
     });
 
     it('returns nothing when no relationship can join the two kinds', () => {
@@ -255,7 +253,7 @@ describe('legalRelationshipTypes', () => {
             kinds,
             relationships: [findRelationshipDefinition('satisfiedBy', registries)!],
         };
-        // Two architecture elements: neither can occupy the requirement end.
+        // Two MEMO parts: neither can occupy the native requirement end.
         const other = element('pumpDriver', 'SoftwareComponent');
         expect(legalRelationshipTypes(controller, other, isolated)).toEqual([]);
     });
@@ -356,7 +354,7 @@ describe('compatibleRelationshipTargets', () => {
     it('offers source-end candidates when the direction is incoming', () => {
         const satisfiedBy = findRelationshipDefinition('satisfiedBy', registries)!;
         const targets = compatibleRelationshipTargets(requirement, satisfiedBy, 'incoming', model, registries);
-        expect(targets.map(t => t.element.id)).toEqual(['infusionController']);
+        expect(targets.map(t => t.element.id).sort()).toEqual(['infusionController', 'opAdministerDose']);
     });
 
     it('never offers the selected element itself', () => {
@@ -383,25 +381,25 @@ describe('compatibleRelationshipTargets', () => {
     });
 
     it('filters by name, kind, layer and package', () => {
-        const tracesTo = findRelationshipDefinition('tracesTo', registries)!;
-        const byQuery = compatibleRelationshipTargets(controller, tracesTo, 'outgoing', model, registries, { query: 'sr-104' });
+        const memoLink = findRelationshipDefinition('memoLink', registries)!;
+        const byQuery = compatibleRelationshipTargets(controller, memoLink, 'outgoing', model, registries, { query: 'sr-104' });
         expect(byQuery.map(t => t.element.id)).toEqual(['SR104']);
 
-        const byKind = compatibleRelationshipTargets(controller, tracesTo, 'outgoing', model, registries, { kind: 'VerificationCase' });
+        const byKind = compatibleRelationshipTargets(controller, memoLink, 'outgoing', model, registries, { kind: 'VerificationCase' });
         expect(byKind.map(t => t.element.id)).toEqual(['vcDoseLimit']);
 
-        const byLayer = compatibleRelationshipTargets(controller, tracesTo, 'outgoing', model, registries, { layer: 'operational' });
+        const byLayer = compatibleRelationshipTargets(controller, memoLink, 'outgoing', model, registries, { layer: 'operational' });
         expect(byLayer.map(t => t.element.id)).toEqual(['opAdministerDose']);
 
-        const byPackage = compatibleRelationshipTargets(controller, tracesTo, 'outgoing', model, registries, { package: 'Operations' });
+        const byPackage = compatibleRelationshipTargets(controller, memoLink, 'outgoing', model, registries, { package: 'Operations' });
         expect(byPackage.map(t => t.element.id)).toEqual(['opAdministerDose']);
     });
 
     it('matches a query against the ID and short ID as well as the name', () => {
         const withShortId = element('sr200', 'SoftwareRequirement', { name: 'Alarm limit', shortId: 'SW-REQ-4291' });
         const searchModel = modelWith([controller, withShortId]);
-        const tracesTo = findRelationshipDefinition('tracesTo', registries)!;
-        expect(compatibleRelationshipTargets(controller, tracesTo, 'outgoing', searchModel, registries, { query: 'SW-REQ-4291' })
+        const memoLink = findRelationshipDefinition('memoLink', registries)!;
+        expect(compatibleRelationshipTargets(controller, memoLink, 'outgoing', searchModel, registries, { query: 'SW-REQ-4291' })
             .map(t => t.element.id)).toEqual(['sr200']);
     });
 });
@@ -438,12 +436,12 @@ describe('validateRelationshipMutation', () => {
     });
 
     it('REL-002 rejects an illegal source kind', () => {
-        // An OperationalActivity cannot be the satisfying architecture element.
+        // A native requirement cannot be the satisfying MemoPart.
         const result = validateRelationshipMutation(
-            createRequest({ sourceId: activity.id }), model, registries);
+            createRequest({ sourceId: requirement.id }), model, registries);
         expect(result.valid).toBe(false);
         const diag = result.diagnostics.find(d => d.code === 'REL-002')!;
-        expect(diag.message).toContain('OperationalActivity');
+        expect(diag.message).toContain('SoftwareRequirement');
         expect(diag.message).toContain('satisfyingElement');
     });
 
@@ -484,16 +482,16 @@ describe('validateRelationshipMutation', () => {
             [controller, requirement],
             [relationship('rel_existing', 'satisfiedBy', controller.id, requirement.id)]);
         const result = validateRelationshipMutation(
-            createRequest({ type: 'tracesTo' }), withExisting, registries);
+            createRequest({ type: 'memoLink' }), withExisting, registries);
         expect(result.valid).toBe(true);
     });
 
     it('allows the same type in the opposite direction', () => {
         const withExisting = modelWith(
-            [controller, requirement],
-            [relationship('rel_existing', 'tracesTo', controller.id, requirement.id)]);
+            [controller, element('otherComponent', 'SoftwareComponent')],
+            [relationship('rel_existing', 'tracesTo', controller.id, 'otherComponent')]);
         const result = validateRelationshipMutation(
-            createRequest({ type: 'tracesTo', sourceId: requirement.id, targetId: controller.id }),
+            createRequest({ type: 'tracesTo', sourceId: 'otherComponent', targetId: controller.id }),
             withExisting, registries);
         expect(result.valid).toBe(true);
     });

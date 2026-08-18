@@ -231,7 +231,7 @@ describe('registry: the natives are registered as usages, not connection defs', 
                 connection def SatisfiedBy {
                     doc /* The ontology's own wording. */
                     end requiredElement : MemoRequirementElement;
-                    end satisfyingElement : ArchitectureElement;
+                    end satisfyingElement : MemoPart;
                 }
             }
         `);
@@ -240,7 +240,7 @@ describe('registry: the natives are registered as usages, not connection defs', 
         expect(entry.description).toBe("The ontology's own wording.");
         expect(entry.nativeKeyword).toBe('satisfy');
         expect(entry.ends.map(end => end.type))
-            .toEqual(['MemoRequirementElement', 'ArchitectureElement']);
+            .toEqual(['MemoRequirementElement', 'MemoPart']);
     });
 
     it('carries the keyword through to the client DTO', async () => {

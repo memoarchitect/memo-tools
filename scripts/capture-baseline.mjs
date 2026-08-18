@@ -99,7 +99,7 @@ export const FIXTURES = [
  * SystemFunction → `action def` move and the new ComponentFunction.
  *
  * A function is a behaviour. It was a `part def` only because relation ends
- * were typed on MemoPart/ArchitectureElement and KerML forbids a behaviour from
+ * were typed on part-only bases and KerML forbids a behaviour from
  * specializing a part-based type; Track A0 removed that cause earlier the same
  * day, so the split — and the `action def SystemAction` that existed to carry
  * the behaviour the part could not — is gone.

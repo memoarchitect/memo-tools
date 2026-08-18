@@ -29,7 +29,7 @@ const satisfiedBy: RelationshipDefinitionDTO = {
     sysmlName: 'SatisfiedBy',
     label: 'Satisfied By',
     layer: 'requirements',
-    sourceEnd: { name: 'satisfyingElement', type: 'ArchitectureElement' },
+    sourceEnd: { name: 'satisfyingElement', type: 'MemoPart' },
     targetEnd: { name: 'requiredElement', type: 'VerifiableElement' },
 };
 
