@@ -209,6 +209,20 @@ describe('PartMember subsetting with a value', () => {
     });
 });
 
+describe('RefMember subsetting with a value', () => {
+    it('parses a SysIDE-valid viewpoint binding', async () => {
+        const model = await parseValid(`
+            package p {
+                view architectureDescription : MemoDocumentView {
+                    ref vpLogicalArchitecture :> viewpointDefinition = logicalArchitectureViewpoint;
+                    ref vpSoftware :> viewpointDefinition = softwareViewpoint;
+                }
+            }
+        `);
+        expect(model.members).toHaveLength(1);
+    });
+});
+
 // ─── Basic constructs ────────────────────────────────────────────────────────
 
 describe('Package', () => {

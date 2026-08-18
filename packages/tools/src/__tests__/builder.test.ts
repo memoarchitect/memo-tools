@@ -738,6 +738,21 @@ describe('Port wiring (M-2)', () => {
         expect(model.relationships.filter(r => r.type === 'composes')).toEqual([]);
     });
 
+    it('flattens ref viewpoint bindings onto a view', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                view aView : MemoDocumentView {
+                    ref vpLogical :> viewpointDefinition = logicalArchitectureViewpoint;
+                    ref vpSoftware :> viewpointDefinition = softwareViewpoint;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.elements.get('aView')!.attributes['viewpointDefinition'])
+            .toBe('logicalArchitectureViewpoint,softwareViewpoint');
+    });
+
     // R10-S3: a natively nested part is real containment. It must become its own
     // element with `owner` set — the way a nested port already does — and the
     // builder must synthesize the `composes` edge from the nesting so consumers

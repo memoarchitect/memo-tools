@@ -912,11 +912,20 @@ PartMember:
 //   ref function : SystemFunction[0..1];      (keyword-named reference)
 //   ref item exchangedItem : ExchangeItem;    (item-typed reference payload)
 //   ref :>> definition = syringeDef;          (redefining a reference to a value)
+//   ref vpLogical :> viewpointDefinition = logicalArchitectureViewpoint;
+//                                              (subset a feature and bind its value)
+//
+// The last form is the native spelling used by document views. `ref` is a
+// reference feature, so it must support the same subsetting-and-value shape as
+// `part`; accepting only the latter made the in-browser parser reject SysIDE-
+// valid view declarations at `:>`.
 
 RefMember:
     'ref' (isItem?='item')? (redefines?=':>>')? name=FeatureName
     (':' isConjugated?='~'? type=QualifiedName multiplicity=Multiplicity?)?
-    ('=' value=AttributeValue)?
+    (   (bindingOp=':>' boundRef=QualifiedName ('=' subsetValue=QualifiedName)?)
+      | ('=' value=AttributeValue)
+    )?
     ';';
 
 // ─── Bare feature-membership member ──────────────────────────────────────────

@@ -744,21 +744,21 @@ function extractUsage(
         }
     }
 
-    // Nested part members that are view METADATA, not containment: reference
-    // bindings (`part viewpoint :> vp;`) and the `:>>` redefinition of an
+    // Nested part/reference members that are view METADATA, not containment:
+    // bindings (`part/ref viewpoint :> vp;`) and the `:>>` redefinition of an
     // inherited feature whose body is attributes (`part :>> selectionQuery
     // { ... }`). These are flattened onto the owner as plain / prefixed
     // attributes so SysML-modelled views expose their viewpoint binding and
     // selection-query metadata to consumers. A typed nested part is NOT metadata
     // — it is real containment and is extracted as its own element below.
     for (const member of usage.body || []) {
-        if ((member as any).$type !== 'PartMember') continue;
+        if ((member as any).$type !== 'PartMember' && (member as any).$type !== 'RefMember') continue;
         const pm = member as any;
         if (pm.boundRef && pm.name) {
-            // Two shapes land here. `part viewpointDefinition :> vp;` names the
-            // feature in `name` and the value in `boundRef`. The subsetting
+            // Two shapes land here. `part/ref viewpointDefinition :> vp;` names
+            // the feature in `name` and the value in `boundRef`. The subsetting
             // form for a multi-valued feature —
-            // `part vpLogical :> viewpointDefinition = someViewpoint;` — puts
+            // `part/ref vpLogical :> viewpointDefinition = someViewpoint;` — puts
             // the FEATURE in `boundRef` and the value in `subsetValue`, and its
             // member name is arbitrary. Attribute it to the feature it subsets,
             // or a view governed by three viewpoints would surface as three
