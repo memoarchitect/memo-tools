@@ -1362,9 +1362,11 @@ function resolveConnection(
         id: conn.name || `rel-${++relationshipCounter}`,
         type: normalizedType,
         sourceId,
-        sourceEnd: conn.source.endName,
+        // `connect a to b` omits the end names; the ends are then the inherited
+        // `source`/`target` participants. csv-io already defaults the same way.
+        sourceEnd: conn.source.endName ?? 'source',
         targetId,
-        targetEnd: conn.target.endName,
+        targetEnd: conn.target.endName ?? 'target',
         file: filePath,
         sourceRange: conn.$cstNode
             ? { offset: conn.$cstNode.offset, length: conn.$cstNode.length }
@@ -1856,8 +1858,9 @@ function resolveDependency(
     registry: PackageRegistry,
     allElementIds: Set<string>,
 ): void {
-    const isRefinement = (dependency.prefixMetadata ?? [])
-        .some(annotation => annotation.type?.split('::').pop() === REFINEMENT_METADATA);
+    const prefixes = (dependency.prefixMetadata ?? [])
+        .map(annotation => annotation.type?.split('::').pop());
+    const isRefinement = prefixes.includes(REFINEMENT_METADATA);
 
     const { packageName } = nativeUsageContext(dependency);
     for (const client of dependency.clients ?? []) {

@@ -312,7 +312,7 @@ const DHF_DOCUMENT_TYPE_DECLARATIONS: DhfDocumentTypeDeclaration[] = [
         // clause references. Adding one is what gives it standards back.
         layers: ['ui', 'requirements'],
         relevantKinds: ['UseCase', 'UserActivity', 'UserInterface', 'UsabilityRequirement'],
-        relevantRelationships: ['performs', 'interactsWith', 'satisfies'],
+        relevantRelationships: ['performs', 'connect', 'satisfies'],
         group: 'compliance',
         sections: [
             { id: 'use-specification', title: 'Use Specification', required: true },

@@ -435,8 +435,12 @@ ConnectionUsage:
         '}'
     );
 
+// The end NAME is optional. `connect a to b` is the normative binary-connector
+// shorthand — SysIDE accepts it and, since the compiler of record wins, so must
+// this grammar. Requiring `endName ::>` here rejected every untyped `connect`,
+// which is the form a relation migrated to native `connect` now takes.
 ConnectionEnd:
-    endName=FeatureName '::>' ref=ReferenceName;
+    (endName=FeatureName '::>')? ref=ReferenceName;
 
 // The BASE FEATURE of a connection definition — `abstract connection derivations
 // : Derivation[*];` in the OMG's DerivationConnections. It is not a link; it is

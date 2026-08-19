@@ -33,7 +33,10 @@ const GPCA_PROJECT = resolve(__dirname, '../../../../../memo/examples/gpca-pump'
 /** The rules A0 introduced, in declaration order. */
 const A0_RULES = [
     'CR-ONT-060', 'CR-ONT-061', 'CR-ONT-062', 'CR-ONT-063', 'CR-ONT-064',
-    'CR-ONT-065', 'CR-ONT-066', 'CR-ONT-067', 'CR-ONT-068', 'CR-ONT-069',
+    // CR-ONT-069 is gone: it constrained `enables` source ends, and `Enables`
+    // is now native `dependency`, which the rule cannot select without firing
+    // on every dependency in the model.
+    'CR-ONT-065', 'CR-ONT-066', 'CR-ONT-067', 'CR-ONT-068',
     'CR-ONT-070', 'CR-ONT-071', 'CR-ONT-072', 'CR-ONT-073',
 ];
 
@@ -91,7 +94,6 @@ const VALID_LINKS: RelSpec[] = [
     { type: 'composes', from: 'mod', to: 'port' },              // 065, 066
     { type: 'precedes', from: 'act', to: 'act2' },              // 067
     { type: 'performs', from: 'user', to: 'act' },              // 068
-    { type: 'enables', from: 'mod', to: 'act' },                // 069
     { type: 'bindsToInterface', from: 'port', to: 'iface' },    // 070
     { type: 'crossesTrustBoundary', from: 'boundary', to: 'asset' }, // 071
     // The functional chain: a system function decomposes into a component
@@ -117,7 +119,6 @@ const INVALID_LINKS: Array<{ rule: string; link: RelSpec }> = [
     { rule: 'CR-ONT-066', link: { type: 'composes', from: 'mod', to: 'req' } },
     { rule: 'CR-ONT-067', link: { type: 'precedes', from: 'req', to: 'act' } },
     { rule: 'CR-ONT-068', link: { type: 'performs', from: 'req', to: 'act' } },
-    { rule: 'CR-ONT-069', link: { type: 'enables', from: 'req', to: 'act' } },
     { rule: 'CR-ONT-070', link: { type: 'bindsToInterface', from: 'mod', to: 'iface' } },
     { rule: 'CR-ONT-071', link: { type: 'crossesTrustBoundary', from: 'mod', to: 'asset' } },
     // Containment crossing a family. Each is realization or allocation wearing
@@ -177,7 +178,7 @@ beforeAll(async () => {
 }, 120_000);
 
 describe('Track A0 relation-end rules', () => {
-    it('all sixteen are declared in the ontology', () => {
+    it('all fifteen are declared in the ontology', () => {
         if (!available) return;
         expect([...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES].filter(id => !rules.has(id))).toEqual([]);
     });

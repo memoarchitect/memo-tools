@@ -296,7 +296,7 @@ describe('MEMO ontology relationship properties', () => {
     const UNTYPED_END_EXEMPTIONS = [
         'Mitigates', 'Realizes', 'Validates', 'DerivesFrom', 'Composes',
         'SatisfiedBy', 'VerifiedBy', 'AllocatedTo',
-        'Performs', 'Enables', 'BindsToInterface', 'CrossesTrustBoundary',
+        'Performs', 'BindsToInterface', 'CrossesTrustBoundary',
         'Dependency',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a

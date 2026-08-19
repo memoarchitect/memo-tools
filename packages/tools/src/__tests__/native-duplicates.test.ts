@@ -48,10 +48,34 @@ interface DuplicateRow {
 const NATIVE_DUPLICATES: Record<string, DuplicateRow> = {
     Composes: { native: 'nesting (native containment)', status: 'removed' },
     DerivesFrom: {
-        native: '#derivation / #derive metadata',
+        native: '#derivation metadata',
         status: 'present',
-        reason: 'Not yet migrated; bucket A of the 2026-08-18 audit.',
+        reason: 'NOT a duplicate: the standard Derivation connection requires requirement '
+            + 'usages on BOTH ends. Measured 2026-08-18, 22 of 37 distinct DerivesFrom source '
+            + 'drivers are parts, items or actions — hazards, threats and components — which '
+            + '#derivation cannot type. Migrating anyway produced 143 type errors.',
     },
+    Causes: {
+        native: '#cause / #causation metadata',
+        status: 'present',
+        reason: 'NOT a duplicate: carries causeKind : CauseKind, which the metadata shorthand drops.',
+    },
+    TracesToDocument: {
+        native: 'dependency',
+        status: 'present',
+        reason: 'NOT a duplicate: carries sectionReference, the granularity that makes the trace auditable.',
+    },
+    Validates: {
+        native: 'verify',
+        status: 'present',
+        reason: 'NOT a duplicate on two counts: native verify requires a requirement usage as the '
+            + 'verified element, and IEC 62304 separates validation from verification — renaming it '
+            + 'to verify would paraphrase a regulated term.',
+    },
+    // Migrated and deleted 2026-08-18.
+    InteractsWith: { native: 'connect', status: 'removed' },
+    Enables: { native: 'dependency', status: 'removed' },
+    ExecutesScenario: { native: 'perform (OperativeScenario is an action def)', status: 'removed' },
     CommentsOn: {
         native: 'comment / doc',
         status: 'present',
