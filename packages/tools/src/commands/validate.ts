@@ -243,13 +243,30 @@ export async function validateCommand(
     //
     // The full model is still what gets reported and displayed; only the
     // subject set narrows.
+    // Scope decides which elements rules RUN ON. It must not touch the model:
+    // see narrowToScope below for what happened when it did.
+    const inScopeIds = scope.mode === 'allAvailable' ? undefined : scopeElementIds(model);
     const subjectModel = scope.mode === 'allAvailable' ? model : narrowToScope(model);
     const result = validateModel(
-        subjectModel, effectiveRules.activeConstraints, ontologyRegistries?.kindRegistry, effectiveRules.rules);
+        model, effectiveRules.activeConstraints, ontologyRegistries?.kindRegistry, effectiveRules.rules,
+        inScopeIds && (element => inScopeIds.has(element.id)));
     // Completeness reports on what the methodology selected, which is the
     // scoped model — not on content the project deliberately excluded.
     const completeness = computeCompleteness(subjectModel, result);
 
+    /** Element ids the methodology selected. */
+    function scopeElementIds(full: typeof model): Set<string> {
+        const ids = new Set<string>();
+        for (const [id, element] of full.elements) {
+            const sourceFile = kindRegistry?.getKind(element.kind)?.sourceFile;
+            const declaringPackage = sourceFile ? ruleFileToPackage.get(sourceFile) : undefined;
+            if (!declaringPackage || isRulePackageInScope(scope, declaringPackage)) ids.add(id);
+        }
+        return ids;
+    }
+
+    // Still used for the COMPLETENESS report, which is a statement about what
+    // the methodology selected. Rules no longer see it — see the note inside.
     function narrowToScope(full: typeof model): typeof model {
         const kept = new Map<string, typeof model extends { elements: Map<string, infer E> } ? E : never>();
         for (const [id, element] of full.elements) {
@@ -265,12 +282,45 @@ export async function validateCommand(
             (byKind.get(element.kind) ?? byKind.set(element.kind, []).get(element.kind)!).push(element);
             (byLayer.get(element.layer) ?? byLayer.set(element.layer, []).get(element.layer)!).push(element);
         }
+        // Narrow the SUBJECT SET, not the graph.
+        //
+        // This used to drop out-of-scope elements from `elements` and filter
+        // `relationships` to edges with both endpoints kept — while leaving
+        // `outgoing`, `incoming` and `relationshipsByType` pointing at the FULL
+        // model. The result was a model that contradicted itself, and every
+        // rule that NAVIGATES a trace silently saw nothing: `navigate` looks the
+        // far endpoint up in `elements`, so an edge to a dropped element
+        // returned no result.
+        //
+        // Measured on gpca-pump (2026-08-19): 374 of 723 elements dropped, and
+        // ALL 110 `satisfiedBy` edges lost an endpoint — every architecture
+        // element went, because `filePackages` maps every file, so the
+        // module-scope test was applied to architecture kinds that
+        // `includedLayer` governs instead. XL-002 then reported 89 requirements
+        // as lacking requirements-to-architecture traceability that the source
+        // plainly traces.
+        //
+        // The comment above already said the intent: "only the subject set
+        // narrows". `subjectsForScope` reads `elementsByKind`, so narrowing
+        // that alone is both sufficient and consistent.
+        const relationships = full.relationships.filter(r => kept.has(r.sourceId) && kept.has(r.targetId));
+        const relationshipsByType = new Map<string, typeof relationships>();
+        const outgoing = new Map<string, typeof relationships>();
+        const incoming = new Map<string, typeof relationships>();
+        for (const r of relationships) {
+            (relationshipsByType.get(r.type) ?? relationshipsByType.set(r.type, []).get(r.type)!).push(r);
+            (outgoing.get(r.sourceId) ?? outgoing.set(r.sourceId, []).get(r.sourceId)!).push(r);
+            (incoming.get(r.targetId) ?? incoming.set(r.targetId, []).get(r.targetId)!).push(r);
+        }
         return {
             ...full,
             elements: kept,
             elementsByKind: byKind,
             elementsByLayer: byLayer,
-            relationships: full.relationships.filter(r => kept.has(r.sourceId) && kept.has(r.targetId)),
+            relationships,
+            relationshipsByType,
+            outgoing,
+            incoming,
         };
     }
 

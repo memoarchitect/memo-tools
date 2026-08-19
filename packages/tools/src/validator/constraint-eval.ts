@@ -92,9 +92,16 @@ export function evaluateConstraintNode(
     ast: ConstraintNode,
     model: MemoModel,
     kindRegistry?: KindRegistry,
+    inScope?: (element: MemoElement) => boolean,
 ): Violation[] {
     const evaluationModel = kindRegistry ? withSpecializationExtents(model, kindRegistry) : model;
-    const subjects = subjectsForScope(meta.appliesToKind, evaluationModel);
+    // Methodology scope restricts which elements a rule is evaluated ON. It must
+    // NOT restrict the graph the rule navigates or the type extents it tests:
+    // narrowing `elements` made every trace navigation return nothing, and
+    // narrowing `elementsByKind` made `conformsTo` reject in-scope elements
+    // whose kind bucket had been pruned. Both produced confident, wrong answers.
+    const all = subjectsForScope(meta.appliesToKind, evaluationModel);
+    const subjects = inScope ? all.filter(e => e.id === '__model__' || inScope(e)) : all;
     const violations: Violation[] = [];
 
     for (const element of subjects) {
@@ -173,6 +180,31 @@ type Node =
     | { kind: 'linksOf'; relationshipType: string }
     /** True when the current element's kind is, or specializes, a named kind. */
     | { kind: 'conformsTo'; kindName: string }
+    /**
+     * Transitive DIRECTIONAL navigation from the current element.
+     *
+     * The bare relation-name segment is bidirectional on purpose (see
+     * `navigate`), which is right for "is this hazard mitigated" but useless
+     * for a chain: from a requirement, `derivesFrom` returns its drivers AND
+     * everything derived from it in one undifferentiated collection, so no rule
+     * can ask "what is upstream of this".
+     *
+     * These are the additive directional tokens `navigate`'s comment
+     * prescribes. `upstream` walks incoming edges (this element as target),
+     * `downstream` walks outgoing edges (this element as source); both are
+     * transitive and both exclude the element itself, so a cycle terminates
+     * rather than hanging.
+     */
+    | { kind: 'reach'; relationshipType: string; direction: 'upstream' | 'downstream' }
+    /** True when two collections share at least one element, compared by id. */
+    | { kind: 'intersects'; target: Node; other: Node }
+    /**
+     * A feature chain hanging off an arbitrary expression rather than off a
+     * bare identifier root — `downstream(derivesFrom).satisfiedBy`. Without it
+     * a directional walk is a dead end: you can reach the ancestors but not
+     * navigate on from them, and the trace rules need exactly that second hop.
+     */
+    | { kind: 'chain'; target: Node; segments: string[] }
     | { kind: 'method'; target: Node; name: 'size' | 'notEmpty' | 'isEmpty' }
     | { kind: 'quant'; target: Node; name: 'forAll' | 'exists' | 'select'; body: Node }
     | { kind: 'arith'; op: ArithOp; left: Node; right: Node }
@@ -227,6 +259,7 @@ function tokenize(src: string): Token[] {
 const KEYWORDS = new Set(['and', 'or', 'not', 'true', 'false']);
 const COLLECTION_OPS = new Set(['size', 'notEmpty', 'isEmpty']);
 const QUANTIFIER_OPS = new Set(['forAll', 'exists', 'select']);
+const BINARY_COLLECTION_OPS = new Set(['intersects']);
 
 export function parseConstraintExpression(src: string): Node {
     const tokens = tokenize(src);
@@ -290,6 +323,13 @@ export function parseConstraintExpression(src: string): Node {
                 const body = parseOr();
                 expect(')');
                 node = { kind: 'quant', target: node, name: name as 'forAll' | 'exists' | 'select', body };
+            } else if (BINARY_COLLECTION_OPS.has(name)) {
+                // The argument is evaluated in the ENCLOSING scope, unlike a
+                // quantifier body: `->intersects(subject.satisfiedBy)` has to
+                // mean the subject's collection, not the current element's.
+                const other = parseOr();
+                expect(')');
+                node = { kind: 'intersects', target: node, other };
             } else {
                 throw new Error(`Unsupported collection op '->${name}()'`);
             }
@@ -336,6 +376,21 @@ export function parseConstraintExpression(src: string): Node {
             // has to match a link BY IDENTITY — rather than by what sits at
             // either end — cannot be written with the other two. Generic: it
             // knows no MEMO name, and which relation comes from the ontology.
+            // `upstream(rel)` / `downstream(rel)` navigate the relation from
+            // the CURRENT element in one direction, transitively. Same bare
+            // identifier argument as `acyclic` and `sourcesOf`.
+            if (tok.v === 'upstream' || tok.v === 'downstream') {
+                const direction = tok.v;
+                next();
+                expect('(');
+                const relationshipType = expect('ident').v!;
+                expect(')');
+                const reach: Node = { kind: 'reach', relationshipType, direction };
+                // Allow the walk to be navigated onward: `.satisfiedBy` etc.
+                const segments: string[] = [];
+                while (peek().t === '.') { next(); segments.push(expect('ident').v!); }
+                return segments.length > 0 ? { kind: 'chain', target: reach, segments } : reach;
+            }
             if (tok.v === 'linksOf') {
                 next();
                 expect('(');
@@ -390,6 +445,12 @@ function evalNode(node: Node, env: Env, model: MemoModel): Value {
         case 'endsOf': return relationshipEnds(model, node.relationshipType, node.side);
         case 'linksOf': return relationshipLinks(model, node.relationshipType);
         case 'conformsTo': return kindExtent(model, node.kindName).has(env.current.id);
+        case 'reach': return reachable(env.current, node.relationshipType, node.direction, model);
+        case 'chain': return resolveSegments(evalNode(node.target, env, model), node.segments, model);
+        case 'intersects': {
+            const mine = new Set(asCollection(evalNode(node.target, env, model)).map(e => e.id));
+            return asCollection(evalNode(node.other, env, model)).some(e => mine.has(e.id));
+        }
         case 'method': {
             const len = lengthOf(evalNode(node.target, env, model));
             if (node.name === 'size') return len;
@@ -529,6 +590,11 @@ const KNOWN_RELATION_SEGMENTS = new Set([
 
 /** Resolve a feature chain starting from `start`. See navigation semantics in header. */
 function resolveFeature(start: MemoElement, segments: string[], model: MemoModel): Value {
+    return resolveSegments(start, segments, model);
+}
+
+/** `resolveFeature`, rooted at any value rather than at an element. */
+function resolveSegments(start: Value, segments: string[], model: MemoModel): Value {
     let val: Value = start;
     for (let k = 0; k < segments.length; k++) {
         const seg = segments[k];
@@ -591,6 +657,38 @@ function navigate(subject: MemoElement, relType: string, model: MemoModel): Memo
         if (matches(rel)) {
             const e = model.elements.get(rel.sourceId);
             if (e) out.push(e);
+        }
+    }
+    return out;
+}
+
+/**
+ * Every element transitively reachable from `subject` along one direction of a
+ * relation. Excludes `subject`, and visits each element once so a cyclic trace
+ * graph terminates instead of hanging the validator.
+ */
+function reachable(
+    subject: MemoElement,
+    relType: string,
+    direction: 'upstream' | 'downstream',
+    model: MemoModel,
+): MemoElement[] {
+    const want = relType.toLowerCase();
+    const seen = new Set<string>([subject.id]);
+    const out: MemoElement[] = [];
+    const queue = [subject];
+    while (queue.length > 0) {
+        const here = queue.shift()!;
+        const edges = (direction === 'upstream' ? model.incoming : model.outgoing).get(here.id) ?? [];
+        for (const rel of edges) {
+            if (rel.type.toLowerCase() !== want) continue;
+            const nextId = direction === 'upstream' ? rel.sourceId : rel.targetId;
+            if (seen.has(nextId)) continue;
+            seen.add(nextId);
+            const next = model.elements.get(nextId);
+            if (!next) continue;
+            out.push(next);
+            queue.push(next);
         }
     }
     return out;

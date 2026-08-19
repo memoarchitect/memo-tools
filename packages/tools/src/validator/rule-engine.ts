@@ -31,6 +31,8 @@ export function validateModel(
     nativeConstraints: CompiledConstraint[] = [],
     kindRegistry?: KindRegistry,
     effectiveRules?: EffectiveRule[],
+    /** Methodology scope: which elements a rule may be evaluated ON. */
+    inScope?: (element: import('../model/semantic.js').MemoElement) => boolean,
 ): ValidationResult {
     // Section 10.4: a violation reports the rule's provenance, not just its ID.
     // Keyed by active rule ID, because that is what the violation carries.
@@ -73,7 +75,7 @@ export function validateModel(
             delegated.push(constraint.id);
             continue;
         }
-        const violations = evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry);
+        const violations = evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry, inScope);
         if (violations.length === 0) nativePassed++;
         nativeViolations.push(...violations);
     }
