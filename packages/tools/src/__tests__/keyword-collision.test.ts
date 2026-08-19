@@ -262,10 +262,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'An action def: a user-interaction sequence, not an item transfer.',
         removedBy: 'deliberate',
     },
-    'connect:ComponentConnects': {
-        reason: 'A connection def named for what it does; `connect` writes a connection usage, and the def is what the usage is typed by.',
-        removedBy: 'deliberate',
-    },
     // `connect:ConnectsPhysically` was here until R10-S6: deleted in favour
     // of native `connect`. Untyped connections built to nothing before this
     // (`resolveConnection` bailed on a missing `conn.type`) — the same
@@ -280,10 +276,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
     },
     'interface:BindsToInterface': {
         reason: 'Tail word names the interface at the far end.',
-        removedBy: 'deliberate',
-    },
-    'binding:DataBinding': {
-        reason: 'UI data binding — which model value a screen field shows. Nothing to do with SysML binding connectors.',
         removedBy: 'deliberate',
     },
     'binding:ProjectMethodBinding': {
@@ -422,10 +414,6 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
     },
     'require:RequiresCapability': {
         reason: 'ARCADIA "mission requires capability": relates an IntendedUse to an OperationalCapability. Same English "requires" as RequiresResource below; `require` asserts a requirement inside a requirement def.',
-        removedBy: 'deliberate',
-    },
-    'require:RequiresResource': {
-        reason: 'Relates a component to a resource it needs; `require` asserts a requirement inside a requirement def.',
         removedBy: 'deliberate',
     },
     'requirement:RequirementDriver': {

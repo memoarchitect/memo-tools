@@ -289,16 +289,20 @@ describe('MEMO ontology relationship properties', () => {
     //   CrossesTrustBoundary — A0: the boundary becomes a port def in A1.
     //   Dependency          — R10-S6: a bare `dependency` relates any two elements, the same as `MemoLink`/`Realizes`.
     //   (`Precedes` was here until R10-S6, deleted in favour of native `succession`.)
+    //   (`MemoLink` was here until 2026-08-18, deleted as a duplicate of the
+    //   native `dependency`. `Composes` stays: its connection def is gone, but
+    //   like `Realizes` it remains a NATIVE registry entry — the edge type
+    //   survives the definition, and a fresh registry carries both.)
     const UNTYPED_END_EXEMPTIONS = [
-        'MemoLink', 'Mitigates', 'Realizes', 'Validates', 'DerivesFrom',
-        'SatisfiedBy', 'VerifiedBy', 'AllocatedTo', 'Composes',
+        'Mitigates', 'Realizes', 'Validates', 'DerivesFrom', 'Composes',
+        'SatisfiedBy', 'VerifiedBy', 'AllocatedTo',
         'Performs', 'Enables', 'BindsToInterface', 'CrossesTrustBoundary',
         'Dependency',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a
     // metaclass boundary. Six of the seven joined this set in A0.
     const FULLY_UNTYPED = [
-        'MemoLink', 'Realizes', 'AllocatedTo', 'Composes',
+        'Realizes', 'AllocatedTo', 'Composes',
         'BindsToInterface', 'CrossesTrustBoundary', 'Dependency',
     ];
 
@@ -315,12 +319,15 @@ describe('MEMO ontology relationship properties', () => {
             .filter(d => !d.isAbstract && !d.sourceEnd.type && !d.targetEnd.type);
         expect(bothEndsUntyped.map(d => d.sysmlName).sort()).toEqual([...FULLY_UNTYPED].sort());
 
-        // MemoLink is the only one of them that is universal by intent:
-        // Realizes states an abstraction/concretion fact across metaclasses.
-        const link = bothEndsUntyped.find(d => d.sysmlName === 'MemoLink')!;
-        expect(link.sourceEnd.name).toBe('linkSource');
-        expect(link.targetEnd.name).toBe('linkTarget');
-        expect(link.isAbstract).toBeUndefined();
+        // `Dependency` is the universal one now. `MemoLink` held that role and
+        // was deleted for it: "the weakest relation in the ontology, reach for
+        // it only when no specific relation carries the meaning" is a
+        // description of the native `dependency`, not of something MEMO needed
+        // to define. The rest state a specific fact across metaclasses —
+        // Realizes an abstraction/concretion, AllocatedTo a responsibility.
+        const universal = bothEndsUntyped.find(d => d.sysmlName === 'Dependency')!;
+        expect(universal).toBeDefined();
+        expect(universal.isAbstract).toBeUndefined();
     });
 
     it('types both ends on every other concrete relation', async () => {

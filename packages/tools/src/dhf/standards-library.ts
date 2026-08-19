@@ -166,12 +166,52 @@ export function readEnumMembers(standardsDir: string, enumName: string): string[
 
 // ─── Parsing ──────────────────────────────────────────────────────────────────
 
-// `item <name> : <Def> {` … matching braces. Instances are flat data — one
-// level of braces — so a non-greedy match to the first closing brace at the
-// declaration's own indentation is enough, and a nested brace would show up as
-// a missing attribute rather than as silently wrong data.
-const INSTANCE_RE = /^\s*item\s+(\w+)\s*:\s*(RegulatoryStandard|StandardClause)\s*\{([\s\S]*?)^\s*\}/gm;
-const COMPOSES_RE = /^\s*connection\s+\w+\s*:\s*Composes\s+connect\s+parent\s*::>\s*(\w+)\s+to\s+child\s*::>\s*(\w+)\s*;/gm;
+/**
+ * Every `item <name> : RegulatoryStandard|StandardClause` declaration, with the
+ * attribute lines that belong to it.
+ *
+ * This was a non-greedy brace match over the whole body, on the stated
+ * assumption that instances are "flat data — one level of braces". Nesting
+ * broke that: a clause that CONTAINS a sub-clause has its match terminated by
+ * the child's closing brace, and the reader lost 7 of IEC 62304's 21 clauses
+ * without erroring. A declaration's own attributes always precede its first
+ * nested child, so the body is taken as the lines up to the next declaration at
+ * any depth.
+ */
+function instances(source: string): Array<{ name: string; def: string; body: string }> {
+    const lines = source.split('\n');
+    const found: Array<{ name: string; def: string; body: string }> = [];
+    for (let i = 0; i < lines.length; i++) {
+        const m = /^[ \t]*item\s+(\w+)\s*:\s*(RegulatoryStandard|StandardClause)\b/.exec(lines[i]);
+        if (!m) continue;
+        const body: string[] = [];
+        for (let j = i + 1; j < lines.length; j++) {
+            if (/^[ \t]*item\s+\w+\s*:/.test(lines[j])) break;
+            body.push(lines[j]);
+        }
+        found.push({ name: m[1], def: m[2], body: body.join('\n') });
+    }
+    return found;
+}
+// Clause membership is NESTING now — `item iec62304 { item clause4 { … } }` —
+// since R10-S7 deleted the `Composes` connection. Parentage comes from
+// indentation depth, which is what nesting is in the text.
+const DECL_RE = /^([ \t]*)item\s+(\w+)\s*:\s*(RegulatoryStandard|StandardClause)\b/;
+
+/** `child -> parent` for every nested standard/clause declaration in a file. */
+function nestedParents(source: string): Array<[string, string]> {
+    const pairs: Array<[string, string]> = [];
+    const stack: Array<[number, string]> = [];
+    for (const line of source.split('\n')) {
+        const m = DECL_RE.exec(line);
+        if (!m) continue;
+        const [, indent, name] = m;
+        while (stack.length > 0 && stack[stack.length - 1][0] >= indent.length) stack.pop();
+        if (stack.length > 0) pairs.push([name, stack[stack.length - 1][1]]);
+        stack.push([indent.length, name]);
+    }
+    return pairs;
+}
 
 function attr(body: string, name: string): string | undefined {
     const m = body.match(new RegExp(`attribute\\s+:>>\\s+${name}\\s*=\\s*"([^"]*)"`));
@@ -243,8 +283,7 @@ export function loadStandardsLibrary(startDir?: string): StandardsLibrary {
         let source: string;
         try { source = readFileSync(path, 'utf-8'); } catch { continue; }
 
-        for (const m of source.matchAll(INSTANCE_RE)) {
-            const [, name, def, body] = m;
+        for (const { name, def, body } of instances(source)) {
             if (def === 'RegulatoryStandard') {
                 const designation = attr(body, 'designation');
                 if (!designation) continue;
@@ -285,7 +324,7 @@ export function loadStandardsLibrary(startDir?: string): StandardsLibrary {
             }
         }
 
-        for (const m of source.matchAll(COMPOSES_RE)) parentOf.set(m[2], m[1]);
+        for (const [child, parent] of nestedParents(source)) parentOf.set(child, parent);
     }
 
     const orphanClauses: StandardClauseInfo[] = [];

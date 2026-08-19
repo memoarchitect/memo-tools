@@ -46,6 +46,34 @@ function allocationModel(): MemoModel {
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
+describe('a relation with no links is an empty collection, not a scalar', () => {
+    // `relationshipsByType` only holds types that have at least one link, so a
+    // relation absent from THIS model fell through to attribute lookup and
+    // produced a scalar. The first quantifier applied to it then threw
+    // "Quantifier applied to non-collection value" — which took down `memo
+    // validate` entirely on a minimal project, rather than failing one rule.
+    it('evaluates forAll over an absent relation without throwing', () => {
+        const element = {
+            id: 'sys', name: 'Sys', kind: 'System', construct: 'part',
+            layer: 'logical', file: 'x.sysml', attributes: {},
+        } as never;
+        const model = {
+            elements: new Map([['sys', element]]),
+            elementsByKind: new Map([['System', [element]]]),
+            elementsByLayer: new Map(),
+            relationships: [],
+            relationshipsByType: new Map(),
+            outgoing: new Map(),
+            incoming: new Map(),
+        } as never;
+        expect(() => evaluateNativeConstraint(
+            { id: 'T', description: 'T', appliesToKind: 'System', severity: 'error',
+              expression: "composes->forAll(conformsTo(LogicalComponent))" },
+            model,
+        )).not.toThrow();
+    });
+});
+
 describe('native constraint evaluator (Epic EE ⊕-0 spike)', () => {
     it('flags the function with no allocation — "allocate->notEmpty()"', () => {
         const c: NativeConstraint = {

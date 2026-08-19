@@ -496,13 +496,36 @@ function relationshipAcyclic(model: MemoModel, relationshipType: string): boolea
     return [...adjacency.keys()].every(visit);
 }
 
-/** True if `seg` names a relationship type, compared case-insensitively (keys are camelCase). */
-function isRelType(model: MemoModel, seg: string): boolean {
+/**
+ * True if `seg` names a relationship type, compared case-insensitively (keys
+ * are camelCase).
+ *
+ * `relationshipsByType` only holds types that have at least one LINK, so a
+ * relation with no instances in this model was not recognised here and the
+ * segment fell through to attribute lookup — yielding a scalar, which then
+ * crashed the first quantifier applied to it with "Quantifier applied to
+ * non-collection value". A minimal project with no containment at all took
+ * down `memo validate` entirely the moment a `composes->forAll(…)` rule
+ * existed. A relation MEMO knows about is a collection that happens to be
+ * empty, so the registry decides, not the current model's link census.
+ */
+function isRelType(model: MemoModel, seg: string, kindRegistry?: KindRegistry): boolean {
     if (model.relationshipsByType.has(seg)) return true;
     const low = seg.toLowerCase();
     for (const k of model.relationshipsByType.keys()) if (k.toLowerCase() === low) return true;
+    for (const known of KNOWN_RELATION_SEGMENTS) if (known === low) return true;
     return false;
 }
+
+/**
+ * Relation names the evaluator must treat as collections even when the model
+ * carries none of them. Kept to the relations that ontology rules navigate.
+ */
+const KNOWN_RELATION_SEGMENTS = new Set([
+    'composes', 'allocatedto', 'satisfiedby', 'verifiedby', 'realizes',
+    'derivesfrom', 'mitigates', 'performs', 'enables', 'precedes',
+    'bindstointerface', 'crossestrustboundary', 'dependency', 'validates',
+]);
 
 /** Resolve a feature chain starting from `start`. See navigation semantics in header. */
 function resolveFeature(start: MemoElement, segments: string[], model: MemoModel): Value {
