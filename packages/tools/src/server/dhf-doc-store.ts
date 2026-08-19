@@ -2,8 +2,8 @@
 //
 // File-backed persistence for DHF workbench documents. Each document is one
 // markdown file under <projectRoot>/dhf/documents/<id>.md whose YAML
-// frontmatter carries the workbench metadata (id, title, group, template,
-// authors, approvers, created). The frontmatter in the file and the one shown
+// frontmatter carries the workbench metadata (id, title, group, system,
+// template, authors, approvers, created). The frontmatter in the file and the one shown
 // in the web editor are the same block — saving merges the workbench metadata
 // into whatever frontmatter the user typed, so hand edits survive.
 //
@@ -61,6 +61,7 @@ export function loadDhfDocs(projectRoot: string): DhfDocDTO[] {
                 id,
                 title: typeof meta.title === 'string' ? meta.title : id,
                 group: typeof meta.group === 'string' ? meta.group : '',
+                systemId: typeof meta.system === 'string' && meta.system.trim() ? meta.system : undefined,
                 templateId: typeof meta.template === 'string' ? meta.template : '',
                 content,
                 createdAt: typeof meta.created === 'number' ? meta.created : 0,
@@ -85,6 +86,10 @@ export function saveDhfDoc(projectRoot: string, doc: DhfDocDTO): void {
         template: doc.templateId,
         created: doc.createdAt,
     };
+    // A project-wide document carries no `system:` key at all, rather than an
+    // empty one: the absence is the fact, and an empty string would round-trip
+    // back as a system named "".
+    if (doc.systemId) merged.system = doc.systemId; else delete merged.system;
     if (doc.authors.trim()) merged.authors = linesToList(doc.authors); else delete merged.authors;
     if (doc.approvers.trim()) merged.approvers = linesToList(doc.approvers); else delete merged.approvers;
     const fm = stringifyYaml(merged).trimEnd();

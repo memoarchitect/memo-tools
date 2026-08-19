@@ -82,6 +82,33 @@ describe('DHF settings persistence', () => {
     });
 });
 
+describe('the system a document belongs to', () => {
+    it('round-trips the system through the frontmatter', () => {
+        saveDhfDoc(root, doc({ systemId: 'gpcaPump' }));
+        expect(readFileSync(join(root, 'dhf', 'documents', 'DOC-UN-001.md'), 'utf8')).toContain('system: gpcaPump');
+        expect(loadDhfDocs(root)[0].systemId).toBe('gpcaPump');
+    });
+
+    it('writes no system key for a project-wide document', () => {
+        saveDhfDoc(root, doc());
+        expect(readFileSync(join(root, 'dhf', 'documents', 'DOC-UN-001.md'), 'utf8')).not.toContain('system:');
+        expect(loadDhfDocs(root)[0].systemId).toBeUndefined();
+    });
+
+    it('drops a system it no longer belongs to instead of leaving the old one', () => {
+        saveDhfDoc(root, doc({ systemId: 'gpcaPump' }));
+        const saved = loadDhfDocs(root)[0];
+        saveDhfDoc(root, { ...saved, systemId: undefined });
+        expect(loadDhfDocs(root)[0].systemId).toBeUndefined();
+    });
+
+    it('treats a blank system in a hand-edited file as project-wide', () => {
+        mkdirSync(join(root, 'dhf', 'documents'), { recursive: true });
+        writeFileSync(join(root, 'dhf', 'documents', 'DOC-A.md'), '---\nid: DOC-A\nsystem: "   "\n---\n\n# A\n');
+        expect(loadDhfDocs(root)[0].systemId).toBeUndefined();
+    });
+});
+
 describe('project template library', () => {
     it('lists only markdown files under dhf/templates', () => {
         mkdirSync(join(root, 'dhf', 'templates'), { recursive: true });

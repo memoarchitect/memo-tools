@@ -992,6 +992,14 @@ export interface DhfDocDTO {
     id: string;
     title: string;
     group: string;
+    /**
+     * Element id of the system this document belongs to.
+     *
+     * A design history file is per-device, and a system-of-systems project has
+     * more than one device in it. Absent means the document is project-wide —
+     * the workbench files those under "Global" rather than under a system.
+     */
+    systemId?: string;
     templateId: string;
     /** Full markdown source including YAML frontmatter */
     content: string;
