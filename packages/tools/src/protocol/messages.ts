@@ -676,8 +676,29 @@ export interface DiagramSourceResultMessage {
 
 /** Per-node visual override stored in the view's .viewlayout companion. */
 export interface DiagramNodeLayout {
+    /**
+     * Position, in the coordinate frame named by `parent`.
+     *
+     * A nested node's position is local to its parent — React Flow's own
+     * convention — and a top-level node's is board coordinates. The two are
+     * different frames, so a stored pair means nothing without knowing which
+     * one it was written in. When a node that used to sit on the board becomes
+     * nested (or stops being nested), the saved numbers are silently
+     * reinterpreted in the new frame and the node jumps.
+     *
+     * `parent` records the frame so a reader can rebase instead of guessing.
+     * That is the whole fix: layout stays pure presentation and survives a
+     * change in model nesting, which is not a presentation change at all.
+     */
     x: number;
     y: number;
+    /**
+     * The node this position was saved relative to; absent means board
+     * coordinates. Written since layout v2. Absent in a v1 sidecar, which is
+     * why loading must treat "no parent recorded" as "unknown frame" and leave
+     * the position alone rather than assume the board.
+     */
+    parent?: string | null;
     width?: number;
     height?: number;
     color?: string;

@@ -6,7 +6,7 @@ import type { DiagramDTO, DiagramLayout } from '@memoarchitect/tools';
 export const VIEW_LAYOUT_EXTENSION = '.viewlayout';
 
 interface SysmlViewLayoutArtifact {
-    format: 'memo.viewlayout/v1';
+    format: 'memo.viewlayout/v2' | 'memo.viewlayout/v1';
     viewSource?: string;
     layouts: Record<string, DiagramLayout>;
 }
@@ -34,7 +34,7 @@ export function loadViewLayout(projectRoot: string, diagram: DiagramDTO): Diagra
             const artifact = parse(readFileSync(companion, 'utf8')) as SysmlViewLayoutArtifact & {
                 format: string; diagramId?: string; layout?: DiagramLayout;
             };
-            if (artifact.format === 'memo.viewlayout/v1' || artifact.format === 'memo.sysmlview/v2') return artifact.layouts?.[diagram.id] ?? null;
+            if (artifact.format === 'memo.viewlayout/v2' || artifact.format === 'memo.viewlayout/v1' || artifact.format === 'memo.sysmlview/v2') return artifact.layouts?.[diagram.id] ?? null;
             if (artifact.format === 'memo.sysmlview/v1' && artifact.diagramId === diagram.id) return artifact.layout ?? null;
         } catch { /* malformed companion is ignored */ }
     }
@@ -75,7 +75,7 @@ function readViewLayouts(path: string): Record<string, DiagramLayout> {
         const existing = parse(readFileSync(path, 'utf8')) as Partial<SysmlViewLayoutArtifact> & {
             format?: string; diagramId?: string; layout?: DiagramLayout;
         };
-        if (existing.format === 'memo.viewlayout/v1' || existing.format === 'memo.sysmlview/v2') return existing.layouts ?? {};
+        if (existing.format === 'memo.viewlayout/v2' || existing.format === 'memo.viewlayout/v1' || existing.format === 'memo.sysmlview/v2') return existing.layouts ?? {};
         if (existing.diagramId && existing.layout) return { [existing.diagramId]: existing.layout };
     } catch { /* replace malformed companion */ }
     return {};
@@ -112,7 +112,10 @@ export function saveViewLayout(projectRoot: string, diagram: DiagramDTO, layout:
 
     mkdirSync(dirname(path), { recursive: true });
     const artifact: SysmlViewLayoutArtifact = {
-        format: 'memo.viewlayout/v1',
+        // v2 records each node's coordinate frame (`parent`). v1 files still
+        // load — a node with no recorded frame is left where it is rather than
+        // rebased on a guess — and are rewritten as v2 on the next save.
+        format: 'memo.viewlayout/v2',
         ...(diagram.sourceFile ? { viewSource: diagram.sourceFile } : {}),
         layouts: { ...existingLayouts, [diagram.id]: layout },
     };
