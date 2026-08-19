@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@memoarchitect/ontology':
-        specifier: 0.8.24
-        version: 0.8.24
+        specifier: ^0.10.0
+        version: 0.10.9
       chalk:
         specifier: ^5.3.0
         version: 5.6.2
@@ -585,8 +585,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@memoarchitect/ontology@0.8.24':
-    resolution: {integrity: sha512-6Fu8cQr+ZZBkuwTwGLcuYziPG/wqb9A5+Cp0H24mjrZSBk1fFKfpgnEvp9/TsznGEbj7SvbnRiUcvS7v5Ir/Ww==}
+  '@memoarchitect/ontology@0.10.9':
+    resolution: {integrity: sha512-aG0HsZdZlyirlCD3EFjBwHhJDPgXkhHqg4B5ofrZr3p/EoNq76ESMhmQ4GSVg4iWlfORzKsTVEKAxwhNHObr3g==}
     engines: {node: '>=26.0.0'}
 
   '@pkgjs/parseargs@0.11.0':
@@ -1815,7 +1815,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@memoarchitect/ontology@0.8.24': {}
+  '@memoarchitect/ontology@0.10.9': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
