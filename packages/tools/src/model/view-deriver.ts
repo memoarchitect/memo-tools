@@ -332,6 +332,9 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             id: isRendererSample
                 ? `diag-sample-${el.id}`
                 : el.attributes['providedId'] || el.attributes['id'] || el.id,
+            // The view's own declaration, for mutations that address elements
+            // rather than authored ids.
+            elementId: el.id,
             // `name` remains the user-facing title in the transport DTO; the
             // stable authored ID above owns routing and persistence.
             name: el.attributes['title'] || el.attributes['name'] || el.name,

@@ -221,6 +221,14 @@ export interface DiagramDTO {
     /** SysML package that owns the view; independent of source-file location. */
     package?: string;
     /**
+     * The model element id of the view's own declaration.
+     *
+     * `id` is the AUTHORED identifier ("GEN-3") because that is what routes and
+     * persists; a package mutation needs the element instead, and there was no
+     * way to get from one to the other in the client.
+     */
+    elementId?: string;
+    /**
      * Every project-relative file whose change can alter what this view
      * renders: its own source, the files owning its elements, and the
      * transitive import closure of both. See model/source-graph.ts.
