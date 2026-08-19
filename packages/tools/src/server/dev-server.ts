@@ -33,7 +33,7 @@ import {
 import { removeElement } from './element-writer.js';
 import { projectEntrypoint } from '../model/native-project.js';
 import {
-    createPackage, deletePackage, moveElementToPackage, movePackage, renamePackage,
+    createPackage, deletePackage, moveElementToPackage, moveIntoGroupingPackage, movePackage, renamePackage,
     type PackageWriteResult,
 } from './package-writer.js';
 import { assertSingleDomainMutation, MixedMutationDomainError } from './mutation-domain.js';
@@ -933,10 +933,19 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         const model = currentModel();
         if (!model) return { success: false, filePaths: [], error: 'The model is not loaded yet.' };
 
-        /** The file declaring a package: its own declaration, else its members'. */
+        /**
+         * The file declaring a package: its own declaration, else its members'.
+         *
+         * The last fallback resolves the two things a NAMESPACE package is not:
+         * a grouping package declared inside a usage body, and the usage that
+         * holds one. Neither appears in `model.packages` — the qualified name
+         * runs through the usage — and both are addressed by their final
+         * segment, which is a MEMO element id and therefore unique.
+         */
         const fileOf = (qualifiedName: string): string | undefined =>
             model.packages?.find(pkg => pkg.qualifiedName === qualifiedName)?.file
-            ?? Object.values(model.elements).find(el => el.package === qualifiedName)?.file;
+            ?? Object.values(model.elements).find(el => el.package === qualifiedName)?.file
+            ?? model.elements[qualifiedName.split('::').pop() ?? '']?.file;
 
         if (type === 'package:create') {
             const parent: string | undefined = payload.parent || undefined;
@@ -979,6 +988,32 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         const targetFile = targetPackage ? fileOf(targetPackage) : element.file;
         if (targetPackage && !targetFile) {
             return { success: false, filePaths: [], error: `Package "${targetPackage}" was not found.` };
+        }
+
+        /** Where a declaration sits in the file, as a path of names. */
+        const declarationPath = (start: typeof element): string => {
+            const chain: string[] = [];
+            const seen = new Set<string>();
+            for (let node: typeof element | undefined = start; node && !seen.has(node.id);) {
+                seen.add(node.id);
+                chain.unshift(node.id);
+                node = node.owner ? model.elements[node.owner] : undefined;
+            }
+            return [start.package, ...chain].filter(Boolean).join('::');
+        };
+
+        // A grouping package is not a namespace package: it is declared inside
+        // a usage body, so neither it nor anything nested in one has an IR
+        // identity to be addressed by. Both are addressed by name path, which
+        // is an address for the same reason a package's qualified name is.
+        const isGroupingTarget = Boolean(targetPackage)
+            && !model.packages?.some(pkg => pkg.qualifiedName === targetPackage);
+        if (targetPackage && (isGroupingTarget || element.owner)) {
+            return moveIntoGroupingPackage(projectRoot, {
+                file: element.file,
+                qualifiedName: declarationPath(element),
+                targetPackage,
+            });
         }
         const irIdentity = irIndex().byMemoElement[elementId];
         if (!irIdentity) {

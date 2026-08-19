@@ -12,10 +12,18 @@ import { parseText } from '../model/parser-utils.js';
 /** One level of body indentation, matching the layout the generator emits. */
 export const INDENT = '    ';
 
-/** A package declaration located in one file's source text. */
+/** A declaration with a body, located in one file's source text. */
 export interface LocatedPackage {
     qualifiedName: string;
     name: string;
+    /**
+     * False for a usage that merely CAN hold a package.
+     *
+     * A grouping package is declared inside a usage body — `part scrHome :
+     * UIElement { package grpHeader { … } }` — so creating one addresses the
+     * part, which is a container without being a package.
+     */
+    isPackage: boolean;
     /** Offset of the declaration's first character. */
     start: number;
     /** Offset just past the declaration's closing brace. */
@@ -28,14 +36,31 @@ export interface LocatedPackage {
 
 /** Every package declared in one file's source, with its qualified name. */
 export async function locatePackages(source: string): Promise<LocatedPackage[]> {
+    return (await locateContainers(source)).filter(container => container.isPackage);
+}
+
+/**
+ * Every declaration in one file that can hold a package: the packages, and the
+ * usages whose bodies may group with one.
+ *
+ * A usage is walked as well as recorded, because SysML puts a grouping package
+ * inside a usage body and MEMO's own explorer offers to create one there. The
+ * qualified name of such a package therefore runs through the usage that holds
+ * it — `catalogPackage::scrHome::grpHeader` — which is what the SysML namespace
+ * says it is, and what makes it addressable by name like any other package.
+ */
+export async function locateContainers(source: string): Promise<LocatedPackage[]> {
     if (!source.trim()) return [];
     const { document, errors } = await parseText(source);
     if (errors.length > 0) return [];
 
     const found: LocatedPackage[] = [];
     const visit = (node: any, parent: string): void => {
-        for (const member of node.members ?? []) {
-            if (member.$type !== 'PackageDeclaration') continue;
+        for (const member of [...(node.members ?? []), ...(node.body ?? [])]) {
+            const isPackage = member.$type === 'PackageDeclaration';
+            // A usage without a name or a body holds nothing and addresses
+            // nothing; `{` below would otherwise find the next sibling's brace.
+            if (!member.name || (!isPackage && !member.body)) continue;
             const qualifiedName = parent ? `${parent}::${member.name}` : member.name;
             const cst = member.$cstNode;
             if (cst) {
@@ -43,8 +68,11 @@ export async function locatePackages(source: string): Promise<LocatedPackage[]> 
                 const end = cst.offset + cst.length;
                 const bodyStart = source.indexOf('{', start);
                 const bodyEnd = source.lastIndexOf('}', end - 1);
-                if (bodyStart !== -1 && bodyEnd > bodyStart) {
-                    found.push({ qualifiedName, name: member.name, start, end, bodyStart: bodyStart + 1, bodyEnd });
+                if (bodyStart !== -1 && bodyEnd > bodyStart && bodyEnd < end) {
+                    found.push({
+                        qualifiedName, name: member.name, isPackage,
+                        start, end, bodyStart: bodyStart + 1, bodyEnd,
+                    });
                 }
             }
             visit(member, qualifiedName);

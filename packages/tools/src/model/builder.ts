@@ -1237,7 +1237,12 @@ function extractNestedPackages(
 
         for (const grouped of pm.members ?? []) {
             const gm = grouped as any;
-            const isPart = gm.$type === 'PartMember';
+            // `part btnBack : UIElement;` parses as a PartMember and
+            // `part btnBack : UIElement { … }` as a PartUsage — the same
+            // declaration with and without a body. Accepting only the first
+            // dropped every grouped element that declares anything, which is
+            // most of them.
+            const isPart = gm.$type === 'PartMember' || gm.$type === 'PartUsage';
             const isItem = gm.$type === 'ItemUsage' && !gm.direction;
             if (!isPart && !isItem) continue;
             if (!gm.type || gm.boundRef || !gm.name) continue;

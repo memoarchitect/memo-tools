@@ -32,7 +32,7 @@ import {
 } from '../model/ir-identity.js';
 import { commitSource } from './persistor.js';
 import {
-    dedent, insertIntoBody, locatePackages, removeLine, spliceIndented,
+    dedent, insertIntoBody, locateContainers, locatePackages, removeLine, spliceIndented,
 } from './package-source.js';
 
 /**
@@ -85,16 +85,18 @@ export async function createPackage(
     const absolute = resolve(cwd, file);
     const source = existsSync(absolute) ? readFileSync(absolute, 'utf8') : '';
 
-    const existing = await locatePackages(source);
-    if (existing.some(pkg => pkg.qualifiedName === qualifiedName)) {
+    // Containers, not only packages: a grouping package is declared inside a
+    // usage body, so the parent named here may be the part being grouped.
+    const existing = await locateContainers(source);
+    if (existing.some(pkg => pkg.isPackage && pkg.qualifiedName === qualifiedName)) {
         return { success: false, filePaths: [], error: `Package "${qualifiedName}" already exists in ${file}.` };
     }
 
     let updated: string;
     if (parent) {
-        const target = existing.find(pkg => pkg.qualifiedName === parent);
+        const target = existing.find(container => container.qualifiedName === parent);
         if (!target) {
-            return { success: false, filePaths: [], error: `${file} does not declare package "${parent}".` };
+            return { success: false, filePaths: [], error: `${file} does not declare "${parent}".` };
         }
         updated = insertIntoBody(source, target, `package ${name} {\n}\n`);
     } else {
@@ -274,6 +276,62 @@ export async function deletePackage(
         success: true, filePaths: [file], qualifiedName,
         ...(lifted ? { warnings: [{ code: 'package-edit-is-text-only' as const, message: PACKAGE_EDIT_IS_TEXT_ONLY }] } : {}),
     };
+}
+
+/**
+ * Move a nested declaration into a grouping package beside it.
+ *
+ * Addressed by qualified name rather than by IR identity, for the same reason
+ * the package operations are: the IR does not ingest a declaration nested in a
+ * usage body, so it has no identity to quote — and a name path IS an address,
+ * because two members of one namespace cannot share a name.
+ *
+ * The move stays inside one file. A grouping package groups what its OWNER
+ * declares, so a member arriving from another file would be a containment
+ * change wearing a grouping change's clothes; `moveElementToPackage` is the
+ * operation for that.
+ */
+export async function moveIntoGroupingPackage(
+    cwd: string,
+    request: { file: string; qualifiedName: string; targetPackage: string },
+): Promise<PackageWriteResult> {
+    const { file, qualifiedName, targetPackage } = request;
+    const absolute = resolve(cwd, file);
+    if (!existsSync(absolute)) return { success: false, filePaths: [], error: `${file} does not exist.` };
+    const source = readFileSync(absolute, 'utf8');
+
+    const containers = await locateContainers(source);
+    const moved = containers.find(container => container.qualifiedName === qualifiedName);
+    if (!moved) {
+        return { success: false, filePaths: [], error: `${file} does not declare "${qualifiedName}".` };
+    }
+    const target = containers.find(container => container.qualifiedName === targetPackage);
+    if (!target || !target.isPackage) {
+        return { success: false, filePaths: [], error: `${file} does not declare package "${targetPackage}".` };
+    }
+    // A declaration cannot be filed inside itself, and a package inside the
+    // declaration being moved would be spliced away with it.
+    if (target.start >= moved.start && target.end <= moved.end) {
+        return {
+            success: false, filePaths: [],
+            error: `"${targetPackage}" is declared inside "${qualifiedName}"; a declaration cannot group itself.`,
+        };
+    }
+
+    const declaration = dedent(source.slice(moved.start, moved.end).replace(/\s+$/, ''));
+    const withoutElement = removeLine(source, moved.start, moved.end);
+    // The removal shifted every offset after it, so the target is located
+    // again in the text the insertion will actually be applied to.
+    const relocated = (await locateContainers(withoutElement))
+        .find(container => container.qualifiedName === targetPackage);
+    if (!relocated) {
+        return { success: false, filePaths: [], error: `Removing "${qualifiedName}" would leave "${targetPackage}" unreachable.` };
+    }
+    const updated = insertIntoBody(withoutElement, relocated, `${declaration}\n`);
+
+    const committed = await commitSource(absolute, file, updated);
+    if (!committed.success) return { success: false, filePaths: [], error: committed.error };
+    return { success: true, filePaths: [file], qualifiedName: targetPackage };
 }
 
 /**

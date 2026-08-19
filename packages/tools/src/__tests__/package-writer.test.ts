@@ -28,6 +28,7 @@ import {
     createPackage,
     deletePackage,
     moveElementToPackage,
+    moveIntoGroupingPackage,
     renamePackage,
 } from '../server/package-writer.js';
 import { saveElementToFile } from '../server/persistor.js';
@@ -223,6 +224,79 @@ describe('deletePackage', () => {
         expect(result.success).toBe(false);
         expect(result.error).toContain('top-level package');
         expect(readProjectFile('model/plant.sysml')).toBe(PROJECT);
+    });
+});
+
+// ─── Grouping packages inside a usage body ───────────────────────────────────
+//
+// A package nested in a part groups without decomposing — the members stay
+// contained by the part, and the package only labels the grouping. The user
+// creates these from the explorer to organise a screen or a leaf of the model,
+// so the writer has to be able to put one inside a usage as well as inside a
+// package, and to move a declaration into it afterwards.
+const SCREEN = `package Ui {
+    part scrHome : UIElement {
+        part btnBack : UIElement {
+            attribute redefines note = "back";
+        }
+        part btnClose : UIElement;
+    }
+}
+`;
+
+describe('a grouping package inside a usage body', () => {
+    it('is created inside the part the parent names', async () => {
+        writeProjectFile('model/ui.sysml', SCREEN);
+
+        const result = await createPackage(projectRoot, {
+            file: 'model/ui.sysml', parent: 'Ui::scrHome', name: 'grpHeader',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.qualifiedName).toBe('Ui::scrHome::grpHeader');
+        expect(readProjectFile('model/ui.sysml')).toContain('package grpHeader {');
+        // Inside the part, not beside it: the part still declares its buttons.
+        const source = readProjectFile('model/ui.sysml');
+        expect(source.indexOf('package grpHeader')).toBeGreaterThan(source.indexOf('part scrHome'));
+        expect(source.indexOf('package grpHeader')).toBeLessThan(source.lastIndexOf('}'));
+    });
+
+    it('takes a member without taking ownership of it', async () => {
+        writeProjectFile('model/ui.sysml', SCREEN);
+        await createPackage(projectRoot, { file: 'model/ui.sysml', parent: 'Ui::scrHome', name: 'grpHeader' });
+
+        const result = await moveIntoGroupingPackage(projectRoot, {
+            file: 'model/ui.sysml',
+            qualifiedName: 'Ui::scrHome::btnBack',
+            targetPackage: 'Ui::scrHome::grpHeader',
+        });
+
+        expect(result.error).toBeUndefined();
+        expect(result.success).toBe(true);
+        const { built } = await build();
+        const moved = built.elements.get('btnBack');
+        // The package groups; the screen still owns. That distinction is the
+        // whole reason a grouping package is not a namespace package.
+        expect(moved?.owner).toBe('scrHome');
+        expect(moved?.attributes['elementPackage']).toBe('grpHeader');
+        expect(built.elements.get('btnClose')?.attributes['elementPackage']).toBeUndefined();
+        // Moved verbatim, not regenerated.
+        expect(readProjectFile('model/ui.sysml')).toContain('attribute redefines note = "back"');
+    });
+
+    it('refuses to file a declaration inside itself', async () => {
+        writeProjectFile('model/ui.sysml', SCREEN);
+        await createPackage(projectRoot, { file: 'model/ui.sysml', parent: 'Ui::scrHome::btnBack', name: 'grpInner' });
+
+        const result = await moveIntoGroupingPackage(projectRoot, {
+            file: 'model/ui.sysml',
+            qualifiedName: 'Ui::scrHome::btnBack',
+            targetPackage: 'Ui::scrHome::btnBack::grpInner',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('cannot group itself');
+        expect(readProjectFile('model/ui.sysml')).toContain('part btnBack : UIElement {');
     });
 });
 
