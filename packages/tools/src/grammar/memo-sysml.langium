@@ -832,8 +832,13 @@ PrimaryExpr infers ConstraintExpr:
 // it landed when that reinvention was retired. TransitionUsage is NOT listed
 // here: it already arrives through ArcadiaMember, and naming it twice makes
 // the alternation ambiguous.
+// `PackageDeclaration` is a legal usage-body member: SysIDE accepts
+// `part scrHome : UIElement { package grpHeader { part btnBack : UIElement; } }`
+// and the grammar rejected it. Grouping UI elements inside a screen is the case
+// that needed it — a package groups without asserting the part decomposition a
+// nested part would.
 UsageBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | ViewpointUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | StateUsage | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | ViewpointUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | StateUsage | PackageDeclaration | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
 // Three forms:

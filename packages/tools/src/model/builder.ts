@@ -1189,7 +1189,71 @@ function extractNestedParts(
         const childEl = elements.get(pm.name);
         if (childEl) childEl.owner = ownerId;
     }
+    extractNestedPackages(owner, filePath, packageName, config, elements, registry, registries);
 }
+
+/**
+ * A `package` nested inside a usage body — `part scrHome : UIElement { package
+ * grpHeader { part btnBack : UIElement; } }`.
+ *
+ * A package GROUPS; it does not decompose. So the group becomes an element (the
+ * explorer needs a node to render, and the user asked to create these to
+ * organise a screen or a leaf of the model), but the things inside it stay
+ * contained by the OWNER — putting them under the package would assert a part
+ * decomposition the author did not write, and would make the containment
+ * family rules see a package "containing" software.
+ *
+ * Without this the package and everything in it parses in both parsers and
+ * never becomes an element: the BindingUsage / ExposeMember / nested-item shape
+ * for the fourth time.
+ */
+function extractNestedPackages(
+    owner: UsageNode,
+    filePath: string,
+    packageName: string,
+    config: MEMOConfig,
+    elements: Map<string, MemoElement>,
+    registry: PackageRegistry,
+    registries?: BuilderRegistries,
+): void {
+    for (const member of owner.body || []) {
+        const pm = member as any;
+        if (pm.$type !== 'PackageDeclaration' || !pm.name) continue;
+
+        elements.set(pm.name, {
+            id: pm.name,
+            name: pm.name,
+            kind: ELEMENT_PACKAGE_KIND,
+            construct: 'package',
+            layer: elements.get(owner.name)?.layer ?? 'unknown',
+            file: filePath,
+            package: packageName,
+            attributes: {},
+            owner: owner.name,
+        });
+
+        for (const grouped of pm.members ?? []) {
+            const gm = grouped as any;
+            const isPart = gm.$type === 'PartMember';
+            const isItem = gm.$type === 'ItemUsage' && !gm.direction;
+            if (!isPart && !isItem) continue;
+            if (!gm.type || gm.boundRef || !gm.name) continue;
+            extractUsage(
+                { name: gm.name, type: gm.type, body: gm.body },
+                isPart ? 'part' : 'item', filePath, packageName, config, elements, registry, registries,
+            );
+            const childEl = elements.get(gm.name);
+            if (childEl) {
+                // Contained by the OWNER; the package only labels the grouping.
+                childEl.owner = owner.name;
+                childEl.attributes['elementPackage'] = pm.name;
+            }
+        }
+    }
+}
+
+/** The kind a nested grouping package becomes, distinct from a namespace package. */
+export const ELEMENT_PACKAGE_KIND = 'ElementPackage';
 
 /**
  * Extract an ActionUsage, including nested actions, flows, and successions.
