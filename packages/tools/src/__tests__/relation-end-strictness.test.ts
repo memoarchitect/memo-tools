@@ -45,6 +45,18 @@ const A0_RULES = [
 const FUNCTION_RULES = ['CR-ONT-074', 'CR-ONT-075'];
 
 /**
+ * Containment stays inside one architectural family.
+ *
+ * These are CR-ONT-075's shape for the other families. They are exercised here
+ * for the reason this whole file exists: CR-ONT-079 shipped and did not fire,
+ * because its subject kind `PhysicalElement` was a freshly added abstract root
+ * and the type extent that feeds `appliesTo` is built by walking `derivedBy` —
+ * which was empty while a stale nested ontology copy shadowed the real one. The
+ * rule compiled, evaluated, and constrained nothing.
+ */
+const FAMILY_RULES = ['CR-ONT-077', 'CR-ONT-078', 'CR-ONT-079'];
+
+/**
  * Elements typed with REAL ontology kinds, because `conformsTo` resolves
  * through the real specialization graph. A made-up kind would conform to
  * nothing and every rule would "fire" for the wrong reason.
@@ -52,6 +64,8 @@ const FUNCTION_RULES = ['CR-ONT-074', 'CR-ONT-075'];
 const ELEMENTS: Array<[id: string, kind: string, construct: string]> = [
     ['req', 'Requirement', 'requirement'],
     ['mod', 'SoftwareModule', 'part'],
+    ['lc', 'LogicalComponent', 'part'],
+    ['assembly', 'HardwareAssembly', 'part'],
     ['fn', 'SystemFunction', 'action'],
     ['cfn', 'ComponentFunction', 'action'],
     ['act', 'OperationalActivity', 'action'],
@@ -106,6 +120,11 @@ const INVALID_LINKS: Array<{ rule: string; link: RelSpec }> = [
     { rule: 'CR-ONT-069', link: { type: 'enables', from: 'req', to: 'act' } },
     { rule: 'CR-ONT-070', link: { type: 'bindsToInterface', from: 'mod', to: 'iface' } },
     { rule: 'CR-ONT-071', link: { type: 'crossesTrustBoundary', from: 'mod', to: 'asset' } },
+    // Containment crossing a family. Each is realization or allocation wearing
+    // containment's clothes, and each has its own relation.
+    { rule: 'CR-ONT-077', link: { type: 'composes', from: 'mod', to: 'lc' } },
+    { rule: 'CR-ONT-078', link: { type: 'composes', from: 'lc', to: 'mod' } },
+    { rule: 'CR-ONT-079', link: { type: 'composes', from: 'assembly', to: 'lc' } },
 ];
 
 function buildModel(links: RelSpec[], exchangeEndpoints?: { source: string; target: string }): MemoModel {
@@ -160,13 +179,13 @@ beforeAll(async () => {
 describe('Track A0 relation-end rules', () => {
     it('all sixteen are declared in the ontology', () => {
         if (!available) return;
-        expect([...A0_RULES, ...FUNCTION_RULES].filter(id => !rules.has(id))).toEqual([]);
+        expect([...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES].filter(id => !rules.has(id))).toEqual([]);
     });
 
     it('accepts a model whose ends are all well typed', () => {
         if (!available) return;
         const model = buildModel(VALID_LINKS, { source: 'mod', target: 'port' });
-        const raised = [...A0_RULES, ...FUNCTION_RULES].flatMap(id =>
+        const raised = [...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES].flatMap(id =>
             evaluateConstraintNode(rules.get(id)!, rules.get(id)!.ast, model, kindRegistry));
         const detail = raised.map(v => `${v.ruleId}: ${v.description}`).join('\n  ');
         expect(raised.map(v => v.ruleId), `Valid model rejected:\n  ${detail}\n`).toEqual([]);
