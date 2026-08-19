@@ -170,6 +170,14 @@ export interface ViewpointDTO {
     label: string;
     /** Optional ontology-authored grouping used by Memo Architect. */
     group?: string;
+    /**
+     * The viewpoint this one is declared inside, for system-of-systems models.
+     *
+     * A viewpoint nests natively (`viewpoint vpSoS { viewpoint vpPump; }`), and
+     * the id here is the PARENT'S DTO id — the same id the parent entry carries
+     * — so a consumer builds the tree without re-resolving anything.
+     */
+    parentId?: string;
     visibleKinds: string[];
     visibleRelationships: string[];
     visibleLayers: string[];

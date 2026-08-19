@@ -629,6 +629,9 @@ function extractFromPackage(
             case 'ViewUsage':
                 extractUsage(member as ViewUsage, 'view', filePath, packageName, config, elements, registry, registries);
                 break;
+            case 'ViewpointUsage':
+                extractViewpointUsage(member as any, filePath, packageName, config, elements, registry, registries);
+                break;
             case 'ConnectionUsage':
                 // Defer connection resolution until all elements are extracted
                 deferredConnections.push({
@@ -1254,6 +1257,47 @@ function extractNestedPackages(
 
 /** The kind a nested grouping package becomes, distinct from a namespace package. */
 export const ELEMENT_PACKAGE_KIND = 'ElementPackage';
+
+/**
+ * A `viewpoint` usage, and any viewpoint declared inside it.
+ *
+ * A viewpoint nests for system-of-systems modelling: the viewpoint that frames
+ * the whole system of systems declares one viewpoint per constituent system,
+ * which is how ISO 42010 composes a description of a description. Native SysML
+ * already permits it (`ViewpointUsage` is a `UsageBodyMember`) and the grammar
+ * already parsed it — nothing extracted it, so a nested viewpoint became no
+ * element at all and every consumer saw one flat list.
+ *
+ * The nested viewpoint carries its parent in `owner`, the same way a nested
+ * part does. Unlike a part, no `composes` edge is synthesized: a viewpoint is
+ * not a `part` construct, and framing is not containment of hardware.
+ */
+function extractViewpointUsage(
+    usage: UsageNode,
+    filePath: string,
+    packageName: string,
+    config: MEMOConfig,
+    elements: Map<string, MemoElement>,
+    registry: PackageRegistry,
+    registries?: BuilderRegistries,
+    ownerId?: string,
+): void {
+    if (!usage.name) return;
+    extractUsage(
+        { name: usage.name, type: usage.type, body: usage.body },
+        'viewpoint', filePath, packageName, config, elements, registry, registries,
+    );
+    const element = elements.get(usage.name);
+    if (element && ownerId) element.owner = ownerId;
+
+    for (const member of usage.body || []) {
+        const nested = member as any;
+        if (nested.$type !== 'ViewpointUsage') continue;
+        extractViewpointUsage(
+            nested, filePath, packageName, config, elements, registry, registries, usage.name,
+        );
+    }
+}
 
 /**
  * Extract an ActionUsage, including nested actions, flows, and successions.

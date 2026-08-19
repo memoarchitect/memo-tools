@@ -186,37 +186,69 @@ function viewpointLabel(ref: string): string {
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+/** One authored viewpoint, resolved from the element that declares it. */
+interface ResolvedViewpoint {
+    id: string;
+    label: string;
+    ref: string;
+    group?: string;
+    declaredLayers?: string[];
+    explorerLane?: string;
+    explorerOrder?: number;
+    parentId?: string;
+}
+
+/** The DTO id of a viewpoint: its authored id, else the reference that names it. */
+function viewpointId(authored: MemoElement | undefined, ref: string): string {
+    return authored?.attributes['providedId'] || authored?.attributes['id'] || ref;
+}
+
+/**
+ * Read one viewpoint element as a resolved viewpoint.
+ *
+ * `authored` is absent for a viewpoint no document declares — a view may bind
+ * to a reference that resolves nowhere — and the reference then stands in for
+ * every field the element would have carried.
+ */
+function readViewpoint(authored: MemoElement | undefined, ref: string, model: MemoModel): ResolvedViewpoint {
+    // Nesting is ownership: `viewpoint vpSoS { viewpoint vpPump; }` puts the
+    // system-of-systems viewpoint in the child's `owner`. Only a viewpoint can
+    // be a viewpoint's parent — a viewpoint declared inside anything else is
+    // still a root of the viewpoint tree.
+    const owner = authored?.owner ? model.elements.get(authored.owner) : undefined;
+    const parent = owner?.construct === 'viewpoint' ? owner : undefined;
+    return {
+        id: viewpointId(authored, ref),
+        label: authored?.attributes['title']
+            || authored?.attributes['name']
+            || `${viewpointLabel(ref)} Viewpoint`,
+        group: authored?.attributes['group'],
+        // The viewpoint's own `includedLayers`, as authored. Distinct from
+        // the DTO's `visibleLayers`, which is accumulated from the views
+        // that bind to it — a viewpoint states which layers it frames even
+        // before any view exists.
+        declaredLayers: splitList(authored?.attributes['includedLayers'] ?? ''),
+        explorerLane: authored?.attributes['explorerLane'],
+        explorerOrder: Number.isFinite(Number(authored?.attributes['explorerOrder']))
+            ? Number(authored?.attributes['explorerOrder'])
+            : undefined,
+        ...(parent ? { parentId: viewpointId(parent, parent.id) } : {}),
+        ref,
+    };
+}
+
 /** Resolve the authored ISO 42010 viewpoint usage referenced by a view. */
 function resolveViewpoints(
     view: MemoElement,
     model: MemoModel,
-): Array<{ id: string; label: string; ref: string; group?: string; declaredLayers?: string[]; explorerLane?: string; explorerOrder?: number }> {
+): ResolvedViewpoint[] {
     // `viewpointDefinition` is the canonical property declared by MemoView.
     // Keep the former `viewpoint` spelling as a compatibility fallback for
     // projects authored before the ontology adopted the ISO 42010 vocabulary.
     const raw = view.attributes['viewpointDefinition'] || view.attributes['viewpoint'];
     if (!raw) return [];
 
-    return splitList(raw).map(ref => {
-        const authored = model.elements.get(ref);
-        return {
-            id: authored?.attributes['providedId'] || authored?.attributes['id'] || ref,
-            label: authored?.attributes['title']
-                || authored?.attributes['name']
-                || `${viewpointLabel(ref)} Viewpoint`,
-            group: authored?.attributes['group'],
-            // The viewpoint's own `includedLayers`, as authored. Distinct from
-            // the DTO's `visibleLayers`, which is accumulated from the views
-            // that bind to it — a viewpoint states which layers it frames even
-            // before any view exists.
-            declaredLayers: splitList(authored?.attributes['includedLayers'] ?? ''),
-            explorerLane: authored?.attributes['explorerLane'],
-            explorerOrder: Number.isFinite(Number(authored?.attributes['explorerOrder']))
-                ? Number(authored?.attributes['explorerOrder'])
-                : undefined,
-            ref,
-        };
-    });
+    return splitList(raw).map(ref => readViewpoint(model.elements.get(ref), ref, model));
 }
 
 /** Scenario links are authored on the view; they are never inferred from content. */
@@ -276,6 +308,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                     explorerOrder: authoredViewpoint.explorerOrder,
                     declaredLayers: authoredViewpoint.declaredLayers?.length
                         ? authoredViewpoint.declaredLayers : undefined,
+                    ...(authoredViewpoint.parentId ? { parentId: authoredViewpoint.parentId } : {}),
                     visibleKinds: [],
                     visibleRelationships: [],
                     visibleLayers: [],
@@ -372,6 +405,35 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         views.sort((a, b) => a.id.localeCompare(b.id)).forEach((diagram, index) => {
             diagram.shortId = `${prefix}-${index + 1}`;
         });
+    }
+
+    // A nesting viewpoint need not be bound by any view of its own: the
+    // system-of-systems viewpoint frames the constituent viewpoints and leaves
+    // the drawing to them. Only views put viewpoints in the map above, so walk
+    // each parent chain and add the ancestors, or a nested viewpoint would name
+    // a parent the consumer cannot find and would render as a root.
+    for (const vp of [...viewpointsById.values()]) {
+        let parentId = vp.parentId;
+        while (parentId && !viewpointsById.has(parentId)) {
+            const element = [...model.elements.values()].find(
+                candidate => candidate.construct === 'viewpoint' && viewpointId(candidate, candidate.id) === parentId,
+            );
+            if (!element) break;
+            const resolved = readViewpoint(element, element.id, model);
+            viewpointsById.set(resolved.id, {
+                id: resolved.id,
+                label: resolved.label,
+                group: resolved.group,
+                explorerLane: resolved.explorerLane,
+                explorerOrder: resolved.explorerOrder,
+                declaredLayers: resolved.declaredLayers?.length ? resolved.declaredLayers : undefined,
+                ...(resolved.parentId ? { parentId: resolved.parentId } : {}),
+                visibleKinds: [],
+                visibleRelationships: [],
+                visibleLayers: [],
+            });
+            parentId = resolved.parentId;
+        }
     }
 
     return { viewpoints: [...viewpointsById.values()], diagrams };
