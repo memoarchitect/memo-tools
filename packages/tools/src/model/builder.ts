@@ -302,11 +302,12 @@ export function buildMemoModel(
     // so emit one per nesting. A model that nests natively then looks identical
     // to one that wrote `Composes`, which is what lets R10-S7 delete the
     // relationship without the containment vanishing. Ports carry `owner` too,
-    // so this is confined to part-to-part nesting.
+    // so this covers part and item nesting, and nothing else.
+    const CONTAINING_CONSTRUCTS = new Set(['part', 'item']);
     for (const el of elements.values()) {
-        if (el.construct !== 'part' || !el.owner) continue;
+        if (!CONTAINING_CONSTRUCTS.has(el.construct) || !el.owner) continue;
         const parent = elements.get(el.owner);
-        if (!parent || parent.construct !== 'part') continue;
+        if (!parent || !CONTAINING_CONSTRUCTS.has(parent.construct)) continue;
         relationships.push({
             id: `rel-${++relationshipCounter}`,
             type: 'composes',
@@ -862,8 +863,12 @@ function extractUsage(
     // Without this, an inline-authored port silently has no element: it
     // parses, every relationship endpoint referencing it resolves to a
     // dangling id, and nothing downstream reports why.
-    if (construct === 'part') {
+    // Items nest too — a standard contains its clauses — so the nested-usage
+    // walk runs for both. Ports stay part-only: an item has no boundary.
+    if (construct === 'part' || construct === 'item') {
         extractNestedParts(usage, filePath, packageName, config, elements, registry, registries);
+    }
+    if (construct === 'part') {
         extractDefinitionPorts(usage, filePath, packageName, config, elements, registry, registries);
     }
 
@@ -1133,8 +1138,8 @@ function extractDefinitionPorts(
 }
 
 /**
- * Walk a part usage's body to extract nested parts as owned elements, setting
- * `owner` on each child.
+ * Walk a usage's body to extract nested parts AND items as owned elements,
+ * setting `owner` on each child.
  *
  * `extractUsage` flattens the `PartMember` shapes that are view metadata — a
  * reference binding (`part viewpoint :> vp;`) and an untyped body
@@ -1157,9 +1162,21 @@ function extractNestedParts(
     const ownerId = owner.name;
 
     for (const member of owner.body || []) {
-        if ((member as any).$type !== 'PartMember') continue;
         const pm = member as any;
-        // Only a TYPED nested part is containment. Untyped bodies (view
+        const isPart = pm.$type === 'PartMember';
+        // A nested ITEM is containment too — `item iec62304 { item clause4 …}`
+        // is how every standard declares its clauses. Without this branch the
+        // child parses cleanly in both parsers and never becomes an element at
+        // all: not a missing edge, a missing element. That is the
+        // BindingUsage / ExposeMember / untyped-flow shape again.
+        //
+        // A DIRECTED item is excluded: `in item payload : BubbleSignal;` is a
+        // port's payload parameter, not something the port contains. The same
+        // `direction` test already separates the two at the action-parameter
+        // and flow sites.
+        const isItem = pm.$type === 'ItemUsage' && !pm.direction;
+        if (!isPart && !isItem) continue;
+        // Only a TYPED nested usage is containment. Untyped bodies (view
         // selectionQuery) and reference bindings are view metadata, flattened
         // to attributes in extractUsage — skip them here or a view's metadata
         // becomes a phantom element and its selection query is lost.
@@ -1167,7 +1184,7 @@ function extractNestedParts(
 
         extractUsage(
             { name: pm.name, type: pm.type, body: pm.body },
-            'part', filePath, packageName, config, elements, registry, registries,
+            isPart ? 'part' : 'item', filePath, packageName, config, elements, registry, registries,
         );
         const childEl = elements.get(pm.name);
         if (childEl) childEl.owner = ownerId;

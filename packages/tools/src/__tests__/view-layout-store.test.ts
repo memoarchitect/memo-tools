@@ -33,8 +33,11 @@ describe('.viewlayout companions', () => {
         expect(existsSync(saved)).toBe(true);
         expect(loadViewLayout(root, d)).toEqual(layout);
         const artifact = parse(readFileSync(saved, 'utf8'));
+        // v2 since the sidecar records each node's coordinate frame. v1 files
+        // still LOAD — see the round-trip above — and are rewritten as v2 on
+        // the next save; only the written format moved.
         expect(artifact).toMatchObject({
-            format: 'memo.viewlayout/v1', viewSource: d.sourceFile,
+            format: 'memo.viewlayout/v2', viewSource: d.sourceFile,
             layouts: { [d.id]: layout },
         });
     });

@@ -490,6 +490,44 @@ describe('ARCADIA native mechanisms — builder projection', () => {
         expect(rel.attributes?.status).toBe('StatusKind::closed');
     });
 
+    it('a nested item becomes an element and gets a composes edge', async () => {
+        // A nested ITEM parsed cleanly in both parsers and never became an
+        // element at all — not a missing edge, a missing element — because the
+        // nested-usage walk was gated on `construct === 'part'`. Standards
+        // declare their clauses this way, so migrating them to native nesting
+        // would have silently deleted every clause in the model.
+        const doc = await parseDoc(`
+            package Test {
+                item std : RegulatoryStandard {
+                    item clause4 : StandardClause;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], config);
+        expect(model.elements.get('clause4')).toBeDefined();
+        expect(model.relationships.some(r =>
+            (r.type ?? '').toLowerCase() === 'composes'
+            && r.sourceId === 'std' && r.targetId === 'clause4')).toBe(true);
+    });
+
+    it('a directed item is a payload parameter, not containment', async () => {
+        // `in item payload : Signal;` on a port is what the port CARRIES, not
+        // something it contains. Counting it as containment would put a phantom
+        // child under every directional port in the model.
+        const doc = await parseDoc(`
+            package Test {
+                part pump : LogicalComponent {
+                    port p : LogicalPort {
+                        in item payload : LogicalExchangeItem;
+                    }
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], config);
+        expect(model.relationships.some(r =>
+            (r.type ?? '').toLowerCase() === 'composes' && r.targetId === 'payload')).toBe(false);
+    });
+
     it('metadata lifts on any element, not just connections, under its own field names', async () => {
         // A `metadata def` is the only carrier in SysML v2 that attaches to any
         // metaclass, so it is how MEMO can hold common fields without
