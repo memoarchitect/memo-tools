@@ -76,6 +76,21 @@ const NATIVE_DUPLICATES: Record<string, DuplicateRow> = {
     RequiresResource: { native: 'dependency', status: 'removed' },
     ResolvesToMethodology: { native: 'dependency', status: 'removed' },
     Supports: { native: 'dependency (also a duplicate of Enables)', status: 'removed' },
+    Extends: { native: 'specialization / dependency', status: 'removed' },
+    AnalyzedBy: { native: 'dependency', status: 'removed' },
+    HasScenario: { native: 'nesting (a scenario belongs to one workflow)', status: 'removed' },
+    // Moved OUT of the duplicate list on per-row scrutiny — see the audit's
+    // burndown table. Each looked like a duplicate at family level and is not.
+    DependsOnSoup: {
+        native: 'dependency',
+        status: 'present',
+        reason: 'NOT a duplicate: IEC 62304 SOUP dependency is regulated traceability, and a bare dependency drops the assertion that this one is on a SOUP item.',
+    },
+    ContainsEvent: {
+        native: 'nesting',
+        status: 'present',
+        reason: 'NOT a duplicate: cut sets share basic events, which the fault tree owns. Nesting would assert exclusive ownership that is false.',
+    },
     IncludedIn: { native: 'expose', status: 'removed' },
     Initiates: { native: 'actor', status: 'removed' },
     ParticipatesIn: { native: 'actor', status: 'removed' },
