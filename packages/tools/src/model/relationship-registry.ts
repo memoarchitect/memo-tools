@@ -259,6 +259,28 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
     // a PREFIX metadata rather than by a `metadata def` on a connection def. So
     // `nativeKeyword` here does not mean "write this as a connection usage with
     // a keyword"; it means "do not write this as a connection at all".
+    // Like `realizes` below, this row's native spelling is not a connection —
+    // it is NESTING. `Composes` specialized `Connections::BinaryConnection`,
+    // i.e. "a link between two things within some containing structure", which
+    // is the wrong category for the containment itself: SysML models
+    // composition as composite feature ownership, and the corpus has no
+    // composition connection to specialize. The builder synthesizes this edge
+    // from every nested part and item, so the graph is unchanged and every
+    // consumer — CR-ONT-075, the DSM, traceability — keeps reading `composes`.
+    // The row exists because the `connection def` is gone (R10-S7): without it
+    // the edge type would vanish from the registry along with the definition.
+    composes: {
+        keyword: 'nesting',
+        sysmlName: 'Composes',
+        layer: 'core',
+        description: 'A whole contains a part. Written natively by NESTING the child '
+            + 'inside the parent — `part enclosure { part board; }` — not as a connection. '
+            + 'The composes edge is synthesized from the nesting.',
+        ends: [
+            { name: 'parent' },
+            { name: 'child' },
+        ],
+    },
     realizes: {
         keyword: 'dependency',
         sysmlName: 'Realizes',

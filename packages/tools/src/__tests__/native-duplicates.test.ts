@@ -46,11 +46,7 @@ interface DuplicateRow {
  * that it stays removed.
  */
 const NATIVE_DUPLICATES: Record<string, DuplicateRow> = {
-    Composes: {
-        native: 'nesting (native containment)',
-        status: 'present',
-        reason: 'Migration blocked on .viewlayout storing absolute positions: re-parenting a flat element corrupts saved layouts. Tracked as R10-S7.',
-    },
+    Composes: { native: 'nesting (native containment)', status: 'removed' },
     DerivesFrom: {
         native: '#derivation / #derive metadata',
         status: 'present',

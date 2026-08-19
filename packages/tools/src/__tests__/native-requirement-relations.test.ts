@@ -259,9 +259,12 @@ describe('registry: the natives are registered as usages, not connection defs', 
         // than in a traceability matrix months later.
         expect(native.map(dto => dto.name).sort())
             .toEqual([
-                'allocatedTo', 'dependency', 'exhibitsMode', 'framesConcern',
-                'includesStep', 'participatesIn', 'performs', 'realizes',
-                'satisfiedBy', 'verifiedBy',
+                // `composes` joined this set when R10-S7 deleted the
+                // connection def: its native spelling is nesting, and the
+                // builder synthesizes the edge from every nested part and item.
+                'allocatedTo', 'composes', 'dependency', 'exhibitsMode',
+                'framesConcern', 'includesStep', 'participatesIn', 'performs',
+                'realizes', 'satisfiedBy', 'verifiedBy',
             ]);
     });
 });
