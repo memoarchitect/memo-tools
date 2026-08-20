@@ -586,6 +586,10 @@ const KNOWN_RELATION_SEGMENTS = new Set([
     'composes', 'allocatedto', 'satisfiedby', 'verifiedby', 'realizes',
     'derivesfrom', 'mitigates', 'performs', 'enables', 'precedes',
     'bindstointerface', 'crossestrustboundary', 'dependency', 'validates',
+    // Native edges. A rule asking whether a function is connected has to read
+    // as false in a model with no flows at all, rather than failing to resolve
+    // the name — which is what happens when nothing in the model carries it.
+    'flow', 'succession', 'bind',
 ]);
 
 /** Resolve a feature chain starting from `start`. See navigation semantics in header. */

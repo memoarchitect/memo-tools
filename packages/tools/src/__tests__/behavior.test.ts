@@ -750,100 +750,12 @@ describe('Behavior builder: model indexes', () => {
 // ─── Behavior Validation Tests ──────────────────────────────────────────────
 
 describe('Behavior validation', () => {
-    it('BV-001: warns on unallocated action usage', async () => {
-        const doc = await parseDoc(`
-            package Test {
-                action def DoWork { out result : Data; }
-                action process {
-                    action work : DoWork;
-                }
-            }
-        `);
-        const model = buildMemoModel([doc], behaviorConfig);
-        const violations = validateBehavior(model);
-        const bv001 = violations.filter(v => v.ruleId === 'BV-001');
-        expect(bv001.length).toBeGreaterThan(0);
-        expect(bv001[0].description).toContain('not allocated');
-    });
-
-    it('BV-001: no warning when action is allocated', async () => {
-        const doc = await parseDoc(`
-            package Test {
-                part sw : Subsystem;
-                action work : SystemFunction;
-                allocate work to sw;
-            }
-        `);
-        const model = buildMemoModel([doc], behaviorConfig);
-        const workEl = model.elements.get('work');
-        expect(workEl?.allocatedTo).toBe('sw');
-        const violations = validateBehavior(model);
-        const bv001 = violations.filter(v => v.ruleId === 'BV-001' && v.elementName === 'work');
-        expect(bv001).toHaveLength(0);
-    });
-
-    it('BV-001/BV-002: composite actions with nested steps are exempt', async () => {
-        const doc = await parseDoc(`
-            package Test {
-                part sw : Subsystem;
-                action def DoWork { out result : Data; }
-                action process {
-                    action work : DoWork;
-                    first start then work; first work then done;
-                }
-                allocate work to sw;
-            }
-        `);
-        const model = buildMemoModel([doc], behaviorConfig);
-        const violations = validateBehavior(model);
-        // 'process' is allocated and connected through its nested step
-        const wrapper = violations.filter(v => v.elementName === 'process');
-        expect(wrapper).toHaveLength(0);
-    });
-
-    it('BV-002: warns on orphan action (no flow/succession)', async () => {
-        const doc = await parseDoc(`
-            package Test {
-                action def A { out x : X; }
-                action def B { in x : X; }
-                action def Orphan;
-                action process {
-                    action a : A;
-                    action b : B;
-                    action orphan : Orphan;
-                    flow of X from a.x to b.x;
-                    first start then a; first a then b; first b then done;
-                }
-            }
-        `);
-        const model = buildMemoModel([doc], behaviorConfig);
-        const violations = validateBehavior(model);
-        const bv002 = violations.filter(v => v.ruleId === 'BV-002');
-        // 'orphan' has no flow or succession connections
-        const orphanViolation = bv002.find(v => v.elementName === 'orphan');
-        expect(orphanViolation).toBeDefined();
-    });
-
-    it('BV-002: no warning when action has flow connections', async () => {
-        const doc = await parseDoc(`
-            package Test {
-                action def A { out x : X; }
-                action def B { in x : X; }
-                action process {
-                    action a : A;
-                    action b : B;
-                    flow of X from a.x to b.x;
-                    first start then a; first a then b; first b then done;
-                }
-            }
-        `);
-        const model = buildMemoModel([doc], behaviorConfig);
-        const violations = validateBehavior(model);
-        const bv002 = violations.filter(v => v.ruleId === 'BV-002');
-        // a and b both have flow connections, should not be flagged
-        const aOrB = bv002.filter(v => v.elementName === 'a' || v.elementName === 'b');
-        expect(aOrB).toHaveLength(0);
-    });
+    // BV-001 (allocated) and BV-002 (sequenced) were tested here and are gone:
+    // a validator does not get to invent a methodology's rules. The ontology
+    // declares them — CR-MED-022 and CR-ONT-074 for allocation, CR-MED-023 for
+    // participation in the chain — and `constraint-eval.test.ts` holds the
+    // predicate down. What the built-in validator keeps is the type check
+    // neither the ontology's grammar nor SysIDE performs.
 
     it('BV-003: errors on incompatible flow type', async () => {
         const doc = await parseDoc(`

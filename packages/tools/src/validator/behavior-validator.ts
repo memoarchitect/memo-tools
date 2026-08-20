@@ -1,89 +1,48 @@
 // ─── Behavior Validator ──────────────────────────────────────────────────────
 //
-// Built-in structural checks for behavior elements (actions, flows, successions).
-// These complement the config-driven closure rules with checks that require
-// deeper structural analysis of the model.
+// One check: a flow's payload against the parameters at its ends.
+//
+// There were three. The other two invented rules a validator has no business
+// inventing — "an action is allocated" and "an action is sequenced" are claims
+// about a METHODOLOGY, and MEMO declares those in the ontology, where a rule
+// carries its own subject set, severity, rationale, and can be tailored by a
+// project. Written here instead, they applied to every action usage in the
+// model, so an operative scenario and a flow step were reported as defects for
+// not being wired like a function. CR-MED-022 and CR-ONT-074 already required
+// the allocation, properly scoped; CR-MED-023 now requires the connection.
+//
+// This one stays because it is neither: it is a TYPE check, and it is not the
+// ontology's to make. SysIDE — the compiler of record — accepts a flow whose
+// payload matches neither end's parameters (measured, not assumed), and the
+// constraint grammar cannot compare a flow's item type against the direction
+// and type of a parameter on the action at each end.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MemoModel, MemoElement, ActionParameter } from '../model/semantic.js';
 import type { Violation } from './types.js';
 
 /**
- * Run behavior-specific structural validation.
+ * Check every flow's payload against the parameters at its ends.
  *
- * Checks:
- * 1. Unallocated ActionUsage — warning if an action usage has no allocatedTo
- * 2. Orphan ActionUsage — warning if an action has no flow or succession edges
- * 3. Incompatible flow types — error if flow source/target params don't match flow item
+ * An error, not a warning: a flow of something the source never emits or the
+ * target never accepts is not an omission, it is a contradiction.
  */
 export function validateBehavior(model: MemoModel): Violation[] {
     const violations: Violation[] = [];
 
-    // Selected by what the elements ARE, not by the name of a metaclass. A
-    // model-local `action def X :> FunctionalAction` carries FunctionalAction
-    // as its kind — as it should, that is what it defines — so a lookup keyed
-    // on the literal `ActionDefinition` silently found none of them in exactly
-    // the projects that declare their own behaviour. `construct` and
-    // `isDefinition` are the structural facts, and they cannot go stale when
-    // an ontology renames a kind.
-    const actions = [...model.elements.values()].filter(element => element.construct === 'action');
-    const actionUsages = actions.filter(element => !element.isDefinition);
-
-    // Build a lookup: action definition ID/name → parameters
+    // A flow endpoint resolves its parameters through its definition, so the
+    // definitions are indexed by both id and name — a usage names its def in
+    // `actionType`, and older content names it by display name.
     const defParams = new Map<string, ActionParameter[]>();
-    const actionDefs = actions.filter(element => element.isDefinition);
-    for (const def of actionDefs) {
-        if (def.parameters && def.parameters.length > 0) {
-            defParams.set(def.id, def.parameters);
-            defParams.set(def.name, def.parameters);
+    for (const element of model.elements.values()) {
+        if (element.construct !== 'action' || !element.isDefinition) continue;
+        if (element.parameters && element.parameters.length > 0) {
+            defParams.set(element.id, element.parameters);
+            defParams.set(element.name, element.parameters);
         }
     }
 
-    // Composite actions (those with nested action steps) are allocated and
-    // connected through their children — exempt from BV-001/BV-002
-    const compositeIds = new Set<string>();
-    for (const el of model.elements.values()) {
-        if (el.parentAction) compositeIds.add(el.parentAction);
-    }
-
-    for (const action of actionUsages) {
-        if (compositeIds.has(action.id)) continue;
-
-        // 1. Unallocated action usage
-        if (!action.allocatedTo) {
-            violations.push({
-                ruleId: 'BV-001',
-                description: `Action "${action.name}" is not allocated to any structural element`,
-                severity: 'warning',
-                elementId: action.id,
-                elementKind: action.kind,
-                elementName: action.name,
-                layer: action.layer,
-            });
-        }
-
-        // 2. Orphan action — no flow or succession edges
-        const outgoing = model.outgoing.get(action.id) || [];
-        const incoming = model.incoming.get(action.id) || [];
-        const allRels = [...outgoing, ...incoming];
-        const hasFlowOrSuccession = allRels.some(
-            r => r.type === 'flow' || r.type === 'succession'
-        );
-
-        if (!hasFlowOrSuccession) {
-            violations.push({
-                ruleId: 'BV-002',
-                description: `Action "${action.name}" is not connected by any flow or succession`,
-                severity: 'warning',
-                elementId: action.id,
-                elementKind: action.kind,
-                elementName: action.name,
-                layer: action.layer,
-            });
-        }
-    }
-
-    // 3. Incompatible flow types — check that flow item matches parameter types
+    // Check that the flow item matches the parameter types at both ends.
     // Flow endpoints are action usages. Resolve each to its definition via the
     // actionType attribute stored during build.
     for (const rel of model.relationships) {

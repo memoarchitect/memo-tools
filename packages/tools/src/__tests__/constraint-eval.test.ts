@@ -44,6 +44,47 @@ function allocationModel(): MemoModel {
     );
 }
 
+// CR-MED-023, the rule that replaced the TypeScript BV-002. Declared in the
+// ontology, so its subject set is `appliesTo` rather than "every action usage
+// in the model" — which is what made the built-in version report a scenario
+// and a flow step as defects for not being wired like a function.
+describe('a function participates in the functional chain', () => {
+    const rule: NativeConstraint = {
+        id: 'CR-MED-023', appliesToKind: 'SystemFunction', severity: 'warning',
+        description: 'A function participates in a flow or a succession.',
+        expression: 'flow->size() >= 1 or succession->size() >= 1',
+    };
+
+    it('passes a function a flow reaches, from either end', () => {
+        const model = makeModel(
+            [el('sense', 'SystemFunction'), el('decide', 'SystemFunction')],
+            [rel('f1', 'flow', 'sense', 'decide')],
+        );
+        expect(evaluateNativeConstraint(rule, model)).toHaveLength(0);
+    });
+
+    it('passes a function only a succession reaches', () => {
+        const model = makeModel(
+            [el('sense', 'SystemFunction'), el('decide', 'SystemFunction')],
+            [rel('s1', 'succession', 'sense', 'decide')],
+        );
+        expect(evaluateNativeConstraint(rule, model)).toHaveLength(0);
+    });
+
+    it('reports a function nothing reaches', () => {
+        const model = makeModel([el('orphan', 'SystemFunction')], []);
+        expect(evaluateNativeConstraint(rule, model).map(v => v.elementId)).toEqual(['orphan']);
+    });
+
+    it('reads as false in a model carrying no flows at all', () => {
+        // The name has to resolve to an empty collection rather than fail to
+        // resolve: `relationshipsByType` is empty here, which is exactly the
+        // model a project has before it draws its first flow.
+        const model = makeModel([el('orphan', 'SystemFunction'), el('other', 'Hazard')], []);
+        expect(evaluateNativeConstraint(rule, model)).toHaveLength(1);
+    });
+});
+
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('a relation with no links is an empty collection, not a scalar', () => {

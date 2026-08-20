@@ -41,20 +41,20 @@ export interface BuiltinRule {
 }
 
 export const BUILTIN_RULES: readonly BuiltinRule[] = [
+    // BV-001 (an action is allocated) and BV-002 (an action is sequenced) were
+    // here and are not rules a validator should be inventing: both are
+    // methodology claims, and the ontology declares those — CR-MED-022 and
+    // CR-ONT-074 for the allocation, CR-MED-023 for the connection. Declared
+    // there they carry a subject set, a rationale, and the tailorability this
+    // list exists to admit these rules lack.
     {
-        id: 'BV-001', name: 'ActionAllocatedRule', validator: 'behavior', severity: 'warning',
+        id: 'BV-003', name: 'FlowPayloadMatchesParametersRule', validator: 'behavior', severity: 'error',
         tailorable: false,
-        description: 'An action usage is allocated to a structural element.',
-    },
-    {
-        id: 'BV-002', name: 'ActionSequencedRule', validator: 'behavior', severity: 'warning',
-        tailorable: false,
-        description: 'An action participates in a succession or flow.',
-    },
-    {
-        id: 'BV-003', name: 'BehaviorReferenceResolvableRule', validator: 'behavior', severity: 'error',
-        tailorable: false,
-        description: 'A succession or flow references an action that exists.',
+        // What it actually checks. The old description said it verified that a
+        // flow references an action that exists, which is neither what the code
+        // does nor something that can fail: an unresolvable end never becomes a
+        // relationship in the first place.
+        description: 'A flow\u2019s payload matches an output parameter at its source and an input parameter at its target.',
     },
     {
         id: 'VW-001', name: 'ViewExposesContentRule', validator: 'views', severity: 'warning',
