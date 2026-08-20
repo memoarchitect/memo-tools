@@ -747,6 +747,32 @@ describe('Behavior builder: model indexes', () => {
     });
 });
 
+describe('a flow endpoint written as a dotted path', () => {
+    it('resolves to the nested action it names, not the first segment', async () => {
+        const doc = await parseDoc(`
+            package Test {
+                action fnDeliver {
+                    action fnMeter {
+                        action fnMeasure;
+                        action fnDrive;
+                    }
+                }
+                flow from fnDeliver.fnMeter.fnMeasure to fnDeliver.fnMeter.fnDrive;
+            }
+        `);
+        const model = buildMemoModel([doc], behaviorConfig);
+        const flows = model.relationships.filter(r => r.type === 'flow');
+
+        // The walk followed `owner`, which a nested ACTION does not carry — it
+        // carries `parentAction` — so every function flow collapsed to a
+        // self-loop on the outermost action. A plausible edge pointing at the
+        // wrong function is worse than a dropped one.
+        expect(flows).toHaveLength(1);
+        expect(flows[0].sourceId).toBe('fnMeasure');
+        expect(flows[0].targetId).toBe('fnDrive');
+    });
+});
+
 // ─── Behavior Validation Tests ──────────────────────────────────────────────
 
 describe('Behavior validation', () => {

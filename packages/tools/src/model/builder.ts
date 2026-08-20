@@ -1636,7 +1636,15 @@ function resolveConnection(
  * mismatch on whichever edge happened to carry a different item from its
  * parent's.
  *
- * Walk the path through `owner` and take the deepest real element.
+ * Walk the path through the parent link and take the deepest real element.
+ *
+ * A nested part or port records its parent in `owner`; a nested ACTION records
+ * it in `parentAction`, because the two are set by separate extraction paths.
+ * Reading only `owner` broke the walk at the first hop of every function path:
+ * `flow from fnDeliverTherapy.fnMeterFluid.fnMeasureDelivered to …` became a
+ * self-loop on `fnDeliverTherapy`, which is a plausible-looking edge pointing
+ * at the wrong function — the exact failure the comment above describes, one
+ * field away from where it was fixed for ports.
  */
 function resolveEndpoint(
     ref: string,
@@ -1647,7 +1655,7 @@ function resolveEndpoint(
     let i = 1;
     while (i < parts.length) {
         const child = elements.get(parts[i]);
-        if (!child || child.owner !== id) break;
+        if (!child || (child.owner !== id && child.parentAction !== id)) break;
         id = parts[i];
         i++;
     }

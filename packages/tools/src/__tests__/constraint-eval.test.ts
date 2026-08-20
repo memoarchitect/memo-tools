@@ -51,8 +51,8 @@ function allocationModel(): MemoModel {
 describe('a function participates in the functional chain', () => {
     const rule: NativeConstraint = {
         id: 'CR-MED-023', appliesToKind: 'SystemFunction', severity: 'warning',
-        description: 'A function participates in a flow or a succession.',
-        expression: 'flow->size() >= 1 or succession->size() >= 1',
+        description: 'A function participates in a flow, a succession, or its own parts.',
+        expression: 'flow->size() >= 1 or succession->size() >= 1 or downstream(composes)->size() >= 1',
     };
 
     it('passes a function a flow reaches, from either end', () => {
@@ -74,6 +74,17 @@ describe('a function participates in the functional chain', () => {
     it('reports a function nothing reaches', () => {
         const model = makeModel([el('orphan', 'SystemFunction')], []);
         expect(evaluateNativeConstraint(rule, model).map(v => v.elementId)).toEqual(['orphan']);
+    });
+
+    it('exempts a function that decomposes, and only in that direction', () => {
+        // A decomposed function participates through its parts. `downstream`
+        // and not a bare `composes`, which navigates both ways and would
+        // exempt every child on the strength of having a parent.
+        const model = makeModel(
+            [el('parent', 'SystemFunction'), el('child', 'SystemFunction')],
+            [rel('c1', 'composes', 'parent', 'child')],
+        );
+        expect(evaluateNativeConstraint(rule, model).map(v => v.elementId)).toEqual(['child']);
     });
 
     it('reads as false in a model carrying no flows at all', () => {
