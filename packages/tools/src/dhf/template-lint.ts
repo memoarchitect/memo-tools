@@ -269,7 +269,7 @@ function lintQueryBlock(
         //   unqualified-enum-value  — a real member written without its enum
         //
         // The second is a spelling rule, not a leniency the engine could absorb.
-        // The model stores `RequirementKind::software`, so that is the value;
+        // The model stores `RequirementTypeKind::software`, so that is the value;
         // accepting the bare name too would mean two spellings for one thing,
         // and would cost the reader the only clue to which enum is meant —
         // `criticality == "high"` and `severity == "high"` are indistinguishable.

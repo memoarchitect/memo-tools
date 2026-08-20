@@ -280,11 +280,11 @@ describe('select: relationships', () => {
     // The enum spelling rule is about the value, not about which side of a link
     // it sits on.
     it('reports an unqualified enum value on an endpoint field', () => {
-        const el = makeElement({ id: 'r2', name: 'Req', attributes: { requirementKind: 'RequirementKind::software' } });
+        const el = makeElement({ id: 'r2', name: 'Req', attributes: { requirementType: 'RequirementTypeKind::software' } });
         const c = makeCtx([el, ...CLAUSES], [rel('l9', 'conformsTo', 'r2', 'c522')]);
         expect(() => executeQuery(
-            { select: 'relationships', kind: 'conformsTo', where: 'source.requirementKind == "software"' }, c))
-            .toThrow(/write `source.requirementKind == "RequirementKind::software"`/);
+            { select: 'relationships', kind: 'conformsTo', where: 'source.requirementType == "software"' }, c))
+            .toThrow(/write `source.requirementType == "RequirementTypeKind::software"`/);
     });
 });
 
@@ -292,28 +292,28 @@ describe('select: relationships', () => {
 
 describe('enum-qualified comparison', () => {
     // Every enum-typed attribute in the ontology and its exemplars is written
-    // qualified, so the model holds "RequirementKind::software" and that is THE
+    // qualified, so the model holds "RequirementTypeKind::software" and that is THE
     // spelling a template uses. Accepting the bare member name too would mean
     // two spellings for one value, and would cost the reader the only clue to
     // which enum is meant: `criticality == "high"` and `severity == "high"` are
     // indistinguishable, `CriticalityKind::high` is not.
     const MIXED_KINDS = [
-        makeElement({ id: 'q1', name: 'Alarm latency', attributes: { requirementKind: 'RequirementKind::software' } }),
-        makeElement({ id: 'q2', name: 'Enclosure ingress', attributes: { requirementKind: 'RequirementKind::hardware' } }),
-        makeElement({ id: 'q3', name: 'Dose accuracy', attributes: { requirementKind: 'RequirementKind::system' } }),
+        makeElement({ id: 'q1', name: 'Alarm latency', attributes: { requirementType: 'RequirementTypeKind::software' } }),
+        makeElement({ id: 'q2', name: 'Enclosure ingress', attributes: { requirementType: 'RequirementTypeKind::hardware' } }),
+        makeElement({ id: 'q3', name: 'Dose accuracy', attributes: { requirementType: 'RequirementTypeKind::system' } }),
     ];
 
     it('filters on the qualified value', () => {
         const ctx = makeCtx(MIXED_KINDS);
         const result = executeQuery(
-            { kind: 'Requirement', where: 'requirementKind == "RequirementKind::software"' }, ctx);
+            { kind: 'Requirement', where: 'requirementType == "RequirementTypeKind::software"' }, ctx);
         expect(result.map(e => e.id)).toEqual(['q1']);
     });
 
     it('inverts correctly, so != is the complement and not everything', () => {
         const ctx = makeCtx(MIXED_KINDS);
         const result = executeQuery(
-            { kind: 'Requirement', where: 'requirementKind != "RequirementKind::software"' }, ctx);
+            { kind: 'Requirement', where: 'requirementType != "RequirementTypeKind::software"' }, ctx);
         expect(result.map(e => e.id)).toEqual(['q2', 'q3']);
     });
 
@@ -322,13 +322,13 @@ describe('enum-qualified comparison', () => {
     // spelling the author meant — the filter is never evaluated on a guess.
     it('rejects a bare member name and names the qualified spelling', () => {
         const ctx = makeCtx(MIXED_KINDS);
-        expect(() => executeQuery({ kind: 'Requirement', where: 'requirementKind == "software"' }, ctx))
-            .toThrow(/write `requirementKind == "RequirementKind::software"`/);
+        expect(() => executeQuery({ kind: 'Requirement', where: 'requirementType == "software"' }, ctx))
+            .toThrow(/write `requirementType == "RequirementTypeKind::software"`/);
     });
 
     it('rejects a bare member name on != too, where the silence looks like everything', () => {
         const ctx = makeCtx(MIXED_KINDS);
-        expect(() => executeQuery({ kind: 'Requirement', where: 'requirementKind != "software"' }, ctx))
+        expect(() => executeQuery({ kind: 'Requirement', where: 'requirementType != "software"' }, ctx))
             .toThrow(MemoQueryError);
     });
 
@@ -336,12 +336,12 @@ describe('enum-qualified comparison', () => {
     // spelling problem — the lint catches the typo against the ontology.
     it('leaves a non-enum comparison alone', () => {
         const ctx = makeCtx(MIXED_KINDS);
-        expect(executeQuery({ kind: 'Requirement', where: 'requirementKind == "firmware"' }, ctx)).toEqual([]);
+        expect(executeQuery({ kind: 'Requirement', where: 'requirementType == "firmware"' }, ctx)).toEqual([]);
         expect(executeQuery({ kind: 'Requirement', where: 'layer == "implementation"' }, ctx)).toHaveLength(3);
     });
 
     it('unqualifies only when there is a qualifier', () => {
-        expect(unqualifyEnum('RequirementKind::software')).toBe('software');
+        expect(unqualifyEnum('RequirementTypeKind::software')).toBe('software');
         expect(unqualifyEnum('software')).toBe('software');
     });
 });

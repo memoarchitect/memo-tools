@@ -176,9 +176,9 @@ export function parseWhereClause(where: string): WhereClause | null {
 //
 // `builder.ts` stores an enum attribute as the reference the author wrote, and
 // every enum-typed attribute in the ontology and its exemplars is written
-// qualified — the model holds `"RequirementKind::software"`, never `"software"`.
+// qualified — the model holds `"RequirementTypeKind::software"`, never `"software"`.
 // So the qualified form is THE spelling, and a template writes
-// `where: requirementKind == "RequirementKind::software"`.
+// `where: requirementType == "RequirementTypeKind::software"`.
 //
 // Comparison is exact. The alternative — accepting the bare member name too —
 // buys two spellings for one value, which is the defect this area exists to
@@ -193,7 +193,7 @@ export function parseWhereClause(where: string): WhereClause | null {
 // guess. Same rule as everywhere else here: fail, never quietly narrow.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** The member name of an enum reference: `RequirementKind::software` → `software`. */
+/** The member name of an enum reference: `RequirementTypeKind::software` → `software`. */
 export function unqualifyEnum(value: string): string {
     const sep = value.lastIndexOf('::');
     return sep === -1 ? value : value.slice(sep + 2);
@@ -203,7 +203,7 @@ export function unqualifyEnum(value: string): string {
  * The qualified value stored on the compared field whose member name is
  * `queryValue`, if any row has one — i.e. the spelling the author meant to
  * write. Reads through the row's own field resolver so it works the same for a
- * relationship endpoint (`target.requirementKind`) as for an element.
+ * relationship endpoint (`target.requirementType`) as for an element.
  */
 function qualifiedSpellingOf<T>(rows: T[], read: (row: T) => unknown, queryValue: string): string | undefined {
     if (queryValue.includes('::')) return undefined;

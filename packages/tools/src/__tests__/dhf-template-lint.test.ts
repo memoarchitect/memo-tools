@@ -138,9 +138,9 @@ describe('unknown-enum-value', () => {
         const file = join(dir, 'reqs.sysml');
         writeFileSync(file, [
             'package memo_assurance_requirements {',
-            '    enum def RequirementKind { enum system; enum software; enum hardware; }',
+            '    enum def RequirementTypeKind { enum system; enum software; enum hardware; }',
             '    requirement def Requirement specializes VerifiableElement {',
-            '        attribute requirementKind : RequirementKind;',
+            '        attribute requirementType : RequirementTypeKind;',
             '        attribute statement : String;',
             '    }',
             '}',
@@ -150,7 +150,7 @@ describe('unknown-enum-value', () => {
         const registry = new KindRegistry();
         (registry as unknown as { entries: () => unknown[] }).entries = () => ([
             { name: 'Requirement', label: 'Requirement', layer: 'requirements', sysmlConstruct: 'requirement def', isAbstract: false, sourceFile: file },
-            { name: 'RequirementKind', label: 'RequirementKind', layer: 'requirements', sysmlConstruct: 'enum def', sourceFile: file },
+            { name: 'RequirementTypeKind', label: 'RequirementTypeKind', layer: 'requirements', sysmlConstruct: 'enum def', sourceFile: file },
         ]);
         enumRegistry = { kindRegistry: registry };
     });
@@ -158,7 +158,7 @@ describe('unknown-enum-value', () => {
     afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
     it('rejects a value the enum does not declare', () => {
-        const raw = template(query('kind: Requirement', 'where: requirementKind == "sofware"'));
+        const raw = template(query('kind: Requirement', 'where: requirementType == "sofware"'));
         const findings = lint(raw, enumRegistry);
         expect(rules(findings)).toContain('unknown-enum-value');
         expect(findings.find(f => f.rule === 'unknown-enum-value')!.message)
@@ -167,31 +167,31 @@ describe('unknown-enum-value', () => {
 
     // The model stores the qualified reference, so that is the spelling.
     it('accepts a fully qualified member', () => {
-        const raw = template(query('kind: Requirement', 'where: requirementKind == "RequirementKind::software"'));
+        const raw = template(query('kind: Requirement', 'where: requirementType == "RequirementTypeKind::software"'));
         expect(lint(raw, enumRegistry)).toEqual([]);
     });
 
     // One value, one spelling. The bare name is a real member, so it is not a
     // typo — it is the wrong spelling, and it selects nothing at runtime.
     it('rejects a real member written without its enum, and names the fix', () => {
-        const raw = template(query('kind: Requirement', 'where: requirementKind == "software"'));
+        const raw = template(query('kind: Requirement', 'where: requirementType == "software"'));
         const findings = lint(raw, enumRegistry);
         expect(rules(findings)).toContain('unqualified-enum-value');
         expect(rules(findings)).not.toContain('unknown-enum-value');
-        expect(findings[0].message).toMatch(/write `requirementKind == "RequirementKind::software"`/);
+        expect(findings[0].message).toMatch(/write `requirementType == "RequirementTypeKind::software"`/);
     });
 
     it('rejects the bare form on != as well', () => {
-        const raw = template(query('kind: Requirement', 'where: requirementKind != "hardware"'));
+        const raw = template(query('kind: Requirement', 'where: requirementType != "hardware"'));
         expect(rules(lint(raw, enumRegistry))).toContain('unqualified-enum-value');
     });
 
     // `contains` is a substring test by construction, so the qualification rule
     // does not apply to it — only the "is this a member at all" check does.
     it('checks contains against the member list without demanding qualification', () => {
-        const good = template(query('kind: Requirement', 'where: requirementKind contains "soft"'));
+        const good = template(query('kind: Requirement', 'where: requirementType contains "soft"'));
         expect(lint(good, enumRegistry)).toEqual([]);
-        const bad = template(query('kind: Requirement', 'where: requirementKind contains "firmware"'));
+        const bad = template(query('kind: Requirement', 'where: requirementType contains "firmware"'));
         expect(rules(lint(bad, enumRegistry))).toContain('unknown-enum-value');
     });
 
