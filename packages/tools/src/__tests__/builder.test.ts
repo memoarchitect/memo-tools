@@ -134,7 +134,7 @@ describe('buildMemoModel', () => {
         expect(el.doc).toContain('hazard description');
     });
 
-    it('extracts item and use-case usages while retaining a use-case definition as a kind', async () => {
+    it('extracts item and use-case usages, and the use-case definition they name', async () => {
         const doc = await parseDoc(`
             package TestPkg {
                 use case def ClinicalGoal;
@@ -148,10 +148,17 @@ describe('buildMemoModel', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.size).toBe(2);
+        // The definition is an element too — a project defines ClinicalGoal
+        // here, and a view that cannot select it cannot draw it. It stays a
+        // kind as well: `ucMonitor` is typed by it.
+        expect(model.elements.size).toBe(3);
+        expect(model.elements.get('ClinicalGoal')).toMatchObject({
+            construct: 'use case', isDefinition: true,
+        });
         expect(model.elements.get('ucMonitor')).toMatchObject({
             kind: 'ClinicalGoal', construct: 'use case', name: 'Monitor patient',
         });
+        expect(model.elements.get('ucMonitor')?.isDefinition).toBeUndefined();
         expect(model.elements.get('alarmSignal')).toMatchObject({
             kind: 'AlarmSignal', construct: 'item', name: 'Alarm signal',
         });
@@ -391,6 +398,73 @@ describe('Cross-file import resolution', () => {
         // Should resolve RiskPkg::Hazard to just "Hazard" for kind lookup
         expect(el.kind).toBe('Hazard');
         expect(el.layer).toBe('risk');
+    });
+});
+
+// ─── Project definitions are model content ──────────────────────────────────
+//
+// `part def Pump :> LogicalComponent` DEFINES a Pump. It was registered as a
+// kind and nothing else, so no view could select it and no BDD or IBD could
+// draw it. The ontology's own definitions are a different thing entirely: they
+// are read by the kind registry and never parsed into a model, and a `library
+// package` is how a project writes that same ontology-style content.
+
+describe('a definition the project declares', () => {
+    it('becomes an element carrying the ontology kind it specializes', async () => {
+        const doc = await parseDoc(`
+            package Plant {
+                part def Pump specializes Software {
+                    attribute redefines name = "Pump";
+                }
+                part p1 : Pump;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        // The kind is the supertype, so every view, viewpoint filter and
+        // palette that admits Software admits the definition of one.
+        expect(model.elements.get('Pump')).toMatchObject({
+            kind: 'Software', construct: 'part', layer: 'software', isDefinition: true, name: 'Pump',
+        });
+        // And the usage names the definition, which is the link that files it
+        // underneath in every explorer.
+        expect(model.elements.get('p1')?.kind).toBe('Pump');
+    });
+
+    it('says it is a definition when it specializes nothing the ontology knows', async () => {
+        const doc = await parseDoc('package Plant {\n    part def Widget;\n}');
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.elements.get('Widget')).toMatchObject({ kind: 'PartDefinition', isDefinition: true });
+    });
+
+    it('takes the parts declared in its body as containment', async () => {
+        const doc = await parseDoc(`
+            package Plant {
+                part def Pump specializes Software {
+                    part motor : Software;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        expect(model.elements.get('motor')?.owner).toBe('Pump');
+        // Which is what a BDD reads: containment, synthesized from the nesting.
+        expect(model.relationships.some(r =>
+            r.type === 'composes' && r.sourceId === 'Pump' && r.targetId === 'motor')).toBe(true);
+    });
+
+    it('stays out of the model when a library package declares it', async () => {
+        const doc = await parseDoc(`
+            library package Types {
+                part def Pump specializes Software;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        // A library package is ontology-style content: its definitions are
+        // types for other models, and remain kinds only.
+        expect(model.elements.size).toBe(0);
     });
 });
 
@@ -638,8 +712,13 @@ describe('Port wiring (M-2)', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        // Ports extracted as elements
-        expect(model.elements.size).toBe(2);
+        // The definition and its two ports. `ownedPorts` finally lands on
+        // something: before the definition was an element, there was nothing
+        // to write it to, which is what an IBD needs to draw the boundary.
+        expect(model.elements.size).toBe(3);
+        expect(model.elements.get('PumpController')).toMatchObject({
+            construct: 'part', isDefinition: true, ownedPorts: ['sensorIn', 'controlOut'],
+        });
 
         const sensor = model.elements.get('sensorIn')!;
         expect(sensor).toBeDefined();
@@ -670,7 +749,8 @@ describe('Port wiring (M-2)', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.size).toBe(3);
+        expect(model.elements.size).toBe(4);
+        expect(model.elements.get('PanelBoard')?.isDefinition).toBe(true);
 
         const cluster = model.elements.get('panelCluster')!;
         expect(cluster.owner).toBe('PanelBoard');

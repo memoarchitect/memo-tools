@@ -606,7 +606,12 @@ function extractFromPackage(
                 break;
             case 'UseCaseDeclaration': {
                 const useCase = member as UseCaseDeclaration;
-                if (!useCase.isDefinition) {
+                if (useCase.isDefinition) {
+                    extractDefinitionElement(
+                        { name: useCase.name, specialization: useCase.specialization, body: useCase.body ?? useCase.usageBody },
+                        'use case', filePath, packageName, config, elements, registry, registries,
+                    );
+                } else {
                     extractUsage({ name: useCase.name, type: useCase.type, body: useCase.usageBody }, 'use case', filePath, packageName, config, elements, registry, registries);
                 }
                 break;
@@ -716,10 +721,24 @@ function extractFromPackage(
             case 'PortDefinition':
             case 'InterfaceDefinition':
             case 'ConnectionDefinition':
+                extractDefinitionElement(member as any, DEFINITION_CONSTRUCTS[member.$type]!, filePath, packageName, config, elements, registry, registries);
                 extractDefinitionPorts(member as PartDefinition | PortDefinition | InterfaceDefinition | ConnectionDefinition, filePath, packageName, config, elements, registry, registries);
+                // A definition's body is composition: `part def Pump { part
+                // motor : Motor; }` is what a BDD draws and what an IBD looks
+                // inside. Nested usages become elements owned by the
+                // definition, exactly as they do under a part usage.
+                extractNestedParts(member as any, filePath, packageName, config, elements, registry, registries);
                 break;
-            // Other definitions (viewpoint def, view def, etc.) inside packages are
-            // ontology-level — we don't extract them as model elements in device projects
+            case 'RequirementDefinition':
+            case 'VerificationDefinition':
+            case 'StateDefinition':
+            case 'AttributeDefinition':
+            case 'EnumDefinition':
+                extractDefinitionElement(member as any, DEFINITION_CONSTRUCTS[member.$type]!, filePath, packageName, config, elements, registry, registries);
+                break;
+            // A `view def` / `viewpoint def` stays out: those are presentation
+            // apparatus, read through the viewpoint tree rather than as model
+            // content.
         }
     }
 }
@@ -984,6 +1003,10 @@ function extractActionDefinition(
         kind: behaviorKind === 'operator' ? 'OperatorDefinition'
             : behaviorKind === 'function' ? 'FunctionDefinition' : 'ActionDefinition',
         construct: 'action',
+        // An action def keeps its historic kind — `behavior-validator.ts` looks
+        // elements up by `ActionDefinition` — but it is a definition like any
+        // other, and says so.
+        isDefinition: true,
         layer: 'behavior',
         file: filePath,
         package: packageName || undefined,
@@ -1081,6 +1104,7 @@ function extractItemDefinition(
         name: id,
         kind: kindDef?.layer && kindDef.layer !== 'unknown' ? resolvedKind : 'ItemDefinition',
         construct: 'item',
+        isDefinition: true,
         layer: kindDef?.layer && kindDef.layer !== 'unknown' ? kindDef.layer : 'behavior',
         file: filePath,
         package: packageName || undefined,
@@ -1107,6 +1131,84 @@ function extractItemDefinition(
  * or a state. So the native form was the only correct one, and it was the one
  * that did not work.
  */
+/**
+ * The SysML construct each definition declares, in the spelling its usages
+ * carry — a `part def` and a `part` are the same construct, one defining and
+ * one using.
+ */
+const DEFINITION_CONSTRUCTS: Record<string, string> = {
+    PartDefinition: 'part',
+    PortDefinition: 'port',
+    InterfaceDefinition: 'interface',
+    ConnectionDefinition: 'connection',
+    RequirementDefinition: 'requirement',
+    VerificationDefinition: 'verification',
+    StateDefinition: 'state',
+    AttributeDefinition: 'attribute',
+    EnumDefinition: 'enumeration',
+};
+
+/**
+ * A definition the PROJECT declares, as a model element.
+ *
+ * `part def Pump :> LogicalComponent` defines a Pump. It was registered as a
+ * kind and nothing else, so no view could select it and no BDD or IBD could
+ * draw it — which is most of what a definition is for. It is an element now,
+ * and its usages read beneath it: a usage's `kind` is the definition's name,
+ * which is the link every explorer already follows.
+ *
+ * The kind it carries is the ONTOLOGY kind it specializes, so a view, a
+ * viewpoint filter and a palette that admit `LogicalComponent` admit the
+ * definition of one without being edited. `isDefinition` is what tells the two
+ * apart afterwards — a definition is a type, not an instance of one, and
+ * anything counting instances must say so.
+ *
+ * This is only ever project content: the ontology's own definitions are read
+ * by the kind registry and are never parsed into the model.
+ */
+function extractDefinitionElement(
+    definition: { name?: string; specialization?: { superType?: string }; body?: any[] },
+    construct: string,
+    filePath: string,
+    packageName: string,
+    config: MEMOConfig,
+    elements: Map<string, MemoElement>,
+    registry: PackageRegistry,
+    registries?: BuilderRegistries,
+): void {
+    const id = definition.name;
+    if (!id || elements.has(id)) return;
+    // A `library package` is how a project writes ontology-style content: its
+    // definitions are types for other models to use, not this model's content.
+    // The user's distinction exactly — model definitions become elements,
+    // library ones stay kinds, which is what they already were.
+    if (registry.isLibraryPackage(packageName)) return;
+
+    const superType = definition.specialization?.superType;
+    const { kindDef, resolvedKind } = superType
+        ? resolveKindDef(superType, config, registries)
+        : { kindDef: undefined, resolvedKind: undefined };
+
+    const attributes = extractAttributes(definition.body ?? []);
+    const doc = extractDocComment(definition.body ?? []);
+
+    elements.set(id, {
+        id,
+        name: attributes['name'] || attributes['title'] || id,
+        // A definition that specializes nothing the ontology knows is still a
+        // definition; it says so rather than borrowing a kind it has not got.
+        kind: resolvedKind ?? `${construct.charAt(0).toUpperCase()}${construct.slice(1)}Definition`,
+        construct,
+        layer: kindDef?.layer || 'unknown',
+        file: filePath,
+        package: packageName || undefined,
+        attributes,
+        doc,
+        isDefinition: true,
+    });
+    registry.registerElement(id, packageName);
+}
+
 function extractDefinitionPorts(
     def: PartDefinition | PortDefinition | InterfaceDefinition | ConnectionDefinition | UsageNode,
     filePath: string,

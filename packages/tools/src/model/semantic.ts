@@ -55,6 +55,15 @@ export interface MemoElement {
     attributes: Record<string, string>;
     /** Doc comment if present */
     doc?: string;
+    /**
+     * True for a DEFINITION — `part def Pump`, not `part pump : Pump`.
+     *
+     * A definition carries the kind it specializes, so every view and filter
+     * that admits `LogicalComponent` admits the definition of one. This is what
+     * tells the two apart: a definition is a type, and anything counting
+     * instances of a type must not count it as one.
+     */
+    isDefinition?: boolean;
     /** Action parameters (for ActionDefinition elements) */
     parameters?: ActionParameter[];
     /** Parent action ID (for nested action usages) */

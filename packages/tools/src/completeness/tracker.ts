@@ -57,10 +57,19 @@ export function computeCompleteness(
     // used to declare `architectureLayers:`, so a layer the ontology defined
     // but the file omitted was silently excluded from the percentage — and the
     // report looked complete because the incomplete part was invisible.
+    // A DEFINITION is a type, not an instance of one. Counting `part def Pump`
+    // alongside the pumps would make "how complete is the logical layer"
+    // answer a question nobody asked, and would move the percentage whenever a
+    // project factored a type out. Its own violations still surface; it is the
+    // denominator it stays out of.
+    const instances = (candidates: typeof model.elements extends Map<string, infer E> ? E[] : never) =>
+        candidates.filter(element => !element.isDefinition);
+
     for (const [layerId, layerElements] of [...model.elementsByLayer.entries()].sort()) {
-        if (layerId === 'unknown' || layerElements.length === 0) continue;
-        const total = layerElements.length;
-        const complete = layerElements.filter(e => !elementsWithErrors.has(e.id)).length;
+        const counted = instances(layerElements);
+        if (layerId === 'unknown' || counted.length === 0) continue;
+        const total = counted.length;
+        const complete = counted.filter(e => !elementsWithErrors.has(e.id)).length;
         totalElements += total;
         completeElements += complete;
         layers.push({
@@ -74,7 +83,7 @@ export function computeCompleteness(
     }
 
     // Include elements in unknown layers
-    const unknownElements = model.elementsByLayer.get('unknown') || [];
+    const unknownElements = instances(model.elementsByLayer.get('unknown') || []);
     totalElements += unknownElements.length;
     completeElements += unknownElements.filter(e => !elementsWithErrors.has(e.id)).length;
 
