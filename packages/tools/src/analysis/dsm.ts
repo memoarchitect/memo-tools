@@ -41,21 +41,26 @@ export interface DSMOptions {
     cluster?: boolean;
 }
 
-const DEFAULT_KINDS = ['Function', 'Function', 'ActionDefinition', 'ActionUsage'];
 const DEFAULT_REL_TYPES = ['flow', 'decomposedBy', 'composedOf', 'allocatedTo', 'succession'];
 
 /**
  * Compute a Design Structure Matrix from model elements and relationships.
  */
 export function computeDSM(model: MemoModelDTO, options?: DSMOptions): DSMResult {
-    const kinds = new Set(options?.kinds ?? DEFAULT_KINDS);
+    const kinds = options?.kinds ? new Set(options.kinds) : undefined;
     const relTypes = new Set(options?.relationshipTypes ?? DEFAULT_REL_TYPES);
     const shouldCluster = options?.cluster ?? true;
 
-    // 1. Collect eligible elements
+    // 1. Collect eligible elements.
+    //
+    // With no axis chosen the DSM reads the behaviour, and behaviour is a
+    // CONSTRUCT. The default used to be a list of kind names that mixed a MEMO
+    // kind with two SysML metaclasses — `ActionDefinition` was never a kind the
+    // ontology declares, and it matches nothing at all now that a definition
+    // carries the kind it defines.
     const eligibleElements: MemoElement[] = [];
     for (const el of Object.values(model.elements)) {
-        if (kinds.has(el.kind)) {
+        if (kinds ? kinds.has(el.kind) : el.construct === 'action') {
             eligibleElements.push(el);
         }
     }

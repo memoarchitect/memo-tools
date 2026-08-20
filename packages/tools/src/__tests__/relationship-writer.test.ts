@@ -147,9 +147,9 @@ describe('updateRelationship', () => {
         const file = 'model/catalog/system.sysml';
         writeProjectFile(file, source);
         const pump = element('pump', 'PhysicalAssembly', file);
-        const a = { ...element('a', 'Port', file), construct: 'port', owner: 'pump' };
-        const b = { ...element('b', 'Port', file), construct: 'port', owner: 'pump' };
-        const c = { ...element('c', 'Port', file), construct: 'port', owner: 'pump' };
+        const a = { ...element('a', 'Port', file), construct: 'port' as const, owner: 'pump' };
+        const b = { ...element('b', 'Port', file), construct: 'port' as const, owner: 'pump' };
+        const c = { ...element('c', 'Port', file), construct: 'port' as const, owner: 'pump' };
         const relationship: MemoRelationship = {
             id: 'rel-1', type: 'flow', sourceId: 'a', sourceEnd: '', targetId: 'b', targetEnd: '',
             file, flowItem: 'Signal', attributes: {},

@@ -97,6 +97,7 @@ import {
 import type { MEMOConfig } from './config.js';
 import type { KindDefinition } from './kind-registry.js';
 import type {
+    MemoConstruct,
     MemoElement,
     MemoRelationship,
     MemoModel,
@@ -751,7 +752,7 @@ interface UsageNode {
 
 function extractUsage(
     usage: UsageNode,
-    construct: string,
+    construct: MemoConstruct,
     filePath: string,
     packageName: string,
     config: MEMOConfig,
@@ -997,17 +998,30 @@ function extractActionDefinition(
     const doc = extractDocComment(bodyMembers);
 
     const behaviorKind = actionDef.behaviorKind ?? 'action';
+    // `action def AcquireSensorData :> FunctionalAction` defines a
+    // FunctionalAction. Stamping it `ActionDefinition` named the SysML
+    // METACLASS as though it were a MEMO kind — the ontology declares no such
+    // kind, so every project action def landed in the explorer's "not in
+    // ontology" bucket, and a validator had to look it up by that literal.
+    // The metaclass is what `construct` and `isDefinition` say; the kind is
+    // what the definition specializes.
+    const superType = actionDef.specialization?.superType;
+    const resolved = superType ? resolveKindDef(superType, config, registries) : undefined;
+    const ontologyKind = resolved?.kindDef && resolved.kindDef.layer && resolved.kindDef.layer !== 'unknown'
+        ? resolved
+        : undefined;
     const element: MemoElement = {
         id,
         name: id,
-        kind: behaviorKind === 'operator' ? 'OperatorDefinition'
-            : behaviorKind === 'function' ? 'FunctionDefinition' : 'ActionDefinition',
+        // Only where nothing resolves does the metaclass stand in, and there it
+        // is the truthful answer: this is a SysML ActionDefinition and nothing
+        // more is known about it.
+        kind: ontologyKind?.resolvedKind
+            ?? (behaviorKind === 'operator' ? 'OperatorDefinition'
+                : behaviorKind === 'function' ? 'FunctionDefinition' : 'ActionDefinition'),
         construct: 'action',
-        // An action def keeps its historic kind — `behavior-validator.ts` looks
-        // elements up by `ActionDefinition` — but it is a definition like any
-        // other, and says so.
         isDefinition: true,
-        layer: 'behavior',
+        layer: ontologyKind?.kindDef?.layer ?? 'behavior',
         file: filePath,
         package: packageName || undefined,
         attributes: { ...attributes, behaviorKind },
@@ -1136,7 +1150,7 @@ function extractItemDefinition(
  * carry — a `part def` and a `part` are the same construct, one defining and
  * one using.
  */
-const DEFINITION_CONSTRUCTS: Record<string, string> = {
+const DEFINITION_CONSTRUCTS: Record<string, MemoConstruct> = {
     PartDefinition: 'part',
     PortDefinition: 'port',
     InterfaceDefinition: 'interface',
@@ -1168,7 +1182,7 @@ const DEFINITION_CONSTRUCTS: Record<string, string> = {
  */
 function extractDefinitionElement(
     definition: { name?: string; specialization?: { superType?: string }; body?: any[] },
-    construct: string,
+    construct: MemoConstruct,
     filePath: string,
     packageName: string,
     config: MEMOConfig,

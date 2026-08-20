@@ -26,6 +26,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileS
 import { dirname, resolve } from 'node:path';
 import { generateUsage } from '../serializer/sysml-generator.js';
 import { parseText } from '../model/parser-utils.js';
+import { usageKeyword } from '../model/semantic.js';
 import {
     requireIrIdentity,
     resolveDeclarationByIdentity,
@@ -136,7 +137,9 @@ export async function saveElementToFile(
         id: element.id,
         name: element.name,
         kind: element.kind,
-        construct: element.construct || 'part',
+        // Normalized at the boundary: a caller holding a kind definition has
+        // `part def`, and this text is a USAGE. See `usageKeyword`.
+        construct: usageKeyword(element.construct),
         layer: element.layer || '',
         doc: element.doc || '',
         attributes: element.attributes || {},

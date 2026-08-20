@@ -19,11 +19,19 @@ import type { Violation } from './types.js';
 export function validateBehavior(model: MemoModel): Violation[] {
     const violations: Violation[] = [];
 
-    const actionUsages = model.elementsByKind.get('ActionUsage') || [];
+    // Selected by what the elements ARE, not by the name of a metaclass. A
+    // model-local `action def X :> FunctionalAction` carries FunctionalAction
+    // as its kind — as it should, that is what it defines — so a lookup keyed
+    // on the literal `ActionDefinition` silently found none of them in exactly
+    // the projects that declare their own behaviour. `construct` and
+    // `isDefinition` are the structural facts, and they cannot go stale when
+    // an ontology renames a kind.
+    const actions = [...model.elements.values()].filter(element => element.construct === 'action');
+    const actionUsages = actions.filter(element => !element.isDefinition);
 
     // Build a lookup: action definition ID/name → parameters
     const defParams = new Map<string, ActionParameter[]>();
-    const actionDefs = model.elementsByKind.get('ActionDefinition') || [];
+    const actionDefs = actions.filter(element => element.isDefinition);
     for (const def of actionDefs) {
         if (def.parameters && def.parameters.length > 0) {
             defParams.set(def.id, def.parameters);

@@ -41,6 +41,7 @@ import { classifyConflict } from './conflict-policy.js';
 import type { SemanticOrigin } from '../model/source-provenance.js';
 import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-policy-writer.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
+import { usageKeyword } from '../model/semantic.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
     loadDhfSettings, saveDhfSettings,
@@ -646,7 +647,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     id: change.elementId,
                     name: change.name,
                     kind: change.elementKind,
-                    construct: kindDef?.sysmlConstruct ?? 'part',
+                    // `sysmlConstruct` is how the kind is DECLARED (`part def`);
+                    // this writes a usage of it.
+                    construct: usageKeyword(kindDef?.sysmlConstruct),
                     layer: change.layer ?? kindDef?.layer ?? '',
                     doc: change.doc ?? '',
                     attributes: change.attributes ?? {},

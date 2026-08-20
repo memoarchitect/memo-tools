@@ -166,6 +166,28 @@ describe('IR identity', () => {
 // ─── Element write-back ─────────────────────────────────────────────────────
 
 describe('element write-back', () => {
+    it('writes a USAGE when the caller holds a kind\u2019s declaration construct', async () => {
+        writeProjectFile('model/plant.sysml', 'package Plant {\n}\n');
+
+        // `sysmlConstruct` on a kind definition is `part def` — how the KIND is
+        // declared. Two call sites passed it straight through as the element's
+        // construct, and the generator emitted `part def pump1 : Component`: a
+        // new type where an instance was asked for. A typed `construct` is what
+        // exposed it; this is what keeps it exposed.
+        const result = await saveElementToFile(projectRoot, {
+            id: 'pump1',
+            kind: 'Component',
+            construct: 'part def',
+            attributes: {},
+            file: 'model/plant.sysml',
+        });
+
+        expect(result.success).toBe(true);
+        const source = readProjectFile('model/plant.sysml');
+        expect(source).toContain('part pump1 : Component');
+        expect(source).not.toContain('part def pump1');
+    });
+
     it('edits the declaration the identity names, not its same-named twin', async () => {
         writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
         const index = await compile();
@@ -424,7 +446,7 @@ describe('SysML notation', () => {
 describe('relationship write-back', () => {
     const model = (ids: string[]) => ({
         elements: Object.fromEntries(ids.map(id => [id, {
-            id, name: id, kind: 'Action', construct: 'action', layer: 'behavior',
+            id, name: id, kind: 'Action', construct: 'action' as const, layer: 'behavior',
             file: 'model/flow.sysml', package: 'Flow', attributes: {},
         }])),
         relationships: [],

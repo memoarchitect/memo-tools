@@ -34,7 +34,9 @@ function el(id: string, overrides: Partial<MemoElement> = {}): MemoElement {
 
 describe('classification against the generated metamodel', () => {
     it('classifies every spelling the view template used to handle', () => {
-        expect(activityNodeType(el('route', { kind: 'DecisionNodeUsage', construct: 'decision' }))).toBe('decision');
+        // The construct is `action` — a decision node is an action usage in the
+        // metamodel — and `kind` carries the metaclass that says which one.
+        expect(activityNodeType(el('route', { kind: 'DecisionNodeUsage' }))).toBe('decision');
         expect(activityNodeType(el('afterRoute', { kind: 'MergeNode' }))).toBe('merge');
         expect(activityNodeType(el('receive', { kind: 'AcceptActionUsage' }))).toBe('accept');
         expect(activityNodeType(el('send', { kind: 'SendActionUsage' }))).toBe('send');
@@ -46,7 +48,7 @@ describe('classification against the generated metamodel', () => {
         expect(activityNodeType(el('work', { construct: 'action', kind: 'ProcessStep' }))).toBe('action');
         // A definition draws as an action but is not a kind of `ActionUsage` in
         // the metamodel, so it has its own anchor.
-        expect(activityNodeType(el('Fulfill', { kind: 'ActionDefinition', construct: 'action def' }))).toBe('action');
+        expect(activityNodeType(el('Fulfill', { kind: 'ActionDefinition', construct: 'action', isDefinition: true }))).toBe('action');
     });
 
     it('reads the control node discriminator MEMO\'s own grammar emits', () => {

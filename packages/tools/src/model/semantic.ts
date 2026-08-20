@@ -32,6 +32,46 @@ export interface ActionParameter {
 }
 
 /** A model element (part, requirement, action, port, item, etc.) */
+/**
+ * Every construct the builder extracts, in the language's own vocabulary.
+ *
+ * A definition and a usage of the same construct share a value here — `part
+ * def Pump` and `part pump : Pump` are both `'part'` — and `isDefinition`
+ * separates them. That pairing is what replaced looking a metaclass name up as
+ * though it were a MEMO kind.
+ */
+export const MEMO_CONSTRUCTS = [
+    'part', 'item', 'port', 'interface', 'connection',
+    'action', 'state', 'transition', 'use case',
+    'requirement', 'verification', 'concern',
+    'actor', 'stakeholder',
+    'attribute', 'enumeration',
+    'view', 'viewpoint', 'package',
+    // The synthetic subject a `Model`-scoped rule is evaluated against. Not a
+    // declaration in any file; listed so every value this codebase produces is
+    // in the type, rather than one sentinel forcing a cast.
+    'model',
+] as const;
+
+export type MemoConstruct = typeof MEMO_CONSTRUCTS[number];
+
+/**
+ * The usage keyword for a declaration construct: `part def` → `part`.
+ *
+ * Two vocabularies meet here and used to be assigned across each other. The
+ * kind registry records how a kind is DECLARED (`sysmlConstruct: 'part def'`);
+ * an element records what it IS (`construct: 'part'`). Passing the first where
+ * the second belongs made the element writer emit `part def pump1 :
+ * LogicalComponent` — a new type where an instance was asked for — from both
+ * the assistant's create-element path and the MCP tool.
+ */
+export function usageKeyword(construct: string | undefined): MemoConstruct {
+    const base = (construct ?? 'part').replace(/\s*(def|usage)$/, '').trim();
+    // An enumeration is used as a typed attribute; there is no `enum` usage.
+    if (base === 'enum' || base === 'enumeration') return 'attribute';
+    return (MEMO_CONSTRUCTS as readonly string[]).includes(base) ? base as MemoConstruct : 'part';
+}
+
 export interface MemoElement {
     /** Unique element identifier (usage name from SysML) */
     id: string;
@@ -43,8 +83,17 @@ export interface MemoElement {
     name: string;
     /** The kind key matching config.kinds, e.g. "Hazard", "Requirement" */
     kind: string;
-    /** SysML v2 construct: 'part', 'requirement', 'action', 'port', 'item' */
-    construct: string;
+    /**
+     * The SysML v2 construct this element is, paired with `isDefinition`.
+     *
+     * Closed, unlike `kind`: the builder is the only thing that produces one,
+     * and the set is the language's, not the ontology's. `kind` stays a string
+     * for the opposite reason — it names an ontology type resolved at runtime,
+     * and a union there would freeze what an ontology is allowed to declare.
+     * That is also why no TypeScript in this package should compare `kind` to
+     * a literal: ask the registry, or ask these two fields.
+     */
+    construct: MemoConstruct;
     /** Architecture layer from config, e.g. "risk", "requirements" */
     layer: string;
     /** Source file path (relative) */

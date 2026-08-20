@@ -12,6 +12,7 @@ import { saveElementToFile } from '../server/persistor.js';
 import type { QueryContext } from '../dhf/query-engine.js';
 import type { OntologyView } from '../model/kind-registry.js';
 import type { MEMOConfig } from '../model/config.js';
+import { usageKeyword } from '../model/semantic.js';
 
 /** An MCP tool as advertised in `tools/list`. */
 export interface McpTool {
@@ -231,7 +232,7 @@ define({
         id,
         name: String(input.name),
         kind,
-        construct: kinds[kind]?.sysmlConstruct ?? 'part',
+        construct: usageKeyword(kinds[kind]?.sysmlConstruct),
         layer: input.layer ?? kinds[kind]?.layer ?? '',
         doc: input.doc ?? '',
         attributes: input.attributes ?? {},
