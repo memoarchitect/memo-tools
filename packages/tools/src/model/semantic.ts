@@ -197,6 +197,17 @@ export interface ParseError {
     column?: number;
 }
 
+/** A qualified project reference whose named package does not provide its leaf. */
+export interface UnresolvedReference {
+    elementId: string;
+    elementName: string;
+    elementKind: string;
+    reference: string;
+    packageName: string;
+    missingName: string;
+    file: string;
+}
+
 /** The complete semantic model — serializable for WebSocket transport */
 export interface MemoModel {
     /** All elements indexed by id */
@@ -207,6 +218,8 @@ export interface MemoModel {
     errors: ParseError[];
     /** Packages declared by project source, including empty ones. */
     packages: MemoPackageDTO[];
+    /** Qualified project references that cannot resolve in their named package. */
+    unresolvedReferences?: UnresolvedReference[];
 
     // ─── Derived indexes (computed by builder) ──────────────────────────
 

@@ -149,14 +149,14 @@ describe('buildMemoModel', () => {
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         // The definition is an element too — a project defines ClinicalGoal
-        // here, and a view that cannot select it cannot draw it. It stays a
-        // kind as well: `ucMonitor` is typed by it.
+        // here, and a view that cannot select it cannot draw it. The untyped
+        // definition's definition kind propagates to its usage.
         expect(model.elements.size).toBe(3);
         expect(model.elements.get('ClinicalGoal')).toMatchObject({
             construct: 'use case', isDefinition: true,
         });
         expect(model.elements.get('ucMonitor')).toMatchObject({
-            kind: 'ClinicalGoal', construct: 'use case', name: 'Monitor patient',
+            kind: 'Use caseDefinition', construct: 'use case', name: 'Monitor patient',
         });
         expect(model.elements.get('ucMonitor')?.isDefinition).toBeUndefined();
         expect(model.elements.get('alarmSignal')).toMatchObject({
@@ -426,9 +426,9 @@ describe('a definition the project declares', () => {
         expect(model.elements.get('Pump')).toMatchObject({
             kind: 'Software', construct: 'part', layer: 'software', isDefinition: true, name: 'Pump',
         });
-        // And the usage names the definition, which is the link that files it
-        // underneath in every explorer.
-        expect(model.elements.get('p1')?.kind).toBe('Pump');
+        // A usage inherits the definition's resolved ontology kind, so every
+        // view and filter that admits Software also admits this instance.
+        expect(model.elements.get('p1')?.kind).toBe('Software');
     });
 
     it('says it is a definition when it specializes nothing the ontology knows', async () => {

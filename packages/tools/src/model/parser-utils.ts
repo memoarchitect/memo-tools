@@ -6,7 +6,8 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { EmptyFileSystem, type LangiumDocument } from 'langium';
+import { pathToFileURL } from 'node:url';
+import { EmptyFileSystem, URI, type LangiumDocument } from 'langium';
 import { parseHelper } from 'langium/test';
 import { createMemoSysMLServices } from '../language/memo-sysml-module.js';
 import type { Model } from '../language/generated/ast.js';
@@ -28,13 +29,36 @@ export interface ParseResult {
     errors: ParseError[];
 }
 
+let sharedServices: ReturnType<typeof createMemoSysMLServices>['MemoSysML'] | undefined;
+let sharedParse: ReturnType<typeof parseHelper<Model>> | undefined;
+
+function sharedParser() {
+    if (!sharedParse) {
+        sharedServices = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
+        sharedParse = parseHelper<Model>(sharedServices);
+    }
+    return { services: sharedServices!, parse: sharedParse };
+}
+
+function documentUriFor(filePath: string): URI {
+    return URI.parse(pathToFileURL(resolve(filePath)).toString());
+}
+
+/** Drop a document from the shared store when it leaves an incremental project. */
+export function forgetDocument(filePath: string): void {
+    if (!sharedServices) return;
+    const uri = documentUriFor(filePath);
+    if (sharedServices.shared.workspace.LangiumDocuments.hasDocument(uri)) {
+        sharedServices.shared.workspace.LangiumDocuments.deleteDocument(uri);
+    }
+}
+
 /**
  * Parse multiple SysML files and return their ASTs.
  * Each file is parsed independently (no cross-file resolution for MVP).
  */
 export async function parseFiles(filePaths: string[], basePath: string = ''): Promise<ParseResult> {
-    const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
-    const parse = parseHelper<Model>(services);
+    const { services, parse } = sharedParser();
 
     const documents: ParsedDocument[] = [];
     const errors: ParseError[] = [];
@@ -42,7 +66,11 @@ export async function parseFiles(filePaths: string[], basePath: string = ''): Pr
     for (const filePath of filePaths) {
         try {
             const source = readFileSync(filePath, 'utf-8');
-            const doc = await parse(source);
+            const uri = documentUriFor(filePath);
+            if (services.shared.workspace.LangiumDocuments.hasDocument(uri)) {
+                services.shared.workspace.LangiumDocuments.deleteDocument(uri);
+            }
+            const doc = await parse(source, { documentUri: uri.toString() });
 
             // Collect lexer + parser errors
             const lexerErrors = doc.parseResult.lexerErrors;
@@ -103,6 +131,7 @@ export class IncrementalProjectParser {
             if (!absoluteFiles.has(cached)) {
                 this.documents.delete(cached);
                 this.errors.delete(cached);
+                forgetDocument(cached);
             }
         }
 

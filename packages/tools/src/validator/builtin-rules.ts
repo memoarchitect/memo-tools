@@ -57,6 +57,11 @@ export const BUILTIN_RULES: readonly BuiltinRule[] = [
         description: 'A flow\u2019s payload matches an output parameter at its source and an input parameter at its target.',
     },
     {
+        id: 'XR-001', name: 'ReferenceResolvesRule', validator: 'behavior', severity: 'error',
+        tailorable: false,
+        description: 'A qualified reference resolves to an element the named package declares or re-exports.',
+    },
+    {
         id: 'VW-001', name: 'ViewExposesContentRule', validator: 'views', severity: 'warning',
         tailorable: false,
         description: 'A view exposes at least one model element.',

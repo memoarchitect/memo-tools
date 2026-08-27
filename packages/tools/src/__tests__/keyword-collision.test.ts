@@ -198,6 +198,10 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
     // entries this programme has burned down.
 
     // ── Deliberate: MEMO means something the keyword does not ──
+    'perform:PerformsStep': {
+        reason: 'Orders a reusable verification TestStep; it is a traceability relation, not SysML’s perform action usage.',
+        removedBy: 'deliberate',
+    },
     'flow:FunctionalFlow': {
         reason: 'Carries flowCategory, endToEndLatencyBudgetMs, safetyRelevant, securityRelevant — properties of a whole route that no single `flow` usage owns (§7).',
         removedBy: 'deliberate',

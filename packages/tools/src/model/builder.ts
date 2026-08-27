@@ -105,6 +105,7 @@ import type {
     ParseError,
     ActionParameter,
     PortSpec,
+    UnresolvedReference,
 } from './semantic.js';
 import type { ParsedDocument } from './parser-utils.js';
 import { PackageRegistry } from './package-registry.js';
@@ -453,11 +454,68 @@ export function buildMemoModel(
         incoming.get(rel.targetId)!.push(rel);
     }
 
+    // A local definition has already resolved its own ontology kind; usages
+    // typed by it inherit that kind, including through a local definition chain.
+    if (registries?.kindRegistry) {
+        const byName = new Map<string, MemoElement>();
+        for (const [id, el] of elements) {
+            if (!byName.has(id)) byName.set(id, el);
+            if (el.name && !byName.has(el.name)) byName.set(el.name, el);
+        }
+        const known = (kind: string) => Boolean(registries.kindRegistry?.getKind(kind));
+        for (let pass = 0; pass < 16; pass++) {
+            let progressed = false;
+            for (const el of elements.values()) {
+                if (!el.kind || known(el.kind)) continue;
+                const def = byName.get(el.kind.split('::').pop()!);
+                if (def && def !== el && def.kind && def.kind !== el.kind) {
+                    el.kind = def.kind;
+                    if (def.layer && (!el.layer || el.layer === 'unknown')) el.layer = def.layer;
+                    progressed = true;
+                }
+            }
+            if (!progressed) break;
+        }
+    }
+
+    const unresolvedReferences: UnresolvedReference[] = [];
+    const reachableCache = new Map<string, Set<string>>();
+    const reachableNames = (packageName: string, seen = new Set<string>()): Set<string> => {
+        if (seen.has(packageName)) return new Set();
+        seen.add(packageName);
+        const pkg = registry.getPackage(packageName);
+        if (!pkg) return new Set();
+        const names = new Set(pkg.elementIds);
+        for (const imported of pkg.imports) {
+            if (imported.isWildcard) {
+                for (const name of reachableNames(imported.packageName, seen)) names.add(name);
+            } else if (imported.namedImport) names.add(imported.namedImport);
+        }
+        return names;
+    };
+    for (const [elementId, el] of elements) {
+        for (const [key, value] of Object.entries(el.attributes)) {
+            if (!key.endsWith('Type') || !value.includes('::')) continue;
+            const parts = value.split('::');
+            const leaf = parts.pop()!.split('.')[0];
+            const packageName = parts.join('::');
+            if (!registry.getPackage(packageName)) continue;
+            const names = reachableCache.get(packageName) ?? reachableNames(packageName);
+            reachableCache.set(packageName, names);
+            if (!names.has(leaf)) {
+                unresolvedReferences.push({ elementId, elementName: el.name ?? elementId,
+                    elementKind: el.kind ?? 'Element', reference: value, packageName,
+                    missingName: leaf, file: el.file ?? '' });
+            }
+        }
+    }
+
     return {
         elements,
         relationships,
         errors,
         packages: collectPackages(registry),
+        unresolvedReferences,
         elementsByKind,
         elementsByLayer,
         relationshipsByType,
@@ -769,6 +827,7 @@ function extractUsage(
         : { kindDef: undefined, resolvedKind: 'Unknown' };
 
     const attributes = extractAttributes(usage.body);
+    if (typeName) attributes.usageType = typeName;
     const doc = extractDocComment(usage.body);
 
     // A view's `expose <path>;` members declare its element membership

@@ -508,7 +508,12 @@ export async function devCommand(options: {
     // The rebuild is broadcast together with the list of files that caused it,
     // so open editors and views can tell whether the change was theirs instead
     // of refreshing on every unrelated save.
-    projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
+    // A burst of saves may arrive during a semantic rebuild. Rebuilds own a
+    // complete AST/model snapshot, so serialize and coalesce them to avoid
+    // concurrent heap spikes while preserving coherent publications.
+    let rebuildInFlight = false;
+    const pendingRebuildFiles = new Set<string>();
+    const rebuildAndPublish = async (changedFiles: string[]) => {
         const transactions = server.consumeWriteTransactions(changedFiles);
         if (transactions.escalationFile) {
             notifyRestartRequired('transaction-independence-uncomputable', transactions.escalationFile);
@@ -548,6 +553,20 @@ export async function devCommand(options: {
                 serverTransactions: transactions.matched,
             },
         }]);
+    };
+    projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
+        for (const file of changedFiles) pendingRebuildFiles.add(file);
+        if (rebuildInFlight) return;
+        rebuildInFlight = true;
+        try {
+            while (pendingRebuildFiles.size > 0) {
+                const nextFiles = [...pendingRebuildFiles].sort();
+                pendingRebuildFiles.clear();
+                await rebuildAndPublish(nextFiles);
+            }
+        } finally {
+            rebuildInFlight = false;
+        }
     }, 300, false, { ontologyRoots, provenance });
 
     // Ontology watcher — restart notification only, no registry reload

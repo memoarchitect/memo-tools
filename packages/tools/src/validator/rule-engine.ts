@@ -55,6 +55,14 @@ export function validateModel(
         });
     }
 
+    const unresolvedViolations: Violation[] = (model.unresolvedReferences ?? []).map(ref => ({
+        ruleId: 'XR-001', severity: 'error', elementId: ref.elementId,
+        elementName: ref.elementName, elementKind: ref.elementKind,
+        layer: model.elements.get(ref.elementId)?.layer ?? 'unknown',
+        description: `references "${ref.reference}", but package "${ref.packageName}" declares no "${ref.missingName}"`,
+        file: ref.file,
+    }));
+
     const behaviorViolations = validateBehavior(model);
     // AR-IBD-001's subject scope comes from the ontology's own `appliesTo`,
     // so the rule's reach is declared where the rule is declared.
@@ -80,7 +88,7 @@ export function validateModel(
         nativeViolations.push(...violations);
     }
 
-    const violations = [...behaviorViolations, ...architectureViolations, ...viewViolations, ...nativeViolations]
+    const violations = [...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations, ...nativeViolations]
         .map(violation => ({
             ...violation,
             provenance: model.elements.get(violation.elementId)?.provenance,
@@ -94,7 +102,7 @@ export function validateModel(
     // counted only native rules, so "61 evaluated, 32 passed" was reporting
     // two different denominators as though they were one.
     const raisedByBuiltinValidators = new Set([
-        ...behaviorViolations, ...architectureViolations, ...viewViolations,
+        ...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations,
     ].map(violation => violation.ruleId));
     const builtinPassed = BUILTIN_RULE_IDS.filter(id => !raisedByBuiltinValidators.has(id)).length;
     const delegatedPassed = delegated.filter(id => !raisedByBuiltinValidators.has(id)).length;
