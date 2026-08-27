@@ -179,7 +179,32 @@ function streamFile(res: any, fullPath: string, status = 200): void {
     createReadStream(fullPath).pipe(res);
 }
 
-/** Resolve only project-owned screen captures under model/assets. */
+/**
+ * The subtrees a project's screen captures may be served from.
+ *
+ * `model/assets` is where MEMO put them back when the whole model lived under
+ * `model/`. A project laid out with its source in `src/` has no `model/`
+ * directory at all and keeps its captures in `assets/` beside it — and those
+ * were unreachable, so its UI Screens workspace drew every region over a
+ * blank backdrop with no error to explain it. The request simply fell through
+ * to the SPA and the `<img>` got an HTML document back.
+ *
+ * Naming roots at all is the allow-list, and that part is not negotiable:
+ * this server hands project files to a browser, so it serves these two
+ * subtrees and nothing else — not `.env`, not `.git/`, not the source.
+ */
+const CAPTURE_ROOTS = ['model/assets', 'assets'] as const;
+
+/** True when `candidate` is a real descendant of `root` — the traversal guard. */
+function isWithinRoot(root: string, candidate: string): boolean {
+    const fromRoot = relative(root, candidate);
+    return Boolean(fromRoot)
+        && fromRoot !== '..'
+        && !fromRoot.startsWith('../')
+        && !fromRoot.startsWith('..\\');
+}
+
+/** Resolve only project-owned screen captures, under either capture root. */
 export function resolveProjectAssetRequest(projectRoot: string, requestUrl: string): string | undefined {
     let pathname: string;
     try {
@@ -187,14 +212,10 @@ export function resolveProjectAssetRequest(projectRoot: string, requestUrl: stri
     } catch {
         return undefined;
     }
-    if (!pathname.startsWith('/model/')) return undefined;
-    const assetRoot = resolve(projectRoot, 'model', 'assets');
+    if (!pathname.startsWith('/model/') && !pathname.startsWith('/assets/')) return undefined;
     const requested = resolve(projectRoot, pathname.replace(/^\//, ''));
-    const fromAssetRoot = relative(assetRoot, requested);
-    if (!fromAssetRoot || fromAssetRoot === '..' || fromAssetRoot.startsWith('../') || fromAssetRoot.startsWith('..\\')) {
-        return undefined;
-    }
-    return requested;
+    const within = CAPTURE_ROOTS.some(root => isWithinRoot(resolve(projectRoot, root), requested));
+    return within ? requested : undefined;
 }
 
 export async function createDevServer(options: DevServerOptions): Promise<DevServer> {
@@ -315,13 +336,21 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     /** Serve captures referenced by project-relative ScreenCapture.imageUri. */
     function serveProjectAsset(req: any, res: any): boolean {
         const requestUrl = req.url ?? '/';
-        if (!requestUrl.split('?')[0].startsWith('/model/')) return false;
+        const pathname = requestUrl.split('?')[0];
+        if (!pathname.startsWith('/model/') && !pathname.startsWith('/assets/')) return false;
         const requested = resolveProjectAssetRequest(options.projectRoot, requestUrl);
-        if (!requested || !existsSync(requested) || !statSync(requested).isFile()) {
+        const owned = Boolean(requested) && existsSync(requested!) && statSync(requested!).isFile();
+        if (!owned) {
+            // `/assets/` is ALSO where the client's own hashed bundles live,
+            // and this handler runs before the web dist. Claiming every
+            // `/assets/` request would 404 the application's own JavaScript,
+            // so an unclaimed one falls through; `/model/` is unambiguous and
+            // still reports a missing capture as a missing capture.
+            if (pathname.startsWith('/assets/')) return false;
             res.writeHead(404); res.end('Capture not found');
             return true;
         }
-        streamFile(res, requested);
+        streamFile(res, requested!);
         return true;
     }
 
@@ -1387,10 +1416,17 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         const safeStem = rawStem
                             .normalize('NFKD').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '')
                             || 'capture';
-                        const assetDir = resolve(options.projectRoot, 'model', 'assets', safeView);
+                        // Write into the layout the project actually uses. Creating
+                        // `model/` under a project whose source lives in `src/`
+                        // resurrects a directory that layout deliberately does not
+                        // have, and the capture would then sit outside the tree the
+                        // rest of the model is kept in.
+                        const captureRoot = existsSync(resolve(options.projectRoot, 'model'))
+                            ? resolve(options.projectRoot, 'model', 'assets')
+                            : resolve(options.projectRoot, 'assets');
+                        const assetDir = resolve(captureRoot, safeView);
                         const assetPath = resolve(assetDir, `${safeStem}${extension}`);
-                        const modelRoot = resolve(options.projectRoot, 'model');
-                        if (relative(modelRoot, assetPath).startsWith('..')) throw new Error('Invalid capture path.');
+                        if (!isWithinRoot(captureRoot, assetPath)) throw new Error('Invalid capture path.');
                         mkdirSync(assetDir, { recursive: true });
                         writeFileSync(assetPath, bytes);
                         const imageUri = relative(options.projectRoot, assetPath).replaceAll('\\', '/');

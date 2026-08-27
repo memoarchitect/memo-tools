@@ -12,10 +12,23 @@ describe('project screen-capture assets', () => {
         )).toBe(resolve(project, 'model/assets/mainScreenLayout/main-screen.png'));
     });
 
+    // A project whose source lives in `src/` has no `model/` directory, and
+    // keeps its captures in `assets/`. Those used to resolve to nothing, so
+    // the UI Screens workspace drew its regions over a blank backdrop.
+    it('resolves a capture beneath a src-layout project\'s assets', () => {
+        expect(resolveProjectAssetRequest(
+            project,
+            '/assets/UI/login-screen.png?cache=1',
+        )).toBe(resolve(project, 'assets/UI/login-screen.png'));
+    });
+
     it('rejects path traversal and unrelated paths', () => {
         expect(resolveProjectAssetRequest(project, '/model/model.sysml')).toBeUndefined();
         expect(resolveProjectAssetRequest(project, '/model/assets/../secret.sysml')).toBeUndefined();
         expect(resolveProjectAssetRequest(project, '/model/assets/%2e%2e/secret.sysml')).toBeUndefined();
+        expect(resolveProjectAssetRequest(project, '/assets/../secret.sysml')).toBeUndefined();
+        expect(resolveProjectAssetRequest(project, '/assets/%2e%2e/.env')).toBeUndefined();
+        expect(resolveProjectAssetRequest(project, '/src/project.sysml')).toBeUndefined();
     });
 });
 
