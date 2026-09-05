@@ -632,6 +632,27 @@ function extractFromModel(
     }
 }
 
+/**
+ * Display label for a package rendered as a folder: an explicit `Matrix folder:`
+ * line in the package's doc comment wins; otherwise the package name with a
+ * `folder_` prefix stripped and underscores spaced.
+ */
+function packageFolderDisplayName(pkg: PackageDeclaration): string {
+    const doc = extractDocComment(pkg.members as any[]);
+    if (doc) {
+        const match = doc.match(/Matrix folder:\s*(.+)/);
+        if (match) return match[1].trim();
+    }
+    return pkg.name.replace(/^folder_/, '').replace(/_/g, ' ');
+}
+
+/** Tag a usage with the folder its owning package presents, so panels can group
+ *  by nested SysML package folders. */
+function tagUsagePackageFolder(element: MemoElement | undefined, folderLabel: string | undefined): void {
+    if (!element || !folderLabel) return;
+    element.attributes['elementPackage'] = folderLabel;
+}
+
 function extractFromPackage(
     pkg: PackageDeclaration,
     filePath: string,
@@ -648,6 +669,9 @@ function extractFromPackage(
     registries?: BuilderRegistries
 ): void {
     const packageName = parentPackage ? `${parentPackage}::${pkg.name}` : pkg.name;
+    // Only nested packages present as folders; a top-level package is the tree
+    // root, not a folder within it.
+    const folderLabel = parentPackage ? packageFolderDisplayName(pkg) : undefined;
 
     for (const member of pkg.members) {
         switch (member.$type) {
@@ -656,12 +680,15 @@ function extractFromPackage(
                 break;
             case 'PartUsage':
                 extractUsage(member as PartUsage, 'part', filePath, packageName, config, elements, registry, registries);
+                tagUsagePackageFolder(elements.get((member as PartUsage).name), folderLabel);
                 break;
             case 'RequirementUsage':
                 extractUsage(member as RequirementUsage, 'requirement', filePath, packageName, config, elements, registry, registries);
+                tagUsagePackageFolder(elements.get((member as RequirementUsage).name), folderLabel);
                 break;
             case 'ItemUsage':
                 extractUsage(member as ItemUsage, 'item', filePath, packageName, config, elements, registry, registries);
+                tagUsagePackageFolder(elements.get((member as ItemUsage).name), folderLabel);
                 break;
             case 'UseCaseDeclaration': {
                 const useCase = member as UseCaseDeclaration;
@@ -677,6 +704,7 @@ function extractFromPackage(
             }
             case 'VerificationUsage':
                 extractUsage(member as VerificationUsage, 'verification', filePath, packageName, config, elements, registry, registries);
+                tagUsagePackageFolder(elements.get((member as VerificationUsage).name), folderLabel);
                 break;
             case 'StateUsage':
                 extractUsage(member as StateUsage, 'state', filePath, packageName, config, elements, registry, registries);
