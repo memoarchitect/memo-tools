@@ -147,6 +147,105 @@ export function resolveExposeIds(view: MemoElement, model: MemoModel): string[] 
  *   2. native `expose` members (see `resolveExposeIds`) — the sole source of
  *      explicit per-element membership since R10-S4 retired `IncludedIn`
  */
+/**
+ * The element a view is the view OF.
+ *
+ * A wildcard `expose <pkg>::*` is scope — it says what MAY be drawn. A
+ * specifically named one is the subject. `includeElementIds` is the fallback,
+ * matched on providedId as well as id.
+ */
+function viewSubjectId(view: MemoElement, model: MemoModel): string | undefined {
+    const find = (reference: string): string | undefined => {
+        const trimmed = reference.trim();
+        if (!trimmed) return undefined;
+        const short = trimmed.split('::').pop()!.trim();
+        if (model.elements.has(short)) return short;
+        for (const element of model.elements.values()) {
+            if (element.name === short || element.attributes.providedId === short) return element.id;
+        }
+        return undefined;
+    };
+    for (const entry of (view.attributes['expose'] ?? '').split(',')) {
+        if (entry.trim().endsWith('::*')) continue;
+        const found = find(entry);
+        if (found) return found;
+    }
+    for (const entry of (view.attributes['selectionQuery.includeElementIds'] ?? '').split(',')) {
+        const found = find(entry);
+        if (found) return found;
+    }
+    return undefined;
+}
+
+/** Composition, in the same set the explorer and the diagram templates use. */
+const COMPOSITION_TYPES = new Set(['composedOf', 'composes', 'decomposedBy', 'aggregation']);
+
+/**
+ * Grow a selection along composition, `depth` levels down.
+ *
+ * A view that says `attribute depth = 2` is saying "the subject and two levels
+ * of what it is made of". That was never read, so authors listed every id by
+ * hand instead — and the Affera L1 function view listed the root and eight
+ * grandchildren while omitting the level between them, leaving a diagram whose
+ * elements shared no composition edge at all.
+ *
+ * Depth is measured FROM THE SUBJECT, not from everything already selected.
+ * Growing two levels below every listed element compounds: it took that same
+ * view from 11 elements to 147, and the IMS software decomposition from 138 to
+ * 498, because each element already deep in the tree started its own two-level
+ * expansion. A view is a view OF something, and its depth is depth beneath
+ * that thing.
+ *
+ * A usage inherits its definition's parts, because SysML declares composition
+ * on the definition: `sysDeliverIrrigation` has no parts of its own, and the
+ * twelve it is made of hang off `DeliverIrrigation`. Walking usages alone stops
+ * one level in, which is the same hop the block diagram makes to draw the tree.
+ */
+function expandByDepth(
+    ids: Set<string>,
+    model: MemoModel,
+    depth: number,
+    from: readonly string[],
+): void {
+    if (depth <= 0 || from.length === 0) return;
+    const definitions = new Map<string, MemoElement>();
+    for (const element of model.elements.values()) {
+        if (!element.isDefinition) continue;
+        definitions.set(element.id, element);
+        if (!definitions.has(element.name)) definitions.set(element.name, element);
+    }
+    const childrenOf = new Map<string, string[]>();
+    for (const relationship of model.relationships) {
+        if (!COMPOSITION_TYPES.has(relationship.type)) continue;
+        const list = childrenOf.get(relationship.sourceId);
+        if (list) list.push(relationship.targetId);
+        else childrenOf.set(relationship.sourceId, [relationship.targetId]);
+    }
+    const partsOf = (id: string): string[] => {
+        const own = childrenOf.get(id);
+        if (own?.length) return own;
+        const element = model.elements.get(id);
+        if (!element || element.isDefinition) return [];
+        const typeName = (element.attributes.usageType ?? element.attributes.actionType ?? '')
+            .split('::').pop()?.trim();
+        const definition = typeName ? definitions.get(typeName) : undefined;
+        return definition ? childrenOf.get(definition.id) ?? [] : [];
+    };
+
+    let frontier = [...from];
+    for (let level = 0; level < depth && frontier.length > 0; level++) {
+        const next: string[] = [];
+        for (const id of frontier) {
+            for (const child of partsOf(id)) {
+                if (!model.elements.has(child) || ids.has(child)) continue;
+                ids.add(child);
+                next.push(child);
+            }
+        }
+        frontier = next;
+    }
+}
+
 export function resolveViewElementIds(
     view: MemoElement,
     model: MemoModel,
@@ -176,6 +275,14 @@ export function resolveViewElementIds(
         if (authored) ids.add(authored.id);
     }
     for (const id of resolveExposeIds(view, model)) ids.add(id);
+
+    // `depth` grows the selection along composition rather than making every
+    // author list a subtree by hand — and get it wrong.
+    const declaredDepth = Number.parseInt(view.attributes['depth'] ?? '', 10);
+    if (Number.isFinite(declaredDepth) && declaredDepth > 0) {
+        const subject = viewSubjectId(view, model);
+        if (subject) expandByDepth(ids, model, declaredDepth, [subject]);
+    }
     return [...ids];
 }
 
