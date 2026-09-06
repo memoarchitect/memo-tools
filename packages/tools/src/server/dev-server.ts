@@ -219,6 +219,37 @@ export function resolveProjectAssetRequest(projectRoot: string, requestUrl: stri
     return within ? requested : undefined;
 }
 
+/**
+ * Report views that share an id.
+ *
+ * Kind collisions are already recorded this way (`KindNameCollision`) for the
+ * same reason: a `Map` keyed by a name silently keeps one writer, and which one
+ * survives then depends on file iteration order. A view is looked up by id from
+ * the URL, from the explorer and from every permalink, so a collision does not
+ * make views ambiguous — it makes the shadowed ones unreachable.
+ */
+function reportDuplicateViewIds(diagrams: readonly DiagramDTO[]): void {
+    const byId = new Map<string, DiagramDTO[]>();
+    for (const diagram of diagrams) {
+        const list = byId.get(diagram.id);
+        if (list) list.push(diagram); else byId.set(diagram.id, [diagram]);
+    }
+    const collisions = [...byId.values()].filter(group => group.length > 1);
+    if (collisions.length === 0) return;
+    const shadowed = collisions.reduce((sum, group) => sum + group.length - 1, 0);
+    console.error(`[Views] ${shadowed} view(s) are UNREACHABLE: ${collisions.length} id(s) are `
+        + 'declared by more than one view, and a view is addressed by its id. '
+        + 'Give each view its own `providedId`:');
+    for (const group of collisions) {
+        const reachable = group[0].shortId ?? group[0].name ?? group[0].id;
+        console.error(`  - ${group[0].id} is claimed by ${group.length} views; only ${reachable} can be opened`);
+        for (const shadow of group.slice(1)) {
+            console.error(`      shadowed: ${shadow.shortId ?? shadow.name ?? shadow.id}`
+                + `${shadow.sourceFile ? `  (${shadow.sourceFile})` : ''}`);
+        }
+    }
+}
+
 export async function createDevServer(options: DevServerOptions): Promise<DevServer> {
     const { port, webPackagePath, initialMessages, transformClientHtml } = options;
     const host = '127.0.0.1';
@@ -465,6 +496,18 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             }
         }
     }
+
+    // A view is addressed by its id, so two views sharing one is not a
+    // duplicate label — it is one view the product can never open. Every lookup
+    // returns whichever loaded first and the rest are shadowed silently, with
+    // no error anywhere, which is the worst way for a model to be wrong.
+    //
+    // Found in affera as 11 of 95 views unreachable: ten clinical-step views
+    // all declaring VIEW-AFR-OP-SOS-004, and a CIU interconnect view claiming
+    // the id of the CIU decomposition view, so opening it showed the other.
+    reportDuplicateViewIds(
+        (initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined)
+            ?.payload.diagrams ?? []);
 
     const currentDiagrams = (): DiagramDTO[] => {
         const model = initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined;
