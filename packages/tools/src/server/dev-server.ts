@@ -41,6 +41,7 @@ import { classifyConflict } from './conflict-policy.js';
 import type { SemanticOrigin } from '../model/source-provenance.js';
 import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-policy-writer.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
+import { updateViewExpose, writeViewDeclaration } from './view-writer.js';
 import { usageKeyword } from '../model/semantic.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
@@ -441,19 +442,28 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     const wss = new WebSocketServer({ server });
     const clients = new Set<any>();
 
-    // User-created views are project state, not session state. Merge them into
-    // the initial model payload so a UI screen created from the workbench is
-    // still present after the dev server restarts.
-    const initialModelIndex = initialMessages.findIndex(message => message.type === 'model:update');
-    if (initialModelIndex >= 0) {
-        const initialModel = initialMessages[initialModelIndex] as ModelUpdateMessage;
-        const authored = initialModel.payload.diagrams ?? [];
-        const authoredIds = new Set(authored.map(diagram => diagram.id));
-        const userDiagrams = loadUserDiagrams(options.projectRoot).filter(diagram => !authoredIds.has(diagram.id));
-        initialMessages[initialModelIndex] = {
-            type: 'model:update',
-            payload: { ...initialModel.payload, diagrams: [...authored, ...userDiagrams] },
-        };
+    // Every view is DECLARED in SysML — see `view-writer.ts`. The sidecar at
+    // .memo/user-diagrams.json used to be merged in here as a second class of
+    // view, which is how a view could exist for Architect and for nothing else:
+    // no source file, so invisible to `memo validate`, to `syside check`, to
+    // review, and — wherever `.memo/` is ignored — to git.
+    //
+    // Rows left in that file are therefore not views but UNDECLARED views: an
+    // error to be fixed by declaring them, not a state to render. They are
+    // reported by id and not merged. The file is never rewritten or deleted
+    // here — those rows are the only record of what still needs declaring.
+    const undeclared = loadUserDiagrams(options.projectRoot);
+    if (undeclared.length > 0) {
+        const initialModel = initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined;
+        const declaredIds = new Set((initialModel?.payload.diagrams ?? []).map(diagram => diagram.id));
+        const orphans = undeclared.filter(diagram => !declaredIds.has(diagram.id));
+        if (orphans.length > 0) {
+            console.error(`[Views] ${orphans.length} view(s) in .memo/user-diagrams.json have no SysML declaration `
+                + 'and were NOT loaded. Declare each as a `view … { }` in source, then delete its row:');
+            for (const orphan of orphans) {
+                console.error(`  - ${orphan.id}  ${orphan.name ?? ''} (${orphan.viewKind ?? 'unknown kind'})`);
+            }
+        }
     }
 
     const currentDiagrams = (): DiagramDTO[] => {
@@ -1085,8 +1095,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                 const path = resolve(options.projectRoot, sourceFile);
                 if (existsSync(path)) recordWriteTransaction(sourceFile, readFileSync(path, 'utf8'));
             }
-            // User-authored diagrams are sidecars rather than semantic
-            // relationships, but they must not retain a stale element ID.
+            // The only rows left in the sidecar are UNDECLARED views awaiting
+            // migration; none is loaded as a view. They are still kept accurate,
+            // because they are the record of what needs declaring and a dangling
+            // element ID would carry straight into the declaration.
             const diagrams = loadUserDiagrams(options.projectRoot);
             let changed = false;
             const cleaned = diagrams.map(diagram => {
@@ -1442,27 +1454,60 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                 } else if (msg.type === 'diagram:create') {
                     const { projectRoot } = options;
                     const diagram: DiagramDTO = { ...msg.payload, auto: false };
-                    const userDiagrams = loadUserDiagrams(projectRoot);
-                    userDiagrams.push(diagram);
-                    saveUserDiagrams(projectRoot, userDiagrams);
-                    broadcastDiagramChange(diagram, 'create');
-                    console.log(`[Diagram] Created: ${diagram.name} (${diagram.id})`);
+                    // A view is model content, so it is DECLARED, not recorded in
+                    // a sidecar. Writing the SysML puts it where `memo validate`,
+                    // `syside check`, review and git can all see it, and — the
+                    // derived diagram then carrying a `sourceFile` — takes its
+                    // `.viewlayout` companion out of the hidden store too.
+                    const declared = await writeViewDeclaration(
+                        projectRoot, currentModel() ?? ({ elements: {}, diagrams: [] } as any), diagram);
+                    if (!declared.success) {
+                        // No fallback. A view that cannot be declared is not one
+                        // this project can hold, and recording it in a sidecar
+                        // would only hide that until something downstream needed
+                        // the declaration.
+                        const error = `The view "${diagram.name}" was not created: ${declared.reason}. `
+                            + 'Every view must be declared in SysML.';
+                        console.error(`[Diagram] REFUSED: ${error}`);
+                        ws.send(JSON.stringify({ type: 'app:error', payload: { requestId: (msg.payload as any)?.requestId, error } }));
+                        return;
+                    }
+                    console.log(`[Diagram] Declared: ${diagram.name} (${diagram.id}) as ${declared.identifier} in ${declared.filePath}`);
+                    // The file watcher recompiles and `view-deriver` emits the
+                    // diagram; no broadcast here, or clients would briefly hold
+                    // a second, sidecar-shaped copy of it.
+                    await recompileAfterWrite();
                 } else if (msg.type === 'diagram:update') {
+                    // What a view shows lives in its `expose` members, not in a
+                    // list of ids in a sidecar, so the update is applied to the
+                    // declaration. This used to edit the sidecar, which meant
+                    // that for a DECLARED view it silently did nothing at all.
                     const { projectRoot } = options;
-                    const userDiagrams = loadUserDiagrams(projectRoot);
-                    const idx = userDiagrams.findIndex(d => d.id === msg.payload.id);
-                    if (idx >= 0) {
-                        userDiagrams[idx] = { ...userDiagrams[idx], ...msg.payload };
-                        saveUserDiagrams(projectRoot, userDiagrams);
-                        broadcastDiagramChange(userDiagrams[idx], 'update');
+                    const declared = currentDiagrams().find(d => d.id === (msg.payload as any)?.id);
+                    const result = declared
+                        ? await updateViewExpose(
+                            projectRoot, currentModel() ?? ({ elements: {} } as any), declared,
+                            (msg.payload as any)?.elementIds)
+                        : { success: false, reason: `no view "${(msg.payload as any)?.id}" is declared` } as const;
+                    if (result.success) {
+                        console.log(`[Diagram] Exposed ${(result as any).exposed.join(', ')} on ${declared!.name} (${(result as any).filePath})`);
+                        await recompileAfterWrite();
+                    } else {
+                        const error = `The view "${declared?.name ?? (msg.payload as any)?.id}" was not changed: ${result.reason}.`;
+                        console.error(`[Diagram] REFUSED: ${error}`);
+                        ws.send(JSON.stringify({ type: 'app:error', payload: { requestId: (msg.payload as any)?.requestId, error } }));
                     }
                 } else if (msg.type === 'diagram:delete') {
-                    const { projectRoot } = options;
-                    const userDiagrams = loadUserDiagrams(projectRoot);
-                    const filtered = userDiagrams.filter(d => d.id !== msg.payload.id);
-                    saveUserDiagrams(projectRoot, filtered);
-                    broadcastDiagramChange({ id: msg.payload.id } as DiagramDTO, 'delete');
-                    console.log(`[Diagram] Deleted: ${msg.payload.id}`);
+                    // Deleting a view means deleting its declaration, which is
+                    // `element:delete` on the view element — not a sidecar edit.
+                    const declared = currentDiagrams().find(d => d.id === (msg.payload as any)?.id);
+                    const where = declared?.sourceFile
+                        ? `Remove its \`view\` declaration from ${declared.sourceFile}.`
+                        : 'It is not declared in SysML.';
+                    const error = `The view "${declared?.name ?? (msg.payload as any)?.id}" cannot be deleted from here — `
+                        + `a view exists because it is declared. ${where}`;
+                    console.error(`[Diagram] REFUSED: ${error}`);
+                    ws.send(JSON.stringify({ type: 'app:error', payload: { requestId: (msg.payload as any)?.requestId, error } }));
                 } else if (msg.type === 'diagram:layout:update') {
                     const { diagramId, layout } = msg.payload;
                     const diagram = currentDiagrams().find(d => d.id === diagramId)

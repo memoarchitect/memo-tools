@@ -133,7 +133,13 @@ export async function saveElementToFile(
     }
 
     const content = readFileSync(filePath, 'utf8');
-    const usage = generateUsage({
+    // The generator writes the flat attribute map back out verbatim, so a key
+    // the BUILDER derived rather than read would be materialised into source on
+    // the next save: `usageType` is the declaration's own `: Kind` and
+    // `elementPackage` is the package it sits in. Writing them states in the
+    // body what the declaration already says, and the copy then outlives
+    // whatever it was derived from.
+    const buildUsage = (omit: readonly string[] = DERIVED_ATTRIBUTES) => generateUsage({
         id: element.id,
         name: element.name,
         kind: element.kind,
@@ -142,7 +148,7 @@ export async function saveElementToFile(
         construct: usageKeyword(element.construct),
         layer: element.layer || '',
         doc: element.doc || '',
-        attributes: element.attributes || {},
+        attributes: withoutKeys(element.attributes || {}, omit),
     } as any);
 
     let updated: string;
@@ -177,7 +183,18 @@ export async function saveElementToFile(
         if (located.declaredName && element.id !== located.declaredName) {
             warnings.push({ code: 'rename-is-text-only', message: RENAME_IS_TEXT_ONLY });
         }
-        updated = spliceIndented(content, located.start, located.end, usage);
+        // An update replaces the declaration's whole source range with text
+        // generated from a FLAT attribute map, so everything in the body that is
+        // not a scalar attribute — nested usages, `@Foo { … }` annotations,
+        // connections — has no representation in the replacement and is deleted
+        // by the edit. Editing one screen's description used to remove the four
+        // UI elements declared inside it. Those members are lifted out of the
+        // original text and put back verbatim.
+        const carried = carriedMembers(content, located.node, element.attributes || {});
+        updated = spliceIndented(
+            content, located.start, located.end,
+            withCarriedMembers(buildUsage([...DERIVED_ATTRIBUTES, ...carried.suppliedKeys]), carried.text),
+        );
         replaced = true;
     } else if (element.package) {
         const target = (await locatePackages(content)).find(pkg => pkg.qualifiedName === element.package);
@@ -187,9 +204,9 @@ export async function saveElementToFile(
                 error: `${relativePath} does not declare package "${element.package}"; nothing was written.`,
             };
         }
-        updated = insertIntoBody(content, target, `${usage}\n`);
+        updated = insertIntoBody(content, target, `${buildUsage()}\n`);
     } else {
-        updated = appendToLastPackage(content, usage);
+        updated = appendToLastPackage(content, buildUsage());
     }
 
     const committed = await commitSource(filePath, relativePath, updated);
@@ -222,13 +239,146 @@ export async function commitSource(
     return { success: true };
 }
 
+// ─── Carried members ─────────────────────────────────────────────────────────
+//
+// `generateUsage` writes a declaration out of a FLAT attribute map, and an
+// update splices its output over the declaration's whole source range. That is
+// sound for the CSV import it was written for, where the map IS the element. It
+// is not sound for an edit: a SysML body also holds nested usages, `@Foo { … }`
+// annotations and connections, none of which the map represents — so
+// regenerating from the map alone deletes them.
+//
+// The members the generator can express (scalar and structured attributes, the
+// doc comment) are regenerated. Every other member is carried across verbatim,
+// and any flat key such a member supplied is dropped from the regenerated
+// attributes so the same fact is not stated twice in two notations.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Attributes the BUILDER derives from the declaration rather than reading from
+ * its body. Writing them back materialises a copy that outlives the thing it
+ * was derived from — a `usageType` left behind after the kind changed, an
+ * `elementPackage` after the element moved.
+ */
+const DERIVED_ATTRIBUTES = ['usageType', 'elementPackage'] as const;
+
+/** Drop `keys`, and anything nested under them (`bounds.x` under `bounds`). */
+function withoutKeys(attributes: Record<string, string>, keys: readonly string[]): Record<string, string> {
+    if (!keys.length) return attributes;
+    const kept: Record<string, string> = {};
+    for (const [key, value] of Object.entries(attributes)) {
+        if (keys.some(omit => key === omit || key.startsWith(`${omit}.`))) continue;
+        kept[key] = value;
+    }
+    return kept;
+}
+
+/** Members the generator regenerates from the element; everything else carries. */
+const REGENERATED_MEMBERS = new Set(['AttributeMember', 'DocComment']);
+
+/** Flat attribute keys a carried member already states in its own notation. */
+function keysSuppliedBy(member: any): string[] {
+    if (member.$type === 'MetadataApplication') {
+        return (member.body ?? []).map((field: any) => field.name).filter(Boolean);
+    }
+    if (member.$type === 'ExposeMember') return ['expose'];
+    if (member.boundRef && member.name) return [member.subsetValue ? member.boundRef : member.name];
+    if (member.name) return [member.name];
+    return [];
+}
+
+/**
+ * Re-point an annotation's field at an edited value.
+ *
+ * A `@MemoIdentity { :>> providedId = "…"; }` field lifts into the flat
+ * attribute map, and `extractAttributes` applies annotations LAST — so an
+ * attribute written beside the annotation would be read back overridden by it.
+ * An edit to such a field therefore has to land inside the annotation.
+ */
+function retargetAnnotationField(text: string, field: string, value: string): string {
+    const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`((?::>>|redefines)\\s+${escaped}\\s*=\\s*)"([^"]*)"`, 'g');
+    const occurrences = [...text.matchAll(pattern)];
+    if (!occurrences.length) return text;
+    // `extractAttributes` keeps the LAST assignment, so that is the one the
+    // edited value is an edit OF. Leaving earlier ones alone matters: a body may
+    // state a field twice — imported screens carry two `providedId`s — and
+    // rewriting every occurrence would overwrite history with whichever value
+    // the reader happened to settle on.
+    const target = occurrences[occurrences.length - 1];
+    if (target[2] === String(value)) return text;
+    const quoted = `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+    return text.slice(0, target.index) + target[1] + quoted + text.slice(target.index! + target[0].length);
+}
+
+/**
+ * Normalise a lifted member to the one indentation level a usage body uses.
+ *
+ * `column` is where the member began in the original file, so subtracting it
+ * makes the member's text self-relative and `spliceIndented` can re-indent it to
+ * wherever the declaration now sits. Lines starting left of that column are
+ * taken as already flush and only trimmed — generated declarations in this
+ * codebase put some attributes at column 0, and treating that as negative
+ * indentation is what made nested bodies drift right on every save.
+ */
+function reindent(text: string, column: number): string {
+    return text
+        .split('\n')
+        .map((line, i) => {
+            if (i === 0) return `    ${line.trim()}`;
+            if (!line.trim()) return '';
+            const lead = line.length - line.trimStart().length;
+            return `    ${line.slice(Math.min(lead, column))}`;
+        })
+        .join('\n');
+}
+
+/**
+ * Lift the members of `node` that the generator cannot express out of `source`.
+ *
+ * Returns them as one already-indented block plus the flat keys they supply, so
+ * the caller can regenerate the attributes without them.
+ */
+function carriedMembers(
+    source: string, node: any, attributes: Record<string, string> = {},
+): { text: string; suppliedKeys: string[] } {
+    const carried: string[] = [];
+    const suppliedKeys: string[] = [];
+    for (const member of node?.body ?? []) {
+        if (REGENERATED_MEMBERS.has(member.$type)) continue;
+        const cst = member.$cstNode;
+        if (!cst) continue;
+        let text = source.slice(cst.offset, cst.offset + cst.length);
+        const keys = keysSuppliedBy(member);
+        if (member.$type === 'MetadataApplication') {
+            for (const field of keys) {
+                const edited = attributes[field];
+                if (edited !== undefined) text = retargetAnnotationField(text, field, edited);
+            }
+        }
+        suppliedKeys.push(...keys);
+        const column = cst.offset - (source.lastIndexOf('\n', cst.offset - 1) + 1);
+        carried.push(reindent(text, column));
+    }
+    return { text: carried.join('\n'), suppliedKeys };
+}
+
+/** Put the carried members back inside the regenerated usage's body. */
+function withCarriedMembers(usage: string, carried: string): string {
+    if (!carried) return usage;
+    const close = usage.lastIndexOf('}');
+    if (close === -1) return usage;
+    const before = usage.slice(0, close);
+    return `${before.endsWith('\n') ? before : `${before}\n`}${carried}\n${usage.slice(close)}`;
+}
+
 /** Source range of the declaration an identity names, in this file's text. */
 async function locateDeclaration(
     source: string,
     index: IrIdentityIndex,
     identityId: string,
     memoElementId: string,
-): Promise<{ start: number; end: number; declaredName?: string }> {
+): Promise<{ start: number; end: number; declaredName?: string; node: any }> {
     const record = requireIrIdentity(index, identityId, memoElementId);
 
     const { document, errors } = await parseText(source);
@@ -238,7 +388,7 @@ async function locateDeclaration(
     const node = resolveDeclarationByIdentity(document.parseResult.value as any, record.identity);
     const cst = node.$cstNode;
     if (!cst) throw new StaleIrIdentityError(identityId, 'the resolved declaration has no source range');
-    return { start: cst.offset, end: cst.offset + cst.length, declaredName: node.name };
+    return { start: cst.offset, end: cst.offset + cst.length, declaredName: node.name, node };
 }
 
 /** Replace a range, re-indenting the replacement to the line it starts on. */
