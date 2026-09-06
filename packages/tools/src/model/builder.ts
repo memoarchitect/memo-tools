@@ -1548,9 +1548,17 @@ function extractActionUsage(
     const doc = extractDocComment(bodyMembers);
     const displayName = attributes['name'] || attributes['title'] || id;
 
-    // Store the action definition type for flow type checking
+    // SysML types a usage the same way whatever the usage is — `part p : Board`
+    // and `action a : CoordinateWorkflows` are one mechanism — so the type goes
+    // in `usageType`, the field every other usage already uses. Recording it
+    // only under `actionType` meant anything reading typing generically saw
+    // parts typed and actions untyped, and a BDD of the function hierarchy
+    // resolved none of its definitions.
+    //
+    // `actionType` stays for flow type checking, which reads it by name.
     if (typeName) {
         attributes['actionType'] = typeName;
+        attributes['usageType'] = typeName;
     }
 
     const element: MemoElement = {
