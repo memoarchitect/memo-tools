@@ -410,10 +410,34 @@ export function buildMemoModel(
         // Same resolver the authoring UI and the server persistence path use,
         // so a link the panel offers is a link the builder accepts.
         const kindIndex = indexKinds(registries.kindRegistry?.toDefinitionDTOs() ?? []);
+        // A project definition specializes an ontology kind, and the ontology
+        // registry has never heard of it: `AfferaStakeholder` is declared in
+        // this project, not in memo. So a chain like
+        // `AfferaHospitalEpLabStakeholder :> AfferaStakeholder :> MemoPart`
+        // broke at the first hop and fell through to guessing by name suffix,
+        // reporting a well-formed context diagram as malformed.
+        //
+        // A definition element records what it specializes in its own `kind`,
+        // so the model supplies the missing links. This is the same walk the
+        // explorer makes to file an element under its ontology kind.
+        const projectSuper = new Map<string, string>();
+        for (const el of elements.values()) {
+            if (!el.isDefinition || !el.kind || el.kind === el.name) continue;
+            if (!projectSuper.has(el.name)) projectSuper.set(el.name, el.kind);
+            if (el.id !== el.name && !projectSuper.has(el.id)) projectSuper.set(el.id, el.kind);
+        }
         const conformsTo = (kind: string, expected: string): boolean => {
-            if (kindConformsTo(kind, expected, kindIndex)) return true;
-            // Legacy fallback when the kind hierarchy is unknown to the registry
-            return !kindIndex.has(kind) && kind.endsWith(expected);
+            let current: string | undefined = kind;
+            const seen = new Set<string>();
+            while (current && !seen.has(current)) {
+                if (current === expected) return true;
+                if (kindConformsTo(current, expected, kindIndex)) return true;
+                seen.add(current);
+                current = kindIndex.get(current)?.superType ?? projectSuper.get(current);
+            }
+            // Legacy fallback when neither the ontology nor the project knows
+            // this kind's hierarchy at all.
+            return !kindIndex.has(kind) && !projectSuper.has(kind) && kind.endsWith(expected);
         };
 
         for (const rel of relationships) {

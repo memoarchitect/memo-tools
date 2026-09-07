@@ -298,12 +298,26 @@ describe('MEMO ontology relationship properties', () => {
         'SatisfiedBy', 'VerifiedBy', 'AllocatedTo',
         'Performs', 'BindsToInterface', 'CrossesTrustBoundary',
         'Dependency',
+        // See the reason on FULLY_UNTYPED below: both of its ends cross a
+        // metaclass boundary, so it appears in both lists.
+        'IncludesStep',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a
     // metaclass boundary. Six of the seven joined this set in A0.
     const FULLY_UNTYPED = [
         'Realizes', 'AllocatedTo', 'Composes',
         'BindsToInterface', 'CrossesTrustBoundary', 'Dependency',
+        // `IncludesStep` states inclusion across three unrelated metaclasses.
+        // Native `include` is owner-rooted and `resolveOwnerRootedUsage` is
+        // owner-type-agnostic, so it projects UseCase -> UseCase exactly as it
+        // projects FunctionalFlow -> FunctionalFlowStep — which is why
+        // `connection def Includes` was deleted in R10-S6 and both spellings
+        // unified on this one. No type can name the ends: FunctionalFlow is a
+        // MemoPart, FunctionalFlowStep a MemoAction, UseCase a MemoUseCase.
+        // Naming two of the three made every use-case `include` a
+        // well-formedness error — 132 of them in affera, on a construct the
+        // design intends.
+        'IncludesStep',
     ];
 
     it('keeps the universal relation identifiable among fully untyped relations', async () => {

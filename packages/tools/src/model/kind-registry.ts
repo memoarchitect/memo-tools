@@ -66,6 +66,17 @@ export interface KindRegistryEntry {
     sysmlConstruct: SysMLConstruct;
     /** Supertype name if the definition specializes another */
     superType?: string;
+    /**
+     * The rest of a multiple specialization.
+     *
+     * `part def UIElement specializes SoftwareElement, InteractionElement`
+     * declares two, and only the first fitted in `superType` — so every check
+     * that walks the chain saw a UIElement as a SoftwareElement and nothing
+     * else, and 314 well-formed `elementTriggersAction` links were reported as
+     * malformed. The grammar has always captured these
+     * (`additionalSpecializations`); the registry simply dropped them.
+     */
+    additionalSuperTypes?: string[];
     /** Description extracted from SysML doc comment */
     description?: string;
     /** Kinds that specialize this kind (reverse of superType) */
@@ -333,6 +344,7 @@ export class KindRegistry {
             layer: entry.layer,
             construct: entry.sysmlConstruct,
             superType: entry.superType,
+            additionalSuperTypes: entry.additionalSuperTypes,
             isAbstract: entry.isAbstract,
             namespace: entry.namespace,
         }));
@@ -529,6 +541,9 @@ export class KindRegistry {
                 const superType = 'specialization' in member
                     ? member.specialization?.superType
                     : undefined;
+                const additional = ('additionalSpecializations' in member
+                    ? (member as { additionalSpecializations?: string[] }).additionalSpecializations
+                    : undefined)?.map(name => name.split('::').pop()!).filter(Boolean);
 
                 this.register({
                     name,
@@ -536,6 +551,7 @@ export class KindRegistry {
                     layer,
                     sysmlConstruct: construct,
                     superType: superType || undefined,
+                    additionalSuperTypes: additional?.length ? additional : undefined,
                     standard,
                     isAbstract: ('isAbstract' in member && member.isAbstract) || undefined,
                     namespace,

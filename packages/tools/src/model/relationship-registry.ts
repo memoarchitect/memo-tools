@@ -194,9 +194,21 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
         layer: 'functional',
         description: 'A flow or case includes a step or sub-case. '
             + 'Written natively as `include <step>;` inside the including element.',
+        // Both ends are untyped, like `performs` above, because native
+        // `include` is owner-rooted and deliberately polymorphic:
+        // `resolveOwnerRootedUsage` is owner-type-agnostic, so it projects
+        // UseCase -> UseCase inclusion exactly as it projects
+        // FunctionalFlow -> FunctionalFlowStep. That is why `connection def
+        // Includes` was deleted in R10-S6 and both spellings unified here.
+        //
+        // No single type can carry it: the three kinds this relation joins sit
+        // in unrelated families — FunctionalFlow is a MemoPart, FunctionalFlow
+        // Step a MemoAction, UseCase a MemoUseCase. Naming two of them made
+        // every use-case `include` a well-formedness error: 132 of them in
+        // affera, on a construct the design intends.
         ends: [
-            { name: 'functionalFlow', type: 'FunctionalFlow' },
-            { name: 'step', type: 'FunctionalFlowStep' },
+            { name: 'functionalFlow' },
+            { name: 'step' },
         ],
     },
     dependency: {

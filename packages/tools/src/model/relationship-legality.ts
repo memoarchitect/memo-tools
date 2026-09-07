@@ -88,6 +88,8 @@ export interface KindDefinitionDTO {
     construct: string;
     /** Direct supertype, the basis for transitive conformance. */
     superType?: string;
+    /** The rest of a multiple specialization — see KindRegistryEntry. */
+    additionalSuperTypes?: string[];
     isAbstract?: boolean;
     /**
      * Ontology namespace segments derived from the source tree.
@@ -287,12 +289,19 @@ export function kindConformsTo(
 
     const index = Array.isArray(kindRegistry) ? indexKinds(kindRegistry) : kindRegistry;
 
-    let current: string | undefined = actualKind;
+    // Breadth-first, because a specialization can be multiple: `UIElement
+    // specializes SoftwareElement, InteractionElement` conforms to both, and
+    // following only the first made a UIElement no kind of InteractionElement.
+    const queue: string[] = [actualKind];
     const seen = new Set<string>();
-    while (current && !seen.has(current)) {
+    while (queue.length > 0) {
+        const current = queue.shift()!;
         if (current === expectedKind) return true;
+        if (seen.has(current)) continue;
         seen.add(current);
-        current = index.get(current)?.superType;
+        const entry = index.get(current);
+        if (entry?.superType) queue.push(entry.superType);
+        for (const extra of entry?.additionalSuperTypes ?? []) queue.push(extra);
     }
     return false;
 }
