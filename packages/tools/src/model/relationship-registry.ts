@@ -201,11 +201,12 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
         // FunctionalFlow -> FunctionalFlowStep. That is why `connection def
         // Includes` was deleted in R10-S6 and both spellings unified here.
         //
-        // No single type can carry it: the three kinds this relation joins sit
-        // in unrelated families — FunctionalFlow is a MemoPart, FunctionalFlow
-        // Step a MemoAction, UseCase a MemoUseCase. Naming two of them made
-        // every use-case `include` a well-formedness error: 132 of them in
-        // affera, on a construct the design intends.
+        // No single type can carry it: the kinds this relation joins sit in
+        // unrelated families — FunctionalFlow and FunctionalFlowStep are
+        // MemoActions, UseCase a MemoUseCase, and MEMO has no root above the
+        // metaclasses. Naming two of them made every use-case `include` a
+        // well-formedness error: 132 of them in affera, on a construct the
+        // design intends.
         ends: [
             { name: 'functionalFlow' },
             { name: 'step' },
