@@ -61,6 +61,21 @@ export interface OntologyPackageInfo {
     // Absolute path to the package directory. Set by the dev server so the web
     // client can emit `open-file` WS events (N-ONTO §6.5 source-file deep-links).
     rootDir?: string;
+    /**
+     * The `ExplorerClassification` usages this package declares, verbatim.
+     *
+     * `layers` already has these APPLIED — its ids are explorerDomains and its
+     * kinds carry explorerGroups. That is enough for a kind the ontology
+     * declares, and not enough for anything else: the native SysML constructs
+     * the builder synthesizes (ActionUsage, ItemDefinition, ForkNode,
+     * JoinNode) have no kind entry, and the only thing that places them is
+     * their NAMESPACE, which is what these are keyed by. A consumer without
+     * them has to hardcode the taxonomy, which is how a `behavior` layer the
+     * ontology never declared reached the Model Explorer.
+     */
+    explorerPlacements?: ExplorerPlacement[];
+    /** The `LayerRendering` usages this package declares — labels and colours. */
+    layerPalette?: LayerPalette[];
 }
 
 export interface OntologyLayerInfo {
@@ -351,7 +366,8 @@ function buildPackageInfo(pkgDir: string, selected: boolean): OntologyPackageInf
     // Authority is decided by the resolved root a package sits under, from the
     // native import graph. The manifest `type:` that used to declare it is gone.
     const type: OntologyPackageInfo['type'] = suppliesMethodology(sysmlDir) ? 'methodology' : 'ontology';
-    const layers = applyExplorerClassification(buildLayers(sysmlDir), sysmlDir);
+    const rendering = readRenderingMetadata(sysmlDir);
+    const layers = applyExplorerClassification(buildLayers(sysmlDir), rendering);
     const kindCount = layers.reduce((s, l) => s + l.kindCount, 0);
     const relationshipTypes = buildRelationshipTypes(sysmlDir);
 
@@ -366,6 +382,8 @@ function buildPackageInfo(pkgDir: string, selected: boolean): OntologyPackageInf
         relationshipTypes,
         selected,
         rootDir: pkgDir,
+        explorerPlacements: [...rendering.placements.values()],
+        layerPalette: [...rendering.palette.values()],
     };
 }
 
@@ -392,14 +410,14 @@ function suppliesMethodology(sysmlDir: string): boolean {
 }
 
 /** One `ExplorerClassification` usage, read from ontology SysML. */
-interface ExplorerPlacement {
+export interface ExplorerPlacement {
     sourceNamespace: string;
     explorerDomain: string;
     explorerGroup: string;
 }
 
 /** One `LayerRendering` usage, read from ontology SysML. */
-interface LayerPalette {
+export interface LayerPalette {
     layerId: string;
     layerLabel: string;
     layerColor: string;
@@ -477,8 +495,10 @@ function readRenderingMetadata(sysmlDir: string): { placements: Map<string, Expl
 }
 
 /** Apply the ontology-declared Explorer taxonomy to discovered kinds. */
-function applyExplorerClassification(layers: OntologyLayerInfo[], sysmlDir: string): OntologyLayerInfo[] {
-    const { placements, palette } = readRenderingMetadata(sysmlDir);
+function applyExplorerClassification(
+    layers: OntologyLayerInfo[],
+    { placements, palette }: { placements: Map<string, ExplorerPlacement>; palette: Map<string, LayerPalette> },
+): OntologyLayerInfo[] {
     for (const layer of layers) {
         const authored = palette.get(layer.id);
         if (authored) {
