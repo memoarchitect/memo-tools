@@ -69,11 +69,12 @@ export interface KindRegistryEntry {
     /**
      * The rest of a multiple specialization.
      *
-     * `part def UIElement specializes SoftwareElement, InteractionElement`
-     * declares two, and only the first fitted in `superType` — so every check
-     * that walks the chain saw a UIElement as a SoftwareElement and nothing
-     * else, and 314 well-formed `elementTriggersAction` links were reported as
-     * malformed. The grammar has always captured these
+     * `interface def Interface specializes MemoInterface, Interfaces::Interface`
+     * declares two, and only the first fits in `superType`. Dropping the rest
+     * broke every check that walks the chain: when UIElement still declared
+     * `specializes SoftwareElement, InteractionElement`, 314 well-formed
+     * `elementTriggersAction` links were reported as malformed because the
+     * second supertype was invisible. The grammar has always captured these
      * (`additionalSpecializations`); the registry simply dropped them.
      */
     additionalSuperTypes?: string[];
