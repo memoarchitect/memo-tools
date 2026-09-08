@@ -741,6 +741,19 @@ export interface DiagramEdgeLayout {
     target?: string;
     sourcePortId?: string;
     targetPortId?: string;
+    /**
+     * Where each end lands on its box: a wall, and a fraction along it.
+     *
+     * `points` says where the wall WAS when the route was drawn. A landing
+     * survives the box moving or resizing, because the coordinate is derived
+     * from the box's current rect rather than stored. Both are kept: the
+     * points draw the route today, the landing rebuilds it tomorrow.
+     */
+    manualLanding?: boolean;
+    sourceSide?: 'top' | 'bottom' | 'left' | 'right';
+    sourceT?: number;
+    targetSide?: 'top' | 'bottom' | 'left' | 'right';
+    targetT?: number;
 }
 
 /** Presentation-only annotation stored with a diagram, never as a model fact. */

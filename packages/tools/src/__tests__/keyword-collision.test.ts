@@ -198,6 +198,18 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
     // entries this programme has burned down.
 
     // ── Deliberate: MEMO means something the keyword does not ──
+    'stakeholder:MemoStakeholder': {
+        reason: 'SysML’s `stakeholder` is a MEMBERSHIP inside a requirement or viewpoint body — a role being filled. MemoStakeholder is the part def being pointed AT: the catalogue of roles a project can fill one with. There is no stakeholder def construct to align with.',
+        removedBy: 'deliberate',
+    },
+    'attribute:MemoQualityAttribute': {
+        reason: 'A quality attribute is the SEI’s term for a measurable system property with a response measure (availability, security), not SysML’s `attribute` feature on a type. Renaming to dodge the keyword would lose the term the architecture literature and the model both use.',
+        removedBy: 'deliberate',
+    },
+    'verification:VerificationEngineer': {
+        reason: 'A job title, not a verification case. It is one of the stakeholder roles a viewpoint is written for, and the person is not a `verification` usage.',
+        removedBy: 'deliberate',
+    },
     'perform:PerformsStep': {
         reason: 'Orders a reusable verification TestStep; it is a traceability relation, not SysML’s perform action usage.',
         removedBy: 'deliberate',
