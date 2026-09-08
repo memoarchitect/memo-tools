@@ -574,6 +574,13 @@ export interface DiagramCreateMessage {
         description?: string;
         properties?: Record<string, string>;
         elementIds?: string[];
+        /**
+         * The query a view selects BY, rather than the ids it happens to
+         * contain. A traceability matrix is defined by the kinds on its axes
+         * and the relations it draws between them, so freezing the ids it
+         * showed at creation would make it stale the moment the model grew.
+         */
+        elementKinds?: string[];
         relationshipTypes?: string[];
     };
 }
