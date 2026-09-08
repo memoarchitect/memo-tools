@@ -5,6 +5,12 @@ export * from '../model/semantic.js';
 export * from '../model/source-affinity.js';
 export * from '../model/relationship-legality.js';
 export * from '../model/activity-notation.js';
+// The SysML metaclass names, generated from SysML.ecore. A consumer asking
+// "is this kind SysML, or is it undefined entirely?" needs the vocabulary the
+// standard declares, not a list someone typed. The names-only module is here
+// on purpose: `sysml-metamodel.js` answers the same question and costs every
+// metaclass descriptor to do it.
+export * from '../sysml-ir/generated/sysml-metaclass-names.js';
 export * from '../model/view-deriver.js';
 export * from '../model/view-kinds.js';
 export * from '../analysis/dsm.js';
