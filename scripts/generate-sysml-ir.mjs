@@ -53,6 +53,7 @@ const SOURCE = resolve(root, 'packages/tools/ecore/SysML.ecore');
  */
 const OUTPUT = resolve(root, 'packages/tools/src/sysml-ir/generated/sysml-metamodel.ts');
 const DERIVATIONS_OUTPUT = resolve(root, 'packages/tools/src/sysml-ir/generated/sysml-derivations.ts');
+const NAMES_OUTPUT = resolve(root, 'packages/tools/src/sysml-ir/generated/sysml-metaclass-names.ts');
 
 /** Pinned input, per plan §4.1 B2. A different file is a different metamodel. */
 const PROVENANCE = {
@@ -690,10 +691,42 @@ export function operationBodyOf(metaclass: string, operation: string): string | 
 `;
 }
 
+/**
+ * The metaclass names alone, as a standalone module.
+ *
+ * `SYSML_METACLASS_NAMES` in the metamodel is `Object.keys(SYSML_METACLASSES)`,
+ * so reading it drags every descriptor — features, operations, supertypes —
+ * into whatever bundles it. A browser only needs to answer "is this name a
+ * SysML metaclass", so it gets the names and nothing else.
+ */
+function renderNames({ metaclasses }) {
+    const names = metaclasses.map(metaclass => `    '${metaclass.name}',`).join('\n');
+    return `// GENERATED from SysML.ecore by scripts/generate-sysml-ir.mjs. DO NOT EDIT.
+//
+// Source: OMG SysML v2 Pilot Implementation, release ${PROVENANCE.release}, commit ${PROVENANCE.commit}.
+//
+// The names alone, for consumers that only ask whether a name is a SysML
+// metaclass. \`sysml-metamodel.ts\` carries the same names attached to their
+// full descriptors; importing that to ask this question costs the descriptors.
+
+/** Every SysML metaclass name, in metamodel order. */
+export const SYSML_METACLASS_NAME_LIST: readonly string[] = [
+${names}
+];
+
+/** Whether \`name\` is a metaclass the SysML metamodel declares. */
+const lookup = new Set(SYSML_METACLASS_NAME_LIST);
+export function isSysmlMetaclass(name: string): boolean {
+    return lookup.has(name);
+}
+`;
+}
+
 const model = build();
 const outputs = [
     [OUTPUT, render(model)],
     [DERIVATIONS_OUTPUT, renderDerivations(model)],
+    [NAMES_OUTPUT, renderNames(model)],
 ];
 if (process.argv.includes('--check')) {
     for (const [path, generated] of outputs) {
