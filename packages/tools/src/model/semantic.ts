@@ -252,14 +252,6 @@ export interface ViewpointDTO {
     visibleKinds: string[];
     visibleRelationships: string[];
     visibleLayers: string[];
-    /**
-     * Layers the viewpoint itself declares it frames (`includedLayers`).
-     *
-     * `visibleLayers` above is accumulated from the views bound to this
-     * viewpoint, so it reflects what happens to be drawn. This is the authored
-     * intent, and is what consumers should order or filter by.
-     */
-    declaredLayers?: string[];
     /** Ontology-authored V-model lane: architecture or assurance. */
     explorerLane?: string;
     /** Position within the authored Explorer lane. Lower values come first. */
