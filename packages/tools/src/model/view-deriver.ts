@@ -299,7 +299,6 @@ interface ResolvedViewpoint {
     label: string;
     ref: string;
     group?: string;
-    declaredLayers?: string[];
     explorerLane?: string;
     explorerOrder?: number;
     parentId?: string;
@@ -334,7 +333,6 @@ function readViewpoint(authored: MemoElement | undefined, ref: string, model: Me
         // the DTO's `visibleLayers`, which is accumulated from the views
         // that bind to it — a viewpoint states which layers it frames even
         // before any view exists.
-        declaredLayers: splitList(authored?.attributes['includedLayers'] ?? ''),
         explorerLane: authored?.attributes['explorerLane'],
         explorerOrder: Number.isFinite(Number(authored?.attributes['explorerOrder']))
             ? Number(authored?.attributes['explorerOrder'])
@@ -413,8 +411,6 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                     group: authoredViewpoint.group,
                     explorerLane: authoredViewpoint.explorerLane,
                     explorerOrder: authoredViewpoint.explorerOrder,
-                    declaredLayers: authoredViewpoint.declaredLayers?.length
-                        ? authoredViewpoint.declaredLayers : undefined,
                     ...(authoredViewpoint.parentId ? { parentId: authoredViewpoint.parentId } : {}),
                     visibleKinds: [],
                     visibleRelationships: [],
@@ -540,7 +536,6 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                 group: resolved.group,
                 explorerLane: resolved.explorerLane,
                 explorerOrder: resolved.explorerOrder,
-                declaredLayers: resolved.declaredLayers?.length ? resolved.declaredLayers : undefined,
                 ...(resolved.parentId ? { parentId: resolved.parentId } : {}),
                 visibleKinds: [],
                 visibleRelationships: [],
