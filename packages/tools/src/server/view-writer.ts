@@ -141,6 +141,30 @@ function bootstrapHome(projectRoot: string, model: MemoModelDTO, diagram: Diagra
  * which is the only case with no convention to infer. There is deliberately no
  * sidecar fallback: a view that cannot be declared is not created.
  */
+/**
+ * The view's `selectionQuery`, when it was created from one.
+ *
+ * A view declared from a matrix is defined by what it SELECTS — the kinds on
+ * its axes and the relations drawn between them — not by the ids that happened
+ * to match when it was saved. Writing the query means the view answers the
+ * same question a year later against a model that has grown; writing the ids
+ * would freeze the answer and quietly stop being true.
+ */
+export function selectionQueryLines(diagram: DiagramDTO): string[] {
+    const kinds = diagram.elementKinds ?? [];
+    const relationships = diagram.relationshipTypes ?? [];
+    if (kinds.length === 0 && relationships.length === 0) return [];
+    const list = (values: string[]) => values.map(value => `"${escape(value)}"`).join(', ');
+    return [
+        '    part :>> selectionQuery {',
+        ...(kinds.length > 0 ? [`        attribute :>> includeElementKinds = (${list(kinds)});`] : []),
+        ...(relationships.length > 0
+            ? [`        attribute :>> includeRelationshipKinds = (${list(relationships)});`]
+            : []),
+        '    }',
+    ];
+}
+
 export async function writeViewDeclaration(
     projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO,
 ): Promise<ViewWriteResult> {
@@ -212,6 +236,7 @@ export async function writeViewDeclaration(
         `    attribute :>> name = "${escape(diagram.name)}";`,
         ...(!home && derived.declaresKind ? [`    attribute :>> viewKind = DiagramViewKind::${diagram.viewKind};`] : []),
         ...(group ? [`    attribute group = "${escape(group)}";`] : []),
+        ...selectionQueryLines(diagram),
         ...(viewpoint ? [`    ref :>> viewpointDefinition = ${viewpoint};`] : []),
         '}',
     ].join('\n');
