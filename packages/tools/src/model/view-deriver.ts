@@ -458,7 +458,14 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         // Presentation hints declared on the view — the renderer stays dumb and
         // just honors them
         const properties: Record<string, string> = {};
-        for (const hint of ['layoutHint', 'styleHint', 'presentationKind'] as const) {
+        // The view's own display declarations travel with it. They used to live
+        // only in the layout companion, which meant a view could not state what
+        // it shows — only where its boxes had been dragged to.
+        for (const hint of [
+            'layoutHint', 'styleHint', 'presentationKind',
+            'portDisplay', 'connectionDisplay', 'showPortText', 'showConnectionText',
+            'flowAnimation', 'rendererProfile',
+        ] as const) {
             const value = attr(hint);
             if (value) properties[hint] = value;
         }
