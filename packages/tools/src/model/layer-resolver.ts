@@ -44,9 +44,17 @@ export function resolveLayerFromPath(filePath: string): string {
     // a src/ root (e.g. memo/src/architecture/risk/memo_risk.sysml).
     // For architecture/<layer>/ the layer is the subdirectory; other top-level
     // groups (viewpoints, compliance, core, ...) are themselves the layer.
-    const archMatch = normalized.match(/\/src\/architecture\/([^/]+)\//);
+    //
+    // Anchored first, because the patterns below all require a slash before
+    // `src` and a path may arrive either absolute or relative to the project
+    // root — `parseFiles` stores whichever its caller's basePath produces. The
+    // `sysml/` branch above handles both spellings explicitly; these did not,
+    // so the same file resolved to its layer when addressed absolutely and to
+    // `unknown` when addressed relatively.
+    const anchored = normalized.startsWith('/') ? normalized : `/${normalized}`;
+    const archMatch = anchored.match(/\/src\/architecture\/([^/]+)\//);
     if (archMatch && !archMatch[1].endsWith('.sysml')) return archMatch[1];
-    const assuranceMatch = normalized.match(/\/src\/assurance\/([^/]+)\//);
+    const assuranceMatch = anchored.match(/\/src\/assurance\/([^/]+)\//);
     if (assuranceMatch && !assuranceMatch[1].endsWith('.sysml')) {
         const assuranceLayers: Record<string, string> = {
             safety: 'risk',
@@ -57,11 +65,11 @@ export function resolveLayerFromPath(filePath: string): string {
         };
         return assuranceLayers[assuranceMatch[1]] ?? assuranceMatch[1];
     }
-    const operationalMatch = normalized.match(/\/src\/(context|activities|clinical_procedures|interaction|scenarios|use_cases|workflows)\//);
+    const operationalMatch = anchored.match(/\/src\/(context|activities|clinical_procedures|interaction|scenarios|use_cases|workflows)\//);
     if (operationalMatch) {
         return operationalMatch[1] === 'context' ? 'context' : 'operational';
     }
-    const groupMatch = normalized.match(/\/src\/(viewpoints|compliance|core|methodology|artifacts|rules)\//);
+    const groupMatch = anchored.match(/\/src\/(viewpoints|compliance|core|methodology|artifacts|rules)\//);
     if (groupMatch) return groupMatch[1];
 
     return 'unknown';

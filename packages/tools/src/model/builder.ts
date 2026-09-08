@@ -108,6 +108,9 @@ import type {
     UnresolvedReference,
 } from './semantic.js';
 import type { ParsedDocument } from './parser-utils.js';
+// Where an element sits comes from where it was AUTHORED, not from a literal
+// chosen here. See `authoredLayer` below.
+import { resolveLayerFromPath } from './layer-resolver.js';
 import { PackageRegistry } from './package-registry.js';
 import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
 import { identityKey, priorShortIds } from './identity-registry.js';
@@ -1132,7 +1135,7 @@ function extractActionDefinition(
                 : behaviorKind === 'function' ? 'FunctionDefinition' : 'ActionDefinition'),
         construct: 'action',
         isDefinition: true,
-        layer: ontologyKind?.kindDef?.layer ?? 'behavior',
+        layer: ontologyKind?.kindDef?.layer ?? authoredLayer(filePath),
         file: filePath,
         package: packageName || undefined,
         attributes: { ...attributes, behaviorKind },
@@ -1197,7 +1200,7 @@ function extractStandardActivityNode(node: { $type: string; name?: string; paylo
         : undefined;
     elements.set(id, {
         id, name: node.name ?? node.$type, kind: typeToKind[node.$type] ?? node.$type,
-        construct: 'action', layer: 'behavior', file: filePath, package: packageName || undefined,
+        construct: 'action', layer: authoredLayer(filePath), file: filePath, package: packageName || undefined,
         attributes: { ...(node.payloadName ? { payloadName: node.payloadName } : {}), ...(node.payloadType ? { payloadType: node.payloadType } : {}) }, parentAction: parentActionId, parameters,
     });
     registry.registerElement(id, packageName);
@@ -1230,7 +1233,7 @@ function extractItemDefinition(
         kind: kindDef?.layer && kindDef.layer !== 'unknown' ? resolvedKind : 'ItemDefinition',
         construct: 'item',
         isDefinition: true,
-        layer: kindDef?.layer && kindDef.layer !== 'unknown' ? kindDef.layer : 'behavior',
+        layer: kindDef?.layer && kindDef.layer !== 'unknown' ? kindDef.layer : authoredLayer(filePath),
         file: filePath,
         package: packageName || undefined,
         attributes,
@@ -1532,6 +1535,25 @@ function extractViewpointUsage(
 }
 
 /**
+ * The layer an element belongs to when its type resolves to no ontology kind.
+ *
+ * This used to be the literal `'behavior'`, in five places. It was invented
+ * here — the ontology has no behavior layer, and nothing checked the string
+ * against the vocabulary the ontology produces — and it was wrong about the
+ * model besides: all 440 of one project's `ItemDefinition`s are authored under
+ * `architecture/implementation/` and were reported as behavior regardless.
+ *
+ * MEMO keeps namespace and folder path aligned, so the directory an element is
+ * authored in already states where it belongs, and `resolveLayerFromPath` is
+ * the same derivation used for the ontology's own kinds. A file the convention
+ * does not cover still yields `unknown`, which is the honest answer and is
+ * reported as one downstream rather than dressed as a layer.
+ */
+function authoredLayer(filePath: string): string {
+    return resolveLayerFromPath(filePath);
+}
+
+/**
  * Extract an ActionUsage, including nested actions, flows, and successions.
  * Supports both typed (action name : Type;) and composite (action name { ... }) forms.
  */
@@ -1557,7 +1579,7 @@ function extractActionUsage(
     const behaviorKind = usage.behaviorKind ?? 'action';
     let kind = behaviorKind === 'operator' ? 'OperatorUsage'
         : behaviorKind === 'function' ? 'FunctionUsage' : 'ActionUsage';
-    let layer = 'behavior';
+    let layer = authoredLayer(filePath);
     if (typeName) {
         const { kindDef, resolvedKind } = resolveKindDef(typeName, config, registries);
         if (kindDef && kindDef.layer && kindDef.layer !== 'unknown') {
@@ -1666,7 +1688,7 @@ function extractControlNode(
         name: node.name,
         kind,
         construct: 'action',
-        layer: 'behavior',
+        layer: authoredLayer(filePath),
         file: filePath,
         package: packageName || undefined,
         attributes: { controlKind: node.controlKind },

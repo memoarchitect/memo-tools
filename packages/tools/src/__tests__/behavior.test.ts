@@ -12,7 +12,11 @@ import type { ParsedDocument } from '../model/parser-utils.js';
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
 
-async function parseDoc(source: string, filePath: string = 'test.sysml'): Promise<ParsedDocument> {
+// The default path is a real one. An element's layer is derived from where it
+// is AUTHORED — `src/architecture/functional/` is where the ontology keeps
+// behaviour — so a fixture addressed as `test.sysml` has no layer to derive
+// and would be testing the fallback rather than the rule.
+async function parseDoc(source: string, filePath: string = 'src/architecture/functional/test.sysml'): Promise<ParsedDocument> {
     const doc = await parse(source);
     return { document: doc, filePath };
 }
@@ -58,7 +62,7 @@ describe('Behavior grammar: action def with parameters', () => {
             }
         `);
         expect(doc.parseResult.parserErrors).toHaveLength(0);
-        const model = buildMemoModel([{ document: doc, filePath: 'behaviors.sysml' }], behaviorConfig);
+        const model = buildMemoModel([{ document: doc, filePath: 'src/architecture/functional/behaviors.sysml' }], behaviorConfig);
         expect(model.elements.get('preparePatient')?.kind).toBe('OperatorUsage');
         expect(model.elements.get('regulateFlow')?.kind).toBe('FunctionUsage');
     });
@@ -354,7 +358,7 @@ describe('Behavior builder: action definitions', () => {
         expect(el).toBeDefined();
         expect(el!.kind).toBe('ActionDefinition');
         expect(el!.construct).toBe('action');
-        expect(el!.layer).toBe('behavior');
+        expect(el!.layer).toBe('functional');
         expect(el!.parameters).toHaveLength(3);
         expect(el!.parameters![0]).toEqual({ name: 'prescription', direction: 'in', type: 'PrescriptionData' });
         expect(el!.parameters![1]).toEqual({ name: 'validatedOrder', direction: 'out', type: 'InfusionOrder' });
@@ -387,7 +391,7 @@ describe('Behavior builder: item definitions', () => {
         expect(model.elements.get('PrescriptionData')).toBeDefined();
         expect(model.elements.get('PrescriptionData')!.kind).toBe('ItemDefinition');
         expect(model.elements.get('PrescriptionData')!.construct).toBe('item');
-        expect(model.elements.get('PrescriptionData')!.layer).toBe('behavior');
+        expect(model.elements.get('PrescriptionData')!.layer).toBe('functional');
         expect(model.elements.get('InfusionOrder')).toBeDefined();
     });
 });
@@ -476,7 +480,7 @@ describe('Behavior builder: control nodes', () => {
         expect(decision!.kind).toBe('DecisionNode');
         expect(decision!.attributes['controlKind']).toBe('decide');
         expect(decision!.construct).toBe('action');
-        expect(decision!.layer).toBe('behavior');
+        expect(decision!.layer).toBe('functional');
         expect(decision!.parentAction).toBe('route');
 
         const merge = model.elements.get('afterRoute');
@@ -517,7 +521,7 @@ describe('Behavior builder: control nodes', () => {
         expect(fork).toBeDefined();
         expect(fork!.kind).toBe('ForkNode');
         expect(fork!.construct).toBe('action');
-        expect(fork!.layer).toBe('behavior');
+        expect(fork!.layer).toBe('functional');
         expect(fork!.attributes['controlKind']).toBe('fork');
         expect(fork!.parentAction).toBe('prepare');
 
@@ -711,7 +715,7 @@ describe('Behavior builder: model indexes', () => {
         expect(model.elementsByKind.get('ActionUsage')).toHaveLength(2); // performInfusion + receive
     });
 
-    it('indexes behavior elements by layer', async () => {
+    it('indexes elements by the layer they were authored in', async () => {
         const doc = await parseDoc(`
             package Test {
                 item def PrescriptionData;
@@ -724,8 +728,12 @@ describe('Behavior builder: model indexes', () => {
             }
         `);
         const model = buildMemoModel([doc], behaviorConfig);
-        const behaviorElements = model.elementsByLayer.get('behavior') || [];
-        expect(behaviorElements.length).toBeGreaterThanOrEqual(3);
+        const functionalElements = model.elementsByLayer.get('functional') || [];
+        expect(functionalElements.length).toBeGreaterThanOrEqual(3);
+        // `behavior` was the literal the builder used to stamp. The ontology
+        // has no such layer — EXPL-011 places behavior inside functional — so
+        // nothing should be indexed under it.
+        expect(model.elementsByLayer.get('behavior') ?? []).toHaveLength(0);
     });
 
     it('indexes flow and succession relationships by type', async () => {
