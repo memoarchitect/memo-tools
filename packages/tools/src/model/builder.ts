@@ -307,8 +307,13 @@ export function buildMemoModel(
     // so emit one per nesting. A model that nests natively then looks identical
     // to one that wrote `Composes`, which is what lets R10-S7 delete the
     // relationship without the containment vanishing. Ports carry `owner` too,
-    // so this covers part and item nesting, and nothing else.
-    const CONTAINING_CONSTRUCTS = new Set(['part', 'item']);
+    // so this covers part and item nesting. `state` joined them once nested
+    // StateUsage extraction existed to give it something to synthesize from —
+    // without a `composes` edge a composite state's substates were exposable
+    // (via `owner`) but never rendered nested, since the state-transition
+    // template builds its box-in-box layout from COMPOSITION_REL_TYPES, not
+    // from `owner` directly.
+    const CONTAINING_CONSTRUCTS = new Set(['part', 'item', 'state']);
     for (const el of elements.values()) {
         if (!CONTAINING_CONSTRUCTS.has(el.construct) || !el.owner) continue;
         const parent = elements.get(el.owner);
@@ -1013,9 +1018,30 @@ function extractUsage(
     // is where the language puts it and where MEMO's `part def Transition`
     // never could. Extract it from the state usage's body so the two spellings
     // yield the same element set.
+    //
+    // A native `state` nests the same way — `state infusing { state priming;
+    // state delivering; }` is how a composite state declares its substates —
+    // but nothing walked a state usage's body for further StateUsage members
+    // at all. It parsed, `extractUsage` above created the ONE element for the
+    // state doing the nesting, and every substate silently became nothing: no
+    // element, so `expose pumpModes::**` (which walks `owner` chains) found
+    // only the state machine itself, and every state-transition view of a
+    // composite state rendered as a single unexpanded box. This is the
+    // `extractNestedParts` recursion for state usages, inlined here rather
+    // than as its own function because the transition loop it joins already
+    // walks the same body: `extractUsage(..., 'state', ...)` on a nested state
+    // re-enters this same function, so a third level (priming inside infusing
+    // inside pumpModes) reaches this loop again on its own.
     for (const member of usage.body || []) {
-        if ((member as any).$type === 'TransitionUsage') {
-            extractTransition(member as TransitionUsage, filePath, packageName, config, elements, registry, registries);
+        const m = member as any;
+        if (m.$type === 'TransitionUsage') {
+            extractTransition(m as TransitionUsage, filePath, packageName, config, elements, registry, registries);
+            const transitionEl = elements.get(m.name);
+            if (transitionEl) transitionEl.owner = id;
+        } else if (construct === 'state' && m.$type === 'StateUsage') {
+            extractUsage(m as StateUsage, 'state', filePath, packageName, config, elements, registry, registries);
+            const childEl = elements.get(m.name);
+            if (childEl) childEl.owner = id;
         }
     }
 }
