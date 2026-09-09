@@ -1087,6 +1087,48 @@ describe('Port wiring (M-2)', () => {
 // Settings no longer inherit: what a project depends on is its SysML imports,
 // resolved by `resolveNativeProject`.
 
+describe('Nested state usages (state-transition composite states)', () => {
+    it('extracts substates and native transitions nested inside a state usage', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                state def Mode;
+                state pumpModes : Mode {
+                    state idle : Mode;
+                    state infusing : Mode {
+                        state priming : Mode;
+                        state delivering : Mode;
+                        transition tPrimed first priming then delivering;
+                    }
+                    transition tStart first idle then infusing;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        // Every level of nesting became its own element — before this fix,
+        // only the outermost state machine did, and idle/infusing/priming/
+        // delivering/both transitions were silently dropped.
+        for (const id of ['pumpModes', 'idle', 'infusing', 'priming', 'delivering', 'tStart', 'tPrimed']) {
+            expect(model.elements.get(id), `missing element ${id}`).toBeDefined();
+        }
+
+        expect(model.elements.get('idle')!.owner).toBe('pumpModes');
+        expect(model.elements.get('infusing')!.owner).toBe('pumpModes');
+        expect(model.elements.get('priming')!.owner).toBe('infusing');
+        expect(model.elements.get('delivering')!.owner).toBe('infusing');
+        // A transition's owner is the state machine/state whose body declares
+        // it, so `expose pumpModes::**` reaches it the same way it reaches a
+        // substate.
+        expect(model.elements.get('tStart')!.owner).toBe('pumpModes');
+        expect(model.elements.get('tPrimed')!.owner).toBe('infusing');
+
+        // The composedOf-equivalent edge the state-transition template's
+        // composition tree renders nesting from — states only, not transitions.
+        const composesFromInfusing = model.relationships.filter(
+            r => r.type === 'composes' && r.sourceId === 'infusing');
+        expect(composesFromInfusing.map(r => r.targetId).sort()).toEqual(['delivering', 'priming']);
+    });
+});
 
 // ─── Integration test with real infusion-pump file ──────────────────────────
 
