@@ -960,9 +960,12 @@ PartMember:
 // `part`; accepting only the latter made the in-browser parser reject SysIDE-
 // valid view declarations at `:>`.
 
+// The multiplicity does not need a type: `ref referenceElement[1];` is an
+// untyped reference with exactly one value, which is how the ontology spans
+// metaclasses it cannot name a common root for.
 RefMember:
     'ref' (isItem?='item')? (redefines?=':>>')? name=FeatureName
-    (':' isConjugated?='~'? type=QualifiedName multiplicity=Multiplicity?)?
+    (':' isConjugated?='~'? type=QualifiedName)? multiplicity=Multiplicity?
     (   (bindingOp=':>' boundRef=QualifiedName ('=' subsetValue=QualifiedName)?)
       | ('=' value=AttributeValue)
     )?
