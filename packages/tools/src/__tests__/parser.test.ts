@@ -223,6 +223,23 @@ describe('RefMember subsetting with a value', () => {
     });
 });
 
+describe('RefMember multiplicity without a type', () => {
+    it('parses an untyped ref with a multiplicity', async () => {
+        const model = await parseValid(`
+            package Test {
+                part def Constraint {
+                    ref referenceElement[1];
+                    ref others[0..*];
+                }
+            }
+        `);
+        const def = (model.members[0] as PackageDeclaration).members[0] as any;
+        const refs = def.body.filter((m: any) => m.$type === 'RefMember');
+        expect(refs.map((r: any) => [r.name, r.type])).toEqual([['referenceElement', undefined], ['others', undefined]]);
+        expect(refs.every((r: any) => r.multiplicity)).toBe(true);
+    });
+});
+
 // ─── Basic constructs ────────────────────────────────────────────────────────
 
 describe('Package', () => {

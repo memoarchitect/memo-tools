@@ -305,7 +305,10 @@ describe('KK-1 acceptance: GPCA views', () => {
 describe('action-flow sample subtypes', () => {
     it('derives the three explicitly declared diagram types without collapsing them', async () => {
         const samplesDir = resolve(resolveContentPackageRoot(), 'examples/sysml-diagram-samples/model/catalog/viewpoints/unassigned/views');
-        const files = ['action_flow_view.sysml', 'functional_flow_view.sysml', 'operational_behaviour_view.sysml'];
+        // The views live together in diagram_samples.sysml; the three model
+        // files are what they expose. The other views there resolve against
+        // nothing in this build and are filtered out below.
+        const files = ['action_flow_view.sysml', 'functional_flow_view.sysml', 'operational_behaviour_view.sysml', 'diagram_samples.sysml'];
         const docs: ParsedDocument[] = [];
         for (const file of files) {
             docs.push(await parseDoc(readFileSync(join(samplesDir, file), 'utf-8'), file));
@@ -314,10 +317,13 @@ describe('action-flow sample subtypes', () => {
         const { diagrams } = deriveModelViews(model);
         const byId = new Map(diagrams.map(diagram => [diagram.id, diagram]));
 
-        expect(byId.get('diag-sample-sampleActionFlowView')?.diagramType).toBe('afd');
-        expect(byId.get('diag-sample-fxDeliveryView')?.diagramType).toBe('ffd');
-        expect(byId.get('diag-sample-opSetupView')?.diagramType).toBe('ofd');
-        expect(diagrams.every(diagram => diagram.viewKind === 'actionflow')).toBe(true);
+        expect(byId.get('diag-sample-therapySessionFlow')?.diagramType).toBe('afd');
+        expect(byId.get('diag-sample-processStepsDetail')?.diagramType).toBe('afd');
+        expect(byId.get('diag-sample-medicationDeliveryFlow')?.diagramType).toBe('ffd');
+        expect(byId.get('diag-sample-clinicalSetupActivity')?.diagramType).toBe('ofd');
+        const actionFlowIds = ['diag-sample-therapySessionFlow', 'diag-sample-processStepsDetail',
+            'diag-sample-medicationDeliveryFlow', 'diag-sample-clinicalSetupActivity'];
+        expect(actionFlowIds.every(id => byId.get(id)?.viewKind === 'actionflow')).toBe(true);
     });
 });
 

@@ -279,7 +279,10 @@ describe('DD-4: Syside compatibility — structural invariants', () => {
         const langiumPatterns = [
             { pattern: /\bentry\s+:/, label: 'entry keyword' },
             { pattern: /\bterminal\s+/, label: 'terminal rule' },
-            { pattern: /\bfragment\s+/, label: 'fragment rule' },
+            // A Langium fragment RULE is `fragment Name:`. An attribute that
+            // happens to be called `fragment` (`attribute fragment = "loop";`,
+            // the sequence sample's combined-fragment reference) is SysML.
+            { pattern: /\bfragment\s+[A-Za-z_]\w*\s*:(?!>)/, label: 'fragment rule' },
             { pattern: /\bhidden\s*\(/, label: 'hidden terminal' },
             { pattern: /\breturns\s+\w+/, label: 'returns clause' },
         ];
