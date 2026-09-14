@@ -48,6 +48,8 @@ import {
     loadDhfSettings, saveDhfSettings,
     listRepoTemplates, readRepoTemplate, saveRepoTemplate,
 } from './dhf-doc-store.js';
+import { loadDashboards, saveDashboard, deleteDashboard, moveDashboard } from './dashboard-store.js';
+import { createDashboardWatcher } from './file-watcher.js';
 
 export interface DevServerOptions {
     port: number;
@@ -472,6 +474,20 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     const { WebSocketServer } = await import('ws');
     const wss = new WebSocketServer({ server });
     const clients = new Set<any>();
+
+    const broadcastDashboards = () => {
+        let message: string;
+        try {
+            message = JSON.stringify({ type: 'dashboards', payload: { dashboards: loadDashboards(options.projectRoot) } });
+        } catch (e) {
+            console.error('[Dashboards] reload failed:', e);
+            return;
+        }
+        for (const client of clients) {
+            if (client.readyState === 1) client.send(message);
+        }
+    };
+    const dashboardWatcher = createDashboardWatcher(options.projectRoot, broadcastDashboards);
 
     // Every view is DECLARED in SysML — see `view-writer.ts`. The sidecar at
     // .memo/user-diagrams.json used to be merged in here as a second class of
@@ -1255,6 +1271,13 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         const layouts = loadViewLayouts(options.projectRoot, currentDiagrams());
         if (Object.keys(layouts).length > 0) {
             ws.send(JSON.stringify({ type: 'diagram:layout', payload: { layouts } }));
+        }
+
+        // Send custom dashboards on connect
+        try {
+            ws.send(JSON.stringify({ type: 'dashboards', payload: { dashboards: loadDashboards(options.projectRoot) } }));
+        } catch (e) {
+            console.error('[Dashboards] initial load failed:', e);
         }
 
         // Send persisted DHF documents and settings on connect
@@ -2222,6 +2245,26 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         console.error('[LLM] suggest failed:', e);
                         ws.send(JSON.stringify({ type: 'llm:suggest:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
+                } else if (msg.type === 'dashboard:save' || msg.type === 'dashboard:delete' || msg.type === 'dashboard:move') {
+                    // Dashboards are presentation, not model source: they are
+                    // deliberately absent from MODEL_MUTATION_MESSAGES, so a
+                    // typo in the SysML never stops a user writing notes.
+                    const p = msg.payload ?? {};
+                    try {
+                        if (msg.type === 'dashboard:save') {
+                            saveDashboard(options.projectRoot, p.dashboard?.scope, p.dashboard?.id, p.dashboard?.content);
+                        } else if (msg.type === 'dashboard:delete') {
+                            deleteDashboard(options.projectRoot, p.scope, p.id);
+                        } else {
+                            moveDashboard(options.projectRoot, p.id, p.from, p.to);
+                        }
+                        ws.send(JSON.stringify({ type: 'dashboard:result', payload: { requestId: p.requestId, ok: true } }));
+                        // Answer at once rather than waiting on the watcher's
+                        // debounce, so the writer sees its own save immediately.
+                        broadcastDashboards();
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'dashboard:result', payload: { requestId: p.requestId, ok: false, error: e?.message ?? String(e) } }));
+                    }
                 } else if (msg.type === 'dhf:docs:load') {
                     const docs = loadDhfDocs(options.projectRoot);
                     ws.send(JSON.stringify({ type: 'dhf:docs', payload: { docs } }));
@@ -2384,6 +2427,7 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
             }
         },
         close() {
+            dashboardWatcher.close();
             wss.close();
             viteServer?.close();
             server.close();
