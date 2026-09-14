@@ -896,12 +896,20 @@ function extractUsage(
     // `resolveViewElementIds` in view-deriver.ts can resolve each path
     // against the model the same way it resolves `selectionQuery.*`.
     if (construct === 'view') {
-        const exposePaths = (usage.body || [])
+        const exposeMembers = (usage.body || [])
             .filter(member => (member as any).$type === 'ExposeMember')
-            .map(member => (member as any).path as string);
-        if (exposePaths.length > 0) {
-            attributes['expose'] = exposePaths.join(',');
+            .filter(member => typeof (member as any).path === 'string' && (member as any).path);
+        if (exposeMembers.length > 0) {
+            attributes['expose'] = exposeMembers.map(member => (member as any).path as string).join(',');
         }
+        // A filter condition (`expose x::*[@SysML::PortUsage];`) narrows the
+        // one expose it is written on. Keyed by that expose's position rather
+        // than folded into the path, so every reader of `expose` still sees
+        // plain paths.
+        exposeMembers.forEach((member, index) => {
+            const filter = (member as any).filter as string | undefined;
+            if (filter) attributes[`exposeFilter.${index}`] = filter;
+        });
     }
 
     // Nested part/reference members that are view METADATA, not containment:

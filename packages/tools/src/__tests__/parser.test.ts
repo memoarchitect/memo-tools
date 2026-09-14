@@ -356,6 +356,42 @@ describe('Import', () => {
             expect(imp.path).toBe('MEMO_Ontology_Core::Stakeholder');
         }
     });
+
+    // SysML v2 recursive import. It re-exports parts nested inside a part —
+    // `public import ciuSoftware::**;` — and SysIDE accepts it; MEMO used to
+    // fail the whole file on the `**`.
+    it('parses recursive import of a nested namespace', async () => {
+        const model = await parseValid(`
+            package Test {
+                part subsystem { part node; }
+                public import subsystem::**;
+                private import Other::Nested::**;
+            }
+        `);
+        const pkg = model.members[0] as PackageDeclaration;
+        const paths = pkg.members
+            .filter(m => m.$type === 'ImportDeclaration')
+            .map(m => (m as any).path);
+        expect(paths).toEqual(['subsystem::**', 'Other::Nested::**']);
+    });
+});
+
+describe('View expose with a filter condition', () => {
+    it('parses a metaclass filter on an expose', async () => {
+        const model = await parseValid(`
+            package Test {
+                view v {
+                    expose subsystem::*[@SysML::PortUsage];
+                    expose other::**;
+                }
+            }
+        `);
+        const pkg = model.members[0] as PackageDeclaration;
+        const exposes = ((pkg.members[0] as any).body as any[])
+            .filter(m => m.$type === 'ExposeMember')
+            .map(m => [m.path, m.filter]);
+        expect(exposes).toEqual([['subsystem::*', 'SysML::PortUsage'], ['other::**', undefined]]);
+    });
 });
 
 // ─── Definitions ─────────────────────────────────────────────────────────────

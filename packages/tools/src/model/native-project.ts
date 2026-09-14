@@ -506,7 +506,9 @@ function indexPackages(
             for (const member of node.members ?? []) {
                 if (member.$type === 'ImportDeclaration') {
                     const path: string = member.path ?? '';
-                    const pkgName = path.endsWith('::*') ? path.slice(0, -3) : path.split('::').slice(0, -1).join('::') || path;
+                    const pkgName = path.endsWith('::**') ? path.slice(0, -4)
+                        : path.endsWith('::*') ? path.slice(0, -3)
+                        : path.split('::').slice(0, -1).join('::') || path;
                     if (pkgName) entry.imports.add(pkgName);
                 } else {
                     walk(member);

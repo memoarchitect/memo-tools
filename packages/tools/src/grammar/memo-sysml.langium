@@ -111,9 +111,11 @@ ImportDeclaration:
     visibility=('private' | 'public')? 'import' path=ImportPath ';';
 
 // Separate rule to handle wildcard imports (e.g. `import MEMO_Ontology_Medical::*`)
-// without LL parser ambiguity on `::` lookahead in QualifiedName
+// without LL parser ambiguity on `::` lookahead in QualifiedName. `::**` is
+// SysML v2's recursive import (members, and members of members, all the way
+// down) — `public import subsystem::**;` re-exports parts nested in a part.
 ImportPath returns string:
-    ID ('::' (ID | '*'))*;
+    ID ('::' ID)* ('::' ('*' | '**'))?;
 
 // ─── Definitions ─────────────────────────────────────────────────────────────
 
@@ -414,8 +416,11 @@ ViewpointUsage:
 ViewBodyMember:
     UsageBodyMember | ExposeMember;
 
+// `expose subsystem::*[@SysML::PortUsage];` — a SysML v2 filter condition on
+// the exposed members. Only metaclass classification (`@Metaclass`) is read;
+// it is what selects a part's own ports without naming each one.
 ExposeMember:
-    'expose' path=ExposePath ';';
+    'expose' path=ExposePath ('[' '@' filter=QualifiedName ']')? ';';
 
 ExposePath returns string:
     ID (('::' | '.') ID)* ('::' ('*' | '**'))?;
