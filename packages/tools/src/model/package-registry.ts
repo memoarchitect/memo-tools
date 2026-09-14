@@ -35,8 +35,10 @@ export interface ImportEntry {
     path: string;
     /** The package being imported, e.g. "MEMO_Ontology_Risk" */
     packageName: string;
-    /** Whether this is a wildcard import (::*) */
+    /** Whether this is a wildcard import (::* or ::**) */
     isWildcard: boolean;
+    /** Whether the wildcard is recursive (::**): nested packages' members too */
+    isRecursive?: boolean;
     /** Specific name imported (for named imports), e.g. "Hazard" */
     namedImport?: string;
 }
@@ -134,6 +136,14 @@ export class PackageRegistry {
                     if (importedPkg && importedPkg.elementIds.includes(ref)) {
                         return ref;
                     }
+                    // Recursive import: members of nested packages as well.
+                    if (imp.isRecursive) {
+                        for (const [name, pkg] of this.packages) {
+                            if (name.startsWith(`${imp.packageName}::`) && pkg.elementIds.includes(ref)) {
+                                return ref;
+                            }
+                        }
+                    }
                 } else if (imp.namedImport === ref) {
                     // Named import matches
                     return ref;
@@ -206,12 +216,13 @@ function parseImport(path: string): ImportEntry {
     if (typeof path !== 'string' || !path) {
         return { path: '', packageName: '', isWildcard: false, namedImport: undefined };
     }
-    const isWildcard = path.endsWith('::*');
+    const isRecursive = path.endsWith('::**');
+    const isWildcard = isRecursive || path.endsWith('::*');
     let packageName: string;
     let namedImport: string | undefined;
 
     if (isWildcard) {
-        packageName = path.slice(0, -3); // Remove ::*
+        packageName = path.slice(0, isRecursive ? -4 : -3); // Remove ::** or ::*
     } else if (path.includes('::')) {
         const parts = path.split('::');
         namedImport = parts.pop();
@@ -220,5 +231,5 @@ function parseImport(path: string): ImportEntry {
         packageName = path;
     }
 
-    return { path, packageName, isWildcard, namedImport };
+    return { path, packageName, isWildcard, isRecursive, namedImport };
 }

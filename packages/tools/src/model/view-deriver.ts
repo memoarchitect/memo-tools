@@ -130,12 +130,33 @@ function resolveExposePath(path: string, model: MemoModel): string[] {
  */
 export function resolveExposeIds(view: MemoElement, model: MemoModel): string[] {
     const ids = new Set<string>();
-    for (const path of splitList(view.attributes['expose'])) {
+    splitList(view.attributes['expose']).forEach((path, index) => {
+        const filter = view.attributes[`exposeFilter.${index}`];
         for (const id of resolveExposePath(path, model)) {
-            if (id !== view.id) ids.add(id);
+            if (id === view.id) continue;
+            if (filter && !matchesMetaclass(model.elements.get(id), filter)) continue;
+            ids.add(id);
         }
-    }
+    });
     return [...ids];
+}
+
+/**
+ * Whether an element is classified by a SysML metaclass, as a filter condition
+ * `[@SysML::PortUsage]` asks. The metaclass names a construct and says whether
+ * it is the usage or the definition: `PortUsage` is a port that is not a
+ * definition, `PartDefinition` a part that is. A bare construct name (`Port`)
+ * admits both.
+ */
+function matchesMetaclass(element: MemoElement | undefined, metaclass: string): boolean {
+    if (!element) return false;
+    const name = metaclass.split('::').pop()!.trim();
+    const match = name.match(/^(.*?)(Usage|Definition)?$/)!;
+    const construct = match[1].replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+    if (element.construct !== construct) return false;
+    if (match[2] === 'Usage') return !element.isDefinition;
+    if (match[2] === 'Definition') return !!element.isDefinition;
+    return true;
 }
 
 /**

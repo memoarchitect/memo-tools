@@ -1130,6 +1130,55 @@ describe('Nested state usages (state-transition composite states)', () => {
     });
 });
 
+describe('View expose filters and recursive imports', () => {
+    it('records a filter condition against the expose it is written on', async () => {
+        const doc = await parseDoc(`
+            package TestPkg {
+                part def Block;
+                port def Endpoint;
+                part subsystem : Block {
+                    part node : Block { out port nodePort : Endpoint; }
+                    out port boundaryPort : Endpoint;
+                }
+                public import subsystem::**;
+                view boundaryView {
+                    expose subsystem;
+                    expose subsystem::*[@SysML::PortUsage];
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+        const view = model.elements.get('boundaryView');
+        expect(view).toBeDefined();
+        expect(view!.attributes['expose']).toBe('subsystem,subsystem::*');
+        expect(view!.attributes['exposeFilter.0']).toBeUndefined();
+        expect(view!.attributes['exposeFilter.1']).toBe('SysML::PortUsage');
+        // The recursive import is not a model element and breaks nothing
+        // around it: the nested part and its port still build.
+        expect(model.elements.get('node')!.owner).toBe('subsystem');
+        expect(model.elements.get('boundaryPort')!.owner).toBe('subsystem');
+    });
+
+    it('builds a model that imports a package recursively', async () => {
+        const lib = await parseDoc(`
+            package Outer {
+                package Inner {
+                    part def Deep;
+                }
+            }
+        `, 'lib.sysml');
+        const user = await parseDoc(`
+            package User {
+                private import Outer::**;
+                part d : Deep;
+            }
+        `, 'user.sysml');
+        const model = buildMemoModel([lib, user], testConfig, [], testRegistries());
+        expect(model.elements.get('d')).toBeDefined();
+        expect(model.errors.filter(e => /\*\*/.test(e.message ?? ''))).toEqual([]);
+    });
+});
+
 // ─── Integration test with real infusion-pump file ──────────────────────────
 
 // The skipped infusion-pump integration block was removed with the settings
