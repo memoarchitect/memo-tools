@@ -80,6 +80,8 @@ export type ServerMessage =
     | DhfTemplatesResultMessage
     | DhfTemplateContentMessage
     | DhfTemplateSaveResultMessage
+    | DashboardsMessage
+    | DashboardResultMessage
     | RelationshipCreateResultMessage
     | RelationshipDeleteResultMessage
     | RelationshipUpdateResultMessage
@@ -267,7 +269,10 @@ export type ClientMessage =
     | DhfSettingsSaveMessage
     | DhfTemplatesListMessage
     | DhfTemplateReadMessage
-    | DhfTemplateSaveMessage;
+    | DhfTemplateSaveMessage
+    | DashboardSaveMessage
+    | DashboardDeleteMessage
+    | DashboardMoveMessage;
 
 export interface RequestRefreshMessage {
     type: 'request:refresh';
@@ -1119,6 +1124,60 @@ export interface DhfTemplateSaveMessage {
 export interface DhfTemplateSaveResultMessage {
     type: 'dhf:template:save:result';
     payload: { requestId: string; path?: string; error?: string };
+}
+
+// ─── Custom dashboards ───────────────────────────────────────────────────────
+
+/**
+ * Where a dashboard file lives. `shared` is committed with the project
+ * (`dashboards/`); `user` is one person's and ignored by git
+ * (`dashboards/user/`, listed in the project `.gitignore`). Same id in both:
+ * the user copy shadows the shared one.
+ */
+export type DashboardScope = 'shared' | 'user';
+
+/** A dashboard page: one markdown file, id = filename stem. */
+export interface DashboardDTO {
+    id: string;
+    scope: DashboardScope;
+    /** Frontmatter `title`, else the first `#` heading, else the id */
+    title: string;
+    /** Full markdown source including any frontmatter */
+    content: string;
+    /** Project-relative path of the file */
+    path: string;
+    /** File mtime in ms */
+    updatedAt: number;
+}
+
+/** Server → Client: every dashboard in both scopes (on connect and after any change) */
+export interface DashboardsMessage {
+    type: 'dashboards';
+    payload: { dashboards: DashboardDTO[] };
+}
+
+/** Client → Server: create or overwrite a dashboard file */
+export interface DashboardSaveMessage {
+    type: 'dashboard:save';
+    payload: { requestId?: string; dashboard: { id: string; scope: DashboardScope; content: string } };
+}
+
+/** Client → Server: delete a dashboard file */
+export interface DashboardDeleteMessage {
+    type: 'dashboard:delete';
+    payload: { requestId?: string; id: string; scope: DashboardScope };
+}
+
+/** Client → Server: move a dashboard between scopes (share / keep to myself) */
+export interface DashboardMoveMessage {
+    type: 'dashboard:move';
+    payload: { requestId?: string; id: string; from: DashboardScope; to: DashboardScope };
+}
+
+/** Server → Client: outcome of a dashboard write */
+export interface DashboardResultMessage {
+    type: 'dashboard:result';
+    payload: { requestId?: string; ok: boolean; error?: string };
 }
 
 /** Server → Client: CSV import results */

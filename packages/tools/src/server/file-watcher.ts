@@ -222,3 +222,49 @@ export function createFileWatcher(
         close() { watcher.close(); },
     };
 }
+
+/**
+ * Watch both dashboard directories — `dashboards/` and `dashboards/user/`.
+ *
+ * Dashboards are not model source, so they are outside the project watcher's
+ * scope and never trigger a rebuild. They still need a watcher: a page edited
+ * in an external editor or arriving by `git pull` must reach open clients.
+ *
+ * The project root is watched with everything but those two paths ignored,
+ * because either directory may not exist yet and chokidar does not pick up a
+ * watched path that is created later.
+ */
+export function createDashboardWatcher(
+    projectDir: string,
+    onChange: () => void | Promise<void>,
+    debounceMs: number = 200,
+): FileWatcher {
+    const root = resolve(projectDir);
+    const shared = resolve(root, 'dashboards');
+    const user = resolve(shared, 'user');
+    const fire = makeDebounced(() => onChange(), debounceMs);
+
+    const isDashboardFile = (absolute: string): boolean =>
+        extname(absolute).toLowerCase() === '.md'
+        && (resolve(absolute, '..') === shared || resolve(absolute, '..') === user);
+
+    const watcher = chokidar.watch(root, {
+        ignored: (filePath, stats) => {
+            const absolute = resolve(filePath);
+            if (absolute === root || absolute === shared || absolute === user) return false;
+            if (stats && !stats.isFile()) return true;
+            return !isDashboardFile(absolute);
+        },
+        depth: 2,
+        persistent: true,
+        ignoreInitial: true,
+    });
+
+    watcher.on('all', (_event, filePath) => {
+        if (isDashboardFile(resolve(filePath))) fire(filePath);
+    });
+
+    return {
+        close() { watcher.close(); },
+    };
+}
