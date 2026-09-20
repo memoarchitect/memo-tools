@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MemoElement, MemoModel, MemoRelationship } from '../model/semantic.js';
 import { validateArchitecture } from '../validator/architecture-validator.js';
+import { toElementIndex } from '../model/element-index.js';
 
 const part = (id: string): MemoElement => ({ id, name: id, kind: 'Block', construct: 'part', layer: 'logical', file: 'test.sysml', attributes: {} });
 const rel = (type: string, sourceId: string, targetId: string): MemoRelationship => ({ id: `${type}-${sourceId}-${targetId}`, type, sourceId, targetId, sourceEnd: '', targetEnd: '', file: 'test.sysml' });
@@ -13,7 +14,7 @@ function model(elements: MemoElement[], relationships: MemoRelationship[]): Memo
         outgoing.set(relationship.sourceId, [...(outgoing.get(relationship.sourceId) ?? []), relationship]);
         incoming.set(relationship.targetId, [...(incoming.get(relationship.targetId) ?? []), relationship]);
     }
-    return { elements: byId, relationships, errors: [], packages: [], elementsByKind: new Map([['Block', elements]]), elementsByLayer: new Map(), relationshipsByType: new Map(), outgoing, incoming };
+    return { elements: toElementIndex(byId), relationships, errors: [], packages: [], elementsByKind: new Map([['Block', elements]]), elementsByLayer: new Map(), relationshipsByType: new Map(), outgoing, incoming };
 }
 
 describe('AR-IBD-001 nested-part connectivity', () => {

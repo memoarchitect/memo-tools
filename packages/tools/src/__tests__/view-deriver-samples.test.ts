@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { deriveModelViews } from '../model/view-deriver.js';
 import type { MemoElement, MemoModel } from '../model/semantic.js';
+import { toElementIndex } from '../model/element-index.js';
 
 function element(id: string, kind: string, packageName?: string): MemoElement {
     return {
@@ -17,7 +18,7 @@ describe('explicit renderer samples', () => {
         const view = element('exactView', 'DiagramView');
         view.attributes = { 'selectionQuery.includeElementIds': 'LC-SELECTED' };
         const model = {
-            elements: new Map([[selected.id, selected], [excluded.id, excluded], [view.id, view]]),
+            elements: toElementIndex([selected, excluded, view]),
             relationships: [], incoming: new Map(),
         } as unknown as MemoModel;
 
@@ -68,7 +69,7 @@ describe('explicit renderer samples', () => {
             viewpointDefinition: 'logicalArchitectureViewpoint',
             diagramType: 'afd',
         };
-        const elements = new Map([[viewpoint.id, viewpoint], [view.id, view]]);
+        const elements = toElementIndex([viewpoint, view]);
         const model = {
             elements,
             relationships: [],
@@ -95,7 +96,7 @@ describe('explicit renderer samples', () => {
         const view = element('sampleActionFlowView', 'DiagramView', 'samples');
         view.attributes = { viewpointDefinition: 'functionalViewpoint' };
         const model = {
-            elements: new Map([[viewpoint.id, viewpoint], [view.id, view]]),
+            elements: toElementIndex([viewpoint, view]),
             relationships: [], incoming: new Map(),
         } as unknown as MemoModel;
 

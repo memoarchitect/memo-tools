@@ -99,21 +99,24 @@ describe('standard activity fixture', () => {
             .toEqual(['rejected', 'closeOrder', 'orderComplete']);
 
         const dto = modelToDTO(buildMemoModel(documents, { projectName: 'CustomerProcess' }, errors));
-        expect(dto.elements.rejected.kind).toBe('ActivityFinalNodeUsage');
-        expect(dto.elements.closeOrder.kind).toBe('ActivityFinalNodeUsage');
-        expect(dto.elements.orderComplete.kind).toBe('ActivityFinalNodeUsage');
+        // Keyed by qualified id; matched on the declared name so the fixture's
+        // package spelling is not restated three times.
+        const finals = Object.values(dto.elements)
+            .filter(el => ['rejected', 'closeOrder', 'orderComplete'].includes(el.shortName ?? ''));
+        expect(finals.map(el => el.kind))
+            .toEqual(['ActivityFinalNodeUsage', 'ActivityFinalNodeUsage', 'ActivityFinalNodeUsage']);
         expect(dto.relationships).toEqual(expect.arrayContaining([
             expect.objectContaining({
-                type: 'succession', sourceId: 'validUserDecision',
-                sourceEnd: '[validUser == true]', targetId: 'browseCatalog',
+                type: 'succession', sourceId: expect.stringMatching(/(^|::)validUserDecision$/),
+                sourceEnd: '[validUser == true]', targetId: expect.stringMatching(/(^|::)browseCatalog$/),
             }),
             expect.objectContaining({
-                type: 'succession', sourceId: 'shoppingDecision',
-                sourceEnd: '[continueShopping == true]', targetId: 'browseCatalog',
+                type: 'succession', sourceId: expect.stringMatching(/(^|::)shoppingDecision$/),
+                sourceEnd: '[continueShopping == true]', targetId: expect.stringMatching(/(^|::)browseCatalog$/),
             }),
             expect.objectContaining({
-                type: 'succession', sourceId: 'creditDecision',
-                sourceEnd: '[creditOK == false]', targetId: 'rejectCreditCard',
+                type: 'succession', sourceId: expect.stringMatching(/(^|::)creditDecision$/),
+                sourceEnd: '[creditOK == false]', targetId: expect.stringMatching(/(^|::)rejectCreditCard$/),
             }),
         ]));
     });

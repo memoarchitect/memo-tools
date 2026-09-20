@@ -10,6 +10,7 @@ import {
     generateRelationshipTemplate,
 } from '../serializer/csv-io.js';
 import { generateUsage, generateConnection, generateFile, wrapPackage } from '../serializer/sysml-generator.js';
+import { toElementIndex } from '../model/element-index.js';
 
 // ─── Test Config ────────────────────────────────────────────────────────────
 
@@ -393,7 +394,7 @@ function createTestModel(
 ): MemoModel {
     const elemMap = new Map(elements.map((e) => [e.id, e]));
     return {
-        elements: elemMap,
+        elements: toElementIndex(elemMap),
         relationships,
         errors: [], packages: [],
         elementsByKind: new Map(),

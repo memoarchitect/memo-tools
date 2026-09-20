@@ -45,9 +45,39 @@ export interface ElementIdentity {
 /** `package::name` → identity. */
 export type IdentityRegistry = Record<string, ElementIdentity>;
 
-/** The registry key for an element. */
+/**
+ * The registry key for an element: its qualified id, which already carries the
+ * declaring package as its first segment.
+ *
+ * It used to be `package` and the element's id joined, because an id was then a
+ * bare short name. Joining them now would produce `Pump::Pump::motor`. For a
+ * TOP-LEVEL element the two spellings are character-for-character identical —
+ * `Pump::pump1` either way — which is why no existing entry moves. A NESTED
+ * element's key gains the owner chain it always should have had, and
+ * `priorIdentityFor` below adopts the old entry so no shortId or uuid is
+ * re-minted by this change.
+ */
 export function identityKey(element: { id: string; package?: string }): string {
-    return element.package ? `${element.package}::${element.id}` : element.id;
+    return element.id;
+}
+
+/**
+ * The identity an element already had, under this key or the one it used
+ * before qualified ids.
+ *
+ * A nested element was keyed `package::shortName` when a short name was an id;
+ * it is keyed `package::owner::shortName` now. Both are looked up, newest
+ * first, so a project's `memo.identity.yaml` survives the change without being
+ * rewritten and without a port silently acquiring a new `RMR-…`.
+ */
+export function priorIdentityFor(
+    registry: IdentityRegistry,
+    element: { id: string; package?: string; shortName?: string },
+): ElementIdentity | undefined {
+    const current = registry[identityKey(element)];
+    if (current) return current;
+    if (!element.package || !element.shortName) return undefined;
+    return registry[`${element.package}::${element.shortName}`];
 }
 
 /**
@@ -120,14 +150,19 @@ export function parseIdentityRegistry(content: string): IdentityRegistry {
  * The prior `shortId` assignments for one prefix family, as
  * `assignSequentialShortIds` expects them: element id → shortId.
  *
- * Keys are un-qualified here because assignment happens per prefix over element
- * ids; the qualified key is only the persistence form.
+ * Keys are the registry's own — an element's qualified id, which is what an
+ * element id now is. They used to be stripped to the last segment, because an
+ * id was then a bare short name and the two forms had to be bridged; stripping
+ * them now would make every key ambiguous again, which is the thing qualified
+ * ids exist to stop.
+ *
+ * An entry whose element is gone is kept: it matches nothing, and raising the
+ * high-water mark is exactly what retires its number.
  */
 export function priorShortIds(registry: IdentityRegistry): Map<string, string> {
     const out = new Map<string, string>();
     for (const [key, entry] of Object.entries(registry)) {
-        if (!entry.shortId) continue;
-        out.set(key.includes('::') ? key.slice(key.lastIndexOf('::') + 2) : key, entry.shortId);
+        if (entry.shortId) out.set(key, entry.shortId);
     }
     return out;
 }

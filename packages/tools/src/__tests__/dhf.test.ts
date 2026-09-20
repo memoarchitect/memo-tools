@@ -12,6 +12,7 @@ import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic
 import type { DhfDocument } from '../dhf/document-ir.js';
 import type { ValidationResult, CompletenessReport } from '../validator/types.js';
 import type { MEMOConfig } from '../model/config.js';
+import { toElementIndex } from '../model/element-index.js';
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ function makeModel(elements: MemoElement[] = [], relationships: MemoRelationship
         if (!incoming.has(rel.targetId)) incoming.set(rel.targetId, []);
         incoming.get(rel.targetId)!.push(rel);
     }
-    return { elements: elementMap, relationships, errors: [], packages: [], elementsByKind, elementsByLayer, relationshipsByType, outgoing, incoming };
+    return { elements: toElementIndex(elementMap), relationships, errors: [], packages: [], elementsByKind, elementsByLayer, relationshipsByType, outgoing, incoming };
 }
 
 function makeValidation(violations: any[] = []): ValidationResult {

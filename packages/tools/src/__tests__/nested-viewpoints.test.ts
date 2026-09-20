@@ -5,6 +5,7 @@ import { createMemoSysMLServices } from '../language/memo-sysml-module.js';
 import type { Model } from '../language/generated/ast.js';
 import { buildMemoModel } from '../model/builder.js';
 import { deriveModelViews } from '../model/view-deriver.js';
+import { shortNameOf } from '../model/element-index.js';
 
 // A viewpoint nests for system-of-systems modelling. The grammar accepted the
 // nesting before the builder did, so `viewpoint vpSoS { viewpoint vpPump; }`
@@ -36,10 +37,10 @@ async function model() {
 describe('a viewpoint declared inside a viewpoint', () => {
     it('becomes an element that carries its parent in owner', async () => {
         const built = await model();
-        const pump = built.elements.get('vpPump');
+        const pump = built.elements.lookup('vpPump');
         expect(pump?.construct).toBe('viewpoint');
-        expect(pump?.owner).toBe('vpSoS');
-        expect(built.elements.get('vpSoS')?.owner).toBeUndefined();
+        expect(shortNameOf(pump?.owner)).toBe('vpSoS');
+        expect(built.elements.lookup('vpSoS')?.owner).toBeUndefined();
     });
 
     it('does not become part containment: framing is not composition', async () => {

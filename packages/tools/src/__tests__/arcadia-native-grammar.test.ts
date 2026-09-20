@@ -7,6 +7,7 @@ import type { MEMOConfig } from '../model/config.js';
 import { buildMemoModel } from '../model/builder.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
 import type { MemoRelationship } from '../model/semantic.js';
+import { shortNameOf } from '../model/element-index.js';
 
 // ─── The fourteen ARCADIA-mechanism productions (plan §8, Track B) ───────────
 //
@@ -27,13 +28,20 @@ async function parseDoc(source: string): Promise<ParsedDocument> {
     return { document: await parses(source), filePath: 'test.sysml' };
 }
 
-/** The facts a trace edge is: type, ends, direction. Ids are positional. */
+/**
+ * The facts a trace edge is: type, ends, direction. Ids are positional.
+ *
+ * Reported as SHORT names. What these cases are about is which spelling
+ * produces which edge, and every fixture here declares one element per name;
+ * carrying the package qualifier through would put `P::` in front of forty
+ * expectations without testing anything more.
+ */
 function edge(rel: MemoRelationship) {
     return {
         type: rel.type,
-        sourceId: rel.sourceId,
+        sourceId: shortNameOf(rel.sourceId),
         sourceEnd: rel.sourceEnd,
-        targetId: rel.targetId,
+        targetId: shortNameOf(rel.targetId),
         targetEnd: rel.targetEnd,
     };
 }
@@ -44,7 +52,8 @@ async function edgesOf(source: string) {
 
 async function elementsOf(source: string) {
     const elements = [...buildMemoModel([await parseDoc(source)], config).elements.values()];
-    return elements.map(({ id, kind, name, construct, attributes }) => ({ id, kind, name, construct, attributes }));
+    return elements.map(({ id, kind, name, construct, attributes }) =>
+        ({ id: shortNameOf(id), kind, name, construct, attributes }));
 }
 
 /** Parse errors, for the negative cases where rejecting the source is the point. */
@@ -504,10 +513,11 @@ describe('ARCADIA native mechanisms — builder projection', () => {
             }
         `);
         const model = buildMemoModel([doc], config);
-        expect(model.elements.get('clause4')).toBeDefined();
+        expect(model.elements.lookup('clause4')).toBeDefined();
         expect(model.relationships.some(r =>
             (r.type ?? '').toLowerCase() === 'composes'
-            && r.sourceId === 'std' && r.targetId === 'clause4')).toBe(true);
+            && shortNameOf(r.sourceId) === 'std'
+            && shortNameOf(r.targetId) === 'clause4')).toBe(true);
     });
 
     it('a directed item is a payload parameter, not containment', async () => {
@@ -549,11 +559,11 @@ describe('ARCADIA native mechanisms — builder projection', () => {
             }
         `);
         const model = buildMemoModel([doc], config);
-        const pump = model.elements.get('pump');
+        const pump = model.elements.lookup('pump');
         expect(pump?.attributes?.id).toBe('PRT-001');
         expect(pump?.attributes?.sourceReference).toBe('CITE-003');
         // Behaviours too — the metaclass the base-class carrier could not reach.
-        expect(model.elements.get('measure')?.attributes?.id).toBe('ACT-001');
+        expect(model.elements.lookup('measure')?.attributes?.id).toBe('ACT-001');
     });
 
     it('a metadata application overrides a directly declared attribute of the same name', async () => {
@@ -571,7 +581,7 @@ describe('ARCADIA native mechanisms — builder projection', () => {
             }
         `);
         const model = buildMemoModel([doc], config);
-        expect(model.elements.get('pump')?.attributes?.id).toBe('NEW-001');
+        expect(model.elements.lookup('pump')?.attributes?.id).toBe('NEW-001');
     });
 
     it('a bare dependency claims no realization, only the generic edge', async () => {
@@ -638,7 +648,7 @@ describe('ARCADIA native mechanisms — builder projection', () => {
                 }
             }
         `)], config);
-        const transition = [...model.elements.values()].find(e => e.id === 'tStart')!;
+        const transition = [...model.elements.values()].find(e => e.shortName === 'tStart')!;
         expect(transition.construct).toBe('transition');
         expect(transition.kind).toBe('Transition');
         // The part def spells these as Strings holding DISPLAY names, so
@@ -654,6 +664,6 @@ describe('ARCADIA native mechanisms — builder projection', () => {
                 state pumpModes : StateMachine { transition idle then infusing; }
             }
         `)], config);
-        expect([...model.elements.values()].map(e => e.id)).toEqual(['pumpModes']);
+        expect([...model.elements.values()].map(e => e.shortName)).toEqual(['pumpModes']);
     });
 });

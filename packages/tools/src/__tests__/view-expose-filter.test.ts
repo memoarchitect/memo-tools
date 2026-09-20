@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { deriveModelViews } from '../model/view-deriver.js';
 import type { MemoElement, MemoModel } from '../model/semantic.js';
+import { toElementIndex } from '../model/element-index.js';
 
 const element = (id: string, over: Partial<MemoElement> = {}): MemoElement => ({
     id, name: id, kind: 'SoftwareSystem', construct: 'part',
@@ -10,7 +11,7 @@ const element = (id: string, over: Partial<MemoElement> = {}): MemoElement => ({
 } as MemoElement);
 
 const modelOf = (els: MemoElement[]) => ({
-    elements: new Map(els.map(e => [e.id, e])), relationships: [], incoming: new Map(),
+    elements: toElementIndex(els), relationships: [], incoming: new Map(),
     packages: [], errors: [],
 } as unknown as MemoModel);
 

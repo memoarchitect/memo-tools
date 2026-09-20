@@ -18,6 +18,7 @@ import type { MEMOConfig } from '../model/config.js';
 import type { ValidationResult, CompletenessReport, Violation } from '../validator/types.js';
 import type { QueryContext } from '../dhf/query-engine.js';
 import type { DhfDocument } from '../dhf/document-ir.js';
+import { toElementIndex } from '../model/element-index.js';
 
 // ─── Test helpers ───────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ function createMockContext(): PluginContext {
         { id: 'el-1', name: 'TestElement', kind: 'Hazard', construct: 'part', layer: 'risk', file: 'test.sysml', attributes: {} },
     ];
     const model = {
-        elements: new Map(elements.map(e => [e.id, e])),
+        elements: toElementIndex(elements),
         relationships: [] as MemoRelationship[],
         errors: [], packages: [],
         elementsByKind: new Map([['Hazard', elements]]),

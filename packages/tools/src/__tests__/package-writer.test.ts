@@ -32,6 +32,7 @@ import {
     renamePackage,
 } from '../server/package-writer.js';
 import { saveElementToFile } from '../server/persistor.js';
+import { shortNameOf } from '../model/element-index.js';
 
 const config: MEMOConfig = { projectName: 'packages' } as MEMOConfig;
 
@@ -148,7 +149,7 @@ describe('element placement on create', () => {
 
         expect(result.success).toBe(true);
         const { built } = await build();
-        expect(built.elements.get('filter')?.package).toBe('Plant::Hydraulics');
+        expect(built.elements.lookup('filter')?.package).toBe('Plant::Hydraulics');
     });
 
     it('refuses to place an element in a package the file does not declare', async () => {
@@ -199,7 +200,7 @@ describe('deletePackage', () => {
         expect(result.success).toBe(true);
         const { built } = await build();
         expect(built.packages.map(pkg => pkg.qualifiedName)).not.toContain('Plant::Hydraulics');
-        expect(built.elements.get('pump')?.package).toBe('Plant');
+        expect(built.elements.lookup('pump')?.package).toBe('Plant');
     });
 
     it('removes an empty package outright', async () => {
@@ -213,7 +214,7 @@ describe('deletePackage', () => {
         expect(result.success).toBe(true);
         const { built } = await build();
         expect(built.packages.map(pkg => pkg.qualifiedName)).not.toContain('Plant::Hydraulics');
-        expect(built.elements.get('pump')?.package).toBe('Plant');
+        expect(built.elements.lookup('pump')?.package).toBe('Plant');
     });
 
     it('refuses to remove a top-level package, which would orphan its members', async () => {
@@ -274,12 +275,12 @@ describe('a grouping package inside a usage body', () => {
         expect(result.error).toBeUndefined();
         expect(result.success).toBe(true);
         const { built } = await build();
-        const moved = built.elements.get('btnBack');
+        const moved = built.elements.lookup('btnBack');
         // The package groups; the screen still owns. That distinction is the
         // whole reason a grouping package is not a namespace package.
-        expect(moved?.owner).toBe('scrHome');
+        expect(shortNameOf(moved?.owner)).toBe('scrHome');
         expect(moved?.attributes['elementPackage']).toBe('grpHeader');
-        expect(built.elements.get('btnClose')?.attributes['elementPackage']).toBeUndefined();
+        expect(built.elements.lookup('btnClose')?.attributes['elementPackage']).toBeUndefined();
         // Moved verbatim, not regenerated.
         expect(readProjectFile('model/ui.sysml')).toContain('attribute redefines note = "back"');
     });
@@ -307,8 +308,8 @@ describe('moveElementToPackage', () => {
         const index = await compile();
 
         const result = await moveElementToPackage(projectRoot, {
-            elementId: 'pump',
-            irIdentity: index.byMemoElement.pump,
+            elementId: 'Plant::pump',
+            irIdentity: index.byMemoElement['Plant::pump'],
             sourceFile: 'model/plant.sysml',
             targetFile: 'model/plant.sysml',
             targetPackage: 'Plant::Hydraulics',
@@ -316,8 +317,8 @@ describe('moveElementToPackage', () => {
 
         expect(result.success).toBe(true);
         const { built } = await build();
-        expect(built.elements.get('pump')?.package).toBe('Plant::Hydraulics');
-        expect(built.elements.get('valve')?.package).toBe('Plant');
+        expect(built.elements.lookup('pump')?.package).toBe('Plant::Hydraulics');
+        expect(built.elements.lookup('valve')?.package).toBe('Plant');
         // The declaration is moved, not regenerated: its body survives intact.
         expect(readProjectFile('model/plant.sysml')).toContain('attribute redefines note = "pump"');
     });
@@ -328,8 +329,8 @@ describe('moveElementToPackage', () => {
         const index = await compile();
 
         const result = await moveElementToPackage(projectRoot, {
-            elementId: 'valve',
-            irIdentity: index.byMemoElement.valve,
+            elementId: 'Plant::valve',
+            irIdentity: index.byMemoElement['Plant::valve'],
             sourceFile: 'model/plant.sysml',
             targetFile: 'model/spares.sysml',
             targetPackage: 'Spares',
@@ -338,8 +339,8 @@ describe('moveElementToPackage', () => {
         expect(result.success).toBe(true);
         expect(result.filePaths).toEqual(['model/spares.sysml', 'model/plant.sysml']);
         const { built } = await build();
-        expect(built.elements.get('valve')?.package).toBe('Spares');
-        expect(built.elements.get('valve')?.file).toBe('model/spares.sysml');
+        expect(built.elements.lookup('valve')?.package).toBe('Spares');
+        expect(built.elements.lookup('valve')?.file).toBe('model/spares.sysml');
         expect(readProjectFile('model/plant.sysml')).not.toContain('valve');
     });
 

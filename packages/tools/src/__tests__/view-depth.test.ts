@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { deriveModelViews } from '../model/view-deriver.js';
 import type { MemoElement, MemoModel, MemoRelationship } from '../model/semantic.js';
+import { toElementIndex } from '../model/element-index.js';
 
 const element = (id: string, over: Partial<MemoElement> = {}): MemoElement => ({
     id, name: id, kind: 'LogicalComponent', construct: 'part',
@@ -14,7 +15,7 @@ const composes = (source: string, target: string): MemoRelationship => ({
 } as MemoRelationship);
 
 const modelOf = (els: MemoElement[], rels: MemoRelationship[] = []) => ({
-    elements: new Map(els.map(e => [e.id, e])), relationships: rels, incoming: new Map(),
+    elements: toElementIndex(els), relationships: rels, incoming: new Map(),
     packages: [], errors: [],
 } as unknown as MemoModel);
 

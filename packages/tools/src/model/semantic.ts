@@ -7,6 +7,7 @@
 
 import type { OntologyRegistriesDTO } from './relationship-legality.js';
 import type { SemanticElementProvenance } from './source-provenance.js';
+import { ElementIndex } from './element-index.js';
 
 /** Direction of a port or action parameter */
 export type ParameterDirection = 'in' | 'out' | 'inout';
@@ -73,8 +74,28 @@ export function usageKeyword(construct: string | undefined): MemoConstruct {
 }
 
 export interface MemoElement {
-    /** Unique element identifier (usage name from SysML) */
+    /**
+     * Unique element identifier: the QUALIFIED name, owner chain and all,
+     * rooted at the declaring package —
+     * `memo_examples_ros_mobile_robot::nodeSafetyMonitor::scanSubscriber`.
+     *
+     * It was the short name alone, which is not unique: SysML scopes a name to
+     * its owner, so two parts may each own a port called `scanSubscriber` and
+     * one of them used to silently win the map entry. Anything holding an id
+     * from outside the model — a `.viewlayout`, `memo.identity.yaml`, a
+     * reference a person typed — resolves it through `ElementIndex.lookup`,
+     * which accepts a trailing part of a qualified name or an unambiguous
+     * short name.
+     */
     id: string;
+    /**
+     * The name as DECLARED, the last segment of `id`.
+     *
+     * What a reader should be shown, and what the source says. Distinct from
+     * `name`, which is the human label an `attribute redefines name` may
+     * override, and from `id`, which is for identity alone.
+     */
+    shortName?: string;
     /** Stable short ID for deep-linking, e.g. "SW-REQ-4291" (set by builder) */
     shortId?: string;
     /** Stable technical UUID assigned during compilation; never used as a display label. */
@@ -216,8 +237,14 @@ export interface UnresolvedReference {
 
 /** The complete semantic model — serializable for WebSocket transport */
 export interface MemoModel {
-    /** All elements indexed by id */
-    elements: Map<string, MemoElement>;
+    /**
+     * All elements by qualified id.
+     *
+     * `get` is exact — it takes an id the model itself produced. A name that
+     * came from source text or from a person goes through `lookup`, which
+     * accepts a trailing part of a qualified name or an unambiguous short one.
+     */
+    elements: ElementIndex;
     /** All relationships */
     relationships: MemoRelationship[];
     /** Parse errors encountered */
@@ -449,7 +476,11 @@ export function modelToDTO(
 
 /** Reconstruct a MemoModel from a DTO (e.g. received over WebSocket) */
 export function dtoToModel(dto: MemoModelDTO): MemoModel {
-    const elements = new Map<string, MemoElement>(Object.entries(dto.elements));
+    // An ElementIndex, not a bare Map, so a model received over the wire can
+    // still resolve a name a person wrote — `memo inspect nodeLidar`, a key
+    // read back from a saved layout — against the qualified ids it holds.
+    const elements = new ElementIndex();
+    for (const el of Object.values(dto.elements)) elements.define(el);
     const relationships = dto.relationships;
 
     const elementsByKind = new Map<string, MemoElement[]>();

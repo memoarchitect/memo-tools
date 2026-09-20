@@ -39,6 +39,7 @@ import {
     notationFor, notationIsNameable, renderRelationship,
     type RelationshipNotation,
 } from './sysml-notation.js';
+import { shortNameOf } from '../model/element-index.js';
 import {
     isConnectionUsage,
     isPackageDeclaration,
@@ -310,7 +311,7 @@ export function generateRelationshipId(
     taken: Iterable<string>,
 ): string {
     const sanitize = (value: string) => value.replace(/[^A-Za-z0-9_]/g, '_');
-    const base = `rel_${sanitize(type)}_${sanitize(sourceId)}_${sanitize(targetId)}`;
+    const base = `rel_${sanitize(type)}_${sanitize(shortNameOf(sourceId))}_${sanitize(shortNameOf(targetId))}`;
     const used = new Set(taken);
     if (!used.has(base)) return base;
     let n = 2;
@@ -374,7 +375,11 @@ export async function writeRelationship(
         model.relationships.map(rel => rel.id),
     );
     const declaration = generateRelationshipDeclaration(
-        relationshipId, definition, request.sourceId, request.targetId, request.flowItem, request.guard);
+        relationshipId, definition,
+        // Source text names elements the way the source does: by the feature
+        // path, never by the qualified id that addresses them in the model.
+        endpointPath(request.sourceId, model), endpointPath(request.targetId, model),
+        request.flowItem, request.guard);
 
     let updated: string;
     if (!existsSync(absolutePath)) {
@@ -470,11 +475,15 @@ function newRelationshipFile(relativePath: string, declaration: string): string 
 
 /** Fully qualify a nested endpoint from the semantic ownership chain. */
 function endpointPath(elementId: string, model: Pick<MemoModelDTO, 'elements'>): string {
-    const path = [elementId];
-    const visited = new Set(path);
+    // Written into SOURCE, so every segment is the name its declaration
+    // carries, never the qualified id that addresses it: `a.b.port`, not
+    // `Pkg::a::b.Pkg::a::b::port`.
+    const named = (id: string) => model.elements[id]?.shortName ?? shortNameOf(id);
+    const path = [named(elementId)];
+    const visited = new Set([elementId]);
     let owner = model.elements[elementId]?.owner;
     while (owner && !visited.has(owner)) {
-        path.unshift(owner);
+        path.unshift(named(owner));
         visited.add(owner);
         owner = model.elements[owner]?.owner;
     }
