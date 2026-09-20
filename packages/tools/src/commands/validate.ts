@@ -26,6 +26,7 @@ import {
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, toElementIndex } from '@memoarchitect/tools';
 import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
+import { checkSelectorVocabulary, type SelectorVocabularyDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { checkLockFile } from '../lock.js';
 import { runValidator } from '../toolchain/operations.js';
@@ -178,6 +179,17 @@ export async function validateCommand(
     //
     // So it is printed before any of those numbers, and it fails the command.
     reportParseErrors(diagnostics, projectRoot);
+
+    // A selector naming a kind, relationship or attribute the ontology never
+    // declared matches nothing — in this model and in every other one, which is
+    // why it survives review: an empty view looks exactly like an empty model.
+    // Reported here, next to the parse errors, because both mean the report
+    // below describes something other than what the source says.
+    const selectorDiagnostics = checkSelectorVocabulary(model, {
+        kindRegistry: ontologyRegistries?.kindRegistry,
+        relationshipRegistry: ontologyRegistries?.relationshipRegistry,
+    });
+    reportSelectorDiagnostics(selectorDiagnostics, projectRoot);
 
     // Record the identities this build assigned. `validate` is the command that
     // runs most, so it is where a project first acquires memo.identity.yaml;
@@ -507,7 +519,8 @@ export async function validateCommand(
      * computed from what did load happen to look.
      */
     function failed(): boolean {
-        return errors.length > 0 || sysmlErrors > 0 || diagnostics.length > 0;
+        return errors.length > 0 || sysmlErrors > 0 || diagnostics.length > 0
+            || selectorDiagnostics.length > 0;
     }
 }
 
@@ -549,6 +562,29 @@ function reportParseErrors(
     }
     if (parseErrors.length > PARSE_ERRORS_LISTED) {
         console.log(chalk.gray(`     \u2026 and ${parseErrors.length - PARSE_ERRORS_LISTED} more`));
+    }
+    console.log('');
+}
+
+/**
+ * Print every selector that names something no resolved ontology declares.
+ *
+ * All of them, with no elision: the list is short by construction — a selector
+ * is written by hand — and the whole value of the check is that the offending
+ * name is spelled out next to where it was written.
+ */
+function reportSelectorDiagnostics(
+    selectorDiagnostics: readonly SelectorVocabularyDiagnostic[],
+    projectRoot: string,
+): void {
+    if (selectorDiagnostics.length === 0) return;
+    const show = (file: string) => (file.startsWith(projectRoot) ? relative(projectRoot, file) : file);
+    console.log(chalk.red.bold(
+        `\u26d4 ${selectorDiagnostics.length} selector(s) name vocabulary no resolved ontology `
+        + 'declares. Each one matches nothing, whatever the model contains:'));
+    for (const d of selectorDiagnostics) {
+        console.log(chalk.gray(
+            `     ${show(d.file)}: error: ${d.message}`));
     }
     console.log('');
 }
