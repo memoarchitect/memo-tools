@@ -19,6 +19,7 @@ import {
 } from '../model/view-kinds.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
 import { resolveContentPackageRoot } from '../model/paths.js';
+import { shortNameOf } from '../model/element-index.js';
 
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
@@ -234,7 +235,7 @@ describe('KK-1: deriveModelViews view kinds', () => {
         const { viewpoints, diagrams } = deriveModelViews(model, registry);
 
         expect(viewpoints[0].visibleKinds).toEqual(['SoftwareComponent', 'FirmwareComponent']);
-        expect(diagrams[0].elementIds).toContain('firmware');
+        expect(diagrams[0].elementIds?.map(id => shortNameOf(id))).toContain('firmware');
     });
 });
 

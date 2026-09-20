@@ -19,6 +19,7 @@ import { buildMemoModel } from '../model/builder.js';
 import { RelationshipRegistry } from '../model/relationship-registry.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
 import type { MemoRelationship } from '../model/semantic.js';
+import { shortNameOf } from '../model/element-index.js';
 
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
@@ -33,12 +34,16 @@ async function parseDoc(source: string): Promise<ParsedDocument> {
 }
 
 /** The facts a trace edge is: type, ends, direction. Ids are positional. */
+/**
+ * Reported as SHORT names: these cases are about which spelling produces which
+ * edge, and every fixture declares one element per name.
+ */
 function edge(rel: MemoRelationship) {
     return {
         type: rel.type,
-        sourceId: rel.sourceId,
+        sourceId: shortNameOf(rel.sourceId),
         sourceEnd: rel.sourceEnd,
-        targetId: rel.targetId,
+        targetId: shortNameOf(rel.targetId),
         targetEnd: rel.targetEnd,
     };
 }

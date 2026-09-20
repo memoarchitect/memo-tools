@@ -94,17 +94,18 @@ describe('memo element identities', () => {
         expect(new Set(pumps.map(row => row.identity)).size).toBe(2);
     });
 
-    it('lists declarations the flat Memo projection cannot key, because a write can still reach them', async () => {
-        // MEMO keys an element by its bare ID, so `Upstream::pump` and
-        // `Downstream::pump` project to one Memo element. The Memo-keyed table
-        // therefore names one of the two; the IR-keyed listing names both, and
-        // it is the IR identity that a write is addressed by.
+    it('keys both same-named declarations, because an id is a qualified name', async () => {
+        // This case used to be the one the flat projection could not express:
+        // `Upstream::pump` and `Downstream::pump` collapsed into one Memo
+        // element, so the Memo-keyed table named one of the two and a write
+        // had to be addressed by IR identity to reach the other. Both are
+        // keyed now, and both are mapped.
         const table = await identities();
         const rows = await declarations();
 
-        expect(Object.keys(table)).toEqual(['pump']);
-        expect(rows.filter(row => row.element).length).toBe(1);
-        expect(rows.filter(row => !row.element).length).toBe(1);
+        expect(Object.keys(table).sort()).toEqual(['Plant::Downstream::pump', 'Plant::Upstream::pump']);
+        expect(rows.filter(row => row.element).length).toBe(2);
+        expect(rows.filter(row => !row.element).length).toBe(0);
     });
 
     it('fails, rather than printing nothing, for an element the project does not have', async () => {

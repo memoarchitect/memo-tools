@@ -24,6 +24,7 @@ import chalk from 'chalk';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { recompileProject, writeElement, type AuthoringContext } from '../operations/authoring.js';
 import type { ElementWriteRequest } from '../server/persistor.js';
+import { shortNameOf } from '../model/element-index.js';
 
 export interface ElementCliOptions extends Record<string, unknown> {
     format?: 'text' | 'json';
@@ -142,6 +143,25 @@ export async function elementIdentitiesCommand(dir: string, options: ElementIden
     ));
 }
 
+/**
+ * The identity a just-written declaration acquired.
+ *
+ * A CREATE has no id in the model until the recompile that follows it, and the
+ * id it acquires is qualified by the package it landed in — which the request,
+ * carrying a name, does not know. So the new index is matched on the id first
+ * and on the declared name second.
+ */
+function identityAfterWrite(
+    byMemoElement: Record<string, string>,
+    request: ElementWriteRequest,
+): string | undefined {
+    const exact = byMemoElement[request.id];
+    if (exact) return exact;
+    const declared = request.shortName ?? shortNameOf(request.id);
+    const matches = Object.keys(byMemoElement).filter(key => shortNameOf(key) === declared);
+    return matches.length === 1 ? byMemoElement[matches[0]] : undefined;
+}
+
 export async function elementWriteCommand(dir: string, options: ElementWriteOptions = {}): Promise<void> {
     const context = contextFor(dir);
     let request: ElementWriteRequest;
@@ -171,6 +191,29 @@ export async function elementWriteCommand(dir: string, options: ElementWriteOpti
     // long-lived; a command has to compile for it, which is also what makes
     // `--by-id` possible at all.
     const before = await recompileProject(context);
+
+    // `--id` is what a person typed, and a person types a NAME. An element's
+    // id is its qualified name, so the two are reconciled here rather than in
+    // the writer: an id that already matches a declaration addresses it, a
+    // bare name that matches exactly one is resolved to it, and a name the
+    // model has never seen is a creation and stays as written.
+    const declaredName = shortNameOf(request.id);
+    request.shortName = declaredName;
+    // Nothing to resolve when the id already addresses a declaration, or when
+    // the caller quoted an identity — that identity is the address, and a name
+    // two declarations share is then beside the point.
+    if (!request.irIdentity && !before.index.byMemoElement[request.id]) {
+        const matches = Object.keys(before.index.byMemoElement)
+            .filter(key => shortNameOf(key) === declaredName);
+        if (matches.length > 1) {
+            console.error(chalk.red(
+                `"${request.id}" names more than one element: ${matches.join(', ')}. Pass one of them.`));
+            process.exit(1);
+            return;
+        }
+        if (matches.length === 1) request.id = matches[0];
+    }
+
     if (options.byId && !request.irIdentity) {
         const identity = before.index.byMemoElement[request.id];
         if (identity) request.irIdentity = identity;
@@ -188,7 +231,7 @@ export async function elementWriteCommand(dir: string, options: ElementWriteOpti
             ...(result.error ? { error: result.error } : {}),
             ...(result.revision ? {
                 provider: result.revision.provider,
-                irIdentity: result.revision.index.byMemoElement[request.id],
+                irIdentity: identityAfterWrite(result.revision.index.byMemoElement, request),
                 diagnostics: result.revision.diagnostics.length,
             } : {}),
         }, null, 2));

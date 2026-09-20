@@ -14,6 +14,7 @@ import { validateModel } from '../validator/rule-engine.js';
 import { computeCompleteness } from '../completeness/tracker.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
 import { loadConfig } from '../model/config-loader.js';
+import { shortNameOf } from '../model/element-index.js';
 
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
@@ -70,7 +71,7 @@ describe('buildMemoModel', () => {
                 dir: '/ontology', origin: 'ontology', packageName: '@memoarchitect/ontology', importDepth: 1,
             }]),
         });
-        const element = model.elements.get('clinician')!;
+        const element = model.elements.lookup('clinician')!;
         expect(element.provenance?.declaration.origin).toBe('project');
         expect(element.provenance?.declaration.writable).toBe(true);
         expect(element.provenance?.classifier?.qualifiedName).toBe('memo::architecture::Actor');
@@ -89,7 +90,7 @@ describe('buildMemoModel', () => {
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.size).toBe(1);
-        const el = model.elements.get('clinician')!;
+        const el = model.elements.lookup('clinician')!;
         expect(el).toBeDefined();
         expect(el.kind).toBe('Actor');
         expect(el.construct).toBe('part');
@@ -109,7 +110,7 @@ describe('buildMemoModel', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.get('scenario')?.attributes['parentWorkflow']).toBe('workflow');
+        expect(model.elements.lookup('scenario')?.attributes['parentWorkflow']).toBe('workflow');
     });
 
     it('extracts elements from requirement usages', async () => {
@@ -125,7 +126,7 @@ describe('buildMemoModel', () => {
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.size).toBe(1);
-        const el = model.elements.get('hazOverInfusion')!;
+        const el = model.elements.lookup('hazOverInfusion')!;
         expect(el.kind).toBe('Hazard');
         expect(el.construct).toBe('requirement');
         expect(el.layer).toBe('risk');
@@ -152,14 +153,14 @@ describe('buildMemoModel', () => {
         // here, and a view that cannot select it cannot draw it. The untyped
         // definition's definition kind propagates to its usage.
         expect(model.elements.size).toBe(3);
-        expect(model.elements.get('ClinicalGoal')).toMatchObject({
+        expect(model.elements.lookup('ClinicalGoal')).toMatchObject({
             construct: 'use case', isDefinition: true,
         });
-        expect(model.elements.get('ucMonitor')).toMatchObject({
+        expect(model.elements.lookup('ucMonitor')).toMatchObject({
             kind: 'Use caseDefinition', construct: 'use case', name: 'Monitor patient',
         });
-        expect(model.elements.get('ucMonitor')?.isDefinition).toBeUndefined();
-        expect(model.elements.get('alarmSignal')).toMatchObject({
+        expect(model.elements.lookup('ucMonitor')?.isDefinition).toBeUndefined();
+        expect(model.elements.lookup('alarmSignal')).toMatchObject({
             kind: 'AlarmSignal', construct: 'item', name: 'Alarm signal',
         });
         expect(model.errors).toHaveLength(0);
@@ -187,9 +188,9 @@ describe('buildMemoModel', () => {
 
         const rel = model.relationships[0];
         expect(rel.type).toBe('mitigates');
-        expect(rel.sourceId).toBe('rc1');
+        expect(shortNameOf(rel.sourceId)).toBe('rc1');
         expect(rel.sourceEnd).toBe('control');
-        expect(rel.targetId).toBe('haz1');
+        expect(shortNameOf(rel.targetId)).toBe('haz1');
         expect(rel.targetEnd).toBe('hazard');
         expect(rel.attributes?.interactionLabel).toBe('Controls hazard');
     });
@@ -220,8 +221,8 @@ describe('buildMemoModel', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.outgoing.get('rc1')?.length).toBe(1);
-        expect(model.incoming.get('h1')?.length).toBe(1);
+        expect(model.outgoing.get(model.elements.lookup('rc1')!.id)?.length).toBe(1);
+        expect(model.incoming.get(model.elements.lookup('h1')!.id)?.length).toBe(1);
         expect(model.relationshipsByType.get('mitigates')?.length).toBe(1);
     });
 
@@ -236,7 +237,7 @@ describe('buildMemoModel', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
         expect(model.errors).toHaveLength(0);
-        expect(model.elements.get('sw1')?.attributes['periodMs']).toBe('20.0');
+        expect(model.elements.lookup('sw1')?.attributes['periodMs']).toBe('20.0');
     });
 });
 
@@ -275,7 +276,7 @@ describe('Cross-file import resolution', () => {
             }
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
-        const el = model.elements.get('clinician')!;
+        const el = model.elements.lookup('clinician')!;
         expect(el.package).toBe('DeviceModel');
     });
 
@@ -301,12 +302,12 @@ describe('Cross-file import resolution', () => {
         const model = buildMemoModel([riskFile, controlFile], testConfig);
 
         expect(model.elements.size).toBe(2);
-        expect(model.elements.get('haz1')?.package).toBe('RiskPkg');
-        expect(model.elements.get('rc1')?.package).toBe('ControlPkg');
+        expect(model.elements.lookup('haz1')?.package).toBe('RiskPkg');
+        expect(model.elements.lookup('rc1')?.package).toBe('ControlPkg');
 
         expect(model.relationships).toHaveLength(1);
-        expect(model.relationships[0].sourceId).toBe('rc1');
-        expect(model.relationships[0].targetId).toBe('haz1');
+        expect(shortNameOf(model.relationships[0].sourceId)).toBe('rc1');
+        expect(shortNameOf(model.relationships[0].targetId)).toBe('haz1');
     });
 
     it('resolves connections across files via named import', async () => {
@@ -334,7 +335,7 @@ describe('Cross-file import resolution', () => {
         const model = buildMemoModel([riskFile, controlFile], testConfig);
 
         expect(model.relationships).toHaveLength(1);
-        expect(model.relationships[0].targetId).toBe('haz1');
+        expect(shortNameOf(model.relationships[0].targetId)).toBe('haz1');
     });
 
     it('resolves qualified name references in connections', async () => {
@@ -358,7 +359,7 @@ describe('Cross-file import resolution', () => {
         const model = buildMemoModel([riskFile, controlFile], testConfig);
 
         expect(model.relationships).toHaveLength(1);
-        expect(model.relationships[0].targetId).toBe('haz1');
+        expect(shortNameOf(model.relationships[0].targetId)).toBe('haz1');
     });
 
     it('handles nested packages', async () => {
@@ -380,8 +381,8 @@ describe('Cross-file import resolution', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.get('haz1')?.package).toBe('DeviceModel::Risk');
-        expect(model.elements.get('rc1')?.package).toBe('DeviceModel::Controls');
+        expect(model.elements.lookup('haz1')?.package).toBe('DeviceModel::Risk');
+        expect(model.elements.lookup('rc1')?.package).toBe('DeviceModel::Controls');
         expect(model.relationships).toHaveLength(1);
     });
 
@@ -394,7 +395,7 @@ describe('Cross-file import resolution', () => {
             }
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
-        const el = model.elements.get('h1')!;
+        const el = model.elements.lookup('h1')!;
         // Should resolve RiskPkg::Hazard to just "Hazard" for kind lookup
         expect(el.kind).toBe('Hazard');
         expect(el.layer).toBe('risk');
@@ -423,19 +424,19 @@ describe('a definition the project declares', () => {
 
         // The kind is the supertype, so every view, viewpoint filter and
         // palette that admits Software admits the definition of one.
-        expect(model.elements.get('Pump')).toMatchObject({
+        expect(model.elements.lookup('Pump')).toMatchObject({
             kind: 'Software', construct: 'part', layer: 'software', isDefinition: true, name: 'Pump',
         });
         // A usage inherits the definition's resolved ontology kind, so every
         // view and filter that admits Software also admits this instance.
-        expect(model.elements.get('p1')?.kind).toBe('Software');
+        expect(model.elements.lookup('p1')?.kind).toBe('Software');
     });
 
     it('says it is a definition when it specializes nothing the ontology knows', async () => {
         const doc = await parseDoc('package Plant {\n    part def Widget;\n}');
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.get('Widget')).toMatchObject({ kind: 'PartDefinition', isDefinition: true });
+        expect(model.elements.lookup('Widget')).toMatchObject({ kind: 'PartDefinition', isDefinition: true });
     });
 
     it('takes the parts declared in its body as containment', async () => {
@@ -448,10 +449,10 @@ describe('a definition the project declares', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.get('motor')?.owner).toBe('Pump');
+        expect(shortNameOf(model.elements.lookup('motor')?.owner)).toBe('Pump');
         // Which is what a BDD reads: containment, synthesized from the nesting.
         expect(model.relationships.some(r =>
-            r.type === 'composes' && r.sourceId === 'Pump' && r.targetId === 'motor')).toBe(true);
+            r.type === 'composes' && shortNameOf(r.sourceId) === 'Pump' && shortNameOf(r.targetId) === 'motor')).toBe(true);
     });
 
     it('stays out of the model when a library package declares it', async () => {
@@ -527,8 +528,8 @@ describe('SysML v2 library keyword', () => {
         const model = buildMemoModel([libFile, modelFile], testConfig);
         // Only model elements (not definitions from library)
         expect(model.elements.size).toBe(2);
-        expect(model.elements.get('clinician')?.package).toBe('InfusionPump');
-        expect(model.elements.get('h1')?.package).toBe('InfusionPump');
+        expect(model.elements.lookup('clinician')?.package).toBe('InfusionPump');
+        expect(model.elements.lookup('h1')?.package).toBe('InfusionPump');
     });
 });
 
@@ -571,22 +572,22 @@ describe('Multi-file model splitting', () => {
 
         // All elements from all files
         expect(model.elements.size).toBe(4);
-        expect(model.elements.get('haz1')?.package).toBe('DeviceRisk');
-        expect(model.elements.get('sr1')?.package).toBe('DeviceRequirements');
-        expect(model.elements.get('pump')?.package).toBe('DeviceArchitecture');
+        expect(model.elements.lookup('haz1')?.package).toBe('DeviceRisk');
+        expect(model.elements.lookup('sr1')?.package).toBe('DeviceRequirements');
+        expect(model.elements.lookup('pump')?.package).toBe('DeviceArchitecture');
 
         // Cross-file connections
         expect(model.relationships.length).toBe(2);
 
         // Mitigates: rc1 → haz1 (within risk file)
         const mitigates = model.relationships.find(r => r.type === 'mitigates');
-        expect(mitigates?.sourceId).toBe('rc1');
-        expect(mitigates?.targetId).toBe('haz1');
+        expect(shortNameOf(mitigates?.sourceId)).toBe('rc1');
+        expect(shortNameOf(mitigates?.targetId)).toBe('haz1');
 
         // TraceTo: sr1 → rc1 (cross-file: requirements → risk)
         const traceTo = model.relationships.find(r => r.type === 'traceTo');
-        expect(traceTo?.sourceId).toBe('sr1');
-        expect(traceTo?.targetId).toBe('rc1');
+        expect(shortNameOf(traceTo?.sourceId)).toBe('sr1');
+        expect(shortNameOf(traceTo?.targetId)).toBe('rc1');
     });
 
     it('resolves three-level cross-file chains', async () => {
@@ -624,12 +625,12 @@ describe('Multi-file model splitting', () => {
         expect(model.relationships.length).toBe(2);
 
         // sr1 → haz1 (req → risk)
-        const r1 = model.relationships.find(r => r.sourceId === 'sr1');
-        expect(r1?.targetId).toBe('haz1');
+        const r1 = model.relationships.find(r => shortNameOf(r.sourceId) === 'sr1');
+        expect(shortNameOf(r1?.targetId)).toBe('haz1');
 
         // swr1 → sr1 (software → requirements)
-        const r2 = model.relationships.find(r => r.sourceId === 'swr1');
-        expect(r2?.targetId).toBe('sr1');
+        const r2 = model.relationships.find(r => shortNameOf(r.sourceId) === 'swr1');
+        expect(shortNameOf(r2?.targetId)).toBe('sr1');
     });
 });
 
@@ -658,16 +659,16 @@ describe('Dotted feature-chain endpoints', () => {
     it('resolves dotted allocate endpoints to leaf element ids', async () => {
         const model = buildMemoModel([await parseDoc(source)], testConfig);
         const allocations = model.relationships.filter(r => r.type === 'allocatedTo');
-        expect(allocations.map(r => r.sourceId).sort()).toEqual(['receive', 'stepA']);
-        expect(model.elements.get('receive')?.allocatedTo).toBe('laneA');
-        expect(model.elements.get('stepA')?.allocatedTo).toBe('laneA');
+        expect(allocations.map(r => shortNameOf(r.sourceId)).sort()).toEqual(['receive', 'stepA']);
+        expect(shortNameOf(model.elements.lookup('receive')?.allocatedTo)).toBe('laneA');
+        expect(shortNameOf(model.elements.lookup('stepA')?.allocatedTo)).toBe('laneA');
     });
 
     it('resolves dotted connection endpoints to leaf element ids', async () => {
         const model = buildMemoModel([await parseDoc(source)], testConfig);
         const trace = model.relationships.find(r => r.type === 'traceTo');
-        expect(trace?.sourceId).toBe('receive');
-        expect(trace?.targetId).toBe('laneA');
+        expect(shortNameOf(trace?.sourceId)).toBe('receive');
+        expect(shortNameOf(trace?.targetId)).toBe('laneA');
     });
 });
 
@@ -684,7 +685,7 @@ describe('Port wiring (M-2)', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        const sensor = model.elements.get('sensorIn')!;
+        const sensor = model.elements.lookup('sensorIn')!;
         expect(sensor).toBeDefined();
         expect(sensor.construct).toBe('port');
         expect(sensor.portSpec).toBeDefined();
@@ -692,11 +693,11 @@ describe('Port wiring (M-2)', () => {
         expect(sensor.portSpec!.direction).toBe('in');
         expect(sensor.portSpec!.isConjugated).toBe(true);
 
-        const control = model.elements.get('controlOut')!;
+        const control = model.elements.lookup('controlOut')!;
         expect(control.portSpec!.direction).toBe('out');
         expect(control.portSpec!.isConjugated).toBe(false);
 
-        const plain = model.elements.get('plain')!;
+        const plain = model.elements.lookup('plain')!;
         expect(plain.portSpec!.direction).toBeUndefined();
         expect(plain.portSpec!.isConjugated).toBe(false);
     });
@@ -716,17 +717,18 @@ describe('Port wiring (M-2)', () => {
         // something: before the definition was an element, there was nothing
         // to write it to, which is what an IBD needs to draw the boundary.
         expect(model.elements.size).toBe(3);
-        expect(model.elements.get('PumpController')).toMatchObject({
-            construct: 'part', isDefinition: true, ownedPorts: ['sensorIn', 'controlOut'],
-        });
+        const controller = model.elements.lookup('PumpController')!;
+        expect(controller).toMatchObject({ construct: 'part', isDefinition: true });
+        expect(controller.ownedPorts?.map(id => shortNameOf(id)))
+            .toEqual(['sensorIn', 'controlOut']);
 
-        const sensor = model.elements.get('sensorIn')!;
+        const sensor = model.elements.lookup('sensorIn')!;
         expect(sensor).toBeDefined();
-        expect(sensor.owner).toBe('PumpController');
+        expect(shortNameOf(sensor.owner)).toBe('PumpController');
         expect(sensor.portSpec!.direction).toBe('in');
 
-        const control = model.elements.get('controlOut')!;
-        expect(control.owner).toBe('PumpController');
+        const control = model.elements.lookup('controlOut')!;
+        expect(shortNameOf(control.owner)).toBe('PumpController');
         expect(control.portSpec!.direction).toBe('out');
     });
 
@@ -750,19 +752,19 @@ describe('Port wiring (M-2)', () => {
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         expect(model.elements.size).toBe(4);
-        expect(model.elements.get('PanelBoard')?.isDefinition).toBe(true);
+        expect(model.elements.lookup('PanelBoard')?.isDefinition).toBe(true);
 
-        const cluster = model.elements.get('panelCluster')!;
-        expect(cluster.owner).toBe('PanelBoard');
-        expect(cluster.ownedPorts).toEqual(['encoderA', 'encoderB']);
+        const cluster = model.elements.lookup('panelCluster')!;
+        expect(shortNameOf(cluster.owner)).toBe('PanelBoard');
+        expect(cluster.ownedPorts?.map(id => shortNameOf(id))).toEqual(['encoderA', 'encoderB']);
 
-        const a = model.elements.get('encoderA')!;
+        const a = model.elements.lookup('encoderA')!;
         expect(a).toBeDefined();
-        expect(a.owner).toBe('panelCluster');
+        expect(shortNameOf(a.owner)).toBe('panelCluster');
         expect(a.construct).toBe('port');
         expect(a.portSpec!.direction).toBe('in');
 
-        expect(model.elements.get('encoderB')!.owner).toBe('panelCluster');
+        expect(shortNameOf(model.elements.lookup('encoderB')!.owner)).toBe('panelCluster');
     });
 
     it('nests ports more than one level deep', async () => {
@@ -777,10 +779,10 @@ describe('Port wiring (M-2)', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.get('outer')!.ownedPorts).toEqual(['middle']);
-        expect(model.elements.get('middle')!.owner).toBe('outer');
-        expect(model.elements.get('middle')!.ownedPorts).toEqual(['inner']);
-        expect(model.elements.get('inner')!.owner).toBe('middle');
+        expect(model.elements.lookup('outer')!.ownedPorts?.map(id => shortNameOf(id))).toEqual(['middle']);
+        expect(shortNameOf(model.elements.lookup('middle')!.owner)).toBe('outer');
+        expect(model.elements.lookup('middle')!.ownedPorts?.map(id => shortNameOf(id))).toEqual(['inner']);
+        expect(shortNameOf(model.elements.lookup('inner')!.owner)).toBe('middle');
     });
 
     // R10-S3 GUARD (written first): a view's `part :>> selectionQuery { ... }`
@@ -804,7 +806,7 @@ describe('Port wiring (M-2)', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        const view = model.elements.get('aView')!;
+        const view = model.elements.lookup('aView')!;
         expect(view.construct).toBe('view');
         // The selectionQuery body stays flattened onto the view.
         expect(view.attributes['selectionQuery.includeElementKinds']).toBe('LogicalComponent');
@@ -829,7 +831,7 @@ describe('Port wiring (M-2)', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.get('aView')!.attributes['viewpointDefinition'])
+        expect(model.elements.lookup('aView')!.attributes['viewpointDefinition'])
             .toBe('logicalArchitectureViewpoint,softwareViewpoint');
     });
 
@@ -851,27 +853,28 @@ describe('Port wiring (M-2)', () => {
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         // Every nested part is now a first-class element.
-        const valve = model.elements.get('valve')!;
+        const valve = model.elements.lookup('valve')!;
         expect(valve).toBeDefined();
         expect(valve.construct).toBe('part');
-        expect(valve.owner).toBe('pump');
+        expect(shortNameOf(valve.owner)).toBe('pump');
 
-        const motor = model.elements.get('motor')!;
-        expect(motor.owner).toBe('pump');
+        const motor = model.elements.lookup('motor')!;
+        expect(shortNameOf(motor.owner)).toBe('pump');
 
         // Nesting is recursive.
-        const seal = model.elements.get('seal')!;
+        const seal = model.elements.lookup('seal')!;
         expect(seal).toBeDefined();
-        expect(seal.owner).toBe('valve');
+        expect(shortNameOf(seal.owner)).toBe('valve');
 
         // The containment relationship is synthesized parent → child.
         const composes = model.relationships
             .filter(r => r.type === 'composes')
-            .map(r => [r.sourceId, r.targetId])
+            .map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)])
             .sort();
         expect(composes).toEqual([['pump', 'motor'], ['pump', 'valve'], ['valve', 'seal']].sort());
         const pumpValve = model.relationships.find(
-            r => r.type === 'composes' && r.sourceId === 'pump' && r.targetId === 'valve');
+            r => r.type === 'composes'
+                && shortNameOf(r.sourceId) === 'pump' && shortNameOf(r.targetId) === 'valve');
         expect(pumpValve!.sourceEnd).toBe('parent');
         expect(pumpValve!.targetEnd).toBe('child');
     });
@@ -884,7 +887,7 @@ describe('Port wiring (M-2)', () => {
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
-        expect(model.elements.get('lone')!.ownedPorts).toBeUndefined();
+        expect(model.elements.lookup('lone')!.ownedPorts).toBeUndefined();
     });
 
     // Nesting a port makes it unreachable by bare name, so flows to it must be
@@ -907,7 +910,7 @@ describe('Port wiring (M-2)', () => {
 
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
-        expect(rel.targetId).toBe('innerIn');
+        expect(shortNameOf(rel.targetId)).toBe('innerIn');
         expect(rel.targetEnd).toBe('');
     });
 
@@ -923,7 +926,7 @@ describe('Port wiring (M-2)', () => {
 
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
-        expect(rel.targetId).toBe('targetPort');
+        expect(shortNameOf(rel.targetId)).toBe('targetPort');
         expect(rel.targetEnd).toBe('payload');
     });
 
@@ -945,8 +948,8 @@ describe('Port wiring (M-2)', () => {
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
         expect(rel.type).toBe('bind');
-        expect(rel.sourceId).toBe('outerIn');
-        expect(rel.targetId).toBe('innerIn');
+        expect(shortNameOf(rel.sourceId)).toBe('outerIn');
+        expect(shortNameOf(rel.targetId)).toBe('innerIn');
         expect(rel.flowItem).toBeUndefined();
     });
 
@@ -967,8 +970,8 @@ describe('Port wiring (M-2)', () => {
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
         expect(rel.type).toBe('bind');
-        expect(rel.sourceId).toBe('statusOut');
-        expect(rel.targetId).toBe('diagnostics');
+        expect(shortNameOf(rel.sourceId)).toBe('statusOut');
+        expect(shortNameOf(rel.targetId)).toBe('diagnostics');
     });
 
     // `of <itemType>` is optional in SysML v2 and the pinned corpus writes
@@ -988,8 +991,8 @@ describe('Port wiring (M-2)', () => {
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
         expect(rel.type).toBe('flow');
-        expect(rel.sourceId).toBe('sourcePort');
-        expect(rel.targetId).toBe('targetPort');
+        expect(shortNameOf(rel.sourceId)).toBe('sourcePort');
+        expect(shortNameOf(rel.targetId)).toBe('targetPort');
         expect(rel.flowItem).toBeUndefined();
     });
 
@@ -1008,8 +1011,8 @@ describe('Port wiring (M-2)', () => {
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
         expect(rel.type).toBe('flow');
-        expect(rel.sourceId).toBe('sourcePort');
-        expect(rel.targetId).toBe('targetPort');
+        expect(shortNameOf(rel.sourceId)).toBe('sourcePort');
+        expect(shortNameOf(rel.targetId)).toBe('targetPort');
         expect(rel.flowItem).toBeUndefined();
         // No name was declared, so it must not have swallowed the source as one.
         expect(rel.named).toBeUndefined();
@@ -1027,9 +1030,9 @@ describe('Port wiring (M-2)', () => {
 
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
-        expect(rel.sourceId).toBe('supplierPort');
+        expect(shortNameOf(rel.sourceId)).toBe('supplierPort');
         expect(rel.sourceEnd).toBe('fuelSupply');
-        expect(rel.targetId).toBe('consumerPort');
+        expect(shortNameOf(rel.targetId)).toBe('consumerPort');
         expect(rel.targetEnd).toBe('fuelSupply');
     });
 
@@ -1048,7 +1051,7 @@ describe('Port wiring (M-2)', () => {
         expect(rel.id).toBe('fuelCommandFlow');
         expect(rel.named).toBe(true);
         expect(rel.flowItem).toBe('SensorReading');
-        expect(rel.sourceId).toBe('sourcePort');
+        expect(shortNameOf(rel.sourceId)).toBe('sourcePort');
     });
 
     it('tags port IDs on connection endpoints', async () => {
@@ -1063,8 +1066,8 @@ describe('Port wiring (M-2)', () => {
 
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
-        expect(rel.sourcePortId).toBe('sensorOut');
-        expect(rel.targetPortId).toBe('sensorIn');
+        expect(shortNameOf(rel.sourcePortId)).toBe('sensorOut');
+        expect(shortNameOf(rel.targetPortId)).toBe('sensorIn');
     });
 
     it('does not set port IDs when endpoints are not ports', async () => {
@@ -1109,24 +1112,25 @@ describe('Nested state usages (state-transition composite states)', () => {
         // only the outermost state machine did, and idle/infusing/priming/
         // delivering/both transitions were silently dropped.
         for (const id of ['pumpModes', 'idle', 'infusing', 'priming', 'delivering', 'tStart', 'tPrimed']) {
-            expect(model.elements.get(id), `missing element ${id}`).toBeDefined();
+            expect(model.elements.lookup(id), `missing element ${id}`).toBeDefined();
         }
 
-        expect(model.elements.get('idle')!.owner).toBe('pumpModes');
-        expect(model.elements.get('infusing')!.owner).toBe('pumpModes');
-        expect(model.elements.get('priming')!.owner).toBe('infusing');
-        expect(model.elements.get('delivering')!.owner).toBe('infusing');
+        expect(shortNameOf(model.elements.lookup('idle')!.owner)).toBe('pumpModes');
+        expect(shortNameOf(model.elements.lookup('infusing')!.owner)).toBe('pumpModes');
+        expect(shortNameOf(model.elements.lookup('priming')!.owner)).toBe('infusing');
+        expect(shortNameOf(model.elements.lookup('delivering')!.owner)).toBe('infusing');
         // A transition's owner is the state machine/state whose body declares
         // it, so `expose pumpModes::**` reaches it the same way it reaches a
         // substate.
-        expect(model.elements.get('tStart')!.owner).toBe('pumpModes');
-        expect(model.elements.get('tPrimed')!.owner).toBe('infusing');
+        expect(shortNameOf(model.elements.lookup('tStart')!.owner)).toBe('pumpModes');
+        expect(shortNameOf(model.elements.lookup('tPrimed')!.owner)).toBe('infusing');
 
         // The composedOf-equivalent edge the state-transition template's
         // composition tree renders nesting from — states only, not transitions.
         const composesFromInfusing = model.relationships.filter(
-            r => r.type === 'composes' && r.sourceId === 'infusing');
-        expect(composesFromInfusing.map(r => r.targetId).sort()).toEqual(['delivering', 'priming']);
+            r => r.type === 'composes' && shortNameOf(r.sourceId) === 'infusing');
+        expect(composesFromInfusing.map(r => shortNameOf(r.targetId)).sort())
+            .toEqual(['delivering', 'priming']);
     });
 });
 
@@ -1148,15 +1152,15 @@ describe('View expose filters and recursive imports', () => {
             }
         `);
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
-        const view = model.elements.get('boundaryView');
+        const view = model.elements.lookup('boundaryView');
         expect(view).toBeDefined();
         expect(view!.attributes['expose']).toBe('subsystem,subsystem::*');
         expect(view!.attributes['exposeFilter.0']).toBeUndefined();
         expect(view!.attributes['exposeFilter.1']).toBe('SysML::PortUsage');
         // The recursive import is not a model element and breaks nothing
         // around it: the nested part and its port still build.
-        expect(model.elements.get('node')!.owner).toBe('subsystem');
-        expect(model.elements.get('boundaryPort')!.owner).toBe('subsystem');
+        expect(shortNameOf(model.elements.lookup('node')!.owner)).toBe('subsystem');
+        expect(shortNameOf(model.elements.lookup('boundaryPort')!.owner)).toBe('subsystem');
     });
 
     it('builds a model that imports a package recursively', async () => {
@@ -1174,7 +1178,7 @@ describe('View expose filters and recursive imports', () => {
             }
         `, 'user.sysml');
         const model = buildMemoModel([lib, user], testConfig, [], testRegistries());
-        expect(model.elements.get('d')).toBeDefined();
+        expect(model.elements.lookup('d')).toBeDefined();
         expect(model.errors.filter(e => /\*\*/.test(e.message ?? ''))).toEqual([]);
     });
 });
@@ -1230,11 +1234,11 @@ describe('Dual-mode builder with registries', () => {
             { kindRegistry },
         );
 
-        expect(model.elements.get('firmware')).toMatchObject({
+        expect(model.elements.lookup('firmware')).toMatchObject({
             kind: 'FirmwareComponent',
             layer: 'implementation',
         });
-        expect(model.elements.get('container')).toMatchObject({
+        expect(model.elements.lookup('container')).toMatchObject({
             kind: 'ProjectContainer',
             layer: 'sysml',
         });
@@ -1258,7 +1262,7 @@ describe('Dual-mode builder with registries', () => {
         const emptyKindsConfig: MEMOConfig = testConfig;
         const model = buildMemoModel([doc], emptyKindsConfig, [], registries);
 
-        const el = model.elements.get('clinician')!;
+        const el = model.elements.lookup('clinician')!;
         expect(el).toBeDefined();
         expect(el.kind).toBe('Actor');
         // Registry provides 'purpose' layer instead of config's 'business'
@@ -1280,7 +1284,7 @@ describe('Dual-mode builder with registries', () => {
 
         const model = buildMemoModel([doc], testConfig, [], registries);
 
-        const el = model.elements.get('clinician')!;
+        const el = model.elements.lookup('clinician')!;
         expect(el).toBeDefined();
         expect(el.kind).toBe('Actor');
         // There is no config fallback any more. A settings file could declare a
@@ -1306,7 +1310,7 @@ describe('Dual-mode builder with registries', () => {
 
         const model = buildMemoModel([doc], testConfig, [], registries);
 
-        const el = model.elements.get('h1')!;
+        const el = model.elements.lookup('h1')!;
         expect(el.kind).toBe('Hazard');
         // Registry's 'safety' takes precedence over config's 'risk'
         expect(el.layer).toBe('safety');
@@ -1328,7 +1332,7 @@ describe('Dual-mode builder with registries', () => {
         const emptyKindsConfig: MEMOConfig = testConfig;
         const model = buildMemoModel([doc], emptyKindsConfig, [], registries);
 
-        const el = model.elements.get('h1')!;
+        const el = model.elements.lookup('h1')!;
         expect(el.kind).toBe('Hazard');
         expect(el.layer).toBe('risk');
     });
@@ -1348,7 +1352,7 @@ describe('Dual-mode builder with registries', () => {
         const emptyKindsConfig: MEMOConfig = testConfig;
         const model = buildMemoModel([doc], emptyKindsConfig, [], registries);
 
-        const el = model.elements.get('doSomething')!;
+        const el = model.elements.lookup('doSomething')!;
         expect(el.kind).toBe('OperationalActivity');
         expect(el.layer).toBe('operational');
     });
@@ -1377,43 +1381,99 @@ describe('Dual-mode builder with registries', () => {
         // Layer is not. It used to fall back to `config.kinds`, so a settings
         // file could answer a question only the ontology can answer. Without a
         // resolved ontology the layer is honestly unknown.
-        expect(withRegistry.elements.get('haz1')?.layer).toBe('risk');
-        expect(withoutRegistry.elements.get('haz1')?.layer).toBe('unknown');
+        expect(withRegistry.elements.lookup('haz1')?.layer).toBe('risk');
+        expect(withoutRegistry.elements.lookup('haz1')?.layer).toBe('unknown');
     });
 });
 
-// ─── Short-name collisions ──────────────────────────────────────────────────
+// ─── Qualified identity ─────────────────────────────────────────────────────
 //
-// SysML scopes a name to its owner; the element index is keyed on the short
-// name alone. Two elements of the same short name under different owners used
-// to collapse into one entry, last write winning, with nothing reported.
+// An element's id is its qualified name. A short name is scoped to its owner,
+// so it is not a key: two parts may each own a port called `scanSubscriber`,
+// and keying on the short name made them one entry with the last one winning
+// and nothing reported.
 
-describe('short-name collisions', () => {
-    it('keeps the first declaration and reports the one it dropped', async () => {
-        const operational = await parseDoc(
-            `package Operational { part confirmPrimed : Actor; }`,
-            'model/operational.sysml',
+describe('qualified identity', () => {
+    it('keeps two same-named features apart by their owners', async () => {
+        const doc = await parseDoc(`
+            package Robot {
+                part nodeNavigation : Software { port scanSubscriber : Software; }
+                part nodeSafetyMonitor : Software { port scanSubscriber : Software; }
+            }
+        `, 'model/robot.sysml');
+
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        // Two elements, not one. This is the ros-mobile-robot case: two ROS
+        // nodes subscribing to the same topic name the port the same, which is
+        // ordinary SysML and used to cost one of them its existence.
+        expect(model.elements.has('Robot::nodeNavigation::scanSubscriber')).toBe(true);
+        expect(model.elements.has('Robot::nodeSafetyMonitor::scanSubscriber')).toBe(true);
+
+        // And each owner owns its own.
+        expect(model.elements.lookup('nodeSafetyMonitor')!.ownedPorts)
+            .toEqual(['Robot::nodeSafetyMonitor::scanSubscriber']);
+    });
+
+    it('resolves a dotted endpoint to the owner it names, not the first match', async () => {
+        const doc = await parseDoc(`
+            package Robot {
+                part nodeNavigation : Software { port scanSubscriber : Software; }
+                part nodeSafetyMonitor : Software { port scanSubscriber : Software; }
+                connection connect nodeSafetyMonitor.scanSubscriber to nodeNavigation.scanSubscriber;
+            }
+        `, 'model/robot.sysml');
+
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+        const edge = model.relationships.find(r => r.type === 'connect')!;
+
+        // The edge the old resolver could not draw: it searched globally for
+        // the leaf, found the wrong node's port, failed its own owner check
+        // and stopped a segment short at the node.
+        expect(edge.sourceId).toBe('Robot::nodeSafetyMonitor::scanSubscriber');
+        expect(edge.targetId).toBe('Robot::nodeNavigation::scanSubscriber');
+    });
+
+    it('lets two packages declare the same name, and resolves each locally', async () => {
+        const context = await parseDoc(
+            `package ContextView { part clinician : Actor; part system : Software;
+                                   connection connect clinician to system; }`,
+            'model/context.sysml',
         );
-        const view = await parseDoc(
-            `package Views { part confirmPrimed; }`,
-            'model/views.sysml',
+        const sequence = await parseDoc(
+            `package SequenceView { part clinician : Actor; }`,
+            'model/sequence.sysml',
         );
 
-        const model = buildMemoModel([operational, view], testConfig, [], testRegistries());
+        const model = buildMemoModel([context, sequence], testConfig, [], testRegistries());
 
-        // The first declaration is the one in the model — the point is that
-        // which one wins does not depend on the order the documents happened
-        // to be read in.
-        const kept = model.elements.get('confirmPrimed');
-        expect(kept?.file).toBe('model/operational.sysml');
-        expect(kept?.kind).toBe('Actor');
+        // Both survive — this is the sysml-diagram-samples case, where one
+        // sample's actor used to delete another sample's.
+        expect(model.elements.has('ContextView::clinician')).toBe(true);
+        expect(model.elements.has('SequenceView::clinician')).toBe(true);
 
-        // And the loser is named, with both locations, rather than vanishing.
-        const collision = model.errors.find(error => error.message.includes("named 'confirmPrimed'"));
-        expect(collision).toBeTruthy();
-        expect(collision!.file).toBe('model/views.sysml');
-        expect(collision!.message).toContain('model/operational.sysml');
-        expect(collision!.message).toContain('model/views.sysml');
+        // And a bare reference inside a package means that package's one.
+        const edge = model.relationships.find(r => r.type === 'connect')!;
+        expect(edge.sourceId).toBe('ContextView::clinician');
+    });
+
+    it('reports a reference no context can narrow to one element', async () => {
+        const a = await parseDoc(`package A { part clinician : Actor; }`, 'model/a.sysml');
+        const b = await parseDoc(`package B { part clinician : Actor; }`, 'model/b.sysml');
+        const c = await parseDoc(
+            `package C { part system : Software; connection connect clinician to system; }`,
+            'model/c.sysml',
+        );
+
+        const model = buildMemoModel([a, b, c], testConfig, [], testRegistries());
+
+        // Package C declares no `clinician`, so nothing decides which is meant.
+        // Resolution stops rather than taking whichever was extracted first.
+        const ambiguity = model.errors.find(e => e.message.includes("'clinician' names more than one"));
+        expect(ambiguity).toBeTruthy();
+        expect(ambiguity!.message).toContain('A::clinician');
+        expect(ambiguity!.message).toContain('B::clinician');
+        expect(model.relationships.some(r => r.type === 'connect')).toBe(false);
     });
 
     it('says nothing when one declaration reaches the index twice', async () => {
@@ -1425,8 +1485,8 @@ describe('short-name collisions', () => {
         const model = buildMemoModel([doc], testConfig, [], testRegistries());
 
         // Nested extraction walks some declarations by more than one path.
-        // Same file, same package, same owner, same construct is one element
-        // arriving twice, not two competing for a key.
-        expect(model.errors.filter(error => error.message.includes('Two elements are named'))).toHaveLength(0);
+        // Same file and same construct under the same qualified name is one
+        // element arriving twice, not two competing for a key.
+        expect(model.errors.filter(e => e.message.includes('Two elements are declared'))).toHaveLength(0);
     });
 });

@@ -17,6 +17,7 @@ import { renderStandardsBlock, parseMemoStandards, validateStandardsSpec } from 
 import { createQueryContext } from '../dhf/query-engine.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import type { ValidationResult, CompletenessReport } from '../validator/types.js';
+import { toElementIndex } from '../model/element-index.js';
 
 const library = loadStandardsLibrary();
 
@@ -51,7 +52,7 @@ function model(elements: MemoElement[], relationships: MemoRelationship[]): Memo
         incoming.set(rel.targetId, [...(incoming.get(rel.targetId) ?? []), rel]);
     }
     return {
-        elements: byId, relationships, errors: [], packages: [],
+        elements: toElementIndex(byId), relationships, errors: [], packages: [],
         elementsByKind: byKind, elementsByLayer: new Map(),
         relationshipsByType: byType, outgoing, incoming,
     };

@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { parseConstraintExpression, evaluateNativeConstraint } from '../validator/constraint-eval.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
+import { toElementIndex } from '../model/element-index.js';
 
 function model(rels: MemoRelationship[]): MemoModel {
     const ex = { id: 'ceA', name: 'ceA', kind: 'ComponentExchange', construct: 'part',
                  layer: 'logical', file: '', attributes: {} } as MemoElement;
     return {
-        elements: new Map([[ex.id, ex]]),
+        elements: toElementIndex([ex]),
         elementsByKind: new Map([['ComponentExchange', [ex]]]),
         relationships: rels,
         relationshipsByType: new Map(rels.map(r => [r.type, [r]])),

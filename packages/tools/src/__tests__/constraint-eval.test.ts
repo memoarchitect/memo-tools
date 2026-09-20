@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { evaluateNativeConstraint, type NativeConstraint } from '../validator/constraint-eval.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import { KindRegistry } from '../model/kind-registry.js';
+import { toElementIndex } from '../model/element-index.js';
 
 // ─── Fixture helpers ──────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ function makeModel(elements: MemoElement[], relationships: MemoRelationship[]): 
         (relByType.get(r.type) ?? relByType.set(r.type, []).get(r.type)!).push(r);
     }
     return {
-        elements: byId, relationships, errors: [], packages: [],
+        elements: toElementIndex(byId), relationships, errors: [], packages: [],
         elementsByKind: byKind, elementsByLayer: byLayer,
         relationshipsByType: relByType, outgoing, incoming,
     };
@@ -110,7 +111,7 @@ describe('a relation with no links is an empty collection, not a scalar', () => 
             layer: 'logical', file: 'x.sysml', attributes: {},
         } as never;
         const model = {
-            elements: new Map([['sys', element]]),
+            elements: toElementIndex([element]),
             elementsByKind: new Map([['System', [element]]]),
             elementsByLayer: new Map(),
             relationships: [],

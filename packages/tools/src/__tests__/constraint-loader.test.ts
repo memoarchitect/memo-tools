@@ -7,6 +7,7 @@ import type { ParsedDocument } from '../model/parser-utils.js';
 import { collectNativeConstraints } from '../validator/constraint-loader.js';
 import { evaluateConstraintNode } from '../validator/constraint-eval.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
+import { toElementIndex } from '../model/element-index.js';
 
 // ─── EE-3: ontology constraint def loader ─────────────────────────────────────
 // collectNativeConstraints discovers native `constraint def` bodies (the EE-3
@@ -58,7 +59,7 @@ function buildModel(elements: MemoElement[], rels: RelSpec[] = []): MemoModel {
         if (!relationshipsByType.has(r.type)) relationshipsByType.set(r.type, []);
         relationshipsByType.get(r.type)!.push(r);
     }
-    return { elements: byId, elementsByKind: byKind, relationships, relationshipsByType, outgoing, incoming } as MemoModel;
+    return { elements: toElementIndex(byId), elementsByKind: byKind, relationships, relationshipsByType, outgoing, incoming } as MemoModel;
 }
 
 describe('collectNativeConstraints', () => {

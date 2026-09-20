@@ -34,12 +34,27 @@ import {
     type IrIdentityIndex,
 } from '../model/ir-identity.js';
 import { insertIntoBody, locatePackages } from './package-source.js';
+import { shortNameOf } from '../model/element-index.js';
 
 /** Default home for an element the request does not place. */
 export const DEFAULT_ELEMENT_FILE = 'model/catalog/project.sysml';
 
 export interface ElementWriteRequest {
+    /**
+     * The element's qualified id, which is what addresses it in the model and
+     * in the identity index. NOT what is written into the source text — see
+     * `shortName`.
+     */
     id: string;
+    /**
+     * The name to DECLARE, the last segment of `id`.
+     *
+     * Separate from `id` because an id is a qualified name now, and writing one
+     * into a declaration would emit `part Plant::pump : Component`. A caller
+     * that omits it gets the last segment of `id`, which is the same thing for
+     * every element the model built.
+     */
+    shortName?: string;
     name?: string;
     kind?: string;
     construct?: string;
@@ -72,6 +87,9 @@ export interface ElementWriteRequest {
      * "the identity names something other than `id`" — and the safe reading of
      * that ambiguity is to refuse. Saying so explicitly is what makes a rename
      * a deliberate act rather than an accident the checker has to tolerate.
+     *
+     * It is the element's PREVIOUS id, not its previous declared name — it is
+     * checked against the identity index, which is keyed by id.
      */
     renamedFrom?: string;
 }
@@ -139,8 +157,10 @@ export async function saveElementToFile(
     // `elementPackage` is the package it sits in. Writing them states in the
     // body what the declaration already says, and the copy then outlives
     // whatever it was derived from.
+    // What the declaration is CALLED, as distinct from what addresses it.
+    const declaredName = element.shortName ?? shortNameOf(element.id);
     const buildUsage = (omit: readonly string[] = DERIVED_ATTRIBUTES) => generateUsage({
-        id: element.id,
+        id: declaredName,
         name: element.name,
         kind: element.kind,
         // Normalized at the boundary: a caller holding a kind definition has
@@ -180,7 +200,7 @@ export async function saveElementToFile(
             }
             return { success: false, filePath: relativePath, error: String(e) };
         }
-        if (located.declaredName && element.id !== located.declaredName) {
+        if (located.declaredName && declaredName !== located.declaredName) {
             warnings.push({ code: 'rename-is-text-only', message: RENAME_IS_TEXT_ONLY });
         }
         // An update replaces the declaration's whole source range with text

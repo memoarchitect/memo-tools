@@ -123,11 +123,47 @@ export function saveViewLayout(projectRoot: string, diagram: DiagramDTO, layout:
     return path;
 }
 
-export function loadViewLayouts(projectRoot: string, diagrams: DiagramDTO[]): Record<string, DiagramLayout> {
+/**
+ * Load every diagram's saved layout, re-keying node entries whose id the model
+ * no longer uses.
+ *
+ * A `.viewlayout` written before element ids were qualified keys its nodes by
+ * the short name that was then an id — `coffeeMachine`, not
+ * `Kitchen::coffeeMachine`. Without `resolveNodeId` those entries match no
+ * node, and every hand-placed box in every saved layout silently returns to
+ * automatic placement. Ports are unaffected: they are already nested under
+ * their owner and keyed by the name the source declares.
+ *
+ * The remap is read-only. The file is rewritten in the new spelling by the
+ * next save, so nothing is migrated destructively and an older MEMO can still
+ * read the file until then.
+ */
+export function loadViewLayouts(
+    projectRoot: string,
+    diagrams: DiagramDTO[],
+    resolveNodeId?: (savedId: string) => string | undefined,
+): Record<string, DiagramLayout> {
     const layouts: Record<string, DiagramLayout> = {};
     for (const diagram of diagrams) {
         const layout = loadViewLayout(projectRoot, diagram);
-        if (layout) layouts[diagram.id] = layout;
+        if (layout) layouts[diagram.id] = resolveNodeId ? withResolvedNodes(layout, resolveNodeId) : layout;
     }
     return layouts;
+}
+
+/** A copy of `layout` whose node keys are the ids the current model uses. */
+function withResolvedNodes(
+    layout: DiagramLayout,
+    resolveNodeId: (savedId: string) => string | undefined,
+): DiagramLayout {
+    const nodes: DiagramLayout['nodes'] = {};
+    let changed = false;
+    for (const [savedId, node] of Object.entries(layout.nodes ?? {})) {
+        const resolved = resolveNodeId(savedId) ?? savedId;
+        if (resolved !== savedId) changed = true;
+        // A saved id that resolves onto one already present loses: the entry
+        // written under the current spelling is the more recent of the two.
+        nodes[resolved] = nodes[resolved] ?? node;
+    }
+    return changed ? { ...layout, nodes } : layout;
 }

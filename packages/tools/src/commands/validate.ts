@@ -24,7 +24,7 @@ import {
     type RuleCandidate,
 } from '@memoarchitect/tools';
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
-import { ELEMENT_NAME_COLLISION } from '@memoarchitect/tools';
+import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, toElementIndex } from '@memoarchitect/tools';
 import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { checkLockFile } from '../lock.js';
@@ -162,7 +162,9 @@ export async function validateCommand(
     // smuggled in behind this fix.
     const diagnostics = [
         ...parseErrors,
-        ...model.errors.filter(e => e.code === ELEMENT_NAME_COLLISION && isProjectFile(e.file)),
+        ...model.errors.filter(e =>
+            (e.code === ELEMENT_NAME_COLLISION || e.code === AMBIGUOUS_ELEMENT_REFERENCE)
+            && isProjectFile(e.file)),
     ];
 
     // A file the parser rejected declares less of the model than it says it
@@ -343,7 +345,7 @@ export async function validateCommand(
         }
         return {
             ...full,
-            elements: kept,
+            elements: toElementIndex(kept),
             elementsByKind: byKind,
             elementsByLayer: byLayer,
             relationships,

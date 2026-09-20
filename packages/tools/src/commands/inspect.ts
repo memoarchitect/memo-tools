@@ -47,7 +47,12 @@ export async function inspectCommand(
     const { documents, errors } = await parseFiles(findSysmlFiles(projectRoot), `${projectRoot}/`);
     const model = buildMemoModel(documents, config, errors, registries);
 
-    const subject = model.elements.get(id) ?? model.relationships.find(r => r.id === id);
+    // What a person types is a name, not an id, so this resolves rather than
+    // indexes: an exact qualified id, a trailing part of one, or an
+    // unambiguous short name. An ambiguous one resolves to nothing and is
+    // reported below with the candidates, rather than answering about
+    // whichever element happened to be built first.
+    const subject = model.elements.lookup(id) ?? model.relationships.find(r => r.id === id);
     if (subject) {
         console.log(JSON.stringify(
             options.provenance ? { id, provenance: subject.provenance } : subject, null, 2));
@@ -64,6 +69,16 @@ export async function inspectCommand(
             ? { id, definition: true, qualifiedName: kind.qualifiedName, provenance }
             : { ...kind, provenance }, null, 2));
         return;
+    }
+
+    // An ambiguous name is not a missing one, and saying "no such element"
+    // about something declared twice would send the reader looking for a
+    // typo. The candidates are what they need in order to qualify it.
+    const ambiguous = model.elements.ambiguities.find(a => a.reference === id);
+    if (ambiguous) {
+        throw new Error(
+            `"${id}" names more than one element: ${ambiguous.candidates.join(', ')}. `
+            + 'Name one of them.');
     }
 
     throw new Error(`No model element, relationship, or definition named "${id}".`);

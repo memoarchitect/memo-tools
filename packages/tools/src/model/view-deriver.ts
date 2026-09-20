@@ -79,7 +79,7 @@ function collectOwned(ownerId: string, deep: boolean, model: MemoModel, out: str
  * (a bare package name with no suffix selects nothing, since a package is not
  * an element).
  */
-function resolveExposePath(path: string, model: MemoModel): string[] {
+function resolveExposePath(path: string, model: MemoModel, fromPackage?: string): string[] {
     const suffixMatch = path.match(/::(\*\*|\*)$/);
     const suffix = suffixMatch?.[1] as '*' | '**' | undefined;
     const base = suffixMatch ? path.slice(0, -suffixMatch[0].length) : path;
@@ -96,17 +96,28 @@ function resolveExposePath(path: string, model: MemoModel): string[] {
         return ids;
     }
 
+    // The whole path may BE an element's qualified id — `expose
+    // someViews::clinician;`, which is how a view says which of several
+    // same-named elements it means. Tried first, because splitting it would
+    // start the walk at a package name and find nothing.
+    const whole = model.elements.lookup(base, { packageName: fromPackage });
+
+    // Otherwise `::` and `.` are the same walk — a qualified name and a
+    // feature path both descend the owner chain — so the path is resolved
+    // segment by segment against the index rather than by a global search per
+    // segment that then checks the owner it found.
     const segments = base.split(/::|\./).filter(Boolean);
     if (segments.length === 0) return [];
-    let id = segments[0];
-    if (!model.elements.has(id)) return [];
-    let i = 1;
+    let element = whole ?? model.elements.lookup(segments[0], { packageName: fromPackage });
+    if (!element) return [];
+    let i = whole ? segments.length : 1;
     while (i < segments.length) {
-        const child = model.elements.get(segments[i]);
-        if (!child || (child.owner !== id && child.parentAction !== id)) break;
-        id = segments[i];
+        const child = model.elements.get(`${element.id}::${segments[i]}`);
+        if (!child) break;
+        element = child;
         i++;
     }
+    const id = element.id;
 
     // SysIDE rejects a bare `expose SomeDefinition;` — "Expected Feature
     // element but found ActionDefinition" — because a definition is not
@@ -115,8 +126,7 @@ function resolveExposePath(path: string, model: MemoModel): string[] {
     // never the definition itself. A usage, by contrast, IS a feature, so it
     // belongs in its own exposed set the same way `coffeeMachine::**`
     // includes `coffeeMachine`.
-    const baseEl = model.elements.get(id);
-    const ids: string[] = baseEl && !baseEl.kind.endsWith('Definition') ? [id] : [];
+    const ids: string[] = !element.kind.endsWith('Definition') ? [id] : [];
     if (suffix) collectOwned(id, suffix === '**', model, ids);
     return ids;
 }
@@ -132,7 +142,7 @@ export function resolveExposeIds(view: MemoElement, model: MemoModel): string[] 
     const ids = new Set<string>();
     splitList(view.attributes['expose']).forEach((path, index) => {
         const filter = view.attributes[`exposeFilter.${index}`];
-        for (const id of resolveExposePath(path, model)) {
+        for (const id of resolveExposePath(path, model, view.package)) {
             if (id === view.id) continue;
             if (filter && !matchesMetaclass(model.elements.get(id), filter)) continue;
             ids.add(id);
@@ -179,8 +189,10 @@ function viewSubjectId(view: MemoElement, model: MemoModel): string | undefined 
     const find = (reference: string): string | undefined => {
         const trimmed = reference.trim();
         if (!trimmed) return undefined;
+        const found = model.elements.lookup(trimmed) ?? model.elements.lookup(view.package
+            ? `${view.package}::${trimmed}` : trimmed);
+        if (found) return found.id;
         const short = trimmed.split('::').pop()!.trim();
-        if (model.elements.has(short)) return short;
         for (const element of model.elements.values()) {
             if (element.name === short || element.attributes.providedId === short) return element.id;
         }
@@ -289,7 +301,7 @@ export function resolveViewElementIds(
         }
     }
     for (const reference of explicitIdList) {
-        const direct = model.elements.get(reference);
+        const direct = model.elements.lookup(reference, { packageName: view.package });
         if (direct) { ids.add(direct.id); continue; }
         const authored = [...model.elements.values()].find(
             element => (element.attributes.providedId || element.attributes.id) === reference);
@@ -325,9 +337,18 @@ interface ResolvedViewpoint {
     parentId?: string;
 }
 
-/** The DTO id of a viewpoint: its authored id, else the reference that names it. */
+/**
+ * The DTO id of a viewpoint: its authored id, else the reference that names it.
+ *
+ * The fallback is deliberately NOT the element's qualified id. A viewpoint id
+ * is user-facing — it routes, it is written in a view's binding — so an
+ * undeclared one falls back to the short name the source wrote.
+ */
 function viewpointId(authored: MemoElement | undefined, ref: string): string {
-    return authored?.attributes['providedId'] || authored?.attributes['id'] || ref;
+    return authored?.attributes['providedId']
+        || authored?.attributes['id']
+        || authored?.shortName
+        || ref;
 }
 
 /**
@@ -374,13 +395,13 @@ function resolveViewpoints(
     const raw = view.attributes['viewpointDefinition'] || view.attributes['viewpoint'];
     if (!raw) return [];
 
-    return splitList(raw).map(ref => readViewpoint(model.elements.get(ref), ref, model));
+    return splitList(raw).map(ref => readViewpoint(model.elements.lookup(ref), ref, model));
 }
 
 /** Scenario links are authored on the view; they are never inferred from content. */
 function resolveScenarioIds(view: MemoElement, model: MemoModel): string[] {
     return splitList(view.attributes['scenario'])
-        .map(reference => model.elements.get(reference)?.id ?? reference);
+        .map(reference => model.elements.lookup(reference)?.id ?? reference);
 }
 
 export interface DerivedViews {
@@ -494,8 +515,14 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
 
         diagrams.push({
             id: isRendererSample
-                ? `diag-sample-${el.id}`
-                : el.attributes['providedId'] || el.attributes['id'] || el.id,
+                // The view's SHORT name: this id is user-facing — it routes,
+                // it keys a saved `.viewlayout` — and the qualified path would
+                // put the whole package chain in a URL.
+                ? `diag-sample-${el.shortName ?? el.id}`
+                // Same reason as the sample branch above: a diagram id routes
+                // and keys a saved layout, so an unnamed view falls back to
+                // its declared name, not to its qualified path.
+                : el.attributes['providedId'] || el.attributes['id'] || el.shortName || el.id,
             // The view's own declaration, for mutations that address elements
             // rather than authored ids.
             elementId: el.id,

@@ -19,6 +19,7 @@ import {
 import { createQueryContext } from '../dhf/query-engine.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import type { ValidationResult, CompletenessReport } from '../validator/types.js';
+import { toElementIndex } from '../model/element-index.js';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ function makeModel(elements: MemoElement[] = [], relationships: MemoRelationship
         if (!incoming.has(rel.targetId)) incoming.set(rel.targetId, []);
         incoming.get(rel.targetId)!.push(rel);
     }
-    return { elements: elementMap, relationships, errors: [], packages: [], elementsByKind, elementsByLayer, relationshipsByType, outgoing, incoming };
+    return { elements: toElementIndex(elementMap), relationships, errors: [], packages: [], elementsByKind, elementsByLayer, relationshipsByType, outgoing, incoming };
 }
 
 const validation: ValidationResult = { violations: [], rulesEvaluated: 0, rulesPassed: 0, timestamp: 0 };

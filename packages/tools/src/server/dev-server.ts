@@ -1268,7 +1268,15 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         if (sourceIncoherence) ws.send(JSON.stringify(sourceIncoherence));
 
         // Send all sidecar layouts on connect
-        const layouts = loadViewLayouts(options.projectRoot, currentDiagrams());
+        const layouts = loadViewLayouts(options.projectRoot, currentDiagrams(), savedId => {
+            const model = currentModel();
+            if (!model || model.elements[savedId]) return undefined;
+            // A layout written before ids were qualified keys its nodes by the
+            // declared name. Accept it when exactly one element answers to it.
+            const matches = Object.keys(model.elements)
+                .filter(id => (model.elements[id].shortName ?? id) === savedId);
+            return matches.length === 1 ? matches[0] : undefined;
+        });
         if (Object.keys(layouts).length > 0) {
             ws.send(JSON.stringify({ type: 'diagram:layout', payload: { layouts } }));
         }

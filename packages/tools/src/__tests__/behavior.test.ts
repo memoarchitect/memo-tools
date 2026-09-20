@@ -8,6 +8,7 @@ import { buildMemoModel } from '../model/builder.js';
 import { KindRegistry } from '../model/kind-registry.js';
 import { validateBehavior } from '../validator/behavior-validator.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
+import { shortNameOf } from '../model/element-index.js';
 
 const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
 const parse = parseHelper<Model>(services);
@@ -63,8 +64,8 @@ describe('Behavior grammar: action def with parameters', () => {
         `);
         expect(doc.parseResult.parserErrors).toHaveLength(0);
         const model = buildMemoModel([{ document: doc, filePath: 'src/architecture/functional/behaviors.sysml' }], behaviorConfig);
-        expect(model.elements.get('preparePatient')?.kind).toBe('OperatorUsage');
-        expect(model.elements.get('regulateFlow')?.kind).toBe('FunctionUsage');
+        expect(model.elements.lookup('preparePatient')?.kind).toBe('OperatorUsage');
+        expect(model.elements.lookup('regulateFlow')?.kind).toBe('FunctionUsage');
     });
 
     it('parses action def with out parameter', async () => {
@@ -354,7 +355,7 @@ describe('Behavior builder: action definitions', () => {
             }
         `);
         const model = buildMemoModel([doc], behaviorConfig);
-        const el = model.elements.get('ValidatePrescription');
+        const el = model.elements.lookup('ValidatePrescription');
         expect(el).toBeDefined();
         expect(el!.kind).toBe('ActionDefinition');
         expect(el!.construct).toBe('action');
@@ -372,7 +373,7 @@ describe('Behavior builder: action definitions', () => {
             }
         `);
         const model = buildMemoModel([doc], behaviorConfig);
-        const el = model.elements.get('SimpleAction');
+        const el = model.elements.lookup('SimpleAction');
         expect(el).toBeDefined();
         expect(el!.kind).toBe('ActionDefinition');
         expect(el!.parameters).toBeUndefined();
@@ -388,11 +389,11 @@ describe('Behavior builder: item definitions', () => {
             }
         `);
         const model = buildMemoModel([doc], behaviorConfig);
-        expect(model.elements.get('PrescriptionData')).toBeDefined();
-        expect(model.elements.get('PrescriptionData')!.kind).toBe('ItemDefinition');
-        expect(model.elements.get('PrescriptionData')!.construct).toBe('item');
-        expect(model.elements.get('PrescriptionData')!.layer).toBe('functional');
-        expect(model.elements.get('InfusionOrder')).toBeDefined();
+        expect(model.elements.lookup('PrescriptionData')).toBeDefined();
+        expect(model.elements.lookup('PrescriptionData')!.kind).toBe('ItemDefinition');
+        expect(model.elements.lookup('PrescriptionData')!.construct).toBe('item');
+        expect(model.elements.lookup('PrescriptionData')!.layer).toBe('functional');
+        expect(model.elements.lookup('InfusionOrder')).toBeDefined();
     });
 });
 
@@ -416,19 +417,19 @@ describe('Behavior builder: composite action usage', () => {
         const model = buildMemoModel([doc], behaviorConfig);
 
         // Composite action
-        const composite = model.elements.get('performInfusion');
+        const composite = model.elements.lookup('performInfusion');
         expect(composite).toBeDefined();
         expect(composite!.kind).toBe('ActionUsage');
         expect(composite!.construct).toBe('action');
 
         // Nested actions
-        const receive = model.elements.get('receive');
+        const receive = model.elements.lookup('receive');
         expect(receive).toBeDefined();
-        expect(receive!.parentAction).toBe('performInfusion');
+        expect(shortNameOf(receive!.parentAction)).toBe('performInfusion');
 
-        const validate = model.elements.get('validate');
+        const validate = model.elements.lookup('validate');
         expect(validate).toBeDefined();
-        expect(validate!.parentAction).toBe('performInfusion');
+        expect(shortNameOf(validate!.parentAction)).toBe('performInfusion');
     });
 
     it('extracts a typed action usage and takes its layer from the ontology', async () => {
@@ -443,7 +444,7 @@ describe('Behavior builder: composite action usage', () => {
             sysmlConstruct: 'action def', qualifiedName: 'memo::test::SystemFunction',
         });
         const model = buildMemoModel([doc], behaviorConfig, [], { kindRegistry });
-        const el = model.elements.get('myFunc');
+        const el = model.elements.lookup('myFunc');
         expect(el).toBeDefined();
         expect(el!.kind).toBe('SystemFunction');
         expect(el!.layer).toBe('functional');
@@ -475,25 +476,29 @@ describe('Behavior builder: control nodes', () => {
         `);
         const model = buildMemoModel([doc], behaviorConfig);
 
-        const decision = model.elements.get('routeIt');
+        const decision = model.elements.lookup('routeIt');
         expect(decision).toBeDefined();
         expect(decision!.kind).toBe('DecisionNode');
         expect(decision!.attributes['controlKind']).toBe('decide');
         expect(decision!.construct).toBe('action');
         expect(decision!.layer).toBe('functional');
-        expect(decision!.parentAction).toBe('route');
+        expect(shortNameOf(decision!.parentAction)).toBe('route');
 
-        const merge = model.elements.get('afterRoute');
+        const merge = model.elements.lookup('afterRoute');
         expect(merge).toBeDefined();
         expect(merge!.kind).toBe('MergeNode');
         expect(merge!.attributes['controlKind']).toBe('merge');
 
         // Both branches of the decision reach the merge.
         const succ = model.relationships.filter(r => r.type === 'succession');
-        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'routeIt', targetId: 'approve' }));
-        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'routeIt', targetId: 'reject' }));
-        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'approve', targetId: 'afterRoute' }));
-        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'reject', targetId: 'afterRoute' }));
+        expect(succ.map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)]))
+            .toContainEqual(['routeIt', 'approve']);
+        expect(succ.map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)]))
+            .toContainEqual(['routeIt', 'reject']);
+        expect(succ.map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)]))
+            .toContainEqual(['approve', 'afterRoute']);
+        expect(succ.map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)]))
+            .toContainEqual(['reject', 'afterRoute']);
     });
 
     it('extracts fork/join as behavior-layer elements and wires successions through them', async () => {
@@ -517,25 +522,29 @@ describe('Behavior builder: control nodes', () => {
         const model = buildMemoModel([doc], behaviorConfig);
 
         // Control nodes become behavior-layer action-construct elements
-        const fork = model.elements.get('splitPrep');
+        const fork = model.elements.lookup('splitPrep');
         expect(fork).toBeDefined();
         expect(fork!.kind).toBe('ForkNode');
         expect(fork!.construct).toBe('action');
         expect(fork!.layer).toBe('functional');
         expect(fork!.attributes['controlKind']).toBe('fork');
-        expect(fork!.parentAction).toBe('prepare');
+        expect(shortNameOf(fork!.parentAction)).toBe('prepare');
 
-        const join = model.elements.get('syncPrep');
+        const join = model.elements.lookup('syncPrep');
         expect(join).toBeDefined();
         expect(join!.kind).toBe('JoinNode');
         expect(join!.attributes['controlKind']).toBe('join');
 
         // Successions reference the control nodes by id
         const succ = model.relationships.filter(r => r.type === 'succession');
-        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'splitPrep', targetId: 'primePump' }));
-        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'splitPrep', targetId: 'selfTest' }));
-        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'primePump', targetId: 'syncPrep' }));
-        expect(succ).toContainEqual(expect.objectContaining({ sourceId: 'selfTest', targetId: 'syncPrep' }));
+        expect(succ.map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)]))
+            .toContainEqual(['splitPrep', 'primePump']);
+        expect(succ.map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)]))
+            .toContainEqual(['splitPrep', 'selfTest']);
+        expect(succ.map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)]))
+            .toContainEqual(['primePump', 'syncPrep']);
+        expect(succ.map(r => [shortNameOf(r.sourceId), shortNameOf(r.targetId)]))
+            .toContainEqual(['selfTest', 'syncPrep']);
     });
 });
 
@@ -561,9 +570,9 @@ describe('Behavior builder: flow connections', () => {
 
         const flowRels = model.relationships.filter(r => r.type === 'flow');
         expect(flowRels).toHaveLength(1);
-        expect(flowRels[0].sourceId).toBe('receive');
+        expect(shortNameOf(flowRels[0].sourceId)).toBe('receive');
         expect(flowRels[0].sourceEnd).toBe('prescription');
-        expect(flowRels[0].targetId).toBe('validate');
+        expect(shortNameOf(flowRels[0].targetId)).toBe('validate');
         expect(flowRels[0].targetEnd).toBe('prescription');
         expect(flowRels[0].flowItem).toBe('PrescriptionData');
     });
@@ -609,16 +618,16 @@ describe('Behavior builder: successions', () => {
         expect(succRels).toHaveLength(3);
 
         // start→a
-        expect(succRels[0].sourceId).toBe('process__start');
-        expect(succRels[0].targetId).toBe('a');
+        expect(shortNameOf(succRels[0].sourceId)).toBe('process__start');
+        expect(shortNameOf(succRels[0].targetId)).toBe('a');
 
         // a→b
-        expect(succRels[1].sourceId).toBe('a');
-        expect(succRels[1].targetId).toBe('b');
+        expect(shortNameOf(succRels[1].sourceId)).toBe('a');
+        expect(shortNameOf(succRels[1].targetId)).toBe('b');
 
         // b→done
-        expect(succRels[2].sourceId).toBe('b');
-        expect(succRels[2].targetId).toBe('process__done');
+        expect(shortNameOf(succRels[2].sourceId)).toBe('b');
+        expect(shortNameOf(succRels[2].targetId)).toBe('process__done');
     });
 
     it('creates successions for parallel branches', async () => {
@@ -658,8 +667,8 @@ describe('Behavior builder: allocations', () => {
 
         const allocRels = model.relationships.filter(r => r.type === 'allocatedTo');
         expect(allocRels).toHaveLength(1);
-        expect(allocRels[0].sourceId).toBe('validate');
-        expect(allocRels[0].targetId).toBe('sw');
+        expect(shortNameOf(allocRels[0].sourceId)).toBe('validate');
+        expect(shortNameOf(allocRels[0].targetId)).toBe('sw');
     });
 
     it('sets allocatedTo on the source element', async () => {
@@ -671,9 +680,9 @@ describe('Behavior builder: allocations', () => {
             }
         `);
         const model = buildMemoModel([doc], behaviorConfig);
-        const el = model.elements.get('validate');
+        const el = model.elements.lookup('validate');
         expect(el).toBeDefined();
-        expect(el!.allocatedTo).toBe('sw');
+        expect(shortNameOf(el!.allocatedTo)).toBe('sw');
     });
 
     it('creates multiple allocation relationships', async () => {
@@ -776,8 +785,8 @@ describe('a flow endpoint written as a dotted path', () => {
         // self-loop on the outermost action. A plausible edge pointing at the
         // wrong function is worse than a dropped one.
         expect(flows).toHaveLength(1);
-        expect(flows[0].sourceId).toBe('fnMeasure');
-        expect(flows[0].targetId).toBe('fnDrive');
+        expect(shortNameOf(flows[0].sourceId)).toBe('fnMeasure');
+        expect(shortNameOf(flows[0].targetId)).toBe('fnDrive');
     });
 });
 

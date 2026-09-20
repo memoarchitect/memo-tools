@@ -193,11 +193,11 @@ describe('element write-back', () => {
         const index = await compile();
         // One identity, naming exactly one of the two declarations. The regex
         // this replaced was global: editing `pump` rewrote both.
-        const identity = index.byMemoElement['pump'];
+        const identity = index.byMemoElement['Plant::pump'];
         expect(identity).toBeTruthy();
 
         const result = await saveElementToFile(projectRoot, {
-            id: 'pump',
+            id: 'Plant::pump', shortName: 'pump',
             kind: 'Component',
             construct: 'part',
             attributes: { note: 'edited' },
@@ -231,9 +231,9 @@ describe('element write-back', () => {
 }
 `);
         const index = await compile();
-        const identity = index.byMemoElement['pump'];
+        const identity = index.byMemoElement['Plant::pump'];
         const result = await saveElementToFile(projectRoot, {
-            id: 'pump', kind: 'Component', construct: 'part',
+            id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part',
             attributes: { note: 'after' }, file: 'model/plant.sysml', irIdentity: identity,
         }, index);
 
@@ -251,7 +251,7 @@ describe('element write-back', () => {
         const before = readProjectFile('model/plant.sysml');
 
         const result = await saveElementToFile(projectRoot, {
-            id: 'pump', kind: 'Component', construct: 'part',
+            id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part',
             attributes: { note: 'edited' }, file: 'model/plant.sysml',
             irIdentity: `file://${projectRoot}/model/plant.sysml#members[7]:PartUsage`,
         }, index);
@@ -265,7 +265,7 @@ describe('element write-back', () => {
     it('fails loudly when the source moved under a still-registered identity', async () => {
         writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
         const index = await compile();
-        const identity = index.byMemoElement['pump'];
+        const identity = index.byMemoElement['Plant::pump'];
 
         // Someone else prepends a declaration: the recorded position now holds
         // a different node, which is exactly the silent-miss case.
@@ -273,7 +273,7 @@ describe('element write-back', () => {
         const before = readProjectFile('model/plant.sysml');
 
         const result = await saveElementToFile(projectRoot, {
-            id: 'pump', kind: 'Component', construct: 'part',
+            id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part',
             attributes: { note: 'edited' }, file: 'model/plant.sysml', irIdentity: identity,
         }, index);
 
@@ -285,7 +285,7 @@ describe('element write-back', () => {
     it('refuses a quoted identity when no revision is available to resolve it', async () => {
         writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
         const result = await saveElementToFile(projectRoot, {
-            id: 'pump', kind: 'Component', construct: 'part',
+            id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part',
             file: 'model/plant.sysml', irIdentity: 'file:///x#members[0]:PartUsage',
         });
         expect(result.success).toBe(false);
@@ -311,8 +311,8 @@ describe('element write-back', () => {
         writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
         const index = await compile();
         const result = await saveElementToFile(projectRoot, {
-            id: 'pumpRenamed', kind: 'Component', construct: 'part',
-            file: 'model/plant.sysml', irIdentity: index.byMemoElement['pump'],
+            id: 'Plant::pumpRenamed', shortName: 'pumpRenamed', kind: 'Component', construct: 'part',
+            file: 'model/plant.sysml', irIdentity: index.byMemoElement['Plant::pump'],
         }, index);
         expect(result.success).toBe(false);
         expect(result.stale).toBe(true);
@@ -327,10 +327,10 @@ describe('element write-back', () => {
 }
 `);
         const index = await compile();
-        const identity = index.byMemoElement['pump'];
+        const identity = index.byMemoElement['Plant::pump'];
 
         const result = await saveElementToFile(projectRoot, {
-            id: 'pumpRenamed', renamedFrom: 'pump', kind: 'Component', construct: 'part',
+            id: 'Plant::pumpRenamed', shortName: 'pumpRenamed', renamedFrom: 'Plant::pump', kind: 'Component', construct: 'part',
             file: 'model/plant.sysml', irIdentity: identity,
         }, index);
 
@@ -343,11 +343,11 @@ describe('element write-back', () => {
     it('never writes source that does not parse', async () => {
         writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
         const index = await compile();
-        const identity = index.byMemoElement['pump'];
+        const identity = index.byMemoElement['Plant::pump'];
         const before = readProjectFile('model/plant.sysml');
 
         const result = await saveElementToFile(projectRoot, {
-            id: 'not a legal name', renamedFrom: 'pump', kind: 'Component', construct: 'part',
+            id: 'Plant::not a legal name', shortName: 'not a legal name', renamedFrom: 'Plant::pump', kind: 'Component', construct: 'part',
             file: 'model/plant.sysml', irIdentity: identity,
         }, index);
 
@@ -367,9 +367,9 @@ describe('the write-back operation', () => {
         const result = await writeElement(
             { projectDir: projectRoot, config, irIndex: index },
             {
-                id: 'pump', kind: 'Component', construct: 'part',
+                id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part',
                 attributes: { note: 'recompiled' }, file: 'model/plant.sysml',
-                irIdentity: index.byMemoElement['pump'],
+                irIdentity: index.byMemoElement['Plant::pump'],
             },
         );
 
@@ -377,7 +377,7 @@ describe('the write-back operation', () => {
         // The revision came back from a provider run, not from the writer's own
         // guess about what it had just written.
         expect(result.revision?.provider).toBeTruthy();
-        expect(result.revision?.index.byMemoElement['pump']).toBeTruthy();
+        expect(result.revision?.index.byMemoElement['Plant::pump']).toBeTruthy();
         expect(readProjectFile('model/plant.sysml')).toContain('"recompiled"');
     }, 30_000);
 
@@ -387,7 +387,7 @@ describe('the write-back operation', () => {
         const result = await writeElement(
             { projectDir: projectRoot, config, irIndex: index },
             {
-                id: 'pump', kind: 'Component', construct: 'part', file: 'model/plant.sysml',
+                id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part', file: 'model/plant.sysml',
                 irIdentity: 'file:///gone#members[0]:PartUsage',
             },
         );
@@ -449,9 +449,11 @@ describe('SysML notation', () => {
 // ─── Relationship write-back ────────────────────────────────────────────────
 
 describe('relationship write-back', () => {
-    const model = (ids: string[]) => ({
-        elements: Object.fromEntries(ids.map(id => [id, {
-            id, name: id, kind: 'Action', construct: 'action' as const, layer: 'behavior',
+    /** Elements keyed the way the builder keys them: by qualified id. */
+    const model = (shortNames: string[]) => ({
+        elements: Object.fromEntries(shortNames.map(shortName => [`Flow::${shortName}`, {
+            id: `Flow::${shortName}`, shortName, name: shortName,
+            kind: 'Action', construct: 'action' as const, layer: 'behavior',
             file: 'model/flow.sysml', package: 'Flow', attributes: {},
         }])),
         relationships: [],
@@ -467,17 +469,17 @@ describe('relationship write-back', () => {
         const result = await writeRelationship(
             {
                 requestId: 'req-1', type: 'succession', direction: 'outgoing',
-                sourceId: 'routeOrder', targetId: 'processOrder', guard: 'true',
+                sourceId: 'Flow::routeOrder', targetId: 'Flow::processOrder', guard: 'true',
                 owningFile: 'model/flow.sysml',
-                sourceIdentity: index.byMemoElement['routeOrder'],
-                targetIdentity: index.byMemoElement['processOrder'],
+                sourceIdentity: index.byMemoElement['Flow::routeOrder'],
+                targetIdentity: index.byMemoElement['Flow::processOrder'],
             },
             succession,
             model(['routeOrder', 'processOrder']),
             { projectRoot, irIndex: index },
         );
 
-        expect(result.success).toBe(true);
+        if (!result.success) throw new Error(result.error ?? 'write failed');
         expect(result.notation).toBe('succession');
         expect(result.declaration).toBe('succession first routeOrder if true then processOrder;');
         // A succession takes no declared name in SysML, and the result says so
@@ -503,7 +505,7 @@ describe('relationship write-back', () => {
         const result = await writeRelationship(
             {
                 requestId: 'req-1', type: 'succession', direction: 'outgoing',
-                sourceId: 'routeOrder', targetId: 'processOrder',
+                sourceId: 'Flow::routeOrder', targetId: 'Flow::processOrder',
                 owningFile: 'model/flow.sysml',
                 sourceIdentity: `file://${projectRoot}/model/flow.sysml#members[0]/members[42]:ActionUsage`,
             },
@@ -528,10 +530,10 @@ describe('relationship write-back', () => {
         const result = await writeRelationship(
             {
                 requestId: 'req-1', type: 'succession', direction: 'outgoing',
-                sourceId: 'routeOrder', targetId: 'processOrder',
+                sourceId: 'Flow::routeOrder', targetId: 'Flow::processOrder',
                 owningFile: 'model/flow.sysml',
                 // The identity of processOrder, quoted as the source.
-                sourceIdentity: index.byMemoElement['processOrder'],
+                sourceIdentity: index.byMemoElement['Flow::processOrder'],
             },
             succession,
             model(['routeOrder', 'processOrder']),
@@ -540,7 +542,7 @@ describe('relationship write-back', () => {
 
         expect(result.success).toBe(false);
         expect(result.stale).toBe(true);
-        expect(result.error).toMatch(/now names "processOrder"/);
+        expect(result.error).toMatch(/now names "Flow::processOrder"/);
     });
 });
 

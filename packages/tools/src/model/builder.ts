@@ -113,8 +113,11 @@ import type { ParsedDocument } from './parser-utils.js';
 import { resolveLayerFromPath } from './layer-resolver.js';
 import { PackageRegistry } from './package-registry.js';
 import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
-import { identityKey, priorShortIds } from './identity-registry.js';
-import { ElementIndex, describeLocation, ELEMENT_NAME_COLLISION } from './element-index.js';
+import { priorIdentityFor, priorShortIds } from './identity-registry.js';
+import {
+    ElementIndex, describeLocation, qualifiedId, shortNameOf,
+    ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE,
+} from './element-index.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
 import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } from './relationship-registry.js';
@@ -267,50 +270,50 @@ export function buildMemoModel(
         extractFromModel(model, filePath, config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, deferredBindings, errors, registry, registries);
     }
 
-    // Phase 2b: Report every pair of elements that competed for one short
-    // name. The model holds the first of each pair; the second is not in it, so
-    // saying nothing would leave a model missing an element its source declares
-    // and no way to notice. Both locations are named because neither one is at
-    // fault on its own — it is the pair that is the problem, and fixing it
-    // means renaming one of them.
+    // Phase 2b: Report every pair of elements that wanted the same QUALIFIED
+    // name — the same name under the same owner, which SysML forbids and
+    // SysIDE rejects. Only one of them is in the model, so saying nothing
+    // would leave it missing an element its source declares. Both locations
+    // are named because neither is at fault on its own.
     for (const collision of elements.collisions) {
         errors.push({
             code: ELEMENT_NAME_COLLISION,
             file: collision.dropped.file,
             line: collision.droppedLine,
             message:
-                `Two elements are named '${collision.id}'. SysML scopes a name to its owner, `
-                + `but MEMO's element index is keyed on the short name alone, so only one of them `
-                + `is in the model: ${describeLocation(collision.kept, collision.keptLine)}. `
-                + `This one is dropped: ${describeLocation(collision.dropped, collision.droppedLine)}. `
+                `Two elements are declared '${collision.id}'. A qualified name is one element, `
+                + `so only the first is in the model: `
+                + `${describeLocation(collision.kept, collision.keptLine)}. This one is dropped: `
+                + `${describeLocation(collision.dropped, collision.droppedLine)}. `
                 + `Rename one of the two.`,
         });
     }
 
-    // Phase 3: Resolve connections using the registry (all elements now known)
-    const allElementIds = new Set(elements.keys());
+    // Phase 3: Resolve connections (all elements are now in the index, so a
+    // reference can be resolved against the whole model rather than against
+    // whatever happened to be extracted first).
     for (const { conn, filePath, packageName } of deferredConnections) {
-        resolveConnection(conn, filePath, packageName, config, elements, relationships, registry, allElementIds);
+        resolveConnection(conn, filePath, packageName, config, elements, relationships, registry, elements);
     }
 
     // Phase 3b: Resolve flow connections
     for (const { flow, filePath, packageName, parentActionId } of deferredFlows) {
-        resolveFlowConnection(flow, filePath, packageName, parentActionId, relationships, allElementIds, elements);
+        resolveFlowConnection(flow, filePath, packageName, parentActionId, relationships, elements, elements);
     }
 
     // Phase 3b2: Resolve port delegations
     for (const { binding, filePath, packageName } of deferredBindings) {
-        resolveBinding(binding, filePath, packageName, relationships, allElementIds, elements);
+        resolveBinding(binding, filePath, packageName, relationships, elements, elements);
     }
 
     // Phase 3c: Resolve successions
     for (const { succession, filePath, packageName, parentActionId } of deferredSuccessions) {
-        resolveSuccession(succession, filePath, packageName, parentActionId, relationships, allElementIds);
+        resolveSuccession(succession, filePath, packageName, parentActionId, relationships, elements);
     }
 
     // Phase 3d: Resolve allocations
     for (const { allocate, filePath, packageName } of deferredAllocates) {
-        resolveAllocate(allocate, filePath, packageName, elements, relationships, registry, allElementIds, registries?.relationshipRegistry);
+        resolveAllocate(allocate, filePath, packageName, elements, relationships, registry, elements, registries?.relationshipRegistry);
     }
 
     // Phase 3e: Resolve the native requirement relations. Unlike connections
@@ -319,10 +322,26 @@ export function buildMemoModel(
     // does the verifying — so they are found by walking containment rather than
     // by the package-member switch, and their context comes from their owner.
     for (const { document, filePath } of documents) {
-        resolveNativeTraceUsages(document.parseResult.value, filePath, relationships, registry, allElementIds);
+        resolveNativeTraceUsages(document.parseResult.value, filePath, relationships, registry, elements);
     }
 
-    // Phase 3f: Synthesize containment edges from native nesting. A natively
+    // Phase 3f: Report references that named more than one element. Unlike a
+    // collision this is not a broken declaration — both elements are correctly
+    // in the model, and it is the REFERENCE that cannot say which it means.
+    // Resolution already tried the owner and every enclosing package before
+    // giving up, so what is left is genuinely ambiguous, and guessing would
+    // guess by declaration order.
+    for (const ambiguity of elements.ambiguities) {
+        errors.push({
+            code: AMBIGUOUS_ELEMENT_REFERENCE,
+            file: ambiguity.file ?? '',
+            message:
+                `'${ambiguity.reference}' names more than one element, so the reference was not `
+                + `resolved: ${ambiguity.candidates.join(', ')}. Qualify it, or rename one of them.`,
+        });
+    }
+
+    // Phase 3g: Synthesize containment edges from native nesting. A natively
     // nested part carries its parent in `owner` (set during extraction); MEMO's
     // consumers read containment as a `composes` relationship (parent → child),
     // so emit one per nesting. A model that nests natively then looks identical
@@ -410,6 +429,15 @@ export function buildMemoModel(
     // external reference whenever a file moved or an element was inserted.
     const priorIdentities = config.priorIdentities ?? {};
     const priorShortIdsByElement = priorShortIds(priorIdentities);
+    // Adopt the identity a NESTED element was keyed under before ids carried
+    // their owner chain. Without this every port and every nested action in
+    // every existing project would be a newcomer on the next build and take a
+    // fresh number, silently repointing whatever quotes the old one.
+    for (const el of elements.values()) {
+        if (priorShortIdsByElement.has(el.id)) continue;
+        const legacy = priorIdentityFor(priorIdentities, el);
+        if (legacy?.shortId) priorShortIdsByElement.set(el.id, legacy.shortId);
+    }
     for (const [prefix, prefixElements] of elementsByPrefix) {
         const idToShortId = assignSequentialShortIds(
             prefix,
@@ -427,7 +455,7 @@ export function buildMemoModel(
             // uuid survive a file move — the derivation hashes the file path, so
             // without it the same element gets a new identity when it moves.
             (el as MemoElement).uuid = el.attributes.uuid?.trim()
-                || priorIdentities[identityKey(el)]?.uuid
+                || priorIdentityFor(priorIdentities, el)?.uuid
                 || stableElementUuid(el);
         }
     }
@@ -452,8 +480,10 @@ export function buildMemoModel(
         const projectSuper = new Map<string, string>();
         for (const el of elements.values()) {
             if (!el.isDefinition || !el.kind || el.kind === el.name) continue;
-            if (!projectSuper.has(el.name)) projectSuper.set(el.name, el.kind);
-            if (el.id !== el.name && !projectSuper.has(el.id)) projectSuper.set(el.id, el.kind);
+            const short = el.shortName ?? el.name;
+            if (!projectSuper.has(short)) projectSuper.set(short, el.kind);
+            if (el.name && !projectSuper.has(el.name)) projectSuper.set(el.name, el.kind);
+            if (!projectSuper.has(el.id)) projectSuper.set(el.id, el.kind);
         }
         const conformsTo = (kind: string, expected: string): boolean => {
             let current: string | undefined = kind;
@@ -513,6 +543,9 @@ export function buildMemoModel(
         const byName = new Map<string, MemoElement>();
         for (const [id, el] of elements) {
             if (!byName.has(id)) byName.set(id, el);
+            // A usage names its type by the SHORT name the definition declares,
+            // never by the qualified id, so both spellings answer here.
+            if (el.shortName && !byName.has(el.shortName)) byName.set(el.shortName, el);
             if (el.name && !byName.has(el.name)) byName.set(el.name, el);
         }
         const known = (kind: string) => Boolean(registries.kindRegistry?.getKind(kind));
@@ -538,7 +571,9 @@ export function buildMemoModel(
         seen.add(packageName);
         const pkg = registry.getPackage(packageName);
         if (!pkg) return new Set();
-        const names = new Set(pkg.elementIds);
+        // `elementIds` are qualified now, and what is being checked here is a
+        // LEAF name against the names a package offers, so compare leaves.
+        const names = new Set(pkg.elementIds.map(id => shortNameOf(id)));
         for (const imported of pkg.imports) {
             if (imported.isWildcard) {
                 for (const name of reachableNames(imported.packageName, seen)) names.add(name);
@@ -732,16 +767,16 @@ function extractFromPackage(
                 extractFromPackage(member as PackageDeclaration, filePath, packageName, config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, deferredBindings, errors, registry, registries);
                 break;
             case 'PartUsage':
-                extractUsage(member as PartUsage, 'part', filePath, packageName, config, elements, registry, registries);
-                tagUsagePackageFolder(elements.get((member as PartUsage).name), folderLabel);
+                tagUsagePackageFolder(elements.get(extractUsage(
+                    member as PartUsage, 'part', filePath, packageName, config, elements, registry, registries)), folderLabel);
                 break;
             case 'RequirementUsage':
-                extractUsage(member as RequirementUsage, 'requirement', filePath, packageName, config, elements, registry, registries);
-                tagUsagePackageFolder(elements.get((member as RequirementUsage).name), folderLabel);
+                tagUsagePackageFolder(elements.get(extractUsage(
+                    member as RequirementUsage, 'requirement', filePath, packageName, config, elements, registry, registries)), folderLabel);
                 break;
             case 'ItemUsage':
-                extractUsage(member as ItemUsage, 'item', filePath, packageName, config, elements, registry, registries);
-                tagUsagePackageFolder(elements.get((member as ItemUsage).name), folderLabel);
+                tagUsagePackageFolder(elements.get(extractUsage(
+                    member as ItemUsage, 'item', filePath, packageName, config, elements, registry, registries)), folderLabel);
                 break;
             case 'UseCaseDeclaration': {
                 const useCase = member as UseCaseDeclaration;
@@ -756,8 +791,8 @@ function extractFromPackage(
                 break;
             }
             case 'VerificationUsage':
-                extractUsage(member as VerificationUsage, 'verification', filePath, packageName, config, elements, registry, registries);
-                tagUsagePackageFolder(elements.get((member as VerificationUsage).name), folderLabel);
+                tagUsagePackageFolder(elements.get(extractUsage(
+                    member as VerificationUsage, 'verification', filePath, packageName, config, elements, registry, registries)), folderLabel);
                 break;
             case 'StateUsage':
                 extractUsage(member as StateUsage, 'state', filePath, packageName, config, elements, registry, registries);
@@ -897,9 +932,11 @@ function extractUsage(
     config: MEMOConfig,
     elements: ElementIndex,
     registry: PackageRegistry,
-    registries?: BuilderRegistries
-): void {
-    const id = usage.name;
+    registries?: BuilderRegistries,
+    ownerId?: string,
+): string {
+    const shortName = usage.name;
+    const id = qualifiedId(shortName, packageName, ownerId);
     const typeName = usage.type; // e.g. "Hazard", "Requirement"
 
     // Dual-mode resolution: registry first, then config fallback
@@ -974,11 +1011,14 @@ function extractUsage(
         }
     }
 
-    // Human-readable name: prefer "attribute redefines name" over usage name
-    const displayName = attributes['name'] || attributes['title'] || id;
+    // Human-readable name: prefer "attribute redefines name" over usage name.
+    // The fallback is the SHORT name — `id` is a qualified path now, and a
+    // panel that fell back to it would print the whole chain as the label.
+    const displayName = attributes['name'] || attributes['title'] || shortName;
 
     const element: MemoElement = {
         id,
+        shortName,
         name: displayName,
         kind: resolvedKind,
         construct,
@@ -987,6 +1027,7 @@ function extractUsage(
         package: packageName || undefined,
         attributes,
         doc,
+        owner: ownerId,
     };
 
     // Port-specific fields
@@ -1016,7 +1057,7 @@ function extractUsage(
     // A port's body may declare further ports. Recurse only after the parent is
     // in the map, so the child's `owner` points at an element that exists.
     if (construct === 'port') {
-        extractDefinitionPorts(usage, filePath, packageName, config, elements, registry, registries);
+        extractDefinitionPorts(usage, filePath, packageName, config, elements, registry, registries, id);
     }
 
     // A part's body may nest further parts. SysML v2 expresses containment by
@@ -1036,10 +1077,10 @@ function extractUsage(
     // Items nest too — a standard contains its clauses — so the nested-usage
     // walk runs for both. Ports stay part-only: an item has no boundary.
     if (construct === 'part' || construct === 'item') {
-        extractNestedParts(usage, filePath, packageName, config, elements, registry, registries);
+        extractNestedParts(usage, filePath, packageName, config, elements, registry, registries, id);
     }
     if (construct === 'part') {
-        extractDefinitionPorts(usage, filePath, packageName, config, elements, registry, registries);
+        extractDefinitionPorts(usage, filePath, packageName, config, elements, registry, registries, id);
     }
 
     // A native `transition` lives inside the state machine that owns it, which
@@ -1063,15 +1104,12 @@ function extractUsage(
     for (const member of usage.body || []) {
         const m = member as any;
         if (m.$type === 'TransitionUsage') {
-            extractTransition(m as TransitionUsage, filePath, packageName, config, elements, registry, registries);
-            const transitionEl = elements.get(m.name);
-            if (transitionEl) transitionEl.owner = id;
+            extractTransition(m as TransitionUsage, filePath, packageName, config, elements, registry, registries, id);
         } else if (construct === 'state' && m.$type === 'StateUsage') {
-            extractUsage(m as StateUsage, 'state', filePath, packageName, config, elements, registry, registries);
-            const childEl = elements.get(m.name);
-            if (childEl) childEl.owner = id;
+            extractUsage(m as StateUsage, 'state', filePath, packageName, config, elements, registry, registries, id);
         }
     }
+    return id;
 }
 
 /**
@@ -1101,6 +1139,7 @@ function extractTransition(
     elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries,
+    ownerId?: string,
 ): void {
     if (!transition.name) return;
 
@@ -1118,8 +1157,10 @@ function extractTransition(
         ? resolveKindDef(transition.type, config, registries)
         : { kindDef: undefined, resolvedKind: 'Unknown' };
 
+    const id = qualifiedId(transition.name, packageName, ownerId);
     const transitionElement: MemoElement = {
-        id: transition.name,
+        id,
+        shortName: transition.name,
         name: attributes.name || transition.name,
         kind: resolvedKind,
         construct: 'transition',
@@ -1128,8 +1169,9 @@ function extractTransition(
         package: packageName || undefined,
         attributes,
         doc: extractDocComment(transition.body),
+        owner: ownerId,
     };
-    if (elements.define(transitionElement, transition)) registry.registerElement(transition.name, packageName);
+    if (elements.define(transitionElement, transition)) registry.registerElement(id, packageName);
 }
 
 /**
@@ -1146,7 +1188,8 @@ function extractActionDefinition(
     registry: PackageRegistry,
     registries?: BuilderRegistries,
 ): void {
-    const id = actionDef.name;
+    const shortName = actionDef.name;
+    const id = qualifiedId(shortName, packageName, undefined);
 
     // Extract parameters from body
     const parameters: ActionParameter[] = [];
@@ -1180,7 +1223,8 @@ function extractActionDefinition(
         : undefined;
     const element: MemoElement = {
         id,
-        name: id,
+        shortName,
+        name: shortName,
         // Only where nothing resolves does the metaclass stand in, and there it
         // is the truthful answer: this is a SysML ActionDefinition and nothing
         // more is known about it.
@@ -1211,10 +1255,10 @@ function extractActionDefinition(
         let step: string | undefined;
         if (member.$type === 'ActionUsage') {
             extractActionUsage(member as ActionUsage, filePath, packageName, config, elements, deferredFlows, deferredSuccessions, registry, registries, id);
-            step = (member as ActionUsage).name;
+            step = qualifiedId((member as ActionUsage).name, packageName, id);
         } else if (member.$type === 'ControlNodeUsage') {
             extractControlNode(member as ControlNodeUsage, filePath, packageName, elements, registry, id);
-            step = (member as ControlNodeUsage).name;
+            step = qualifiedId((member as ControlNodeUsage).name, packageName, id);
         } else if (['AcceptActionUsage', 'SendActionUsage', 'DecisionNodeUsage', 'MergeNodeUsage', 'TerminateUsage'].includes(member.$type)) {
             const node = member as any;
             // A terminate node has no name to be given one by, and an id keyed
@@ -1222,9 +1266,9 @@ function extractActionDefinition(
             // Key it on the action that owns it instead, so a view can name it
             // and a saved layout keeps pointing at the same node.
             const fallback = node.$type === 'TerminateUsage'
-                ? `${id}__terminate${terminateCount++ === 0 ? '' : terminateCount}`
+                ? `terminate${terminateCount++ === 0 ? '' : terminateCount}`
                 : `${node.$type}-${elements.size}`;
-            const nodeId: string = node.name ?? fallback;
+            const nodeId = qualifiedId(node.name ?? fallback, packageName, id);
             step = nodeId;
             extractStandardActivityNode(node, filePath, packageName, elements, registry, id, nodeId);
         } else if (member.$type === 'SuccessionUsage') {
@@ -1252,7 +1296,7 @@ function extractStandardActivityNode(node: { $type: string; name?: string; paylo
         ? [{ name: node.payloadName, direction: 'out', type: node.payloadType ?? 'Item' }]
         : undefined;
     const element: MemoElement = {
-        id, name: node.name ?? node.$type, kind: typeToKind[node.$type] ?? node.$type,
+        id, shortName: shortNameOf(id), name: node.name ?? node.$type, kind: typeToKind[node.$type] ?? node.$type,
         construct: 'action', layer: authoredLayer(filePath), file: filePath, package: packageName || undefined,
         attributes: { ...(node.payloadName ? { payloadName: node.payloadName } : {}), ...(node.payloadType ? { payloadType: node.payloadType } : {}) }, parentAction: parentActionId, parameters,
     };
@@ -1271,7 +1315,8 @@ function extractItemDefinition(
     registry: PackageRegistry,
     registries?: BuilderRegistries
 ): void {
-    const id = itemDef.name;
+    const shortName = itemDef.name;
+    const id = qualifiedId(shortName, packageName, undefined);
 
     const attributes = extractAttributes(itemDef.body);
     const doc = extractDocComment(itemDef.body);
@@ -1282,7 +1327,8 @@ function extractItemDefinition(
 
     const element: MemoElement = {
         id,
-        name: id,
+        shortName,
+        name: shortName,
         kind: kindDef?.layer && kindDef.layer !== 'unknown' ? resolvedKind : 'ItemDefinition',
         construct: 'item',
         isDefinition: true,
@@ -1355,12 +1401,11 @@ function extractDefinitionElement(
     elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries,
+    ownerId?: string,
 ): void {
-    const id = definition.name;
-    // A name already taken is not silently skipped here any more: `define`
-    // keeps the first and records the pair, so a definition colliding with an
-    // element of the same short name is reported rather than dropped.
-    if (!id) return;
+    const shortName = definition.name;
+    if (!shortName) return;
+    const id = qualifiedId(shortName, packageName, ownerId);
     // A `library package` is how a project writes ontology-style content: its
     // definitions are types for other models to use, not this model's content.
     // The user's distinction exactly — model definitions become elements,
@@ -1377,7 +1422,8 @@ function extractDefinitionElement(
 
     const element: MemoElement = {
         id,
-        name: attributes['name'] || attributes['title'] || id,
+        shortName,
+        name: attributes['name'] || attributes['title'] || shortName,
         // A definition that specializes nothing the ontology knows is still a
         // definition; it says so rather than borrowing a kind it has not got.
         kind: resolvedKind ?? `${construct.charAt(0).toUpperCase()}${construct.slice(1)}Definition`,
@@ -1388,6 +1434,7 @@ function extractDefinitionElement(
         attributes,
         doc,
         isDefinition: true,
+        owner: ownerId,
     };
     if (elements.define(element, definition)) registry.registerElement(id, packageName);
 }
@@ -1399,26 +1446,28 @@ function extractDefinitionPorts(
     config: MEMOConfig,
     elements: ElementIndex,
     registry: PackageRegistry,
-    registries?: BuilderRegistries
+    registries?: BuilderRegistries,
+    ownerId?: string,
 ): void {
-    const ownerId = def.name;
+    // The owner's own qualified id, which the caller has because it just built
+    // it. Deriving it here from `def.name` would lose the chain above this
+    // definition, and a port two levels down would claim to be a member of the
+    // package rather than of the part that declares it.
+    const owner = ownerId ?? qualifiedId(def.name ?? '', packageName, undefined);
     const body = def.body || [];
     const ownedPortIds: string[] = [];
 
     for (const member of body) {
         if (member.$type === 'PortUsage') {
             const portUsage = member as PortUsage;
-            extractUsage(portUsage, 'port', filePath, packageName, config, elements, registry, registries);
-            const portEl = elements.get(portUsage.name);
-            if (portEl) {
-                portEl.owner = ownerId;
-                ownedPortIds.push(portUsage.name);
-            }
+            const portId = extractUsage(
+                portUsage, 'port', filePath, packageName, config, elements, registry, registries, owner);
+            if (elements.has(portId)) ownedPortIds.push(portId);
         }
     }
 
     if (ownedPortIds.length > 0) {
-        const ownerEl = elements.get(ownerId);
+        const ownerEl = elements.get(owner);
         if (ownerEl) {
             ownerEl.ownedPorts = ownedPortIds;
         }
@@ -1445,9 +1494,10 @@ function extractNestedParts(
     config: MEMOConfig,
     elements: ElementIndex,
     registry: PackageRegistry,
-    registries?: BuilderRegistries
+    registries?: BuilderRegistries,
+    ownerId?: string,
 ): void {
-    const ownerId = owner.name;
+    const ownerQualified = ownerId ?? qualifiedId(owner.name, packageName, undefined);
 
     for (const member of owner.body || []) {
         const pm = member as any;
@@ -1473,11 +1523,10 @@ function extractNestedParts(
         extractUsage(
             { name: pm.name, type: pm.type, body: pm.body },
             isPart ? 'part' : 'item', filePath, packageName, config, elements, registry, registries,
+            ownerQualified,
         );
-        const childEl = elements.get(pm.name);
-        if (childEl) childEl.owner = ownerId;
     }
-    extractNestedPackages(owner, filePath, packageName, config, elements, registry, registries);
+    extractNestedPackages(owner, filePath, packageName, config, elements, registry, registries, ownerQualified);
 }
 
 /**
@@ -1503,21 +1552,25 @@ function extractNestedPackages(
     elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries,
+    ownerId?: string,
 ): void {
+    const ownerQualified = ownerId ?? qualifiedId(owner.name, packageName, undefined);
     for (const member of owner.body || []) {
         const pm = member as any;
         if (pm.$type !== 'PackageDeclaration' || !pm.name) continue;
 
+        const groupId = qualifiedId(pm.name, packageName, ownerQualified);
         elements.define({
-            id: pm.name,
+            id: groupId,
+            shortName: pm.name,
             name: pm.name,
             kind: ELEMENT_PACKAGE_KIND,
             construct: 'package',
-            layer: elements.get(owner.name)?.layer ?? 'unknown',
+            layer: elements.get(ownerQualified)?.layer ?? 'unknown',
             file: filePath,
             package: packageName,
             attributes: {},
-            owner: owner.name,
+            owner: ownerQualified,
         }, pm);
 
         for (const grouped of pm.members ?? []) {
@@ -1531,16 +1584,15 @@ function extractNestedPackages(
             const isItem = gm.$type === 'ItemUsage' && !gm.direction;
             if (!isPart && !isItem) continue;
             if (!gm.type || gm.boundRef || !gm.name) continue;
-            extractUsage(
+            // Contained by the OWNER; the grouping package only labels it, so
+            // the child is qualified by the owner and not by the group.
+            const childId = extractUsage(
                 { name: gm.name, type: gm.type, body: gm.body },
                 isPart ? 'part' : 'item', filePath, packageName, config, elements, registry, registries,
+                ownerQualified,
             );
-            const childEl = elements.get(gm.name);
-            if (childEl) {
-                // Contained by the OWNER; the package only labels the grouping.
-                childEl.owner = owner.name;
-                childEl.attributes['elementPackage'] = pm.name;
-            }
+            const childEl = elements.get(childId);
+            if (childEl) childEl.attributes['elementPackage'] = pm.name;
         }
     }
 }
@@ -1573,18 +1625,16 @@ function extractViewpointUsage(
     ownerId?: string,
 ): void {
     if (!usage.name) return;
-    extractUsage(
+    const id = extractUsage(
         { name: usage.name, type: usage.type, body: usage.body },
-        'viewpoint', filePath, packageName, config, elements, registry, registries,
+        'viewpoint', filePath, packageName, config, elements, registry, registries, ownerId,
     );
-    const element = elements.get(usage.name);
-    if (element && ownerId) element.owner = ownerId;
 
     for (const member of usage.body || []) {
         const nested = member as any;
         if (nested.$type !== 'ViewpointUsage') continue;
         extractViewpointUsage(
-            nested, filePath, packageName, config, elements, registry, registries, usage.name,
+            nested, filePath, packageName, config, elements, registry, registries, id,
         );
     }
 }
@@ -1624,7 +1674,8 @@ function extractActionUsage(
     registries?: BuilderRegistries,
     parentActionId?: string
 ): void {
-    const id = usage.name;
+    const shortName = usage.name;
+    const id = qualifiedId(shortName, packageName, parentActionId);
     const typeName = usage.type;
 
     // Dual-mode resolution: registry first, then config fallback. A type
@@ -1647,7 +1698,7 @@ function extractActionUsage(
     const attributes = extractAttributes(bodyMembers);
     attributes['behaviorKind'] = behaviorKind;
     const doc = extractDocComment(bodyMembers);
-    const displayName = attributes['name'] || attributes['title'] || id;
+    const displayName = attributes['name'] || attributes['title'] || shortName;
 
     // SysML types a usage the same way whatever the usage is — `part p : Board`
     // and `action a : CoordinateWorkflows` are one mechanism — so the type goes
@@ -1664,6 +1715,7 @@ function extractActionUsage(
 
     const element: MemoElement = {
         id,
+        shortName,
         name: displayName,
         kind,
         construct: 'action',
@@ -1735,10 +1787,11 @@ function extractControlNode(
     registry: PackageRegistry,
     parentActionId: string,
 ): void {
-    const id = node.name;
+    const id = qualifiedId(node.name, packageName, parentActionId);
     const kind = CONTROL_KIND_METACLASS[node.controlKind];
     const element: MemoElement = {
         id,
+        shortName: node.name,
         name: node.name,
         kind,
         construct: 'action',
@@ -1759,7 +1812,7 @@ function resolveConnection(
     elements: ElementIndex,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>
+    index: ElementIndex
 ): void {
     const typeName = conn.type; // e.g. "Mitigates", "TraceTo"
     if (!conn.source || !conn.target) return;
@@ -1773,8 +1826,8 @@ function resolveConnection(
     const normalizedType = typeName ? normalizeRelType(typeName) : 'connect';
 
     // Resolve source and target using registry for cross-file resolution
-    const sourceId = resolveEndpointId(conn.source.ref, packageName, registry, allElementIds);
-    const targetId = resolveEndpointId(conn.target.ref, packageName, registry, allElementIds);
+    const sourceId = resolveEndpointId(conn.source.ref, packageName, registry, elements);
+    const targetId = resolveEndpointId(conn.target.ref, packageName, registry, elements);
     if (!sourceId || !targetId) return;
 
     // A named connection usage carries its own stable ID; anonymous ones fall
@@ -1843,18 +1896,11 @@ function resolveConnection(
  */
 function resolveEndpoint(
     ref: string,
-    elements: ElementIndex
+    elements: ElementIndex,
+    context?: { packageName?: string; ownerId?: string },
 ): { id: string; end: string } {
-    const parts = ref.split('.');
-    let id = parts[0];
-    let i = 1;
-    while (i < parts.length) {
-        const child = elements.get(parts[i]);
-        if (!child || (child.owner !== id && child.parentAction !== id)) break;
-        id = parts[i];
-        i++;
-    }
-    return { id, end: parts.slice(i).join('.') };
+    const { id, end } = elements.resolvePath(ref, context);
+    return { id, end };
 }
 
 /**
@@ -1867,19 +1913,20 @@ function resolveEndpoint(
 function resolveBinding(
     binding: BindingUsage,
     filePath: string,
-    _packageName: string,
+    packageName: string,
     relationships: MemoRelationship[],
-    allElementIds: Set<string>,
+    index: ElementIndex,
     elements: ElementIndex
 ): void {
     const sourceRef = binding.source;
     const targetRef = binding.target;
     if (!sourceRef || !targetRef) return;
 
-    const { id: sourceId, end: sourceEnd } = resolveEndpoint(sourceRef, elements);
-    const { id: targetId, end: targetEnd } = resolveEndpoint(targetRef, elements);
+    const context = { packageName };
+    const { id: sourceId, end: sourceEnd } = resolveEndpoint(sourceRef, elements, context);
+    const { id: targetId, end: targetEnd } = resolveEndpoint(targetRef, elements, context);
 
-    if (!allElementIds.has(sourceId) || !allElementIds.has(targetId)) return;
+    if (!index.has(sourceId) || !index.has(targetId)) return;
 
     relationships.push({
         id: `rel-${++relationshipCounter}`,
@@ -1902,18 +1949,21 @@ function resolveFlowConnection(
     packageName: string,
     parentActionId: string | undefined,
     relationships: MemoRelationship[],
-    allElementIds: Set<string>,
+    index: ElementIndex,
     elements: ElementIndex
 ): void {
     const sourceRef = flow.source?.ref;
     const targetRef = flow.target?.ref;
     if (!sourceRef || !targetRef) return;
 
-    const { id: sourceActionId, end: sourcePort } = resolveEndpoint(sourceRef, elements);
-    const { id: targetActionId, end: targetPort } = resolveEndpoint(targetRef, elements);
+    // A flow inside an action body names its sibling steps, so the enclosing
+    // action is part of the context; a flow at package level has none.
+    const context = { packageName, ownerId: parentActionId };
+    const { id: sourceActionId, end: sourcePort } = resolveEndpoint(sourceRef, elements, context);
+    const { id: targetActionId, end: targetPort } = resolveEndpoint(targetRef, elements, context);
 
     // Only create relationship if both endpoints reference known elements
-    if (!allElementIds.has(sourceActionId) || !allElementIds.has(targetActionId)) return;
+    if (!index.has(sourceActionId) || !index.has(targetActionId)) return;
 
     // A NAMED flow carries a stable ID that survives rebuilds; an anonymous one
     // falls back to a positional counter that shifts whenever the file changes.
@@ -1955,7 +2005,7 @@ function resolveSuccession(
     packageName: string,
     parentActionId: string | undefined,
     relationships: MemoRelationship[],
-    allElementIds: Set<string>
+    index: ElementIndex
 ): void {
     const steps = succession.steps || [];
     if (steps.length < 2) return;
@@ -1964,18 +2014,23 @@ function resolveSuccession(
         const fromRef = steps[i].ref;
         const toRef = steps[i + 1].ref;
 
+        // A step names a sibling inside the action that owns the succession,
+        // so that action is the context. The activity-body walk synthesizes
+        // successions whose refs are already qualified ids; `lookup` matches
+        // those exactly before it considers anything else, so one path serves
+        // both.
+        const context = { packageName, ownerId: parentActionId, file: filePath };
+
         // "start" and "done" are pseudo-elements; use parent action as context
         const sourceId = fromRef === 'start'
             ? (parentActionId ? `${parentActionId}__start` : '__start')
-            : fromRef;
+            : index.lookup(fromRef, context)?.id;
         const targetId = toRef === 'done'
             ? (parentActionId ? `${parentActionId}__done` : '__done')
-            : toRef;
+            : index.lookup(toRef, context)?.id;
 
-        // Skip if neither endpoint is a known element (allow start/done pseudo-elements)
-        const sourceKnown = fromRef === 'start' || allElementIds.has(sourceId);
-        const targetKnown = toRef === 'done' || allElementIds.has(targetId);
-        if (!sourceKnown || !targetKnown) continue;
+        // Skip if either endpoint names nothing (start/done are always known)
+        if (!sourceId || !targetId) continue;
 
         const guardLabel = renderGuardExpression(steps[i].guard as any);
         const rel: MemoRelationship = {
@@ -2039,7 +2094,7 @@ function resolveAllocate(
     elements: ElementIndex,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
     relationshipRegistry?: RelationshipRegistry,
 ): void {
     const sourceRef = allocate.source;
@@ -2047,8 +2102,8 @@ function resolveAllocate(
     if (!sourceRef || !targetRef) return;
 
     // Resolve references
-    const sourceId = resolveEndpointId(sourceRef, packageName, registry, allElementIds);
-    const targetId = resolveEndpointId(targetRef, packageName, registry, allElementIds);
+    const sourceId = resolveEndpointId(sourceRef, packageName, registry, elements);
+    const targetId = resolveEndpointId(targetRef, packageName, registry, elements);
     if (!sourceId || !targetId) return;
 
     // Set allocatedTo on the source element
@@ -2175,14 +2230,14 @@ function resolveOwnerRootedUsage(
     filePath: string,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
 ): void {
     if (!written) return;
     const { packageName, ownerId } = nativeUsageContext(node);
     const sourceId = ownerId
-        ? resolveEndpointId(ownerId, packageName, registry, allElementIds)
+        ? resolveEndpointId(ownerId, packageName, registry, index)
         : undefined;
-    const targetId = resolveEndpointId(written, packageName, registry, allElementIds);
+    const targetId = resolveEndpointId(written, packageName, registry, index);
     if (!sourceId || !targetId) return;
     relationships.push(nativeTraceEdge(name, sourceId, targetId, filePath));
 }
@@ -2212,16 +2267,16 @@ function resolveSubject(
     filePath: string,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
 ): void {
     if (!subject.boundRefs?.length) return;
     const { packageName, ownerId } = nativeUsageContext(subject);
     const targetId = ownerId
-        ? resolveEndpointId(ownerId, packageName, registry, allElementIds)
+        ? resolveEndpointId(ownerId, packageName, registry, index)
         : undefined;
     if (!targetId) return;
     for (const boundRef of subject.boundRefs) {
-        const sourceId = resolveEndpointId(boundRef, packageName, registry, allElementIds);
+        const sourceId = resolveEndpointId(boundRef, packageName, registry, index);
         if (sourceId) relationships.push(nativeTraceEdge('verifiedBy', sourceId, targetId, filePath));
     }
 }
@@ -2247,12 +2302,12 @@ function resolveActorParticipation(
     filePath: string,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
 ): void {
     if (!actor.boundRef) return;
     const { packageName, ownerId } = nativeUsageContext(actor);
-    const sourceId = resolveEndpointId(actor.boundRef, packageName, registry, allElementIds);
-    const targetId = ownerId ? resolveEndpointId(ownerId, packageName, registry, allElementIds) : undefined;
+    const sourceId = resolveEndpointId(actor.boundRef, packageName, registry, index);
+    const targetId = ownerId ? resolveEndpointId(ownerId, packageName, registry, index) : undefined;
     if (!sourceId || !targetId) return;
     relationships.push(nativeTraceEdge('participatesIn', sourceId, targetId, filePath));
 }
@@ -2288,7 +2343,7 @@ function resolveDependency(
     filePath: string,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
 ): void {
     const prefixes = (dependency.prefixMetadata ?? [])
         .map(annotation => annotation.type?.split('::').pop());
@@ -2296,10 +2351,10 @@ function resolveDependency(
 
     const { packageName } = nativeUsageContext(dependency);
     for (const client of dependency.clients ?? []) {
-        const sourceId = resolveEndpointId(client, packageName, registry, allElementIds);
+        const sourceId = resolveEndpointId(client, packageName, registry, index);
         if (!sourceId) continue;
         for (const supplier of dependency.suppliers ?? []) {
-            const targetId = resolveEndpointId(supplier, packageName, registry, allElementIds);
+            const targetId = resolveEndpointId(supplier, packageName, registry, index);
             if (!targetId) continue;
             relationships.push(nativeTraceEdge('dependency', sourceId, targetId, filePath));
             if (isRefinement) relationships.push(nativeTraceEdge('realizes', sourceId, targetId, filePath));
@@ -2316,29 +2371,29 @@ function resolveNativeTraceUsages(
     filePath: string,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
 ): void {
     for (const node of AstUtils.streamAllContents(model)) {
         if (isSatisfyRequirementUsage(node)) {
-            resolveSatisfy(node, filePath, relationships, registry, allElementIds);
+            resolveSatisfy(node, filePath, relationships, registry, index);
         } else if (isRequirementVerificationMember(node)) {
-            resolveVerify(node, filePath, relationships, registry, allElementIds);
+            resolveVerify(node, filePath, relationships, registry, index);
         } else if (isPerformActionUsage(node)) {
-            resolveOwnerRootedUsage(node, node.performed, 'performs', filePath, relationships, registry, allElementIds);
+            resolveOwnerRootedUsage(node, node.performed, 'performs', filePath, relationships, registry, index);
         } else if (isIncludeUseCaseUsage(node)) {
-            resolveOwnerRootedUsage(node, node.included, 'includesStep', filePath, relationships, registry, allElementIds);
+            resolveOwnerRootedUsage(node, node.included, 'includesStep', filePath, relationships, registry, index);
         } else if (isExhibitStateUsage(node)) {
-            resolveOwnerRootedUsage(node, node.exhibited, 'exhibitsMode', filePath, relationships, registry, allElementIds);
+            resolveOwnerRootedUsage(node, node.exhibited, 'exhibitsMode', filePath, relationships, registry, index);
         } else if (isFramedConcernMember(node)) {
-            resolveOwnerRootedUsage(node, node.framed, 'framesConcern', filePath, relationships, registry, allElementIds);
+            resolveOwnerRootedUsage(node, node.framed, 'framesConcern', filePath, relationships, registry, index);
         } else if (isSubjectMember(node)) {
-            resolveSubject(node, filePath, relationships, registry, allElementIds);
+            resolveSubject(node, filePath, relationships, registry, index);
         } else if (isActorMember(node)) {
-            resolveActorParticipation(node, filePath, relationships, registry, allElementIds);
+            resolveActorParticipation(node, filePath, relationships, registry, index);
         } else if (isDependency(node)) {
-            resolveDependency(node, filePath, relationships, registry, allElementIds);
+            resolveDependency(node, filePath, relationships, registry, index);
         } else if (isVariantMember(node)) {
-            resolveVariant(node, filePath, relationships, registry, allElementIds);
+            resolveVariant(node, filePath, relationships, registry, index);
         }
     }
 }
@@ -2357,13 +2412,13 @@ function resolveVariant(
     filePath: string,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
 ): void {
     const { packageName, ownerId } = nativeUsageContext(variant);
     const sourceId = ownerId
-        ? resolveEndpointId(ownerId, packageName, registry, allElementIds)
+        ? resolveEndpointId(ownerId, packageName, registry, index)
         : undefined;
-    const targetId = resolveEndpointId(variant.name, packageName, registry, allElementIds);
+    const targetId = resolveEndpointId(variant.name, packageName, registry, index);
     if (!sourceId || !targetId) return;
     relationships.push({
         id: `rel-${++relationshipCounter}`,
@@ -2381,7 +2436,7 @@ function resolveSatisfy(
     filePath: string,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
 ): void {
     // A negated claim — `assert not satisfy r by p;` — states that the
     // requirement is NOT satisfied. There is no MEMO connection for it, and
@@ -2391,11 +2446,11 @@ function resolveSatisfy(
     if (satisfy.isNegated) return;
 
     const { packageName } = nativeUsageContext(satisfy);
-    const sourceId = resolveEndpointId(satisfy.requirement, packageName, registry, allElementIds);
+    const sourceId = resolveEndpointId(satisfy.requirement, packageName, registry, index);
     // Without `by`, the satisfying subject is inherited from the enclosing
     // requirement rather than written. Nothing to bind, so no edge.
     const targetId = satisfy.satisfyingFeature
-        ? resolveEndpointId(satisfy.satisfyingFeature, packageName, registry, allElementIds)
+        ? resolveEndpointId(satisfy.satisfyingFeature, packageName, registry, index)
         : undefined;
     if (!sourceId || !targetId) return;
 
@@ -2407,14 +2462,14 @@ function resolveVerify(
     filePath: string,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
-    allElementIds: Set<string>,
+    index: ElementIndex,
 ): void {
     const { packageName, ownerId } = nativeUsageContext(verify);
-    const sourceId = resolveEndpointId(verify.requirement, packageName, registry, allElementIds);
+    const sourceId = resolveEndpointId(verify.requirement, packageName, registry, index);
     // The verifying case is the owner. A `verify` whose owner is not an
     // extracted element — a bare `verification def`, say — has no second end
     // to bind, so it stays a parse fact and not a graph fact.
-    const targetId = ownerId ? resolveEndpointId(ownerId, packageName, registry, allElementIds) : undefined;
+    const targetId = ownerId ? resolveEndpointId(ownerId, packageName, registry, index) : undefined;
     if (!sourceId || !targetId) return;
 
     relationships.push(nativeTraceEdge('verifiedBy', sourceId, targetId, filePath));
@@ -2563,17 +2618,31 @@ function resolveEndpointId(
     ref: string | undefined,
     packageName: string,
     registry: PackageRegistry,
-    allElementIds: Set<string>
+    index: ElementIndex
 ): string | undefined {
     if (!ref) return undefined;
-    const direct = registry.resolveElementId(ref, packageName, allElementIds) || resolveRef(ref);
-    if (direct && allElementIds.has(direct)) return direct;
-    if (ref.includes('.')) {
-        const leaf = ref.split('.').pop()!;
-        const resolved = registry.resolveElementId(leaf, packageName, allElementIds) || resolveRef(leaf);
-        if (resolved && allElementIds.has(resolved)) return resolved;
-    }
-    return direct;
+
+    // The index answers first, because it is the only thing that knows the
+    // owner chain. `nodeSafetyMonitor.scanSubscriber` walks to that node's OWN
+    // port; the global search for the leaf `scanSubscriber` this replaced
+    // found whichever node's port was extracted first, which is the bug the
+    // qualified id exists to fix. The package registry's own resolver is not
+    // consulted any more: it answers in short names, and a short name is not
+    // an id.
+    const walked = index.resolvePath(ref, { packageName });
+    if (walked.element) return walked.id;
+    // Several elements answer to this reference. Falling back to the bare name
+    // below would quietly make an edge to one of them.
+    if (walked.ambiguous) return undefined;
+
+    // An endpoint that resolves to nothing in the model is not always an
+    // error. A `ConformsTo` names a clause instance that lives in the
+    // ONTOLOGY, which a project resolves as a library root and therefore does
+    // not hold as an element — see dhf/standards-report.ts, which indexes
+    // clauses by usage name precisely so such an edge still resolves. The
+    // reference's leaf is that usage name, and dropping the edge instead cost
+    // gpca-pump 39 of its clause-conformance rows (measured 2026-09-20).
+    return resolveRef(ref);
 }
 
 /**

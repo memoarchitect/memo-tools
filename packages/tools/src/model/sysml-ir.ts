@@ -39,8 +39,12 @@ export function lowerAstToSysmlIr(documents: ParsedDocument[], model: MemoModelD
                 const name = member.name ?? member.$type;
                 const range = sourceRange(document, member);
                 const identity = sysmlIdentity(uri, memberPath, member.$type);
+                // `name` is the member's DECLARED name; an element's id is its
+                // qualified name, so the two are matched through `shortName`.
                 const candidate = Object.entries(model.elements).find(([, element]) =>
-                    element.file === document.filePath && element.id === name && element.package === (packageName || undefined));
+                    element.file === document.filePath
+                    && (element.shortName ?? element.id) === name
+                    && element.package === (packageName || undefined));
                 if (candidate && !projected.has(candidate[0])) {
                     projected.add(candidate[0]);
                     const mapped: MappedSysmlElementIR = {

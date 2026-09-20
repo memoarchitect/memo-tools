@@ -289,8 +289,10 @@ describe('generateRelationshipId', () => {
     });
 
     it('sanitizes characters that are illegal in a SysML name', () => {
+        // An endpoint is a qualified id, so it contributes its last segment:
+        // the generated name says which elements it joins, not where they live.
         expect(generateRelationshipId('traces.to', 'a-b', 'c::d', []))
-            .toBe('rel_traces_to_a_b_c__d');
+            .toBe('rel_traces_to_a_b_d');
     });
 });
 
@@ -370,7 +372,7 @@ describe('writeRelationship', () => {
         const rebuilt = buildMemoModel(documents, {} as MEMOConfig, errors);
         expect(rebuilt.relationships).toContainEqual(expect.objectContaining({
             type: 'satisfiedBy',
-            sourceId: 'sr104', targetId: 'controller',
+            sourceId: 'Pump::sr104', targetId: 'Pump::controller',
             sourceEnd: 'requiredElement', targetEnd: 'satisfyingElement',
         }));
     });
@@ -535,8 +537,8 @@ describe('relationship persistence round trip', () => {
         expect(first.relationships[0]).toMatchObject({
             id: 'rel_satisfiedBy_controller_sr104',
             type: 'satisfiedBy',
-            sourceId: 'controller',
-            targetId: 'sr104',
+            sourceId: 'Pump::controller',
+            targetId: 'Pump::sr104',
             sourceEnd: 'satisfyingElement',
             targetEnd: 'requiredElement',
             named: true,
@@ -547,8 +549,8 @@ describe('relationship persistence round trip', () => {
         expect(second.relationships[0].id).toBe(first.relationships[0].id);
 
         // The endpoint elements are still present and untouched.
-        expect(second.elements.has('controller')).toBe(true);
-        expect(second.elements.has('sr104')).toBe(true);
+        expect(second.elements.has('Pump::controller')).toBe(true);
+        expect(second.elements.has('Pump::sr104')).toBe(true);
     });
 
     it('is not persisted to any view, layout or UI sidecar', async () => {

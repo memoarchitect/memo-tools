@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateNativeConstraint, type NativeConstraint } from '../validator/constraint-eval.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
+import { toElementIndex } from '../model/element-index.js';
 
 // ─── Directional trace navigation ────────────────────────────────────────────
 //
@@ -33,7 +34,7 @@ function makeModel(elements: MemoElement[], relationships: MemoRelationship[]): 
         (relByType.get(r.type) ?? relByType.set(r.type, []).get(r.type)!).push(r);
     }
     return {
-        elements: byId, relationships, errors: [], packages: [],
+        elements: toElementIndex(byId), relationships, errors: [], packages: [],
         elementsByKind: byKind, elementsByLayer: new Map(),
         relationshipsByType: relByType, outgoing, incoming,
     } as MemoModel;
