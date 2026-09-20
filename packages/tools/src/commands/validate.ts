@@ -24,6 +24,7 @@ import {
     type RuleCandidate,
 } from '@memoarchitect/tools';
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
+import { ELEMENT_NAME_COLLISION } from '@memoarchitect/tools';
 import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { checkLockFile } from '../lock.js';
@@ -149,6 +150,21 @@ export async function validateCommand(
     const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
 
+    // A short-name collision belongs in this report for exactly the reason a
+    // parse error does: an element the project declared is not in the model, so
+    // every number below is computed over less than the source says.
+    //
+    // Only that code is taken, and deliberately. `model.errors` also carries
+    // the builder's relationship well-formedness findings, which have never
+    // been reported by any command — measured 2026-09-19, surfacing all of them
+    // turns five shipped examples red, gpca-pump with 73. That is a real
+    // finding and a separate one; it has its own board row rather than being
+    // smuggled in behind this fix.
+    const diagnostics = [
+        ...parseErrors,
+        ...model.errors.filter(e => e.code === ELEMENT_NAME_COLLISION && isProjectFile(e.file)),
+    ];
+
     // A file the parser rejected declares less of the model than it says it
     // does, so every number below it — completeness, rules passed, violations
     // — is computed over a model that is missing content. Reported quietly,
@@ -159,7 +175,7 @@ export async function validateCommand(
     // drop was committed as work that had not landed.
     //
     // So it is printed before any of those numbers, and it fails the command.
-    reportParseErrors(parseErrors, projectRoot);
+    reportParseErrors(diagnostics, projectRoot);
 
     // Record the identities this build assigned. `validate` is the command that
     // runs most, so it is where a project first acquires memo.identity.yaml;
@@ -348,7 +364,7 @@ export async function validateCommand(
     // ─── Output format dispatch ──────────────────────────────────────────────
 
     if (format === 'junit') {
-        const xml = generateJUnit(result, completeness, config.projectName || 'memo', parseErrors);
+        const xml = generateJUnit(result, completeness, config.projectName || 'memo', diagnostics);
         if (options?.output) {
             writeFileSync(resolve(cwd, options.output), xml);
             console.log(chalk.green(`JUnit XML written to ${options.output}`));
@@ -375,10 +391,10 @@ export async function validateCommand(
                 completeness: completeness.overall,
                 rulesNotLoaded: constraintDiagnostics.length,
                 sysmlErrors,
-                parseErrors: parseErrors.length,
-                filesNotParsed: filesWithParseErrors(parseErrors).size,
+                parseErrors: diagnostics.length,
+                filesNotParsed: filesWithParseErrors(diagnostics).size,
             },
-            parseErrors,
+            parseErrors: diagnostics,
             rulesNotLoaded: constraintDiagnostics,
             toolchain: {
                 validator: effectiveToolchain.validator,
@@ -469,10 +485,10 @@ export async function validateCommand(
     const overallColor = completeness.overall >= 80 ? chalk.green : completeness.overall >= 50 ? chalk.yellow : chalk.red;
     console.log(chalk.bold(`Overall: ${overallColor(completeness.overall + '%')} (${completeness.completeElements}/${completeness.totalElements} elements complete)`));
     console.log(chalk.gray(`Rules: ${result.rulesEvaluated} evaluated, ${result.rulesPassed} passed, ${result.violations.length} violations`));
-    const parseErrorFiles = filesWithParseErrors(parseErrors).size;
-    console.log((parseErrors.length > 0 ? chalk.red : chalk.gray)(
-        `Parse errors: ${parseErrors.length}`
-        + (parseErrors.length > 0
+    const parseErrorFiles = filesWithParseErrors(diagnostics).size;
+    console.log((diagnostics.length > 0 ? chalk.red : chalk.gray)(
+        `Parse errors: ${diagnostics.length}`
+        + (diagnostics.length > 0
             ? ` in ${parseErrorFiles} file(s) \u2014 this report describes an incomplete model`
             : '')));
     console.log();
@@ -489,7 +505,7 @@ export async function validateCommand(
      * computed from what did load happen to look.
      */
     function failed(): boolean {
-        return errors.length > 0 || sysmlErrors > 0 || parseErrors.length > 0;
+        return errors.length > 0 || sysmlErrors > 0 || diagnostics.length > 0;
     }
 }
 
@@ -522,7 +538,12 @@ function reportParseErrors(
     // GNU one-liners, the same prefix the SysML diagnostics use, so an editor
     // or CI annotator picks them up without knowing anything about MEMO.
     for (const e of parseErrors.slice(0, PARSE_ERRORS_LISTED)) {
-        console.log(chalk.gray(`     ${show(e.file)}:${e.line ?? 1}:${e.column ?? 1}: error: ${e.message}`));
+        // A message may name a second location of its own — the other half of
+        // a short-name collision does — so the same relativization is applied
+        // inside it. An absolute path from a build machine is noise in a report
+        // read next to relative ones.
+        const message = e.message.split(`${projectRoot}/`).join('');
+        console.log(chalk.gray(`     ${show(e.file)}:${e.line ?? 1}:${e.column ?? 1}: error: ${message}`));
     }
     if (parseErrors.length > PARSE_ERRORS_LISTED) {
         console.log(chalk.gray(`     \u2026 and ${parseErrors.length - PARSE_ERRORS_LISTED} more`));

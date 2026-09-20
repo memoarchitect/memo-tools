@@ -114,6 +114,7 @@ import { resolveLayerFromPath } from './layer-resolver.js';
 import { PackageRegistry } from './package-registry.js';
 import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
 import { identityKey, priorShortIds } from './identity-registry.js';
+import { ElementIndex, describeLocation, ELEMENT_NAME_COLLISION } from './element-index.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
 import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } from './relationship-registry.js';
@@ -247,7 +248,7 @@ export function buildMemoModel(
     registries?: BuilderRegistries
 ): MemoModel {
     relationshipCounter = 0;
-    const elements = new Map<string, MemoElement>();
+    const elements = new ElementIndex();
     const relationships: MemoRelationship[] = [];
     const errors: ParseError[] = [...parseErrors];
     const deferredConnections: DeferredConnection[] = [];
@@ -264,6 +265,26 @@ export function buildMemoModel(
     for (const { document, filePath } of documents) {
         const model = document.parseResult.value;
         extractFromModel(model, filePath, config, elements, deferredConnections, deferredFlows, deferredSuccessions, deferredAllocates, deferredBindings, errors, registry, registries);
+    }
+
+    // Phase 2b: Report every pair of elements that competed for one short
+    // name. The model holds the first of each pair; the second is not in it, so
+    // saying nothing would leave a model missing an element its source declares
+    // and no way to notice. Both locations are named because neither one is at
+    // fault on its own — it is the pair that is the problem, and fixing it
+    // means renaming one of them.
+    for (const collision of elements.collisions) {
+        errors.push({
+            code: ELEMENT_NAME_COLLISION,
+            file: collision.dropped.file,
+            line: collision.droppedLine,
+            message:
+                `Two elements are named '${collision.id}'. SysML scopes a name to its owner, `
+                + `but MEMO's element index is keyed on the short name alone, so only one of them `
+                + `is in the model: ${describeLocation(collision.kept, collision.keptLine)}. `
+                + `This one is dropped: ${describeLocation(collision.dropped, collision.droppedLine)}. `
+                + `Rename one of the two.`,
+        });
     }
 
     // Phase 3: Resolve connections using the registry (all elements now known)
@@ -578,7 +599,7 @@ function collectPackages(registry: PackageRegistry): MemoPackageDTO[] {
 }
 
 function applySemanticProvenance(
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     relationships: MemoRelationship[],
     registries?: BuilderRegistries,
 ): void {
@@ -647,7 +668,7 @@ function extractFromModel(
     model: Model,
     filePath: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     deferredConnections: DeferredConnection[],
     deferredFlows: DeferredFlow[],
     deferredSuccessions: DeferredSuccession[],
@@ -690,7 +711,7 @@ function extractFromPackage(
     filePath: string,
     parentPackage: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     deferredConnections: DeferredConnection[],
     deferredFlows: DeferredFlow[],
     deferredSuccessions: DeferredSuccession[],
@@ -874,7 +895,7 @@ function extractUsage(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries
 ): void {
@@ -990,8 +1011,7 @@ function extractUsage(
             });
     }
 
-    elements.set(id, element);
-    registry.registerElement(id, packageName);
+    if (elements.define(element, usage)) registry.registerElement(id, packageName);
 
     // A port's body may declare further ports. Recurse only after the parent is
     // in the map, so the child's `owner` points at an element that exists.
@@ -1078,7 +1098,7 @@ function extractTransition(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries,
 ): void {
@@ -1098,7 +1118,7 @@ function extractTransition(
         ? resolveKindDef(transition.type, config, registries)
         : { kindDef: undefined, resolvedKind: 'Unknown' };
 
-    elements.set(transition.name, {
+    const transitionElement: MemoElement = {
         id: transition.name,
         name: attributes.name || transition.name,
         kind: resolvedKind,
@@ -1108,8 +1128,8 @@ function extractTransition(
         package: packageName || undefined,
         attributes,
         doc: extractDocComment(transition.body),
-    });
-    registry.registerElement(transition.name, packageName);
+    };
+    if (elements.define(transitionElement, transition)) registry.registerElement(transition.name, packageName);
 }
 
 /**
@@ -1120,7 +1140,7 @@ function extractActionDefinition(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     deferredFlows: DeferredFlow[],
     deferredSuccessions: DeferredSuccession[],
     registry: PackageRegistry,
@@ -1177,8 +1197,7 @@ function extractActionDefinition(
         parameters: parameters.length > 0 ? parameters : undefined,
     };
 
-    elements.set(id, element);
-    registry.registerElement(id, packageName);
+    if (elements.define(element, actionDef)) registry.registerElement(id, packageName);
 
     // Standard SysML activity bodies may contain action/control usages directly
     // (not wrapped in an ActionUsage). Preserve those declarations so a valid
@@ -1224,7 +1243,7 @@ function extractActionDefinition(
     }
 }
 
-function extractStandardActivityNode(node: { $type: string; name?: string; payloadName?: string; payloadType?: string }, filePath: string, packageName: string, elements: Map<string, MemoElement>, registry: PackageRegistry, parentActionId: string, id: string): void {
+function extractStandardActivityNode(node: { $type: string; name?: string; payloadName?: string; payloadType?: string }, filePath: string, packageName: string, elements: ElementIndex, registry: PackageRegistry, parentActionId: string, id: string): void {
     const typeToKind: Record<string, string> = {
         AcceptActionUsage: 'AcceptActionUsage', SendActionUsage: 'SendActionUsage',
         DecisionNodeUsage: 'DecisionNodeUsage', MergeNodeUsage: 'MergeNodeUsage', TerminateUsage: 'ActivityFinalNodeUsage',
@@ -1232,12 +1251,12 @@ function extractStandardActivityNode(node: { $type: string; name?: string; paylo
     const parameters: ActionParameter[] | undefined = node.$type === 'AcceptActionUsage' && node.payloadName
         ? [{ name: node.payloadName, direction: 'out', type: node.payloadType ?? 'Item' }]
         : undefined;
-    elements.set(id, {
+    const element: MemoElement = {
         id, name: node.name ?? node.$type, kind: typeToKind[node.$type] ?? node.$type,
         construct: 'action', layer: authoredLayer(filePath), file: filePath, package: packageName || undefined,
         attributes: { ...(node.payloadName ? { payloadName: node.payloadName } : {}), ...(node.payloadType ? { payloadType: node.payloadType } : {}) }, parentAction: parentActionId, parameters,
-    });
-    registry.registerElement(id, packageName);
+    };
+    if (elements.define(element, node)) registry.registerElement(id, packageName);
 }
 
 /**
@@ -1248,7 +1267,7 @@ function extractItemDefinition(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries
 ): void {
@@ -1274,8 +1293,7 @@ function extractItemDefinition(
         doc,
     };
 
-    elements.set(id, element);
-    registry.registerElement(id, packageName);
+    if (elements.define(element, itemDef)) registry.registerElement(id, packageName);
 }
 
 /**
@@ -1334,12 +1352,15 @@ function extractDefinitionElement(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries,
 ): void {
     const id = definition.name;
-    if (!id || elements.has(id)) return;
+    // A name already taken is not silently skipped here any more: `define`
+    // keeps the first and records the pair, so a definition colliding with an
+    // element of the same short name is reported rather than dropped.
+    if (!id) return;
     // A `library package` is how a project writes ontology-style content: its
     // definitions are types for other models to use, not this model's content.
     // The user's distinction exactly — model definitions become elements,
@@ -1354,7 +1375,7 @@ function extractDefinitionElement(
     const attributes = extractAttributes(definition.body ?? []);
     const doc = extractDocComment(definition.body ?? []);
 
-    elements.set(id, {
+    const element: MemoElement = {
         id,
         name: attributes['name'] || attributes['title'] || id,
         // A definition that specializes nothing the ontology knows is still a
@@ -1367,8 +1388,8 @@ function extractDefinitionElement(
         attributes,
         doc,
         isDefinition: true,
-    });
-    registry.registerElement(id, packageName);
+    };
+    if (elements.define(element, definition)) registry.registerElement(id, packageName);
 }
 
 function extractDefinitionPorts(
@@ -1376,7 +1397,7 @@ function extractDefinitionPorts(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries
 ): void {
@@ -1422,7 +1443,7 @@ function extractNestedParts(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries
 ): void {
@@ -1479,7 +1500,7 @@ function extractNestedPackages(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries,
 ): void {
@@ -1487,7 +1508,7 @@ function extractNestedPackages(
         const pm = member as any;
         if (pm.$type !== 'PackageDeclaration' || !pm.name) continue;
 
-        elements.set(pm.name, {
+        elements.define({
             id: pm.name,
             name: pm.name,
             kind: ELEMENT_PACKAGE_KIND,
@@ -1497,7 +1518,7 @@ function extractNestedPackages(
             package: packageName,
             attributes: {},
             owner: owner.name,
-        });
+        }, pm);
 
         for (const grouped of pm.members ?? []) {
             const gm = grouped as any;
@@ -1546,7 +1567,7 @@ function extractViewpointUsage(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     registries?: BuilderRegistries,
     ownerId?: string,
@@ -1596,7 +1617,7 @@ function extractActionUsage(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     deferredFlows: DeferredFlow[],
     deferredSuccessions: DeferredSuccession[],
     registry: PackageRegistry,
@@ -1657,8 +1678,7 @@ function extractActionUsage(
             .map(member => ({ name: (member as ActionParameterMember).name, direction: (member as ActionParameterMember).direction as ActionParameter['direction'], type: (member as ActionParameterMember).type || 'Item' })),
     };
 
-    elements.set(id, element);
-    registry.registerElement(id, packageName);
+    if (elements.define(element, usage)) registry.registerElement(id, packageName);
 
     // Walk body for nested behavior members
     for (const member of bodyMembers) {
@@ -1711,13 +1731,13 @@ function extractControlNode(
     node: ControlNodeUsage,
     filePath: string,
     packageName: string,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     registry: PackageRegistry,
     parentActionId: string,
 ): void {
     const id = node.name;
     const kind = CONTROL_KIND_METACLASS[node.controlKind];
-    elements.set(id, {
+    const element: MemoElement = {
         id,
         name: node.name,
         kind,
@@ -1727,8 +1747,8 @@ function extractControlNode(
         package: packageName || undefined,
         attributes: { controlKind: node.controlKind },
         parentAction: parentActionId,
-    });
-    registry.registerElement(id, packageName);
+    };
+    if (elements.define(element, node)) registry.registerElement(id, packageName);
 }
 
 function resolveConnection(
@@ -1736,7 +1756,7 @@ function resolveConnection(
     filePath: string,
     packageName: string,
     config: MEMOConfig,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
     allElementIds: Set<string>
@@ -1823,7 +1843,7 @@ function resolveConnection(
  */
 function resolveEndpoint(
     ref: string,
-    elements: Map<string, MemoElement>
+    elements: ElementIndex
 ): { id: string; end: string } {
     const parts = ref.split('.');
     let id = parts[0];
@@ -1850,7 +1870,7 @@ function resolveBinding(
     _packageName: string,
     relationships: MemoRelationship[],
     allElementIds: Set<string>,
-    elements: Map<string, MemoElement>
+    elements: ElementIndex
 ): void {
     const sourceRef = binding.source;
     const targetRef = binding.target;
@@ -1883,7 +1903,7 @@ function resolveFlowConnection(
     parentActionId: string | undefined,
     relationships: MemoRelationship[],
     allElementIds: Set<string>,
-    elements: Map<string, MemoElement>
+    elements: ElementIndex
 ): void {
     const sourceRef = flow.source?.ref;
     const targetRef = flow.target?.ref;
@@ -2016,7 +2036,7 @@ function resolveAllocate(
     allocate: AllocateUsage,
     filePath: string,
     packageName: string,
-    elements: Map<string, MemoElement>,
+    elements: ElementIndex,
     relationships: MemoRelationship[],
     registry: PackageRegistry,
     allElementIds: Set<string>,

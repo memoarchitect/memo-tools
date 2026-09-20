@@ -210,9 +210,14 @@ describe('element write-back', () => {
         const source = readProjectFile('model/plant.sysml');
         expect(source).toContain('"edited"');
         // Exactly one of the two declarations changed; the other is intact.
+        // Which one is the FIRST: the element index keeps the first definition
+        // of a short name and reports the collision, where it used to keep the
+        // last and say nothing. Either twin would serve this test's point —
+        // that one edit changes one declaration — but only one of them is what
+        // the builder actually holds, so the test names it.
         expect(source.match(/note = "/g)).toHaveLength(2);
-        expect(source).toContain('"plant"');
-        expect(source).not.toContain('"spare"');
+        expect(source).toContain('"spare"');
+        expect(source).not.toContain('"plant"');
     });
 
     it('leaves comments and neighbouring declarations untouched', async () => {
