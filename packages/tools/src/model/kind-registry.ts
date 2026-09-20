@@ -99,6 +99,16 @@ export interface KindRegistryEntry {
     qualifiedName?: string;
     /** Source file this definition was declared in. */
     sourceFile?: string;
+    /**
+     * Names of the attributes the definition's own body declares.
+     *
+     * Not the inherited ones: the chain is walked by `declaresAttribute` when a
+     * caller needs the closure. This is the vocabulary a selector naming an
+     * attribute — a legend's `attributeName`, say — has to be checked against,
+     * because a name no definition declares reads back as an absent value and
+     * is indistinguishable from an unset one.
+     */
+    attributeNames?: string[];
 }
 
 /**
@@ -137,6 +147,16 @@ function extractBoundAttributes(body: any[] | undefined): Record<string, string>
         }
     }
     return out;
+}
+
+/** Attribute names a definition body declares, in declaration order. */
+function extractDeclaredAttributeNames(body: any[] | undefined): string[] {
+    const names: string[] = [];
+    for (const member of body ?? []) {
+        if (member?.$type !== 'AttributeMember' || !member.name) continue;
+        if (!names.includes(member.name)) names.push(member.name);
+    }
+    return names;
 }
 
 const AST_TYPE_TO_CONSTRUCT: Record<string, SysMLConstruct> = {
@@ -245,6 +265,59 @@ export class KindRegistry {
     /** Check if a kind is registered */
     has(name: string): boolean {
         return this.kinds.has(name);
+    }
+
+    /**
+     * Record a `view def` and the attribute values its body binds.
+     *
+     * Separate from `register` because a view definition is not a kind: it
+     * carries no layer and no construct, and nothing instantiates it as model
+     * content. What it does carry is a name a selection query may reference and
+     * defaults a view usage inherits.
+     */
+    registerViewDefinition(name: string, defaults: Record<string, string>, superType?: string): void {
+        this.viewDefaults.set(name, defaults);
+        if (superType) this.viewSuperTypes.set(name, superType);
+    }
+
+    /**
+     * Whether a `view def` of this name was declared.
+     *
+     * View definitions are not registered as kinds — they are a view mechanism,
+     * not an ontology type — but a selection query legitimately names one when
+     * a view selects other views, as a DHF index does. Anything checking a
+     * selector's vocabulary has to ask both.
+     */
+    hasViewDefinition(name: string): boolean {
+        return this.viewDefaults.has(name);
+    }
+
+    /** Every declared `view def` name. */
+    viewDefinitionNames(): string[] {
+        return [...this.viewDefaults.keys()];
+    }
+
+    /**
+     * Whether any registered definition declares an attribute of this name.
+     *
+     * Deliberately model-wide rather than per-kind: a legend names an attribute
+     * without naming the kind that carries it, so the only question the
+     * registry can answer is whether the ontology declares that name at all.
+     */
+    declaresAttribute(name: string): boolean {
+        for (const entry of this.kinds.values()) {
+            if (entry.attributeNames?.includes(name)) return true;
+        }
+        return false;
+    }
+
+    /** Every attribute name any registered definition declares. */
+    attributeNames(): string[] {
+        const names = new Set<string>();
+        for (const entry of this.kinds.values()) {
+            for (const name of entry.attributeNames ?? []) names.add(name);
+        }
+        return [...names];
     }
 
     /** Get all kind names */
@@ -512,9 +585,10 @@ export class KindRegistry {
             if (member.$type === 'ViewDefinition') {
                 const viewName = (member as any).name;
                 if (viewName) {
-                    this.viewDefaults.set(viewName, extractBoundAttributes((member as any).body));
-                    const sup = (member as any).specialization?.superType;
-                    if (sup) this.viewSuperTypes.set(viewName, sup);
+                    this.registerViewDefinition(
+                        viewName,
+                        extractBoundAttributes((member as any).body),
+                        (member as any).specialization?.superType);
                 }
                 continue;
             }
@@ -535,6 +609,9 @@ export class KindRegistry {
             ) {
                 const construct = AST_TYPE_TO_CONSTRUCT[member.$type];
                 if (!construct) continue;
+
+                const declaredAttributes = extractDeclaredAttributeNames(
+                    (member as { body?: any[] }).body);
 
                 const name = member.name;
                 if (!name) continue;
@@ -558,6 +635,7 @@ export class KindRegistry {
                     namespace,
                     qualifiedName: [...here, name].join('::'),
                     sourceFile,
+                    attributeNames: declaredAttributes.length ? declaredAttributes : undefined,
                 });
             }
         }
