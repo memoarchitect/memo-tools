@@ -19,9 +19,12 @@
 //
 // NOT covered: a name hardcoded in a consumer's TypeScript. Architect's views
 // filter with string literals of their own, which no model-side check can see —
-// closing that needs the consumer to select through the registry instead. This
-// covers selectors the MODEL authors, which is where the ontology's vocabulary
-// is spelled out by people who are not reading the registry either.
+// including both defects above. That remainder is the board row "A view selects
+// relations by string literal, so the check cannot see it"; it is tracked there
+// rather than left as a note here, and this paragraph goes when that row does.
+//
+// This covers selectors the MODEL authors, which is where the ontology's
+// vocabulary is spelled out by people who are not reading the registry either.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MemoModel, MemoElement } from './semantic.js';
