@@ -4,7 +4,7 @@
 // and prints a completeness report.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import { identityKey, writeIdentityRegistry } from '../model/identity-registry.js';
@@ -134,10 +134,11 @@ export async function validateCommand(
     //    from a root the project never imported is not project source; it is
     //    not in the model at all.
     const resolvedRoots = [...(resolution?.selectedRoots ?? []), ...(resolution?.unusedRoots ?? [])];
-    const documents = (resolution?.documents ?? []).filter(
-        d => !resolvedRoots.some(r => d.filePath.startsWith(r.sysmlDir)),
-    );
-    const parseErrors: import('@memoarchitect/tools').ParseError[] = [];
+    const isProjectFile = (file: string) => !resolvedRoots.some(r => file.startsWith(r.sysmlDir));
+    const documents = (resolution?.documents ?? []).filter(d => isProjectFile(d.filePath));
+    // The same pass that produced those documents produced these, and they are
+    // the project's own — a library that will not parse is a different report.
+    const parseErrors = (resolution?.parseErrors ?? []).filter(e => isProjectFile(e.file));
     if (documents.length === 0) {
         console.error(chalk.yellow('⚠️  No project .sysml files found.'));
         return;
@@ -147,6 +148,18 @@ export async function validateCommand(
     // 5. Build model
     const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
+
+    // A file the parser rejected declares less of the model than it says it
+    // does, so every number below it — completeness, rules passed, violations
+    // — is computed over a model that is missing content. Reported quietly,
+    // that reads as PROGRESS: the elements carrying violations never loaded,
+    // so the violation total FALLS. Measured 2026-09-19, one file with 805
+    // parse errors built 2 elements instead of 124 and validate said "92%
+    // complete, 1583 violations, 32 rules passed", down from 1595 — and the
+    // drop was committed as work that had not landed.
+    //
+    // So it is printed before any of those numbers, and it fails the command.
+    reportParseErrors(parseErrors, projectRoot);
 
     // Record the identities this build assigned. `validate` is the command that
     // runs most, so it is where a project first acquires memo.identity.yaml;
@@ -335,14 +348,14 @@ export async function validateCommand(
     // ─── Output format dispatch ──────────────────────────────────────────────
 
     if (format === 'junit') {
-        const xml = generateJUnit(result, completeness, config.projectName || 'memo');
+        const xml = generateJUnit(result, completeness, config.projectName || 'memo', parseErrors);
         if (options?.output) {
             writeFileSync(resolve(cwd, options.output), xml);
             console.log(chalk.green(`JUnit XML written to ${options.output}`));
         } else {
             process.stdout.write(xml);
         }
-        if (errors.length > 0 || sysmlErrors > 0) process.exitCode = 1;
+        if (failed()) process.exitCode = 1;
         return;
     }
 
@@ -362,7 +375,10 @@ export async function validateCommand(
                 completeness: completeness.overall,
                 rulesNotLoaded: constraintDiagnostics.length,
                 sysmlErrors,
+                parseErrors: parseErrors.length,
+                filesNotParsed: filesWithParseErrors(parseErrors).size,
             },
+            parseErrors,
             rulesNotLoaded: constraintDiagnostics,
             toolchain: {
                 validator: effectiveToolchain.validator,
@@ -399,7 +415,7 @@ export async function validateCommand(
         } else {
             process.stdout.write(jsonStr + '\n');
         }
-        if (errors.length > 0 || sysmlErrors > 0) process.exitCode = 1;
+        if (failed()) process.exitCode = 1;
         return;
     }
 
@@ -452,11 +468,66 @@ export async function validateCommand(
     console.log();
     const overallColor = completeness.overall >= 80 ? chalk.green : completeness.overall >= 50 ? chalk.yellow : chalk.red;
     console.log(chalk.bold(`Overall: ${overallColor(completeness.overall + '%')} (${completeness.completeElements}/${completeness.totalElements} elements complete)`));
-    console.log(chalk.gray(`Rules: ${result.rulesEvaluated} evaluated, ${result.rulesPassed} passed, ${result.violations.length} violations\n`));
+    console.log(chalk.gray(`Rules: ${result.rulesEvaluated} evaluated, ${result.rulesPassed} passed, ${result.violations.length} violations`));
+    const parseErrorFiles = filesWithParseErrors(parseErrors).size;
+    console.log((parseErrors.length > 0 ? chalk.red : chalk.gray)(
+        `Parse errors: ${parseErrors.length}`
+        + (parseErrors.length > 0
+            ? ` in ${parseErrorFiles} file(s) \u2014 this report describes an incomplete model`
+            : '')));
+    console.log();
 
-    if (errors.length > 0 || sysmlErrors > 0) {
+    if (failed()) {
         process.exitCode = 1;
     }
+
+    /**
+     * Whether this run is a failure.
+     *
+     * A parse error counts, and it counts first: a source file the parser
+     * rejected cannot produce a success verdict, however healthy the numbers
+     * computed from what did load happen to look.
+     */
+    function failed(): boolean {
+        return errors.length > 0 || sysmlErrors > 0 || parseErrors.length > 0;
+    }
+}
+
+/** Parse errors grouped by the file that produced them. */
+function filesWithParseErrors(
+    parseErrors: readonly import('@memoarchitect/tools').ParseError[],
+): Map<string, number> {
+    const byFile = new Map<string, number>();
+    for (const e of parseErrors) byFile.set(e.file, (byFile.get(e.file) ?? 0) + 1);
+    return byFile;
+}
+
+/** How many individual errors are listed before the rest are summarised. */
+const PARSE_ERRORS_LISTED = 10;
+
+function reportParseErrors(
+    parseErrors: readonly import('@memoarchitect/tools').ParseError[],
+    projectRoot: string,
+): void {
+    if (parseErrors.length === 0) return;
+    const show = (file: string) => (file.startsWith(projectRoot) ? relative(projectRoot, file) : file);
+    const byFile = filesWithParseErrors(parseErrors);
+    console.log(chalk.red.bold(
+        `\u26d4 ${parseErrors.length} parse error(s) in ${byFile.size} file(s). `
+        + 'Whatever those files declare past the error is missing from the model, '
+        + 'so every count below is a count of less than the project:'));
+    for (const [file, count] of byFile) {
+        console.log(chalk.red(`   ${show(file)} (${count})`));
+    }
+    // GNU one-liners, the same prefix the SysML diagnostics use, so an editor
+    // or CI annotator picks them up without knowing anything about MEMO.
+    for (const e of parseErrors.slice(0, PARSE_ERRORS_LISTED)) {
+        console.log(chalk.gray(`     ${show(e.file)}:${e.line ?? 1}:${e.column ?? 1}: error: ${e.message}`));
+    }
+    if (parseErrors.length > PARSE_ERRORS_LISTED) {
+        console.log(chalk.gray(`     \u2026 and ${parseErrors.length - PARSE_ERRORS_LISTED} more`));
+    }
+    console.log('');
 }
 
 // ─── JUnit XML Generator ─────────────────────────────────────────────────────
@@ -465,13 +536,18 @@ function generateJUnit(
     result: ReturnType<typeof validateModel>,
     completeness: ReturnType<typeof computeCompleteness>,
     projectName: string,
+    parseErrors: readonly import('@memoarchitect/tools').ParseError[] = [],
 ): string {
     const escXml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     const errors = result.violations.filter(v => v.severity === 'error');
     const warnings = result.violations.filter(v => v.severity === 'warning');
-    const allTests = result.rulesEvaluated;
-    const failures = errors.length;
+    // A file that did not parse is its own failed test. Counted only through
+    // the rules, a green suite would report on a model missing the content
+    // that file declares.
+    const parseErrorFiles = [...filesWithParseErrors(parseErrors)];
+    const allTests = result.rulesEvaluated + parseErrorFiles.length;
+    const failures = errors.length + parseErrorFiles.length;
     const skipped = 0;
 
     const lines: string[] = [
@@ -484,6 +560,17 @@ function generateJUnit(
         `      <property name="warnings" value="${warnings.length}" />`,
         `    </properties>`,
     ];
+
+    for (const [file, count] of parseErrorFiles) {
+        const message = `${count} parse error(s); this file's content is missing from the model`;
+        lines.push(`    <testcase classname="parse" name="${escXml(file)}">`);
+        lines.push(`      <failure message="${escXml(message)}" type="PARSE_ERROR">`);
+        for (const e of parseErrors.filter(e => e.file === file)) {
+            lines.push(`        ${escXml(`${e.file}:${e.line ?? 1}:${e.column ?? 1}: error: ${e.message}`)}`);
+        }
+        lines.push(`      </failure>`);
+        lines.push(`    </testcase>`);
+    }
 
     // Each violation becomes a test case
     for (const v of result.violations) {
