@@ -1,0 +1,324 @@
+{
+  "project": "sysml-diagram-samples",
+  "totals": {
+    "files": 18,
+    "elements": 266,
+    "definitions": 32,
+    "relationships": 282,
+    "packages": 21,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 10,
+      "definitions": 0,
+      "kinds": {
+        "MemoViewpoint": 10
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/action_flow_view.sysml": {
+      "elements": 17,
+      "definitions": 7,
+      "kinds": {
+        "InterfaceItem": 3,
+        "LogicalComponent": 2,
+        "ProcessInput": 3,
+        "ReceiveInput": 1,
+        "RecordResult": 1,
+        "SystemFunction": 5,
+        "ValidateInput": 2
+      },
+      "relationships": 27,
+      "relationshipTypes": {
+        "allocatedTo": 7,
+        "composes": 7,
+        "dependency": 1,
+        "flow": 3,
+        "succession": 9
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/browser_view.sysml": {
+      "elements": 10,
+      "definitions": 0,
+      "kinds": {
+        "OperationalEntity": 4,
+        "UseCase": 3,
+        "User": 3
+      },
+      "relationships": 6,
+      "relationshipTypes": {
+        "composes": 3,
+        "participatesIn": 3
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/context_view.sysml": {
+      "elements": 6,
+      "definitions": 0,
+      "kinds": {
+        "OperationalEntity": 2,
+        "UseContext": 1,
+        "User": 3
+      },
+      "relationships": 5,
+      "relationshipTypes": {
+        "appliesInContext": 1,
+        "connect": 3,
+        "flow": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/diagram_samples.sysml": {
+      "elements": 18,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 18
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/functional_flow_view.sysml": {
+      "elements": 35,
+      "definitions": 12,
+      "kinds": {
+        "ForkNode": 1,
+        "FxAcquire": 1,
+        "FxCompute": 1,
+        "FxDeliverMedication": 1,
+        "FxDetect": 1,
+        "FxDrive": 1,
+        "FxEnforce": 1,
+        "FxMonitor": 1,
+        "InterfaceItem": 5,
+        "JoinNode": 1,
+        "LogicalComponent": 9,
+        "SystemFunction": 12
+      },
+      "relationships": 53,
+      "relationshipTypes": {
+        "allocatedTo": 11,
+        "composes": 21,
+        "flow": 5,
+        "succession": 16
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/grid_view.sysml": {
+      "elements": 3,
+      "definitions": 0,
+      "kinds": {
+        "FailureMode": 3
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/interconnection_view.sysml": {
+      "elements": 30,
+      "definitions": 0,
+      "kinds": {
+        "DataPort": 20,
+        "LogicalComponent": 10
+      },
+      "relationships": 19,
+      "relationshipTypes": {
+        "bind": 5,
+        "composes": 7,
+        "flow": 7
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/operational_behaviour_view.sysml": {
+      "elements": 28,
+      "definitions": 6,
+      "kinds": {
+        "ForkNode": 1,
+        "InterfaceItem": 2,
+        "JoinNode": 1,
+        "OpCheckLockout": 1,
+        "OperationalEntity": 1,
+        "OperativeAction": 13,
+        "OpPrescribeTherapy": 1,
+        "OpRequestBolus": 1,
+        "OpVerifyPrescription": 1,
+        "User": 6
+      },
+      "relationships": 51,
+      "relationshipTypes": {
+        "allocatedTo": 12,
+        "composes": 20,
+        "flow": 2,
+        "succession": 17
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/package_view.sysml": {
+      "elements": 16,
+      "definitions": 0,
+      "kinds": {
+        "DataPort": 9,
+        "LogicalComponent": 7
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 4,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/requirements_view.sysml": {
+      "elements": 5,
+      "definitions": 0,
+      "kinds": {
+        "Need": 2,
+        "Requirement": 3
+      },
+      "relationships": 4,
+      "relationshipTypes": {
+        "derivesFrom": 4
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/sequence_view.sysml": {
+      "elements": 15,
+      "definitions": 0,
+      "kinds": {
+        "FunctionalFlow": 1,
+        "FunctionalFlowStep": 9,
+        "LogicalComponent": 2,
+        "Unknown": 2,
+        "User": 1
+      },
+      "relationships": 29,
+      "relationshipTypes": {
+        "allocatedTo": 9,
+        "composes": 9,
+        "succession": 11
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/standard_activity_view.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/state_transition_view.sysml": {
+      "elements": 17,
+      "definitions": 0,
+      "kinds": {
+        "MemoState": 7,
+        "StateMachine": 1,
+        "Unknown": 9
+      },
+      "relationships": 7,
+      "relationshipTypes": {
+        "composes": 7
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/tree_view.sysml": {
+      "elements": 9,
+      "definitions": 0,
+      "kinds": {
+        "HardwareAssembly": 9
+      },
+      "relationships": 8,
+      "relationshipTypes": {
+        "composes": 8
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/use_case_view.sysml": {
+      "elements": 10,
+      "definitions": 1,
+      "kinds": {
+        "MemoRelationship": 1,
+        "UseCase": 5,
+        "User": 4
+      },
+      "relationships": 10,
+      "relationshipTypes": {
+        "dependency": 1,
+        "includesStep": 2,
+        "participatesIn": 5,
+        "specialization": 2
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/sysml_v2_activity_example.sysml": {
+      "elements": 36,
+      "definitions": 6,
+      "kinds": {
+        "AcceptActionUsage": 1,
+        "ActionDefinition": 3,
+        "ActionUsage": 16,
+        "ActivityFinalNodeUsage": 4,
+        "DecisionNode": 4,
+        "ForkNode": 1,
+        "ItemDefinition": 2,
+        "JoinNode": 1,
+        "MergeNode": 2,
+        "PartDefinition": 1,
+        "SendActionUsage": 1
+      },
+      "relationships": 63,
+      "relationshipTypes": {
+        "composes": 30,
+        "succession": 33
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

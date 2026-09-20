@@ -1,0 +1,71 @@
+{
+  "project": "embedded-infusion-pump",
+  "totals": {
+    "files": 4,
+    "elements": 8,
+    "definitions": 0,
+    "relationships": 8,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/embedded_infusion_pump.sysml": {
+      "elements": 6,
+      "definitions": 0,
+      "kinds": {
+        "ProcessingNode": 1,
+        "RuntimeEnvironment": 1,
+        "SoftwareComponent": 1,
+        "SoftwareDeploymentUnit": 1,
+        "SoftwareModule": 2
+      },
+      "relationships": 8,
+      "relationshipTypes": {
+        "buildsInto": 1,
+        "dependency": 2,
+        "deploysTo": 1,
+        "hostedBy": 1,
+        "providesEnvironment": 1,
+        "realizes": 2
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/embedded_infusion_pump_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

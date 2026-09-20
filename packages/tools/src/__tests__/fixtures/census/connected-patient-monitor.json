@@ -1,0 +1,67 @@
+{
+  "project": "connected-patient-monitor",
+  "totals": {
+    "files": 4,
+    "elements": 9,
+    "definitions": 0,
+    "relationships": 3,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/connected_patient_monitor.sysml": {
+      "elements": 7,
+      "definitions": 0,
+      "kinds": {
+        "Interface": 1,
+        "LogicalComponent": 3,
+        "LogicalExchange": 1,
+        "LogicalExchangeItem": 1,
+        "TrustBoundary": 1
+      },
+      "relationships": 3,
+      "relationshipTypes": {
+        "crossesTrustBoundary": 1,
+        "logicalConnector": 2
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/connected_patient_monitor_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

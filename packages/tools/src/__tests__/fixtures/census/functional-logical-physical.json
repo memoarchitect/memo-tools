@@ -1,0 +1,68 @@
+{
+  "project": "functional-logical-physical",
+  "totals": {
+    "files": 4,
+    "elements": 7,
+    "definitions": 0,
+    "relationships": 6,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/functional_logical_physical.sysml": {
+      "elements": 5,
+      "definitions": 0,
+      "kinds": {
+        "LogicalComponent": 1,
+        "MechanicalPart": 1,
+        "OperativeAction": 1,
+        "SoftwareModule": 1,
+        "SystemFunction": 1
+      },
+      "relationships": 6,
+      "relationshipTypes": {
+        "allocatedTo": 1,
+        "dependency": 3,
+        "realizes": 2
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/functional_logical_physical_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

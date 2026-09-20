@@ -1,0 +1,77 @@
+{
+  "project": "surgical-closure-workflow",
+  "totals": {
+    "files": 4,
+    "elements": 28,
+    "definitions": 0,
+    "relationships": 41,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/surgical_closure_workflow.sysml": {
+      "elements": 26,
+      "definitions": 0,
+      "kinds": {
+        "ActionUsage": 4,
+        "ClinicalProcedureWorkflow": 1,
+        "Need": 1,
+        "OperativeAction": 13,
+        "OperativeScenario": 2,
+        "UseCase": 1,
+        "UseContext": 1,
+        "User": 3
+      },
+      "relationships": 41,
+      "relationshipTypes": {
+        "composes": 12,
+        "dependency": 2,
+        "heldBy": 1,
+        "motivates": 1,
+        "participatesIn": 1,
+        "performs": 7,
+        "realizes": 2,
+        "realizesUseCase": 1,
+        "succession": 14
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/surgical_closure_workflow_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

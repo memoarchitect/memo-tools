@@ -1,0 +1,88 @@
+{
+  "project": "temperature-alarm",
+  "totals": {
+    "files": 4,
+    "elements": 19,
+    "definitions": 0,
+    "relationships": 15,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 1
+  },
+  "files": {
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/temperature_alarm.sysml": {
+      "elements": 17,
+      "definitions": 0,
+      "kinds": {
+        "Hazard": 1,
+        "LogicalComponent": 2,
+        "MemoEvidence": 2,
+        "OperativeAction": 2,
+        "OperativeScenario": 1,
+        "RiskControlMeasure": 1,
+        "SystemFunction": 1,
+        "UIAction": 1,
+        "UIElement": 1,
+        "UseCase": 1,
+        "UseError": 1,
+        "User": 1,
+        "UserInterface": 1,
+        "VerificationCase": 1
+      },
+      "relationships": 15,
+      "relationshipTypes": {
+        "allocatedTo": 1,
+        "causes": 1,
+        "commitsUseError": 1,
+        "composes": 1,
+        "controlImplementedBy": 1,
+        "dependency": 1,
+        "elementTriggersAction": 1,
+        "independentOf": 1,
+        "mitigates": 1,
+        "participatesIn": 1,
+        "performs": 2,
+        "producesEvidence": 1,
+        "validates": 1,
+        "verifiedBy": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 1
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/temperature_alarm_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

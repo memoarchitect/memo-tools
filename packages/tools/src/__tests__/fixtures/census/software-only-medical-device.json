@@ -1,0 +1,70 @@
+{
+  "project": "software-only-medical-device",
+  "totals": {
+    "files": 4,
+    "elements": 9,
+    "definitions": 0,
+    "relationships": 5,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/software_only_medical_device.sysml": {
+      "elements": 7,
+      "definitions": 0,
+      "kinds": {
+        "Algorithm": 1,
+        "CloudService": 1,
+        "ProcessingNode": 1,
+        "SoftwareDeploymentUnit": 1,
+        "SoftwareModule": 2,
+        "SoftwareSystem": 1
+      },
+      "relationships": 5,
+      "relationshipTypes": {
+        "dependency": 2,
+        "deploysTo": 1,
+        "hostedBy": 1,
+        "realizes": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/software_only_medical_device_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

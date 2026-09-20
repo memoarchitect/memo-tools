@@ -1,0 +1,66 @@
+{
+  "project": "multidimensional-layers",
+  "totals": {
+    "files": 4,
+    "elements": 5,
+    "definitions": 0,
+    "relationships": 3,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/multidimensional_layers.sysml": {
+      "elements": 3,
+      "definitions": 0,
+      "kinds": {
+        "SoftwareComponent": 1,
+        "SoftwareModule": 1,
+        "VerificationCase": 1
+      },
+      "relationships": 3,
+      "relationshipTypes": {
+        "dependency": 1,
+        "realizes": 1,
+        "verifiedBy": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/multidimensional_layers_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

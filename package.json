@@ -47,6 +47,7 @@
     "check:boundary": "node scripts/check-config-boundary.mjs",
     "check:budgets": "node scripts/runtime-budgets.mjs",
     "check:baselines": "node scripts/verify-baseline.mjs",
+    "census:capture": "node scripts/capture-census.mjs",
     "check:corpus": "node scripts/convert-corpus.mjs",
     "check:conformance": "node scripts/check-conformance.mjs",
     "check:metamodel": "node scripts/generate-sysml-ir.mjs --check",
