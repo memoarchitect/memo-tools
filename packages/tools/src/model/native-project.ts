@@ -25,6 +25,7 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { ParsedDocument } from './parser-utils.js';
+import type { ParseError } from './semantic.js';
 import { parseFiles } from './parser-utils.js';
 import { readPackageManifest } from './package-manifest.js';
 import { discoverMemoManifests, findMemoManifests, resolveManifestPath } from './manifest.js';
@@ -181,6 +182,15 @@ export interface NativeProjectResolution {
     unusedRoots: LibraryRoot[];
     /** Every parsed document, project and reusable alike. */
     documents: ParsedDocument[];
+    /**
+     * Every parse error the same pass produced, project and reusable alike.
+     *
+     * Carried rather than discarded because a file that failed to parse
+     * contributes no elements, and a caller counting elements cannot tell that
+     * from a file that genuinely declares none. `documents` alone lets a
+     * catastrophic failure read as a small model.
+     */
+    parseErrors: ParseError[];
     /**
      * File → the SysML package it declares, for every parsed file.
      *
@@ -607,6 +617,7 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
 
     const parsed = await parseFiles([...projectFiles, ...libraryFiles], '');
     const documents = parsed.documents;
+    const parseErrors = parsed.errors;
 
     if (!entrypoint || !existsSync(entrypoint)) {
         diagnostics.push({
@@ -746,6 +757,7 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
         selectedRoots,
         unusedRoots,
         documents,
+        parseErrors,
         filePackages,
         diagnostics,
     };
