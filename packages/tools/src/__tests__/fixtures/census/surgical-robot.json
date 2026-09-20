@@ -1,0 +1,67 @@
+{
+  "project": "surgical-robot",
+  "totals": {
+    "files": 4,
+    "elements": 9,
+    "definitions": 0,
+    "relationships": 2,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/surgical_robot.sysml": {
+      "elements": 7,
+      "definitions": 0,
+      "kinds": {
+        "Actuator": 1,
+        "LogicalComponent": 3,
+        "LogicalExchange": 1,
+        "MechanicalPart": 1,
+        "OperatorInterfaceElement": 1
+      },
+      "relationships": 2,
+      "relationshipTypes": {
+        "dependency": 1,
+        "independentOf": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/surgical_robot_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

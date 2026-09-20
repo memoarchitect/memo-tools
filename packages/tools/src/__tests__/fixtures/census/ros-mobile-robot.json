@@ -1,0 +1,84 @@
+{
+  "project": "ros-mobile-robot",
+  "totals": {
+    "files": 4,
+    "elements": 35,
+    "definitions": 3,
+    "relationships": 16,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/ros_mobile_robot.sysml": {
+      "elements": 33,
+      "definitions": 3,
+      "kinds": {
+        "EmergencyStop": 1,
+        "LaserScan": 1,
+        "ProcessingNode": 1,
+        "RosActionClient": 1,
+        "RosActionInterface": 1,
+        "RosActionServer": 1,
+        "RosContainerImage": 2,
+        "RosContainerRuntime": 1,
+        "RosMessage": 3,
+        "RosNode": 3,
+        "RosPublisher": 3,
+        "RosServiceClient": 1,
+        "RosServiceInterface": 1,
+        "RosServiceServer": 1,
+        "RosSubscriber": 4,
+        "RosTopicInterface": 4,
+        "SoftwareModule": 3,
+        "VelocityCommand": 1
+      },
+      "relationships": 16,
+      "relationshipTypes": {
+        "buildsInto": 3,
+        "dependency": 3,
+        "deploysTo": 2,
+        "flow": 4,
+        "providesEnvironment": 1,
+        "realizes": 3
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/ros_mobile_robot_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

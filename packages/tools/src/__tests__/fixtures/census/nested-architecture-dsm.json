@@ -1,0 +1,124 @@
+{
+  "project": "nested-architecture-dsm",
+  "totals": {
+    "files": 8,
+    "elements": 58,
+    "definitions": 0,
+    "relationships": 104,
+    "packages": 8,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/architecture/functional/functions.sysml": {
+      "elements": 18,
+      "definitions": 0,
+      "kinds": {
+        "SystemFunction": 18
+      },
+      "relationships": 37,
+      "relationshipTypes": {
+        "composes": 14,
+        "flow": 12,
+        "satisfiedBy": 11
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/architecture/logical/structure.sysml": {
+      "elements": 18,
+      "definitions": 0,
+      "kinds": {
+        "LogicalComponent": 12,
+        "Subsystem": 5,
+        "System": 1
+      },
+      "relationships": 17,
+      "relationshipTypes": {
+        "composes": 17
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/architecture/operational/context.sysml": {
+      "elements": 2,
+      "definitions": 0,
+      "kinds": {
+        "UseContext": 1,
+        "User": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/assurance/requirements/needs.sysml": {
+      "elements": 4,
+      "definitions": 0,
+      "kinds": {
+        "Need": 4
+      },
+      "relationships": 11,
+      "relationshipTypes": {
+        "derivesFrom": 9,
+        "heldBy": 2
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/assurance/requirements/requirements.sysml": {
+      "elements": 7,
+      "definitions": 0,
+      "kinds": {
+        "Requirement": 7
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/assurance/verification_validation/verification_validation.sysml": {
+      "elements": 8,
+      "definitions": 0,
+      "kinds": {
+        "VerificationCase": 8
+      },
+      "relationships": 25,
+      "relationshipTypes": {
+        "verifiedBy": 25
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/traces.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 14,
+      "relationshipTypes": {
+        "allocatedTo": 14
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

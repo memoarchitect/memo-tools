@@ -31,7 +31,36 @@ pnpm run build
 pnpm run type-check
 pnpm run test              # vitest: parser, validation, commands, E2E
 pnpm run example:validate  # the GPCA example must still validate
+pnpm run check:baselines   # the reference projects' frozen semantic output
 ```
+
+## The element census
+
+`pnpm run test` counts every shipped example — elements per file and per kind,
+relationships per type, packages, parse errors — and compares the result against
+the frozen counts in `packages/tools/src/__tests__/fixtures/census/`. A count
+that goes **down** fails the run.
+
+It is there because nothing else notices content leaving the model. Violations
+fall when the elements carrying them disappear and completeness rises when the
+incomplete ones do, so a silent drop reads as progress: measured 2026-09-19, a
+file that built 2 elements instead of 124 was reported as "92% complete, 1583
+violations, 32 rules passed", down from 1595.
+
+A count going **up** is printed and passes — adding content to an example is
+ordinary work. Re-freeze after it, so the baseline does not sit stale-low:
+
+```bash
+pnpm run build && pnpm run census:capture
+```
+
+Re-freeze only when the difference is understood, and say in the commit message
+what moved and why. The census cannot tell content you removed on purpose from
+content that vanished; that judgement is the whole of what a re-freeze records.
+
+`pnpm run check:baselines` is the finer, slower oracle beside it: it freezes
+element ids and relationship endpoints for four reference projects and answers
+"did anything move?", where the census answers "did anything leave?".
 
 ## Boundaries to respect
 

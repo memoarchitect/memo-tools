@@ -1,0 +1,791 @@
+{
+  "project": "gpca-pump",
+  "totals": {
+    "files": 55,
+    "elements": 734,
+    "definitions": 13,
+    "relationships": 810,
+    "packages": 55,
+    "parseErrors": 0,
+    "builderFindings": 73
+  },
+  "files": {
+    "model/catalog/gpca_analysis.sysml": {
+      "elements": 27,
+      "definitions": 0,
+      "kinds": {
+        "DetectionMethod": 3,
+        "FailureCause": 3,
+        "FailureEffect": 3,
+        "FailureMode": 5,
+        "FaultTree": 1,
+        "FaultTreeNode": 8,
+        "FMEAAction": 1,
+        "FMEAWorksheet": 1,
+        "MinimalCutSet": 2
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_architecture.sysml": {
+      "elements": 105,
+      "definitions": 0,
+      "kinds": {
+        "HardwareAssembly": 17,
+        "LogicalComponent": 5,
+        "PhysicalAssembly": 1,
+        "PhysicalPort": 17,
+        "SoftwareModule": 8,
+        "SoftwarePort": 56,
+        "SoftwareSystem": 1
+      },
+      "relationships": 121,
+      "relationshipTypes": {
+        "composes": 11,
+        "flow": 1,
+        "satisfiedBy": 109
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_behavior_actions.sysml": {
+      "elements": 18,
+      "definitions": 11,
+      "kinds": {
+        "ActionUsage": 7,
+        "FunctionalAction": 6,
+        "InterfaceItem": 5
+      },
+      "relationships": 27,
+      "relationshipTypes": {
+        "allocatedTo": 9,
+        "composes": 6,
+        "flow": 5,
+        "succession": 7
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_behavior_modes.sysml": {
+      "elements": 41,
+      "definitions": 0,
+      "kinds": {
+        "BehaviorProperty": 4,
+        "MemoState": 9,
+        "ModeConfiguration": 5,
+        "StateMachine": 1,
+        "TimingConstraint": 3,
+        "Unknown": 19
+      },
+      "relationships": 13,
+      "relationshipTypes": {
+        "composes": 9,
+        "variant": 4
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_behavior_subsystems.sysml": {
+      "elements": 24,
+      "definitions": 0,
+      "kinds": {
+        "ComponentFunction": 3,
+        "FunctionalExchange": 4,
+        "InterfaceItem": 6,
+        "SystemFunction": 11
+      },
+      "relationships": 3,
+      "relationshipTypes": {
+        "composes": 3
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_context.sysml": {
+      "elements": 12,
+      "definitions": 0,
+      "kinds": {
+        "IntendedUse": 1,
+        "ReasonablyForeseeableMisuse": 1,
+        "UseContext": 1,
+        "UseError": 4,
+        "User": 5
+      },
+      "relationships": 12,
+      "relationshipTypes": {
+        "commitsUseError": 4,
+        "performs": 8
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_cybersecurity.sysml": {
+      "elements": 12,
+      "definitions": 0,
+      "kinds": {
+        "CyberHazard": 1,
+        "CyberMitigation": 1,
+        "CyberRisk": 1,
+        "CybersecurityAsset": 2,
+        "OperativeScenario": 1,
+        "SecurityRequirement": 1,
+        "Threat": 2,
+        "TrustBoundary": 1,
+        "VerificationCase": 1,
+        "Vulnerability": 1
+      },
+      "relationships": 11,
+      "relationshipTypes": {
+        "crossesTrustBoundary": 1,
+        "derivesCyberRequirement": 2,
+        "exploits": 1,
+        "impactsSafety": 1,
+        "mitigates": 1,
+        "producesEvidence": 1,
+        "realizedByScenario": 1,
+        "threatenedBy": 2,
+        "verifiedBy": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 1
+    },
+    "model/catalog/gpca_formal_behavior.sysml": {
+      "elements": 20,
+      "definitions": 0,
+      "kinds": {
+        "BehaviorProperty": 16,
+        "Contract": 4
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_interfaces.sysml": {
+      "elements": 105,
+      "definitions": 2,
+      "kinds": {
+        "ComponentExchange": 46,
+        "DataInterface": 1,
+        "Interface": 14,
+        "InterfaceItem": 43,
+        "SensorPort": 1
+      },
+      "relationships": 46,
+      "relationshipTypes": {
+        "bind": 15,
+        "flow": 31
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_operational.sysml": {
+      "elements": 50,
+      "definitions": 0,
+      "kinds": {
+        "ActionUsage": 16,
+        "OperationalCapability": 2,
+        "OperationalEntity": 8,
+        "OperationalWorkflow": 3,
+        "OperativeAction": 14,
+        "OperativeScenario": 6,
+        "UseCase": 1
+      },
+      "relationships": 91,
+      "relationshipTypes": {
+        "composes": 28,
+        "dependency": 15,
+        "enablesUseCase": 2,
+        "participatesIn": 4,
+        "realizes": 15,
+        "realizesUseCase": 3,
+        "requiresCapability": 2,
+        "succession": 22
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_physical.sysml": {
+      "elements": 6,
+      "definitions": 0,
+      "kinds": {
+        "PhysicalPort": 5,
+        "ProcessingNode": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_requirements.sysml": {
+      "elements": 146,
+      "definitions": 0,
+      "kinds": {
+        "Need": 4,
+        "NotificationSpec": 20,
+        "Requirement": 100,
+        "SystemConstant": 22
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_risk.sysml": {
+      "elements": 86,
+      "definitions": 0,
+      "kinds": {
+        "Benefit": 1,
+        "Citation": 9,
+        "Harm": 3,
+        "Hazard": 7,
+        "HazardCause": 22,
+        "HazardousSituation": 7,
+        "OverallResidualRiskEvaluation": 1,
+        "ResidualRisk": 7,
+        "Risk": 7,
+        "RiskControlMeasure": 13,
+        "RiskMatrix": 1,
+        "SafetyRelatedCharacteristic": 1,
+        "SequenceOfEvents": 7
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_standards.sysml": {
+      "elements": 4,
+      "definitions": 0,
+      "kinds": {
+        "MarkdownDocumentSource": 4
+      },
+      "relationships": 39,
+      "relationshipTypes": {
+        "conformsTo": 31,
+        "tracesToDocument": 8
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 12
+    },
+    "model/catalog/gpca_system.sysml": {
+      "elements": 14,
+      "definitions": 0,
+      "kinds": {
+        "FunctionalFlow": 3,
+        "FunctionalFlowStep": 9,
+        "OperativeScenario": 2
+      },
+      "relationships": 18,
+      "relationshipTypes": {
+        "performs": 11,
+        "succession": 7
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/gpca_trace.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 376,
+      "relationshipTypes": {
+        "allocatedTo": 17,
+        "appliesInContext": 2,
+        "assessedAgainst": 14,
+        "bind": 5,
+        "bindsToInterface": 3,
+        "causes": 14,
+        "connect": 10,
+        "containsEvent": 4,
+        "dependency": 5,
+        "deploysTo": 1,
+        "derivesFrom": 113,
+        "detectedBy": 3,
+        "flow": 39,
+        "governs": 1,
+        "hasFailureMode": 5,
+        "hostedBy": 1,
+        "inputToGate": 6,
+        "mitigates": 21,
+        "producesEvent": 1,
+        "producesEvidence": 25,
+        "realizes": 4,
+        "succession": 4,
+        "testedByUsability": 5,
+        "tracesRisk": 70,
+        "validates": 3
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 60
+    },
+    "model/catalog/gpca_verification.sysml": {
+      "elements": 37,
+      "definitions": 0,
+      "kinds": {
+        "MemoEvidence": 11,
+        "ValidationCase": 2,
+        "VerificationCase": 24
+      },
+      "relationships": 53,
+      "relationshipTypes": {
+        "verifiedBy": 53
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/context/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/context/views/context_system_context_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/cybersecurity/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/cybersecurity/views/cybersecurity_cybersecurity_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/cybersecurity/views/document_cyber_assessment_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoCybersecurityAssessmentView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/cybersecurity/views/document_threat_model_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoCybersecurityThreatModelView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/functional/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/functional/views/functional_function_allocation_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/functional/views/functional_function_browser_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/logical/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/logical/views/behavior_action_flow_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/logical/views/document_architecture_description_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDocumentView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/logical/views/logical_device_interconnect_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/logical/views/logical_logical_architecture_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/logical/views/logical_mode_state_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/logical/views/logical_system_decomposition_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/operational/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/operational/views/operational_scenario_sequence_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/operational/views/operational_use_case_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/physical/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/physical/views/physical_physical_bom_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/requirements/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/requirements/views/document_dhf_index_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDocumentView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/requirements/views/requirements_requirements_trace_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/risk/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/risk/views/document_hazard_analysis_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDocumentView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/risk/views/document_rmf_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDocumentView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/risk/views/risk_fmea_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/risk/views/risk_risk_chain_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/software/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/software/views/document_sdd_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDocumentView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/software/views/software_software_architecture_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/usability/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/usability/views/document_usability_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoUsabilityEngineeringView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/verification/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/verification/views/document_vv_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDocumentView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/verification/views/verification_verification_coverage_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

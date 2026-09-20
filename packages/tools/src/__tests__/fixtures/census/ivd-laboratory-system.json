@@ -1,0 +1,65 @@
+{
+  "project": "ivd-laboratory-system",
+  "totals": {
+    "files": 4,
+    "elements": 9,
+    "definitions": 0,
+    "relationships": 0,
+    "packages": 4,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/ivd_laboratory_system.sysml": {
+      "elements": 7,
+      "definitions": 0,
+      "kinds": {
+        "FluidicComponent": 2,
+        "LogicalExchange": 1,
+        "LogicalExchangeItem": 1,
+        "OperativeAction": 1,
+        "OpticalComponent": 1,
+        "PhysicalAssembly": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/ivd_laboratory_system_overview.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

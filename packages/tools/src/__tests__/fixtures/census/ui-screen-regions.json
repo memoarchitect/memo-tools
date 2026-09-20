@@ -1,0 +1,321 @@
+{
+  "project": "ui-screen-regions",
+  "totals": {
+    "files": 24,
+    "elements": 66,
+    "definitions": 0,
+    "relationships": 111,
+    "packages": 24,
+    "parseErrors": 0,
+    "builderFindings": 4
+  },
+  "files": {
+    "model/catalog/architecture/functional/functions.sysml": {
+      "elements": 6,
+      "definitions": 0,
+      "kinds": {
+        "SystemFunction": 6
+      },
+      "relationships": 17,
+      "relationshipTypes": {
+        "composes": 5,
+        "satisfiedBy": 12
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/architecture/implementation/ui.sysml": {
+      "elements": 11,
+      "definitions": 0,
+      "kinds": {
+        "UIAction": 3,
+        "UIElement": 7,
+        "UserInterface": 1
+      },
+      "relationships": 14,
+      "relationshipTypes": {
+        "composes": 5,
+        "performs": 3,
+        "satisfiedBy": 6
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/artifacts/assets/catalog.sysml": {
+      "elements": 3,
+      "definitions": 0,
+      "kinds": {
+        "ScreenCapture": 3
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/artifacts/reviews/comments.sysml": {
+      "elements": 3,
+      "definitions": 0,
+      "kinds": {
+        "ModelComment": 3
+      },
+      "relationships": 1,
+      "relationshipTypes": {
+        "composes": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/artifacts/reviews/notes.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelNote": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/artifacts/reviews/rationales.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelRationale": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/assurance/human_factors/human_factors.sysml": {
+      "elements": 5,
+      "definitions": 0,
+      "kinds": {
+        "UseError": 5
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/assurance/requirements/needs.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "Need": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/assurance/requirements/requirements.sysml": {
+      "elements": 12,
+      "definitions": 0,
+      "kinds": {
+        "Requirement": 12
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/assurance/safety_risk/risk.sysml": {
+      "elements": 10,
+      "definitions": 0,
+      "kinds": {
+        "Hazard": 5,
+        "RiskControlMeasure": 5
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/assurance/verification_validation/verification_validation.sysml": {
+      "elements": 6,
+      "definitions": 0,
+      "kinds": {
+        "MemoEvidence": 3,
+        "VerificationCase": 3
+      },
+      "relationships": 18,
+      "relationshipTypes": {
+        "verifiedBy": 18
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/relationships.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 2,
+      "relationshipTypes": {
+        "changes": 1,
+        "tracesRisk": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 4
+    },
+    "model/catalog/traces.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 59,
+      "relationshipTypes": {
+        "allocatedTo": 8,
+        "capturesScreen": 3,
+        "causes": 5,
+        "commentsOn": 2,
+        "controlImplementedBy": 6,
+        "derivesFrom": 17,
+        "elementTriggersAction": 3,
+        "errorAtElement": 5,
+        "mitigates": 5,
+        "notesOn": 1,
+        "producesEvidence": 3,
+        "rationaleFor": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/functional/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/functional/views/ui_functional_tree.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/requirements/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/requirements/views/ui_requirements_trace.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/risk/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/risk/views/ui_risk_chain.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/ui_layout/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/ui_layout/views/main_screen_layout.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoScreenLayoutView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/ui_layout/views/settings_screen_layout.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoScreenLayoutView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/ui_layout/views/ui_region_trace.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}
