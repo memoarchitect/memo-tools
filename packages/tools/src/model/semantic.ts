@@ -191,6 +191,12 @@ export interface ParseError {
     file: string;
     /** Error message */
     message: string;
+    /**
+     * A stable identifier for the KIND of diagnostic, for the readers that have
+     * to tell them apart without matching on prose. Absent on a parse error
+     * proper — the parser's complaints are one kind and need no code.
+     */
+    code?: string;
     /** Line number (1-based) */
     line?: number;
     /** Column number (1-based) */

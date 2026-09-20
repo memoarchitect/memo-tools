@@ -26,6 +26,7 @@ export * from './model/effective-scope.js';
 export * from './model/settings-boundary.js';
 export * from './model/config-loader.js';
 export * from './model/semantic.js';
+export * from './model/element-index.js';
 export * from './model/sysml-ir.js';
 export * from './model/ir-identity.js';
 export * from './model/source-graph.js';

@@ -1381,3 +1381,52 @@ describe('Dual-mode builder with registries', () => {
         expect(withoutRegistry.elements.get('haz1')?.layer).toBe('unknown');
     });
 });
+
+// ─── Short-name collisions ──────────────────────────────────────────────────
+//
+// SysML scopes a name to its owner; the element index is keyed on the short
+// name alone. Two elements of the same short name under different owners used
+// to collapse into one entry, last write winning, with nothing reported.
+
+describe('short-name collisions', () => {
+    it('keeps the first declaration and reports the one it dropped', async () => {
+        const operational = await parseDoc(
+            `package Operational { part confirmPrimed : Actor; }`,
+            'model/operational.sysml',
+        );
+        const view = await parseDoc(
+            `package Views { part confirmPrimed; }`,
+            'model/views.sysml',
+        );
+
+        const model = buildMemoModel([operational, view], testConfig, [], testRegistries());
+
+        // The first declaration is the one in the model — the point is that
+        // which one wins does not depend on the order the documents happened
+        // to be read in.
+        const kept = model.elements.get('confirmPrimed');
+        expect(kept?.file).toBe('model/operational.sysml');
+        expect(kept?.kind).toBe('Actor');
+
+        // And the loser is named, with both locations, rather than vanishing.
+        const collision = model.errors.find(error => error.message.includes("named 'confirmPrimed'"));
+        expect(collision).toBeTruthy();
+        expect(collision!.file).toBe('model/views.sysml');
+        expect(collision!.message).toContain('model/operational.sysml');
+        expect(collision!.message).toContain('model/views.sysml');
+    });
+
+    it('says nothing when one declaration reaches the index twice', async () => {
+        const doc = await parseDoc(
+            `package Plant { part pump : Software { part impeller : Software; } }`,
+            'model/plant.sysml',
+        );
+
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        // Nested extraction walks some declarations by more than one path.
+        // Same file, same package, same owner, same construct is one element
+        // arriving twice, not two competing for a key.
+        expect(model.errors.filter(error => error.message.includes('Two elements are named'))).toHaveLength(0);
+    });
+});
