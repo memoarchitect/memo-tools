@@ -1,12 +1,6 @@
 # Dependencies
 node_modules/
 .pnpm-store/
-.venv/
-venv/
-
-# pdm's pointer at this machine's interpreter — an absolute path, so it is
-# never shareable. pdm.lock and .python-version ARE committed.
-.pdm-python
 
 # Legacy nested checkout retained locally during the move to memo-meta siblings.
 /memo/
@@ -52,11 +46,21 @@ feedback/
 # Generated TextMate grammar
 packages/tools/syntaxes/
 
-# Documentation builds
-site/
-public/
-_site/
-
 # LLM credentials — never commit an API key
 .env
 .env.local
+
+# Python (pdm / mkdocs) — the docs site toolchain, identical in memo,
+# memo-tools and memo-architect. pdm.lock and .python-version ARE committed;
+# .pdm-python is not, because it holds an absolute path to one machine.
+.venv/
+venv/
+__pypackages__/
+__pycache__/
+*.egg-info/
+.pdm-python
+
+# Generated documentation site
+site/
+public/
+_site/

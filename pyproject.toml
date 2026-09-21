@@ -9,11 +9,12 @@ dependencies = [
     "pymdown-extensions>=10.0",
 ]
 
-# `python -m` puts the working directory on sys.path, which mkdocs.yml needs
-# wherever a fence resolves a module at the repo root. memo-tools has no such
-# module today, so a bare `mkdocs` would work here — this stays uniform with
-# memo and memo-architect, where it is the difference between building and
-# failing in config parsing.
+# `python -m` is load-bearing where mkdocs.yml resolves a fence through a module
+# at the repo root (`sysml_highlight.sysml_fence_format`): only `python -m` puts
+# the working directory on sys.path, and a bare `mkdocs build` therefore dies in
+# CONFIG PARSING with "No module named sysml_highlight". Spelled the same way in
+# all three docs repos whether or not this one has such a module today. The full
+# reasoning lives once, in memo-meta's AGENTS.md.
 [tool.pdm.scripts]
 docs-serve = "python -m mkdocs serve"
 docs-build = "python -m mkdocs build --strict"
