@@ -23,6 +23,7 @@ import {
     isItemDefinition,
     isPortDefinition,
     isInterfaceDefinition,
+    isFlowDefinition,
     isAttributeDefinition,
     isEnumDefinition,
     isPackageDeclaration,
@@ -169,6 +170,7 @@ const AST_TYPE_TO_CONSTRUCT: Record<string, SysMLConstruct> = {
     ItemDefinition: 'item def',
     PortDefinition: 'port def',
     InterfaceDefinition: 'interface def',
+    FlowDefinition: 'flow def',
     AttributeDefinition: 'attribute def',
     EnumDefinition: 'enum def',
 };
@@ -604,6 +606,7 @@ export class KindRegistry {
                 isItemDefinition(member) ||
                 isPortDefinition(member) ||
                 isInterfaceDefinition(member) ||
+                isFlowDefinition(member) ||
                 isAttributeDefinition(member) ||
                 isEnumDefinition(member)
             ) {

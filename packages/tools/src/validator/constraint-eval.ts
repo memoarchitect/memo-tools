@@ -36,6 +36,7 @@ import type { MemoModel, MemoElement } from '../model/semantic.js';
 import type { Violation } from './types.js';
 import type { ConstraintExpr } from '../language/generated/ast.js';
 import type { KindRegistry } from '../model/kind-registry.js';
+import { withRelationshipSubjects } from '../model/relationship-subjects.js';
 
 /** A constraint authored as a KerML-subset boolean expression over a subject element. */
 export interface NativeConstraint {
@@ -94,7 +95,15 @@ export function evaluateConstraintNode(
     kindRegistry?: KindRegistry,
     inScope?: (element: MemoElement) => boolean,
 ): Violation[] {
-    const evaluationModel = kindRegistry ? withSpecializationExtents(model, kindRegistry) : model;
+    // Two projections, in this order. A named typed flow or interface usage is
+    // a rule subject of its declared kind — the read-only facade §9.1 of the
+    // architecture plan asks for — and that has to happen BEFORE specialization
+    // extents, or a flow typed `FunctionalExchange` would reach a rule scoped
+    // to it but not one scoped to a supertype of it.
+    const withSubjects = withRelationshipSubjects(model, kindRegistry);
+    const evaluationModel = kindRegistry
+        ? withSpecializationExtents(withSubjects, kindRegistry)
+        : withSubjects;
     // Methodology scope restricts which elements a rule is evaluated ON. It must
     // NOT restrict the graph the rule navigates or the type extents it tests:
     // narrowing `elements` made every trace navigation return nothing, and

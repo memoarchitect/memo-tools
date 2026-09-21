@@ -43,6 +43,11 @@ export interface ActionParameter {
  */
 export const MEMO_CONSTRUCTS = [
     'part', 'item', 'port', 'interface', 'connection',
+    // A `flow def` is a definition like any other and a named flow usage is
+    // its instance. The usage reaches the model as a relationship, not an
+    // element — an edge is not a part — so this value appears on the
+    // read-only rule subject projected from that edge, and on the definition.
+    'flow',
     'action', 'state', 'transition', 'use case',
     'requirement', 'verification', 'concern',
     'actor', 'stakeholder',
@@ -215,6 +220,24 @@ export interface MemoRelationship {
      * connections get a positional id instead and cannot be edited by id.
      */
     named?: boolean;
+    /**
+     * The DECLARED domain type of a named relationship — the `flow def` or
+     * `interface def` a typed usage names, as in
+     * `flow lfDose : FunctionalExchange from … to …`.
+     *
+     * Distinct from `type`, which stays the native relationship keyword
+     * (`flow`, `bind`, `connect`). The two answer different questions: `type`
+     * says what kind of link this is in the language, `kind` says what
+     * contract the model declares it honours. A typed `connection : Mitigates`
+     * has no `kind`, because a connection definition IS a relation definition
+     * and its name becomes the `type`; a flow definition is not — it is an
+     * occurrence definition classifying a transfer that is a flow either way.
+     *
+     * This is what lets a rule say `appliesTo = "FunctionalExchange"` and
+     * reach the edge, through the read-only subject projection in
+     * `relationship-subjects.ts`, without a proxy part beside it.
+     */
+    kind?: string;
     /** Item type being transported (for flow relationships) */
     flowItem?: string;
     /** Source port element ID (when connection endpoint is a port) */
