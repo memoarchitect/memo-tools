@@ -15,7 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { EffectiveMethodology, RuleCandidate } from './methodology-resolver.js';
-import { ruleCandidatesFromConstraints } from './methodology-resolver.js';
+import { ruleCandidatesFromConstraints, isWithinLayerNamespace } from './methodology-resolver.js';
 import type { CompiledConstraint } from '../validator/constraint-eval.js';
 
 /**
@@ -108,12 +108,28 @@ export function filterKindsInScope<T extends ScopedKind>(
 /**
  * Is a package in scope?
  *
- * `includedLayer` and `includedModule` both name packages; a methodology splits
- * them for readability, not because the resolver treats them differently.
+ * The two inclusion lists are NOT two spellings of one thing. A module entry
+ * names a package; a layer entry names a namespace and selects every package
+ * within it. This comment used to say they were split "for readability, not
+ * because the resolver treats them differently", and the code matched the
+ * comment — which is how five layer entries selected nothing for as long as
+ * they did.
  */
 export function isPackageInScope(scope: EffectiveScope, packageName: string): boolean {
     if (scope.mode === 'allAvailable') return true;
-    return scope.layers.has(packageName) || scope.modules.has(packageName);
+    // A module entry names a package, so it matches one by name. A layer entry
+    // names a NAMESPACE and selects every package within it — the two are not
+    // the same test, and treating them alike is what made every layer entry
+    // match nothing at all.
+    //
+    // Module matching stays exact on purpose. A module entry may name a package
+    // outside MEMO, where a prefix test would quietly over-capture a neighbour
+    // that merely shares an opening segment.
+    if (scope.modules.has(packageName)) return true;
+    for (const layer of scope.layers) {
+        if (isWithinLayerNamespace(layer, packageName)) return true;
+    }
+    return false;
 }
 
 /**

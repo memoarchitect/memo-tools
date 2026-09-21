@@ -163,6 +163,79 @@ describe('effective scope', () => {
         expect(isPackageInScope(scope, 'pkg_b')).toBe(false);
     });
 
+    // A layer entry names a NAMESPACE, not a package. `memo_core.sysml` says so:
+    // "Layer entries normally name a public MEMO layer namespace; module entries
+    // may name any qualified package available to the project."
+    //
+    // Matching the two alike is what made all five of gpca-pump's layer entries
+    // select nothing, which silently dropped 25 rules — every rule whose subject
+    // kind is declared in an architecture package, CR-ONT-076 among them. The
+    // example reported `0 violations` throughout, because a rule that never runs
+    // cannot fail.
+    it('places a package inside a selected layer namespace', () => {
+        const scope = buildEffectiveScope(resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
+            new Map([['m', methodology({
+                usageName: 'm', scopeMode: 'explicit',
+                includedLayers: ['memo_architecture_logical'],
+            })]]),
+            new Set(['memo_architecture_logical_interfaces']),
+        ));
+        // The namespace itself is not a package anywhere in the tree; the leaves
+        // below it are what the resolver actually has to place.
+        expect(isPackageInScope(scope, 'memo_architecture_logical_interfaces')).toBe(true);
+        expect(isPackageInScope(scope, 'memo_architecture_logical_structure')).toBe(true);
+        expect(isPackageInScope(scope, 'memo_architecture_logical')).toBe(true);
+    });
+
+    it('stops a layer namespace at a separator', () => {
+        const scope = buildEffectiveScope(resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
+            new Map([['m', methodology({
+                usageName: 'm', scopeMode: 'explicit',
+                includedLayers: ['memo_architecture_logical'],
+            })]]),
+            new Set(['memo_architecture_logical_interfaces']),
+        ));
+        // A bare prefix test would capture this: it shares every letter of the
+        // layer name and is a different namespace.
+        expect(isPackageInScope(scope, 'memo_architecture_logicalxx')).toBe(false);
+    });
+
+    it('keeps module matching exact', () => {
+        // A module entry may name a package outside MEMO, where prefix matching
+        // would quietly capture a neighbour that shares an opening segment.
+        const scope = buildEffectiveScope(resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
+            new Map([['m', methodology({
+                usageName: 'm', scopeMode: 'explicit',
+                includedModules: ['vendor_pkg'],
+            })]]),
+            new Set(['vendor_pkg']),
+        ));
+        expect(isPackageInScope(scope, 'vendor_pkg')).toBe(true);
+        expect(isPackageInScope(scope, 'vendor_pkg_internal')).toBe(false);
+    });
+
+    it('reports a layer that covers no resolved package', () => {
+        // The counterpart of `unavailable-module`, which existed while this did
+        // not. That asymmetry is the whole reason the defect was invisible: a
+        // selection matching nothing just narrows the rule set, and a narrower
+        // rule set reports fewer violations, which reads like a cleaner model.
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
+            new Map([['m', methodology({
+                usageName: 'm', scopeMode: 'explicit',
+                includedLayers: ['memo_architecture_logical', 'context'],
+            })]]),
+            new Set(['memo_architecture_logical_interfaces']),
+        );
+        // The first layer covers a package; `context` — the archetype spelling —
+        // covers none, and is the one that has to be named.
+        expect(effective.diagnostics.map(d => d.code)).toEqual(['unavailable-layer']);
+        expect(effective.diagnostics[0].message).toContain('context');
+    });
+
     it('filters palette kinds by scope', () => {
         const scope = buildEffectiveScope(resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'm' }),
