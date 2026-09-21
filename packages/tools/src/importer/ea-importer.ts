@@ -343,8 +343,11 @@ export function eaResultToSysml(result: EaImportResult, packageName: string): st
             if (el.doc) {
                 lines.push(`${indent}${indent}doc /* ${escapeDoc(el.doc)} */`);
             }
+            // The imported name is a display label, not an identifier —
+            // `toSysmlId` had to mangle it to get one. It goes on
+            // `@MemoIdentity`; the MEMO bases stopped declaring `name`.
             if (el.name !== sysmlId) {
-                lines.push(`${indent}${indent}attribute redefines name = "${escapeString(el.name)}";`);
+                lines.push(`${indent}${indent}@MemoIdentity { :>> label = "${escapeString(el.name)}"; }`);
             }
             for (const [key, value] of Object.entries(el.attributes)) {
                 lines.push(`${indent}${indent}attribute redefines ${toSysmlId(key)} = "${escapeString(value)}";`);

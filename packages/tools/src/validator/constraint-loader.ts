@@ -16,7 +16,7 @@
 //   }
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { ParsedDocument } from '../model/parser-utils.js';
+import { extractDocComment, type ParsedDocument } from '../model/parser-utils.js';
 import type { CompiledConstraint } from './constraint-eval.js';
 import { langiumExprToNode, parseConstraintExpression } from './constraint-eval.js';
 
@@ -156,7 +156,12 @@ function tryCompile(def: any, file?: string): CompiledConstraint | undefined {
 
     return {
         id,
-        description: attrs['description'] || attrs['rationaleText'] || id,
+        // Native `doc` first: the bases stopped declaring `description`, so a
+        // rule written today states its prose as a doc comment. `description`
+        // stays ahead of `rationaleText` for a rule that still carries the old
+        // attribute — a rationale is why the rule exists, not what it checks,
+        // and it is the last resort rather than an equivalent.
+        description: extractDocComment(body) || attrs['description'] || attrs['rationaleText'] || id,
         appliesToKind,
         severity: mapSeverity(attrs['severity']),
         evaluator: attrs['evaluator'] || undefined,

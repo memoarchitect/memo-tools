@@ -307,7 +307,7 @@ describe('generateUsage', () => {
 
         expect(sysml).toContain('requirement haz_001 : Hazard {');
         expect(sysml).toContain('doc /* Excess medication delivery */');
-        expect(sysml).toContain('attribute redefines name = "Over-Infusion"');
+        expect(sysml).toContain('@MemoIdentity { :>> label = "Over-Infusion"; }');
         expect(sysml).toContain('attribute redefines severity = "Serious"');
         expect(sysml).toContain('}');
     });

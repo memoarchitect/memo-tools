@@ -12,7 +12,7 @@
 //   const rules = registry.entries();
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ParsedDocument } from '../model/parser-utils.js';
+import { extractDocComment, type ParsedDocument } from '../model/parser-utils.js';
 
 /** A consistency rule extracted from SysML ontology */
 export interface RuleRegistryEntry {
@@ -133,8 +133,9 @@ export class RuleRegistry {
 
         const entry: RuleRegistryEntry = {
             id,
-            name: attrs['name'] ?? usage.name ?? id,
-            description: attrs['description'] ?? '',
+            name: attrs['label'] ?? attrs['name'] ?? usage.name ?? id,
+            // Native `doc` first; `description` is the pre-migration attribute.
+            description: extractDocComment(usage.body) ?? attrs['description'] ?? '',
             appliesTo: attrs['appliesTo'] ?? '',
             predicate: attrs['predicate'] ?? '',
             strength: attrs['strength'] ?? 'recommended',

@@ -938,6 +938,9 @@ function renderEntrypoint(prefix: string, root: string, packages: string[]): str
         '    private import ScalarValues::*;',
         '',
         '    private import memo_core_enumerations::*;',
+        // The binding's display label rides on @MemoIdentity, so the carrier
+        // has to be in scope.
+        '    private import memo_core_common::MemoIdentity;',
         '    private import memo_methodology_core::*;',
         '    private import memo_methodology_profiles::*;',
         '',
@@ -947,7 +950,7 @@ function renderEntrypoint(prefix: string, root: string, packages: string[]): str
         '',
         `    part projectBinding : ProjectMethodBinding {`,
         `        attribute :>> id = "PMB-${idBase}-001";`,
-        `        attribute :>> name = "${projectName.replace(/\s+/g, '')}ProjectMethodBinding";`,
+        `        @MemoIdentity { :>> label = "${projectName.replace(/\s+/g, '')}ProjectMethodBinding"; }`,
         `        attribute :>> projectName = "${projectName}";`,
         '        ref :>> selectedMethodology = mdDefaultDefinition;',
         '        attribute :>> scopeMode = ScopeModeKind::explicit;',

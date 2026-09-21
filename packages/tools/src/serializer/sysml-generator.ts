@@ -7,7 +7,7 @@
 import type { CsvElement, CsvRelationship } from './csv-io.js';
 
 // Generate a SysML usage block for a single element.
-// Example: requirement hazard_001 : Hazard { doc /​* text *​/ attribute redefines name = "..."; }
+// Example: requirement hazard_001 : Hazard { doc /​* text *​/ @MemoIdentity { :>> label = "..."; } }
 export function generateUsage(element: CsvElement): string {
     const lines: string[] = [];
     const indent = '    ';
@@ -20,9 +20,13 @@ export function generateUsage(element: CsvElement): string {
         lines.push(`${indent}doc /* ${element.doc} */`);
     }
 
-    // Name attribute (always emit if different from id)
+    // Display label, emitted only when it says something the id does not.
+    // It goes on `@MemoIdentity`: the MEMO bases no longer declare a `name`
+    // attribute, so `attribute redefines name` — what this emitted until the
+    // label migration — no longer resolves, and the generated file would not
+    // compile.
     if (element.name && element.name !== element.id) {
-        lines.push(`${indent}attribute redefines name = "${escapeString(element.name)}";`);
+        lines.push(`${indent}@MemoIdentity { :>> label = "${escapeString(element.name)}"; }`);
     }
 
     // Dynamic attributes. Structured attribute values are flattened in the
@@ -31,7 +35,7 @@ export function generateUsage(element: CsvElement): string {
     const scalarAttributes: Array<[string, string]> = [];
     const structuredAttributes = new Map<string, Array<[string, string]>>();
     for (const [key, value] of Object.entries(element.attributes)) {
-        if (key === 'name') continue; // already handled above
+        if (key === 'name' || key === 'label') continue; // emitted above
         const dot = key.indexOf('.');
         if (dot < 1 || dot === key.length - 1) {
             scalarAttributes.push([key, value]);

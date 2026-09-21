@@ -107,7 +107,7 @@ import type {
     PortSpec,
     UnresolvedReference,
 } from './semantic.js';
-import type { ParsedDocument } from './parser-utils.js';
+import { extractDocComment, type ParsedDocument } from './parser-utils.js';
 // Where an element sits comes from where it was AUTHORED, not from a literal
 // chosen here. See `authoredLayer` below.
 import { resolveLayerFromPath } from './layer-resolver.js';
@@ -1011,10 +1011,10 @@ function extractUsage(
         }
     }
 
-    // Human-readable name: prefer "attribute redefines name" over usage name.
-    // The fallback is the SHORT name — `id` is a qualified path now, and a
-    // panel that fell back to it would print the whole chain as the label.
-    const displayName = attributes['name'] || attributes['title'] || shortName;
+    // Human-readable name: see `displayNameOf`. The fallback is the SHORT
+    // name — `id` is a qualified path now, and a panel that fell back to it
+    // would print the whole chain as the label.
+    const displayName = displayNameOf(attributes, shortName);
 
     const element: MemoElement = {
         id,
@@ -1423,7 +1423,7 @@ function extractDefinitionElement(
     const element: MemoElement = {
         id,
         shortName,
-        name: attributes['name'] || attributes['title'] || shortName,
+        name: displayNameOf(attributes, shortName),
         // A definition that specializes nothing the ontology knows is still a
         // definition; it says so rather than borrowing a kind it has not got.
         kind: resolvedKind ?? `${construct.charAt(0).toUpperCase()}${construct.slice(1)}Definition`,
@@ -1698,7 +1698,7 @@ function extractActionUsage(
     const attributes = extractAttributes(bodyMembers);
     attributes['behaviorKind'] = behaviorKind;
     const doc = extractDocComment(bodyMembers);
-    const displayName = attributes['name'] || attributes['title'] || shortName;
+    const displayName = displayNameOf(attributes, shortName);
 
     // SysML types a usage the same way whatever the usage is — `part p : Board`
     // and `action a : CoordinateWorkflows` are one mechanism — so the type goes
@@ -2477,6 +2477,26 @@ function resolveVerify(
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * The text a panel, table cell, or diagram node shows for an element.
+ *
+ * `@MemoIdentity { label }` is the authority. `name` is the pre-migration
+ * spelling: the MEMO bases used to declare `attribute name : String`, so a
+ * model authored against an older ontology carries its display text there and
+ * nowhere else. Reading it costs one `||` and is the difference between that
+ * model rendering and every element in it turning into its own identifier.
+ *
+ * `title` predates both and is left alone for the same reason.
+ *
+ * The native name is deliberately last. A label is free text that legitimately
+ * repeats — seven ports are all correctly labelled "TLM_MODE_IN" — so it can
+ * never be the identifier, and the identifier is only the fallback when no one
+ * has written a label.
+ */
+function displayNameOf(attributes: Record<string, string>, shortName: string): string {
+    return attributes['label'] || attributes['name'] || attributes['title'] || shortName;
+}
+
 function extractAttributes(body: any[] | undefined): Record<string, string> {
     if (!body) return {};
     const attrs: Record<string, string> = {};
@@ -2581,16 +2601,6 @@ function extractAttributeValue(value: any): string {
     }
 }
 
-function extractDocComment(body: any[] | undefined): string | undefined {
-    if (!body) return undefined;
-    const doc = body.find((m: any) => m.$type === 'DocComment') as DocComment | undefined;
-    if (!doc) return undefined;
-    return doc.content
-        .replace(/^doc\s+\/\*\s*/, '')
-        .replace(/\s*\*\/$/, '')
-        .replace(/\n\s*\*\s?/g, ' ')
-        .trim();
-}
 
 /**
  * Resolve a QualifiedName reference to just the local name.
