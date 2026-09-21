@@ -1,6 +1,12 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+.venv/
+venv/
+
+# pdm's pointer at this machine's interpreter — an absolute path, so it is
+# never shareable. pdm.lock and .python-version ARE committed.
+.pdm-python
 
 # Legacy nested checkout retained locally during the move to memo-meta siblings.
 /memo/
