@@ -3,1023 +3,1023 @@
   "model": {
     "elements": [
       {
-        "id": "capDrugSelector",
-        "kind": "ScreenCapture",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_artifacts_assets"
-      },
-      {
-        "id": "capMain",
-        "kind": "ScreenCapture",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_artifacts_assets"
-      },
-      {
-        "id": "capSettings",
-        "kind": "ScreenCapture",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_artifacts_assets"
-      },
-      {
-        "id": "cmtDecimalSalience",
-        "kind": "ModelComment",
-        "construct": "part",
-        "layer": "core",
-        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
-      },
-      {
-        "id": "cmtStatusBarReply",
-        "kind": "ModelComment",
-        "construct": "part",
-        "layer": "core",
-        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
-      },
-      {
-        "id": "cmtStatusBarScope",
-        "kind": "ModelComment",
-        "construct": "part",
-        "layer": "core",
-        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
-      },
-      {
-        "id": "elDrugMenuExpanded",
-        "kind": "UIElement",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
-      },
-      {
-        "id": "elDrugSelectorClosed",
-        "kind": "UIElement",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
-      },
-      {
-        "id": "elDrugSelectorRegion",
-        "kind": "UIElement",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
-      },
-      {
-        "id": "elMainScreen",
-        "kind": "UIElement",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
-      },
-      {
-        "id": "elRateConfirmDialog",
-        "kind": "UIElement",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
-      },
-      {
-        "id": "elSettingsScreen",
-        "kind": "UIElement",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
-      },
-      {
-        "id": "evDrugLibrarySelection",
-        "kind": "MemoEvidence",
-        "construct": "part",
-        "layer": "core",
-        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
-      },
-      {
-        "id": "evInfusionStatusContent",
-        "kind": "MemoEvidence",
-        "construct": "part",
-        "layer": "core",
-        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
-      },
-      {
-        "id": "evRateChange",
-        "kind": "MemoEvidence",
-        "construct": "part",
-        "layer": "core",
-        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
-      },
-      {
-        "id": "fnManageInfusionDisplay",
+        "id": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay",
         "kind": "SystemFunction",
         "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
-        "id": "fnPresentBatteryStatus",
+        "id": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus",
         "kind": "SystemFunction",
         "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
-        "id": "fnPresentDeliveryStatus",
+        "id": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus",
         "kind": "SystemFunction",
         "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
-        "id": "fnPresentLocalTime",
+        "id": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime",
         "kind": "SystemFunction",
         "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
-        "id": "fnSetInfusionRate",
+        "id": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate",
         "kind": "SystemFunction",
         "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
-        "id": "fnValidateDrugSelection",
+        "id": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection",
         "kind": "SystemFunction",
         "construct": "action",
         "layer": "functional",
         "package": "memo_examples_ui_screen_regions_architecture_functional_functions"
       },
       {
-        "id": "hzIncorrectDeliveredVolumeAssessment",
-        "kind": "Hazard",
-        "construct": "item",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
-      },
-      {
-        "id": "hzIncorrectEventChronology",
-        "kind": "Hazard",
-        "construct": "item",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
-      },
-      {
-        "id": "hzUnexpectedPowerLoss",
-        "kind": "Hazard",
-        "construct": "item",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
-      },
-      {
-        "id": "hzWrongDrug",
-        "kind": "Hazard",
-        "construct": "item",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
-      },
-      {
-        "id": "hzWrongRate",
-        "kind": "Hazard",
-        "construct": "item",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
-      },
-      {
-        "id": "mainScreenLayout",
-        "kind": "MemoScreenLayoutView",
-        "construct": "view",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_main_screen_layout"
-      },
-      {
-        "id": "needReadableProgramming",
-        "kind": "Need",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements_needs"
-      },
-      {
-        "id": "noteCaptureReview",
-        "kind": "ModelNote",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen",
+        "kind": "UIElement",
         "construct": "part",
-        "layer": "core",
-        "package": "memo_examples_ui_screen_regions_artifacts_reviews_notes"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "ratOverlayGeometry",
-        "kind": "ModelRationale",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion",
+        "kind": "UIElement",
         "construct": "part",
-        "layer": "core",
-        "package": "memo_examples_ui_screen_regions_artifacts_reviews_rationales"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "rcClockFreshnessCheck",
-        "kind": "RiskControlMeasure",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion::elDrugMenuExpanded",
+        "kind": "UIElement",
         "construct": "part",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "rcDisplayFreshnessMonitor",
-        "kind": "RiskControlMeasure",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion::elDrugSelectorClosed",
+        "kind": "UIElement",
         "construct": "part",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "rcDrugLibraryGuard",
-        "kind": "RiskControlMeasure",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12",
+        "kind": "UIElement",
         "construct": "part",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "rcLowBatteryProminence",
-        "kind": "RiskControlMeasure",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen",
+        "kind": "UIElement",
         "construct": "part",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "rcRateConfirm",
-        "kind": "RiskControlMeasure",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen::elRateConfirmDialog",
+        "kind": "UIElement",
         "construct": "part",
-        "layer": "safety_risk",
-        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "reqActiveRateDisplay",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqBatteryStatusDisplay",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqBatteryWarningPerformance",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqDisplayFreshness",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqDrugIdentityDisplay",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqDrugLibrarySelection",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqDrugSelectionPerformance",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqRateEntry",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqRateLegibility",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqTimeAccuracy",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqTimeDisplay",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "reqVolumeDisplay",
-        "kind": "Requirement",
-        "construct": "requirement",
-        "layer": "requirements",
-        "package": "memo_examples_ui_screen_regions_assurance_requirements"
-      },
-      {
-        "id": "settingsScreenLayout",
-        "kind": "MemoScreenLayoutView",
-        "construct": "view",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_settings_screen_layout"
-      },
-      {
-        "id": "ueMisreadDisplayedTime",
-        "kind": "UseError",
-        "construct": "part",
-        "layer": "human-factors",
-        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
-      },
-      {
-        "id": "ueMisreadRate",
-        "kind": "UseError",
-        "construct": "part",
-        "layer": "human-factors",
-        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
-      },
-      {
-        "id": "ueMissLowBattery",
-        "kind": "UseError",
-        "construct": "part",
-        "layer": "human-factors",
-        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
-      },
-      {
-        "id": "ueRelyOnStaleVolume",
-        "kind": "UseError",
-        "construct": "part",
-        "layer": "human-factors",
-        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
-      },
-      {
-        "id": "ueSelectWrongDrug",
-        "kind": "UseError",
-        "construct": "part",
-        "layer": "human-factors",
-        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
-      },
-      {
-        "id": "uiaEditRate",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaEditRate",
         "kind": "UIAction",
         "construct": "action",
         "layer": "implementation",
         "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "uiaOpenSettings",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaOpenSettings",
         "kind": "UIAction",
         "construct": "action",
         "layer": "implementation",
         "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "uiaSelectDrug",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaSelectDrug",
         "kind": "UIAction",
         "construct": "action",
         "layer": "implementation",
         "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "uiElement12",
-        "kind": "UIElement",
-        "construct": "part",
-        "layer": "implementation",
-        "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
-      },
-      {
-        "id": "uiFunctionalTree",
-        "kind": "MemoDiagramView",
-        "construct": "view",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints_functional_views_ui_functional_tree"
-      },
-      {
-        "id": "uiPumpPanel",
+        "id": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiPumpPanel",
         "kind": "UserInterface",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_ui_screen_regions_architecture_implementation_ui"
       },
       {
-        "id": "uiRegionTrace",
-        "kind": "MemoDiagramView",
-        "construct": "view",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_ui_region_trace"
+        "id": "memo_examples_ui_screen_regions_artifacts_assets::capDrugSelector",
+        "kind": "ScreenCapture",
+        "construct": "part",
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_artifacts_assets"
       },
       {
-        "id": "uiRequirementsTrace",
-        "kind": "MemoDiagramView",
-        "construct": "view",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints_requirements_views_ui_requirements_trace"
+        "id": "memo_examples_ui_screen_regions_artifacts_assets::capMain",
+        "kind": "ScreenCapture",
+        "construct": "part",
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_artifacts_assets"
       },
       {
-        "id": "uiRiskChain",
-        "kind": "MemoDiagramView",
-        "construct": "view",
-        "layer": "unknown",
-        "package": "memo_examples_ui_screen_regions_viewpoints_risk_views_ui_risk_chain"
+        "id": "memo_examples_ui_screen_regions_artifacts_assets::capSettings",
+        "kind": "ScreenCapture",
+        "construct": "part",
+        "layer": "implementation",
+        "package": "memo_examples_ui_screen_regions_artifacts_assets"
       },
       {
-        "id": "uiScreenRegionsBinding",
+        "id": "memo_examples_ui_screen_regions_artifacts_reviews_comments::cmtDecimalSalience",
+        "kind": "ModelComment",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_artifacts_reviews_comments::cmtStatusBarScope",
+        "kind": "ModelComment",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_artifacts_reviews_comments::cmtStatusBarScope::cmtStatusBarReply",
+        "kind": "ModelComment",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_comments"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_artifacts_reviews_notes::noteCaptureReview",
+        "kind": "ModelNote",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_notes"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_artifacts_reviews_rationales::ratOverlayGeometry",
+        "kind": "ModelRationale",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_artifacts_reviews_rationales"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_human_factors::ueMisreadDisplayedTime",
+        "kind": "UseError",
+        "construct": "part",
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_human_factors::ueMisreadRate",
+        "kind": "UseError",
+        "construct": "part",
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_human_factors::ueMissLowBattery",
+        "kind": "UseError",
+        "construct": "part",
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_human_factors::ueRelyOnStaleVolume",
+        "kind": "UseError",
+        "construct": "part",
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_human_factors::ueSelectWrongDrug",
+        "kind": "UseError",
+        "construct": "part",
+        "layer": "human-factors",
+        "package": "memo_examples_ui_screen_regions_assurance_human_factors"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements_needs::needReadableProgramming",
+        "kind": "Need",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements_needs"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqActiveRateDisplay",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryStatusDisplay",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryWarningPerformance",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqDisplayFreshness",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugLibrarySelection",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugSelectionPerformance",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqRateEntry",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqRateLegibility",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeAccuracy",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeDisplay",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_requirements::reqVolumeDisplay",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_ui_screen_regions_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectDeliveredVolumeAssessment",
+        "kind": "Hazard",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectEventChronology",
+        "kind": "Hazard",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hzUnexpectedPowerLoss",
+        "kind": "Hazard",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongDrug",
+        "kind": "Hazard",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongRate",
+        "kind": "Hazard",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::rcClockFreshnessCheck",
+        "kind": "RiskControlMeasure",
+        "construct": "part",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDisplayFreshnessMonitor",
+        "kind": "RiskControlMeasure",
+        "construct": "part",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDrugLibraryGuard",
+        "kind": "RiskControlMeasure",
+        "construct": "part",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::rcLowBatteryProminence",
+        "kind": "RiskControlMeasure",
+        "construct": "part",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::rcRateConfirm",
+        "kind": "RiskControlMeasure",
+        "construct": "part",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_verification_validation::evDrugLibrarySelection",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_verification_validation::evInfusionStatusContent",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_verification_validation::evRateChange",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_verification_validation::vcDrugLibrarySelection",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_verification_validation::vcRateChange",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_project::uiScreenRegionsBinding",
         "kind": "ProjectMethodBinding",
         "construct": "part",
         "layer": "methodology",
         "package": "memo_examples_ui_screen_regions_project"
       },
       {
-        "id": "vcDrugLibrarySelection",
-        "kind": "VerificationCase",
-        "construct": "verification",
-        "layer": "verification_validation",
-        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+        "id": "memo_examples_ui_screen_regions_viewpoints_functional_views_ui_functional_tree::uiFunctionalTree",
+        "kind": "MemoDiagramView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_ui_screen_regions_viewpoints_functional_views_ui_functional_tree"
       },
       {
-        "id": "vcInfusionStatusContent",
-        "kind": "VerificationCase",
-        "construct": "verification",
-        "layer": "verification_validation",
-        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+        "id": "memo_examples_ui_screen_regions_viewpoints_requirements_views_ui_requirements_trace::uiRequirementsTrace",
+        "kind": "MemoDiagramView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_ui_screen_regions_viewpoints_requirements_views_ui_requirements_trace"
       },
       {
-        "id": "vcRateChange",
-        "kind": "VerificationCase",
-        "construct": "verification",
-        "layer": "verification_validation",
-        "package": "memo_examples_ui_screen_regions_assurance_verification_validation"
+        "id": "memo_examples_ui_screen_regions_viewpoints_risk_views_ui_risk_chain::uiRiskChain",
+        "kind": "MemoDiagramView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_ui_screen_regions_viewpoints_risk_views_ui_risk_chain"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_main_screen_layout::mainScreenLayout",
+        "kind": "MemoScreenLayoutView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_main_screen_layout"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_settings_screen_layout::settingsScreenLayout",
+        "kind": "MemoScreenLayoutView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_settings_screen_layout"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_ui_region_trace::uiRegionTrace",
+        "kind": "MemoDiagramView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_ui_screen_regions_viewpoints_ui_layout_views_ui_region_trace"
       }
     ],
     "relationships": [
       {
         "type": "allocatedTo",
-        "sourceId": "fnManageInfusionDisplay",
-        "targetId": "uiPumpPanel"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiPumpPanel"
       },
       {
         "type": "allocatedTo",
-        "sourceId": "fnPresentBatteryStatus",
-        "targetId": "uiPumpPanel"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiPumpPanel"
       },
       {
         "type": "allocatedTo",
-        "sourceId": "fnPresentDeliveryStatus",
-        "targetId": "uiPumpPanel"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiPumpPanel"
       },
       {
         "type": "allocatedTo",
-        "sourceId": "fnPresentLocalTime",
-        "targetId": "uiPumpPanel"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen::elRateConfirmDialog"
       },
       {
         "type": "allocatedTo",
-        "sourceId": "fnSetInfusionRate",
-        "targetId": "elRateConfirmDialog"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiPumpPanel"
       },
       {
         "type": "allocatedTo",
-        "sourceId": "fnSetInfusionRate",
-        "targetId": "uiPumpPanel"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion"
       },
       {
         "type": "allocatedTo",
-        "sourceId": "fnValidateDrugSelection",
-        "targetId": "elDrugSelectorRegion"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiPumpPanel"
       },
       {
         "type": "allocatedTo",
-        "sourceId": "fnValidateDrugSelection",
-        "targetId": "uiPumpPanel"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiPumpPanel"
       },
       {
         "type": "capturesScreen",
-        "sourceId": "capDrugSelector",
-        "targetId": "elDrugSelectorRegion"
+        "sourceId": "memo_examples_ui_screen_regions_artifacts_assets::capDrugSelector",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion"
       },
       {
         "type": "capturesScreen",
-        "sourceId": "capMain",
-        "targetId": "elMainScreen"
+        "sourceId": "memo_examples_ui_screen_regions_artifacts_assets::capMain",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
       },
       {
         "type": "capturesScreen",
-        "sourceId": "capSettings",
-        "targetId": "elSettingsScreen"
+        "sourceId": "memo_examples_ui_screen_regions_artifacts_assets::capSettings",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen"
       },
       {
         "type": "causes",
-        "sourceId": "ueMisreadDisplayedTime",
-        "targetId": "hzIncorrectEventChronology"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueMisreadDisplayedTime",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectEventChronology"
       },
       {
         "type": "causes",
-        "sourceId": "ueMisreadRate",
-        "targetId": "hzWrongRate"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueMisreadRate",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongRate"
       },
       {
         "type": "causes",
-        "sourceId": "ueMissLowBattery",
-        "targetId": "hzUnexpectedPowerLoss"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueMissLowBattery",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzUnexpectedPowerLoss"
       },
       {
         "type": "causes",
-        "sourceId": "ueRelyOnStaleVolume",
-        "targetId": "hzIncorrectDeliveredVolumeAssessment"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueRelyOnStaleVolume",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectDeliveredVolumeAssessment"
       },
       {
         "type": "causes",
-        "sourceId": "ueSelectWrongDrug",
-        "targetId": "hzWrongDrug"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueSelectWrongDrug",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongDrug"
       },
       {
         "type": "changes",
-        "sourceId": "uiElement12",
-        "targetId": "reqDrugIdentityDisplay"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay"
       },
       {
         "type": "commentsOn",
-        "sourceId": "cmtDecimalSalience",
-        "targetId": "elMainScreen"
+        "sourceId": "memo_examples_ui_screen_regions_artifacts_reviews_comments::cmtDecimalSalience",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
       },
       {
         "type": "commentsOn",
-        "sourceId": "cmtStatusBarScope",
-        "targetId": "elMainScreen"
+        "sourceId": "memo_examples_ui_screen_regions_artifacts_reviews_comments::cmtStatusBarScope",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
       },
       {
         "type": "composes",
-        "sourceId": "cmtStatusBarScope",
-        "targetId": "cmtStatusBarReply"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus"
       },
       {
         "type": "composes",
-        "sourceId": "elDrugSelectorRegion",
-        "targetId": "elDrugMenuExpanded"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
       },
       {
         "type": "composes",
-        "sourceId": "elDrugSelectorRegion",
-        "targetId": "elDrugSelectorClosed"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime"
       },
       {
         "type": "composes",
-        "sourceId": "elMainScreen",
-        "targetId": "elDrugSelectorRegion"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate"
       },
       {
         "type": "composes",
-        "sourceId": "elMainScreen",
-        "targetId": "uiElement12"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection"
       },
       {
         "type": "composes",
-        "sourceId": "elSettingsScreen",
-        "targetId": "elRateConfirmDialog"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion::elDrugMenuExpanded"
       },
       {
         "type": "composes",
-        "sourceId": "fnManageInfusionDisplay",
-        "targetId": "fnPresentBatteryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion::elDrugSelectorClosed"
       },
       {
         "type": "composes",
-        "sourceId": "fnManageInfusionDisplay",
-        "targetId": "fnPresentDeliveryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion"
       },
       {
         "type": "composes",
-        "sourceId": "fnManageInfusionDisplay",
-        "targetId": "fnPresentLocalTime"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12"
       },
       {
         "type": "composes",
-        "sourceId": "fnManageInfusionDisplay",
-        "targetId": "fnSetInfusionRate"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen::elRateConfirmDialog"
       },
       {
         "type": "composes",
-        "sourceId": "fnManageInfusionDisplay",
-        "targetId": "fnValidateDrugSelection"
+        "sourceId": "memo_examples_ui_screen_regions_artifacts_reviews_comments::cmtStatusBarScope",
+        "targetId": "memo_examples_ui_screen_regions_artifacts_reviews_comments::cmtStatusBarScope::cmtStatusBarReply"
       },
       {
         "type": "controlImplementedBy",
-        "sourceId": "rcClockFreshnessCheck",
-        "targetId": "fnPresentLocalTime"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcClockFreshnessCheck",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime"
       },
       {
         "type": "controlImplementedBy",
-        "sourceId": "rcDisplayFreshnessMonitor",
-        "targetId": "fnPresentDeliveryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDisplayFreshnessMonitor",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
       },
       {
         "type": "controlImplementedBy",
-        "sourceId": "rcDrugLibraryGuard",
-        "targetId": "elDrugSelectorRegion"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDrugLibraryGuard",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection"
       },
       {
         "type": "controlImplementedBy",
-        "sourceId": "rcDrugLibraryGuard",
-        "targetId": "fnValidateDrugSelection"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDrugLibraryGuard",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion"
       },
       {
         "type": "controlImplementedBy",
-        "sourceId": "rcLowBatteryProminence",
-        "targetId": "fnPresentBatteryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcLowBatteryProminence",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus"
       },
       {
         "type": "controlImplementedBy",
-        "sourceId": "rcRateConfirm",
-        "targetId": "elRateConfirmDialog"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcRateConfirm",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen::elRateConfirmDialog"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "hzIncorrectDeliveredVolumeAssessment",
-        "targetId": "reqDisplayFreshness"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements_needs::needReadableProgramming",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqActiveRateDisplay"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "hzIncorrectEventChronology",
-        "targetId": "reqTimeAccuracy"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements_needs::needReadableProgramming",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryStatusDisplay"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "hzUnexpectedPowerLoss",
-        "targetId": "reqBatteryWarningPerformance"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements_needs::needReadableProgramming",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDisplayFreshness"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "hzWrongDrug",
-        "targetId": "reqDrugLibrarySelection"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements_needs::needReadableProgramming",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "hzWrongRate",
-        "targetId": "reqRateEntry"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements_needs::needReadableProgramming",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugLibrarySelection"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "needReadableProgramming",
-        "targetId": "reqActiveRateDisplay"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements_needs::needReadableProgramming",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateLegibility"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "needReadableProgramming",
-        "targetId": "reqBatteryStatusDisplay"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements_needs::needReadableProgramming",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeDisplay"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "needReadableProgramming",
-        "targetId": "reqDisplayFreshness"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryStatusDisplay",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryWarningPerformance"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "needReadableProgramming",
-        "targetId": "reqDrugIdentityDisplay"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugLibrarySelection",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugSelectionPerformance"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "needReadableProgramming",
-        "targetId": "reqDrugLibrarySelection"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateLegibility",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateEntry"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "needReadableProgramming",
-        "targetId": "reqRateLegibility"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateLegibility",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqVolumeDisplay"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "needReadableProgramming",
-        "targetId": "reqTimeDisplay"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeDisplay",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeAccuracy"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "reqBatteryStatusDisplay",
-        "targetId": "reqBatteryWarningPerformance"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectDeliveredVolumeAssessment",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDisplayFreshness"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "reqDrugLibrarySelection",
-        "targetId": "reqDrugSelectionPerformance"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectEventChronology",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeAccuracy"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "reqRateLegibility",
-        "targetId": "reqRateEntry"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzUnexpectedPowerLoss",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryWarningPerformance"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "reqRateLegibility",
-        "targetId": "reqVolumeDisplay"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongDrug",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugLibrarySelection"
       },
       {
         "type": "derivesFrom",
-        "sourceId": "reqTimeDisplay",
-        "targetId": "reqTimeAccuracy"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongRate",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateEntry"
       },
       {
         "type": "elementTriggersAction",
-        "sourceId": "elDrugMenuExpanded",
-        "targetId": "uiaSelectDrug"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion::elDrugMenuExpanded",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaSelectDrug"
       },
       {
         "type": "elementTriggersAction",
-        "sourceId": "elDrugSelectorClosed",
-        "targetId": "uiaSelectDrug"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion::elDrugSelectorClosed",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaSelectDrug"
       },
       {
         "type": "elementTriggersAction",
-        "sourceId": "elDrugSelectorRegion",
-        "targetId": "uiaSelectDrug"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaSelectDrug"
       },
       {
         "type": "errorAtElement",
-        "sourceId": "ueMisreadDisplayedTime",
-        "targetId": "elMainScreen"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueMisreadDisplayedTime",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
       },
       {
         "type": "errorAtElement",
-        "sourceId": "ueMisreadRate",
-        "targetId": "elMainScreen"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueMisreadRate",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
       },
       {
         "type": "errorAtElement",
-        "sourceId": "ueMissLowBattery",
-        "targetId": "elMainScreen"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueMissLowBattery",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
       },
       {
         "type": "errorAtElement",
-        "sourceId": "ueRelyOnStaleVolume",
-        "targetId": "elMainScreen"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueRelyOnStaleVolume",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
       },
       {
         "type": "errorAtElement",
-        "sourceId": "ueSelectWrongDrug",
-        "targetId": "elDrugSelectorRegion"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_human_factors::ueSelectWrongDrug",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion"
       },
       {
         "type": "mitigates",
-        "sourceId": "rcClockFreshnessCheck",
-        "targetId": "hzIncorrectEventChronology"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcClockFreshnessCheck",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectEventChronology"
       },
       {
         "type": "mitigates",
-        "sourceId": "rcDisplayFreshnessMonitor",
-        "targetId": "hzIncorrectDeliveredVolumeAssessment"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDisplayFreshnessMonitor",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectDeliveredVolumeAssessment"
       },
       {
         "type": "mitigates",
-        "sourceId": "rcDrugLibraryGuard",
-        "targetId": "hzWrongDrug"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDrugLibraryGuard",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongDrug"
       },
       {
         "type": "mitigates",
-        "sourceId": "rcLowBatteryProminence",
-        "targetId": "hzUnexpectedPowerLoss"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcLowBatteryProminence",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzUnexpectedPowerLoss"
       },
       {
         "type": "mitigates",
-        "sourceId": "rcRateConfirm",
-        "targetId": "hzWrongRate"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcRateConfirm",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongRate"
       },
       {
         "type": "notesOn",
-        "sourceId": "noteCaptureReview",
-        "targetId": "capMain"
+        "sourceId": "memo_examples_ui_screen_regions_artifacts_reviews_notes::noteCaptureReview",
+        "targetId": "memo_examples_ui_screen_regions_artifacts_assets::capMain"
       },
       {
         "type": "performs",
-        "sourceId": "uiaEditRate",
-        "targetId": "fnSetInfusionRate"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaEditRate",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate"
       },
       {
         "type": "performs",
-        "sourceId": "uiaOpenSettings",
-        "targetId": "fnManageInfusionDisplay"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaOpenSettings",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay"
       },
       {
         "type": "performs",
-        "sourceId": "uiaSelectDrug",
-        "targetId": "fnValidateDrugSelection"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::uiaSelectDrug",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection"
       },
       {
         "type": "producesEvidence",
-        "sourceId": "vcDrugLibrarySelection",
-        "targetId": "evDrugLibrarySelection"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcDrugLibrarySelection",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::evDrugLibrarySelection"
       },
       {
         "type": "producesEvidence",
-        "sourceId": "vcInfusionStatusContent",
-        "targetId": "evInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::evInfusionStatusContent"
       },
       {
         "type": "producesEvidence",
-        "sourceId": "vcRateChange",
-        "targetId": "evRateChange"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcRateChange",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::evRateChange"
       },
       {
         "type": "rationaleFor",
-        "sourceId": "ratOverlayGeometry",
-        "targetId": "elDrugMenuExpanded"
+        "sourceId": "memo_examples_ui_screen_regions_artifacts_reviews_rationales::ratOverlayGeometry",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion::elDrugMenuExpanded"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqActiveRateDisplay",
-        "targetId": "fnPresentDeliveryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqActiveRateDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqBatteryStatusDisplay",
-        "targetId": "fnPresentBatteryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryStatusDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqBatteryWarningPerformance",
-        "targetId": "fnPresentBatteryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryWarningPerformance",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqDisplayFreshness",
-        "targetId": "fnPresentDeliveryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDisplayFreshness",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqDrugIdentityDisplay",
-        "targetId": "elDrugSelectorClosed"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqDrugIdentityDisplay",
-        "targetId": "fnValidateDrugSelection"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion::elDrugSelectorClosed"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqDrugLibrarySelection",
-        "targetId": "elDrugSelectorRegion"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugLibrarySelection",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqDrugLibrarySelection",
-        "targetId": "fnValidateDrugSelection"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugLibrarySelection",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqDrugSelectionPerformance",
-        "targetId": "elDrugSelectorRegion"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugSelectionPerformance",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqDrugSelectionPerformance",
-        "targetId": "fnValidateDrugSelection"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugSelectionPerformance",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::elDrugSelectorRegion"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqRateEntry",
-        "targetId": "elRateConfirmDialog"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateEntry",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqRateEntry",
-        "targetId": "elSettingsScreen"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateEntry",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqRateEntry",
-        "targetId": "fnSetInfusionRate"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateEntry",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elSettingsScreen::elRateConfirmDialog"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqRateLegibility",
-        "targetId": "elMainScreen"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateLegibility",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqRateLegibility",
-        "targetId": "fnPresentDeliveryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateLegibility",
+        "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqTimeAccuracy",
-        "targetId": "fnPresentLocalTime"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeAccuracy",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqTimeDisplay",
-        "targetId": "fnPresentLocalTime"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime"
       },
       {
         "type": "satisfiedBy",
-        "sourceId": "reqVolumeDisplay",
-        "targetId": "fnPresentDeliveryStatus"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqVolumeDisplay",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
       },
       {
         "type": "tracesRisk",
-        "sourceId": "uiElement12",
-        "targetId": "reqDrugIdentityDisplay"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12",
+        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "fnManageInfusionDisplay",
-        "targetId": "vcRateChange"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "fnPresentBatteryStatus",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "fnPresentDeliveryStatus",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "fnPresentLocalTime",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcRateChange"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "fnSetInfusionRate",
-        "targetId": "vcRateChange"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcDrugLibrarySelection"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "fnValidateDrugSelection",
-        "targetId": "vcDrugLibrarySelection"
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcRateChange"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "rcClockFreshnessCheck",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqActiveRateDisplay",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "rcDisplayFreshnessMonitor",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryStatusDisplay",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "rcDrugLibraryGuard",
-        "targetId": "vcDrugLibrarySelection"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryWarningPerformance",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "rcLowBatteryProminence",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "rcRateConfirm",
-        "targetId": "vcRateChange"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeAccuracy",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "reqActiveRateDisplay",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeDisplay",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "reqBatteryStatusDisplay",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqVolumeDisplay",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "reqBatteryWarningPerformance",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcClockFreshnessCheck",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "reqDrugIdentityDisplay",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDisplayFreshnessMonitor",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "reqTimeAccuracy",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcDrugLibraryGuard",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcDrugLibrarySelection"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "reqTimeDisplay",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcLowBatteryProminence",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "reqVolumeDisplay",
-        "targetId": "vcInfusionStatusContent"
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::rcRateConfirm",
+        "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcRateChange"
       }
     ],
     "kindCounts": {
@@ -1058,13 +1058,59 @@
   "validation": {
     "violations": [
       {
+        "rule": "CR-MED-023",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus"
+      },
+      {
+        "rule": "CR-MED-023",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
+      },
+      {
+        "rule": "CR-MED-023",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime"
+      },
+      {
+        "rule": "CR-MED-023",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate"
+      },
+      {
+        "rule": "CR-MED-023",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection"
+      },
+      {
         "rule": "CR-MED-110",
         "severity": "error",
-        "elementId": "uiElement12"
+        "elementId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12"
+      },
+      {
+        "rule": "CR-ONT-081",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryStatusDisplay"
+      },
+      {
+        "rule": "CR-ONT-081",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugLibrarySelection"
+      },
+      {
+        "rule": "CR-ONT-081",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateLegibility"
+      },
+      {
+        "rule": "CR-ONT-081",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeDisplay"
       }
     ],
     "counts": {
-      "error": 1
+      "error": 1,
+      "warning": 9
     }
   },
   "errors": [],

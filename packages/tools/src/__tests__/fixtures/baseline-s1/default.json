@@ -3,25 +3,25 @@
   "model": {
     "elements": [
       {
-        "id": "mainRequirement",
+        "id": "project_architecture::system",
+        "kind": "MemoPart",
+        "construct": "part",
+        "layer": "core",
+        "package": "project_architecture"
+      },
+      {
+        "id": "project_assurance::mainRequirement",
         "kind": "Requirement",
         "construct": "requirement",
         "layer": "requirements",
         "package": "project_assurance"
       },
       {
-        "id": "projectMethodBinding",
+        "id": "project_catalog::projectMethodBinding",
         "kind": "ProjectMethodBinding",
         "construct": "part",
         "layer": "methodology",
         "package": "project_catalog"
-      },
-      {
-        "id": "system",
-        "kind": "MemoPart",
-        "construct": "part",
-        "layer": "core",
-        "package": "project_architecture"
       }
     ],
     "relationships": [],

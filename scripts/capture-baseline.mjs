@@ -347,6 +347,83 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-09-21 — all four fixtures, for qualified element ids.
+ *
+ * The baselines had been red since `an element's id is its qualified name`
+ * (memo-tools 58d0ed9) and were never re-frozen. Every id in every fixture
+ * changed shape at once, and this file's differ walks the element and
+ * relationship arrays BY POSITION — so one re-spelling reported 463 changed
+ * elements in ui-regions and made the oracle unreadable for five weeks. An
+ * oracle nobody can read is not an oracle; the same sentence is already in the
+ * 2026-08-02 note above, and this is the second time it has been true.
+ *
+ * Read the delta by leaf name, not by position. Matching `pkg::owner::name`
+ * against the old bare `name` is what turns the noise back into a diff, and
+ * every difference below was traced to the commit that caused it before
+ * re-freezing. Anything not on this list is a regression.
+ *
+ * WHAT THE RE-SPELLING ITSELF DID. An id is now `package::name`, nested as
+ * `owner::child`; the declared name stays on `shortName`. **ui-regions and
+ * default moved by nothing else at all** — 0 elements added, removed or
+ * changed, 0 relationship deltas, on 66 and 3 elements. That is the evidence
+ * that this was a re-spelling and not a re-modelling, and it is why gpca's
+ * deltas below can be attributed to content rather than to identity.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | all | every `id` becomes qualified; leaf names unchanged | `an element's id is its qualified name` (58d0ed9). |
+ * | extension-clinical | the refusal text changes wording only | A project is located by the `entrypoint` in `memo.package.yaml` now, not by a hard-coded `model/catalog/project.sysml`. Still 2 errors, still not a project. |
+ *
+ * GPCA ELEMENTS, 729 → 735 (+11 added, −5 removed).
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | −1 `gpcaMission`; `gpcaIntendedUse` layer `requirements` → `operational` | `Mission` is retired — it had no medical-device meaning and duplicated intended use — and `IntendedUse` becomes the operational-world root (memo b530ecc). |
+ * | −4 `WorkflowStep` (`wsProgram`, `wsRequestBolus`, `wsRespondAlarm`, `wsStart`) | `WorkflowStep` removed; a workflow performs `OperativeAction`s natively (memo eab2672). |
+ * | +9 `MemoState` (`modeOFF` … `modePAUSED`), layer `core` | The mode machine's nested state usages are extracted as elements (memo-tools c20c677), with identity entries registered for them (memo 2a439ae). They were authored all along and reached the model as nothing. |
+ * | +2 definitions: `SensorDataInterface` (`DataInterface`) and `SensorInputPort` (`SensorPort`) | `A definition the project declares is model content` (memo-tools 8ba6593). Both have been in `gpca_interfaces.sysml` since long before the freeze; only `action def` and `item def` were ever given elements. A definition carries the ontology kind it specializes, which is why these read `DataInterface`/`SensorPort` and not `InterfaceDefinition`/`PortDefinition`. |
+ * | 14 `OperationalActivity` → `OperativeAction` | `OperationalActivity`/`UserTask`/`SystemAction`/`TaskStep` merged onto one definition (memo 1d63a67). Rename, same ids. |
+ * | 9 `MemoScenario` → `OperativeScenario` | Rename (memo 3f07883). |
+ * | 6 action defs `ActionDefinition` → `FunctionalAction`, layer `behavior` → `functional` | `ActionDefinition` is a SysML metaclass, not a MEMO kind; a definition carries the ontology kind it specializes (memo-tools 7e9902a). |
+ * | 6 action usages `AcquireSensorData`/… → `ActionUsage`, layer → `unknown` | Consequence of the same two commits, and deliberate: the def is an ELEMENT now rather than a registered kind, so a usage typed by it reports the metaclass and keeps the def reference in `actionType` (`extractActionUsage`, builder.ts). |
+ * | 17 more action usages, layer `behavior` → `unknown` | `an element's layer is where it was authored, not a literal` (memo-tools 2d31fed). `'behavior'` was invented in builder.ts — the ontology has no behavior layer, EXPL-011 places behaviour inside functional. gpca is authored flat under `model/catalog/`, which the layer convention does not cover, so `unknown` is the honest answer and is reported as a finding downstream. |
+ * | 3 functional flows (`fcStartup`, `fcPatientBolus`, `fcAlarmStop`) `part` → `action` | A functional flow is a behaviour and now says so (memo 5aabec6). |
+ * | `bolusByProxyMisuse` layer `requirements` → `safety_risk` | `ReasonablyForeseeableMisuse` filed where it belongs (memo a3f2efe). |
+ *
+ * GPCA RELATIONSHIPS, 794 → 810 (+51 added, −35 removed). Seven of the ten
+ * groups are type swaps over the SAME endpoint pairs, so they cancel:
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | 6 `interactsWith` → `connect` | `InteractsWith` migrated and deleted; the operational-context package already scopes the ends (memo 9a9c780). |
+ * | 1 `analyzedBy` → `dependency` (`pumpMotorAssembly` → `fmeaDelivery`) | `AnalyzedBy` becomes a native dependency (memo 931d250). |
+ * | 9 `dependency` and 9 `realizes` re-point `fcs*` → `ws*` onto `fcs*` → `oa*` | Same `#refinement dependency` statements, re-aimed at the OperativeActions that replaced the deleted WorkflowSteps (memo eab2672, 931d250). |
+ * | 3 `supports` (workflow → use case) → 3 `realizesUseCase` | The spine traces became first-class relations instead of refs (memo 2fef918). |
+ * | 3 `supports` (activity → capability) → 2 `requiresCapability` + 2 `enablesUseCase` | Same commit, and a deliberate re-aiming rather than a rename: a capability is tied to the USE CASE, not to individual activities, so three activity-level edges become two intended-use→capability edges and two capability→use-case edges. Net +1. |
+ * | −4 `composes` (workflow → WorkflowStep) | The four deleted steps. |
+ * | +9 `composes` over the mode tree | The nine extracted `MemoState`s, synthesized from nesting as any nested usage is. |
+ * | +6 `composes` (workflow → OperativeScenario) | `HasScenario` becomes nesting — a scenario belongs to exactly one workflow, so containment is exclusive (memo 931d250, a8686b1). |
+ * | +4 `commitsUseError` | Four string fields that stood in for a relation, written as the relation the ontology declares (memo 80589ab). |
+ *
+ * VIOLATIONS. gpca 108 → 81, ui-regions 1 → 10, and the rule sets share
+ * nothing, so this is not a count that drifted. Four independent causes, and
+ * none of them is a model that got better or worse on its own:
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | gpca −89 `XL-002`, −1 `CR-MED-031` | Both were FALSE. `memo validate` narrowed the model before evaluating — it dropped out-of-scope elements from `elements` while leaving `outgoing`/`incoming` pointing at the full model — so every rule that navigates a trace saw nothing. 374 of 723 elements were dropped and all 110 `satisfiedBy` edges lost an endpoint (memo-tools 73da34d). `vcAuthenticatedServiceAccess`'s `verifiedBy` edge was there the whole time and is in the capture. |
+ * | gpca −17 `BV-001` | Deleted as a duplicate of CR-MED-022 and CR-ONT-074, which gpca's own methodology declines — BV-001 applied to every action usage over the top of that methodology (memo-tools edb5dd0). |
+ * | gpca −1 `BV-002` | Not deleted: it is `CR-MED-023` in the ontology now (same commit), which is why CR-MED-023 appears below. |
+ * | gpca +81, ui-regions +9, all first-time | `a layer entry names a namespace, not a package` (memo-tools aa6718e). Under `scopeMode = explicit` every layer entry matched nothing, so 25 rules were dropped before evaluation — 33 evaluated / 0 violations became 58 / 81. gpca: CR-ONT-076 ×46, CR-ONT-040 ×13, CR-MED-023 ×13, CR-ONT-043 ×5, CR-ONT-041 ×2, CR-ONT-077 ×1, CR-ONT-079 ×1. ui-regions: CR-MED-023 ×5, CR-ONT-081 ×4. |
+ *
+ * **The 81 and the 9 are frozen as FINDINGS, not as approved.** They are on the
+ * board — "35 findings from rules that had never run", which owns gpca's
+ * non-CR-ONT-076 35 and points the 46 at "Native exchanges" — and freezing
+ * them here is what makes the oracle able to report the 82nd. It is not a
+ * verdict on any of them, and re-freezing is not triage.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
