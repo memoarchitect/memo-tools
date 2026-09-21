@@ -372,7 +372,10 @@ export async function writeRelationship(
         definition.name,
         request.sourceId,
         request.targetId,
-        model.relationships.map(rel => rel.id),
+        // Declared names, not qualified ids: this generates the name that
+        // goes INTO the source, and uniqueness is a property of what the file
+        // says. A qualified id appears in no file.
+        model.relationships.map(rel => rel.shortName ?? rel.id),
     );
     const declaration = generateRelationshipDeclaration(
         relationshipId, definition,
@@ -522,7 +525,7 @@ export async function updateRelationship(
     }
 
     const declaration = generateRelationshipDeclaration(
-        relationship.id,
+        declaredNameOf(relationship),
         definition,
         endpointPath(request.sourceId, model),
         endpointPath(request.targetId, model),
@@ -536,7 +539,7 @@ export async function updateRelationship(
     }
     const notation = notationFor(definition);
     const present = notationIsNameable(notation)
-        ? findConnectionUsage(reparsed.document.parseResult.value as any, relationship.id) !== undefined
+        ? findConnectionUsage(reparsed.document.parseResult.value as any, declaredNameOf(relationship)) !== undefined
         : containsDeclaration(reparsed.document.parseResult.value as any, updated, declaration);
     if (!present) return { success: false, error: 'The updated relationship was not present after reparsing; the file was left unchanged' };
 
@@ -613,7 +616,7 @@ function memberIndent(source: string, pkg: PackageDeclaration, closingBrace: num
  * endpoint elements are left completely untouched.
  */
 export async function removeRelationship(
-    relationship: Pick<MemoRelationship, 'id' | 'file' | 'named'>,
+    relationship: Pick<MemoRelationship, 'id' | 'shortName' | 'file' | 'named'>,
     options: RelationshipWriterOptions,
 ): Promise<RelationshipRemoveResult> {
     if (!relationship.named) {
@@ -638,7 +641,7 @@ export async function removeRelationship(
         return { success: false, error: `${relationship.file} does not parse (${errors[0].message})` };
     }
 
-    const usage = findConnectionUsage(document.parseResult.value as any, relationship.id);
+    const usage = findConnectionUsage(document.parseResult.value as any, declaredNameOf(relationship));
     const cst = usage?.$cstNode;
     if (!usage || !cst) {
         return { success: false, error: `Relationship "${relationship.id}" was not found in ${relationship.file}` };
@@ -665,7 +668,7 @@ export async function removeRelationship(
                 'the file was left unchanged',
         };
     }
-    if (findConnectionUsage(reparsed.document.parseResult.value as any, relationship.id)) {
+    if (findConnectionUsage(reparsed.document.parseResult.value as any, declaredNameOf(relationship))) {
         return { success: false, error: 'The relationship was still present after removal; the file was left unchanged' };
     }
 
@@ -704,6 +707,19 @@ function containsDeclaration(model: { members?: any[] }, source: string, declara
 }
 
 /** Depth-first search for a named connection usage anywhere in the document. */
+/**
+ * The name a relationship is declared with in its source file.
+ *
+ * Its `id` is the QUALIFIED name and addresses it in the model; the file knows
+ * only the last segment. Every one of this module's source edits matches on
+ * the declaration, so every one of them wants this and not the id. `shortName`
+ * is absent on an anonymous relationship, whose id is a positional `rel-N`
+ * that matches no declaration either way.
+ */
+function declaredNameOf(relationship: Pick<MemoRelationship, 'id' | 'shortName'>): string {
+    return relationship.shortName ?? shortNameOf(relationship.id);
+}
+
 function findConnectionUsage(model: { members?: any[] }, name: string): ConnectionUsage | undefined {
     const stack: any[] = [...(model.members ?? [])];
     while (stack.length > 0) {

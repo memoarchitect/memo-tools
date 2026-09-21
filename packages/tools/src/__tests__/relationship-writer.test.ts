@@ -535,7 +535,8 @@ describe('relationship persistence round trip', () => {
         const first = await rebuild();
         expect(first.relationships).toHaveLength(1);
         expect(first.relationships[0]).toMatchObject({
-            id: 'rel_satisfiedBy_controller_sr104',
+            id: 'Pump::rel_satisfiedBy_controller_sr104',
+            shortName: 'rel_satisfiedBy_controller_sr104',
             type: 'satisfiedBy',
             sourceId: 'Pump::controller',
             targetId: 'Pump::sr104',

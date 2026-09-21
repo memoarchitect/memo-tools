@@ -172,8 +172,29 @@ export interface MemoPackageDTO {
 
 /** A typed relationship between two elements */
 export interface MemoRelationship {
-    /** Unique relationship id (auto-generated) */
+    /**
+     * Unique relationship id.
+     *
+     * For a NAMED declaration this is the QUALIFIED name, owner chain and all,
+     * exactly as an element's is — `gpca_pump::exDoseCommand`. It used to be
+     * the bare declared name, which is not unique: two packages may each
+     * declare a flow `exDose`, and one of them would silently answer to a
+     * reference meant for the other. Anonymous declarations still get a
+     * positional `rel-N`, which addresses nothing and is not meant to.
+     *
+     * This is also the id a relationship is TARGETED by. A named flow is a
+     * referenceable identity, not only an edge, so an `allocate`, `satisfy`
+     * or `verify` naming it resolves here.
+     */
     id: string;
+    /**
+     * The name as DECLARED, the last segment of `id`, on a named declaration.
+     *
+     * What the source says, and therefore what a writer editing or deleting
+     * the declaration must match on — the qualified `id` is a model address
+     * and appears nowhere in the file.
+     */
+    shortName?: string;
     /** Relationship type name (lowercase), e.g. "mitigates", "traceTo", "flow", "succession" */
     type: string;
     /** Source element id */

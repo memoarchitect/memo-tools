@@ -28,13 +28,16 @@
 // `lookup`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MemoElement } from './semantic.js';
+import type { MemoElement, MemoRelationship } from './semantic.js';
 
 /** The `ParseError.code` every ambiguous bare reference carries. */
 export const AMBIGUOUS_ELEMENT_REFERENCE = 'ambiguous-element-reference';
 
 /** The `ParseError.code` a duplicate qualified name carries. */
 export const ELEMENT_NAME_COLLISION = 'element-name-collision';
+
+/** The `ParseError.code` two named relationships sharing a qualified name carry. */
+export const RELATIONSHIP_NAME_COLLISION = 'relationship-name-collision';
 
 /** The separator SysML uses between the segments of a qualified name. */
 export const QUALIFIER = '::';
@@ -82,6 +85,20 @@ export interface ElementCollision {
     /** 1-based line of the kept element's declaration, when the CST gave one. */
     keptLine?: number;
     /** 1-based line of the dropped element's declaration, when the CST gave one. */
+    droppedLine?: number;
+}
+
+/** Two named relationships that wanted the same qualified name. */
+export interface RelationshipCollision {
+    /** The qualified name both relationships are declared with. */
+    id: string;
+    /** The relationship that is in the model under that name. */
+    kept: MemoRelationship;
+    /** The relationship that lost the name. */
+    dropped: MemoRelationship;
+    /** 1-based line of the kept declaration, when the CST gave one. */
+    keptLine?: number;
+    /** 1-based line of the dropped declaration, when the CST gave one. */
     droppedLine?: number;
 }
 
@@ -138,11 +155,35 @@ export class ElementIndex extends Map<string, MemoElement> {
     /** Bare references that more than one element answered to. */
     readonly ambiguities: AmbiguousReference[] = [];
 
+    /** Every pair of named relationships that competed for one qualified name. */
+    readonly relationshipCollisions: RelationshipCollision[] = [];
+
     /** Short name → the qualified ids declaring it, in declaration order. */
     private byShortName = new Map<string, string[]>();
 
     /** Declaration lines of the elements that landed, for collision reports. */
     private lines = new Map<string, number>();
+
+    /**
+     * Named relationships by qualified id — the identity half of §9.1's
+     * "single canonical identity for a named flow/interface that can also
+     * serve as a relationship target".
+     *
+     * A read-only facade, deliberately: the entries here ARE the objects in
+     * `MemoModel.relationships`, not copies of them, so a named flow has one
+     * record and not a record plus a proxy. Nothing may be added here that is
+     * not also pushed onto the relationship list, and nothing here is an
+     * element — a flow is an edge, and putting a fabricated `MemoElement` in
+     * the elements map would make every census, view and filter count it as
+     * one more part.
+     */
+    private relationships = new Map<string, MemoRelationship>();
+
+    /** Short name → the qualified relationship ids declaring it. */
+    private relationshipsByShortName = new Map<string, string[]>();
+
+    /** Declaration lines of the named relationships, for collision reports. */
+    private relationshipLines = new Map<string, number>();
 
     /**
      * Add an element under its own qualified `id`. Returns whether it landed —
@@ -204,11 +245,29 @@ export class ElementIndex extends Map<string, MemoElement> {
      * picking by declaration order, which is the bug this index exists to stop.
      */
     lookup(reference: string, context?: ReferenceContext): MemoElement | undefined {
-        const exact = this.get(reference);
+        return this.resolveIn(reference, context, this, this.byShortName);
+    }
+
+    /**
+     * The five resolution steps above, over whichever identity map is asked.
+     *
+     * Elements and named relationships are separate maps — a flow is not an
+     * element — but a reference to either is written the same way and must
+     * resolve by the same rules, so the rules live here once. Ambiguity is
+     * recorded into the one shared list, because a reference that cannot
+     * decide is one diagnostic however it was declared.
+     */
+    private resolveIn<T>(
+        reference: string,
+        context: ReferenceContext | undefined,
+        byId: Map<string, T>,
+        byShortName: Map<string, string[]>,
+    ): T | undefined {
+        const exact = byId.get(reference);
         if (exact) return exact;
 
         if (context?.ownerId) {
-            const owned = this.get(`${context.ownerId}${QUALIFIER}${reference}`);
+            const owned = byId.get(`${context.ownerId}${QUALIFIER}${reference}`);
             if (owned) return owned;
         }
 
@@ -216,24 +275,72 @@ export class ElementIndex extends Map<string, MemoElement> {
         // `A::B::C` sees `A::B::C::x`, then `A::B::x`, then `A::x`.
         let scope = context?.packageName;
         while (scope) {
-            const inScope = this.get(`${scope}${QUALIFIER}${reference}`);
+            const inScope = byId.get(`${scope}${QUALIFIER}${reference}`);
             if (inScope) return inScope;
             const at = scope.lastIndexOf(QUALIFIER);
             scope = at === -1 ? undefined : scope.slice(0, at);
         }
 
         const suffix = `${QUALIFIER}${reference}`;
-        const bySuffix = [...this.keys()].filter(id => id.endsWith(suffix));
-        if (bySuffix.length === 1) return this.get(bySuffix[0]);
+        const bySuffix = [...byId.keys()].filter(id => id.endsWith(suffix));
+        if (bySuffix.length === 1) return byId.get(bySuffix[0]);
         if (bySuffix.length > 1) {
             this.recordAmbiguity(reference, bySuffix, context);
             return undefined;
         }
 
-        const named = this.byShortName.get(reference) ?? [];
-        if (named.length === 1) return this.get(named[0]);
+        const named = byShortName.get(reference) ?? [];
+        if (named.length === 1) return byId.get(named[0]);
         if (named.length > 1) this.recordAmbiguity(reference, named, context);
         return undefined;
+    }
+
+    /**
+     * Record a named relationship under its own qualified `id`, so a later
+     * `allocate`, `satisfy`, `verify` or trace can name it.
+     *
+     * Returns whether it landed. False means another declaration already holds
+     * that qualified name, which is recorded in `relationshipCollisions` — the
+     * relationship itself still reaches the model as an edge, because the two
+     * facts are separate: the edge is real, the name is contested.
+     */
+    defineRelationship(relationship: MemoRelationship, node?: unknown): boolean {
+        const existing = this.relationships.get(relationship.id);
+        const line = declarationLine(node);
+
+        if (existing) {
+            if (existing === relationship) return false;
+            this.relationshipCollisions.push({
+                id: relationship.id,
+                kept: existing,
+                dropped: relationship,
+                keptLine: this.relationshipLines.get(relationship.id),
+                droppedLine: line,
+            });
+            return false;
+        }
+
+        this.relationships.set(relationship.id, relationship);
+        if (line !== undefined) this.relationshipLines.set(relationship.id, line);
+        const short = relationship.shortName || shortNameOf(relationship.id);
+        const ids = this.relationshipsByShortName.get(short) ?? [];
+        ids.push(relationship.id);
+        this.relationshipsByShortName.set(short, ids);
+        return true;
+    }
+
+    /** The named relationship an authored reference names, by the same rules as `lookup`. */
+    lookupRelationship(reference: string, context?: ReferenceContext): MemoRelationship | undefined {
+        return this.resolveIn(reference, context, this.relationships, this.relationshipsByShortName);
+    }
+
+    /**
+     * Whether this id addresses anything in the model — an element or a named
+     * relationship. What an edge endpoint has to satisfy, now that a flow can
+     * be one.
+     */
+    hasEntity(id: string): boolean {
+        return this.has(id) || this.relationships.has(id);
     }
 
     /**

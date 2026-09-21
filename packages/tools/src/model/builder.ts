@@ -116,7 +116,7 @@ import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
 import { priorIdentityFor, priorShortIds } from './identity-registry.js';
 import {
     ElementIndex, describeLocation, qualifiedId, shortNameOf,
-    ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE,
+    ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, RELATIONSHIP_NAME_COLLISION,
 } from './element-index.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
@@ -289,21 +289,28 @@ export function buildMemoModel(
         });
     }
 
-    // Phase 3: Resolve connections (all elements are now in the index, so a
-    // reference can be resolved against the whole model rather than against
+    // Phase 3: Resolve flow connections (all elements are now in the index, so
+    // a reference can be resolved against the whole model rather than against
     // whatever happened to be extracted first).
-    for (const { conn, filePath, packageName } of deferredConnections) {
-        resolveConnection(conn, filePath, packageName, config, elements, relationships, registry, elements);
-    }
-
-    // Phase 3b: Resolve flow connections
+    //
+    // Flows come FIRST, ahead of the connections that used to lead this
+    // sequence, because a named flow is now an identity a later statement can
+    // name: a `Mitigates` connection from a risk control to an exchange, an
+    // allocation onto one, a verification case that verifies one. Resolving
+    // connections first would have left every such reference unresolved on the
+    // pass that mattered.
     for (const { flow, filePath, packageName, parentActionId } of deferredFlows) {
         resolveFlowConnection(flow, filePath, packageName, parentActionId, relationships, elements, elements);
     }
 
-    // Phase 3b2: Resolve port delegations
+    // Phase 3a2: Resolve port delegations
     for (const { binding, filePath, packageName } of deferredBindings) {
         resolveBinding(binding, filePath, packageName, relationships, elements, elements);
+    }
+
+    // Phase 3b: Resolve connections
+    for (const { conn, filePath, packageName } of deferredConnections) {
+        resolveConnection(conn, filePath, packageName, config, elements, relationships, registry, elements);
     }
 
     // Phase 3c: Resolve successions
@@ -323,6 +330,27 @@ export function buildMemoModel(
     // by the package-member switch, and their context comes from their owner.
     for (const { document, filePath } of documents) {
         resolveNativeTraceUsages(document.parseResult.value, filePath, relationships, registry, elements);
+    }
+
+    // Phase 3e2: Report every pair of NAMED relationships that wanted the same
+    // qualified name. Both edges are in the model — an edge is a fact about
+    // its two endpoints and does not depend on what it is called — but only
+    // one of the two answers to the name, so a later `allocate` or `verify`
+    // naming it would reach whichever was declared first. Saying nothing is
+    // what made the bare-name identity look like it worked.
+    for (const collision of elements.relationshipCollisions) {
+        errors.push({
+            code: RELATIONSHIP_NAME_COLLISION,
+            file: collision.dropped.file,
+            line: collision.droppedLine,
+            message:
+                `Two relationships are declared '${collision.id}'. A qualified name addresses one, `
+                + `so a reference to it reaches the first: ${collision.kept.file}`
+                + `${collision.keptLine !== undefined ? `:${collision.keptLine}` : ''}. `
+                + `This one is still an edge but cannot be named: ${collision.dropped.file}`
+                + `${collision.droppedLine !== undefined ? `:${collision.droppedLine}` : ''}. `
+                + `Rename one of the two.`,
+        });
     }
 
     // Phase 3f: Report references that named more than one element. Unlike a
@@ -1836,7 +1864,12 @@ function resolveConnection(
     // connection path no longer needs its own second pass.
     const attributes = extractAttributes(conn.body);
     const rel: MemoRelationship = {
-        id: conn.name || `rel-${++relationshipCounter}`,
+        // Qualified for the same reason a flow's is: a declared name is scoped
+        // to its package, and the bare one made two of them into one identity.
+        id: conn.name
+            ? qualifiedId(conn.name, packageName || undefined, undefined)
+            : `rel-${++relationshipCounter}`,
+        ...(conn.name ? { shortName: conn.name } : {}),
         type: normalizedType,
         sourceId,
         // `connect a to b` omits the end names; the ends are then the inherited
@@ -1864,6 +1897,7 @@ function resolveConnection(
     }
 
     relationships.push(rel);
+    if (conn.name) index.defineRelationship(rel, conn);
 }
 
 /**
@@ -1970,8 +2004,16 @@ function resolveFlowConnection(
     // Same rule `resolveConnection` applies to connection usages, and the same
     // reason: authoring needs to inspect, delete, and deep-link a flow, and a
     // positional id makes every one of those wrong after the next edit.
+    //
+    // The name is QUALIFIED, by the owner chain when the flow sits in an
+    // action body and by the declaring package otherwise — the same id an
+    // element of that name would get. Two packages each declaring `exDose`
+    // are two flows, and the bare name made them one.
     const rel: MemoRelationship = {
-        id: flow.name || `rel-${++relationshipCounter}`,
+        id: flow.name
+            ? qualifiedId(flow.name, packageName || undefined, parentActionId)
+            : `rel-${++relationshipCounter}`,
+        ...(flow.name ? { shortName: flow.name } : {}),
         type: 'flow',
         sourceId: sourceActionId,
         sourceEnd: sourcePort,
@@ -1987,6 +2029,10 @@ function resolveFlowConnection(
     };
 
     relationships.push(rel);
+    // A named flow is referenceable: this is the identity an allocation,
+    // a risk-control trace or a verification case names. The index holds
+    // THIS object, so there is one record and no proxy.
+    if (flow.name) index.defineRelationship(rel, flow);
 }
 
 /**
@@ -2644,6 +2690,15 @@ function resolveEndpointId(
     // Several elements answer to this reference. Falling back to the bare name
     // below would quietly make an edge to one of them.
     if (walked.ambiguous) return undefined;
+
+    // A named flow or connection is an identity too. `allocate exDose to
+    // linkCanBus;`, a risk control that mitigates through a named exchange,
+    // a verification case that verifies one — each names an edge, and before
+    // this each fell through to the bare-name fallback below and produced a
+    // relationship pointing at nothing. §9.1: one canonical identity for a
+    // named flow that can also serve as a relationship target.
+    const asRelationship = index.lookupRelationship(ref, { packageName });
+    if (asRelationship) return asRelationship.id;
 
     // An endpoint that resolves to nothing in the model is not always an
     // error. A `ConformsTo` names a clause instance that lives in the
