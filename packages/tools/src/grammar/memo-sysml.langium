@@ -130,6 +130,7 @@ DefinitionMember:
     | InterfaceDefinition
     | ConnectionDefinition
     | AllocationDefinition
+    | FlowDefinition
     | ConcernDefinition
     | AttributeDefinition
     | ConstraintDefinition
@@ -231,6 +232,24 @@ ConnectionDefinition:
 // allocation base instead of standing beside it (plan B2).
 AllocationDefinition:
     isAbstract?='abstract'? 'allocation' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
+    ('{' body+=ConnectionBodyMember* '}' | ';');
+
+// SysML v2 flow definition (`FlowDefinition = OccurrenceDefinitionPrefix 'flow'
+// 'def' Definition`, SysML-textual-bnf.kebnf:806). The definition kind a typed
+// `flow` usage names, and what lets a transfer declare its own contract —
+// payload kind, latency budget, staleness threshold, integrity — instead of a
+// part def standing beside the edge to carry them.
+//
+// Its body is a ConnectionBodyMember list, because a flow definition may
+// declare `end` features and a CONCRETE one must. Measured 2026-09-21 against
+// the compiler of record: `flow def X { attribute … }` with no ends is
+// `error (association-related-types): A concrete association must have at
+// least two related elements` — a flow definition implicitly specializes
+// `Flows::MessageAction`, which is an association. The two spellings SysIDE
+// accepts are `abstract flow def X { attribute … }` and a concrete one
+// declaring `end source : T; end target : T;`.
+FlowDefinition:
+    isAbstract?='abstract'? 'flow' 'def' name=ID specialization=Specialization? (',' additionalSpecializations+=QualifiedName)*
     ('{' body+=ConnectionBodyMember* '}' | ';');
 
 // SysML v2 concern definition (`ConcernDefinition = OccurrenceDefinitionPrefix
@@ -516,9 +535,31 @@ ControlNodeUsage:
 // port-to-port wiring, where naming the ends twice adds nothing. It takes no
 // name and no item type: those forms all spell `from`, which is what keeps the
 // two branches distinguishable.
+// `: <type>` is the FeatureSpecializationPart of the usage's
+// UsageDeclaration (`UsageDeclaration = Identification
+// FeatureSpecializationPart?`, SysML-textual-bnf.kebnf:312), which
+// FlowDeclaration takes verbatim (:837). It is what names the `flow def` the
+// transfer conforms to, so the edge itself carries a declared domain kind and
+// the attributes in its body are that kind's, not free text.
+//
+// It follows the name and precedes `of`, in that order, because
+// FlowDeclaration is `UsageDeclaration ValuePart? ('of' …)`: the declaration —
+// name and type together — comes first, the payload after.
+//
+// The two are accepted here TOGETHER but must not be WRITTEN together.
+// Measured 2026-09-21: `flow f : FunctionalExchange of Dose from a.o to b.i`
+// is `error (namespace-distinguishability): Member name 'payload' shadows
+// Flows::MessageAction::payload` from the compiler of record — `of` declares
+// an anonymous payload feature, which collides with the one the named flow
+// def already inherits. Either alone is clean: `of` on an UNTYPED flow is what
+// all 129 shipped flows write, and a typed flow says what it carries on its
+// DEFINITION, as `ref :>> payload : Dose;`. The grammar stays the wider of the
+// two, per the standing rule that it bends to SysML and SysIDE is the gate; a
+// production that rejected the pair would be MEMO deciding a language question
+// the compiler already answers, and answers with a better message.
 FlowConnectionUsage:
     'flow' (
-        name=ID? ('of' itemType=QualifiedName)? 'from' source=FlowEnd
+        name=ID? (':' type=QualifiedName)? ('of' itemType=QualifiedName)? 'from' source=FlowEnd
         | source=FlowEnd
     ) 'to' target=FlowEnd
     ('{' body+=UsageBodyMember* '}' | ';');

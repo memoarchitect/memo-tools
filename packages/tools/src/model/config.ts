@@ -26,6 +26,7 @@ export type SysMLConstruct =
     | 'port def'
     | 'interface def'
     | 'connection def'
+    | 'flow def'
     | 'attribute def'
     | 'enum def';
 

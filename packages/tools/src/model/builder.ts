@@ -2024,6 +2024,14 @@ function resolveFlowConnection(
             ? { offset: flow.$cstNode.offset, length: flow.$cstNode.length }
             : undefined,
         named: flow.name ? true : undefined,
+        // The declared `flow def`, if the usage names one. Unqualified: a kind
+        // is registered under its declared name, and `memo::FunctionalExchange`
+        // and `FunctionalExchange` are the same type.
+        //
+        // A MessageUsage has no `type` slot in the grammar, hence the guard —
+        // this function serves both, and `in` is what distinguishes them
+        // without widening either AST type.
+        kind: 'type' in flow && flow.type ? flow.type.split('::').pop() : undefined,
         attributes: extractAttributes(flow.body),
         flowItem: flow.itemType || undefined,
     };
