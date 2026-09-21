@@ -81,9 +81,42 @@ export interface RuleResolutionDiagnostic {
 }
 
 export interface MethodologyDiagnostic {
-    code: 'missing-base' | 'inheritance-cycle' | 'unavailable-module' | 'scope-mode-conflict';
+    code:
+        | 'missing-base'
+        | 'inheritance-cycle'
+        | 'unavailable-module'
+        | 'unavailable-layer'
+        | 'scope-mode-conflict';
     message: string;
     methodology?: string;
+}
+
+/**
+ * Does `packageName` sit inside the layer namespace `layer`?
+ *
+ * A layer entry names a namespace, not a package — `memo_core.sysml` says so:
+ * "Layer entries normally name a public MEMO layer namespace; module entries may
+ * name any qualified package available to the project." The architecture layers
+ * decompose one level down, so `memo_architecture_logical` is a namespace over
+ * `memo_architecture_logical_interfaces` and `memo_architecture_logical_structure`
+ * and is not itself a package anywhere in the tree.
+ *
+ * Matching those two by string equality is why every layer entry selected
+ * nothing, and why 25 rules whose subject kind lives in an architecture package
+ * were dropped from the effective rule set without a word. This is the one place
+ * that knows a layer is a prefix, so the scope test and the availability
+ * diagnostic cannot drift apart and disagree about what a layer covers.
+ *
+ * The separator is part of the test, not decoration: a bare `startsWith` would
+ * let `memo_architecture_logical` swallow a sibling named
+ * `memo_architecture_logical_extra_thing` only by intent, but also anything
+ * merely beginning with those letters. Both spellings are accepted because a
+ * module entry may name an externally qualified package, and a layer entry has
+ * no reason to be stricter about its own punctuation than the tree it indexes.
+ */
+export function isWithinLayerNamespace(layer: string, packageName: string): boolean {
+    if (packageName === layer) return true;
+    return packageName.startsWith(`${layer}_`) || packageName.startsWith(`${layer}::`);
 }
 
 /** The methodology chain plus its merged selection. */
@@ -175,6 +208,30 @@ export function resolveEffectiveMethodology(
                 message:
                     `Module "${m}" is selected but is not in the project's import closure. Import the package, `
                     + `or remove it from the selection — a name alone does not make a module available.`,
+            });
+        }
+    }
+
+    // A layer that covers no resolved package is the same defect as an
+    // unavailable module, and it went unreported for as long as it did only
+    // because the module check above existed and this one did not. It is the
+    // half that matters most: whichever way the matching goes, a selection that
+    // selects nothing has to say so, or the next divergence is silent too. A
+    // narrower rule set reports fewer violations, which reads exactly like a
+    // cleaner model.
+    for (const l of merge(m => m.includedLayers)) {
+        let covers = false;
+        for (const pkg of availablePackages) {
+            if (isWithinLayerNamespace(l, pkg)) { covers = true; break; }
+        }
+        if (!covers) {
+            diagnostics.push({
+                code: 'unavailable-layer',
+                message:
+                    `Layer "${l}" is selected but covers no package in the project's import closure. A layer `
+                    + `entry names a namespace, so it selects every resolved package within it — selecting `
+                    + `none means the name matches nothing, and every rule and kind placed in that layer is `
+                    + `silently out of scope.`,
             });
         }
     }
