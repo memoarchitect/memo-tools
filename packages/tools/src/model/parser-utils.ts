@@ -235,3 +235,23 @@ function relativePath(filePath: string, basePath: string): string {
     }
     return filePath;
 }
+
+/**
+ * The narrative text of a body's doc comment, normalized to one line.
+ *
+ * This lives here rather than in `builder.ts` because the MEMO bases no longer
+ * declare `attribute description : String` — narrative prose is native `doc`
+ * now — and the rule loaders in `validator/` have to read it too. One reader,
+ * so a doc comment cannot normalize two different ways depending on which
+ * consumer reached it first.
+ */
+export function extractDocComment(body: any[] | undefined): string | undefined {
+    if (!body) return undefined;
+    const doc = body.find((m: any) => m.$type === 'DocComment') as { content?: string } | undefined;
+    if (!doc?.content) return undefined;
+    return doc.content
+        .replace(/^doc\s+\/\*\s*/, '')
+        .replace(/\s*\*\/$/, '')
+        .replace(/\n\s*\*\s?/g, ' ')
+        .trim();
+}

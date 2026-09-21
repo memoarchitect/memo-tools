@@ -232,8 +232,7 @@ export async function writeViewDeclaration(
     const body = [
         `view ${identifier} : ${viewDef} {`,
         `    expose ${exposePackage}::*;`,
-        `    @MemoIdentity { :>> providedId = "${escape(diagram.id)}"; }`,
-        `    attribute :>> name = "${escape(diagram.name)}";`,
+        `    @MemoIdentity { :>> providedId = "${escape(diagram.id)}"; :>> label = "${escape(diagram.name)}"; }`,
         ...(!home && derived.declaresKind ? [`    attribute :>> viewKind = DiagramViewKind::${diagram.viewKind};`] : []),
         ...(group ? [`    attribute group = "${escape(group)}";`] : []),
         ...selectionQueryLines(diagram),
