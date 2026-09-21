@@ -1048,7 +1048,10 @@ describe('Port wiring (M-2)', () => {
 
         expect(model.relationships).toHaveLength(1);
         const rel = model.relationships[0];
-        expect(rel.id).toBe('fuelCommandFlow');
+        // Qualified, like every other identity in the model: `fuelCommandFlow`
+        // alone is a name scoped to `TestPkg`, not a key.
+        expect(rel.id).toBe('TestPkg::fuelCommandFlow');
+        expect(rel.shortName).toBe('fuelCommandFlow');
         expect(rel.named).toBe(true);
         expect(rel.flowItem).toBe('SensorReading');
         expect(shortNameOf(rel.sourceId)).toBe('sourcePort');
@@ -1488,5 +1491,145 @@ describe('qualified identity', () => {
         // Same file and same construct under the same qualified name is one
         // element arriving twice, not two competing for a key.
         expect(model.errors.filter(e => e.message.includes('Two elements are declared'))).toHaveLength(0);
+    });
+});
+
+/**
+ * A named flow is a referenceable identity, not only an edge.
+ *
+ * The architecture plan's §9.1 asks the model for "a single canonical identity
+ * for a named flow/interface that can also serve as a relationship target",
+ * without "a second authored proxy part". Before this, a named flow reached
+ * the model as a `MemoRelationship` and nothing else: `allocate exDose to box`
+ * resolved `exDose` to nothing, fell back to the bare reference, and produced
+ * an allocation edge pointing at an id no element and no relationship held.
+ */
+describe('named relationship identity', () => {
+    it('gives a named flow a qualified id and its declared short name', async () => {
+        const doc = await parseDoc(`
+            package Probe {
+                action def Emit { out item p : Data; }
+                action def Recv { in item q : Data; }
+                action emit : Emit;
+                action recv : Recv;
+                flow exDose of Data from emit.p to recv.q;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        const flow = model.relationships.find(r => r.type === 'flow')!;
+        expect(flow.id).toBe('Probe::exDose');
+        expect(flow.shortName).toBe('exDose');
+        // One record, not a record plus a proxy: the flow is an edge and is
+        // not also an element, so nothing counting parts counts it as one.
+        expect(model.elements.has('Probe::exDose')).toBe(false);
+    });
+
+    it('resolves an allocation onto a named flow to that flow', async () => {
+        const doc = await parseDoc(`
+            package Probe {
+                action def Emit { out item p : Data; }
+                action def Recv { in item q : Data; }
+                part def Link;
+                action emit : Emit;
+                action recv : Recv;
+                part linkCanBus : Link;
+                flow exDose of Data from emit.p to recv.q;
+                allocate exDose to linkCanBus;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        const allocation = model.relationships.find(r => r.type === 'allocatedTo')!;
+        expect(allocation.sourceId).toBe('Probe::exDose');
+        expect(allocation.targetId).toBe('Probe::linkCanBus');
+    });
+
+    it('keeps two identically named flows in different contexts apart', async () => {
+        const doc = await parseDoc(`
+            package DeviceA {
+                action def Emit { out item p : Data; }
+                action def Recv { in item q : Data; }
+                part def Link;
+                action emit : Emit;
+                action recv : Recv;
+                part link : Link;
+                flow exDose of Data from emit.p to recv.q;
+                allocate exDose to link;
+            }
+            package DeviceB {
+                action def Emit { out item p : Data; }
+                action def Recv { in item q : Data; }
+                part def Link;
+                action emit : Emit;
+                action recv : Recv;
+                part link : Link;
+                flow exDose of Data from emit.p to recv.q;
+                allocate exDose to link;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        const flows = model.relationships.filter(r => r.type === 'flow').map(r => r.id).sort();
+        expect(flows).toEqual(['DeviceA::exDose', 'DeviceB::exDose']);
+
+        // Each allocation stays inside the device it was written in. The bare
+        // name made both of these one identity, so one of the two devices
+        // allocated the other's exchange.
+        const allocations = model.relationships
+            .filter(r => r.type === 'allocatedTo')
+            .map(r => `${r.sourceId} → ${r.targetId}`)
+            .sort();
+        expect(allocations).toEqual([
+            'DeviceA::exDose → DeviceA::link',
+            'DeviceB::exDose → DeviceB::link',
+        ]);
+    });
+
+    it('lets a requirement and a connection reach an exchange', async () => {
+        const doc = await parseDoc(`
+            package Probe {
+                action def Emit { out item p : Data; }
+                action def Recv { in item q : Data; }
+                action emit : Emit;
+                action recv : Recv;
+                requirement reqDoseAccuracy : SystemRequirement;
+                part rcLimitRate : Software;
+                flow exDose of Data from emit.p to recv.q;
+                satisfy reqDoseAccuracy by exDose;
+                connection connect rcLimitRate to exDose;
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        // §12: a hazard, control or verification path that targets an exchange
+        // still resolves. Every one of these runs through `resolveEndpointId`,
+        // which is why one fallback there covers all of them.
+        const satisfy = model.relationships.find(r => r.type === 'satisfiedBy')!;
+        expect(satisfy.targetId).toBe('Probe::exDose');
+        const control = model.relationships.find(r => r.type === 'connect')!;
+        expect(control.targetId).toBe('Probe::exDose');
+    });
+
+    it('reports two relationships declared with one qualified name', async () => {
+        const doc = await parseDoc(`
+            package Probe {
+                action def Emit { out item p : Data; }
+                action def Recv { in item q : Data; }
+                action emit : Emit;
+                action recv : Recv;
+                action other : Recv;
+                flow exDose of Data from emit.p to recv.q;
+                flow exDose of Data from emit.p to other.q;
+            }
+        `, 'model/probe.sysml');
+        const model = buildMemoModel([doc], testConfig, [], testRegistries());
+
+        // Both edges are facts about their endpoints and stay in the model;
+        // what is contested is which one the name addresses.
+        expect(model.relationships.filter(r => r.type === 'flow')).toHaveLength(2);
+        const collision = model.errors.find(e => e.code === 'relationship-name-collision');
+        expect(collision).toBeTruthy();
+        expect(collision!.message).toContain('Probe::exDose');
     });
 });
