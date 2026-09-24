@@ -1480,34 +1480,6 @@
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::lfAlarmSignal",
-        "kind": "FunctionalExchange",
-        "construct": "part",
-        "layer": "functional",
-        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::lfFlowCommand",
-        "kind": "FunctionalExchange",
-        "construct": "part",
-        "layer": "functional",
-        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::lfPrescriptionEntry",
-        "kind": "FunctionalExchange",
-        "construct": "part",
-        "layer": "functional",
-        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::lfSensorAcquisition",
-        "kind": "FunctionalExchange",
-        "construct": "part",
-        "layer": "functional",
-        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
-      },
-      {
         "id": "memo_examples_gpca_pump_gpca_context::actorNurse",
         "kind": "User",
         "construct": "part",
@@ -7146,6 +7118,21 @@
       },
       {
         "type": "flow",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnCommandPump"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAnnunciate"
+      },
+      {
+        "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_context::actorNurse",
         "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
       },
@@ -7168,6 +7155,11 @@
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_operational::entityPrescription",
         "targetId": "memo_examples_gpca_pump_gpca_context::actorNurse"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaProgram",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnValidatePrescription"
       },
       {
         "type": "governs",
@@ -9222,7 +9214,6 @@
       "FMEAAction": 1,
       "FMEAWorksheet": 1,
       "FunctionalAction": 6,
-      "FunctionalExchange": 4,
       "FunctionalFlow": 3,
       "FunctionalFlowStep": 9,
       "HardwareAssembly": 17,
@@ -9289,7 +9280,7 @@
       "artifacts": 4,
       "core": 29,
       "cybersecurity": 10,
-      "functional": 69,
+      "functional": 65,
       "human-factors": 4,
       "implementation": 27,
       "logical": 177,
@@ -9323,16 +9314,6 @@
       {
         "rule": "CR-MED-023",
         "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAnnunciate"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnCommandPump"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
         "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnEnforceLimits"
       },
       {
@@ -9343,17 +9324,7 @@
       {
         "rule": "CR-MED-023",
         "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
         "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManagePower"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm"
       },
       {
         "rule": "CR-MED-023",
@@ -9364,11 +9335,6 @@
         "rule": "CR-MED-023",
         "severity": "warning",
         "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnSelfTest"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnValidatePrescription"
       },
       {
         "rule": "CR-ONT-040",
@@ -9713,12 +9679,12 @@
     ],
     "counts": {
       "error": 68,
-      "warning": 13
+      "warning": 8
     }
   },
   "errors": [],
   "summary": {
-    "elements": 735,
+    "elements": 731,
     "completeness": 100
   }
 }

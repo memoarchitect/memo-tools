@@ -2,9 +2,9 @@
   "project": "gpca-pump",
   "totals": {
     "files": 55,
-    "elements": 734,
+    "elements": 730,
     "definitions": 13,
-    "relationships": 810,
+    "relationships": 814,
     "packages": 55,
     "parseErrors": 0,
     "builderFindings": 73
@@ -92,17 +92,17 @@
       "builderFindings": 0
     },
     "model/catalog/gpca_behavior_subsystems.sysml": {
-      "elements": 24,
+      "elements": 20,
       "definitions": 0,
       "kinds": {
         "ComponentFunction": 3,
-        "FunctionalExchange": 4,
         "InterfaceItem": 6,
         "SystemFunction": 11
       },
-      "relationships": 3,
+      "relationships": 7,
       "relationshipTypes": {
-        "composes": 3
+        "composes": 3,
+        "flow": 4
       },
       "packages": 1,
       "parseErrors": 0,

@@ -567,9 +567,15 @@ FlowConnectionUsage:
 FlowEnd:
     ref=DottedName;
 
-// Dot-separated qualified name for flow endpoints (e.g. receive.prescription)
+// Feature chain for flow endpoints (e.g. receive.prescription), optionally
+// opened by a qualified name — `pkg::oaProgram.prescriptionOut`. A normative
+// `FlowEnd` is `FlowEndSubsetting? FlowFeatureMember`, and the subsetting
+// half is a `[QualifiedName]` or a `FeatureChainPrefix`
+// (SysML-textual-bnf.kebnf:867), so an end in another package is ordinary
+// SysML. Admitting only
+// dots made such a flow a parse error here while `syside check` accepted it.
 DottedName returns string:
-    DottedNameSegment ('.' DottedNameSegment)*;
+    DottedNameSegment ('::' DottedNameSegment)* ('.' DottedNameSegment)*;
 
 DottedNameSegment returns string:
     ID | 'accept' | 'send' | 'terminate';
