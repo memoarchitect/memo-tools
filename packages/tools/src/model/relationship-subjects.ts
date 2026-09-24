@@ -80,7 +80,18 @@ export function relationshipSubjects(
             construct,
             layer: registry?.getKind(relationship.kind)?.layer ?? 'unknown',
             file: relationship.file,
-            attributes: relationship.attributes ?? {},
+            // The ends, under the names `linksOf` already gives them, so a
+            // rule can ask what an edge connects the same way it asks what a
+            // link connects: `allOfKind('MemoPort')->exists(id ==
+            // subject.attributes.sourceId)`. Read off the edge each time, like
+            // everything else here, so there is still one record. The ends
+            // are written last: a body attribute that happened to be called
+            // `sourceId` must not be able to move what the edge connects.
+            attributes: {
+                ...(relationship.attributes ?? {}),
+                sourceId: relationship.sourceId,
+                targetId: relationship.targetId,
+            },
             ...(relationship.provenance ? { provenance: relationship.provenance } : {}),
         });
     }
