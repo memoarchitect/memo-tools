@@ -49,8 +49,9 @@ export type SelectorVocabulary = 'kind' | 'relationship' | 'attribute';
  */
 export const BUILDER_NATIVE_RELATION_TYPES: readonly string[] = [
     // `connect` is what an UNTYPED `connection ... connect a to b` builds, so it
-    // is the commonest of the five and the one a view is most likely to select.
-    'connect', 'flow', 'bind', 'succession', 'variant',
+    // is the commonest of these and the one a view is most likely to select.
+    // `interface` is what a typed `interface x : T connect a to b` builds.
+    'connect', 'flow', 'bind', 'succession', 'variant', 'interface',
 ];
 
 /** One selector attribute and the vocabulary its names come from. */

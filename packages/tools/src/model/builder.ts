@@ -144,7 +144,11 @@ let relationshipCounter = 0;
 
 /** Deferred connection to resolve after all elements are extracted */
 interface DeferredConnection {
-    conn: ConnectionUsage;
+    /**
+     * An `interface … connect a to b` is a connection usage in SysML, so it
+     * waits in the same queue; `$type` tells the two apart at resolution.
+     */
+    conn: ConnectionUsage | InterfaceUsage;
     filePath: string;
     packageName: string;
 }
@@ -308,9 +312,20 @@ export function buildMemoModel(
         resolveBinding(binding, filePath, packageName, relationships, elements, elements);
     }
 
+    // Phase 3a3: Resolve interface connections, ahead of the other connections
+    // for the reason flows lead: a named interface is an identity that a
+    // `Mitigates` connection or an allocation may name.
+    for (const { conn, filePath, packageName } of deferredConnections) {
+        if (conn.$type === 'InterfaceUsage') {
+            resolveInterfaceConnection(conn, filePath, packageName, relationships, elements, errors);
+        }
+    }
+
     // Phase 3b: Resolve connections
     for (const { conn, filePath, packageName } of deferredConnections) {
-        resolveConnection(conn, filePath, packageName, config, elements, relationships, registry, elements);
+        if (conn.$type === 'ConnectionUsage') {
+            resolveConnection(conn, filePath, packageName, config, elements, relationships, registry, elements);
+        }
     }
 
     // Phase 3c: Resolve successions
@@ -825,9 +840,20 @@ function extractFromPackage(
             case 'StateUsage':
                 extractUsage(member as StateUsage, 'state', filePath, packageName, config, elements, registry, registries);
                 break;
-            case 'InterfaceUsage':
-                extractUsage(member as InterfaceUsage, 'interface', filePath, packageName, config, elements, registry, registries);
+            case 'InterfaceUsage': {
+                // `interface x : T connect a to b` is an EDGE between two
+                // features, like a flow, and is resolved once every port is an
+                // element. Extracting it as an element kept the name and body
+                // and silently dropped both ends. An interface usage with no
+                // `connect` has no ends to lose and stays an element.
+                const iface = member as InterfaceUsage;
+                if (iface.source && iface.target) {
+                    deferredConnections.push({ conn: iface, filePath, packageName });
+                } else {
+                    extractUsage(iface, 'interface', filePath, packageName, config, elements, registry, registries);
+                }
                 break;
+            }
             case 'ActionUsage':
                 extractActionUsage(member as ActionUsage, filePath, packageName, config, elements, deferredFlows, deferredSuccessions, registry, registries);
                 break;
@@ -1628,6 +1654,9 @@ function extractNestedPackages(
 /** The kind a nested grouping package becomes, distinct from a namespace package. */
 export const ELEMENT_PACKAGE_KIND = 'ElementPackage';
 
+/** The `ParseError.code` an `interface … connect` with an end naming nothing carries. */
+export const UNRESOLVED_INTERFACE_END = 'unresolved-interface-end';
+
 /**
  * A `viewpoint` usage, and any viewpoint declared inside it.
  *
@@ -1830,6 +1859,78 @@ function extractControlNode(
         parentAction: parentActionId,
     };
     if (elements.define(element, node)) registry.registerElement(id, packageName);
+}
+
+/**
+ * Resolve `interface x : T connect a to b` into a MemoRelationship.
+ *
+ * The same shape as a named flow: an edge of native type `interface`, carrying
+ * its declared definition as `kind`, its body as attributes, and — when named —
+ * the qualified id an allocation or a trace resolves. It is not an element, so
+ * nothing counting parts counts it; `relationship-subjects.ts` is what lets a
+ * rule scoped to the definition reach it.
+ *
+ * Ends are dotted feature paths (`gpcaDevice.gpcaSoftware.tlm.portTlmOut`) and
+ * resolve through `resolvePath` to the deepest element, which for a port path
+ * is the port itself.
+ *
+ * An end that does not resolve is REPORTED, not dropped. The edge is still
+ * left out — an interface to nowhere is not a fact the model can hold — but
+ * the reader is told which end and which declaration.
+ */
+function resolveInterfaceConnection(
+    iface: InterfaceUsage,
+    filePath: string,
+    packageName: string,
+    relationships: MemoRelationship[],
+    elements: ElementIndex,
+    errors: ParseError[],
+): void {
+    const sourceRef = iface.source;
+    const targetRef = iface.target;
+    if (!sourceRef || !targetRef) return;
+
+    const context = { packageName };
+    const { id: sourceId, end: sourceEnd } = resolveEndpoint(sourceRef, elements, context);
+    const { id: targetId, end: targetEnd } = resolveEndpoint(targetRef, elements, context);
+    const unresolved = [
+        ...(elements.has(sourceId) ? [] : [`source '${sourceRef}'`]),
+        ...(elements.has(targetId) ? [] : [`target '${targetRef}'`]),
+    ];
+    if (unresolved.length > 0) {
+        errors.push({
+            code: UNRESOLVED_INTERFACE_END,
+            file: filePath,
+            line: iface.$cstNode ? iface.$cstNode.range.start.line + 1 : undefined,
+            message:
+                `Interface '${iface.name}' connects ${unresolved.join(' and ')}, which names no `
+                + `element, so the interface is not in the model. Point the end at a declared port.`,
+        });
+        return;
+    }
+
+    const rel: MemoRelationship = {
+        id: qualifiedId(iface.name, packageName || undefined, undefined),
+        shortName: iface.name,
+        type: 'interface',
+        sourceId,
+        sourceEnd: sourceEnd || 'source',
+        targetId,
+        targetEnd: targetEnd || 'target',
+        file: filePath,
+        sourceRange: iface.$cstNode
+            ? { offset: iface.$cstNode.offset, length: iface.$cstNode.length }
+            : undefined,
+        named: true,
+        // Unqualified, as a flow's is: a kind is registered under its name.
+        kind: iface.type ? iface.type.split('::').pop() : undefined,
+        attributes: extractAttributes(iface.body),
+    };
+    if (elements.get(sourceId)?.construct === 'port') rel.sourcePortId = sourceId;
+    if (elements.get(targetId)?.construct === 'port') rel.targetPortId = targetId;
+
+    relationships.push(rel);
+    elements.defineRelationship(rel, iface);
 }
 
 function resolveConnection(
