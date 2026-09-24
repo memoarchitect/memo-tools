@@ -184,6 +184,34 @@ describe('flow def — ingestion', () => {
         });
     });
 
+    // A normative FlowEnd may open with a qualified name
+    // (SysML-textual-bnf.kebnf:867). gpca-pump's LF-004 starts at the
+    // clinician's activity in the operational package, and a dotted-only end
+    // made that a parse error here while `syside check` accepted it.
+    it('resolves a flow end qualified by another package', async () => {
+        const model = buildMemoModel([
+            await parseDoc(`
+                package Ops {
+                    item def Rx;
+                    action oaProgram { out rxOut : Rx; }
+                }
+            `),
+            await parseDoc(`
+                package Fn {
+                    private import Ops::*;
+                    abstract flow def FunctionalExchange;
+                    action fnValidate { in rxIn : Rx; }
+                    flow lfEntry : FunctionalExchange
+                        from Ops::oaProgram.rxOut to fnValidate.rxIn;
+                }
+            `),
+        ], config);
+        const flow = model.relationships.find(r => r.type === 'flow');
+        expect(flow).toMatchObject({ shortName: 'lfEntry', sourceEnd: 'rxOut', targetEnd: 'rxIn' });
+        expect(flow!.sourceId).toBe('Ops::oaProgram');
+        expect(shortNameOf(flow!.targetId)).toBe('fnValidate');
+    });
+
     it('does NOT put the flow in the elements map', async () => {
         const model = buildMemoModel([await parseDoc(SOURCE)], config);
         const usages = [...model.elements.values()].filter(e => !e.isDefinition);
