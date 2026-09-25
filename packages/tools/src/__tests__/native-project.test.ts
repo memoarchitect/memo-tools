@@ -70,7 +70,7 @@ function writeEntrypoint(extra = ''): void {
 package demo_project {
     private import lib_a::*;
 ${extra}
-    part binding : ProjectMethodBinding {
+    part projectBinding : ProjectMethodBinding {
         attribute :>> id = "PMB-1";
         attribute :>> projectName = "Demo";
         ref :>> selectedMethodology = chosenMethod;
@@ -101,7 +101,7 @@ describe('resolveNativeProject', () => {
         write('src/project.sysml', `
 package demo_project {
     private import lib_a::*;
-    part binding : ProjectMethodBinding {
+    part projectBinding : ProjectMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
         attribute :>> scopeMode = ScopeModeKind::explicit;
     }
@@ -121,7 +121,7 @@ package demo_project {
         write('src/project.sysml', `
 package demo_project {
     private import ots_lib::*;
-    part binding : ProjectMethodBinding {
+    part projectBinding : ProjectMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
     }
 }
@@ -198,7 +198,7 @@ package demo_project {
         write('model/catalog/project.sysml', `
 package demo_project {
     private import lib_a::*;
-    part binding : ProjectMethodBinding {
+    part projectBinding : ProjectMethodBinding {
         ref :>> selectedMethodology = ghostMethod;
     }
 }
@@ -219,14 +219,14 @@ package demo_second {
 `);
         const r = await resolveNativeProject(TMP);
         expect(r.diagnostics.map(d => d.code)).not.toContain('multiple-bindings');
-        expect(r.binding?.usageName).toBe('binding');
+        expect(r.binding?.usageName).toBe('projectBinding');
     });
 
     it('rejects a binding that declares allAvailable and lists modules', async () => {
         write('model/catalog/project.sysml', `
 package demo_project {
     private import lib_a::*;
-    part binding : ProjectMethodBinding {
+    part projectBinding : ProjectMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
         attribute :>> scopeMode = ScopeModeKind::allAvailable;
         attribute :>> includedModule = ("lib_b");

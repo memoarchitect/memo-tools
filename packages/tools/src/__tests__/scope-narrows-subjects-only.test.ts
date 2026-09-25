@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { evaluateNativeConstraint, evaluateConstraintNode, parseConstraintExpression } from '../validator/constraint-eval.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import { toElementIndex } from '../model/element-index.js';
+import { scopedSubjectIds } from '../model/effective-scope.js';
 
 // ─── Methodology scope narrows SUBJECTS, never the graph ─────────────────────
 //
@@ -90,5 +91,33 @@ describe('methodology scope', () => {
         const always = parseConstraintExpression('false');
         expect(evaluateConstraintNode(modelScoped, always, model, undefined, () => false))
             .toHaveLength(1);
+    });
+});
+
+// ─── A named typed edge is a subject too ─────────────────────────────────────
+//
+// A named `flow` or `interface` typed by a domain definition is a rule subject
+// under the relationship's id. `memo validate` built the in-scope set from
+// elements alone, so under any explicit scope every such subject was filtered
+// out and a rule scoped to its kind passed on nothing. Found 2026-09-24 when
+// CR-ONT-072/073/076 moved onto ComponentExchange interfaces and a deliberately
+// broken copy of gpca-pump still reported no violation.
+describe('scoped subject ids', () => {
+    const exchange: MemoRelationship = {
+        ...rel('P::ceA', 'interface', 'req', 'pump'), named: true, kind: 'ComponentExchange',
+    };
+    const anonymous: MemoRelationship = { ...rel('rel-1', 'flow', 'req', 'pump'), kind: 'ComponentExchange' };
+    const withEdges = makeModel([el('req', 'Requirement'), el('pump', 'Part')], [exchange, anonymous]);
+
+    it('includes a named typed edge whose kind the scope selects', () => {
+        expect(scopedSubjectIds(withEdges, () => true)).toEqual(new Set(['req', 'pump', 'P::ceA']));
+    });
+
+    it('leaves it out when the scope does not select its kind', () => {
+        expect(scopedSubjectIds(withEdges, kind => kind !== 'ComponentExchange').has('P::ceA')).toBe(false);
+    });
+
+    it('never includes an anonymous edge, which addresses nothing', () => {
+        expect(scopedSubjectIds(withEdges, () => true).has('rel-1')).toBe(false);
     });
 });

@@ -23,6 +23,12 @@
 //     the ends had to be relaxed for ports, behaviours, and actors (ARCADIA plan
 //     Track A0). They are generic operators; which relation and which kind come
 //     from the ontology rule, never from a table here.
+//   - `sourceEnd` / `targetEnd` — the element standing at one end of the current
+//     subject when that subject is itself an EDGE: a named, typed flow or
+//     interface projected by relationship-subjects.ts. A collection of zero or
+//     one, so it composes with `->forAll(construct == 'port')`. It replaces
+//     comparing an end id against a kind extent, which the `::`-stripping
+//     string comparison turned into a match on short names.
 //
 // Navigation semantics (matches ClosureRule direction default 'any'):
 //   a feature-chain segment resolves to a RELATIONSHIP (collection, either
@@ -187,6 +193,8 @@ type Node =
     | { kind: 'endsOf'; relationshipType: string; side: 'source' | 'target' }
     /** The LINKS of a relation, as id-bearing values a quantifier can range over. */
     | { kind: 'linksOf'; relationshipType: string }
+    /** The element at one end of the current subject, when that subject is an edge. */
+    | { kind: 'edgeEnd'; side: 'source' | 'target' }
     /** True when the current element's kind is, or specializes, a named kind. */
     | { kind: 'conformsTo'; kindName: string }
     /**
@@ -400,6 +408,10 @@ export function parseConstraintExpression(src: string): Node {
                 while (peek().t === '.') { next(); segments.push(expect('ident').v!); }
                 return segments.length > 0 ? { kind: 'chain', target: reach, segments } : reach;
             }
+            if (tok.v === 'sourceEnd' || tok.v === 'targetEnd') {
+                next();
+                return { kind: 'edgeEnd', side: tok.v === 'sourceEnd' ? 'source' : 'target' };
+            }
             if (tok.v === 'linksOf') {
                 next();
                 expect('(');
@@ -453,6 +465,7 @@ function evalNode(node: Node, env: Env, model: MemoModel): Value {
         case 'acyclic': return relationshipAcyclic(model, node.relationshipType);
         case 'endsOf': return relationshipEnds(model, node.relationshipType, node.side);
         case 'linksOf': return relationshipLinks(model, node.relationshipType);
+        case 'edgeEnd': return edgeEnd(env.current, node.side, model);
         case 'conformsTo': return kindExtent(model, node.kindName).has(env.current.id);
         case 'reach': return reachable(env.current, node.relationshipType, node.direction, model);
         case 'chain': return resolveSegments(evalNode(node.target, env, model), node.segments, model);
@@ -513,6 +526,21 @@ function relationshipLinks(model: MemoModel, relationshipType: string): MemoElem
             id: r.id, name: r.id, kind: r.type, construct: 'connection', layer: 'unknown',
             file: r.file ?? '', attributes: { sourceId: r.sourceId, targetId: r.targetId, ...(r.attributes ?? {}) },
         }) as unknown as MemoElement);
+}
+
+/**
+ * The element at one end of an edge subject, as a collection of zero or one.
+ *
+ * Only a projected edge has ends: its id is a relationship's, so it is not in
+ * the elements map, and relationship-subjects.ts writes its `sourceId` and
+ * `targetId`. An element that happens to carry an attribute of that name is
+ * not an edge and has no end, so it answers empty rather than being read as
+ * one.
+ */
+function edgeEnd(current: MemoElement, side: 'source' | 'target', model: MemoModel): MemoElement[] {
+    if (model.elements.get(current.id)) return [];
+    const element = model.elements.get(current.attributes[side === 'source' ? 'sourceId' : 'targetId'] ?? '');
+    return element ? [element] : [];
 }
 
 function relationshipEnds(model: MemoModel, relationshipType: string, side: 'source' | 'target'): MemoElement[] {
@@ -616,6 +644,11 @@ function resolveSegments(start: Value, segments: string[], model: MemoModel): Va
                 const key = segments[++k];
                 if (key === undefined) throw new Error("'attributes' must be followed by an attribute key");
                 val = val.attributes[key] ?? '';
+            } else if ((seg === 'sourceEnd' || seg === 'targetEnd') && !model.elements.get(val.id)) {
+                // `subject.sourceEnd`: the same end the bare `sourceEnd`
+                // primary answers, reachable from the root subject inside a
+                // quantifier over some other collection.
+                val = edgeEnd(val, seg === 'sourceEnd' ? 'source' : 'target', model);
             } else if (isRelType(model, seg)) {
                 val = navigate(val, seg.toLowerCase(), model);
             } else if (TYPED_FIELDS.has(seg)) {

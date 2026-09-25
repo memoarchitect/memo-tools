@@ -202,3 +202,65 @@ describe('interface connect — a rule reaches the edge and its ends', () => {
         expect(subject.attributes.sourceId).toBe('P::a::o');
     });
 });
+
+// ─── A named binding: a delegation with an identity ──────────────────────────
+//
+// `binding name bind outer = inner { … }` (SysML-textual-bnf.kebnf:706). The
+// boundary port and the inner port are one feature, so it is not an interface
+// and not a flow, but a delegation can still need a name, a citation and
+// attributes: gpca-pump's 15 GPCA_SW.Impl boundary connections each carry a
+// CE-1xx id. Before this, `bind` took no name, so those lived on a separate
+// ComponentExchange part beside an anonymous bind.
+describe('named binding', () => {
+    const DELEGATION = `
+        package P {
+            port def CmdPort;
+            part def Tlm { in port tIn : CmdPort; }
+            part sw {
+                in port pIn : CmdPort;
+                part tlm : Tlm { in port tIn : CmdPort; }
+            }
+            binding ceOpCmdToTlm bind sw.pIn = sw.tlm.tIn {
+                @MemoIdentity { :>> providedId = "CE-101"; }
+                attribute timingSemantics : String = "immediate";
+            }
+            bind sw.pIn = sw.tlm.tIn;
+            action lfX;
+            allocate lfX to ceOpCmdToTlm;
+        }
+    `;
+
+    it('builds as a named `bind` edge carrying its body', async () => {
+        const model = buildMemoModel([await parseDoc(DELEGATION)], config);
+        const named = model.relationships.find(r => r.type === 'bind' && r.named);
+        expect(named).toMatchObject({
+            id: 'P::ceOpCmdToTlm',
+            shortName: 'ceOpCmdToTlm',
+            sourceId: 'P::sw::pIn',
+            targetId: 'P::sw::tlm::tIn',
+            attributes: { providedId: 'CE-101', timingSemantics: 'immediate' },
+        });
+        expect(named!.kind).toBeUndefined();
+    });
+
+    it('is targetable by its qualified id, and is not an element', async () => {
+        const model = buildMemoModel([await parseDoc(DELEGATION)], config);
+        expect(model.elements.get('P::ceOpCmdToTlm')).toBeUndefined();
+        expect(model.relationships.find(r => r.type === 'allocatedTo'))
+            .toMatchObject({ sourceId: 'P::lfX', targetId: 'P::ceOpCmdToTlm' });
+    });
+
+    it('leaves the anonymous form as it was', async () => {
+        const model = buildMemoModel([await parseDoc(DELEGATION)], config);
+        const anonymous = model.relationships.filter(r => r.type === 'bind' && !r.named);
+        expect(anonymous).toHaveLength(1);
+        expect(anonymous[0].id).toMatch(/^rel-\d+$/);
+    });
+
+    // It declares no domain kind, so no rule selects it as a subject: a
+    // delegation is not a ComponentExchange, and nothing should judge it as one.
+    it('is not projected as a rule subject', async () => {
+        const model = buildMemoModel([await parseDoc(DELEGATION)], config);
+        expect(relationshipSubjects(model, registryWith('ComponentExchange'))).toEqual([]);
+    });
+});

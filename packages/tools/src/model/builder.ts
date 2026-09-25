@@ -2063,15 +2063,27 @@ function resolveBinding(
 
     if (!index.has(sourceId) || !index.has(targetId)) return;
 
-    relationships.push({
-        id: `rel-${++relationshipCounter}`,
+    // A NAMED binding carries the qualified id and the body attributes a
+    // delegation needs to be cited, allocated or traced, exactly as a named
+    // flow does. An anonymous one keeps its positional id.
+    const rel: MemoRelationship = {
+        id: binding.name
+            ? qualifiedId(binding.name, packageName || undefined, undefined)
+            : `rel-${++relationshipCounter}`,
+        ...(binding.name ? { shortName: binding.name, named: true } : {}),
         type: 'bind',
         sourceId,
         sourceEnd,
         targetId,
         targetEnd,
         file: filePath,
-    });
+        ...(binding.name && binding.$cstNode
+            ? { sourceRange: { offset: binding.$cstNode.offset, length: binding.$cstNode.length } }
+            : {}),
+        ...(binding.body?.length ? { attributes: extractAttributes(binding.body) } : {}),
+    };
+    relationships.push(rel);
+    if (binding.name) index.defineRelationship(rel, binding);
 }
 
 /**

@@ -71,7 +71,7 @@ package lib_a {
     write('model/catalog/project.sysml', `
 package demo_project {
     private import lib_a::*;
-    part binding : ProjectMethodBinding {
+    part projectBinding : ProjectMethodBinding {
         attribute :>> id = "PMB-1";
         attribute :>> projectName = "Demo";
         ref :>> selectedMethodology = chosenMethod;

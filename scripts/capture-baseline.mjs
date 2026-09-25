@@ -424,6 +424,42 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-09-24 (twice) — gpca only, for the two
+ * native-exchange cutovers. ui-regions, default and extension-clinical did not
+ * move either time.
+ *
+ * FIRST, §6.1: `FunctionalExchange` became an `abstract flow def`, and
+ * gpca-pump's four exchanges are typed named flows between function
+ * parameters (memo a42e15b).
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | −4 elements `FunctionalExchange` (`lfSensorAcquisition` … `lfPrescriptionEntry`) | They are edges now, under the same qualified ids, so the four `allocate lf… to ex…` edges keep their source ids and do not move. |
+ * | +4 relationships `flow` | The same four exchanges, between typed function parameters. |
+ * | −5 `CR-MED-023` (`fnMonitorAlarm`, `fnAnnunciate`, `fnManageInfusion`, `fnCommandPump`, `fnValidatePrescription`) | Reachable through a flow now. The architecture plan's §9.2 predicted exactly this. |
+ *
+ * SECOND, §6.2: `ComponentExchange` became an `interface def`. Of gpca-pump's
+ * 46, the 31 between two subcomponents are typed named interfaces between the
+ * same ports their flows already joined, and the 15 from a GPCA_SW boundary
+ * port into a subcomponent are named `binding`s that replace both the part
+ * and the anonymous `bind` beside it.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | −46 elements `ComponentExchange` | Edges now: 31 `interface`, 15 named `bind`. |
+ * | +3 elements `PhysicalPort` (`operatorKeypad::portPrescriptionOut`, `pumpMotorAssembly::portFlowCommandIn`, `audibleAlarm::portAlarmIn`) | CE-002/003/004 ended at a component. §6.2 requires a real boundary port, and CR-ONT-072/073 now enforce it. CE-001 reuses the AADL `snsSensorOut`. |
+ * | +31 relationships `interface` | The 31 exchanges between subcomponents. The 15 named bindings replace the 15 anonymous ones one for one, so the `bind` count does not move. |
+ * | −46 `CR-ONT-076` | The rule now asks for a flow between the interface's own two ports, compared as elements, where it used to ask for a flow of the same NAME as a part, which could not compile. All 31 interfaces carry one. The 15 bindings are not ComponentExchanges, so it does not apply to them. |
+ *
+ * CR-ONT-072/073/076 evaluating to zero was proved by breaking a scratch copy
+ * rather than assumed: a part at one end raises CR-ONT-073, and a deleted flow
+ * raises CR-ONT-076. That check found the scope defect fixed in the same change:
+ * `memo validate`'s in-scope subject set held element ids only, so under
+ * gpca-pump's explicit scope every rule scoped to a flow-def or interface-def
+ * kind ran on nothing.
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
