@@ -211,6 +211,73 @@ describe('builder: both spellings produce the same trace edge', () => {
     });
 });
 
+describe('builder: a contract\'s members are its own edges', () => {
+    // An assume/guarantee contract is a requirement whose subject is the
+    // component and whose assumptions and guarantees are `assume`/`require`
+    // members. The subject is what the requirement is ABOUT; inside a
+    // verification case the same keyword names what was verified.
+    const contract = `
+        package Test {
+            part controller : Software;
+            requirement inputPositive : BehaviorProperty;
+            requirement modeRange : BehaviorProperty;
+            requirement ctr : Contract {
+                subject :>> component = controller;
+                assume inputPositive;
+                require modeRange;
+            }
+        }
+    `;
+
+    it('projects subject, assume and require from the owning requirement', async () => {
+        expect(await edgesOf(contract)).toEqual([
+            {
+                type: 'hasSubject',
+                sourceId: 'ctr', sourceEnd: 'requirement',
+                targetId: 'controller', targetEnd: 'subject',
+            },
+            {
+                type: 'assumes',
+                sourceId: 'ctr', sourceEnd: 'contract',
+                targetId: 'inputPositive', targetEnd: 'assumption',
+            },
+            {
+                type: 'requires',
+                sourceId: 'ctr', sourceEnd: 'contract',
+                targetId: 'modeRange', targetEnd: 'guarantee',
+            },
+        ]);
+    });
+
+    it('never reads a requirement\'s subject as verified', async () => {
+        const edges = await edgesOf(contract);
+        expect(edges.filter(e => e.type === 'verifiedBy')).toEqual([]);
+    });
+
+    it('still reads a verification case\'s subject as verified', async () => {
+        expect(await edgesOf(`
+            package Test {
+                part controller : Software;
+                verification vc : Check { subject verified = controller; }
+            }
+        `)).toEqual([{
+            type: 'verifiedBy',
+            sourceId: 'controller', sourceEnd: 'verificationTarget',
+            targetId: 'vc', targetEnd: 'verificationCase',
+        }]);
+    });
+
+    it('keeps the inline-expression form apart from the reference form', async () => {
+        // `require constraint { … }` is an expression, not a reference to a
+        // requirement, and builds no membership edge.
+        expect(await edgesOf(`
+            package Test {
+                requirement def R { require constraint { x > 0 } }
+            }
+        `)).toEqual([]);
+    });
+});
+
 describe('registry: the natives are registered as usages, not connection defs', () => {
     async function registryFrom(source: string): Promise<RelationshipRegistry> {
         const registry = new RelationshipRegistry();
@@ -267,9 +334,12 @@ describe('registry: the natives are registered as usages, not connection defs', 
                 // `composes` joined this set when R10-S7 deleted the
                 // connection def: its native spelling is nesting, and the
                 // builder synthesizes the edge from every nested part and item.
-                'allocatedTo', 'composes', 'dependency', 'exhibitsMode',
-                'framesConcern', 'includesStep', 'participatesIn', 'performs',
-                'realizes', 'satisfiedBy', 'verifiedBy',
+                // `hasSubject`, `assumes` and `requires` are a requirement's
+                // own members: a contract's component and its assumptions and
+                // guarantees.
+                'allocatedTo', 'assumes', 'composes', 'dependency', 'exhibitsMode',
+                'framesConcern', 'hasSubject', 'includesStep', 'participatesIn', 'performs',
+                'realizes', 'requires', 'satisfiedBy', 'verifiedBy',
             ]);
     });
 });
