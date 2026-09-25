@@ -368,10 +368,15 @@ UseCaseDeclaration:
 
 // Item usage: standalone (`item x : T { … }`), directioned port payload
 // (`in item reading : T;` / `out item command : T;`), or a bound feature value.
+// `:>` subsets an existing item usage: `out item spo2 :> spo2Item;` inside a
+// port says the port carries that coded measurement, not merely some item of
+// its type. SysIDE accepts it; this production took only `=`, so the port's
+// body failed to parse and the port was lost with it. Same spelling as
+// PartMember's.
 ItemUsage:
     direction=('in' | 'out' | 'inout')? 'item' name=MemberName preMultiplicity=Multiplicity?
     (':' type=QualifiedName multiplicity=Multiplicity?)?
-    ('=' boundRef=QualifiedName)?
+    (bindingOp=('=' | ':>') boundRef=QualifiedName)?
     ('{' body+=UsageBodyMember* '}' | ';');
 
 RequirementUsage:

@@ -297,3 +297,47 @@ describe('flow def — a rule reaches the edge', () => {
         expect(model.elementsByKind.get('FunctionalExchange') ?? []).toEqual([]);
     });
 });
+
+// ─── A flow between the item features two ports declare ──────────────────────
+//
+// `LogicalExchange` is authored this way (connected-patient-monitor): the
+// payload is an item feature on each port that SUBSETS the coded measurement,
+// `out item spo2 :> spo2Item;`. The grammar took only `=` on an item usage, so
+// each port's body failed to parse and the port went with it. The flow still
+// built, which is how it went unnoticed.
+describe('flow def — ends on port item features', () => {
+    const PORTS = `
+        package P {
+            item def Measurement;
+            port def LogicalPort;
+            abstract flow def LogicalExchange { attribute contentKind : String; }
+            item spo2Item : Measurement;
+            part lcMonitor { out port pSpo2Out : LogicalPort { out item spo2 :> spo2Item; } }
+            part lcGateway { in port pSpo2In : LogicalPort { in item spo2 :> spo2Item; } }
+            flow exSpo2ToGateway : LogicalExchange from lcMonitor.pSpo2Out.spo2 to lcGateway.pSpo2In.spo2 {
+                attribute :>> contentKind = "measurement";
+            }
+        }`;
+
+    it('parses the subsetting item and keeps both ports', async () => {
+        const model = buildMemoModel([await parseDoc(PORTS)], config);
+        const out = model.elements.get('P::lcMonitor::pSpo2Out');
+        const inn = model.elements.get('P::lcGateway::pSpo2In');
+        expect(out?.parameters).toEqual([{ name: 'spo2', direction: 'out', type: 'spo2Item' }]);
+        expect(inn?.parameters).toEqual([{ name: 'spo2', direction: 'in', type: 'spo2Item' }]);
+    });
+
+    it('ends the flow on the ports, with the item feature as the end', async () => {
+        const model = buildMemoModel([await parseDoc(PORTS)], config);
+        const [flow] = model.relationships.filter(r => r.type === 'flow');
+        expect(flow).toMatchObject({
+            id: 'P::exSpo2ToGateway',
+            kind: 'LogicalExchange',
+            sourceId: 'P::lcMonitor::pSpo2Out',
+            sourceEnd: 'spo2',
+            targetId: 'P::lcGateway::pSpo2In',
+            targetEnd: 'spo2',
+            attributes: { contentKind: 'measurement' },
+        });
+    });
+});

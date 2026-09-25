@@ -2,27 +2,28 @@
   "project": "connected-patient-monitor",
   "totals": {
     "files": 4,
-    "elements": 9,
+    "elements": 10,
     "definitions": 0,
-    "relationships": 3,
+    "relationships": 4,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
     "model/catalog/connected_patient_monitor.sysml": {
-      "elements": 7,
+      "elements": 8,
       "definitions": 0,
       "kinds": {
         "Interface": 1,
         "LogicalComponent": 3,
-        "LogicalExchange": 1,
         "LogicalExchangeItem": 1,
+        "LogicalPort": 2,
         "TrustBoundary": 1
       },
-      "relationships": 3,
+      "relationships": 4,
       "relationshipTypes": {
         "crossesTrustBoundary": 1,
+        "flow": 1,
         "logicalConnector": 2
       },
       "packages": 1,
