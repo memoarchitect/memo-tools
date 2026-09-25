@@ -213,6 +213,13 @@
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
+        "id": "memo_examples_gpca_pump_gpca_architecture::audibleAlarm::portAlarmIn",
+        "kind": "PhysicalPort",
+        "construct": "port",
+        "layer": "realization",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
         "id": "memo_examples_gpca_pump_gpca_architecture::batteryPack",
         "kind": "HardwareAssembly",
         "construct": "part",
@@ -906,6 +913,13 @@
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
+        "id": "memo_examples_gpca_pump_gpca_architecture::operatorKeypad::portPrescriptionOut",
+        "kind": "PhysicalPort",
+        "construct": "port",
+        "layer": "realization",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
         "id": "memo_examples_gpca_pump_gpca_architecture::powerSupply",
         "kind": "HardwareAssembly",
         "construct": "part",
@@ -917,6 +931,13 @@
         "kind": "HardwareAssembly",
         "construct": "part",
         "layer": "implementation",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_architecture::pumpMotorAssembly::portFlowCommandIn",
+        "kind": "PhysicalPort",
+        "construct": "port",
+        "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
@@ -1809,300 +1830,6 @@
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceAlarmOutToOutput",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceAlarmToIm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceAlarmToLog",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToIm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToLog",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToOutput",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToSysStat",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConsToConfig",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConstToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConstToSysStat",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceConstToTlm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceDbToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceDbToConfig",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceImToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceImToLog",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceImToOutput",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceImToSysStat",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceLogToOutput",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceOpCmdToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceOpCmdToConfig",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceOpCmdToIm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceOpCmdToTlm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceOutputToGpcaOut",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::cePatientToIm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::cePresToConfig",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSensorToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSensorToSysStat",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSysMonToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSysMonToOutput",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatOutToOutput",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatToConfig",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatToIm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatToLog",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceTlmOutToOutput",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToAlarm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToConfig",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToIm",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToLog",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToSysMon",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToSysStat",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
         "id": "memo_examples_gpca_pump_gpca_interfaces::ddActualInfusionDurationMacro",
         "kind": "InterfaceItem",
         "construct": "item",
@@ -2407,34 +2134,6 @@
         "id": "memo_examples_gpca_pump_gpca_interfaces::eventLogInterface",
         "kind": "Interface",
         "construct": "interface",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::exAlarmAnnunciation",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::exFlowCommand",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::exPrescriptionEntry",
-        "kind": "ComponentExchange",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_interfaces"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_interfaces::exSensorVector",
-        "kind": "ComponentExchange",
-        "construct": "part",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
@@ -6793,7 +6492,7 @@
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsSensorOut",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portSensorIn"
       },
       {
@@ -6929,7 +6628,7 @@
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::audibleAlarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::audibleAlarm::portAlarmIn"
       },
       {
         "type": "flow",
@@ -6939,7 +6638,7 @@
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::pumpMotorAssembly"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::pumpMotorAssembly::portFlowCommandIn"
       },
       {
         "type": "flow",
@@ -7088,7 +6787,7 @@
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::operatorKeypad",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::operatorKeypad::portPrescriptionOut",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPresIn"
       },
       {
@@ -7230,6 +6929,161 @@
         "type": "inputToGate",
         "sourceId": "memo_examples_gpca_pump_gpca_analysis::ftgMotorAnd",
         "targetId": "memo_examples_gpca_pump_gpca_analysis::ftgOverdoseOr"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsSensorOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portSensorIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImAlarmIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogAlarmIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputAlarmIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmConfigIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImConfigIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogConfigIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputConfigIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatConfigIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmImIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogImIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputImIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatImIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogLogOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputLogIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::audibleAlarm::portAlarmIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::pumpMotorAssembly::portFlowCommandIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSysMonIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputSysMonIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSysStatIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigSysStatIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImSysStatIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogSysStatIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputSysStatIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmTlmModeIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigTlmModeIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImTlmModeIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogTlmModeIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputTlmModeIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonTlmModeIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatTlmModeIn"
+      },
+      {
+        "type": "interface",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::operatorKeypad::portPrescriptionOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPresIn"
       },
       {
         "type": "mitigates",
@@ -9197,7 +9051,6 @@
       "BehaviorProperty": 20,
       "Benefit": 1,
       "Citation": 9,
-      "ComponentExchange": 46,
       "ComponentFunction": 3,
       "Contract": 4,
       "CyberHazard": 1,
@@ -9245,7 +9098,7 @@
       "OperativeScenario": 9,
       "OverallResidualRiskEvaluation": 1,
       "PhysicalAssembly": 1,
-      "PhysicalPort": 22,
+      "PhysicalPort": 25,
       "ProcessingNode": 1,
       "ProjectMethodBinding": 1,
       "ReasonablyForeseeableMisuse": 1,
@@ -9283,10 +9136,10 @@
       "functional": 65,
       "human-factors": 4,
       "implementation": 27,
-      "logical": 177,
+      "logical": 131,
       "methodology": 2,
       "operational": 44,
-      "realization": 23,
+      "realization": 26,
       "requirements": 146,
       "safety_risk": 105,
       "unknown": 68,
@@ -9437,236 +9290,6 @@
         "elementId": "memo_examples_gpca_pump_gpca_system::ssAlarmPause"
       },
       {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceAlarmOutToOutput"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceAlarmToIm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceAlarmToLog"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToIm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToLog"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToOutput"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConfigToSysStat"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConsToConfig"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConstToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConstToSysStat"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceConstToTlm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceDbToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceDbToConfig"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceImToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceImToLog"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceImToOutput"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceImToSysStat"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceLogToOutput"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceOpCmdToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceOpCmdToConfig"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceOpCmdToIm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceOpCmdToTlm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceOutputToGpcaOut"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::cePatientToIm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::cePresToConfig"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSensorToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSensorToSysStat"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSysMonToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSysMonToOutput"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatOutToOutput"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatToConfig"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatToIm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceSysStatToLog"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceTlmOutToOutput"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToAlarm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToConfig"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToIm"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToLog"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToSysMon"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::ceTlmToSysStat"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::exAlarmAnnunciation"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::exFlowCommand"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::exPrescriptionEntry"
-      },
-      {
-        "rule": "CR-ONT-076",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_interfaces::exSensorVector"
-      },
-      {
         "rule": "CR-ONT-077",
         "severity": "error",
         "elementId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware"
@@ -9678,13 +9301,13 @@
       }
     ],
     "counts": {
-      "error": 68,
+      "error": 22,
       "warning": 8
     }
   },
   "errors": [],
   "summary": {
-    "elements": 731,
+    "elements": 688,
     "completeness": 100
   }
 }

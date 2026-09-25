@@ -311,7 +311,7 @@ package lock_test_project {
     private import memo_methodology_profiles::*;
     private import lock_test_model::*;
 
-    part binding : ProjectMethodBinding {
+    part projectBinding : ProjectMethodBinding {
         attribute :>> id = "PMB-TEST";
         attribute :>> name = "lock-testBinding";
         attribute :>> projectName = "lock-test";
@@ -437,7 +437,7 @@ package custom_device_project {
     private import memo_methodology_profiles::*;
     private import custom_device_model::*;
 
-    part binding : ProjectMethodBinding {
+    part projectBinding : ProjectMethodBinding {
         attribute :>> id = "PMB-TEST";
         attribute :>> name = "custom-deviceBinding";
         attribute :>> projectName = "custom-device";

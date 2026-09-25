@@ -20,6 +20,7 @@ import {
     activeRuleCandidates,
     isRulePackageInScope,
     isInScope,
+    scopedSubjectIds,
     checkSemanticFields,
     type RuleCandidate,
 } from '@memoarchitect/tools';
@@ -297,15 +298,13 @@ export async function validateCommand(
     // scoped model — not on content the project deliberately excluded.
     const completeness = computeCompleteness(subjectModel, result);
 
-    /** Element ids the methodology selected. */
+    /** Subject ids the methodology selected: elements, and named typed edges. */
     function scopeElementIds(full: typeof model): Set<string> {
-        const ids = new Set<string>();
-        for (const [id, element] of full.elements) {
-            const sourceFile = kindRegistry?.getKind(element.kind)?.sourceFile;
+        return scopedSubjectIds(full, kind => {
+            const sourceFile = kindRegistry?.getKind(kind)?.sourceFile;
             const declaringPackage = sourceFile ? ruleFileToPackage.get(sourceFile) : undefined;
-            if (!declaringPackage || isRulePackageInScope(scope, declaringPackage)) ids.add(id);
-        }
-        return ids;
+            return !declaringPackage || isRulePackageInScope(scope, declaringPackage);
+        });
     }
 
     // Still used for the COMPLETENESS report, which is a statement about what

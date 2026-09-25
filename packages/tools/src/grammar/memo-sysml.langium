@@ -87,12 +87,25 @@ PackageMember:
     | BindingUsage
     | DocComment;
 
-// `bind a = b;` — the native spelling of port delegation, where an enclosing
-// port and a nested part's port are the same feature. MEMO wrote these as
-// flows, which SysIDE rejects: a flow's source must be an output, and a
-// delegation runs `in` to `in`.
+// `bind a = b;` — a binding connector: the two ends are the same feature, an
+// enclosing port and the nested part's port it stands for. Nothing travels
+// between them, which is what separates it from a flow.
+//
+// It may be NAMED and have a body — `binding ceOpCmdToTlm bind a = b { … }` —
+// because the normative form is `UsagePrefix ('binding' UsageDeclaration)?
+// 'bind' … UsageBody` (SysML-textual-bnf.kebnf:706). A named binding is the
+// one record for a delegation that carries an identity and attributes; with
+// only the anonymous form, those had to live on a separate part beside it.
+//
+// A flow along the same two `in` ports is not always wrong: written inside
+// the enclosing part's body it is accepted, because from inside, the
+// boundary port is where things come FROM. Written at package level it is
+// `redefinition-direction-conformance` (measured 2026-09-24). Which one a
+// model says is a modelling choice — a transfer that takes time, or one
+// feature seen from both sides — not a grammar question.
 BindingUsage:
-    'bind' source=ReferenceName '=' target=ReferenceName ';';
+    ('binding' name=ID)? 'bind' source=ReferenceName '=' target=ReferenceName
+    ('{' body+=UsageBodyMember* '}' | ';');
 
 // Namespace indirection used by the canonical memo::* facade. Each source file
 // owns a unique package for reliable SysIDE indexing; aliases reconstruct the

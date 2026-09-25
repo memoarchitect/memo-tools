@@ -17,6 +17,7 @@
 import type { EffectiveMethodology, RuleCandidate } from './methodology-resolver.js';
 import { ruleCandidatesFromConstraints, isWithinLayerNamespace } from './methodology-resolver.js';
 import type { CompiledConstraint } from '../validator/constraint-eval.js';
+import type { MemoModel } from './semantic.js';
 
 /**
  * The part of a kind this module needs.
@@ -187,4 +188,27 @@ export function activeRuleCandidates(
             .filter(c => isRulePackageInScope(scope, packageOf(c.sourceFile)))
             .filter(c => subjectInScope(c.appliesToKind)),
     );
+}
+
+/**
+ * The ids rules may run ON under a methodology scope: every element whose kind
+ * the scope selects, and every named, typed edge whose declared kind it
+ * selects.
+ *
+ * The edges matter because a named `flow` or `interface` typed by a domain
+ * definition is a rule subject of that kind under the RELATIONSHIP's id
+ * (relationship-subjects.ts). A set built from elements alone dropped every
+ * such subject under any explicit scope, so a rule scoped to
+ * `FunctionalExchange` or `ComponentExchange` ran on nothing and reported a
+ * clean pass.
+ */
+export function scopedSubjectIds(model: MemoModel, selectsKind: (kind: string) => boolean): Set<string> {
+    const ids = new Set<string>();
+    for (const [id, element] of model.elements) {
+        if (selectsKind(element.kind)) ids.add(id);
+    }
+    for (const relationship of model.relationships) {
+        if (relationship.named && relationship.kind && selectsKind(relationship.kind)) ids.add(relationship.id);
+    }
+    return ids;
 }

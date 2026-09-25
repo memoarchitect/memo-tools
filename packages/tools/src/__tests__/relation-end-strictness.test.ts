@@ -11,7 +11,7 @@ import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic
 //
 // A0 removed the TYPES from the ends of SatisfiedBy, VerifiedBy, AllocatedTo,
 // Composes, Precedes, Performs, Enables, BindsToInterface,
-// CrossesTrustBoundary, and ComponentExchange's endpoint refs, because a
+// CrossesTrustBoundary, and ComponentExchange's endpoints, because a
 // part-typed end cannot admit a port or a behaviour and that is what blocks the
 // whole of Track A. The constraints those types carried moved into
 // CR-ONT-060..073 in memo/src/rules/ontology/ontology_invariants.sysml.
@@ -78,6 +78,7 @@ const ELEMENTS: Array<[id: string, kind: string, construct: string]> = [
     // rules that accept it (CR-ONT-066, CR-ONT-070) already read
     // `construct == 'port'` — A0 wrote them for the metaclass A1 delivers.
     ['port', 'PhysicalPort', 'port'],
+    ['port2', 'SoftwarePort', 'port'],
     ['iface', 'Interface', 'interface'],
     ['vcase', 'VerificationCase', 'verification'],
     ['boundary', 'TrustBoundary', 'part'],
@@ -133,21 +134,21 @@ function buildModel(links: RelSpec[], exchangeEndpoints?: { source: string; targ
     for (const [id, kind, construct] of ELEMENTS) {
         elements.set(id, { id, name: id, kind, construct, layer: 'test', file: '', attributes: {} } as MemoElement);
     }
-    if (exchangeEndpoints) {
-        elements.set('exch', {
-            id: 'exch', name: 'exch', kind: 'ComponentExchange', construct: 'part', layer: 'test', file: '',
-            attributes: { sourceEndpoint: exchangeEndpoints.source, targetEndpoint: exchangeEndpoints.target },
-        } as MemoElement);
-    }
+    // A ComponentExchange is an interface: an EDGE between its two ends,
+    // named and typed, which the evaluator projects as a rule subject.
+    const exchange: MemoRelationship[] = exchangeEndpoints ? [{
+        id: 'exch', shortName: 'exch', named: true, type: 'interface', kind: 'ComponentExchange',
+        sourceId: exchangeEndpoints.source, targetId: exchangeEndpoints.target,
+    } as MemoRelationship] : [];
 
     const elementsByKind = new Map<string, MemoElement[]>();
     for (const element of elements.values()) {
         elementsByKind.set(element.kind, [...(elementsByKind.get(element.kind) ?? []), element]);
     }
 
-    const relationships: MemoRelationship[] = links.map((link, index) => ({
+    const relationships: MemoRelationship[] = [...links.map((link, index) => ({
         id: `rel-${index}`, type: link.type, sourceId: link.from, targetId: link.to,
-    } as MemoRelationship));
+    } as MemoRelationship)), ...exchange];
     const outgoing = new Map<string, MemoRelationship[]>();
     const incoming = new Map<string, MemoRelationship[]>();
     const relationshipsByType = new Map<string, MemoRelationship[]>();
@@ -185,7 +186,7 @@ describe('Track A0 relation-end rules', () => {
 
     it('accepts a model whose ends are all well typed', () => {
         if (!available) return;
-        const model = buildModel(VALID_LINKS, { source: 'mod', target: 'port' });
+        const model = buildModel(VALID_LINKS, { source: 'port', target: 'port2' });
         const raised = [...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES].flatMap(id =>
             evaluateConstraintNode(rules.get(id)!, rules.get(id)!.ast, model, kindRegistry));
         const detail = raised.map(v => `${v.ruleId}: ${v.description}`).join('\n  ');
@@ -202,10 +203,9 @@ describe('Track A0 relation-end rules', () => {
         });
     }
 
-    // CR-ONT-072/073 replace CR-ONT-002. ComponentExchange's endpoints are
-    // `ref` features rather than links, so they are checked over the exchange
-    // element itself and never appear in `relationships` at all.
-    it('CR-ONT-072 rejects a source endpoint that is not a component or a port', () => {
+    // CR-ONT-072/073 replace CR-ONT-002, asked of the exchange EDGE: its ends
+    // are the elements `sourceEnd`/`targetEnd` return, and both must be ports.
+    it('CR-ONT-072 rejects a source endpoint that is not a port', () => {
         if (!available) return;
         const constraint = rules.get('CR-ONT-072')!;
         const model = buildModel(VALID_LINKS, { source: 'req', target: 'port' });
@@ -213,10 +213,10 @@ describe('Track A0 relation-end rules', () => {
             .map(v => v.ruleId)).toContain('CR-ONT-072');
     });
 
-    it('CR-ONT-073 rejects a target endpoint that is not a component or a port', () => {
+    it('CR-ONT-073 rejects a target endpoint that is not a port', () => {
         if (!available) return;
         const constraint = rules.get('CR-ONT-073')!;
-        const model = buildModel(VALID_LINKS, { source: 'mod', target: 'req' });
+        const model = buildModel(VALID_LINKS, { source: 'port', target: 'req' });
         expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
             .map(v => v.ruleId)).toContain('CR-ONT-073');
     });
@@ -261,12 +261,19 @@ describe('Track A0 relation-end rules', () => {
             .map(v => v.elementId)).toContain('fn');
     });
 
-    it('CR-ONT-072/073 accept an exchange with no endpoints declared', () => {
+    // A component used to be an accepted end. §6.2 of the architecture plan
+    // asks for an actual boundary port, and SysIDE does not enforce it, so the
+    // rule is the only thing that does.
+    it('CR-ONT-072/073 reject a component at either end', () => {
         if (!available) return;
-        const model = buildModel(VALID_LINKS, { source: '', target: '' });
-        for (const id of ['CR-ONT-072', 'CR-ONT-073']) {
+        for (const [id, ends] of [
+            ['CR-ONT-072', { source: 'mod', target: 'port' }],
+            ['CR-ONT-073', { source: 'port', target: 'assembly' }],
+        ] as const) {
             const constraint = rules.get(id)!;
-            expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)).toEqual([]);
+            const model = buildModel(VALID_LINKS, ends);
+            expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
+                .map(v => v.elementId)).toEqual(['exch']);
         }
     });
 });
