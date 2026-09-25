@@ -4,10 +4,10 @@
     "files": 55,
     "elements": 687,
     "definitions": 13,
-    "relationships": 845,
+    "relationships": 848,
     "packages": 55,
     "parseErrors": 0,
-    "builderFindings": 73
+    "builderFindings": 67
   },
   "files": {
     "model/catalog/gpca_analysis.sysml": {
@@ -305,7 +305,7 @@
       "elements": 0,
       "definitions": 0,
       "kinds": {},
-      "relationships": 376,
+      "relationships": 379,
       "relationshipTypes": {
         "allocatedTo": 17,
         "appliesInContext": 2,
@@ -329,13 +329,13 @@
         "producesEvidence": 25,
         "realizes": 4,
         "succession": 4,
-        "testedByUsability": 5,
+        "testedByUsability": 8,
         "tracesRisk": 70,
         "validates": 3
       },
       "packages": 1,
       "parseErrors": 0,
-      "builderFindings": 60
+      "builderFindings": 54
     },
     "model/catalog/gpca_verification.sysml": {
       "elements": 37,
