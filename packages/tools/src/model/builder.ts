@@ -2755,8 +2755,15 @@ function extractAttributeValue(value: any): string {
             return String((value as { value: string }).value);
         case 'BooleanValue':
             return (value as BooleanValue).value;
-        case 'EnumValue':
-            return (value as EnumValue).enumRef;
+        case 'EnumValue': {
+            // The grammar parses `a.b.c` as enumRef `a` plus tail [b, c]. The
+            // tail is the whole point for a nested state (`activeMode =
+            // machine.modeON.modePAUSED`); returning enumRef alone stored the
+            // machine for every such value, and a rule comparing it passed
+            // on the wrong element.
+            const { enumRef, tail } = value as EnumValue;
+            return tail?.length ? [enumRef, ...tail].join('.') : enumRef;
+        }
         case 'SetLiteral':
             // { A, B, "c" } → "A, B, c" — keeps attributes flat and readable
             return ((value.elements ?? []) as any[])

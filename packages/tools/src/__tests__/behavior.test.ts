@@ -839,3 +839,25 @@ describe('Behavior validation', () => {
         expect(bv003).toHaveLength(0);
     });
 });
+
+// Board row "A dotted reference value keeps only its first segment". The
+// grammar parses `a.b.c` as enumRef `a` plus a tail; the builder stored only
+// `a`, so gpca-pump's four `activeMode` values all read as the state machine.
+describe('Behavior builder: a dotted reference value', () => {
+    it('keeps every segment of the path', async () => {
+        const doc = await parseDoc(`
+            package Test {
+                action route {
+                    ref :>> activeMode = machine.modeON.modeTHERAPY.modePAUSED;
+                    ref :>> single = machine;
+                    attribute :>> kind = Kinds::alpha;
+                }
+            }
+        `);
+        expect(doc.document.parseResult.parserErrors).toHaveLength(0);
+        const route = buildMemoModel([doc], behaviorConfig).elements.lookup('route');
+        expect(route!.attributes['activeMode']).toBe('machine.modeON.modeTHERAPY.modePAUSED');
+        expect(route!.attributes['single']).toBe('machine');
+        expect(route!.attributes['kind']).toBe('Kinds::alpha');
+    });
+});
