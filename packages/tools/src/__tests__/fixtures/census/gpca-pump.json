@@ -4,7 +4,7 @@
     "files": 55,
     "elements": 687,
     "definitions": 13,
-    "relationships": 848,
+    "relationships": 858,
     "packages": 55,
     "parseErrors": 0,
     "builderFindings": 67
@@ -42,9 +42,9 @@
         "SoftwarePort": 56,
         "SoftwareSystem": 1
       },
-      "relationships": 121,
+      "relationships": 120,
       "relationshipTypes": {
-        "composes": 11,
+        "composes": 10,
         "flow": 1,
         "satisfiedBy": 109
       },
@@ -345,9 +345,9 @@
         "ValidationCase": 2,
         "VerificationCase": 24
       },
-      "relationships": 53,
+      "relationships": 64,
       "relationshipTypes": {
-        "verifiedBy": 53
+        "verifiedBy": 64
       },
       "packages": 1,
       "parseErrors": 0,
