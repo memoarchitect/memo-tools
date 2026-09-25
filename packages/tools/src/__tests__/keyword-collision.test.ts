@@ -334,10 +334,8 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: 'Same as VerificationCase; validation against intended use rather than against a requirement.',
         removedBy: 'deliberate',
     },
-    'action:ActivityAction': {
-        reason: 'A part def naming the ACTION-carrying element of an FMEA/activity table row, not an action usage.',
-        removedBy: 'deliberate',
-    },
+    // `action:ActivityAction` was here while it was a part def. It is an
+    // `action def` since 2026-09-25, so its name agrees with its keyword.
     'action:FMEAAction': {
         reason: 'An FMEA corrective action — a document row, not a behaviour.',
         removedBy: 'deliberate',

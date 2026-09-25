@@ -1098,10 +1098,13 @@ function extractUsage(
         };
         element.parameters = directedItems
             .map(feature => {
+                // `out item spo2 :> spo2Item;` names what it carries by the
+                // item usage it subsets rather than by a type.
+                const subsetted = feature.bindingOp === ':>' ? feature.boundRef : undefined;
                 return {
                     name: feature.name,
                     direction: feature.direction as ActionParameter['direction'],
-                    type: feature.type || 'Item',
+                    type: feature.type || subsetted || 'Item',
                 };
             });
     }

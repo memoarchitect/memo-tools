@@ -2,27 +2,29 @@
   "project": "ivd-laboratory-system",
   "totals": {
     "files": 4,
-    "elements": 9,
+    "elements": 10,
     "definitions": 0,
-    "relationships": 0,
+    "relationships": 1,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
     "model/catalog/ivd_laboratory_system.sysml": {
-      "elements": 7,
+      "elements": 8,
       "definitions": 0,
       "kinds": {
         "FluidicComponent": 2,
-        "LogicalExchange": 1,
         "LogicalExchangeItem": 1,
         "OperativeAction": 1,
         "OpticalComponent": 1,
-        "PhysicalAssembly": 1
+        "PhysicalAssembly": 1,
+        "PhysicalPort": 2
       },
-      "relationships": 0,
-      "relationshipTypes": {},
+      "relationships": 1,
+      "relationshipTypes": {
+        "flow": 1
+      },
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0

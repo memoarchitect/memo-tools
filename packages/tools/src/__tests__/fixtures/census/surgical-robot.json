@@ -2,9 +2,9 @@
   "project": "surgical-robot",
   "totals": {
     "files": 4,
-    "elements": 9,
+    "elements": 10,
     "definitions": 0,
-    "relationships": 2,
+    "relationships": 3,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
@@ -23,18 +23,19 @@
       "builderFindings": 0
     },
     "model/catalog/surgical_robot.sysml": {
-      "elements": 7,
+      "elements": 8,
       "definitions": 0,
       "kinds": {
         "Actuator": 1,
         "LogicalComponent": 3,
-        "LogicalExchange": 1,
         "MechanicalPart": 1,
-        "OperatorInterfaceElement": 1
+        "OperatorInterfaceElement": 1,
+        "PhysicalPort": 2
       },
-      "relationships": 2,
+      "relationships": 3,
       "relationshipTypes": {
         "dependency": 1,
+        "flow": 1,
         "independentOf": 1
       },
       "packages": 1,
