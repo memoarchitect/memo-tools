@@ -1073,16 +1073,6 @@
         "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime"
       },
       {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnSetInfusionRate"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnValidateDrugSelection"
-      },
-      {
         "rule": "CR-MED-110",
         "severity": "error",
         "elementId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12"
@@ -1110,7 +1100,7 @@
     ],
     "counts": {
       "error": 1,
-      "warning": 9
+      "warning": 7
     }
   },
   "errors": [],

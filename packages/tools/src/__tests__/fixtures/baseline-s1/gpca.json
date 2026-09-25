@@ -8337,7 +8337,22 @@
       },
       {
         "type": "testedByUsability",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaLoadReservoir",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::valSummativeUsability"
+      },
+      {
+        "type": "testedByUsability",
         "sourceId": "memo_examples_gpca_pump_gpca_operational::oaProgram",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::valSummativeUsability"
+      },
+      {
+        "type": "testedByUsability",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::valSummativeUsability"
+      },
+      {
+        "type": "testedByUsability",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm",
         "targetId": "memo_examples_gpca_pump_gpca_verification::valSummativeUsability"
       },
       {
@@ -9180,16 +9195,6 @@
         "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManagePower"
       },
       {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnPresentStatus"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnSelfTest"
-      },
-      {
         "rule": "CR-ONT-040",
         "severity": "error",
         "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors"
@@ -9257,12 +9262,12 @@
       {
         "rule": "CR-ONT-041",
         "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_operational::oaLoadReservoir"
+        "elementId": "memo_examples_gpca_pump_gpca_operational::oaPrescribe"
       },
       {
         "rule": "CR-ONT-041",
         "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_operational::oaPrescribe"
+        "elementId": "memo_examples_gpca_pump_gpca_operational::oaStartTherapy"
       },
       {
         "rule": "CR-ONT-043",
@@ -9290,19 +9295,14 @@
         "elementId": "memo_examples_gpca_pump_gpca_system::ssAlarmPause"
       },
       {
-        "rule": "CR-ONT-077",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware"
-      },
-      {
         "rule": "CR-ONT-079",
         "severity": "error",
         "elementId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice"
       }
     ],
     "counts": {
-      "error": 22,
-      "warning": 8
+      "error": 21,
+      "warning": 6
     }
   },
   "errors": [],
