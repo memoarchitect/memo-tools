@@ -304,12 +304,12 @@ export function buildMemoModel(
     // connections first would have left every such reference unresolved on the
     // pass that mattered.
     for (const { flow, filePath, packageName, parentActionId } of deferredFlows) {
-        resolveFlowConnection(flow, filePath, packageName, parentActionId, relationships, elements, elements);
+        resolveFlowConnection(flow, filePath, packageName, parentActionId, relationships, elements, elements, errors);
     }
 
     // Phase 3a2: Resolve port delegations
     for (const { binding, filePath, packageName } of deferredBindings) {
-        resolveBinding(binding, filePath, packageName, relationships, elements, elements);
+        resolveBinding(binding, filePath, packageName, relationships, elements, elements, errors);
     }
 
     // Phase 3a3: Resolve interface connections, ahead of the other connections
@@ -1657,6 +1657,33 @@ export const ELEMENT_PACKAGE_KIND = 'ElementPackage';
 /** The `ParseError.code` an `interface … connect` with an end naming nothing carries. */
 export const UNRESOLVED_INTERFACE_END = 'unresolved-interface-end';
 
+/** The `ParseError.code` a `flow` or `message` with an end naming nothing carries. */
+export const UNRESOLVED_FLOW_END = 'unresolved-flow-end';
+
+/** The `ParseError.code` a `bind` with an end naming nothing carries. */
+export const UNRESOLVED_BINDING_END = 'unresolved-binding-end';
+
+/**
+ * The ends of a connector that name no element, spelled for a diagnostic, or
+ * an empty list when both resolve. One wording for every connector kind, so
+ * `unresolved-interface-end`, `-flow-end` and `-binding-end` read alike.
+ */
+function unresolvedEnds(
+    sourceRef: string, sourceId: string,
+    targetRef: string, targetId: string,
+    elements: ElementIndex,
+): string[] {
+    return [
+        ...(elements.has(sourceId) ? [] : [`source '${sourceRef}'`]),
+        ...(elements.has(targetId) ? [] : [`target '${targetRef}'`]),
+    ];
+}
+
+/** The 1-based line a node starts on, when the parser kept its CST. */
+function lineOf(node: { $cstNode?: { range: { start: { line: number } } } }): number | undefined {
+    return node.$cstNode ? node.$cstNode.range.start.line + 1 : undefined;
+}
+
 /**
  * A `viewpoint` usage, and any viewpoint declared inside it.
  *
@@ -1893,15 +1920,12 @@ function resolveInterfaceConnection(
     const context = { packageName };
     const { id: sourceId, end: sourceEnd } = resolveEndpoint(sourceRef, elements, context);
     const { id: targetId, end: targetEnd } = resolveEndpoint(targetRef, elements, context);
-    const unresolved = [
-        ...(elements.has(sourceId) ? [] : [`source '${sourceRef}'`]),
-        ...(elements.has(targetId) ? [] : [`target '${targetRef}'`]),
-    ];
+    const unresolved = unresolvedEnds(sourceRef, sourceId, targetRef, targetId, elements);
     if (unresolved.length > 0) {
         errors.push({
             code: UNRESOLVED_INTERFACE_END,
             file: filePath,
-            line: iface.$cstNode ? iface.$cstNode.range.start.line + 1 : undefined,
+            line: lineOf(iface),
             message:
                 `Interface '${iface.name}' connects ${unresolved.join(' and ')}, which names no `
                 + `element, so the interface is not in the model. Point the end at a declared port.`,
@@ -2044,6 +2068,10 @@ function resolveEndpoint(
  * Unlike a flow this carries no item: delegation is identity, so there is
  * nothing travelling and nothing to label the edge with. Consumers that render
  * an itemless edge already suppress the label.
+ *
+ * An end that does not resolve is REPORTED, as an interface's is: a named
+ * binding is the one record of a delegation, so leaving it out quietly loses
+ * an identity that only a census diff would ever show.
  */
 function resolveBinding(
     binding: BindingUsage,
@@ -2051,7 +2079,8 @@ function resolveBinding(
     packageName: string,
     relationships: MemoRelationship[],
     index: ElementIndex,
-    elements: ElementIndex
+    elements: ElementIndex,
+    errors: ParseError[],
 ): void {
     const sourceRef = binding.source;
     const targetRef = binding.target;
@@ -2061,7 +2090,19 @@ function resolveBinding(
     const { id: sourceId, end: sourceEnd } = resolveEndpoint(sourceRef, elements, context);
     const { id: targetId, end: targetEnd } = resolveEndpoint(targetRef, elements, context);
 
-    if (!index.has(sourceId) || !index.has(targetId)) return;
+    const unresolved = unresolvedEnds(sourceRef, sourceId, targetRef, targetId, index);
+    if (unresolved.length > 0) {
+        const which = binding.name ? `Binding '${binding.name}'` : 'A binding';
+        errors.push({
+            code: UNRESOLVED_BINDING_END,
+            file: filePath,
+            line: lineOf(binding),
+            message:
+                `${which} binds ${unresolved.join(' and ')}, which names no element, so the `
+                + `binding is not in the model. Point the end at a declared port.`,
+        });
+        return;
+    }
 
     // A NAMED binding carries the qualified id and the body attributes a
     // delegation needs to be cited, allocated or traced, exactly as a named
@@ -2089,6 +2130,10 @@ function resolveBinding(
 /**
  * Resolve a flow connection usage into a MemoRelationship.
  * Flow endpoints use dot notation: "actionName.paramName"
+ *
+ * An end that does not resolve is REPORTED, as an interface's is. A named flow
+ * is the one record of a functional exchange, so dropping it loses an identity
+ * an allocation or a trace may name.
  */
 function resolveFlowConnection(
     flow: FlowConnectionUsage | MessageUsage,
@@ -2097,7 +2142,8 @@ function resolveFlowConnection(
     parentActionId: string | undefined,
     relationships: MemoRelationship[],
     index: ElementIndex,
-    elements: ElementIndex
+    elements: ElementIndex,
+    errors: ParseError[],
 ): void {
     const sourceRef = flow.source?.ref;
     const targetRef = flow.target?.ref;
@@ -2109,8 +2155,20 @@ function resolveFlowConnection(
     const { id: sourceActionId, end: sourcePort } = resolveEndpoint(sourceRef, elements, context);
     const { id: targetActionId, end: targetPort } = resolveEndpoint(targetRef, elements, context);
 
-    // Only create relationship if both endpoints reference known elements
-    if (!index.has(sourceActionId) || !index.has(targetActionId)) return;
+    const unresolved = unresolvedEnds(sourceRef, sourceActionId, targetRef, targetActionId, index);
+    if (unresolved.length > 0) {
+        const noun = flow.$type === 'MessageUsage' ? 'message' : 'flow';
+        const which = flow.name ? `The ${noun} '${flow.name}'` : `A ${noun}`;
+        errors.push({
+            code: UNRESOLVED_FLOW_END,
+            file: filePath,
+            line: lineOf(flow),
+            message:
+                `${which} connects ${unresolved.join(' and ')}, which names no element, so the `
+                + `${noun} is not in the model. Point the end at a declared feature.`,
+        });
+        return;
+    }
 
     // A NAMED flow carries a stable ID that survives rebuilds; an anonymous one
     // falls back to a positional counter that shifts whenever the file changes.
