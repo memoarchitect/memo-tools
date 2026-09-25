@@ -674,6 +674,24 @@ RequirementVerificationMember:
     'verify' requirement=ReferenceName
     ('{' body+=UsageBodyMember* '}' | ';');
 
+// `RequirementConstraintMember = MemberPrefix? RequirementKind
+// RequirementConstraintUsage` (SysML-textual-bnf.kebnf:1426), reference form:
+// `OwnedReferenceSubsetting FeatureSpecializationPart? RequirementBody`.
+// An assume/guarantee contract names its members this way:
+//
+//   requirement c : Contract {
+//       assume vtbiPositive;
+//       require exclusiveMode;
+//   }
+//
+// The inline-expression form `require constraint { … }` is
+// RequireConstraintMember below; `constraint` is a keyword and no ReferenceName
+// can start with it, so the two do not compete. The owning requirement is the
+// contract, taken from the containment as `verify` takes its case.
+RequirementConstraintReference:
+    kind=('assume' | 'require') constraint=ReferenceName
+    ('{' body+=UsageBodyMember* '}' | ';');
+
 // ─── ARCADIA mechanisms the language already spells ─────────────────────────
 //
 // Fourteen keywords MEMO had no production for, each one a mechanism MEMO
@@ -837,7 +855,7 @@ ReferenceName returns string:
 // ─── Body members ────────────────────────────────────────────────────────────
 
 DefinitionBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | ViewpointUsage | RefMember | FeatureMembershipMember | RequireConstraintMember | RequirementVerificationMember | ArcadiaMember | MetadataApplication | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | ViewUsage | ViewpointUsage | RefMember | FeatureMembershipMember | RequireConstraintMember | RequirementConstraintReference | RequirementVerificationMember | ArcadiaMember | MetadataApplication | DocComment;
 
 // The fourteen native mechanisms, gathered once so both body rules stay
 // readable and neither can drift out of step with the other.
@@ -908,7 +926,7 @@ PrimaryExpr infers ConstraintExpr:
 // that needed it — a package groups without asserting the part decomposition a
 // nested part would.
 UsageBodyMember:
-    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | ViewpointUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | StateUsage | PackageDeclaration | DocComment;
+    AttributeMember | PartMember | PortUsage | ItemUsage | RefMember | ViewUsage | ViewpointUsage | FlowConnectionUsage | MessageUsage | SuccessionUsage | ConnectionUsage | SatisfyRequirementUsage | RequirementConstraintReference | RequirementVerificationMember | ArcadiaMember | Dependency | MetadataApplication | StateUsage | PackageDeclaration | DocComment;
 
 // ─── Attribute member ────────────────────────────────────────────────────────
 // Three forms:

@@ -267,6 +267,46 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             { name: 'framedConcern', type: 'MemoPart' },
         ],
     },
+    // ── Requirement membership ──
+    //
+    // An assume/guarantee contract is a requirement whose subject is the
+    // component and whose assumptions and guarantees are `assume`/`require`
+    // members (AGREE's shape). All three are owner-rooted, like `perform`: the
+    // enclosing requirement is the source and the written reference the target.
+    hasSubject: {
+        keyword: 'subject',
+        sysmlName: 'HasSubject',
+        layer: 'core',
+        description: 'A requirement is about a subject — for a contract, the component it constrains. '
+            + 'Written natively as `subject <name> = <element>;` inside the requirement. '
+            + 'The same keyword inside a verification case is `verifiedBy`, not this.',
+        ends: [
+            { name: 'requirement', type: 'MemoRequirementElement' },
+            { name: 'subject' },
+        ],
+    },
+    assumes: {
+        keyword: 'assume',
+        sysmlName: 'Assumes',
+        layer: 'core',
+        description: 'A requirement assumes another holds — a contract\'s assumption. '
+            + 'Written natively as `assume <requirement>;` inside the requirement.',
+        ends: [
+            { name: 'contract', type: 'MemoRequirementElement' },
+            { name: 'assumption', type: 'MemoRequirementElement' },
+        ],
+    },
+    requires: {
+        keyword: 'require',
+        sysmlName: 'Requires',
+        layer: 'core',
+        description: 'A requirement requires another — a contract\'s guarantee. '
+            + 'Written natively as `require <requirement>;` inside the requirement.',
+        ends: [
+            { name: 'contract', type: 'MemoRequirementElement' },
+            { name: 'guarantee', type: 'MemoRequirementElement' },
+        ],
+    },
     // The one row whose native spelling is NOT a connection. A refinement is a
     // `Dependency` — n clients, n suppliers, no ends to redefine, annotated by
     // a PREFIX metadata rather than by a `metadata def` on a connection def. So

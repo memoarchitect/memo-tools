@@ -301,6 +301,9 @@ describe('MEMO ontology relationship properties', () => {
         // See the reason on FULLY_UNTYPED below: both of its ends cross a
         // metaclass boundary, so it appears in both lists.
         'IncludesStep',
+        // A requirement's subject is whatever it is about — a part, an action,
+        // a port — the way `verificationTarget` is. The requirement end is typed.
+        'HasSubject',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a
     // metaclass boundary. Six of the seven joined this set in A0.

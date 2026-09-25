@@ -84,6 +84,9 @@ import type {
 } from '../language/generated/ast.js';
 import {
     isRequirementVerificationMember,
+    isRequirementConstraintReference,
+    isRequirementUsage,
+    isRequirementDefinition,
     isSatisfyRequirementUsage,
     isPerformActionUsage,
     isIncludeUseCaseUsage,
@@ -2499,13 +2502,21 @@ function resolveSubject(
 ): void {
     if (!subject.boundRefs?.length) return;
     const { packageName, ownerId } = nativeUsageContext(subject);
-    const targetId = ownerId
+    const ownerElementId = ownerId
         ? resolveEndpointId(ownerId, packageName, registry, index)
         : undefined;
-    if (!targetId) return;
+    if (!ownerElementId) return;
+    // A requirement's subject is what the requirement is ABOUT — a contract's
+    // component — and has not been verified by anything. Reading it as
+    // `verifiedBy` would put the constrained component in the traceability
+    // matrix as tested by its own contract.
+    const aboutSubject = isRequirementUsage(subject.$container) || isRequirementDefinition(subject.$container);
     for (const boundRef of subject.boundRefs) {
-        const sourceId = resolveEndpointId(boundRef, packageName, registry, index);
-        if (sourceId) relationships.push(nativeTraceEdge('verifiedBy', sourceId, targetId, filePath));
+        const boundId = resolveEndpointId(boundRef, packageName, registry, index);
+        if (!boundId) continue;
+        relationships.push(aboutSubject
+            ? nativeTraceEdge('hasSubject', ownerElementId, boundId, filePath)
+            : nativeTraceEdge('verifiedBy', boundId, ownerElementId, filePath));
     }
 }
 
@@ -2606,6 +2617,8 @@ function resolveNativeTraceUsages(
             resolveSatisfy(node, filePath, relationships, registry, index);
         } else if (isRequirementVerificationMember(node)) {
             resolveVerify(node, filePath, relationships, registry, index);
+        } else if (isRequirementConstraintReference(node)) {
+            resolveOwnerRootedUsage(node, node.constraint, node.kind === 'assume' ? 'assumes' : 'requires', filePath, relationships, registry, index);
         } else if (isPerformActionUsage(node)) {
             resolveOwnerRootedUsage(node, node.performed, 'performs', filePath, relationships, registry, index);
         } else if (isIncludeUseCaseUsage(node)) {
