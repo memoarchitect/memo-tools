@@ -1870,7 +1870,7 @@ function extractControlNode(
  * nothing counting parts counts it; `relationship-subjects.ts` is what lets a
  * rule scoped to the definition reach it.
  *
- * Ends are dotted feature paths (`gpcaDevice.gpcaSoftware.tlm.portTlmOut`) and
+ * Ends are dotted feature paths (`gpcaSoftware.tlm.portTlmOut`) and
  * resolve through `resolvePath` to the deepest element, which for a port path
  * is the port itself.
  *

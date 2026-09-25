@@ -402,455 +402,455 @@
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
         "kind": "SoftwareSystem",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm",
         "kind": "SoftwareModule",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmAlarmOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmConfigIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmConstIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmDbIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmDbIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmImIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmImIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmOpCmdIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSensorIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmSensorIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSysMonIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmSysMonIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSysStatIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmTlmModeIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
         "kind": "SoftwareModule",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConstIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigDbIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigDbIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigOpCmdIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigPresIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigPresIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigSysStatIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigTlmModeIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr",
         "kind": "SoftwareModule",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImAlarmIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImAlarmIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImConfigIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImOpCmdIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImPatientIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImPatientIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImSysStatIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImTlmModeIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging",
         "kind": "SoftwareModule",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogAlarmIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogAlarmIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogConfigIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogImIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogImIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogLogOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogLogOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogSysStatIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogTlmModeIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus",
         "kind": "SoftwareModule",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputAlarmIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputAlarmIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputConfigIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputGpcaSwOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputGpcaSwOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputImIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputImIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputLogIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputLogIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputSysMonIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputSysMonIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputSysStatIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputSysStatIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputTlmModeIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portConstIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portDbIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portDbIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portGpcaSwOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portOpCmdIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPatientIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portPatientIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPresIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portPresIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portSensorIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portSensorIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor",
         "kind": "SoftwareModule",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonTlmModeIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor::portSysMonTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus",
         "kind": "SoftwareModule",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatConfigIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatConfigIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatConstIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatImIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatImIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSensorIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSensorIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatTlmModeIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatTlmModeIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
         "kind": "SoftwareModule",
         "construct": "part",
         "layer": "implementation",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmConstIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmConstIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmOpCmdIn",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmOpCmdIn",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
-        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
         "kind": "SoftwarePort",
         "construct": "port",
         "layer": "logical",
@@ -4833,22 +4833,22 @@
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_actions::infusionDeliveryFlow::computeFlow",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_actions::infusionDeliveryFlow::enforceLimits",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_actions::infusionDeliveryFlow::evaluateAlarms",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_actions::infusionDeliveryFlow::logEvent",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "allocatedTo",
@@ -4873,7 +4873,7 @@
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus"
       },
       {
         "type": "allocatedTo",
@@ -4888,32 +4888,32 @@
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnEnforceLimits",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnLogEvents",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManagePower",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnPresentStatus",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "allocatedTo",
@@ -4923,12 +4923,12 @@
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnSelfTest",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor"
       },
       {
         "type": "allocatedTo",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnValidatePrescription",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "allocatedTo",
@@ -5057,78 +5057,78 @@
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputGpcaSwOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputGpcaSwOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portGpcaSwOut"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portConstIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmConstIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portConstIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmConstIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portConstIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConstIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portConstIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConstIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portConstIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatConstIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portConstIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatConstIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portConstIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmConstIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portConstIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmConstIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portDbIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmDbIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portDbIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmDbIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portDbIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigDbIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portDbIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigDbIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portOpCmdIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmOpCmdIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portOpCmdIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmOpCmdIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portOpCmdIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigOpCmdIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portOpCmdIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigOpCmdIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portOpCmdIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImOpCmdIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portOpCmdIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImOpCmdIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portOpCmdIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmOpCmdIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portOpCmdIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmOpCmdIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPatientIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImPatientIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portPatientIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImPatientIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPresIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigPresIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portPresIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigPresIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portSensorIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSensorIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portSensorIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmSensorIn"
       },
       {
         "type": "bind",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portSensorIn",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSensorIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portSensorIn",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSensorIn"
       },
       {
         "type": "bindsToInterface",
@@ -5237,46 +5237,6 @@
       },
       {
         "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
-      },
-      {
-        "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
-      },
-      {
-        "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
-      },
-      {
-        "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
-      },
-      {
-        "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
-      },
-      {
-        "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor"
-      },
-      {
-        "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus"
-      },
-      {
-        "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
-      },
-      {
-        "type": "composes",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaActuators"
       },
@@ -5287,8 +5247,43 @@
       },
       {
         "type": "composes",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "composes",
@@ -5547,32 +5542,32 @@
       },
       {
         "type": "conformsTo",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
         "targetId": "iec62304Clause5_3"
       },
       {
         "type": "conformsTo",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr",
         "targetId": "iec62304Clause5_3"
       },
       {
         "type": "conformsTo",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor",
         "targetId": "iec62304Clause5_3"
       },
       {
         "type": "conformsTo",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
         "targetId": "iec62304Clause5_3"
       },
       {
         "type": "conformsTo",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
         "targetId": "iec60601_1Clause14"
       },
       {
         "type": "conformsTo",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
         "targetId": "iec62304Clause5_3"
       },
       {
@@ -5852,7 +5847,7 @@
       },
       {
         "type": "deploysTo",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::controllerBoard"
       },
       {
@@ -6463,322 +6458,322 @@
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsConstOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portConstIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portConstIn"
       },
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsDbOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portDbIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portDbIn"
       },
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsOpCmdOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portOpCmdIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portOpCmdIn"
       },
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsPatientOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPatientIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portPatientIn"
       },
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsPresOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPresIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portPresIn"
       },
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsSensorOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portSensorIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portSensorIn"
       },
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsSensorOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portSensorIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portSensorIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImAlarmIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImAlarmIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogAlarmIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogAlarmIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputAlarmIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputAlarmIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmConfigIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImConfigIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogConfigIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputConfigIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatConfigIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmImIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmImIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogImIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogImIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputImIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputImIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatImIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatImIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogLogOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputLogIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogLogOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputLogIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portGpcaSwOut",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::audibleAlarm::portAlarmIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portGpcaSwOut",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaActuators::actGpcaSwIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portGpcaSwOut",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::pumpMotorAssembly::portFlowCommandIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSysMonIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmSysMonIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputSysMonIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputSysMonIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmSysStatIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigSysStatIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImSysStatIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogSysStatIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputSysStatIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmTlmModeIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigTlmModeIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImTlmModeIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogTlmModeIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputTlmModeIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor::portSysMonTlmModeIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatTlmModeIn"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor"
       },
       {
         "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus"
       },
       {
         "type": "flow",
@@ -6788,7 +6783,7 @@
       {
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::operatorKeypad::portPrescriptionOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPresIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portPresIn"
       },
       {
         "type": "flow",
@@ -6933,157 +6928,157 @@
       {
         "type": "interface",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaDeviceSensors::snsSensorOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portSensorIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portSensorIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImAlarmIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImAlarmIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogAlarmIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogAlarmIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmAlarmOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputAlarmIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmAlarmOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputAlarmIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmConfigIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImConfigIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogConfigIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputConfigIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigConfigOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatConfigIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigConfigOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatConfigIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmImIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmImIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogImIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogImIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputImIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputImIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImImOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatImIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImImOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatImIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogLogOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputLogIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogLogOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputLogIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portGpcaSwOut",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::audibleAlarm::portAlarmIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portGpcaSwOut",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portGpcaSwOut",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::pumpMotorAssembly::portFlowCommandIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSysMonIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmSysMonIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputSysMonIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor::portSysMonSysMonOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputSysMonIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmSysStatIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigSysStatIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImSysStatIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogSysStatIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatSysStatOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputSysStatIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatSysStatOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputSysStatIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm::portAlarmTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmTlmModeIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config::portConfigTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config::portConfigTlmModeIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr::portImTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImTlmModeIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging::portLogTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging::portLogTlmModeIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus::portOutputTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus::portOutputTlmModeIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor::portSysMonTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor::portSysMonTlmModeIn"
       },
       {
         "type": "interface",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm::portTlmTlmModeOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus::portSysStatTlmModeIn"
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus::portSysStatTlmModeIn"
       },
       {
         "type": "interface",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::operatorKeypad::portPrescriptionOut",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::portPresIn"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::portPresIn"
       },
       {
         "type": "mitigates",
@@ -7583,112 +7578,112 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs01",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs01",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs02",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs03",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs04",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs05",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs06",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs07",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs08",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs09",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs10",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs11",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs12",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs13",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs14",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs15",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs16",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs17",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs18",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs18",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs19",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs20",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
@@ -7698,22 +7693,22 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs21",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs22",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs23",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs23",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus"
       },
       {
         "type": "satisfiedBy",
@@ -7723,242 +7718,242 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs24",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs25",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs26",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs27",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs28",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs29",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs30",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs31",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs32",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs33",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs34",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs35",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs36",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs37",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs38",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs39",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs40",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs41",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs42",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs43",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs44",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs45",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs46",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs47",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs48",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs49",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs50",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs51",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs52",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs53",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs54",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs55",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs56",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs57",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs58",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs59",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs60",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs61",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs62",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs63",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs64",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs65",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs66",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs67",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs68",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs69",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs70",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs71",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
@@ -7968,52 +7963,52 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs73",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs74",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs75",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs76",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs77",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs78",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs79",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs80",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs81",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs82",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
@@ -8028,12 +8023,12 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs85",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqCs86",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
@@ -8043,17 +8038,17 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqDoorOpen",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqDrugLibraryLimits",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqEventLogging",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging"
       },
       {
         "type": "satisfiedBy",
@@ -8063,7 +8058,7 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqFlowCrossCheck",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
@@ -8073,12 +8068,12 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqMaxHourlyDose",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqOcclusion",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
       {
         "type": "satisfiedBy",
@@ -8088,12 +8083,12 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqPost",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor"
       },
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqPowerLossRetention",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config"
       },
       {
         "type": "satisfiedBy",
@@ -8103,7 +8098,7 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqStuckButton",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr"
       },
       {
         "type": "satisfiedBy",
@@ -8113,7 +8108,7 @@
       {
         "type": "satisfiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_requirements::reqWatchdogSafeState",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor"
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor"
       },
       {
         "type": "succession",
@@ -8792,42 +8787,42 @@
       },
       {
         "type": "verifiedBy",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::alarm",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcSameStepAlarm"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::config",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcDrugLibrary"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::infusionMgr",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcLockout"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::logging",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcEventLog"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::outputBus",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::outputBus",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcModeRange"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemMonitor",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcPost"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::systemStatus",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcEmptyReservoir"
       },
       {
         "type": "verifiedBy",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice::gpcaSoftware::tlm",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcModeRange"
       },
       {
@@ -8854,6 +8849,61 @@
         "type": "verifiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_modes::tcWatchdogTimeout",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcWatchdog"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnDetectAirInLine",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcAirInLine"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnMeasureFlowRate",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcFlowCrossCheck"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAnnunciate",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcAlarmLoudness"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnCommandPump",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcPumpAccuracy"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnEnforceLimits",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcLockout"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcModeRange"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManagePower",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcPowerLoss"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcSameStepAlarm"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnPresentStatus",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcPrescriptionConfirm"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnSelfTest",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcPost"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnValidatePrescription",
+        "targetId": "memo_examples_gpca_pump_gpca_verification::vcDrugLibrary"
       },
       {
         "type": "verifiedBy",
@@ -9205,61 +9255,6 @@
         "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnAggregateSensorStatus"
       },
       {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnDetectAirInLine"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnMeasureFlowRate"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAnnunciate"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnCommandPump"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnEnforceLimits"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManagePower"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnPresentStatus"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnSelfTest"
-      },
-      {
-        "rule": "CR-ONT-040",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnValidatePrescription"
-      },
-      {
         "rule": "CR-ONT-041",
         "severity": "error",
         "elementId": "memo_examples_gpca_pump_gpca_operational::oaPrescribe"
@@ -9268,40 +9263,10 @@
         "rule": "CR-ONT-041",
         "severity": "error",
         "elementId": "memo_examples_gpca_pump_gpca_operational::oaStartTherapy"
-      },
-      {
-        "rule": "CR-ONT-043",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_operational::wfRespondToTherapyAlarm::osAirInLine"
-      },
-      {
-        "rule": "CR-ONT-043",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_operational::wfRespondToTherapyAlarm::osEmptyReservoir"
-      },
-      {
-        "rule": "CR-ONT-043",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_operational::wfRespondToTherapyAlarm::osOcclusionAlarm"
-      },
-      {
-        "rule": "CR-ONT-043",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_operational::wfRespondToTherapyAlarm::osPowerLoss"
-      },
-      {
-        "rule": "CR-ONT-043",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_system::ssAlarmPause"
-      },
-      {
-        "rule": "CR-ONT-079",
-        "severity": "error",
-        "elementId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice"
       }
     ],
     "counts": {
-      "error": 21,
+      "error": 4,
       "warning": 6
     }
   },

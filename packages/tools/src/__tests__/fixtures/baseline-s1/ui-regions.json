@@ -1076,31 +1076,11 @@
         "rule": "CR-MED-110",
         "severity": "error",
         "elementId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12"
-      },
-      {
-        "rule": "CR-ONT-081",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_requirements::reqBatteryStatusDisplay"
-      },
-      {
-        "rule": "CR-ONT-081",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugLibrarySelection"
-      },
-      {
-        "rule": "CR-ONT-081",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_requirements::reqRateLegibility"
-      },
-      {
-        "rule": "CR-ONT-081",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_requirements::reqTimeDisplay"
       }
     ],
     "counts": {
       "error": 1,
-      "warning": 7
+      "warning": 3
     }
   },
   "errors": [],

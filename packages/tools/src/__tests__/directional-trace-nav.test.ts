@@ -106,7 +106,10 @@ describe('upstream / downstream navigate one direction, transitively', () => {
         expect(v.map(x => x.elementId)).toEqual(['reqTop']);
     });
 
-    it('CR-ONT-081 fires only when one element satisfies both a requirement and its descendant', () => {
+    // This shape was CR-ONT-081 until the rule was deleted (a `derive` does
+    // not make its source satisfied). It stays as a test of `intersects`
+    // over a chained directional walk, which nothing else here covers.
+    it('intersects over a chained walk finds one element satisfying a requirement and its descendant', () => {
         const REDUNDANT = 'not satisfiedBy->intersects(downstream(derivesFrom).satisfiedBy)';
         const parent = el('reqTop', 'Requirement'), child = el('reqLeaf', 'Requirement');
         const pump = { ...el('pump', 'Requirement'), kind: 'Part' } as MemoElement;

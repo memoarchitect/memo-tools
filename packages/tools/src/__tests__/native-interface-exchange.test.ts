@@ -42,7 +42,7 @@ async function parseDoc(source: string): Promise<ParsedDocument> {
 
 /**
  * Two components with directed ports, one nested a level down as gpca-pump's
- * are (`gpcaDevice.gpcaSoftware.tlm.portTlmTlmModeOut`), a typed named
+ * are (`gpcaSoftware.tlm.portTlmTlmModeOut`), a typed named
  * interface between them, and a functional exchange allocated to it — the
  * §6.3 mapping. The spelling is the one measured clean with
  * `syside check --diagnose all` on 2026-09-24: an interface def with no part
