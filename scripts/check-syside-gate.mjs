@@ -23,10 +23,11 @@ const sourceRoots = ['src', 'extensions', 'examples'];
 const executable = process.env.SYSIDE_EXECUTABLE || 'syside';
 
 // The grammar parity corpus (`packages/tools/src/__tests__/fixtures/grammar-parity`)
-// claims every fixture is valid SysML — the `unsupported/` ones included, which
-// is what makes each of those a known gap in MEMO's grammar rather than input
-// MEMO is right to refuse. The claim holds only while the compiler of record
-// keeps checking it.
+// is written to the OMG SysML v2 specification, which is what defines it as
+// valid — the `unsupported/` fixtures included. SysIDE checks it for
+// compatibility. A fixture SysIDE rejects but the specification admits is a
+// SysIDE gap to board, not a fixture to rewrite: exclude that one file from
+// this check by name, citing the board row, and keep the specification's form.
 const parityRoot = resolve(toolsRoot, 'packages/tools/src/__tests__/fixtures/grammar-parity');
 const parityRoots = ['supported', 'unsupported'];
 

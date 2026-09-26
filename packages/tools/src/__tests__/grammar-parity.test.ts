@@ -19,10 +19,15 @@
 // inside a `part def`, which MEMO rejects. That split — surface present, a form
 // refused — is precisely what the name-based count cannot see.
 //
-// Both directories are valid SysML: `scripts/check-syside-gate.mjs` runs
-// `syside check --diagnose all --warnings-as-errors` over them, so a fixture
-// in unsupported/ is a construct the compiler of record accepts and MEMO does
-// not — a known gap, never an invalid input that MEMO is right to refuse.
+// Both directories are valid SysML v2 as the OMG specification defines it — the
+// normative BNF beside the coverage report, and the specification's constraints.
+// That is what makes a fixture in unsupported/ a gap in MEMO's grammar rather
+// than input MEMO is right to refuse. `scripts/check-syside-gate.mjs` also runs
+// `syside check --diagnose all --warnings-as-errors` over both, as the
+// compatibility check. If SysIDE ever rejects a fixture the specification
+// admits, that is a SysIDE gap: board it with the production that settles it
+// and leave the fixture as the specification writes it. Never re-spell a
+// fixture to suit either tool.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { readdirSync, readFileSync } from 'node:fs';
