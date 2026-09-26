@@ -23,10 +23,11 @@
 // normative BNF beside the coverage report, and the specification's constraints.
 // That is what makes a fixture in unsupported/ a gap in MEMO's grammar rather
 // than input MEMO is right to refuse. `scripts/check-syside-gate.mjs` also runs
-// `syside check --diagnose all --warnings-as-errors` over both, as the
-// compatibility check. If SysIDE ever rejects a fixture the specification
-// admits, that is a SysIDE gap: board it with the production that settles it
-// and leave the fixture as the specification writes it. Never re-spell a
+// the validator over both through `memo toolchain check` (SysIDE, strict), as
+// the compatibility check. If SysIDE ever rejects a fixture the specification
+// admits, that is a SysIDE gap: board it, list it in this directory's
+// `validator-exceptions.json` with the production that settles it, and leave
+// the fixture as the specification writes it. Never re-spell a
 // fixture to suit either tool.
 // ─────────────────────────────────────────────────────────────────────────────
 
