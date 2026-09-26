@@ -11,7 +11,7 @@ import type { MemoModel } from '../model/semantic.js';
 import type { Violation, ValidationResult, ViolationRuleProvenance } from './types.js';
 import type { EffectiveRule } from '../model/methodology-resolver.js';
 import type { CompiledConstraint } from './constraint-eval.js';
-import { evaluateConstraintNode } from './constraint-eval.js';
+import { evaluateConstraintSubjects } from './constraint-eval.js';
 import { validateBehavior } from './behavior-validator.js';
 import { validateArchitecture } from './architecture-validator.js';
 import { validateViews } from './view-validator.js';
@@ -72,6 +72,7 @@ export function validateModel(
 
     const nativeViolations: Violation[] = [];
     let nativePassed = 0;
+    let nativeVacuous = 0;
     // A constraint carrying a non-native `evaluator` is a first-class rule
     // whose predicate a TypeScript function computes — AR-IBD-001 is the only
     // one today. Its violations come from the built-in validator above, so it
@@ -83,8 +84,15 @@ export function validateModel(
             delegated.push(constraint.id);
             continue;
         }
-        const violations = evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry, inScope);
-        if (violations.length === 0) nativePassed++;
+        // An invariant runs on every subject of its kind, in scope or not. It
+        // holds the ontology's own consistency, which a methodology may not
+        // tailor — and leaving an element out of the rule's subjects is
+        // tailoring it, just without a policy to show for it.
+        const subjectScope = constraint.tailoring === 'invariant' ? undefined : inScope;
+        const { violations, subjectCount } = evaluateConstraintSubjects(
+            constraint, constraint.ast, model, kindRegistry, subjectScope);
+        if (subjectCount === 0) nativeVacuous++;
+        else if (violations.length === 0) nativePassed++;
         nativeViolations.push(...violations);
     }
 
@@ -111,6 +119,7 @@ export function validateModel(
         violations,
         rulesEvaluated: BUILTIN_RULE_IDS.length + nativeConstraints.length,
         rulesPassed: builtinPassed + delegatedPassed + nativePassed,
+        rulesVacuous: nativeVacuous,
         timestamp: Date.now(),
     };
 }

@@ -397,6 +397,7 @@ export async function validateCommand(
                 relationships: model.relationships.length,
                 rulesEvaluated: result.rulesEvaluated,
                 rulesPassed: result.rulesPassed,
+                rulesVacuous: result.rulesVacuous,
                 violations: result.violations.length,
                 errors: errors.length,
                 warnings: warnings.length,
@@ -497,7 +498,8 @@ export async function validateCommand(
     console.log();
     const overallColor = completeness.overall >= 80 ? chalk.green : completeness.overall >= 50 ? chalk.yellow : chalk.red;
     console.log(chalk.bold(`Overall: ${overallColor(completeness.overall + '%')} (${completeness.completeElements}/${completeness.totalElements} elements complete)`));
-    console.log(chalk.gray(`Rules: ${result.rulesEvaluated} evaluated, ${result.rulesPassed} passed, ${result.violations.length} violations`));
+    console.log(chalk.gray(`Rules: ${result.rulesEvaluated} evaluated, ${result.rulesPassed} passed, `
+        + `${result.rulesVacuous} ran on no subject, ${result.violations.length} violations`));
     const parseErrorFiles = filesWithParseErrors(diagnostics).size;
     console.log((diagnostics.length > 0 ? chalk.red : chalk.gray)(
         `Parse errors: ${diagnostics.length}`
@@ -606,7 +608,9 @@ function generateJUnit(
     const parseErrorFiles = [...filesWithParseErrors(parseErrors)];
     const allTests = result.rulesEvaluated + parseErrorFiles.length;
     const failures = errors.length + parseErrorFiles.length;
-    const skipped = 0;
+    // A rule that ran on no subject tested nothing. It is reported as skipped
+    // so a CI dashboard cannot count it towards the green.
+    const skipped = result.rulesVacuous;
 
     const lines: string[] = [
         '<?xml version="1.0" encoding="UTF-8"?>',

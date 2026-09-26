@@ -59,8 +59,14 @@ export interface ValidationResult {
     violations: Violation[];
     /** Total rules evaluated */
     rulesEvaluated: number;
-    /** Rules that passed (no violations) */
+    /** Rules that ran on at least one subject and raised no violation */
     rulesPassed: number;
+    /**
+     * Rules that ran on no subject at all. Neither passed nor failed: a rule
+     * over an empty set raises nothing, and counting that as a pass reported a
+     * rule that tested nothing exactly like one that tested everything.
+     */
+    rulesVacuous: number;
     /** Timestamp */
     timestamp: number;
 }
