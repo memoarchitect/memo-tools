@@ -2,12 +2,12 @@
   "project": "temperature-alarm",
   "totals": {
     "files": 4,
-    "elements": 19,
+    "elements": 20,
     "definitions": 0,
-    "relationships": 15,
+    "relationships": 16,
     "packages": 4,
     "parseErrors": 0,
-    "builderFindings": 1
+    "builderFindings": 0
   },
   "files": {
     "model/catalog/project.sysml": {
@@ -23,7 +23,7 @@
       "builderFindings": 0
     },
     "model/catalog/temperature_alarm.sysml": {
-      "elements": 17,
+      "elements": 18,
       "definitions": 0,
       "kinds": {
         "Hazard": 1,
@@ -39,9 +39,10 @@
         "UseError": 1,
         "User": 1,
         "UserInterface": 1,
+        "ValidationCase": 1,
         "VerificationCase": 1
       },
-      "relationships": 15,
+      "relationships": 16,
       "relationshipTypes": {
         "allocatedTo": 1,
         "causes": 1,
@@ -54,13 +55,13 @@
         "mitigates": 1,
         "participatesIn": 1,
         "performs": 2,
-        "producesEvidence": 1,
+        "producesEvidence": 2,
         "validates": 1,
         "verifiedBy": 1
       },
       "packages": 1,
       "parseErrors": 0,
-      "builderFindings": 1
+      "builderFindings": 0
     },
     "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
       "elements": 0,

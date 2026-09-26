@@ -4364,6 +4364,13 @@
         "package": "memo_examples_gpca_pump_gpca_system"
       },
       {
+        "id": "memo_examples_gpca_pump_gpca_trace::gpcaFirmwareImage",
+        "kind": "SoftwareDeploymentUnit",
+        "construct": "part",
+        "layer": "realization",
+        "package": "memo_examples_gpca_pump_gpca_trace"
+      },
+      {
         "id": "memo_examples_gpca_pump_gpca_verification::evidenceDeliveryAccuracy",
         "kind": "MemoEvidence",
         "construct": "part",
@@ -5161,6 +5168,36 @@
         "targetId": "memo_examples_gpca_pump_gpca_interfaces::occlusionAnalogLine"
       },
       {
+        "type": "buildsInto",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm",
+        "targetId": "memo_examples_gpca_pump_gpca_trace::gpcaFirmwareImage"
+      },
+      {
+        "type": "buildsInto",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::config",
+        "targetId": "memo_examples_gpca_pump_gpca_trace::gpcaFirmwareImage"
+      },
+      {
+        "type": "buildsInto",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr",
+        "targetId": "memo_examples_gpca_pump_gpca_trace::gpcaFirmwareImage"
+      },
+      {
+        "type": "buildsInto",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::logging",
+        "targetId": "memo_examples_gpca_pump_gpca_trace::gpcaFirmwareImage"
+      },
+      {
+        "type": "buildsInto",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor",
+        "targetId": "memo_examples_gpca_pump_gpca_trace::gpcaFirmwareImage"
+      },
+      {
+        "type": "buildsInto",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
+        "targetId": "memo_examples_gpca_pump_gpca_trace::gpcaFirmwareImage"
+      },
+      {
         "type": "causes",
         "sourceId": "memo_examples_gpca_pump_gpca_analysis::fcMotorDriverFault",
         "targetId": "memo_examples_gpca_pump_gpca_analysis::fmMotorRunaway"
@@ -5229,6 +5266,26 @@
         "type": "causes",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::pumpMotorAssembly",
         "targetId": "memo_examples_gpca_pump_gpca_analysis::fteMotorRunaway"
+      },
+      {
+        "type": "causes",
+        "sourceId": "memo_examples_gpca_pump_gpca_context::ueAlarmDisregard",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::seqOcclusion"
+      },
+      {
+        "type": "causes",
+        "sourceId": "memo_examples_gpca_pump_gpca_context::ueBolusByProxy",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::causeFrequentBolus"
+      },
+      {
+        "type": "causes",
+        "sourceId": "memo_examples_gpca_pump_gpca_context::ueMisprogrammedRate",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::seqMisprogram"
+      },
+      {
+        "type": "causes",
+        "sourceId": "memo_examples_gpca_pump_gpca_context::ueWrongDrugLoaded",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::seqMisprogram"
       },
       {
         "type": "commitsUseError",
@@ -5907,8 +5964,8 @@
       },
       {
         "type": "deploysTo",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::controllerBoard"
+        "sourceId": "memo_examples_gpca_pump_gpca_trace::gpcaFirmwareImage",
+        "targetId": "memo_examples_gpca_pump_gpca_physical::mainController"
       },
       {
         "type": "derivesCyberRequirement",
@@ -6511,6 +6568,76 @@
         "targetId": "memo_examples_gpca_pump_gpca_operational::ucDeliverPcaTherapy"
       },
       {
+        "type": "estimatedFor",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskBefore",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::harmRespiratoryDepression"
+      },
+      {
+        "type": "estimatedFor",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskBeforeAir",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::harmAirEmbolism"
+      },
+      {
+        "type": "estimatedFor",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskBeforeFreeFlow",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::hsFreeFlow"
+      },
+      {
+        "type": "estimatedFor",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskBeforeReverse",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::harmUntreatedPain"
+      },
+      {
+        "type": "estimatedFor",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskBeforeUnderdose",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::harmUntreatedPain"
+      },
+      {
+        "type": "estimatedFor",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskBeforeVtbi",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::harmRespiratoryDepression"
+      },
+      {
+        "type": "estimatedFor",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskBeforeWrongDose",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::hsWrongTherapy"
+      },
+      {
+        "type": "evaluatedIn",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfter",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::residualEval"
+      },
+      {
+        "type": "evaluatedIn",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterAir",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::residualEval"
+      },
+      {
+        "type": "evaluatedIn",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterFreeFlow",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::residualEval"
+      },
+      {
+        "type": "evaluatedIn",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterReverse",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::residualEval"
+      },
+      {
+        "type": "evaluatedIn",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterUnderdose",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::residualEval"
+      },
+      {
+        "type": "evaluatedIn",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterVtbi",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::residualEval"
+      },
+      {
+        "type": "evaluatedIn",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterWrongDose",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::residualEval"
+      },
+      {
         "type": "exploits",
         "sourceId": "memo_examples_gpca_pump_gpca_cybersecurity::unauthorizedConfigChangeThreat",
         "targetId": "memo_examples_gpca_pump_gpca_cybersecurity::weakServiceAuthentication"
@@ -6993,7 +7120,7 @@
       {
         "type": "impactsSafety",
         "sourceId": "memo_examples_gpca_pump_gpca_cybersecurity::configurationTamperingRisk",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskBefore"
+        "targetId": "memo_examples_gpca_pump_gpca_risk::overdoseHazard"
       },
       {
         "type": "inputToGate",
@@ -7654,6 +7781,41 @@
         "type": "realizesUseCase",
         "sourceId": "memo_examples_gpca_pump_gpca_operational::wfRespondToTherapyAlarm",
         "targetId": "memo_examples_gpca_pump_gpca_operational::ucDeliverPcaTherapy"
+      },
+      {
+        "type": "reducedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfter",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::lockoutControl"
+      },
+      {
+        "type": "reducedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterAir",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::airDetectionControl"
+      },
+      {
+        "type": "reducedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterFreeFlow",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::freeFlowValveControl"
+      },
+      {
+        "type": "reducedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterReverse",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::reverseDeliveryPauseControl"
+      },
+      {
+        "type": "reducedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterUnderdose",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::occlusionAlarmControl"
+      },
+      {
+        "type": "reducedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterVtbi",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::vtbiLimitPauseControl"
+      },
+      {
+        "type": "reducedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::riskAfterWrongDose",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::drugLibraryControl"
       },
       {
         "type": "requires",
@@ -8517,31 +8679,6 @@
       },
       {
         "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_context::ueAlarmDisregard",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::seqOcclusion"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_context::ueBolusByProxy",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::causeFrequentBolus"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_context::ueMisprogrammedRate",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::seqMisprogram"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_context::ueWrongDrugLoaded",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::seqMisprogram"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::airDetectionControl",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterAir"
-      },
-      {
-        "type": "tracesRisk",
         "sourceId": "memo_examples_gpca_pump_gpca_risk::airEmbolismHazard",
         "targetId": "memo_examples_gpca_pump_gpca_risk::seqAirInLine"
       },
@@ -8667,43 +8804,8 @@
       },
       {
         "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::drugLibraryControl",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterWrongDose"
-      },
-      {
-        "type": "tracesRisk",
         "sourceId": "memo_examples_gpca_pump_gpca_risk::freeFlowHazard",
         "targetId": "memo_examples_gpca_pump_gpca_risk::seqFreeFlow"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::freeFlowValveControl",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterFreeFlow"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::harmAirEmbolism",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskBeforeAir"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::harmRespiratoryDepression",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskBefore"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::harmRespiratoryDepression",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskBeforeVtbi"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::harmUntreatedPain",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskBeforeReverse"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::harmUntreatedPain",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskBeforeUnderdose"
       },
       {
         "type": "tracesRisk",
@@ -8719,11 +8821,6 @@
         "type": "tracesRisk",
         "sourceId": "memo_examples_gpca_pump_gpca_risk::hsFreeFlow",
         "targetId": "memo_examples_gpca_pump_gpca_risk::harmRespiratoryDepression"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::hsFreeFlow",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskBeforeFreeFlow"
       },
       {
         "type": "tracesRisk",
@@ -8747,68 +8844,13 @@
       },
       {
         "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::hsWrongTherapy",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskBeforeWrongDose"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::lockoutControl",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfter"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::occlusionAlarmControl",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterUnderdose"
-      },
-      {
-        "type": "tracesRisk",
         "sourceId": "memo_examples_gpca_pump_gpca_risk::overdoseHazard",
         "targetId": "memo_examples_gpca_pump_gpca_risk::seqFrequentBolus"
       },
       {
         "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::residualEval",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfter"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::residualEval",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterAir"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::residualEval",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterFreeFlow"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::residualEval",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterReverse"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::residualEval",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterUnderdose"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::residualEval",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterVtbi"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::residualEval",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterWrongDose"
-      },
-      {
-        "type": "tracesRisk",
         "sourceId": "memo_examples_gpca_pump_gpca_risk::reverseDeliveryHazard",
         "targetId": "memo_examples_gpca_pump_gpca_risk::seqReverseDelivery"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::reverseDeliveryPauseControl",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterReverse"
       },
       {
         "type": "tracesRisk",
@@ -8849,11 +8891,6 @@
         "type": "tracesRisk",
         "sourceId": "memo_examples_gpca_pump_gpca_risk::underdoseHazard",
         "targetId": "memo_examples_gpca_pump_gpca_risk::seqOcclusion"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_gpca_pump_gpca_risk::vtbiLimitPauseControl",
-        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterVtbi"
       },
       {
         "type": "tracesRisk",
@@ -9330,6 +9367,7 @@
       "SecurityRequirement": 1,
       "SensorPort": 1,
       "SequenceOfEvents": 7,
+      "SoftwareDeploymentUnit": 1,
       "SoftwareModule": 8,
       "SoftwarePort": 56,
       "SoftwareSystem": 1,
@@ -9358,7 +9396,7 @@
       "logical": 131,
       "methodology": 2,
       "operational": 44,
-      "realization": 26,
+      "realization": 27,
       "requirements": 146,
       "safety_risk": 105,
       "unknown": 68,
@@ -9416,7 +9454,7 @@
   },
   "errors": [],
   "summary": {
-    "elements": 688,
+    "elements": 689,
     "completeness": 100
   }
 }

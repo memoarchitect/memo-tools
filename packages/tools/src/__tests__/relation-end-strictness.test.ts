@@ -60,6 +60,14 @@ const FUNCTION_RULES = ['CR-ONT-074', 'CR-ONT-075'];
 const FAMILY_RULES = ['CR-ONT-077', 'CR-ONT-078', 'CR-ONT-079'];
 
 /**
+ * Causes' ends, untyped 2026-09-25 because its CauseKind spans parts and items:
+ * a failure mode (an item) causes an effect, and a component (a part)
+ * originates a fault-tree event (also a part). The typed ends rejected 13 of
+ * gpca-pump's causal edges, and the builder's finding reached no report.
+ */
+const CAUSES_RULES = ['CR-ONT-082', 'CR-ONT-083'];
+
+/**
  * Elements typed with REAL ontology kinds, because `conformsTo` resolves
  * through the real specialization graph. A made-up kind would conform to
  * nothing and every rule would "fire" for the wrong reason.
@@ -83,6 +91,10 @@ const ELEMENTS: Array<[id: string, kind: string, construct: string]> = [
     ['vcase', 'VerificationCase', 'verification'],
     ['boundary', 'TrustBoundary', 'part'],
     ['asset', 'CybersecurityAsset', 'part'],
+    ['fm', 'FailureMode', 'item'],
+    ['hazard', 'Hazard', 'item'],
+    ['ue', 'UseError', 'part'],
+    ['fte', 'FaultTreeNode', 'part'],
 ];
 
 interface RelSpec { type: string; from: string; to: string }
@@ -101,6 +113,10 @@ const VALID_LINKS: RelSpec[] = [
     // function, which is allocated to exactly one component. 074 and 075.
     { type: 'composes', from: 'fn', to: 'cfn' },
     { type: 'allocatedTo', from: 'cfn', to: 'mod' },
+    // Causes, one per metaclass pairing CauseKind names. 082 and 083.
+    { type: 'causes', from: 'fm', to: 'hazard' },
+    { type: 'causes', from: 'ue', to: 'hazard' },
+    { type: 'causes', from: 'assembly', to: 'fte' },
 ];
 
 /**
@@ -127,6 +143,8 @@ const INVALID_LINKS: Array<{ rule: string; link: RelSpec }> = [
     { rule: 'CR-ONT-077', link: { type: 'composes', from: 'mod', to: 'lc' } },
     { rule: 'CR-ONT-078', link: { type: 'composes', from: 'lc', to: 'mod' } },
     { rule: 'CR-ONT-079', link: { type: 'composes', from: 'assembly', to: 'lc' } },
+    { rule: 'CR-ONT-082', link: { type: 'causes', from: 'req', to: 'hazard' } },
+    { rule: 'CR-ONT-083', link: { type: 'causes', from: 'fm', to: 'mod' } },
 ];
 
 function buildModel(links: RelSpec[], exchangeEndpoints?: { source: string; target: string }): MemoModel {
@@ -173,7 +191,7 @@ beforeAll(async () => {
     // A rule that fails to COMPILE is skipped by the loader and reported. That
     // failure mode is exactly how a strictness rule silently stops constraining
     // anything, so it fails the test rather than reducing the rule set.
-    const broken = diagnostics.filter(d => A0_RULES.includes(d.ruleId));
+    const broken = diagnostics.filter(d => [...A0_RULES, ...CAUSES_RULES].includes(d.ruleId));
     expect(broken.map(d => `${d.ruleId}: ${d.message}`), 'A0 rules failed to compile').toEqual([]);
     rules = new Map(constraints.map(constraint => [constraint.id, constraint]));
 }, 120_000);
@@ -181,13 +199,13 @@ beforeAll(async () => {
 describe('Track A0 relation-end rules', () => {
     it('all fifteen are declared in the ontology', () => {
         if (!available) return;
-        expect([...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES].filter(id => !rules.has(id))).toEqual([]);
+        expect([...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES, ...CAUSES_RULES].filter(id => !rules.has(id))).toEqual([]);
     });
 
     it('accepts a model whose ends are all well typed', () => {
         if (!available) return;
         const model = buildModel(VALID_LINKS, { source: 'port', target: 'port2' });
-        const raised = [...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES].flatMap(id =>
+        const raised = [...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES, ...CAUSES_RULES].flatMap(id =>
             evaluateConstraintNode(rules.get(id)!, rules.get(id)!.ast, model, kindRegistry));
         const detail = raised.map(v => `${v.ruleId}: ${v.description}`).join('\n  ');
         expect(raised.map(v => v.ruleId), `Valid model rejected:\n  ${detail}\n`).toEqual([]);
