@@ -313,10 +313,10 @@ describe('MEMO ontology relationship properties', () => {
         // `IncludesStep` states inclusion across three unrelated metaclasses.
         // Native `include` is owner-rooted and `resolveOwnerRootedUsage` is
         // owner-type-agnostic, so it projects UseCase -> UseCase exactly as it
-        // projects FunctionalFlow -> FunctionalFlowStep — which is why
+        // projects one action including another — which is why
         // `connection def Includes` was deleted in R10-S6 and both spellings
-        // unified on this one. No type can name the ends: FunctionalFlow is a
-        // MemoPart, FunctionalFlowStep a MemoAction, UseCase a MemoUseCase.
+        // unified on this one. No type can name the ends: a FunctionalFlow is
+        // a MemoAction, a UseCase a MemoUseCase.
         // Naming two of the three made every use-case `include` a
         // well-formedness error — 132 of them in affera, on a construct the
         // design intends.

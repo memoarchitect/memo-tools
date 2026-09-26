@@ -89,6 +89,7 @@ import {
     isRequirementDefinition,
     isSatisfyRequirementUsage,
     isPerformActionUsage,
+    isActionUsage,
     isIncludeUseCaseUsage,
     isExhibitStateUsage,
     isFramedConcernMember,
@@ -1783,6 +1784,12 @@ function extractActionUsage(
             layer = kindDef.layer;
         }
     }
+    // A step — `action sense :> fnAcquireSensors;` in a functional flow — has
+    // no type to place it, and the file it sits in says nothing. It is a
+    // position in its flow, so it sits in the flow's layer.
+    if (!typeName && usage.subsetted && parentActionId && layer === 'unknown') {
+        layer = elements.get(parentActionId)?.layer ?? layer;
+    }
 
     const bodyMembers = usage.body || [];
     const attributes = extractAttributes(bodyMembers);
@@ -1802,6 +1809,10 @@ function extractActionUsage(
         attributes['actionType'] = typeName;
         attributes['usageType'] = typeName;
     }
+    // `action sense :> fnAcquireSensors;` — the action this one subsets, which
+    // for a step in a functional flow is the function performed there. The
+    // owner's `performs` edge to it is projected with the other native usages.
+    if (usage.subsetted) attributes['subsets'] = usage.subsetted;
 
     const element: MemoElement = {
         id,
@@ -1815,9 +1826,21 @@ function extractActionUsage(
         attributes,
         doc,
         parentAction: parentActionId,
-        parameters: bodyMembers
-            .filter(member => member.$type === 'ActionParameterMember')
-            .map(member => ({ name: (member as ActionParameterMember).name, direction: (member as ActionParameterMember).direction as ActionParameter['direction'], type: (member as ActionParameterMember).type || 'Item' })),
+        parameters: [
+            ...bodyMembers
+                .filter(member => member.$type === 'ActionParameterMember')
+                .map(member => ({ name: (member as ActionParameterMember).name, direction: (member as ActionParameterMember).direction as ActionParameter['direction'], type: (member as ActionParameterMember).type || 'Item' })),
+            // A directed item is a parameter too: `out item bolusRequest :>
+            // ddBolusRequest;` names what this action passes on by the item it
+            // subsets, the spelling a port uses for its payload.
+            ...bodyMembers
+                .filter((member): member is ItemUsage => member.$type === 'ItemUsage' && !!(member as ItemUsage).direction)
+                .map(member => ({
+                    name: member.name,
+                    direction: member.direction as ActionParameter['direction'],
+                    type: member.type || (member.bindingOp === ':>' ? member.boundRef : undefined) || 'Item',
+                })),
+        ],
     };
 
     if (elements.define(element, usage)) registry.registerElement(id, packageName);
@@ -2621,6 +2644,12 @@ function resolveNativeTraceUsages(
             resolveOwnerRootedUsage(node, node.constraint, node.kind === 'assume' ? 'assumes' : 'requires', filePath, relationships, registry, index);
         } else if (isPerformActionUsage(node)) {
             resolveOwnerRootedUsage(node, node.performed, 'performs', filePath, relationships, registry, index);
+        } else if (isActionUsage(node) && node.subsetted) {
+            // An owned action that subsets another is that action performed
+            // here: `perform x;` is itself a subsetting of x, and the owned form
+            // only adds that this position has an identity of its own. The step
+            // is the parentAction; the function is what the owner performs.
+            resolveOwnerRootedUsage(node, node.subsetted, 'performs', filePath, relationships, registry, index);
         } else if (isIncludeUseCaseUsage(node)) {
             resolveOwnerRootedUsage(node, node.included, 'includesStep', filePath, relationships, registry, index);
         } else if (isExhibitStateUsage(node)) {

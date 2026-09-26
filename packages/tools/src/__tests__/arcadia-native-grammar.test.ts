@@ -344,13 +344,13 @@ describe('ARCADIA native mechanisms — builder projection', () => {
     it('include matches the IncludesStep connection', async () => {
         const native = await edgesOf(`
             package Test {
-                action fcsBolusSense : FunctionalFlowStep;
+                action fcsBolusSense : SystemFunction;
                 action fcPatientBolus : FunctionalFlow { include fcsBolusSense; }
             }
         `);
         const connection = await edgesOf(`
             package Test {
-                action fcsBolusSense : FunctionalFlowStep;
+                action fcsBolusSense : SystemFunction;
                 action fcPatientBolus : FunctionalFlow;
                 connection : IncludesStep connect functionalFlow ::> fcPatientBolus to step ::> fcsBolusSense;
             }
@@ -665,5 +665,54 @@ describe('ARCADIA native mechanisms — builder projection', () => {
             }
         `)], config);
         expect([...model.elements.values()].map(e => e.shortName)).toEqual(['pumpModes']);
+    });
+});
+
+describe('a flow step is an action nested in its flow that subsets a function', () => {
+    const FLOW = `
+        package Test {
+            action fnCommand : SystemFunction { out flowCommandOut : InterfaceItem; }
+            action fnActuate : SystemFunction { in flowCommandIn : InterfaceItem; }
+            item cdFlowCommand : InterfaceItem;
+            action fcBolus : FunctionalFlow {
+                action command :> fnCommand { out item flowCommand :> cdFlowCommand; }
+                action actuate :> fnActuate { in item flowCommand :> cdFlowCommand; }
+                first command then actuate;
+                flow from command.flowCommand to actuate.flowCommand;
+            }
+        }
+    `;
+
+    it('records the subsetted function and the step-local item parameters', async () => {
+        const model = buildMemoModel([await parseDoc(FLOW)], config);
+        const command = model.elements.get('Test::fcBolus::command')!;
+        expect(command).toMatchObject({ kind: 'ActionUsage', parentAction: 'Test::fcBolus' });
+        // It sits in its flow's layer: the step has no type to place it.
+        expect(command.layer).toBe(model.elements.get('Test::fcBolus')!.layer);
+        expect(command.attributes.subsets).toBe('fnCommand');
+        expect(command.parameters).toEqual([{ name: 'flowCommand', direction: 'out', type: 'cdFlowCommand' }]);
+    });
+
+    it('makes the owning flow perform each subsetted function', async () => {
+        const performs = (await edgesOf(FLOW)).filter(e => e.type === 'performs');
+        expect(performs).toEqual([
+            { type: 'performs', sourceId: 'fcBolus', sourceEnd: 'performer', targetId: 'fnCommand', targetEnd: 'performed' },
+            { type: 'performs', sourceId: 'fcBolus', sourceEnd: 'performer', targetId: 'fnActuate', targetEnd: 'performed' },
+        ]);
+    });
+
+    it('draws the exchange between the two steps, not the two functions', async () => {
+        const flows = (await edgesOf(FLOW)).filter(e => e.type === 'flow');
+        expect(flows.map(f => `${f.sourceId} -> ${f.targetId}`)).toEqual(['command -> actuate']);
+    });
+
+    it('gives a package-level subsetting action no performer', async () => {
+        // Nothing owns it, so there is no one to perform the function.
+        expect((await edgesOf(`
+            package Test {
+                action fnCommand : SystemFunction;
+                action commandAgain :> fnCommand;
+            }
+        `)).filter(e => e.type === 'performs')).toEqual([]);
     });
 });

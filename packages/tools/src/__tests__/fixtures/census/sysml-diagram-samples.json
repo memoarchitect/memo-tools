@@ -220,8 +220,8 @@
       "elements": 15,
       "definitions": 0,
       "kinds": {
+        "ActionUsage": 9,
         "FunctionalFlow": 1,
-        "FunctionalFlowStep": 9,
         "LogicalComponent": 2,
         "Unknown": 2,
         "User": 1
