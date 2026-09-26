@@ -1,0 +1,4 @@
+{
+  "$comment": "A validator provider's known gaps against the OMG SysML v2 specification, excepted one diagnostic code in one file at a time. Applied by memo-tools' `memo toolchain check`, whose toolchain/exceptions.ts documents every field. Add an entry only when the specification admits the source the provider rejects, and cite where in `spec`. Empty is the normal state.",
+  "exceptions": []
+}

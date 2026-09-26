@@ -37,6 +37,7 @@ memo init --list       # packages, templates, and examples together
 | `memo round-trip [dir]` | Predict round-trip conformance for SysON, SysIDE, or Cameo. |
 | `memo rules …` | List, check, explain, and report coverage for consistency rules. |
 | `memo toolchain probe [dir]` | Resolve each toolchain role to a provider and report its executable and version. |
+| `memo toolchain check [paths...]` | Run the selected validator over SysML paths, less the project's `validator-exceptions.json`. |
 | `memo config effective [dir]` | Print settings after flags, deprecated aliases, and defaults are applied. |
 | `memo conformance run [dir]` | Run the toolchain over the pinned SysML v2 Release corpus and count diagnostics by domain. |
 | `memo conformance diff-xmi [dir]` | Compare MEMO's computed semantics for a normative library against the Release `xmi.implied` file. |
@@ -70,14 +71,55 @@ tree; existing sample files are never overwritten.
 | `plugin` | `list`, `create`, `run` |
 | `dhf` | `init`, `preview`, `status`, `snapshot`, `diff`, `redline`, `draft`, `review-packet` |
 | `rules` | `list`, `check`, `explain`, `coverage` |
-| `toolchain` | `probe` |
+| `toolchain` | `probe`, `check` |
 | `config` | `effective` |
 | `conformance` | `run`, `diff-xmi` |
 
 Every setting under `toolchain` has a generated `--toolchain.<path>` flag on
-`memo validate`, `memo pack`, `memo toolchain probe`, `memo config effective`,
+`memo validate`, `memo pack`, `memo toolchain probe`, `memo toolchain check`, `memo config effective`,
 and `memo-architect dev`. `memo toolchain probe --help` lists them for the
 installed provider set.
+
+## Validator check
+
+```bash
+memo toolchain check src extensions examples               # the configured validator
+memo toolchain check --toolchain.validator=syside src      # choose the engine for this run
+memo toolchain check --project ../memo --exceptions other.json src
+```
+
+Runs only the selected validator — no MEMO rule — over the named files and
+directories, and fails on any error or warning. It is how scripts ask whether
+SysML passes the validator, so switching engines is one flag rather than an
+edit to each script.
+
+| Option | Meaning |
+|---|---|
+| `-p, --project <dir>` | Directory whose settings select the provider; paths and the register are relative to it. Default `.`. |
+| `--exceptions <file>` | Exceptions register. Default `validator-exceptions.json` in the project. |
+
+**Exceptions.** The OMG SysML v2 specification defines valid SysML; a validator
+checks compatibility with it. Where a provider rejects what the specification
+admits, the source keeps the specification's form and the case is listed in
+`validator-exceptions.json`:
+
+```json
+{ "exceptions": [ {
+  "id": "conjugated-port-typing",
+  "provider": "syside",
+  "file": "src/ports.sysml",
+  "code": "syntax-error",
+  "spec": "SysML-textual-bnf.kebnf:652 ConjugatedPortTyping",
+  "providerVersion": "0.10.2",
+  "board": "the KANBAN row tracking it",
+  "note": "what the provider reports, in words"
+} ] }
+```
+
+An entry excuses one provider's diagnostic code in one file, matched by code
+rather than message so it survives a provider upgrade. Entries for another
+provider are ignored, and an entry for the provider that ran which matched
+nothing fails the check as stale, so the register cannot outlive the gap.
 
 ## Conformance
 

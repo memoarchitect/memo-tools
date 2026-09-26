@@ -62,7 +62,7 @@ import {
     type ElementWriteOptions,
 } from '../commands/element.js';
 import { convertCommand } from '../commands/convert.js';
-import { configEffectiveCommand, toolchainProbeCommand } from '../commands/toolchain.js';
+import { configEffectiveCommand, toolchainCheckCommand, toolchainProbeCommand } from '../commands/toolchain.js';
 import {
     conformanceBnfCommand,
     conformanceDiffXmiCommand,
@@ -216,6 +216,17 @@ withToolchainOptions(
         .option('--format <format>', 'Output format: text, json, yaml', 'text'),
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     await toolchainProbeCommand(dir, { ...opts, format: opts.format as any });
+});
+
+withToolchainOptions(
+    toolchainCmd
+        .command('check')
+        .description('Run the selected validator over these SysML paths, less the listed exceptions')
+        .argument('[paths...]', 'Files or directories, relative to the project directory', [])
+        .option('-p, --project <dir>', 'Project directory: settings, exceptions and relative paths', '.')
+        .option('--exceptions <file>', 'Exceptions register, relative to the project (default validator-exceptions.json)'),
+).action(async (paths: string[], opts: Record<string, unknown>) => {
+    await toolchainCheckCommand(paths, opts);
 });
 
 // ─── memo conformance ───────────────────────────────────────────────────────

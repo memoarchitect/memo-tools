@@ -3,6 +3,8 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { MEMOConfig } from '../model/config.js';
+import { buildSysideInvocation } from '../toolchain/providers/syside.js';
 
 let directory: string | undefined;
 
@@ -38,26 +40,25 @@ describe('SysIDE suite gate', () => {
     ])('%s checks src, extensions, and examples', (_name, path) => {
         const text = readFileSync(path, 'utf8');
         const checked = text.includes("['src', 'extensions', 'examples']")
-            || text.includes('syside-exceptions.json src extensions examples');
+            || text.includes('src extensions examples');
         expect(checked).toBe(true);
     });
 
-    // Both callers go through one script, so an exception granted to one is
-    // granted to the other and nothing is excepted anywhere else.
+    // Every caller goes through memo-tools' validator provider, so the engine is
+    // a setting and an exception granted to one caller is granted to all.
     it.each([
         ['check-syside-gate.mjs', resolve(__dirname, '../../../../scripts/check-syside-gate.mjs')],
         ['build-kpar.sh', resolve(__dirname, '../../../../../memo/scripts/build-kpar.sh')],
-    ])('%s runs SysIDE through syside-check.mjs and its exceptions register', (_name, path) => {
+        ['check-project-portability.sh', resolve(__dirname, '../../../../../memo/scripts/check-project-portability.sh')],
+    ])('%s runs the selected validator through memo toolchain check', (_name, path) => {
         const text = readFileSync(path, 'utf8');
-        expect(text).toContain('syside-check.mjs');
-        expect(text).toContain('syside-exceptions.json');
-        expect(text).not.toMatch(/syside check src/);
+        expect(text).toMatch(/'toolchain', 'check'|toolchain check/);
+        expect(text).toMatch(/--toolchain\.validator/);
+        expect(text).not.toMatch(/syside check (src|"\$)|spawnSync\(executable/);
     });
 
-    it('requests full diagnostics and promotes warnings to errors', () => {
-        const script = resolve(__dirname, '../../../../../memo/scripts/syside-check.mjs');
-        const text = readFileSync(script, 'utf8');
-        expect(text).toContain("'--diagnose', 'all'");
-        expect(text).toContain("'--warnings-as-errors'");
+    it('asks SysIDE for full diagnostics with warnings as errors by default', () => {
+        const { args } = buildSysideInvocation({ config: { projectName: 'x' } as MEMOConfig, projectDir: '/p', files: ['/p/a.sysml'] });
+        expect(args).toEqual(expect.arrayContaining(['--diagnose', 'all', '--warnings-as-errors']));
     });
 });
