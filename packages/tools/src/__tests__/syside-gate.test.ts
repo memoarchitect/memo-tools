@@ -37,13 +37,26 @@ describe('SysIDE suite gate', () => {
         ['build-kpar.sh', resolve(__dirname, '../../../../../memo/scripts/build-kpar.sh')],
     ])('%s checks src, extensions, and examples', (_name, path) => {
         const text = readFileSync(path, 'utf8');
-        const checked = text.includes("'examples'") || text.includes('syside check src extensions examples');
+        const checked = text.includes("['src', 'extensions', 'examples']")
+            || text.includes('syside-exceptions.json src extensions examples');
         expect(checked).toBe(true);
     });
 
+    // Both callers go through one script, so an exception granted to one is
+    // granted to the other and nothing is excepted anywhere else.
+    it.each([
+        ['check-syside-gate.mjs', resolve(__dirname, '../../../../scripts/check-syside-gate.mjs')],
+        ['build-kpar.sh', resolve(__dirname, '../../../../../memo/scripts/build-kpar.sh')],
+    ])('%s runs SysIDE through syside-check.mjs and its exceptions register', (_name, path) => {
+        const text = readFileSync(path, 'utf8');
+        expect(text).toContain('syside-check.mjs');
+        expect(text).toContain('syside-exceptions.json');
+        expect(text).not.toMatch(/syside check src/);
+    });
+
     it('requests full diagnostics and promotes warnings to errors', () => {
-        const gate = resolve(__dirname, '../../../../scripts/check-syside-gate.mjs');
-        const text = readFileSync(gate, 'utf8');
+        const script = resolve(__dirname, '../../../../../memo/scripts/syside-check.mjs');
+        const text = readFileSync(script, 'utf8');
         expect(text).toContain("'--diagnose', 'all'");
         expect(text).toContain("'--warnings-as-errors'");
     });
