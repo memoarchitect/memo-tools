@@ -1,4 +1,5 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { lowerProject } from '../toolchain/lowering.js';
@@ -45,6 +46,23 @@ describe('canonical SysML IR', () => {
         const restored = JSON.parse(JSON.stringify(ir.sysml));
         expect(restored.elements[0].providerProperties.futureProviderField).toEqual({ retained: true });
     }, 120_000);
+
+    it('records an empty package rather than dropping it', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'memo-ir-empty-'));
+        const file = join(dir, 'empty.sysml');
+        writeFileSync(file, 'package Outer {\n    package Hollow { }\n    part def Filled;\n}\npackage Bare { }\n');
+        const parsed = await parseFiles([file], `${dir}/`);
+        const ir = lowerAstToSysmlIr(parsed.documents, modelToDTO(buildMemoModel(parsed.documents, { projectName: 'Empty' }, parsed.errors)), dir);
+        const packages = ir.elements.filter(element => element.identity.metaclass === 'PackageDeclaration');
+        // Nested and top-level alike; `Outer` has a member and is conserved
+        // through it, so it is not a record of its own.
+        expect(packages.map(element => element.standardProperties.name).sort()).toEqual(['Bare', 'Hollow']);
+        for (const record of packages) {
+            expect(record.kind).toBe('generic');
+            expect(ir.diagnostics.some(diagnostic => diagnostic.elementId === record.identity.id && diagnostic.domain === 'memo-ingest')).toBe(true);
+        }
+        expect(ir.elements.some(element => element.kind === 'mapped' && element.memoElementId.endsWith('Filled'))).toBe(true);
+    });
 
     it('round-trips the FulfillOrder semantic graph through JSON', async () => {
         const fixture = resolve(import.meta.dirname, '../../../../../sysml-v2-activity-example.sysml');

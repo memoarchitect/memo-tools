@@ -27,6 +27,20 @@ export function lowerAstToSysmlIr(documents: ParsedDocument[], model: MemoModelD
         // sysmlc's pipe.
         const uri = pathToFileURL(resolve(projectRoot, document.filePath)).href;
         const visitPackage = (pkg: any, path: string, packageName: string): void => {
+            // A package is conserved through its members, so descending is
+            // enough — until it has none. An empty package would then leave no
+            // record at all, so it is kept as a generic like any other
+            // declaration Memo does not project. A package with members is not
+            // recorded: every renderer shows a generic, and one per package
+            // would be noise, not a loss report.
+            if ((pkg.members ?? []).length === 0) {
+                const range = sourceRange(document, pkg);
+                const identity = sysmlIdentity(uri, path, pkg.$type);
+                const unmappable = `Empty package '${packageName}' has no declarations for Memo to project`;
+                elements.push({ kind: 'generic', identity, source: range, standardProperties: declaredProperties(pkg), providerProperties: {}, effectiveTypes: [], unmappable });
+                diagnostics.push({ domain: 'memo-ingest', severity: 'warning', code: 'unmapped-sysml-element', message: unmappable, elementId: identity.id, file: document.filePath, range });
+                return;
+            }
             for (const [index, member] of (pkg.members ?? []).entries()) {
                 const memberPath = `${path}/members[${index}]`;
                 if (member.$type === 'PackageDeclaration') {

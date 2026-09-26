@@ -80,15 +80,24 @@ describe('constraints over declared structure', () => {
     });
 
     it('does not catch the package form of that collision, and says so', async () => {
-        // The IR recurses into a package rather than recording it, so this case
-        // is outside what the rule can see. Asserted rather than left implicit:
-        // the scoreboard prints the same limitation, and a future IR change
-        // that starts recording packages should make this test fail loudly.
-        write('model/a.sysml', 'package Shared {\n}\n');
-        write('model/b.sysml', 'package Shared {\n}\n');
+        // The IR recurses into a populated package rather than recording it,
+        // so this case is outside what the rule can see. Asserted rather than
+        // left implicit: the scoreboard prints the same limitation, and a
+        // future IR change that records every package should make this test
+        // fail loudly.
+        write('model/a.sysml', 'package Shared {\n    part def A;\n}\n');
+        write('model/b.sysml', 'package Shared {\n    part def B;\n}\n');
         expect((await violations()).filter(v => v.code === 'global-namespace-distinguishability')).toHaveLength(0);
         expect(IMPLEMENTED_CONSTRAINTS.find(c => c.code === 'global-namespace-distinguishability')?.limitation)
             .toMatch(/package/);
+    });
+
+    it('catches the collision when both packages are empty', async () => {
+        // An empty package has no members to conserve it, so the IR records
+        // the package itself, and the rule sees it like any root-level member.
+        write('model/a.sysml', 'package Shared {\n}\n');
+        write('model/b.sysml', 'package Shared {\n}\n');
+        expect((await violations()).filter(v => v.code === 'global-namespace-distinguishability')).toHaveLength(1);
     });
 
     it('accepts a clean model', async () => {
