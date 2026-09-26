@@ -22,6 +22,14 @@ const memoRoot = resolve(toolsRoot, '../memo');
 const sourceRoots = ['src', 'extensions', 'examples'];
 const executable = process.env.SYSIDE_EXECUTABLE || 'syside';
 
+// The grammar parity corpus (`packages/tools/src/__tests__/fixtures/grammar-parity`)
+// claims every fixture is valid SysML — the `unsupported/` ones included, which
+// is what makes each of those a known gap in MEMO's grammar rather than input
+// MEMO is right to refuse. The claim holds only while the compiler of record
+// keeps checking it.
+const parityRoot = resolve(toolsRoot, 'packages/tools/src/__tests__/fixtures/grammar-parity');
+const parityRoots = ['supported', 'unsupported'];
+
 for (const sourceRoot of sourceRoots) {
     if (!existsSync(resolve(memoRoot, sourceRoot))) {
         console.error(`✖ SysIDE gate cannot find ontology source root: ${resolve(memoRoot, sourceRoot)}`);
@@ -35,34 +43,39 @@ for (const sourceRoot of sourceRoots) {
 // unrelated ad-hoc projects.
 // `pipe` rather than `inherit` so a licence failure can be told apart from a
 // model failure. SysIDE's output is replayed either way, so nothing is hidden.
-const result = spawnSync(executable, ['check', '--diagnose', 'all', '--warnings-as-errors', ...sourceRoots], {
-    cwd: memoRoot,
-    encoding: 'utf8',
-});
-if (result.error) {
-    console.error(`✖ SysIDE gate could not start ${executable}: ${result.error.message}`);
-    process.exit(1);
-}
-if (result.stdout) process.stdout.write(result.stdout);
-if (result.stderr) process.stderr.write(result.stderr);
+function check(cwd, roots) {
+    const result = spawnSync(executable, ['check', '--diagnose', 'all', '--warnings-as-errors', ...roots], {
+        cwd,
+        encoding: 'utf8',
+    });
+    if (result.error) {
+        console.error(`✖ SysIDE gate could not start ${executable}: ${result.error.message}`);
+        process.exit(1);
+    }
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
 
-if (result.status !== 0) {
-    // An agent with no keyring — a sandbox, container, or CI runner — reaches
-    // this with a licence error rather than a model error. Saying so is the
-    // difference between a one-time provisioning step and a debugging session
-    // spent looking for a defect in the ontology.
-    if (/[Ll]icense check failed|[Ff]ailed to load license key/.test(result.stderr + result.stdout)) {
-        console.error(
-            '\n✖ SysIDE gate: no licence, so the ontology was never checked.\n' +
-            '  This is an environment gap, not a model error — SysIDE reads its licence\n' +
-            '  from the system keyring, which a sandbox or CI runner does not have.\n' +
-            '  Fix: set SYSIDE_LICENSE_KEY_FILE (preferred) or SYSIDE_LICENSE_KEY.\n' +
-            '  See "The SysIDE licence" in AGENTS.md. Do NOT skip or stub this gate.',
-        );
+    if (result.status !== 0) {
+        // An agent with no keyring — a sandbox, container, or CI runner — reaches
+        // this with a licence error rather than a model error. Saying so is the
+        // difference between a one-time provisioning step and a debugging session
+        // spent looking for a defect in the ontology.
+        if (/[Ll]icense check failed|[Ff]ailed to load license key/.test(result.stderr + result.stdout)) {
+            console.error(
+                '\n✖ SysIDE gate: no licence, so the ontology was never checked.\n' +
+                '  This is an environment gap, not a model error — SysIDE reads its licence\n' +
+                '  from the system keyring, which a sandbox or CI runner does not have.\n' +
+                '  Fix: set SYSIDE_LICENSE_KEY_FILE (preferred) or SYSIDE_LICENSE_KEY.\n' +
+                '  See "The SysIDE licence" in AGENTS.md. Do NOT skip or stub this gate.',
+            );
+            process.exit(result.status ?? 1);
+        }
+        console.error(`✖ SysIDE gate failed in ${cwd} (exit ${result.status ?? 'unknown'}).`);
         process.exit(result.status ?? 1);
     }
-    console.error(`✖ SysIDE gate failed (exit ${result.status ?? 'unknown'}).`);
-    process.exit(result.status ?? 1);
 }
 
-console.log('✔ SysIDE gate: ontology, extensions, and examples resolve cleanly.');
+check(memoRoot, sourceRoots);
+check(parityRoot, parityRoots);
+
+console.log('✔ SysIDE gate: ontology, extensions, examples, and the grammar parity corpus resolve cleanly.');
