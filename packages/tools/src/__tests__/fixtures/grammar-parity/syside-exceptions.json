@@ -1,0 +1,4 @@
+{
+  "$comment": "SysIDE's known gaps against the OMG SysML v2 specification, excepted one diagnostic at a time. Read by memo/scripts/syside-check.mjs, which documents every field. Add an entry only when the specification admits the source SysIDE rejects, and cite where in `spec`. Empty is the normal state.",
+  "exceptions": []
+}

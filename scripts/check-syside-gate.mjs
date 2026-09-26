@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// ─── Compiler-of-record gate ────────────────────────────────────────────────
+// ─── SysIDE compatibility gate ──────────────────────────────────────────────
 //
-// MEMO's Langium grammar is intentionally not the authority on SysML
-// conformance. A tools-suite pass therefore also requires SysIDE to resolve the
-// ontology and every extension source. Keep this as a separate pre-test command
+// The OMG SysML v2 specification is the authority on SysML, and neither MEMO's
+// Langium grammar nor SysIDE is. A tools-suite pass also requires SysIDE — the
+// compatibility check — to accept the ontology, the extensions and the
+// examples, less the SysIDE gaps `memo/syside-exceptions.json` lists. Keep this as a separate pre-test command
 // so a compiler failure stops the same `pnpm test` invocation agents use.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -26,8 +27,8 @@ const executable = process.env.SYSIDE_EXECUTABLE || 'syside';
 // is written to the OMG SysML v2 specification, which is what defines it as
 // valid — the `unsupported/` fixtures included. SysIDE checks it for
 // compatibility. A fixture SysIDE rejects but the specification admits is a
-// SysIDE gap to board, not a fixture to rewrite: exclude that one file from
-// this check by name, citing the board row, and keep the specification's form.
+// SysIDE gap to board, not a fixture to rewrite: list that diagnostic in the
+// corpus's own `syside-exceptions.json` and keep the specification's form.
 const parityRoot = resolve(toolsRoot, 'packages/tools/src/__tests__/fixtures/grammar-parity');
 const parityRoots = ['supported', 'unsupported'];
 
@@ -38,40 +39,21 @@ for (const sourceRoot of sourceRoots) {
     }
 }
 
-// Run from the ontology root, exactly as `memo/scripts/build-kpar.sh` does.
-// Besides preserving project-relative import resolution, this lets SysIDE read
-// MEMO's checked-in configuration rather than treating the source roots as two
-// unrelated ad-hoc projects.
-// `pipe` rather than `inherit` so a licence failure can be told apart from a
-// model failure. SysIDE's output is replayed either way, so nothing is hidden.
-function check(cwd, roots) {
-    const result = spawnSync(executable, ['check', '--diagnose', 'all', '--warnings-as-errors', ...roots], {
-        cwd,
-        encoding: 'utf8',
-    });
-    if (result.error) {
-        console.error(`✖ SysIDE gate could not start ${executable}: ${result.error.message}`);
-        process.exit(1);
-    }
-    if (result.stdout) process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+// One implementation of the check, in the ontology repo, so this gate and
+// `memo/scripts/build-kpar.sh` except exactly the same SysIDE gaps. It runs
+// `syside check --diagnose all --warnings-as-errors` and fails on any
+// diagnostic its register does not list, and on any listed one that no longer
+// occurs. Run from each root so SysIDE reads that tree's own configuration.
+const sysideCheck = resolve(memoRoot, 'scripts/syside-check.mjs');
 
+function check(cwd, roots) {
+    const result = spawnSync(process.execPath, [sysideCheck, '--exceptions', 'syside-exceptions.json', ...roots], {
+        cwd,
+        stdio: 'inherit',
+        env: { ...process.env, SYSIDE_EXECUTABLE: executable },
+    });
     if (result.status !== 0) {
-        // An agent with no keyring — a sandbox, container, or CI runner — reaches
-        // this with a licence error rather than a model error. Saying so is the
-        // difference between a one-time provisioning step and a debugging session
-        // spent looking for a defect in the ontology.
-        if (/[Ll]icense check failed|[Ff]ailed to load license key/.test(result.stderr + result.stdout)) {
-            console.error(
-                '\n✖ SysIDE gate: no licence, so the ontology was never checked.\n' +
-                '  This is an environment gap, not a model error — SysIDE reads its licence\n' +
-                '  from the system keyring, which a sandbox or CI runner does not have.\n' +
-                '  Fix: set SYSIDE_LICENSE_KEY_FILE (preferred) or SYSIDE_LICENSE_KEY.\n' +
-                '  See "The SysIDE licence" in AGENTS.md. Do NOT skip or stub this gate.',
-            );
-            process.exit(result.status ?? 1);
-        }
-        console.error(`✖ SysIDE gate failed in ${cwd} (exit ${result.status ?? 'unknown'}).`);
+        console.error(`✖ SysIDE gate failed in ${cwd} (exit ${result.status ?? 'unknown'}). See "The SysIDE licence" in AGENTS.md if it is a licence error.`);
         process.exit(result.status ?? 1);
     }
 }
