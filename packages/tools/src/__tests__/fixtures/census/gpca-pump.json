@@ -4,7 +4,7 @@
     "files": 55,
     "elements": 687,
     "definitions": 13,
-    "relationships": 858,
+    "relationships": 889,
     "packages": 55,
     "parseErrors": 0,
     "builderFindings": 67
@@ -165,8 +165,12 @@
         "BehaviorProperty": 16,
         "Contract": 4
       },
-      "relationships": 0,
-      "relationshipTypes": {},
+      "relationships": 18,
+      "relationshipTypes": {
+        "assumes": 3,
+        "hasSubject": 4,
+        "requires": 11
+      },
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -288,12 +292,14 @@
       "elements": 14,
       "definitions": 0,
       "kinds": {
+        "ActionUsage": 9,
         "FunctionalFlow": 3,
-        "FunctionalFlowStep": 9,
         "OperativeScenario": 2
       },
-      "relationships": 18,
+      "relationships": 31,
       "relationshipTypes": {
+        "composes": 9,
+        "flow": 4,
         "performs": 11,
         "succession": 7
       },

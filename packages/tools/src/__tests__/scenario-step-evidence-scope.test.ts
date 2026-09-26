@@ -132,32 +132,36 @@ describe('one contract used on two paths', () => {
 });
 
 /**
- * gpca-pump's own repeated step: `fnAcquireSensors` is referenced by both
+ * gpca-pump's own repeated step: `fnAcquireSensors` is performed by both
  * `fcsBolusSense` (in `fcPatientBolus`) and `fcsAlarmSense` (in
- * `fcAlarmStop`). Written in the example's spelling — package-level steps,
- * each flow performing its own — with a test naming only the alarm step.
+ * `fcAlarmStop`). Written in the example's spelling — each step an action
+ * nested in its flow that subsets the function — with a test naming only the
+ * alarm step.
  */
 const GPCA_SHAPE = `
 package P {
     action def SystemFunction;
     action def FunctionalFlow;
-    action def FunctionalFlowStep { ref function : SystemFunction[0..1]; }
     action fnAcquireSensors : SystemFunction;
-    action fcPatientBolus : FunctionalFlow { perform fcsBolusSense; perform fcsBolusLog; }
-    action fcsBolusSense : FunctionalFlowStep { ref :>> function = fnAcquireSensors; }
-    action fcsBolusLog : FunctionalFlowStep;
-    first fcsBolusSense then fcsBolusLog;
-    action fcAlarmStop : FunctionalFlow { perform fcsAlarmSense; perform fcsAlarmAnnunciate; }
-    action fcsAlarmSense : FunctionalFlowStep { ref :>> function = fnAcquireSensors; }
-    action fcsAlarmAnnunciate : FunctionalFlowStep;
-    first fcsAlarmSense then fcsAlarmAnnunciate;
+    action fnLogEvents : SystemFunction;
+    action fnAnnunciate : SystemFunction;
+    action fcPatientBolus : FunctionalFlow {
+        action fcsBolusSense :> fnAcquireSensors;
+        action fcsBolusLog :> fnLogEvents;
+        first fcsBolusSense then fcsBolusLog;
+    }
+    action fcAlarmStop : FunctionalFlow {
+        action fcsAlarmSense :> fnAcquireSensors;
+        action fcsAlarmAnnunciate :> fnAnnunciate;
+        first fcsAlarmSense then fcsAlarmAnnunciate;
+    }
     verification def VerificationCase;
     verification vcAirInLine : VerificationCase {
-        subject verified : Base::Anything[*] = (fcsAlarmSense);
+        subject verified : Base::Anything[*] = (fcAlarmStop.fcsAlarmSense);
     }
 }`;
 
-const KINDS = ['SystemFunction', 'FunctionalFlow', 'FunctionalFlowStep'];
+const KINDS = ['SystemFunction', 'FunctionalFlow'];
 
 const verifiedRule = (kind: string) => ({
     id: 'CR-TEST-STEP',
@@ -168,33 +172,33 @@ const verifiedRule = (kind: string) => ({
 });
 
 describe('one function at two flow steps', () => {
-    it('keeps both steps, each pointing at the one function', async () => {
+    const BOLUS = 'P::fcPatientBolus::fcsBolusSense';
+    const ALARM = 'P::fcAlarmStop::fcsAlarmSense';
+
+    it('keeps both steps, each subsetting the one function', async () => {
         const model = await build(GPCA_SHAPE, KINDS);
-        for (const id of ['P::fcsBolusSense', 'P::fcsAlarmSense']) {
-            expect(model.elements.get(id)).toMatchObject({ kind: 'FunctionalFlowStep' });
-            expect(model.elements.get(id)!.attributes.function).toBe('fnAcquireSensors');
+        for (const id of [BOLUS, ALARM]) {
+            expect(model.elements.get(id)).toMatchObject({ kind: 'ActionUsage' });
+            expect(model.elements.get(id)!.attributes.subsets).toBe('fnAcquireSensors');
         }
         expect(edges(model, 'performs')).toEqual(expect.arrayContaining([
-            'P::fcPatientBolus -> P::fcsBolusSense',
-            'P::fcAlarmStop -> P::fcsAlarmSense',
+            'P::fcPatientBolus -> P::fnAcquireSensors',
+            'P::fcAlarmStop -> P::fnAcquireSensors',
         ]));
     });
 
     it('counts the alarm-step test as evidence for the alarm step only', async () => {
         const model = await build(GPCA_SHAPE, KINDS);
-        const unverified = evaluateNativeConstraint(verifiedRule('FunctionalFlowStep'), model, registry(KINDS))
-            .map(v => v.elementName);
-        expect(unverified).toContain('fcsBolusSense');
-        expect(unverified).not.toContain('fcsAlarmSense');
+        expect(edges(model, 'verifiedBy')).toEqual([`${ALARM} -> P::vcAirInLine`]);
     });
 
     // Verified, specified and used are separate properties: a test of one
-    // position is not a test of the function the position references, and a
+    // position is not a test of the function the position subsets, and a
     // test of the function would not be a test of either position.
     it('does not lift step evidence onto the function', async () => {
         const model = await build(GPCA_SHAPE, KINDS);
         const unverified = evaluateNativeConstraint(verifiedRule('SystemFunction'), model, registry(KINDS))
             .map(v => v.elementName);
-        expect(unverified).toEqual(['fnAcquireSensors']);
+        expect(unverified).toEqual(['fnAcquireSensors', 'fnLogEvents', 'fnAnnunciate']);
     });
 });

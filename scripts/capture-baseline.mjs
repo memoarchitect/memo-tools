@@ -460,6 +460,33 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-09-25 — gpca only, for two §4.1 conversions.
+ * ui-regions, default and extension-clinical did not move. The first of the
+ * two landed without a re-freeze (memo 261d07e, memo-tools 2823e3a) and left
+ * this oracle red, because `pnpm test` does not run it; both are recorded here.
+ * Compared by leaf name, not position: zero elements added or removed.
+ *
+ * FIRST: `BehaviorProperty`, `Contract` and `TimingConstraint` are requirement
+ * defs, and a contract names its component and members natively.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | 27 elements `construct` `part` → `requirement` | The 20 properties, 3 timing constraints and 4 contracts. Ids, kinds, layers and attributes do not move. |
+ * | +4 `hasSubject`, +3 `assumes`, +11 `requires` | Each contract's `subject` and its `assume`/`require` members. `verifiedBy` does not move: the 9 properties a case named as a subject are `verify` objectives now, which lower to the same edge. |
+ *
+ * SECOND: the `FunctionalFlowStep` wrapper is retired. A step is an action
+ * nested in its flow that subsets the function it performs.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | 9 elements `kind` `FunctionalFlowStep` → `ActionUsage` | The steps, under nested qualified ids. A step takes its flow's layer, so layer counts do not move. |
+ * | −9 `performs` flow → step, +9 `composes` flow → step | The flow owns its steps now instead of performing them. |
+ * | +9 `performs` flow → function | An owned subsetting action is its function performed at that position. |
+ * | +4 `flow` | Between two steps' item parameters where one step's output is the next one's input. |
+ * | −2 `CR-MED-023` (`fnEnforceLimits`, `fnLogEvents`) | A functional chain performs them now; before, only a step's `ref function` string named them. |
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).

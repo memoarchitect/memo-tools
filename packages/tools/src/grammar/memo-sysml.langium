@@ -404,8 +404,12 @@ InterfaceUsage:
 
 // ActionUsage supports both typed (action name : Type;) and composite
 // (action name { nested-actions, flows, successions }) forms.
+// `:>` subsets another action usage: `action sense :> fnAcquireSensors;` inside
+// a functional flow is that function performed at this position, with its own
+// identity (a step). SysIDE accepts it; the production took only `: Type`.
 ActionUsage:
     behaviorKind=('action' | 'operator' | 'function') name=ActionName (':' type=QualifiedName)?
+    (':>' subsetted=QualifiedName)?
     ('{' body+=ActionUsageBodyMember* '}' | ';');
 
 // Activity actions use their own concrete forms. Keep the payload and endpoint
