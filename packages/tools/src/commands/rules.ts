@@ -24,7 +24,7 @@ import {
     buildEffectiveScope,
     activeRuleCandidates,
     BUILTIN_RULES,
-    evaluateConstraintNode,
+    evaluateConstraintSubjects,
     validateArchitecture,
 } from '@memoarchitect/tools';
 // parseFiles still needed by rulesCheckCommand for project SysML files
@@ -247,19 +247,27 @@ export async function rulesCheckCommand(
     // Evaluate native `constraint def` bodies (KerML expressions) across ontology + project docs.
     const constraints = collectNativeConstraints([...ontologyDocuments, ...parseResult.documents]);
     let rulesPassed = 0;
+    let rulesVacuous = 0;
     const violations = [];
     for (const constraint of constraints) {
-        const ruleViolations = constraint.evaluator === 'architecture'
-            ? validateArchitecture(model, constraint.appliesToKind, ontologyRegistries?.kindRegistry)
-            : constraint.evaluator && constraint.evaluator !== 'native'
-                ? []
-                : evaluateConstraintNode(constraint, constraint.ast, model, ontologyRegistries?.kindRegistry);
-        if (ruleViolations.length === 0) rulesPassed++;
+        if (constraint.evaluator && constraint.evaluator !== 'native') {
+            const ruleViolations = constraint.evaluator === 'architecture'
+                ? validateArchitecture(model, constraint.appliesToKind, ontologyRegistries?.kindRegistry)
+                : [];
+            if (ruleViolations.length === 0) rulesPassed++;
+            violations.push(...ruleViolations);
+            continue;
+        }
+        const { violations: ruleViolations, subjectCount } = evaluateConstraintSubjects(
+            constraint, constraint.ast, model, ontologyRegistries?.kindRegistry);
+        if (subjectCount === 0) rulesVacuous++;
+        else if (ruleViolations.length === 0) rulesPassed++;
         violations.push(...ruleViolations);
     }
     const result = {
         rulesEvaluated: constraints.length,
         rulesPassed,
+        rulesVacuous,
         violations,
         timestamp: Date.now(),
     };
@@ -272,6 +280,7 @@ export async function rulesCheckCommand(
     console.log(chalk.bold('\n📋 Rule Check Results\n'));
     console.log(chalk.gray(`  Rules evaluated: ${result.rulesEvaluated}`));
     console.log(chalk.gray(`  Rules passed:    ${result.rulesPassed}`));
+    console.log(chalk.gray(`  No subject:      ${result.rulesVacuous}`));
     console.log(chalk.gray(`  Violations:      ${result.violations.length}`));
     console.log();
 

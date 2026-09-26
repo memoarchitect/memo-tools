@@ -54,7 +54,7 @@ function makeModel(elements: MemoElement[] = [], relationships: MemoRelationship
     return { elements: toElementIndex(elementMap), relationships, errors: [], packages: [], elementsByKind, elementsByLayer, relationshipsByType, outgoing, incoming };
 }
 
-const validation: ValidationResult = { violations: [], rulesEvaluated: 0, rulesPassed: 0, timestamp: 0 };
+const validation: ValidationResult = { violations: [], rulesEvaluated: 0, rulesPassed: 0, rulesVacuous: 0, timestamp: 0 };
 const completeness: CompletenessReport = { layers: [], overall: 100, totalElements: 0, completeElements: 0, elementStatus: {} };
 
 function makeCtx(elements: MemoElement[], relationships: MemoRelationship[] = []) {

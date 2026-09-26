@@ -101,6 +101,22 @@ export function evaluateConstraintNode(
     kindRegistry?: KindRegistry,
     inScope?: (element: MemoElement) => boolean,
 ): Violation[] {
+    return evaluateConstraintSubjects(meta, ast, model, kindRegistry, inScope).violations;
+}
+
+/**
+ * {@link evaluateConstraintNode}, plus how many subjects the rule ran on.
+ *
+ * The count is what tells a pass from a vacuous one. Both return no
+ * violations; only one of them tested anything.
+ */
+export function evaluateConstraintSubjects(
+    meta: ConstraintMeta,
+    ast: ConstraintNode,
+    model: MemoModel,
+    kindRegistry?: KindRegistry,
+    inScope?: (element: MemoElement) => boolean,
+): { violations: Violation[]; subjectCount: number } {
     // Two projections, in this order. A named typed flow or interface usage is
     // a rule subject of its declared kind — the read-only facade §9.1 of the
     // architecture plan asks for — and that has to happen BEFORE specialization
@@ -133,7 +149,7 @@ export function evaluateConstraintNode(
             });
         }
     }
-    return violations;
+    return { violations, subjectCount: subjects.length };
 }
 
 /** Resolve `Kind` or `Kind[attribute=value]` scope declarations. */

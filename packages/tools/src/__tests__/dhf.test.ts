@@ -48,7 +48,7 @@ function makeModel(elements: MemoElement[] = [], relationships: MemoRelationship
 }
 
 function makeValidation(violations: any[] = []): ValidationResult {
-    return { violations, rulesEvaluated: 10, rulesPassed: 10 - violations.length, timestamp: Date.now() };
+    return { violations, rulesEvaluated: 10, rulesPassed: 10 - violations.length, rulesVacuous: 0, timestamp: Date.now() };
 }
 
 function makeCompleteness(): CompletenessReport {

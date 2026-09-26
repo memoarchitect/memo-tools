@@ -153,7 +153,7 @@ export function isRulePackageInScope(scope: EffectiveScope, declaringPackage: st
  * The rules a project's methodology actually activates.
  *
  * A rule is active when BOTH its declaring package and its subject kind are in
- * scope. A rule whose subject the methodology never selected can only report on
+ * scope — unless it is classified `invariant`, which is active in every scope. A rule whose subject the methodology never selected can only report on
  * content the project did not agree to model — which is how the GPCA prototype
  * used to accumulate cybersecurity violations for a discipline it had excluded.
  *
@@ -183,10 +183,15 @@ export function activeRuleCandidates(
         return isRulePackageInScope(scope, packageOf(kindSourceFile(kindName)));
     };
 
+    // An invariant is exempt from both. A RulePolicy cannot disable one
+    // (`invariant-protected`), and leaving its package or its subject kind out
+    // of the selection disabled it just the same, with no policy and no
+    // diagnostic to show for it. An invariant over a kind the project never
+    // uses runs on nothing and reports as vacuous, which is the honest answer.
     return ruleCandidatesFromConstraints(
-        constraints
-            .filter(c => isRulePackageInScope(scope, packageOf(c.sourceFile)))
-            .filter(c => subjectInScope(c.appliesToKind)),
+        constraints.filter(c => c.tailoring === 'invariant'
+            || (isRulePackageInScope(scope, packageOf(c.sourceFile))
+                && subjectInScope(c.appliesToKind))),
     );
 }
 

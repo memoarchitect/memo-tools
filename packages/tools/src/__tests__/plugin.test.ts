@@ -45,6 +45,7 @@ function createMockContext(): PluginContext {
         violations: [],
         rulesEvaluated: 0,
         rulesPassed: 0,
+        rulesVacuous: 0,
         timestamp: Date.now(),
     };
 
