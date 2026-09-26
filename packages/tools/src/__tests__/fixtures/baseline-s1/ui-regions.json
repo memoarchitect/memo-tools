@@ -547,11 +547,6 @@
         "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongDrug"
       },
       {
-        "type": "changes",
-        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12",
-        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay"
-      },
-      {
         "type": "commentsOn",
         "sourceId": "memo_examples_ui_screen_regions_artifacts_reviews_comments::cmtDecimalSalience",
         "targetId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen"
@@ -925,11 +920,6 @@
         "type": "satisfiedBy",
         "sourceId": "memo_examples_ui_screen_regions_assurance_requirements::reqVolumeDisplay",
         "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
-      },
-      {
-        "type": "tracesRisk",
-        "sourceId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12",
-        "targetId": "memo_examples_ui_screen_regions_assurance_requirements::reqDrugIdentityDisplay"
       },
       {
         "type": "verifiedBy",

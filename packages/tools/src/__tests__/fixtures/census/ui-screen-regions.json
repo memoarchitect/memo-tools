@@ -1,13 +1,13 @@
 {
   "project": "ui-screen-regions",
   "totals": {
-    "files": 24,
+    "files": 23,
     "elements": 66,
     "definitions": 0,
-    "relationships": 111,
-    "packages": 24,
+    "relationships": 109,
+    "packages": 23,
     "parseErrors": 0,
-    "builderFindings": 4
+    "builderFindings": 0
   },
   "files": {
     "model/catalog/architecture/functional/functions.sysml": {
@@ -168,19 +168,6 @@
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
-    },
-    "model/catalog/relationships.sysml": {
-      "elements": 0,
-      "definitions": 0,
-      "kinds": {},
-      "relationships": 2,
-      "relationshipTypes": {
-        "changes": 1,
-        "tracesRisk": 1
-      },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 4
     },
     "model/catalog/traces.sysml": {
       "elements": 0,

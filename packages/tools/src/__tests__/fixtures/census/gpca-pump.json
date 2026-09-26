@@ -2,12 +2,12 @@
   "project": "gpca-pump",
   "totals": {
     "files": 55,
-    "elements": 687,
+    "elements": 688,
     "definitions": 13,
-    "relationships": 889,
+    "relationships": 895,
     "packages": 55,
     "parseErrors": 0,
-    "builderFindings": 67
+    "builderFindings": 0
   },
   "files": {
     "model/catalog/gpca_analysis.sysml": {
@@ -156,7 +156,7 @@
       },
       "packages": 1,
       "parseErrors": 0,
-      "builderFindings": 1
+      "builderFindings": 0
     },
     "model/catalog/gpca_formal_behavior.sysml": {
       "elements": 20,
@@ -286,7 +286,7 @@
       },
       "packages": 1,
       "parseErrors": 0,
-      "builderFindings": 12
+      "builderFindings": 0
     },
     "model/catalog/gpca_system.sysml": {
       "elements": 14,
@@ -308,23 +308,28 @@
       "builderFindings": 0
     },
     "model/catalog/gpca_trace.sysml": {
-      "elements": 0,
+      "elements": 1,
       "definitions": 0,
-      "kinds": {},
-      "relationships": 379,
+      "kinds": {
+        "SoftwareDeploymentUnit": 1
+      },
+      "relationships": 385,
       "relationshipTypes": {
         "allocatedTo": 17,
         "appliesInContext": 2,
         "assessedAgainst": 14,
         "bind": 5,
         "bindsToInterface": 3,
-        "causes": 14,
+        "buildsInto": 6,
+        "causes": 18,
         "connect": 10,
         "containsEvent": 4,
         "dependency": 5,
         "deploysTo": 1,
         "derivesFrom": 113,
         "detectedBy": 3,
+        "estimatedFor": 7,
+        "evaluatedIn": 7,
         "flow": 39,
         "governs": 1,
         "hasFailureMode": 5,
@@ -334,14 +339,15 @@
         "producesEvent": 1,
         "producesEvidence": 25,
         "realizes": 4,
+        "reducedBy": 7,
         "succession": 4,
         "testedByUsability": 8,
-        "tracesRisk": 70,
+        "tracesRisk": 45,
         "validates": 3
       },
       "packages": 1,
       "parseErrors": 0,
-      "builderFindings": 54
+      "builderFindings": 0
     },
     "model/catalog/gpca_verification.sysml": {
       "elements": 37,

@@ -484,6 +484,10 @@ const ALLOWED: Record<string, { reason: string; removedBy: 'deliberate' }> = {
         reason: '`for` is an English particle in a relation name, not the loop keyword.',
         removedBy: 'deliberate',
     },
+    'for:EstimatedFor': {
+        reason: '`for` is an English particle in a relation name (ISO 14971 §5.5: a risk is estimated for a hazardous situation), not the loop keyword.',
+        removedBy: 'deliberate',
+    },
     'from:DerivesFrom': {
         reason: '`from` is an English particle in a relation name; SysML uses it in flow syntax.',
         removedBy: 'deliberate',

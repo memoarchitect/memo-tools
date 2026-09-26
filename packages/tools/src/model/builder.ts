@@ -546,6 +546,15 @@ export function buildMemoModel(
             return !kindIndex.has(kind) && !projectSuper.has(kind) && kind.endsWith(expected);
         };
 
+        // A finding names the edge's own line. Every one of them used to point
+        // at 1:1 of its file, which in a trace file of six hundred lines is no
+        // location at all.
+        const textByFile = new Map(documents.map(d => [d.filePath, d.document.textDocument]));
+        const lineOfRelationship = (rel: MemoRelationship): number | undefined => {
+            const text = rel.sourceRange ? textByFile.get(rel.file) : undefined;
+            return text ? text.positionAt(rel.sourceRange!.offset).line + 1 : undefined;
+        };
+
         for (const rel of relationships) {
             const regEntry = registries.relationshipRegistry.getRelType(rel.type);
             if (!regEntry || regEntry.ends.length === 0) continue;
@@ -564,8 +573,10 @@ export function buildMemoModel(
 
                 if (!conformsTo(el.kind, end.type)) {
                     errors.push({
+                        code: RELATIONSHIP_END_KIND,
                         message: `[well-formedness] Relationship "${rel.type}" expects ${end.name} to be ${end.type}, but found ${el.kind}`,
                         file: rel.file ?? '',
+                        line: lineOfRelationship(rel),
                     });
                 }
             }
@@ -1660,6 +1671,12 @@ function extractNestedPackages(
 
 /** The kind a nested grouping package becomes, distinct from a namespace package. */
 export const ELEMENT_PACKAGE_KIND = 'ElementPackage';
+
+/**
+ * The `ParseError.code` a relationship carries when an end's element does not
+ * conform to the kind the relationship's definition types that end with.
+ */
+export const RELATIONSHIP_END_KIND = 'relationship-end-kind';
 
 /** The `ParseError.code` an `interface … connect` with an end naming nothing carries. */
 export const UNRESOLVED_INTERFACE_END = 'unresolved-interface-end';

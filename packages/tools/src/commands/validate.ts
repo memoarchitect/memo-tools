@@ -155,19 +155,22 @@ export async function validateCommand(
     // A short-name collision belongs in this report for exactly the reason a
     // parse error does: an element the project declared is not in the model, so
     // every number below is computed over less than the source says.
-    //
-    // Only that code is taken, and deliberately. `model.errors` also carries
-    // the builder's relationship well-formedness findings, which have never
-    // been reported by any command — measured 2026-09-19, surfacing all of them
-    // turns five shipped examples red, gpca-pump with 73. That is a real
-    // finding and a separate one; it has its own board row rather than being
-    // smuggled in behind this fix.
+    const missingContent = new Set([ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE]);
     const diagnostics = [
         ...parseErrors,
         ...model.errors.filter(e =>
-            (e.code === ELEMENT_NAME_COLLISION || e.code === AMBIGUOUS_ELEMENT_REFERENCE)
-            && isProjectFile(e.file)),
+            e.code !== undefined && missingContent.has(e.code) && isProjectFile(e.file)),
     ];
+
+    // Every other finding the builder raised: an edge whose end is the wrong
+    // kind, an end that names nothing, a relationship name used twice. The
+    // model loaded; it says something the ontology does not allow. These were
+    // computed on every build and read by no command until 2026-09-25, when
+    // surfacing them found 72 across three shipped examples. `model.errors`
+    // begins with the parse errors it was given, which carry no code, so the
+    // code is what tells a builder finding apart.
+    const modelFindings = model.errors.filter(e =>
+        e.code !== undefined && !missingContent.has(e.code) && isProjectFile(e.file));
 
     // A file the parser rejected declares less of the model than it says it
     // does, so every number below it — completeness, rules passed, violations
@@ -180,6 +183,7 @@ export async function validateCommand(
     //
     // So it is printed before any of those numbers, and it fails the command.
     reportParseErrors(diagnostics, projectRoot);
+    reportModelFindings(modelFindings, projectRoot);
 
     // A selector naming a kind, relationship or attribute the ontology never
     // declared matches nothing — in this model and in every other one, which is
@@ -377,7 +381,8 @@ export async function validateCommand(
     // ─── Output format dispatch ──────────────────────────────────────────────
 
     if (format === 'junit') {
-        const xml = generateJUnit(result, completeness, config.projectName || 'memo', diagnostics);
+        const xml = generateJUnit(
+            result, completeness, config.projectName || 'memo', diagnostics, modelFindings);
         if (options?.output) {
             writeFileSync(resolve(cwd, options.output), xml);
             console.log(chalk.green(`JUnit XML written to ${options.output}`));
@@ -407,8 +412,10 @@ export async function validateCommand(
                 sysmlErrors,
                 parseErrors: diagnostics.length,
                 filesNotParsed: filesWithParseErrors(diagnostics).size,
+                modelFindings: modelFindings.length,
             },
             parseErrors: diagnostics,
+            modelFindings,
             rulesNotLoaded: constraintDiagnostics,
             toolchain: {
                 validator: effectiveToolchain.validator,
@@ -506,6 +513,8 @@ export async function validateCommand(
         + (diagnostics.length > 0
             ? ` in ${parseErrorFiles} file(s) \u2014 this report describes an incomplete model`
             : '')));
+    console.log((modelFindings.length > 0 ? chalk.red : chalk.gray)(
+        `Model findings: ${modelFindings.length}`));
     console.log();
 
     if (failed()) {
@@ -521,7 +530,7 @@ export async function validateCommand(
      */
     function failed(): boolean {
         return errors.length > 0 || sysmlErrors > 0 || diagnostics.length > 0
-            || selectorDiagnostics.length > 0;
+            || modelFindings.length > 0 || selectorDiagnostics.length > 0;
     }
 }
 
@@ -568,6 +577,30 @@ function reportParseErrors(
 }
 
 /**
+ * Print every builder finding on a model that did load.
+ *
+ * All of them, with no elision, for the reason the selector list has none:
+ * each one is an edge to fix, and "and 57 more" is how 67 of them went
+ * unread in the first place.
+ */
+function reportModelFindings(
+    findings: readonly import('@memoarchitect/tools').ParseError[],
+    projectRoot: string,
+): void {
+    if (findings.length === 0) return;
+    const show = (file: string) => (file.startsWith(projectRoot) ? relative(projectRoot, file) : file);
+    console.log(chalk.red.bold(
+        `\u26d4 ${findings.length} model finding(s). The model loaded, and says something `
+        + 'the ontology does not allow:'));
+    for (const f of findings) {
+        const message = f.message.split(`${projectRoot}/`).join('');
+        console.log(chalk.gray(
+            `     ${show(f.file)}:${f.line ?? 1}:${f.column ?? 1}: error: ${message} [${f.code}]`));
+    }
+    console.log('');
+}
+
+/**
  * Print every selector that names something no resolved ontology declares.
  *
  * All of them, with no elision: the list is short by construction — a selector
@@ -597,6 +630,7 @@ function generateJUnit(
     completeness: ReturnType<typeof computeCompleteness>,
     projectName: string,
     parseErrors: readonly import('@memoarchitect/tools').ParseError[] = [],
+    modelFindings: readonly import('@memoarchitect/tools').ParseError[] = [],
 ): string {
     const escXml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -606,8 +640,8 @@ function generateJUnit(
     // the rules, a green suite would report on a model missing the content
     // that file declares.
     const parseErrorFiles = [...filesWithParseErrors(parseErrors)];
-    const allTests = result.rulesEvaluated + parseErrorFiles.length;
-    const failures = errors.length + parseErrorFiles.length;
+    const allTests = result.rulesEvaluated + parseErrorFiles.length + modelFindings.length;
+    const failures = errors.length + parseErrorFiles.length + modelFindings.length;
     // A rule that ran on no subject tested nothing. It is reported as skipped
     // so a CI dashboard cannot count it towards the green.
     const skipped = result.rulesVacuous;
@@ -631,6 +665,12 @@ function generateJUnit(
             lines.push(`        ${escXml(`${e.file}:${e.line ?? 1}:${e.column ?? 1}: error: ${e.message}`)}`);
         }
         lines.push(`      </failure>`);
+        lines.push(`    </testcase>`);
+    }
+
+    for (const f of modelFindings) {
+        lines.push(`    <testcase classname="model.${escXml(f.code ?? 'finding')}" name="${escXml(`${f.file}:${f.line ?? 1}`)}">`);
+        lines.push(`      <failure message="${escXml(f.message)}" type="${escXml(f.code ?? 'MODEL_FINDING')}" />`);
         lines.push(`    </testcase>`);
     }
 

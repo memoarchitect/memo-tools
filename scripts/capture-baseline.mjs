@@ -487,6 +487,22 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-09-25 — gpca and ui-regions, for the builder's
+ * relationship end-kind findings. default and extension-clinical did not move.
+ * `memo validate` reports those findings now; every one in the examples was
+ * triaged and fixed at its source (ontology or model). Compared by leaf name.
+ * Violations are unchanged in both: gpca 8, ui-regions 4.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | −21 `tracesRisk` into a Risk; +7 `estimatedFor`, +7 `reducedBy`, +7 `evaluatedIn` | A risk is not a RiskItem, so TracesRisk refused every one. The three new relations say what the edges meant: estimated for a harm, reduced by a control, evaluated in the overall evaluation. |
+ * | gpca | −4 `tracesRisk`, +4 `causes` | Use errors reach the chain through `Causes` with `useErrorLeadsToHazard`. |
+ * | gpca | `deploysTo` gpcaSoftware → controllerBoard becomes gpcaFirmwareImage → mainController; +1 element `gpcaFirmwareImage`, +6 `buildsInto` | A system is not a deployment unit and a board is not a processing node. The modules build into the image, as in embedded-infusion-pump. |
+ * | gpca | `impactsSafety` retargeted riskBefore → overdoseHazard | A security risk feeds safety risk management at the hazard it can cause. |
+ * | ui-regions | −1 `tracesRisk`, −1 `changes` (UIE-012 → reqDrugIdentityDisplay) | Deleted by decision: a UI element is neither a risk item nor a change request, so the edges asserted nothing. |
+ */
+
+/**
  * Materialize a fresh default project so the baseline covers `memo init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
