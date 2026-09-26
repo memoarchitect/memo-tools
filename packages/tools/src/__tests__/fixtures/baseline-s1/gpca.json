@@ -1545,7 +1545,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_context::gpcaIntendedUse",
         "kind": "IntendedUse",
-        "construct": "part",
+        "construct": "requirement",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_context"
       },
