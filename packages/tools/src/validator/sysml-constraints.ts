@@ -175,12 +175,14 @@ export const IMPLEMENTED_CONSTRAINTS: readonly SysmlConstraint[] = [
         code: 'global-namespace-distinguishability',
         clause: 'KerML 8.2.3.3 — root-namespace members are globally distinguishable',
         appliesTo: 'Namespace',
-        // The IR records declarations, and a package is a namespace it recurses
-        // *into* rather than an element it records — so two files each opening
-        // `package Shared` are invisible here, which is the commonest form of
-        // this collision. Closing it means recording package declarations in
-        // the IR, which is an ingestion change, not a rule change.
-        limitation: 'Sees root-level members other than packages; two files declaring the same top-level package are not caught.',
+        // The IR records declarations, and a populated package is a namespace
+        // it recurses *into* rather than an element it records — so two files
+        // each opening `package Shared` with members in it are invisible here,
+        // which is the commonest form of this collision. Only an empty package
+        // is recorded (it has no members to conserve it). Closing the rest
+        // means recording every package declaration in the IR, which is an
+        // ingestion change, not a rule change.
+        limitation: 'Sees root-level members other than populated packages; two files declaring the same top-level package with members in it are not caught.',
         check(model) {
             const seen = new Map<string, string>();
             const violations: ConstraintViolation[] = [];
