@@ -38,6 +38,18 @@ def sysml_files(root: Path) -> list[Path]:
     )
 
 
+def strip_uris(value):
+    """Drop `@uri` from references. It locates the target's document by a path
+    relative to this machine's install, which stage 2 never reads (the element
+    index says where each element is) and which would make the output differ
+    from one machine to the next."""
+    if isinstance(value, dict):
+        return {k: strip_uris(v) for k, v in value.items() if k != "@uri"}
+    if isinstance(value, list):
+        return [strip_uris(v) for v in value]
+    return value
+
+
 def severity_of(diagnostic) -> str:
     return str(getattr(diagnostic, "severity", "")).rsplit(".", 1)[-1].lower()
 
@@ -84,7 +96,7 @@ def main() -> int:
             base = project_root if role == "project" else next(
                 (root for root in library_roots if root in path.parents), path.parent)
             relative = os.path.relpath(path, base)
-            elements = json.loads(_syside.json.dumps(document.root_node, options))
+            elements = strip_uris(json.loads(_syside.json.dumps(document.root_node, options)))
             documents.append({"file": relative, "role": role, "elements": elements})
             exported_ids = {element["@id"] for element in elements}
             for element in document.all_nodes(syside.Element):
@@ -100,6 +112,36 @@ def main() -> int:
                     entry.update(startByte=cst.start_byte, endByte=cst.end_byte,
                                  line=point.line + 1, column=point.character + 1)
                 index[str(element.element_id)] = entry
+    # Elements the project references but the handoff does not carry: the
+    # standard library's. They are indexed by qualified name, not exported, so
+    # stage 2 can name a type such as ScalarValues::Boolean.
+    exported_ids = {e["@id"] for d in documents for e in d["elements"]}
+
+    def referenced(value, out):
+        if isinstance(value, dict):
+            if set(value) == {"@id"}:
+                out.add(value["@id"])
+            else:
+                for v in value.values():
+                    referenced(v, out)
+        elif isinstance(value, list):
+            for v in value:
+                referenced(v, out)
+
+    wanted: set[str] = set()
+    for d in documents:
+        referenced(d["elements"], wanted)
+    wanted -= exported_ids
+    for shared in model.stdlib_docs:
+        if not wanted:
+            break
+        with shared.lock() as document:
+            for element in document.all_nodes(syside.Element):
+                element_id = str(element.element_id)
+                if element_id in wanted:
+                    qualified = element.qualified_name
+                    index[element_id] = {"role": "standard", **({"qualifiedName": str(qualified)} if qualified else {})}
+                    wanted.discard(element_id)
     exported = time.perf_counter()
 
     json.dump({

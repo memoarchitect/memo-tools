@@ -64,7 +64,7 @@ describe('ApiModel', () => {
 
     it('reads literal, enumeration and sequence values', () => {
         expect(model.value(at('Model::pump::label'))).toEqual({ kind: 'string', value: 'Pump' });
-        expect(model.value(at('Model::pump::weight'))).toEqual({ kind: 'number', value: 2.5 });
+        expect(model.value(at('Model::pump::weight'))).toEqual({ kind: 'number', value: 2.5, rational: true });
         expect(model.value(at('Model::pump::critical'))).toEqual({ kind: 'boolean', value: true });
         expect(model.value(at('Model::pump::level'))).toEqual({ kind: 'reference', qualifiedName: 'Lib::Level::high' });
         // A nonunique sequence keeps its repeats and its order.
@@ -84,6 +84,13 @@ describe('ApiModel', () => {
             || model.ownedRelationships(m['@id']).some(r => r['@type'] === 'ReferenceSubsetting'));
         expect(ends.map(end => names(model.referenced(end['@id']))[0]))
             .toEqual(['Model::controller', 'Model::pump::motor']);
+    });
+
+    it('names a standard library type the handoff indexes but does not carry', () => {
+        const [type] = model.types(at('Lib::Element::weight'));
+        expect(type['@type']).toBe('ExternalElement');
+        expect(model.name(type['@id'])).toBe('Real');
+        expect(model.qualifiedName(type['@id'])).toBe('ScalarValues::Real');
     });
 
     it('lists only what the project declares as project elements', () => {
