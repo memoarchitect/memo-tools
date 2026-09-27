@@ -1,0 +1,242 @@
+// ─── Stage 2 read model over stage 1's API JSON ──────────────────────────────
+//
+// Stage 1 (a SysML compiler: OpenSysML or SysIDE) hands stage 2 the OMG SysML v2
+// API JSON of every document, plus an element index the standard JSON does not
+// carry: each element's qualified name and source position
+// (plans/memo-compiler-stages-opensysml.md, "Milestone 2 design"). This module is
+// the one place stage 2 reads that handoff. Everything MEMO builds from a model
+// asks it, never the compiler, so which compiler ran is invisible from here up.
+//
+// **Identity is the qualified name.** The `@id` a compiler writes is its own
+// (OpenSysML derives it from the qualified name, SysIDE writes UUIDs), so it is
+// used only to follow references inside one handoff and never escapes this
+// module as an element's identity.
+//
+// **Only standard, non-derived properties are read.** Ownership, typing,
+// specialization and values are recovered from the relationships that state
+// them (`FeatureTyping.type`, `Subclassification.superclassifier`, …), which
+// every conforming compiler writes; derived properties such as `owner` or
+// `type` are computed here rather than trusted to be present.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A reference in API JSON: `{ "@id": … }`. */
+export interface ApiRef { '@id': string }
+
+/** One element of the OMG API JSON; properties beyond `@type`/`@id` vary by metaclass. */
+export interface ApiElement {
+    '@type': string;
+    '@id': string;
+    [property: string]: unknown;
+}
+
+/** What the standard JSON does not carry, keyed by `@id`. */
+export interface ApiIndexEntry {
+    file: string;
+    role: 'project' | 'library';
+    qualifiedName?: string;
+    startByte?: number;
+    endByte?: number;
+    line?: number;
+    column?: number;
+}
+
+/** The stage 1 handoff (`memo-stage1/1`). */
+export interface Stage1Output {
+    format: string;
+    provider: string;
+    providerVersion?: string;
+    clean: boolean;
+    documents?: { file: string; role: 'project' | 'library'; elements: ApiElement[] }[];
+    index?: Record<string, ApiIndexEntry>;
+}
+
+export const STAGE1_FORMAT = 'memo-stage1/1';
+
+/** A literal or reference a feature is valued with, as MEMO reads values. */
+export type ApiValue =
+    | { kind: 'string'; value: string }
+    | { kind: 'number'; value: number }
+    | { kind: 'boolean'; value: boolean }
+    | { kind: 'reference'; qualifiedName: string }
+    | { kind: 'sequence'; items: ApiValue[] }
+    | { kind: 'other'; metaclass: string };
+
+const isRef = (value: unknown): value is ApiRef =>
+    typeof value === 'object' && value !== null && typeof (value as ApiRef)['@id'] === 'string';
+
+const refs = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter(isRef).map(r => r['@id']) : isRef(value) ? [value['@id']] : [];
+
+export class ApiModel {
+    private readonly byId = new Map<string, ApiElement>();
+    private readonly byQualifiedName = new Map<string, string>();
+    private readonly index: Record<string, ApiIndexEntry>;
+    readonly provider: string;
+
+    constructor(output: Stage1Output) {
+        if (output.format !== STAGE1_FORMAT) {
+            throw new Error(`stage 1 output is ${output.format}, expected ${STAGE1_FORMAT}`);
+        }
+        if (!output.clean) {
+            // Stage 2 never runs on a failed stage 1 (plan, Decisions).
+            throw new Error('stage 1 reported errors; stage 2 does not run on a failed stage 1');
+        }
+        this.provider = output.provider;
+        this.index = output.index ?? {};
+        for (const document of output.documents ?? []) {
+            for (const element of document.elements) this.byId.set(element['@id'], element);
+        }
+        for (const [id, entry] of Object.entries(this.index)) {
+            // A qualified name is one element; the first declaration keeps it,
+            // exactly as SysML resolution would find it.
+            if (entry.qualifiedName && !this.byQualifiedName.has(entry.qualifiedName)) {
+                this.byQualifiedName.set(entry.qualifiedName, id);
+            }
+        }
+    }
+
+    get size(): number { return this.byId.size; }
+
+    element(id: string): ApiElement | undefined { return this.byId.get(id); }
+
+    /** The element a qualified name resolves to, if the handoff holds it. */
+    resolve(qualifiedName: string): ApiElement | undefined {
+        const id = this.byQualifiedName.get(qualifiedName);
+        return id === undefined ? undefined : this.byId.get(id);
+    }
+
+    qualifiedName(id: string): string | undefined { return this.index[id]?.qualifiedName; }
+
+    source(id: string): ApiIndexEntry | undefined { return this.index[id]; }
+
+    /** Every element of a metaclass, library included, in handoff order. */
+    *ofType(metaclass: string): Iterable<ApiElement> {
+        for (const element of this.byId.values()) if (element['@type'] === metaclass) yield element;
+    }
+
+    /** Elements the project declares, not the library. */
+    *projectElements(): Iterable<ApiElement> {
+        for (const [id, element] of this.byId) if (this.index[id]?.role === 'project') yield element;
+    }
+
+    /** The namespace (or relationship) that owns an element. */
+    owner(id: string): ApiElement | undefined {
+        const element = this.byId.get(id);
+        if (!element) return undefined;
+        const direct = refs(element.owningRelatedElement)[0];
+        if (direct) return this.byId.get(direct);
+        const via = refs(element.owningRelationship)[0];
+        const membership = via ? this.byId.get(via) : undefined;
+        const ownerId = membership ? refs(membership.owningRelatedElement)[0] : undefined;
+        return ownerId ? this.byId.get(ownerId) : undefined;
+    }
+
+    /** The relationships an element owns, in declaration order. */
+    ownedRelationships(id: string): ApiElement[] {
+        return refs(this.byId.get(id)?.ownedRelationship)
+            .map(r => this.byId.get(r)).filter((e): e is ApiElement => e !== undefined);
+    }
+
+    /** The elements an element owns through its memberships, in declaration order. */
+    ownedMembers(id: string): ApiElement[] {
+        const out: ApiElement[] = [];
+        for (const relationship of this.ownedRelationships(id)) {
+            for (const r of refs(relationship.ownedRelatedElement)) {
+                const member = this.byId.get(r);
+                if (member) out.push(member);
+            }
+        }
+        return out;
+    }
+
+    private related(id: string, metaclasses: string[], end: string): ApiElement[] {
+        return this.ownedRelationships(id)
+            .filter(r => metaclasses.includes(r['@type']))
+            .flatMap(r => refs(r[end]))
+            .map(r => this.byId.get(r)).filter((e): e is ApiElement => e !== undefined);
+    }
+
+    /** What a feature is typed by (`FeatureTyping.type`). */
+    types(id: string): ApiElement[] { return this.related(id, ['FeatureTyping'], 'type'); }
+
+    /** What a classifier specializes (`Subclassification.superclassifier`). */
+    superclassifiers(id: string): ApiElement[] { return this.related(id, ['Subclassification'], 'superclassifier'); }
+
+    /** What a feature redefines (`Redefinition.redefinedFeature`). */
+    redefined(id: string): ApiElement[] { return this.related(id, ['Redefinition'], 'redefinedFeature'); }
+
+    /** What a feature subsets, redefinitions and reference subsettings excluded. */
+    subsetted(id: string): ApiElement[] { return this.related(id, ['Subsetting'], 'subsettedFeature'); }
+
+    /**
+     * What a feature references (`ReferenceSubsetting.referencedFeature`), e.g. a
+     * connector end. A chained reference (`pump.motor`) resolves to the feature
+     * at the end of the chain; `chain` gives the steps.
+     */
+    referenced(id: string): ApiElement[] {
+        return this.related(id, ['ReferenceSubsetting'], 'referencedFeature')
+            .map(target => this.chain(target['@id']).at(-1) ?? target);
+    }
+
+    /**
+     * The steps of a feature chain (`a.b.c`): an anonymous Feature owning one
+     * `FeatureChaining` per step. Empty for a feature that is not a chain.
+     */
+    chain(id: string): ApiElement[] {
+        return this.related(id, ['FeatureChaining'], 'chainingFeature');
+    }
+
+    /** The simple name an element declares, or the name its first redefinition gives it. */
+    name(id: string): string | undefined {
+        const element = this.byId.get(id);
+        if (!element) return undefined;
+        const declared = element.declaredName ?? element.name;
+        if (typeof declared === 'string') return declared;
+        const redefined = this.redefined(id)[0];
+        return redefined ? this.name(redefined['@id']) : undefined;
+    }
+
+    /** The value a feature is bound to (`FeatureValue`), read as MEMO reads values. */
+    value(id: string): ApiValue | undefined {
+        const featureValue = this.ownedRelationships(id).find(r => r['@type'] === 'FeatureValue');
+        const expression = featureValue ? refs(featureValue.ownedRelatedElement)[0] : undefined;
+        return expression ? this.expressionValue(expression) : undefined;
+    }
+
+    private expressionValue(id: string): ApiValue {
+        const expression = this.byId.get(id);
+        if (!expression) return { kind: 'other', metaclass: 'missing' };
+        const type = expression['@type'];
+        switch (type) {
+            case 'LiteralString': return { kind: 'string', value: String(expression.value) };
+            case 'LiteralInteger':
+            case 'LiteralRational': return { kind: 'number', value: Number(expression.value) };
+            case 'LiteralBoolean': return { kind: 'boolean', value: Boolean(expression.value) };
+            case 'FeatureReferenceExpression': {
+                // The referent is the member element of the expression's own membership.
+                for (const relationship of this.ownedRelationships(id)) {
+                    const target = refs(relationship.memberElement)[0];
+                    if (target && relationship['@type'] === 'Membership') {
+                        const qualifiedName = this.qualifiedName(target);
+                        if (qualifiedName) return { kind: 'reference', qualifiedName };
+                    }
+                }
+                return { kind: 'other', metaclass: type };
+            }
+            case 'OperatorExpression': {
+                // A sequence literal `(a, b, c)` is the `,` operator. Each operand is
+                // a parameter Feature bound by its own FeatureValue; a nested `,`
+                // flattens, since a SysML sequence has no nesting.
+                if (expression.operator === ',') {
+                    const items = this.ownedRelationships(id)
+                        .filter(r => r['@type'] === 'ParameterMembership')
+                        .flatMap(r => refs(r.ownedRelatedElement))
+                        .map(operand => this.value(operand) ?? { kind: 'other' as const, metaclass: 'unbound operand' });
+                    return { kind: 'sequence', items: items.flatMap(i => i.kind === 'sequence' ? i.items : [i]) };
+                }
+                return { kind: 'other', metaclass: type };
+            }
+            default: return { kind: 'other', metaclass: type };
+        }
+    }
+}
