@@ -33,6 +33,7 @@ import { checkLockFile } from '../lock.js';
 import { runValidator } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
+import { compileModelWithSelected } from '../toolchain/operations.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { countBySeverity, formatDiagnosticsText, type Diagnostic } from '../toolchain/diagnostic.js';
 
@@ -155,16 +156,15 @@ export async function validateCommand(
     // and a stage 1 that reports an error stops here: stage 2 and the rules
     // never run on a model that is not valid SysML.
     const compiler = effectiveToolchain.lowering;
-    const compileModel = defaultRegistry.descriptor('lowering', compiler).compileModel;
+    const stage1 = await compileModelWithSelected({
+        config, projectDir: projectRoot, registries: ontologyRegistries,
+        libraryDirs: (resolution?.selectedRoots ?? []).map(root => root.sysmlDir),
+        projectFiles: new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))),
+    });
     let model: ReturnType<typeof buildMemoModel>;
-    if (!compileModel) {
+    if (!stage1) {
         model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     } else {
-        const stage1 = await compileModel({
-            config, projectDir: projectRoot, registries: ontologyRegistries,
-            libraryDirs: (resolution?.selectedRoots ?? []).map(root => root.sysmlDir),
-            projectFiles: new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))),
-        });
         console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}`));
         if (!stage1.accepted || !stage1.model) {
             const errors = stage1.diagnostics.filter(d => d.severity === 'error');

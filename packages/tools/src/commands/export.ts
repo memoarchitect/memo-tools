@@ -5,7 +5,7 @@
 //   - png   → diagram screenshots (future)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import chalk from 'chalk';
 import {
@@ -18,6 +18,9 @@ import { computeCompleteness } from '@memoarchitect/tools';
 import type { ViewpointDTO, ArchLayerDTO } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
+import { withToolchainOverrides } from '../toolchain/schema.js';
+import { defaultRegistry } from '../toolchain/default-registry.js';
+import { compileModelWithSelected } from '../toolchain/operations.js';
 
 
 /**
@@ -28,14 +31,14 @@ import { findSysmlFiles } from '../model/sysml-files.js';
  * view usages now, and layers from the ontology, so an export carries what the
  * model says rather than what a sidecar said about it.
  */
-async function resolveForExport(cwd: string) {
+async function resolveForExport(cwd: string, options: Record<string, unknown> = {}) {
     const projectRoot = findProjectRoot(cwd);
     if (!projectRoot) {
         console.error(chalk.red(
             '❌ No MEMO project found. A project is located by the `entrypoint` in its `memo.package.yaml` — run `memo init` to scaffold one.'));
         process.exit(1);
     }
-    const config = loadProjectSettings(projectRoot);
+    const config = withToolchainOverrides(loadProjectSettings(projectRoot), options, defaultRegistry);
     let registries: BuilderRegistries | undefined;
     try {
         const loaded = await loadOntologyRegistries(projectRoot);
@@ -43,9 +46,25 @@ async function resolveForExport(cwd: string) {
     } catch {
         // Export still works with reduced kind resolution.
     }
-    const sysmlFiles = findSysmlFiles(projectRoot);
-    const { documents, errors } = await parseFiles(sysmlFiles, projectRoot + '/');
-    const model = buildMemoModel(documents, config, errors, registries);
+    // `toolchain.compiler` decides where the model comes from, as it does for
+    // `memo validate`; a stage 1 that reports an error exports nothing.
+    // Export has always carried every project file, its own methodology
+    // included; `memo validate` leaves a project's library roots out.
+    const stage1 = await compileModelWithSelected({
+        config, projectDir: projectRoot, registries,
+        projectFiles: new Set(findSysmlFiles(projectRoot).map(file => relative(projectRoot, file))),
+    });
+    if (stage1 && (!stage1.accepted || !stage1.model)) {
+        console.error(chalk.red(`❌ Stage 1 reported ${stage1.diagnostics.filter(d => d.severity === 'error').length} error(s); nothing exported.`));
+        for (const d of stage1.diagnostics.filter(d => d.severity === 'error')) {
+            console.error(chalk.red(`  ${d.file}:${d.range?.start.line ?? '?'} ${d.code ?? ''} ${d.message}`));
+        }
+        process.exit(1);
+    }
+    const model = stage1?.model ?? await (async () => {
+        const { documents, errors } = await parseFiles(findSysmlFiles(projectRoot), projectRoot + '/');
+        return buildMemoModel(documents, config, errors, registries);
+    })();
     const derived = deriveModelViews(model, registries?.kindRegistry);
     const viewpoints: ViewpointDTO[] | undefined = derived.viewpoints;
     const architectureLayers: ArchLayerDTO[] | undefined = undefined;
@@ -57,12 +76,12 @@ async function resolveForExport(cwd: string) {
 export async function exportJsonCommand(options: {
     output?: string;
     pretty?: boolean;
-}): Promise<void> {
+} & Record<string, unknown>): Promise<void> {
     const cwd = process.cwd();
 
     console.log(chalk.bold('\n📤 MEMO Export → JSON\n'));
 
-    const { config, model, viewpoints, architectureLayers } = await resolveForExport(cwd);
+    const { config, model, viewpoints, architectureLayers } = await resolveForExport(cwd, options);
     const validation = validateModel(model);
     const completeness = computeCompleteness(model, validation);
     const dto = modelToDTO(model, { viewpoints, architectureLayers });
