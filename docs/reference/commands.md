@@ -38,7 +38,7 @@ memo init --list       # packages, templates, and examples together
 | `memo rules …` | List, check, explain, and report coverage for consistency rules. |
 | `memo toolchain probe [dir]` | Resolve each toolchain role to a provider and report its executable and version. |
 | `memo toolchain check [paths...]` | Run the selected validator over SysML paths, less the project's `validator-exceptions.json`. |
-| `memo config effective [dir]` | Print settings after flags, deprecated aliases, and defaults are applied. |
+| `memo config effective [dir]` | Print settings after flags, `toolchain.compiler`, and defaults are applied. |
 | `memo conformance run [dir]` | Run the toolchain over the pinned SysML v2 Release corpus and count diagnostics by domain. |
 | `memo conformance diff-xmi [dir]` | Compare MEMO's computed semantics for a normative library against the Release `xmi.implied` file. |
 

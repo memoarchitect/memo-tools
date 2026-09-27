@@ -112,13 +112,14 @@ describe('memo config effective', () => {
         expect(report.deprecations).toEqual([]);
     });
 
-    it('surfaces the deprecated alias rather than honouring it silently', () => {
+    it('honours toolchain.compiler for both roles without a deprecation', () => {
         const report = effectiveConfigReport({
             config: { projectName: 'p', toolchain: { compiler: 'syside' } },
             projectDir: project(),
             registry,
         });
         expect(report.toolchain.validator).toBe('syside');
-        expect(report.deprecations.length).toBeGreaterThan(0);
+        expect(report.toolchain.lowering).toBe('syside');
+        expect(report.deprecations).toEqual([]);
     });
 });

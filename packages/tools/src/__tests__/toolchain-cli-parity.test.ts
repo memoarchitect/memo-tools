@@ -40,7 +40,7 @@ describe('generated --toolchain.* options', () => {
             .toEqual([...schema.map(toolchainOptionName)].sort());
     });
 
-    it('has a leaf for every registered role and for the deprecated alias', () => {
+    it('has a leaf for every registered role and for toolchain.compiler', () => {
         const paths = schema.map(leaf => leaf.path);
         expect(paths).toContain('validator');
         expect(paths).toContain('lowering');

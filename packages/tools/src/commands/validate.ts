@@ -4,7 +4,6 @@
 // and prints a completeness report.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
@@ -28,7 +27,6 @@ import {
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, toElementIndex } from '@memoarchitect/tools';
 import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
-import { ApiModel, buildMemoModelFromApi } from '@memoarchitect/tools';
 import { checkSelectorVocabulary, type SelectorVocabularyDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { checkLockFile } from '../lock.js';
@@ -151,14 +149,31 @@ export async function validateCommand(
     console.log(chalk.gray(`Files: ${documents.length} project .sysml files\n`));
 
     // 5. Build model
-    // Spike (plans/memo-compiler-stages-opensysml.md, milestone 2): build the
-    // model from a stage 1 handoff instead of MEMO's own parse, so the rule
-    // findings of the two can be compared on the same project.
-    const handoff = typeof options?.stage1Handoff === 'string' ? options.stage1Handoff : undefined;
-    const model = handoff
-        ? buildMemoModelFromApi(new ApiModel(JSON.parse(readFileSync(handoff, 'utf8'))), config, ontologyRegistries,
-            new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))))
-        : buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    // The model comes from the selected stage 1 compiler (toolchain.compiler,
+    // plans/memo-compiler-stages-opensysml.md milestone 3). MEMO's own parser
+    // is `internal`; any other compiler hands stage 2 the standard API JSON,
+    // and a stage 1 that reports an error stops here: stage 2 and the rules
+    // never run on a model that is not valid SysML.
+    const compiler = effectiveToolchain.lowering;
+    const compileModel = defaultRegistry.descriptor('lowering', compiler).compileModel;
+    let model: ReturnType<typeof buildMemoModel>;
+    if (!compileModel) {
+        model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    } else {
+        const stage1 = await compileModel({
+            config, projectDir: projectRoot, registries: ontologyRegistries,
+            libraryDirs: (resolution?.selectedRoots ?? []).map(root => root.sysmlDir),
+            projectFiles: new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))),
+        });
+        console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}`));
+        if (!stage1.accepted || !stage1.model) {
+            const errors = stage1.diagnostics.filter(d => d.severity === 'error');
+            console.error(chalk.red(`\n❌ Stage 1 (${compiler}) reported ${errors.length} error(s); stage 2 and the rules did not run.\n`));
+            for (const d of errors) console.error(chalk.red(`  ${d.file}:${d.range?.start.line ?? '?'}:${d.range?.start.column ?? '?'} ${d.code ?? ''} ${d.message}`));
+            process.exit(1);
+        }
+        model = stage1.model;
+    }
     console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
 
     // A short-name collision belongs in this report for exactly the reason a
