@@ -211,12 +211,21 @@ export class ApiModel {
         return redefined ? this.name(redefined['@id']) : undefined;
     }
 
+    /** The name an element declares itself, never one it borrows through a redefinition. */
+    declaredName(id: string): string | undefined {
+        const declared = this.element(id)?.declaredName;
+        return typeof declared === 'string' ? declared : undefined;
+    }
+
     /** The value a feature is bound to (`FeatureValue`), read as MEMO reads values. */
     value(id: string): ApiValue | undefined {
         const featureValue = this.ownedRelationships(id).find(r => r['@type'] === 'FeatureValue');
         const expression = featureValue ? refs(featureValue.ownedRelatedElement)[0] : undefined;
         return expression ? this.expressionValue(expression) : undefined;
     }
+
+    /** An expression's value, read as MEMO reads values. */
+    expression(id: string): ApiValue { return this.expressionValue(id); }
 
     private expressionValue(id: string): ApiValue {
         const expression = this.byId.get(id);
@@ -255,12 +264,18 @@ export class ApiModel {
             }
             case 'LiteralBoolean': return { kind: 'boolean', value: Boolean(expression.value) };
             case 'FeatureReferenceExpression': {
-                // The referent is the member element of the expression's own membership.
+                // The referent is the member of the expression's own membership: a
+                // Membership naming it, or an OwningMembership owning a chain
+                // feature when the reference is `a.b`.
                 for (const relationship of this.ownedRelationships(id)) {
-                    const target = refs(relationship.memberElement)[0];
-                    if (target && relationship['@type'] === 'Membership') {
-                        const qualifiedName = this.qualifiedName(target);
+                    if (relationship['@type'] === 'Membership') {
+                        const target = refs(relationship.memberElement)[0];
+                        const qualifiedName = target ? this.qualifiedName(target) : undefined;
                         if (qualifiedName) return { kind: 'reference', qualifiedName };
+                    } else if (relationship['@type'] === 'OwningMembership') {
+                        const owned = refs(relationship.ownedRelatedElement)[0];
+                        const steps = owned ? this.chain(owned).map(step => this.qualifiedName(step['@id'])) : [];
+                        if (steps.length && steps.every(Boolean)) return { kind: 'chain', steps: steps as string[] };
                     }
                 }
                 return { kind: 'other', metaclass: type };

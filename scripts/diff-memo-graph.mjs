@@ -35,6 +35,8 @@ const limitAt = args.indexOf('--limit');
 const limit = limitAt >= 0 ? Number(args.splice(limitAt, 2)[1]) : 20;
 const elementsOnlyAt = args.indexOf('--elements-only');
 const elementsOnly = elementsOnlyAt >= 0 && Boolean(args.splice(elementsOnlyAt, 1));
+const noFindingsAt = args.indexOf('--no-findings');
+const noFindings = noFindingsAt >= 0 && Boolean(args.splice(noFindingsAt, 1));
 const byMeaningAt = args.indexOf('--by-meaning');
 const byMeaning = byMeaningAt >= 0 && Boolean(args.splice(byMeaningAt, 1));
 if (args.length !== 2) {
@@ -58,7 +60,7 @@ function load(path) {
         for (const element of elements.values()) delete element.allocatedTo;
         return { elements, relationships: [], violations: [] };
     }
-    return { elements, relationships: model.relationships, violations: raw.validation?.violations ?? [] };
+    return { elements, relationships: model.relationships, violations: noFindings ? [] : raw.validation?.violations ?? [] };
 }
 
 const NUMBER = /^-?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/;
@@ -94,7 +96,17 @@ const stable = value => JSON.stringify(value, (_, v) =>
         ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
         : v);
 
-const relationshipKey = r => `${r.type} ${r.sourceId} -> ${r.targetId}`;
+// Everything a relationship says, not only which two things it joins: the
+// end names, the definition it is typed by, what flows, its name, its
+// attributes and the port tags. Its id is left out (an anonymous edge's is a
+// counter) and so is its source range (a provider's positions are its own).
+const RELATIONSHIP_FIELDS = ['sourceEnd', 'targetEnd', 'kind', 'flowItem', 'shortName', 'sourcePortId', 'targetPortId'];
+const relationshipKey = r => `${r.type} ${r.sourceId} -> ${r.targetId}`
+    + RELATIONSHIP_FIELDS.filter(f => r[f]).map(f => ` ${f}=${r[f]}`).join('')
+    + (r.attributes && Object.keys(r.attributes).length ? ` attributes=${stable(normalizedAttributes(r.attributes))}` : '');
+const normalizedAttributes = attributes => byMeaning
+    ? Object.fromEntries(Object.entries(attributes).map(([k, v]) => [k, typeof v === 'string' && NUMBER.test(v) ? String(Number(v)) : v]))
+    : attributes;
 const violationKey = v => `${v.ruleId} ${v.elementId}`;
 
 function multiset(items, key) {

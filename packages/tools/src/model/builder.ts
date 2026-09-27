@@ -446,6 +446,40 @@ export function buildMemoModel(
         });
     }
 
+    const textByFile = new Map(documents.map(d => [d.filePath, d.document.textDocument]));
+    return completeModel({
+        elements, relationships, errors, config, registries, packageRegistry: registry,
+        lineOfRelationship: rel => {
+            const text = rel.sourceRange ? textByFile.get(rel.file) : undefined;
+            return text ? text.positionAt(rel.sourceRange!.offset).line + 1 : undefined;
+        },
+    });
+}
+
+/** What `completeModel` needs from whichever builder extracted the elements and relationships. */
+export interface CompleteModelInput {
+    elements: ElementIndex;
+    relationships: MemoRelationship[];
+    errors: ParseError[];
+    config: MEMOConfig;
+    registries?: BuilderRegistries;
+    /** Declared packages and their imports: the Langium builder's registry. */
+    packageRegistry?: PackageRegistry;
+    /** The declared packages, when there is no package registry to collect them from. */
+    packages?: MemoPackageDTO[];
+    /** The 1-based line a relationship is declared on, for end-kind findings. */
+    lineOfRelationship?: (relationship: MemoRelationship) => number | undefined;
+}
+
+/**
+ * Finish a model once its elements and relationships exist: provenance,
+ * identities, end-kind checks, indexes, kinds inherited through local
+ * definitions, and unresolved qualified references. Shared by the Langium
+ * builder and stage 2's builder over API JSON (stage2/build-from-api.ts), so
+ * the two finish a model identically.
+ */
+export function completeModel(input: CompleteModelInput): MemoModel {
+    const { elements, relationships, errors, config, registries } = input;
     // Keep ownership of a declaration separate from ownership of the type that
     // classifies it.  A project usage of `Hazard` is editable project content;
     // its classifier is a read-only ontology definition.
@@ -549,11 +583,7 @@ export function buildMemoModel(
         // A finding names the edge's own line. Every one of them used to point
         // at 1:1 of its file, which in a trace file of six hundred lines is no
         // location at all.
-        const textByFile = new Map(documents.map(d => [d.filePath, d.document.textDocument]));
-        const lineOfRelationship = (rel: MemoRelationship): number | undefined => {
-            const text = rel.sourceRange ? textByFile.get(rel.file) : undefined;
-            return text ? text.positionAt(rel.sourceRange!.offset).line + 1 : undefined;
-        };
+        const lineOfRelationship = (rel: MemoRelationship): number | undefined => input.lineOfRelationship?.(rel);
 
         for (const rel of relationships) {
             const regEntry = registries.relationshipRegistry.getRelType(rel.type);
@@ -627,7 +657,7 @@ export function buildMemoModel(
     const reachableNames = (packageName: string, seen = new Set<string>()): Set<string> => {
         if (seen.has(packageName)) return new Set();
         seen.add(packageName);
-        const pkg = registry.getPackage(packageName);
+        const pkg = input.packageRegistry?.getPackage(packageName);
         if (!pkg) return new Set();
         // `elementIds` are qualified now, and what is being checked here is a
         // LEAF name against the names a package offers, so compare leaves.
@@ -645,7 +675,7 @@ export function buildMemoModel(
             const parts = value.split('::');
             const leaf = parts.pop()!.split('.')[0];
             const packageName = parts.join('::');
-            if (!registry.getPackage(packageName)) continue;
+            if (!input.packageRegistry?.getPackage(packageName)) continue;
             const names = reachableCache.get(packageName) ?? reachableNames(packageName);
             reachableCache.set(packageName, names);
             if (!names.has(leaf)) {
@@ -660,7 +690,7 @@ export function buildMemoModel(
         elements,
         relationships,
         errors,
-        packages: collectPackages(registry),
+        packages: input.packages ?? (input.packageRegistry ? collectPackages(input.packageRegistry) : []),
         unresolvedReferences,
         elementsByKind,
         elementsByLayer,
@@ -1345,6 +1375,11 @@ function extractActionDefinition(
             extractStandardActivityNode(node, filePath, packageName, elements, registry, id, nodeId);
         } else if (member.$type === 'SuccessionUsage') {
             deferredSuccessions.push({ succession: member as SuccessionUsage, filePath, packageName, parentActionId: id });
+        } else if (member.$type === 'FlowConnectionUsage') {
+            // A flow between the definition's own steps. Only action USAGES
+            // queued their flows, so every flow written in an action def's body
+            // parsed and then silently became nothing.
+            deferredFlows.push({ flow: member as FlowConnectionUsage, filePath, packageName, parentActionId: id });
         }
 
         if (step && (member as any).followsPrevious && previousStep) {
