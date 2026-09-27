@@ -318,14 +318,15 @@ const exportCmd = program
     .command('export')
     .description('Export model to various formats');
 
-exportCmd
-    .command('json')
-    .description('Export full model as JSON')
-    .option('-o, --output <file>', 'Output file path', 'memo-model.json')
-    .option('--no-pretty', 'Minified JSON output')
-    .action(async (options: { output: string; pretty: boolean }) => {
-        await exportJsonCommand(options);
-    });
+withToolchainOptions(
+    exportCmd
+        .command('json')
+        .description('Export full model as JSON')
+        .option('-o, --output <file>', 'Output file path', 'memo-model.json')
+        .option('--no-pretty', 'Minified JSON output'),
+).action(async (options: { output: string; pretty: boolean } & Record<string, unknown>) => {
+    await exportJsonCommand(options);
+});
 
 exportCmd
     .command('dhf')

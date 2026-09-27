@@ -11,6 +11,8 @@ import { discoverLibraryRoots } from '../model/native-project.js';
 import type { Diagnostic } from './diagnostic.js';
 import { resolveToolchain, type EffectiveToolchain } from './effective.js';
 import {
+    type CompileModelResult,
+    type CompileModelOptions,
     PROVIDER_ROLES,
     ROLE_SETTING,
     type Availability,
@@ -63,6 +65,22 @@ export async function runLowering(options: ToolchainRunOptions): Promise<Lowerin
     const registry = options.registry ?? defaultRegistry;
     const effective = resolveToolchain(options.config, registry);
     return registry.resolveLowering(effective.lowering, context(options)).run();
+}
+
+/**
+ * The MEMO model from the selected stage 1 compiler, when that compiler builds
+ * one itself (`compileModel`): its check, then stage 2 over its API JSON.
+ * `undefined` means the selected compiler leaves the model to MEMO's own
+ * builder, which is what `internal` does. Every command that needs a model asks
+ * here, so `toolchain.compiler` means the same thing to all of them.
+ */
+export async function compileModelWithSelected(
+    options: CompileModelOptions & { registry?: ProviderRegistry },
+): Promise<CompileModelResult | undefined> {
+    const registry = options.registry ?? defaultRegistry;
+    const effective = resolveToolchain(options.config, registry);
+    const compile = registry.descriptor('lowering', effective.lowering).compileModel;
+    return compile ? compile(options) : undefined;
 }
 
 /** Run the selected packager against `outputPath`. */

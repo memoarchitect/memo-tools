@@ -24,6 +24,7 @@ import { checkLockFile } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { enforceRuntimeBudget } from '../server/runtime-budget.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
+import { compileModelWithSelected } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { computeStandardsReport, readDeclaredRegimes } from '../dhf/standards-report.js';
@@ -230,14 +231,27 @@ export async function devCommand(options: {
             // keep last good descriptor on transient parse failure
         }
         const sysmlFiles = findSysmlFiles(cwd);
-        const { documents, errors } = await projectParser.parse(sysmlFiles, changedFiles);
+        const parsed = await projectParser.parse(sysmlFiles, changedFiles);
+        const documents = parsed.documents;
+        let errors: ParseError[] = [...parsed.errors];
         const projectRegistries: BuilderRegistries | undefined = ontologyRegistries
             ? {
                 ...ontologyRegistries,
                 kindRegistry: ontologyRegistries.kindRegistry?.withProjectExtensions(documents),
             }
             : undefined;
-        const model = buildMemoModel(documents, config, errors, projectRegistries);
+        // `toolchain.compiler` decides where the model comes from. A stage 1
+        // that reports errors makes this build incoherent, so a client keeps
+        // showing the last good one; MEMO's own parse still backs the display.
+        const stage1 = await compileModelWithSelected({ config, projectDir: cwd, registries: projectRegistries });
+        if (stage1 && (!stage1.accepted || !stage1.model)) {
+            errors = [...errors, ...stage1.diagnostics.filter(d => d.severity === 'error').map(d => ({
+                file: d.file ?? '', line: d.range?.start.line, message: d.message, code: d.code,
+            }))];
+        }
+        const model = stage1?.accepted && stage1.model
+            ? stage1.model
+            : buildMemoModel(documents, config, errors, projectRegistries);
         // Identities for the authoring write-back (§6.2). The surgical rebuild
         // stays surgical — this lowers the documents it already parsed, and the
         // provider-backed recompile happens on the write path, not here.
