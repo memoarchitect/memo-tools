@@ -171,6 +171,14 @@ export interface CompileModelOptions {
     libraryDirs?: readonly string[];
     /** Project source files relative to the project; a project's own library roots excluded. */
     projectFiles?: ReadonlySet<string>;
+    /**
+     * Where a compiler keeps its stage 1 output between runs (a project's
+     * `.memo/stage1`). A result whose inputs are unchanged is reused without
+     * running the compiler; absent, every call compiles.
+     */
+    cacheDir?: string;
+    /** Compile even when a cached result is fresh. */
+    force?: boolean;
 }
 
 /** A stage 1 compile: the verdict, its diagnostics, and the model only when clean. */
@@ -179,6 +187,8 @@ export interface CompileModelResult {
     diagnostics: Diagnostic[];
     providerVersion?: string;
     model?: MemoModel;
+    /** Whether stage 1 was reused from `cacheDir` rather than run. */
+    cached?: boolean;
 }
 
 export interface ProviderDescriptor<R extends ProviderRunResult = ProviderRunResult> {

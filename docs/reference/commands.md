@@ -14,7 +14,8 @@ memo init --list       # packages, templates, and examples together
 
 | Command | Purpose |
 |---|---|
-| `memo validate [dir]` | Evaluate closure rules and completeness; supports `text`, `junit`, and `json`. |
+| `memo compile [dir]` | Check the project is valid SysML with the compiler `toolchain.compiler` selects (stage 1). No MEMO rules. A compiler that builds the model keeps its output in `.memo/stage1/` (ignored by git), and `memo validate` reuses it while the inputs are unchanged; `--force` recompiles. |
+| `memo validate [dir]` | Evaluate closure rules and completeness; supports `text`, `junit`, and `json`. Reuses a fresh `memo compile`; a stage 1 error stops it before any rule runs. |
 | `memo init [name]` | Create a project from the default, a template, or a worked example. |
 | `memo convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
 | `memo examples` | List worked-example IDs accepted by `memo init --example`. |
@@ -76,7 +77,7 @@ tree; existing sample files are never overwritten.
 | `conformance` | `run`, `diff-xmi` |
 
 Every setting under `toolchain` has a generated `--toolchain.<path>` flag on
-`memo validate`, `memo pack`, `memo toolchain probe`, `memo toolchain check`, `memo config effective`,
+`memo compile`, `memo validate`, `memo export json`, `memo pack`, `memo toolchain probe`, `memo toolchain check`, `memo config effective`,
 and `memo-architect dev`. `memo toolchain probe --help` lists them for the
 installed provider set.
 
