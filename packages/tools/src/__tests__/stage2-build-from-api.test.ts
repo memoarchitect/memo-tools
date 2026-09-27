@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ApiModel, type Stage1Output } from '../stage2/api-model.js';
-import { buildElementsFromApi } from '../stage2/build-from-api.js';
+import { buildElementsFromApi, buildFromApi } from '../stage2/build-from-api.js';
 import { SYSML_RESERVED_KEYWORDS, textualName } from '../stage2/sysml-names.js';
 
 const fixture = JSON.parse(readFileSync(
@@ -60,6 +60,24 @@ describe('buildElementsFromApi', () => {
 
     it('leaves a connection with two ends out of the elements', () => {
         expect([...elements.values()].some(e => e.construct === 'connection' && !e.isDefinition)).toBe(false);
+    });
+});
+
+describe('buildFromApi relationships', () => {
+    const { relationships } = buildFromApi(new ApiModel(fixture));
+
+    it('reads a typed connection with named ends, through a feature chain', () => {
+        // `connection : Link connect source ::> controller to target ::> pump.motor;`
+        expect(relationships).toContainEqual(expect.objectContaining({
+            type: 'link', sourceId: 'Model::controller', sourceEnd: 'source',
+            targetId: 'Model::pump::motor', targetEnd: 'target',
+        }));
+    });
+
+    it('synthesizes composition from nesting', () => {
+        expect(relationships).toContainEqual(expect.objectContaining({
+            type: 'composes', sourceId: 'Model::pump', targetId: 'Model::pump::motor',
+        }));
     });
 });
 

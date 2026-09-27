@@ -1633,3 +1633,29 @@ describe('named relationship identity', () => {
         expect(collision!.message).toContain('Probe::exDose');
     });
 });
+
+describe('flows in an action definition', () => {
+    // A flow between an action definition's own steps. Only action USAGES
+    // queued their flows, so this parsed and silently became nothing; stage 2
+    // (built from API JSON) found it by building the flow the Langium builder
+    // dropped.
+    it('builds a flow written in an action def body', async () => {
+        const doc = await parseDoc(`
+            package p {
+                item def Order;
+                action def FulfillOrder {
+                    action receiveOrder { out order : Order; }
+                    action validateOrder { in order : Order; }
+                    flow orderFlow of Order from receiveOrder.order to validateOrder.order;
+                }
+            }
+        `);
+        const model = buildMemoModel([doc], testConfig);
+        expect(model.relationships).toContainEqual(expect.objectContaining({
+            type: 'flow',
+            shortName: 'orderFlow',
+            sourceId: 'p::FulfillOrder::receiveOrder',
+            targetId: 'p::FulfillOrder::validateOrder',
+        }));
+    });
+});

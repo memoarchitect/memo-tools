@@ -4,6 +4,7 @@
 // and prints a completeness report.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
@@ -27,6 +28,7 @@ import {
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, toElementIndex } from '@memoarchitect/tools';
 import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
+import { ApiModel, buildMemoModelFromApi } from '@memoarchitect/tools';
 import { checkSelectorVocabulary, type SelectorVocabularyDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { checkLockFile } from '../lock.js';
@@ -149,7 +151,14 @@ export async function validateCommand(
     console.log(chalk.gray(`Files: ${documents.length} project .sysml files\n`));
 
     // 5. Build model
-    const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    // Spike (plans/memo-compiler-stages-opensysml.md, milestone 2): build the
+    // model from a stage 1 handoff instead of MEMO's own parse, so the rule
+    // findings of the two can be compared on the same project.
+    const handoff = typeof options?.stage1Handoff === 'string' ? options.stage1Handoff : undefined;
+    const model = handoff
+        ? buildMemoModelFromApi(new ApiModel(JSON.parse(readFileSync(handoff, 'utf8'))), config, ontologyRegistries,
+            new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))))
+        : buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
 
     // A short-name collision belongs in this report for exactly the reason a
