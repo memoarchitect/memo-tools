@@ -16,7 +16,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -79,25 +80,76 @@ export async function compileWithSyside(options: CompileModelOptions): Promise<C
             .map(file => relative(projectDir, file)));
     }
 
-    const work = mkdtempSync(join(tmpdir(), 'memo-stage1-'));
-    const out = join(work, 'stage1.json');
-    try {
-        const args = [EXPORT_SCRIPT, ...libraryDirs.flatMap(dir => ['--library', dir]), '--out', out, projectDir];
-        const run = spawnSync(python(options.config), args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-        if (run.error || !existsSync(out)) {
-            throw new Error(`SysIDE stage 1 could not run with "${python(options.config)}": `
+    const interpreter = python(options.config);
+    const key = sysideInputKey(interpreter, projectDir, libraryDirs);
+    const cached = options.cacheDir ? join(options.cacheDir, `${SYSIDE_PROVIDER_ID}.json`) : undefined;
+    const keyFile = cached ? `${cached}.key` : undefined;
+    let handoffPath: string;
+    let reused = false;
+    let work: string | undefined;
+    if (cached && keyFile && !options.force && existsSync(cached) && existsSync(keyFile)
+        && readFileSync(keyFile, 'utf8') === key) {
+        handoffPath = cached;
+        reused = true;
+    } else {
+        work = mkdtempSync(join(tmpdir(), 'memo-stage1-'));
+        handoffPath = join(work, 'stage1.json');
+        const args = [EXPORT_SCRIPT, ...libraryDirs.flatMap(dir => ['--library', dir]), '--out', handoffPath, projectDir];
+        const run = spawnSync(interpreter, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+        if (run.error || !existsSync(handoffPath)) {
+            rmSync(work, { recursive: true, force: true });
+            throw new Error(`SysIDE stage 1 could not run with "${interpreter}": `
                 + `${run.error?.message ?? run.stderr.trim().split('\n').slice(-3).join(' ')}. `
                 + `Set toolchain.${SYSIDE_PROVIDER_ID}.python to a Python with SysIDE's API.`);
         }
-        const handoff = JSON.parse(readFileSync(out, 'utf8')) as Stage1Output & { diagnostics?: { text: string }[] };
+        if (cached && keyFile && options.cacheDir) {
+            mkdirSync(options.cacheDir, { recursive: true });
+            // Tool output, never authored content: the directory ignores
+            // itself, so no project has to know to add it to its .gitignore.
+            const ignore = join(options.cacheDir, '.gitignore');
+            if (!existsSync(ignore)) writeFileSync(ignore, '*\n');
+            writeFileSync(cached, readFileSync(handoffPath));
+            writeFileSync(keyFile, key);
+        }
+    }
+    try {
+        const handoff = JSON.parse(readFileSync(handoffPath, 'utf8')) as Stage1Output & { diagnostics?: { text: string }[] };
         const diagnostics = parseSysideDiagnostics(
             (handoff.diagnostics ?? []).map(d => d.text).join('\n'), handoff.providerVersion);
-        if (!handoff.clean) return { accepted: false, diagnostics, providerVersion: handoff.providerVersion };
+        if (!handoff.clean) return { accepted: false, diagnostics, providerVersion: handoff.providerVersion, cached: reused };
         const model = buildMemoModelFromApi(new ApiModel(handoff), options.config, registries, projectFiles);
-        return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, model };
+        return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, model, cached: reused };
     } finally {
-        rmSync(work, { recursive: true, force: true });
+        if (work) rmSync(work, { recursive: true, force: true });
     }
+}
+
+/**
+ * Everything a SysIDE stage 1 result depends on: the interpreter, the export
+ * script, and the content of every SysML file it loads. A result is reused only
+ * while this is unchanged; a SysIDE upgrade in the same interpreter is not seen,
+ * which is what `memo compile --force` is for.
+ */
+export function sysideInputKey(interpreter: string, projectDir: string, libraryDirs: readonly string[]): string {
+    const hash = createHash('sha256');
+    hash.update(`${SYSIDE_PROVIDER_ID}\0${interpreter}\0`);
+    hash.update(readFileSync(EXPORT_SCRIPT));
+    const files = [...findSysmlFiles(projectDir), ...libraryDirs.flatMap(sysmlFilesUnder)]
+        .map(file => resolve(file));
+    for (const file of [...new Set(files)].sort()) {
+        hash.update(`\0${file}\0`);
+        hash.update(readFileSync(file));
+    }
+    return hash.digest('hex');
+}
+
+function sysmlFilesUnder(dir: string): string[] {
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) return [];
+    return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) return ['node_modules', '.venv', 'site-packages', '.git'].includes(entry.name) ? [] : sysmlFilesUnder(path);
+        return entry.name.endsWith('.sysml') ? [path] : [];
+    });
 }
 
 export const sysideLoweringDescriptor: LoweringDescriptor = {

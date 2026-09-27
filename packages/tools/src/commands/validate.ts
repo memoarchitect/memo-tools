@@ -34,6 +34,7 @@ import { runValidator } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { compileModelWithSelected } from '../toolchain/operations.js';
+import { stage1CacheDir } from './compile.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { countBySeverity, formatDiagnosticsText, type Diagnostic } from '../toolchain/diagnostic.js';
 
@@ -156,16 +157,24 @@ export async function validateCommand(
     // and a stage 1 that reports an error stops here: stage 2 and the rules
     // never run on a model that is not valid SysML.
     const compiler = effectiveToolchain.lowering;
-    const stage1 = await compileModelWithSelected({
-        config, projectDir: projectRoot, registries: ontologyRegistries,
-        libraryDirs: (resolution?.selectedRoots ?? []).map(root => root.sysmlDir),
-        projectFiles: new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))),
-    });
+    let stage1: Awaited<ReturnType<typeof compileModelWithSelected>>;
+    try {
+        stage1 = await compileModelWithSelected({
+            config, projectDir: projectRoot, registries: ontologyRegistries,
+            libraryDirs: (resolution?.selectedRoots ?? []).map(root => root.sysmlDir),
+            projectFiles: new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))),
+            // Reuses a fresh `memo compile`.
+            cacheDir: stage1CacheDir(projectRoot),
+        });
+    } catch (error) {
+        console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
+        process.exit(1);
+    }
     let model: ReturnType<typeof buildMemoModel>;
     if (!stage1) {
         model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     } else {
-        console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}`));
+        console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}${stage1.cached ? ' (reused .memo/stage1)' : ''}`));
         if (!stage1.accepted || !stage1.model) {
             const errors = stage1.diagnostics.filter(d => d.severity === 'error');
             console.error(chalk.red(`\n❌ Stage 1 (${compiler}) reported ${errors.length} error(s); stage 2 and the rules did not run.\n`));

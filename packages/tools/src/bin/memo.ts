@@ -73,6 +73,7 @@ import {
     type ConformanceCliOptions,
 } from '../commands/conformance.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
+import { compileCommand } from '../commands/compile.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 
 const program = new Command();
@@ -91,6 +92,16 @@ program
     .name('memo')
     .description('MEMO — Model-Based Systems Engineering for Medical Devices')
     .version('0.6.7');
+
+withToolchainOptions(
+    program
+        .command('compile')
+        .description('Check the project is valid SysML with the selected compiler (stage 1); no MEMO rules')
+        .argument('[dir]', 'Project directory', '.')
+        .option('--force', 'Compile even when the stage 1 output in .memo/stage1 is fresh'),
+).action(async (dir: string, opts: Record<string, unknown>) => {
+    await compileCommand(dir, opts);
+});
 
 withToolchainOptions(
     program
