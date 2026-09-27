@@ -31,8 +31,9 @@ export interface ApiElement {
 
 /** What the standard JSON does not carry, keyed by `@id`. */
 export interface ApiIndexEntry {
-    file: string;
-    role: 'project' | 'library';
+    /** Absent for a `standard` entry: an element of SysML's own library, indexed but not exported. */
+    file?: string;
+    role: 'project' | 'library' | 'standard';
     qualifiedName?: string;
     startByte?: number;
     endByte?: number;
@@ -55,9 +56,10 @@ export const STAGE1_FORMAT = 'memo-stage1/1';
 /** A literal or reference a feature is valued with, as MEMO reads values. */
 export type ApiValue =
     | { kind: 'string'; value: string }
-    | { kind: 'number'; value: number }
+    | { kind: 'number'; value: number; rational: boolean }
     | { kind: 'boolean'; value: boolean }
     | { kind: 'reference'; qualifiedName: string }
+    | { kind: 'chain'; steps: string[] }
     | { kind: 'sequence'; items: ApiValue[] }
     | { kind: 'other'; metaclass: string };
 
@@ -97,7 +99,19 @@ export class ApiModel {
 
     get size(): number { return this.byId.size; }
 
-    element(id: string): ApiElement | undefined { return this.byId.get(id); }
+    /**
+     * The element an `@id` names. One the handoff references but does not carry —
+     * a standard library element — answers as a stand-in of metaclass
+     * `ExternalElement` holding only its name, which is all stage 2 asks of it.
+     */
+    element(id: string): ApiElement | undefined {
+        const element = this.byId.get(id);
+        if (element) return element;
+        const qualifiedName = this.index[id]?.qualifiedName;
+        return qualifiedName
+            ? { '@type': 'ExternalElement', '@id': id, declaredName: qualifiedName.slice(qualifiedName.lastIndexOf('::') + 2) }
+            : undefined;
+    }
 
     /** The element a qualified name resolves to, if the handoff holds it. */
     resolve(qualifiedName: string): ApiElement | undefined {
@@ -149,11 +163,12 @@ export class ApiModel {
         return out;
     }
 
-    private related(id: string, metaclasses: string[], end: string): ApiElement[] {
+    /** The `end` of each relationship of the given metaclasses an element owns. */
+    related(id: string, metaclasses: string[], end: string): ApiElement[] {
         return this.ownedRelationships(id)
             .filter(r => metaclasses.includes(r['@type']))
             .flatMap(r => refs(r[end]))
-            .map(r => this.byId.get(r)).filter((e): e is ApiElement => e !== undefined);
+            .map(r => this.element(r)).filter((e): e is ApiElement => e !== undefined);
     }
 
     /** What a feature is typed by (`FeatureTyping.type`). */
@@ -188,7 +203,7 @@ export class ApiModel {
 
     /** The simple name an element declares, or the name its first redefinition gives it. */
     name(id: string): string | undefined {
-        const element = this.byId.get(id);
+        const element = this.element(id);
         if (!element) return undefined;
         const declared = element.declaredName ?? element.name;
         if (typeof declared === 'string') return declared;
@@ -209,8 +224,35 @@ export class ApiModel {
         const type = expression['@type'];
         switch (type) {
             case 'LiteralString': return { kind: 'string', value: String(expression.value) };
-            case 'LiteralInteger':
-            case 'LiteralRational': return { kind: 'number', value: Number(expression.value) };
+            case 'LiteralInteger': return { kind: 'number', value: Number(expression.value), rational: false };
+            case 'LiteralRational': return { kind: 'number', value: Number(expression.value), rational: true };
+            case 'FeatureChainExpression': {
+                // `a.b.c`: the argument is the head (`a`), bound through a
+                // parameter; the target is the rest, one FeatureChaining per step
+                // (or a single member when the tail is one feature).
+                const steps: string[] = [];
+                for (const relationship of this.ownedRelationships(id)) {
+                    for (const owned of refs(relationship.ownedRelatedElement)) {
+                        if (relationship['@type'] === 'ParameterMembership') {
+                            const head = this.value(owned);
+                            if (head?.kind === 'reference') steps.push(head.qualifiedName);
+                            else if (head?.kind === 'chain') steps.push(...head.steps);
+                            continue;
+                        }
+                        const tail = this.chain(owned);
+                        for (const step of tail.length ? tail : [this.byId.get(owned)].filter(Boolean) as ApiElement[]) {
+                            const name = this.qualifiedName(step['@id']);
+                            if (name) steps.push(name);
+                        }
+                    }
+                    if (relationship['@type'] === 'Membership') {
+                        const target = refs(relationship.memberElement)[0];
+                        const name = target ? this.qualifiedName(target) : undefined;
+                        if (name) steps.push(name);
+                    }
+                }
+                return steps.length ? { kind: 'chain', steps } : { kind: 'other', metaclass: type };
+            }
             case 'LiteralBoolean': return { kind: 'boolean', value: Boolean(expression.value) };
             case 'FeatureReferenceExpression': {
                 // The referent is the member element of the expression's own membership.

@@ -12,7 +12,19 @@
 // on both sides sits in a different file; offsets are not compared, because a
 // provider's positions are its own and the diff is about what the model says.
 //
-// Usage: node scripts/diff-memo-graph.mjs BASELINE.json CANDIDATE.json [--limit N]
+// Usage: node scripts/diff-memo-graph.mjs BASELINE.json CANDIDATE.json [--limit N] [--elements-only]
+// `--elements-only` compares elements alone, leaving out relationships, rule
+// findings and the fields relationships set (`allocatedTo`): the check for a
+// builder that does not build relationships yet.
+//
+// `--by-meaning` compares three things by what they mean rather than how they
+// are spelled, because a graph built from standard API JSON has the element but
+// not the source's spelling of it:
+//   - `expose` paths, by the element or package each path resolves to (`fmea`,
+//     `pkg::fmea` and the full qualified name are one expose);
+//   - numeric attribute values, numerically (`0.20` and `0.2`);
+//   - an anonymous terminate node's display name, which MEMO's own grammar set to
+//     its private node-type name `TerminateUsage`; the kind says what it is.
 // Exit 0 when equal, 1 when they differ, 2 on bad input.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -21,6 +33,10 @@ import { readFileSync } from 'node:fs';
 const args = process.argv.slice(2);
 const limitAt = args.indexOf('--limit');
 const limit = limitAt >= 0 ? Number(args.splice(limitAt, 2)[1]) : 20;
+const elementsOnlyAt = args.indexOf('--elements-only');
+const elementsOnly = elementsOnlyAt >= 0 && Boolean(args.splice(elementsOnlyAt, 1));
+const byMeaningAt = args.indexOf('--by-meaning');
+const byMeaning = byMeaningAt >= 0 && Boolean(args.splice(byMeaningAt, 1));
 if (args.length !== 2) {
     console.error('usage: diff-memo-graph.mjs BASELINE.json CANDIDATE.json [--limit N]');
     process.exit(2);
@@ -37,12 +53,41 @@ function load(path) {
     const elements = Array.isArray(model.elements)
         ? new Map(model.elements.map(e => [e.id, e]))
         : new Map(Object.entries(model.elements));
+    if (byMeaning) normalize(elements, model.packages ?? []);
+    if (elementsOnly) {
+        for (const element of elements.values()) delete element.allocatedTo;
+        return { elements, relationships: [], violations: [] };
+    }
     return { elements, relationships: model.relationships, violations: raw.validation?.violations ?? [] };
+}
+
+const NUMBER = /^-?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/;
+
+/** Rewrite the three spelling-only fields to a canonical meaning (see the header). */
+function normalize(elements, packages) {
+    const names = [...elements.keys(), ...packages.map(p => p.qualifiedName)];
+    const resolvePath = path => {
+        const suffix = path.match(/::\*\*?$/)?.[0] ?? '';
+        const bare = suffix ? path.slice(0, -suffix.length) : path;
+        const hits = names.filter(n => n === bare || n.endsWith(`::${bare}`));
+        return `${hits.length === 1 ? hits[0] : bare}${suffix}`;
+    };
+    for (const element of elements.values()) {
+        const attributes = element.attributes ?? {};
+        if (attributes.expose) attributes.expose = attributes.expose.split(',').map(resolvePath).sort().join(',');
+        for (const [key, value] of Object.entries(attributes)) {
+            if (typeof value === 'string' && NUMBER.test(value)) attributes[key] = String(Number(value));
+        }
+        if (element.kind === 'ActivityFinalNodeUsage') element.name = element.kind;
+    }
 }
 
 // Fields that say what an element IS. Source offsets and derived presentation
 // are left out on purpose (see the header).
-const ELEMENT_FIELDS = ['kind', 'construct', 'layer', 'file', 'package', 'name', 'shortName'];
+const ELEMENT_FIELDS = [
+    'kind', 'construct', 'layer', 'file', 'package', 'name', 'shortName', 'doc', 'owner', 'parentAction',
+    'isDefinition', 'portSpec', 'parameters', 'ownedPorts', 'allocatedTo',
+];
 
 const stable = value => JSON.stringify(value, (_, v) =>
     v && typeof v === 'object' && !Array.isArray(v)
