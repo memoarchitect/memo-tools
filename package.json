@@ -82,6 +82,7 @@
   },
   "files": [
     "packages/tools/lib/",
+    "packages/tools/python/",
     "!packages/tools/lib/__tests__/",
     "!packages/tools/lib/**/*.test.*",
     "packages/tools/src/grammar/",
