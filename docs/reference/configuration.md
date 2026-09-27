@@ -83,11 +83,34 @@ Use the built-in providers for the simplest local workflow; they need nothing
 installed. Select external tools when their compatibility or packaging
 behaviour is part of the project's required evidence.
 
-### `toolchain.compiler` is deprecated
+### `toolchain.compiler`: one setting for the SysML compiler
 
-`compiler` predates the split between validating and lowering. It still works
-and sets both roles — but only where the named provider can fill them. SysIDE
-validates and cannot emit an ingestible model, so `compiler: syside` selects it
-as the validator and leaves lowering with MEMO's own parser, which is what it
-always did in practice. `memo validate` prints a note saying so. Prefer the
-explicit keys.
+`compiler` names the SysML compiler, and sets the validator and lowering roles
+together:
+
+```yaml
+toolchain:
+  compiler: syside
+  syside:
+    python: ~/.venvs/syside/bin/python   # a Python with SysIDE's licensed API
+```
+
+With `compiler: syside`, `syside check` validates, and SysIDE's Python API
+loads the project and hands MEMO the model as standard SysML v2 API JSON. MEMO
+builds its model from that JSON, not from its own parser. A load that reports
+an error stops `memo validate`: the rules never run on a model that isn't
+valid SysML.
+
+`compiler: internal` is MEMO's own compiler, and remains the default. An
+explicit `toolchain.validator` or `toolchain.lowering` overrides its role. A
+provider that can't fill a role leaves it at its default, and `memo validate`
+prints a note saying so.
+
+To try a project against SysIDE without editing its settings:
+
+```bash
+memo validate --toolchain.compiler=syside --toolchain.syside.python=/path/to/python
+```
+
+The Python interpreter can also come from `MEMO_SYSIDE_PYTHON`. It needs the
+same Modeler licence `syside check` does.

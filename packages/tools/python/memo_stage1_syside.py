@@ -77,8 +77,8 @@ def main() -> int:
         text = str(diagnostic)
         reported.append({"severity": severity_of(diagnostic), "text": text})
     if any(d["severity"] == "error" for d in reported):
-        json.dump({"format": FORMAT, "provider": "syside", "clean": False,
-                   "diagnostics": reported}, args.out.open("w"))
+        json.dump({"format": FORMAT, "provider": "syside", "providerVersion": syside.__version__,
+                   "clean": False, "diagnostics": reported}, args.out.open("w"))
         for d in reported:
             if d["severity"] == "error":
                 print(d["text"], file=sys.stderr)

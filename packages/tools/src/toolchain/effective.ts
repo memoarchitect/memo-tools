@@ -1,13 +1,13 @@
 // ─── Effective toolchain selection ───────────────────────────────────────────
 //
 // Turns a settings file into "which provider fills which role", with the
-// deprecated `compiler` alias folded in and defaults taken from the registry
+// `compiler` setting folded in and defaults taken from the registry
 // rather than written here.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MEMOConfig, ToolchainConfig } from '../model/config.js';
 import {
-    DEPRECATED_COMPILER_SETTING,
+    COMPILER_SETTING,
     PROVIDER_ROLES,
     ROLE_SETTING,
     type ProviderRegistry,
@@ -18,7 +18,7 @@ export interface RoleSelection {
     role: ProviderRole;
     provider: string;
     /** Where the value came from — useful in `memo config effective`. */
-    source: 'settings' | 'deprecated-alias' | 'default';
+    source: 'settings' | 'compiler' | 'default';
 }
 
 export interface EffectiveToolchain {
@@ -26,14 +26,14 @@ export interface EffectiveToolchain {
     lowering: string;
     packager: string;
     selections: RoleSelection[];
-    /** One line per deprecated key that was honoured. */
+    /** One line per setting that could not mean all it says (a compiler missing a role). */
     deprecations: string[];
 }
 
 /**
  * Resolve every role.
  *
- * Precedence is explicit key, then the deprecated alias, then the registry's
+ * Precedence is explicit key, then `toolchain.compiler`, then the registry's
  * default.
  *
  * The alias fills both roles that split out of it — but only where the named
@@ -51,7 +51,7 @@ export function resolveToolchain(
     registry: ProviderRegistry,
 ): EffectiveToolchain {
     const toolchain: ToolchainConfig = config?.toolchain ?? {};
-    const alias = readString(toolchain, DEPRECATED_COMPILER_SETTING);
+    const alias = readString(toolchain, COMPILER_SETTING);
     const deprecations: string[] = [];
     const selections: RoleSelection[] = [];
     const aliasCannotFill: ProviderRole[] = [];
@@ -82,19 +82,14 @@ export function resolveToolchain(
         selections.push({
             role,
             provider,
-            source: explicit ? 'settings' : aliased ? 'deprecated-alias' : 'default',
+            source: explicit ? 'settings' : aliased ? 'compiler' : 'default',
         });
     }
 
     if (alias !== undefined) {
-        const overridden = selections
-            .filter(s => s.source === 'settings' && s.role !== 'package')
-            .map(s => `toolchain.${ROLE_SETTING[s.role]}`);
-        deprecations.push(
-            `toolchain.${DEPRECATED_COMPILER_SETTING} is deprecated; it sets both `
-            + `toolchain.${ROLE_SETTING.validator} and toolchain.${ROLE_SETTING.lowering}.`
-            + (overridden.length > 0 ? ` ${overridden.join(' and ')} take precedence.` : ''),
-        );
+        // A compiler that is not registered for a role leaves that role at its
+        // default. Say so: it is the one way `toolchain.compiler` can mean less
+        // than it says.
         for (const role of aliasCannotFill) {
             deprecations.push(
                 `"${alias}" is not registered for the ${role} role, so `

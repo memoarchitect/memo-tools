@@ -15,6 +15,7 @@
 
 import type { BuilderRegistries } from '../model/builder.js';
 import type { MEMOConfig } from '../model/config.js';
+import type { MemoModel } from '../model/semantic.js';
 import type { Diagnostic } from './diagnostic.js';
 import type { MemoIr } from './protocol.js';
 
@@ -161,6 +162,25 @@ export interface ToolchainSchemaLeaf {
     deprecated?: string;
 }
 
+/** What `compileModel` needs: the project, as its resolution already found it. */
+export interface CompileModelOptions {
+    config: MEMOConfig;
+    projectDir: string;
+    registries?: BuilderRegistries;
+    /** Library roots the project's resolution selected. */
+    libraryDirs?: readonly string[];
+    /** Project source files relative to the project; a project's own library roots excluded. */
+    projectFiles?: ReadonlySet<string>;
+}
+
+/** A stage 1 compile: the verdict, its diagnostics, and the model only when clean. */
+export interface CompileModelResult {
+    accepted: boolean;
+    diagnostics: Diagnostic[];
+    providerVersion?: string;
+    model?: MemoModel;
+}
+
 export interface ProviderDescriptor<R extends ProviderRunResult = ProviderRunResult> {
     /** Plain string. Never widened into a union type anywhere. */
     id: string;
@@ -177,6 +197,12 @@ export interface ProviderDescriptor<R extends ProviderRunResult = ProviderRunRes
     settingsSchema?: readonly ToolchainSchemaLeaf[];
     probe(context: ProviderContext): Availability;
     create(context: ProviderContext): Provider<R>;
+    /**
+     * A lowering provider that is a stage 1 compiler builds the MEMO model
+     * itself: its own check, then stage 2 over its API JSON. One without it
+     * (`internal`) leaves the model to MEMO's own builder.
+     */
+    compileModel?(options: CompileModelOptions): Promise<CompileModelResult>;
 }
 
 export type ValidatorDescriptor = ProviderDescriptor<ProviderRunResult>;
@@ -286,12 +312,11 @@ export class ProviderRegistry {
             description: `Provider for the ${role} role.`,
         }));
         leaves.push({
-            path: DEPRECATED_COMPILER_SETTING,
+            path: COMPILER_SETTING,
             type: 'enum',
             values: this.ids('validator'),
             description:
-                'Deprecated alias. Sets both toolchain.validator and toolchain.lowering.',
-            deprecated: `Use toolchain.${ROLE_SETTING.validator} and toolchain.${ROLE_SETTING.lowering}.`,
+                'The stage 1 SysML compiler: sets toolchain.validator and toolchain.lowering together.',
         });
         const seen = new Set<string>();
         for (const descriptor of this.all()) {
@@ -312,5 +337,12 @@ export const ROLE_SETTING: Record<ProviderRole, string> = {
     package: 'packager',
 };
 
-/** Kept readable by every command that reports the deprecation. */
-export const DEPRECATED_COMPILER_SETTING = 'compiler';
+/**
+ * `toolchain.compiler`: the stage 1 SysML compiler, one setting for both the
+ * validator and the lowering role (plans/memo-compiler-stages-opensysml.md,
+ * milestone 3). An explicit `validator` or `lowering` key overrides its role.
+ */
+export const COMPILER_SETTING = 'compiler';
+
+/** @deprecated The setting is no longer deprecated; use `COMPILER_SETTING`. */
+export const DEPRECATED_COMPILER_SETTING = COMPILER_SETTING;

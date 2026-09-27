@@ -99,7 +99,7 @@ export interface RoleProbe {
     /** The settings key that selects this role, e.g. `validator`. */
     setting: string;
     provider: string;
-    source: 'settings' | 'deprecated-alias' | 'default';
+    source: 'settings' | 'compiler' | 'default';
     availability: Availability;
 }
 

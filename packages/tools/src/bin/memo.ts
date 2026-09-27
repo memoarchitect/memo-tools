@@ -98,8 +98,7 @@ withToolchainOptions(
         .description('Validate the model against closure rules and show completeness')
         .argument('[dir]', 'Project directory', '.')
         .option('--format <format>', 'Output format: text, junit, json', 'text')
-        .option('-o, --output <file>', 'Write output to file instead of stdout')
-        .option('--stage1-handoff <file>', 'Spike: build the model from a stage 1 API JSON handoff (see plans/memo-compiler-stages-opensysml.md)'),
+        .option('-o, --output <file>', 'Write output to file instead of stdout'),
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     await validateCommand(dir, { ...opts, format: opts.format as any, output: opts.output as string });
 });

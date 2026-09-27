@@ -17,5 +17,6 @@ export * from './effective.js';
 export * from './schema.js';
 export * from './operations.js';
 export * from './default-registry.js';
+export { compileWithSyside, sysideLoweringDescriptor, type SysideCompileResult } from './providers/syside-lowering.js';
 export { whichExecutable, resolveExecutable, resolveProjectPath, findBundledExecutable } from './process.js';
 export { getSysmlcClient, disposeSysmlcClients, SysmlcClient } from './sysmlc-client.js';

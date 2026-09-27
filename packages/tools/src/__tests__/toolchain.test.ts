@@ -43,36 +43,46 @@ describe('role resolution', () => {
         expect(effective.selections.every(s => s.source === 'default')).toBe(true);
     });
 
-    it('treats the deprecated compiler key as an alias for validator and lowering', () => {
+    it('reads toolchain.compiler as the stage 1 compiler: validator and lowering together', () => {
         const registry = createDefaultRegistry();
         const effective = resolveToolchain(config({ compiler: 'internal' }), registry);
         expect(effective.validator).toBe('internal');
         expect(effective.lowering).toBe('internal');
         // It never meant packaging, so packaging keeps its default.
         expect(effective.packager).toBe(registry.defaultId('package'));
-        expect(effective.deprecations[0]).toContain('deprecated');
+        expect(effective.deprecations).toEqual([]);
     });
 
-    it('leaves a role at its default when the aliased provider cannot fill it', () => {
-        // `syside` has no IR export, so it is registered for `validator` only.
-        // `compiler: syside` must therefore keep resolving — it is the exact
-        // configuration the alias exists to preserve — and lowering stays with
-        // MEMO's own parser, which is what the pre-split code did.
+    it('selects SysIDE for both roles, since it now lowers through stage 2', () => {
         const registry = createDefaultRegistry();
         const effective = resolveToolchain(config({ compiler: 'syside' }), registry);
         expect(effective.validator).toBe('syside');
+        expect(effective.lowering).toBe('syside');
+        expect(effective.selections.find(s => s.role === 'lowering')?.source).toBe('compiler');
+        expect(effective.deprecations).toEqual([]);
+    });
+
+    it('leaves a role at its default when the compiler cannot fill it, and says so', () => {
+        const registry = createDefaultRegistry();
+        registry.register({
+            id: 'checkonly', role: 'validator', capabilities: ['check'],
+            probe: () => ({ available: true, transport: 'in-process' }),
+            create: () => { throw new Error('not run'); },
+        });
+        const effective = resolveToolchain(config({ compiler: 'checkonly' }), registry);
+        expect(effective.validator).toBe('checkonly');
         expect(effective.lowering).toBe(registry.defaultId('lowering'));
         expect(effective.deprecations.join(' ')).toContain('not registered for the lowering role');
     });
 
-    it('lets an explicit role key win over the deprecated alias', () => {
+    it('lets an explicit role key win over toolchain.compiler', () => {
         const registry = createDefaultRegistry();
         const effective = resolveToolchain(
             config({ compiler: 'syside', lowering: 'internal' }), registry);
         expect(effective.validator).toBe('syside');
         expect(effective.lowering).toBe('internal');
         expect(effective.selections.find(s => s.role === 'lowering')?.source).toBe('settings');
-        expect(effective.selections.find(s => s.role === 'validator')?.source).toBe('deprecated-alias');
+        expect(effective.selections.find(s => s.role === 'validator')?.source).toBe('compiler');
     });
 
     it('reports the live roster when a provider is not registered for a role', () => {

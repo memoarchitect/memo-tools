@@ -10,9 +10,9 @@
 // MEMO_SYSIDE_PYTHON names it (default `python3`).
 //
 // Usage: node scripts/check-stage2-parity.mjs [--elements-only] [--no-findings] [example …]
-// By default it also compares rule findings: `memo validate` on MEMO's own build
-// against `memo validate --stage1-handoff`, violation by violation, with the rule
-// counts and completeness. `--no-findings` skips that.
+// By default it also compares rule findings: `memo validate` with MEMO's own
+// compiler against `memo validate --toolchain.compiler=syside`, violation by
+// violation, with the rule counts and completeness. `--no-findings` skips that.
 // With no example named, every directory under memo/examples is checked.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -72,7 +72,8 @@ for (const example of examples) {
         const ownOut = join(work, `${example}.validate.json`);
         const handoffOut = join(work, `${example}.validate-stage2.json`);
         run([], ownOut);
-        run(['--stage1-handoff', stage1], handoffOut);
+        // The real path: the selected compiler runs stage 1 itself, then stage 2.
+        run(['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`], handoffOut);
         const read = f => existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : undefined;
         const [own, viaHandoff] = [read(ownOut), read(handoffOut)];
         const canon = v => JSON.stringify(v, Object.keys(v).sort());
