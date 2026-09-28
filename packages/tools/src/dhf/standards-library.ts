@@ -166,9 +166,21 @@ export function readEnumMembers(standardsDir: string, enumName: string): string[
 
 // ─── Parsing ──────────────────────────────────────────────────────────────────
 
+// A standard or clause declaration: indentation, name, definition. Matched by
+// the type, not the keyword before it (`part`, formerly `item`).
+// Clause membership is NESTING — `part iec62304 { part clause4 { … } }` —
+// since R10-S7 deleted the `Composes` connection. Parentage comes from
+// indentation depth, which is what nesting is in the text.
+const DECL_RE = /^([ \t]*)(?:[a-z]+\s+)+(\w+)\s*:\s*(RegulatoryStandard|StandardClause)\b/;
+// Any nested usage declaration (`part x : T`, `item x : T`), which ends the
+// attribute lines of the declaration above it. `attribute :>> x` has no name.
+const USAGE_RE = /^[ \t]*(?:[a-z]+\s+)+\w+\s*:[^:>]/;
+
 /**
- * Every `item <name> : RegulatoryStandard|StandardClause` declaration, with the
- * attribute lines that belong to it.
+ * Every `<name> : RegulatoryStandard|StandardClause` usage declaration, with
+ * the attribute lines that belong to it. Found by its type, whatever keyword
+ * declares it: standards and clauses are parts now (`MemoArtifact`), and were
+ * items before.
  *
  * This was a non-greedy brace match over the whole body, on the stated
  * assumption that instances are "flat data — one level of braces". Nesting
@@ -182,21 +194,17 @@ function instances(source: string): Array<{ name: string; def: string; body: str
     const lines = source.split('\n');
     const found: Array<{ name: string; def: string; body: string }> = [];
     for (let i = 0; i < lines.length; i++) {
-        const m = /^[ \t]*item\s+(\w+)\s*:\s*(RegulatoryStandard|StandardClause)\b/.exec(lines[i]);
+        const m = DECL_RE.exec(lines[i]);
         if (!m) continue;
         const body: string[] = [];
         for (let j = i + 1; j < lines.length; j++) {
-            if (/^[ \t]*item\s+\w+\s*:/.test(lines[j])) break;
+            if (USAGE_RE.test(lines[j])) break;
             body.push(lines[j]);
         }
-        found.push({ name: m[1], def: m[2], body: body.join('\n') });
+        found.push({ name: m[2], def: m[3], body: body.join('\n') });
     }
     return found;
 }
-// Clause membership is NESTING now — `item iec62304 { item clause4 { … } }` —
-// since R10-S7 deleted the `Composes` connection. Parentage comes from
-// indentation depth, which is what nesting is in the text.
-const DECL_RE = /^([ \t]*)item\s+(\w+)\s*:\s*(RegulatoryStandard|StandardClause)\b/;
 
 /** `child -> parent` for every nested standard/clause declaration in a file. */
 function nestedParents(source: string): Array<[string, string]> {
