@@ -213,6 +213,12 @@ export interface ProviderDescriptor<R extends ProviderRunResult = ProviderRunRes
      * (`internal`) leaves the model to MEMO's own builder.
      */
     compileModel?(options: CompileModelOptions): Promise<CompileModelResult>;
+    /**
+     * Whether `compileModel`'s diagnostics are this provider's validator verdict
+     * under `config`, so a command that compiles need not run the validator
+     * too. False when a setting only the validator honours is in effect.
+     */
+    compileServesValidator?(config: MEMOConfig): boolean;
 }
 
 export type ValidatorDescriptor = ProviderDescriptor<ProviderRunResult>;
