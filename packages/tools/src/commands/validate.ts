@@ -33,7 +33,7 @@ import { checkLockFile } from '../lock.js';
 import { runValidator } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
-import { compileModelWithSelected } from '../toolchain/operations.js';
+import { compileModelWithSelected, compileServesValidator } from '../toolchain/operations.js';
 import { stage1CacheDir } from './compile.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { countBySeverity, formatDiagnosticsText, type Diagnostic } from '../toolchain/diagnostic.js';
@@ -103,15 +103,21 @@ export async function validateCommand(
     // rejects the source has done its job and its complaints belong in the
     // report; only a tool that could not be run at all aborts the command,
     // because selecting a missing tool must never downgrade to another provider.
+    // When the compiler's own stage 1 is the validator's check (one provider in
+    // both roles), its diagnostics are taken from stage 1 below instead of
+    // running the same tool twice.
+    const validatorFromStage1 = compileServesValidator(config, defaultRegistry);
     let sysmlDiagnostics: Diagnostic[] = [];
-    try {
-        const run = await runValidator({ config, projectDir: projectRoot, registry: defaultRegistry });
-        sysmlDiagnostics = run.diagnostics;
-        console.log(chalk.gray(
-            `Validator: ${run.provider}${run.providerVersion ? ` ${run.providerVersion}` : ''}`));
-    } catch (error) {
-        console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
-        process.exit(1);
+    if (!validatorFromStage1) {
+        try {
+            const run = await runValidator({ config, projectDir: projectRoot, registry: defaultRegistry });
+            sysmlDiagnostics = run.diagnostics;
+            console.log(chalk.gray(
+                `Validator: ${run.provider}${run.providerVersion ? ` ${run.providerVersion}` : ''}`));
+        } catch (error) {
+            console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
+            process.exit(1);
+        }
     }
 
     const lockCheck = checkLockFile(projectRoot, (resolution?.selectedRoots ?? []).map(root => ({
@@ -175,6 +181,10 @@ export async function validateCommand(
         model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     } else {
         console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}${stage1.cached ? ' (reused .memo/stage1)' : ''}`));
+        if (validatorFromStage1) {
+            sysmlDiagnostics = stage1.diagnostics;
+            console.log(chalk.gray(`Validator: ${compiler} ${stage1.providerVersion ?? ''} (stage 1's check)`));
+        }
         if (!stage1.accepted || !stage1.model) {
             const errors = stage1.diagnostics.filter(d => d.severity === 'error');
             console.error(chalk.red(`\n❌ Stage 1 (${compiler}) reported ${errors.length} error(s); stage 2 and the rules did not run.\n`));

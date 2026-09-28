@@ -13,7 +13,7 @@ import {
 } from '../toolchain/registry.js';
 import { createDefaultRegistry } from '../toolchain/default-registry.js';
 import { resolveToolchain } from '../toolchain/effective.js';
-import { runPackager, runValidator } from '../toolchain/operations.js';
+import { compileServesValidator, runPackager, runValidator } from '../toolchain/operations.js';
 import { buildSysideInvocation } from '../toolchain/providers/syside.js';
 import { buildSysandInvocation } from '../toolchain/providers/sysand.js';
 
@@ -83,6 +83,24 @@ describe('role resolution', () => {
         expect(effective.lowering).toBe('internal');
         expect(effective.selections.find(s => s.role === 'lowering')?.source).toBe('settings');
         expect(effective.selections.find(s => s.role === 'validator')?.source).toBe('compiler');
+    });
+
+    it('takes the validator verdict from stage 1 only when one provider fills both roles', () => {
+        const registry = createDefaultRegistry();
+        expect(compileServesValidator(config({ compiler: 'syside' }), registry)).toBe(true);
+        // `internal` builds its own model: no stage 1 to take a verdict from.
+        expect(compileServesValidator(config({ compiler: 'internal' }), registry)).toBe(false);
+        expect(compileServesValidator(config({ compiler: 'syside', lowering: 'internal' }), registry)).toBe(false);
+        expect(compileServesValidator(config({ validator: 'internal', lowering: 'syside' }), registry)).toBe(false);
+    });
+
+    it('runs the SysIDE CLI after all when a setting only it reads is in effect', () => {
+        const registry = createDefaultRegistry();
+        const syside = (settings: Record<string, unknown>) =>
+            config({ compiler: 'syside', syside: settings } as MEMOConfig['toolchain']);
+        expect(compileServesValidator(syside({ diagnose: 'all', warningsAsErrors: false }), registry)).toBe(true);
+        expect(compileServesValidator(syside({ configFile: 'syside.toml' }), registry)).toBe(false);
+        expect(compileServesValidator(syside({ diagnose: 'project' }), registry)).toBe(false);
     });
 
     it('reports the live roster when a provider is not registered for a role', () => {

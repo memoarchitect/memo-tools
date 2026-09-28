@@ -83,6 +83,19 @@ export async function compileModelWithSelected(
     return compile ? compile(options) : undefined;
 }
 
+/**
+ * Whether the selected compiler's stage 1 diagnostics stand in for the
+ * validator: one provider fills both roles and says its compile is the check
+ * its validator would run. A command that compiles then runs that provider
+ * once, not twice.
+ */
+export function compileServesValidator(config: MEMOConfig, registry: ProviderRegistry = defaultRegistry): boolean {
+    const effective = resolveToolchain(config, registry);
+    if (effective.validator !== effective.lowering) return false;
+    const descriptor = registry.descriptor('lowering', effective.lowering);
+    return Boolean(descriptor.compileModel && descriptor.compileServesValidator?.(config));
+}
+
 /** Run the selected packager against `outputPath`. */
 export async function runPackager(options: ToolchainRunOptions): Promise<ProviderRunResult> {
     const registry = options.registry ?? defaultRegistry;

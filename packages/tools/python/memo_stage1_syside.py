@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -28,6 +29,7 @@ import syside
 import _syside
 
 FORMAT = "memo-stage1/1"
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def sysml_files(root: Path) -> list[Path]:
@@ -64,7 +66,10 @@ def main() -> int:
     project_root = args.project.resolve()
     library_roots = [lib.resolve() for lib in args.library]
     library_files = [f for root in library_roots for f in sysml_files(root)]
-    project_files = sysml_files(project_root)
+    # A library root may sit inside the project (a project's own methodology):
+    # its files load once, as library, or every namespace in them is declared twice.
+    in_library = set(library_files)
+    project_files = [f for f in sysml_files(project_root) if f not in in_library]
     role_of = {str(f): "library" for f in library_files}
     role_of.update({str(f): "project" for f in project_files})
 
@@ -74,7 +79,9 @@ def main() -> int:
 
     reported = []
     for diagnostic in diagnostics.all:
-        text = str(diagnostic)
+        # The full message is what `syside check` prints: the snippet with its
+        # carets (the span's width) and any related note. Colour is stripped.
+        text = ANSI.sub("", diagnostic.full_message).rstrip()
         reported.append({"severity": severity_of(diagnostic), "text": text})
     if any(d["severity"] == "error" for d in reported):
         json.dump({"format": FORMAT, "provider": "syside", "providerVersion": syside.__version__,

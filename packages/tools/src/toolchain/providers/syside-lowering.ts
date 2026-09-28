@@ -8,8 +8,9 @@
 // handoff (`stage2/build-from-api.ts`); MEMO's own parser is not involved.
 //
 // The validator half is the existing `syside check` provider, unchanged, so the
-// `validator-exceptions.json` register keeps its meaning. Two SysIDE runs per
-// build is the known cost of that; one run serving both is the follow-up.
+// `validator-exceptions.json` register keeps its meaning. `memo validate` runs
+// SysIDE once: stage 1's diagnostics are the validator's verdict whenever
+// `compileServesValidator` says so.
 //
 // The Python API is licensed: it needs the same Modeler licence `syside check`
 // does, found the same way (AGENTS.md, "The SysIDE licence").
@@ -158,6 +159,14 @@ export const sysideLoweringDescriptor: LoweringDescriptor = {
     capabilities: ['lower'],
     settingsSchema: SETTINGS_SCHEMA,
     compileModel: compileWithSyside,
+    // The Python load reports what `syside check --diagnose all` does, in the
+    // same text (`full_message`), so it is the validator's verdict too, unless
+    // a setting only the CLI reads is in effect: a syside.toml or a narrower
+    // diagnose scope.
+    compileServesValidator(config: MEMOConfig): boolean {
+        const cli = providerSettings<{ configFile?: string; diagnose?: string }>(config, SYSIDE_PROVIDER_ID) ?? {};
+        return !cli.configFile && (cli.diagnose ?? 'all') === 'all';
+    },
     probe(context: ProviderContext): Availability {
         const interpreter = python(context.config);
         const check = spawnSync(interpreter, ['-c', 'import syside; print(syside.__version__)'], { encoding: 'utf8' });

@@ -95,11 +95,17 @@ toolchain:
     python: ~/.venvs/syside/bin/python   # a Python with SysIDE's licensed API
 ```
 
-With `compiler: syside`, `syside check` validates, and SysIDE's Python API
-loads the project and hands MEMO the model as standard SysML v2 API JSON. MEMO
-builds its model from that JSON, not from its own parser. A load that reports
-an error stops `memo validate`: the rules never run on a model that isn't
-valid SysML.
+With `compiler: syside`, SysIDE's Python API loads the project and hands MEMO
+the model as standard SysML v2 API JSON. MEMO builds its model from that JSON,
+not from its own parser. A load that reports an error stops `memo validate`:
+the rules never run on a model that isn't valid SysML.
+
+The load reports the same diagnostics as `syside check --diagnose all`, so
+`memo validate` runs SysIDE once and takes the validator's findings from it.
+It runs `syside check` as well only when `syside.configFile` or a narrower
+`syside.diagnose` is set, since only the CLI reads those. `memo toolchain
+check` always runs the CLI, because the `validator-exceptions.json` register
+applies there.
 
 `compiler: internal` is MEMO's own compiler, and remains the default. An
 explicit `toolchain.validator` or `toolchain.lowering` overrides its role. A
