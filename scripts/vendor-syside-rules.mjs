@@ -2,7 +2,7 @@
 // ─── Vendor `syside rule list` as the B4 checklist ───────────────────────────
 //
 // Plan §5.1.2: do not invent a parallel MEMO numbering for rules Syside already
-// names. `syside rule list` publishes 151 stable kebab-case codes, and B4 is
+// names. `syside rule list` publishes 152 stable kebab-case codes, and B4 is
 // scored against them, keeping the code strings so a project's suppressions
 // survive the engine swap.
 //

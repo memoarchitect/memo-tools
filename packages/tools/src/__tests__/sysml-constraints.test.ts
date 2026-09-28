@@ -126,9 +126,9 @@ describe('scoring against the published checklist', () => {
         }
     });
 
-    it('scores against all 151 published codes', () => {
-        expect(score.total).toBe(151);
-        expect(score.implemented.length + score.unimplemented.length).toBe(151);
+    it('scores against all 152 published codes', () => {
+        expect(score.total).toBe(152);
+        expect(score.implemented.length + score.unimplemented.length).toBe(152);
     });
 
     it('cites a specification clause for every implemented rule', () => {
