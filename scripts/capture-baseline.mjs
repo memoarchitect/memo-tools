@@ -460,6 +460,15 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-09-28 (third) — gpca only: 61 risk-analysis usages
+ * are items. ui-regions, default and extension-clinical did not move.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | 61 elements `construct` `part` → `item` | Failure modes, causes, effects, hazards, hazard causes, hazardous situations, harms, sequences of events, minimal cut sets and the cyber hazard/vulnerability usages are typed by item defs (`FailureMode` is an `item def`), and a part must be typed by at least one part definition (SysML validatePartUsagePartDefinition, which OpenSysML checks). Ids, kinds, layers and relationships do not move. |
+ */
+
+/**
  * BASELINE RE-FROZEN 2026-09-28 (second) — gpca only: the physical interfaces
  * are wired. ui-regions, default and extension-clinical did not move.
  * Compared as multisets.
