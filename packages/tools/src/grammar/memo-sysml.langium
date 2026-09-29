@@ -395,8 +395,11 @@ StateUsage:
 
 // SysML v2 interface usage, including the normative typed-connect form:
 // `interface fuel : FuelInterface connect tank.port to engine.port { … }`.
+// `abstract interface i : I { … }` is an interface whose ends a specialization
+// supplies (KerML validateConnectorRelatedFeatures exempts it); SysIDE and the
+// grammar accept it (SysML-textual-bnf UsagePrefix).
 InterfaceUsage:
-    'interface' name=ID (':' type=QualifiedName)?
+    isAbstract?='abstract'? 'interface' name=ID (':' type=QualifiedName)?
     (   'connect' source=ReferenceName 'to' target=ReferenceName
         ('{' body+=UsageBodyMember* '}' | ';')
       | ('{' body+=UsageBodyMember* '}' | ';')

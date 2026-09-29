@@ -460,6 +460,18 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-09-28 (second) — gpca only: the physical interfaces
+ * are wired. ui-regions, default and extension-clinical did not move.
+ * Compared as multisets.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | −3 `Interface` elements, +3 `interface` relationships | `pumpMotorDrive`, `bolusButtonLine` and `occlusionAnalogLine` state their ends now (KerML validateConnectorRelatedFeatures), so each is the edge between its two ports, keeping its id and attributes; the bindings and refinements that name it are unchanged. |
+ * | +2 `PhysicalPort` | `bolusButton.portPendantOut` and `occlusionSensor.portOcclusionOut`, the device-side ends; the motor drive reuses `pumpMotorAssembly.portFlowCommandIn`. |
+ * | none for the other 11 interfaces | They are `abstract interface` now, which MEMO's grammar accepts as SysML does; still elements, unchanged. |
+ */
+
+/**
  * BASELINE RE-FROZEN 2026-09-28 — gpca only, for two connector corrections
  * OpenSysML's validator found (KerML validateConnectorRelatedFeatures and
  * validateFlowEndSubsetting, which SysIDE does not check). ui-regions, default
