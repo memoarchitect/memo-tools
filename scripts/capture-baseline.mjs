@@ -460,6 +460,19 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-09-28 — gpca only, for two connector corrections
+ * OpenSysML's validator found (KerML validateConnectorRelatedFeatures and
+ * validateFlowEndSubsetting, which SysIDE does not check). ui-regions, default
+ * and extension-clinical did not move. Compared as multisets, not by position:
+ * zero elements added or removed, 895 relationships before and after.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | relationship order | 41 connections in gpca_trace and gpca_cybersecurity wrote `connect` in their body, a nested connection that left the outer one relating nothing; the ends are in the head now (memo 7d7ceaa). Same edges, read in a different order. |
+ * | 5 `flow` → `connect`, same ends and names | The Fig 2.1 context exchanges went part to part, and a flow end must name the feature that flows; the figure names no item, so each is a connection from source to receiver. |
+ */
+
+/**
  * BASELINE RE-FROZEN 2026-09-25 — gpca only, for two §4.1 conversions.
  * ui-regions, default and extension-clinical did not move. The first of the
  * two landed without a re-freeze (memo 261d07e, memo-tools 2823e3a) and left
