@@ -26,56 +26,56 @@
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::fcMotorDriverFault",
         "kind": "FailureCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::fcPendantAbuse",
         "kind": "FailureCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::fcTransducerAging",
         "kind": "FailureCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::feAirDelivered",
         "kind": "FailureEffect",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::feOverdose",
         "kind": "FailureEffect",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::feTherapyInterrupted",
         "kind": "FailureEffect",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::fmAirSensorSilent",
         "kind": "FailureMode",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::fmBatteryEarlyDepletion",
         "kind": "FailureMode",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
@@ -96,21 +96,21 @@
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::fmMotorRunaway",
         "kind": "FailureMode",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::fmOcclusionDrift",
         "kind": "FailureMode",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::fmStuckBolusButton",
         "kind": "FailureMode",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
@@ -180,14 +180,14 @@
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::mcsBolusPath",
         "kind": "MinimalCutSet",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_analysis::mcsMotorPath",
         "kind": "MinimalCutSet",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_analysis"
       },
@@ -1664,7 +1664,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_cybersecurity::unsafeDoseCyberHazard",
         "kind": "CyberHazard",
-        "construct": "part",
+        "construct": "item",
         "layer": "cybersecurity",
         "package": "memo_examples_gpca_pump_gpca_cybersecurity"
       },
@@ -1678,7 +1678,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_cybersecurity::weakServiceAuthentication",
         "kind": "Vulnerability",
-        "construct": "part",
+        "construct": "item",
         "layer": "cybersecurity",
         "package": "memo_examples_gpca_pump_gpca_cybersecurity"
       },
@@ -3638,7 +3638,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::airEmbolismHazard",
         "kind": "Hazard",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
@@ -3659,154 +3659,154 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeAirInLine",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeAirSensorSilent",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeBleedBack",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeBolusVolumeTooHigh",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeDoorOpenedDuringInfusion",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeFlowRateTooHigh",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeFlowRateTooLow",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeFrequentBolus",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeImproperPriming",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeOcclusion",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causePumpCalibration",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causePumpMechanismFails",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causePumpRevertsToDefaults",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeReservoirEmpty",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeSetDisengaged",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeSettingsChangedInadvertently",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeStaleDrugLibrary",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeTubingLeak",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeVtbiTooHigh",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeWrongDoseUnits",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeWrongDrugLoaded",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::causeWrongPrescriptionEntered",
         "kind": "HazardCause",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
@@ -3897,7 +3897,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::freeFlowHazard",
         "kind": "Hazard",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
@@ -3911,70 +3911,70 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::harmAirEmbolism",
         "kind": "Harm",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::harmRespiratoryDepression",
         "kind": "Harm",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::harmUntreatedPain",
         "kind": "Harm",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::hsAirTowardPatient",
         "kind": "HazardousSituation",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::hsExcessInfusion",
         "kind": "HazardousSituation",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::hsFreeFlow",
         "kind": "HazardousSituation",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::hsInterruptedTherapy",
         "kind": "HazardousSituation",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::hsReverseFlow",
         "kind": "HazardousSituation",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::hsVtbiExceeded",
         "kind": "HazardousSituation",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::hsWrongTherapy",
         "kind": "HazardousSituation",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
@@ -4002,7 +4002,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::overdoseHazard",
         "kind": "Hazard",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
@@ -4030,7 +4030,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::reverseDeliveryHazard",
         "kind": "Hazard",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
@@ -4149,56 +4149,56 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::seqAirInLine",
         "kind": "SequenceOfEvents",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::seqFreeFlow",
         "kind": "SequenceOfEvents",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::seqFrequentBolus",
         "kind": "SequenceOfEvents",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::seqMisprogram",
         "kind": "SequenceOfEvents",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::seqOcclusion",
         "kind": "SequenceOfEvents",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::seqReverseDelivery",
         "kind": "SequenceOfEvents",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::seqVtbiExceeded",
         "kind": "SequenceOfEvents",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_risk::underdoseHazard",
         "kind": "Hazard",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
@@ -4212,7 +4212,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::vtbiOverInfusionHazard",
         "kind": "Hazard",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
@@ -4226,7 +4226,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_risk::wrongDoseHazard",
         "kind": "Hazard",
-        "construct": "part",
+        "construct": "item",
         "layer": "safety_risk",
         "package": "memo_examples_gpca_pump_gpca_risk"
       },
