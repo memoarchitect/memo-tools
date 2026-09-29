@@ -5794,6 +5794,16 @@
       },
       {
         "type": "connect",
+        "sourceId": "memo_examples_gpca_pump_gpca_context::actorNurse",
+        "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
+      },
+      {
+        "type": "connect",
+        "sourceId": "memo_examples_gpca_pump_gpca_context::actorPatient",
+        "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
+      },
+      {
+        "type": "connect",
         "sourceId": "memo_examples_gpca_pump_gpca_context::actorPatient",
         "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
       },
@@ -5825,6 +5835,11 @@
       {
         "type": "connect",
         "sourceId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump",
+        "targetId": "memo_examples_gpca_pump_gpca_context::actorNurse"
+      },
+      {
+        "type": "connect",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump",
         "targetId": "memo_examples_gpca_pump_gpca_operational::entityNeedle"
       },
       {
@@ -5834,8 +5849,18 @@
       },
       {
         "type": "connect",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::entityPharmacyDb",
+        "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
+      },
+      {
+        "type": "connect",
         "sourceId": "memo_examples_gpca_pump_gpca_operational::entityPowerInfrastructure",
         "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
+      },
+      {
+        "type": "connect",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::entityPrescription",
+        "targetId": "memo_examples_gpca_pump_gpca_context::actorNurse"
       },
       {
         "type": "containsEvent",
@@ -7011,31 +7036,6 @@
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm",
         "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAnnunciate"
-      },
-      {
-        "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_context::actorNurse",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
-      },
-      {
-        "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_context::actorPatient",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
-      },
-      {
-        "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump",
-        "targetId": "memo_examples_gpca_pump_gpca_context::actorNurse"
-      },
-      {
-        "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_operational::entityPharmacyDb",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::entityGpcaPump"
-      },
-      {
-        "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_operational::entityPrescription",
-        "targetId": "memo_examples_gpca_pump_gpca_context::actorNurse"
       },
       {
         "type": "flow",
