@@ -4,7 +4,7 @@
     "files": 18,
     "elements": 266,
     "definitions": 32,
-    "relationships": 282,
+    "relationships": 283,
     "packages": 21,
     "parseErrors": 0,
     "builderFindings": 0
@@ -311,9 +311,10 @@
         "PartDefinition": 1,
         "SendActionUsage": 1
       },
-      "relationships": 63,
+      "relationships": 64,
       "relationshipTypes": {
         "composes": 30,
+        "flow": 1,
         "succession": 33
       },
       "packages": 1,

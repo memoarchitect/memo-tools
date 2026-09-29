@@ -2,9 +2,9 @@
   "project": "gpca-pump",
   "totals": {
     "files": 55,
-    "elements": 688,
+    "elements": 687,
     "definitions": 13,
-    "relationships": 895,
+    "relationships": 898,
     "packages": 55,
     "parseErrors": 0,
     "builderFindings": 0
@@ -31,13 +31,13 @@
       "builderFindings": 0
     },
     "model/catalog/gpca_architecture.sysml": {
-      "elements": 108,
+      "elements": 110,
       "definitions": 0,
       "kinds": {
         "HardwareAssembly": 17,
         "LogicalComponent": 5,
         "PhysicalAssembly": 1,
-        "PhysicalPort": 20,
+        "PhysicalPort": 22,
         "SoftwareModule": 8,
         "SoftwarePort": 56,
         "SoftwareSystem": 1
@@ -176,19 +176,19 @@
       "builderFindings": 0
     },
     "model/catalog/gpca_interfaces.sysml": {
-      "elements": 59,
+      "elements": 56,
       "definitions": 2,
       "kinds": {
         "DataInterface": 1,
-        "Interface": 14,
+        "Interface": 11,
         "InterfaceItem": 43,
         "SensorPort": 1
       },
-      "relationships": 77,
+      "relationships": 80,
       "relationshipTypes": {
         "bind": 15,
         "flow": 31,
-        "interface": 31
+        "interface": 34
       },
       "packages": 1,
       "parseErrors": 0,
@@ -322,7 +322,7 @@
         "bindsToInterface": 3,
         "buildsInto": 6,
         "causes": 18,
-        "connect": 10,
+        "connect": 15,
         "containsEvent": 4,
         "dependency": 5,
         "deploysTo": 1,
@@ -330,7 +330,7 @@
         "detectedBy": 3,
         "estimatedFor": 7,
         "evaluatedIn": 7,
-        "flow": 39,
+        "flow": 34,
         "governs": 1,
         "hasFailureMode": 5,
         "hostedBy": 1,
