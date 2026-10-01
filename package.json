@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@memoarchitect/ontology": "0.13.2",
+    "@openmbee/opensysml": "0.9.1",
     "chalk": "^5.3.0",
     "chokidar": "^4.0.0",
     "commander": "^12.1.0",
