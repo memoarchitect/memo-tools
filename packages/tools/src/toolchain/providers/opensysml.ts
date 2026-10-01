@@ -72,20 +72,27 @@ function address(config: MEMOConfig): string | undefined {
     return settings(config).service ?? process.env.OPENSYSML_SERVICE;
 }
 
-/** The part of the client this provider uses. */
-interface OpenSysMLClient {
-    connect(options?: { address?: string }): Promise<{
-        info?: { version?: string };
-        rpc: {
-            parseSources(request: {
-                documents: { source: { case: 'filePath'; value: string } }[];
-            }): Promise<{ diagnostics: ServiceDiagnostic[]; error?: string }>;
-        };
-        close(): Promise<void>;
-    }>;
+/** The part of the client's connection the OpenSysML providers use. */
+export interface OpenSysMLConnection {
+    info?: { version?: string };
+    rpc: {
+        parseSources(request: {
+            documents: { source: { case: 'filePath'; value: string } }[];
+        }): Promise<{ modelHash: string; diagnostics: ServiceDiagnostic[]; error?: string }>;
+        convert(request: {
+            source: { case: 'modelHash'; value: string };
+            toFormat: string;
+        }): Promise<{ content: string; error?: string; diagnostics: ServiceDiagnostic[] }>;
+    };
+    close(): Promise<void>;
 }
 
-interface ServiceDiagnostic {
+/** The part of the client this provider uses. */
+interface OpenSysMLClient {
+    connect(options?: { address?: string }): Promise<OpenSysMLConnection>;
+}
+
+export interface ServiceDiagnostic {
     severity: string;
     message: string;
     code: string;
@@ -128,19 +135,46 @@ export function toDiagnostic(d: ServiceDiagnostic, version?: string): Diagnostic
     };
 }
 
-async function check(context: ProviderContext): Promise<ProviderRunResult> {
-    const executable = binary(context.config);
+/**
+ * A connection to OpenSysML's service through its Node client: one started from
+ * `toolchain.opensysml.binary`, or the running one `toolchain.opensysml.service`
+ * names. The caller closes it.
+ */
+export async function connectOpenSysML(config: MEMOConfig): Promise<OpenSysMLConnection> {
+    const executable = binary(config);
     if (executable) process.env.OPENSYSML_BINARY = executable;
     let client: OpenSysMLClient;
     try {
-        client = await import(clientModule(context.config)) as OpenSysMLClient;
+        client = await import(clientModule(config)) as OpenSysMLClient;
     } catch (error) {
-        throw new Error(`OpenSysML's Node client could not be loaded from "${clientModule(context.config)}": `
+        throw new Error(`OpenSysML's Node client could not be loaded from "${clientModule(config)}": `
             + `${error instanceof Error ? error.message : error}. Set toolchain.${OPENSYSML_PROVIDER_ID}.client `
             + 'to a built checkout\'s dist/node/index.js.');
     }
-    const service = address(context.config);
-    const connection = await client.connect(service ? { address: service } : {});
+    const service = address(config);
+    return client.connect(service ? { address: service } : {});
+}
+
+/** What the OpenSysML providers are configured with, for a cache key: a change re-runs stage 1. */
+export function openSysMLSettingsKey(config: MEMOConfig): string {
+    return `${clientModule(config)}\0${binary(config) ?? ''}\0${address(config) ?? ''}`;
+}
+
+/** Whether OpenSysML's client and service can be reached as configured. */
+export function probeOpenSysML(config: MEMOConfig): Availability {
+    const spec = clientModule(config);
+    if (spec.startsWith('file:') && !existsSync(new URL(spec))) {
+        return { available: false, transport: 'process', detail: `the Node client "${spec}" does not exist.` };
+    }
+    const executable = binary(config);
+    if (!address(config) && executable && !existsSync(executable)) {
+        return { available: false, transport: 'process', detail: `the service "${executable}" does not exist.` };
+    }
+    return { available: true, transport: 'process', ...(executable ? { executable } : {}) };
+}
+
+async function check(context: ProviderContext): Promise<ProviderRunResult> {
+    const connection = await connectOpenSysML(context.config);
     try {
         const version = connection.info?.version;
         const documents = openSysMLDocuments(context);
@@ -172,15 +206,7 @@ export const openSysMLValidatorDescriptor: ValidatorDescriptor = {
     capabilities: ['check'],
     settingsSchema: SETTINGS_SCHEMA,
     probe(context: ProviderContext): Availability {
-        const spec = clientModule(context.config);
-        if (spec.startsWith('file:') && !existsSync(new URL(spec))) {
-            return { available: false, transport: 'process', detail: `the Node client "${spec}" does not exist.` };
-        }
-        const executable = binary(context.config);
-        if (!address(context.config) && executable && !existsSync(executable)) {
-            return { available: false, transport: 'process', detail: `the service "${executable}" does not exist.` };
-        }
-        return { available: true, transport: 'process', ...(executable ? { executable } : {}) };
+        return probeOpenSysML(context.config);
     },
     create(context: ProviderContext) {
         return {

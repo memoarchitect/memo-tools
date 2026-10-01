@@ -2933,13 +2933,16 @@ function extractAttributeValue(value: any): string {
 
 /**
  * Resolve a QualifiedName reference to just the local name.
- * In SysML v2 usages: `control ::> rcFlowRateLimiter` — ref is "rcFlowRateLimiter"
+ * In SysML v2 usages: `control ::> rcFlowRateLimiter` — ref is "rcFlowRateLimiter".
+ * A feature chain names its last feature: `iec62304.iec62304Clause5.iec62304Clause5_3`
+ * is the clause `iec62304Clause5_3`, as `iec62304::iec62304Clause5::iec62304Clause5_3`
+ * is, and as stage 2 keeps an element the project does not hold.
  */
 function resolveRef(ref: string): string | undefined {
     if (!ref) return undefined;
-    // Take the last segment of a qualified name
+    // Take the last segment of a qualified name, then of a feature chain.
     const parts = ref.split('::');
-    return parts[parts.length - 1] || undefined;
+    return parts[parts.length - 1].split('.').pop() || undefined;
 }
 
 /**

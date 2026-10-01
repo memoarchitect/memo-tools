@@ -12,6 +12,7 @@ import {
     internalValidatorDescriptor,
 } from './providers/internal.js';
 import { openSysMLValidatorDescriptor } from './providers/opensysml.js';
+import { openSysMLLoweringDescriptor } from './providers/opensysml-lowering.js';
 import { sysideValidatorDescriptor } from './providers/syside.js';
 import { sysideLoweringDescriptor } from './providers/syside-lowering.js';
 import { sysandPackageDescriptor } from './providers/sysand.js';
@@ -30,6 +31,7 @@ export function createDefaultRegistry(): ProviderRegistry {
         .register(internalPackageDescriptor)
         .register(sysideValidatorDescriptor)
         .register(sysideLoweringDescriptor)
+        .register(openSysMLLoweringDescriptor)
         .register(openSysMLValidatorDescriptor)
         .register(sysandPackageDescriptor);
 }
