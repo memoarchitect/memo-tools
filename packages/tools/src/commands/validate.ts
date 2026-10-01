@@ -26,7 +26,7 @@ import {
 } from '@memoarchitect/tools';
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, toElementIndex } from '@memoarchitect/tools';
-import { validateModel, collectNativeConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
+import { validateModel, collectNativeConstraints, collectApiConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
 import { checkSelectorVocabulary, type SelectorVocabularyDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { checkLockFile } from '../lock.js';
@@ -257,11 +257,16 @@ export async function validateCommand(
     // 6. Validate — native ontology constraints (constraint def bodies) + structural checks.
     //    Constraint defs live in the ontology packages (parsed by loadOntologyRegistries),
     //    so collect across both ontology and project documents.
+    //    A stage 1 compiler's handoff carries the ontology too, so its rules are
+    //    read from that handoff rather than from MEMO's own parse.
     const constraintDiagnostics: ConstraintDiagnostic[] = [];
-    const nativeConstraints = collectNativeConstraints(
-        [...ontologyDocuments, ...documents], constraintDiagnostics);
+    const stage1Api = stage1?.model ? stage1.api : undefined;
+    const nativeConstraints = stage1Api
+        ? collectApiConstraints(stage1Api, constraintDiagnostics, resolution?.filePackages)
+        : collectNativeConstraints([...ontologyDocuments, ...documents], constraintDiagnostics);
     if (nativeConstraints.length > 0) {
-        console.log(chalk.gray(`Native constraints: ${nativeConstraints.length} (from constraint def bodies)`));
+        const from = stage1Api ? `${compiler}'s handoff` : 'constraint def bodies';
+        console.log(chalk.gray(`Native constraints: ${nativeConstraints.length} (from ${from})`));
     }
     // A rule that failed to load is a check that is not running. Report it
     // prominently: silence here reads as "all rules passed".

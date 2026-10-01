@@ -125,6 +125,17 @@ export function buildElementsFromApi(api: ApiModel, registries?: BuilderRegistri
     return { elements: builder.elements };
 }
 
+/**
+ * A definition's flat attribute map and doc comment, read exactly as the
+ * builder reads them for model elements: declared attributes, then metadata
+ * applications (`@MemoIdentity { :>> providedId = … }`) over them. The rule
+ * loader reads ontology rules through this, so stage 2 needs no parser.
+ */
+export function apiDefinitionFacts(api: ApiModel, definition: ApiElement): { attributes: Record<string, string>; doc?: string } {
+    const builder = new ElementBuilder(api);
+    return { attributes: builder.attributesOf(definition), doc: builder.docOf(definition) };
+}
+
 class ElementBuilder {
     readonly elements = new ElementIndex();
     readonly relationships: MemoRelationship[] = [];
@@ -636,6 +647,12 @@ class ElementBuilder {
             default: return '';
         }
     }
+
+    /** The flat attribute map of any element, for readers outside the builder. */
+    attributesOf(owner: ApiElement): Record<string, string> { return this.attributes(owner); }
+
+    /** The doc comment of any element, for readers outside the builder. */
+    docOf(owner: ApiElement): string | undefined { return this.doc(owner); }
 
     private doc(owner: ApiElement): string | undefined {
         const documentation = this.api.ownedMembers(owner['@id']).find(m => m['@type'] === 'Documentation');
