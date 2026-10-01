@@ -63,6 +63,7 @@ export * from './validator/view-validator.js';
 export * from './validator/rule-registry.js';
 export * from './validator/constraint-eval.js';
 export * from './validator/constraint-loader.js';
+export * from './validator/constraint-loader-api.js';
 export * from './completeness/tracker.js';
 
 // ─── Analysis ────────────────────────────────────────────────────────────────

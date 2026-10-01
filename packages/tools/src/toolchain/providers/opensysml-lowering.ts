@@ -291,8 +291,9 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
     }
     const diagnostics = handoff.diagnostics ?? [];
     if (!handoff.clean) return { accepted: false, diagnostics, providerVersion: handoff.providerVersion, cached: reused };
-    const model = buildMemoModelFromApi(new ApiModel(handoff), options.config, registries, projectFiles);
-    return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, model, cached: reused };
+    const api = new ApiModel(handoff);
+    const model = buildMemoModelFromApi(api, options.config, registries, projectFiles);
+    return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, model, api, cached: reused };
 }
 
 /** Parse the model in the service and, when it is clean, convert it to the handoff. */

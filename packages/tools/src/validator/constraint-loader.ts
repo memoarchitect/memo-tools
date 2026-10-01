@@ -17,7 +17,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { extractDocComment, type ParsedDocument } from '../model/parser-utils.js';
-import type { CompiledConstraint } from './constraint-eval.js';
+import type { CompiledConstraint, ConstraintNode } from './constraint-eval.js';
 import { langiumExprToNode, parseConstraintExpression } from './constraint-eval.js';
 
 /** A rule that could not be loaded, or that conflicts with another rule. */
@@ -123,16 +123,43 @@ function authoredId(attrs: Record<string, string>): string | undefined {
 
 function tryCompile(def: any, file?: string): CompiledConstraint | undefined {
     const body: any[] = def.body ?? [];
-    const attrs = extractAttributes(body);
+    // The boolean body: first require/assert constraint member.
+    const requireMember = body.find(m => m.$type === 'RequireConstraintMember' && m.expression);
+    return compileRuleDefinition({
+        typeName: def.name,
+        attrs: extractAttributes(body),
+        doc: extractDocComment(body) || undefined,
+        file,
+        body: requireMember ? langiumExprToNode(requireMember.expression) : undefined,
+    });
+}
+
+/**
+ * What a rule definition states, however it was read: from MEMO's parse
+ * (`collectNativeConstraints`) or from stage 1's API JSON
+ * (`collectApiConstraints`). Both compile through `compileRuleDefinition`, so
+ * the two paths cannot drift apart.
+ */
+export interface RuleDefinitionParts {
+    typeName: string;
+    /** Attribute values, an enumeration literal as its bare member name (`error`). */
+    attrs: Record<string, string>;
+    doc?: string;
+    file?: string;
+    /** The boolean body, in evaluator form; absent when the definition states none. */
+    body?: ConstraintNode;
+}
+
+/** Compile one rule definition, or undefined when it is no rule (no id, no body or coverage target). */
+export function compileRuleDefinition(parts: RuleDefinitionParts): CompiledConstraint | undefined {
+    const { attrs } = parts;
     const id = authoredId(attrs);
     if (!id) return undefined;
 
-    // The boolean body: first require/assert constraint member.
-    const requireMember = body.find(m => m.$type === 'RequireConstraintMember' && m.expression);
-    let ast;
+    let ast: ConstraintNode;
     let appliesToKind = attrs['appliesTo'] ?? '';
-    if (requireMember) {
-        ast = langiumExprToNode(requireMember.expression);
+    if (parts.body) {
+        ast = parts.body;
         if (ast.kind === 'bool' && ast.value && attrs['predicateExpression'] && attrs['evaluator'] !== 'architecture') {
             // Portable constraint bodies remain `true` where SysML tools cannot
             // resolve MEMO's semantic-model navigation. The executable predicate
@@ -161,13 +188,13 @@ function tryCompile(def: any, file?: string): CompiledConstraint | undefined {
         // stays ahead of `rationaleText` for a rule that still carries the old
         // attribute — a rationale is why the rule exists, not what it checks,
         // and it is the last resort rather than an equivalent.
-        description: extractDocComment(body) || attrs['description'] || attrs['rationaleText'] || id,
+        description: parts.doc || attrs['description'] || attrs['rationaleText'] || id,
         appliesToKind,
         severity: mapSeverity(attrs['severity']),
         evaluator: attrs['evaluator'] || undefined,
-        typeName: def.name,
+        typeName: parts.typeName,
         tailoring: mapTailoring(attrs['tailoring']),
-        sourceFile: file,
+        sourceFile: parts.file,
         ast,
     };
 }

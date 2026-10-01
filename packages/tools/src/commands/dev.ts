@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
+import { IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, collectApiConstraints, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument, EffectiveRule, ParseError } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
@@ -256,7 +256,12 @@ export async function devCommand(options: {
         // stays surgical — this lowers the documents it already parsed, and the
         // provider-backed recompile happens on the write path, not here.
         const irIdentities = irIdentityTable(lowerAstToSysmlIr(documents, modelToDTO(model), cwd));
-        const nativeConstraints = collectNativeConstraints([...ontologyDocuments, ...documents]);
+        // An accepted stage 1 carries the ontology it resolved, rules included,
+        // so they are read from its handoff rather than from MEMO's own parse.
+        const ruleDocuments = [...ontologyDocuments, ...documents];
+        const nativeConstraints = stage1?.accepted && stage1.model && stage1.api
+            ? collectApiConstraints(stage1.api, undefined, new Map(ruleDocuments.map(d => [d.filePath, ''])))
+            : collectNativeConstraints(ruleDocuments);
         const validation = validateModel(model, nativeConstraints, projectRegistries?.kindRegistry);
         const effectiveRuleSet = (() => {
             try {

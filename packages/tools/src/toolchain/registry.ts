@@ -16,6 +16,7 @@
 import type { BuilderRegistries } from '../model/builder.js';
 import type { MEMOConfig } from '../model/config.js';
 import type { MemoModel } from '../model/semantic.js';
+import type { ApiModel } from '../stage2/api-model.js';
 import type { Diagnostic } from './diagnostic.js';
 import type { MemoIr } from './protocol.js';
 
@@ -187,6 +188,11 @@ export interface CompileModelResult {
     diagnostics: Diagnostic[];
     providerVersion?: string;
     model?: MemoModel;
+    /**
+     * The stage 1 handoff the model was built from, library included: stage 2
+     * reads what else it needs (the ontology's rules) from it, not by parsing.
+     */
+    api?: ApiModel;
     /** Whether stage 1 was reused from `cacheDir` rather than run. */
     cached?: boolean;
 }
