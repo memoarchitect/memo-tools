@@ -1,7 +1,7 @@
 // ─── OpenSysML as a validator ────────────────────────────────────────────────
 //
 // `toolchain.validator: opensysml` checks the project with OpenSysML's service,
-// reached through its Node client (`@opensysml/client`), which starts one
+// reached through its Node client (`@openmbee/opensysml`), which starts one
 // `sysml-grpc` child per MEMO process or connects to one already running
 // (`opensysml.service`, `$OPENSYSML_SERVICE`). The project and its library
 // roots are parsed as one model (`ParseSources`), and every document's
@@ -10,8 +10,12 @@
 // The service caches a parsed model by content, so a long-lived one (memo dev,
 // Architect) re-parses only when a file changes.
 //
-// The client is not on npm yet, so it is imported from `opensysml.client`, a
-// path to a built checkout's `dist/node/index.js`, else the package name.
+// The client is the pinned `@openmbee/opensysml` dependency. `opensysml.client`
+// may name a built checkout's `dist/node/index.js` instead, to try a client
+// ahead of its release. With no `opensysml.binary` the client finds the
+// `sysml-grpc` its platform package installs beside it (an optional
+// dependency, `@openmbee/opensysml-sysml-grpc-<platform>-<arch>`), else one on
+// `$PATH`; it downloads a release only when asked to.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { existsSync } from 'node:fs';
@@ -41,7 +45,7 @@ const SETTINGS_SCHEMA: readonly ToolchainSchemaLeaf[] = [
     {
         path: `${OPENSYSML_PROVIDER_ID}.client`,
         type: 'string',
-        description: 'Module the Node client is imported from: a built `dist/node/index.js`, or `@opensysml/client` (the default).',
+        description: 'Module the Node client is imported from: a built `dist/node/index.js`, or `@openmbee/opensysml` (the default).',
     },
     {
         path: `${OPENSYSML_PROVIDER_ID}.binary`,
@@ -60,7 +64,7 @@ function settings(config: MEMOConfig): OpenSysMLConfig {
 }
 
 function clientModule(config: MEMOConfig): string {
-    const spec = settings(config).client ?? process.env.MEMO_OPENSYSML_CLIENT ?? '@opensysml/client';
+    const spec = settings(config).client ?? process.env.MEMO_OPENSYSML_CLIENT ?? '@openmbee/opensysml';
     return spec.startsWith('.') || spec.startsWith('/') ? pathToFileURL(resolve(spec)).href : spec;
 }
 
@@ -148,8 +152,8 @@ export async function connectOpenSysML(config: MEMOConfig): Promise<OpenSysMLCon
         client = await import(clientModule(config)) as OpenSysMLClient;
     } catch (error) {
         throw new Error(`OpenSysML's Node client could not be loaded from "${clientModule(config)}": `
-            + `${error instanceof Error ? error.message : error}. Set toolchain.${OPENSYSML_PROVIDER_ID}.client `
-            + 'to a built checkout\'s dist/node/index.js.');
+            + `${error instanceof Error ? error.message : error}. Install @openmbee/opensysml, or set `
+            + `toolchain.${OPENSYSML_PROVIDER_ID}.client to a built checkout's dist/node/index.js.`);
     }
     const service = address(config);
     return client.connect(service ? { address: service } : {});
