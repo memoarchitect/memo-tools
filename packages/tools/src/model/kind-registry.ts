@@ -575,8 +575,8 @@ export class KindRegistry {
      * definitions and fields (`apiKindEntries`), each file resolved absolute by
      * `fileOf` so its layer and standard come from the same path.
      */
-    populateFromApi(api: ApiModel, fileOf: (element: ApiElement) => string): void {
-        const { kinds, views } = apiKindEntries(api, fileOf);
+    populateFromApi(api: ApiModel, fileOf: (element: ApiElement) => string, include?: (namespace: ApiElement) => boolean): void {
+        const { kinds, views } = apiKindEntries(api, fileOf, 'library', include);
         for (const view of views) this.registerViewDefinition(view.name, view.defaults, view.superType);
         for (const kind of kinds) this.register(kind);
     }

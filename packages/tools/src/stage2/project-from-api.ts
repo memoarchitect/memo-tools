@@ -18,6 +18,7 @@ import type {
     PackageIndexEntry,
     ScopeMode,
 } from '../model/native-project.js';
+import { sep } from 'node:path';
 import { discoverProjectSources, finishResolution } from '../model/native-project.js';
 import type { ApiElement, ApiModel, ApiValue } from './api-model.js';
 
@@ -239,4 +240,22 @@ class UsageReader {
                 };
             });
     }
+}
+
+/**
+ * Whether resolution loads a file's content into the ontology: a file of a
+ * package in the import closure, or one under a selected library root — the
+ * filter `loadOntologyRegistries` applies to MEMO's parse.
+ */
+export function resolutionLoads(resolution: NativeProjectResolution): (file: string) => boolean {
+    const closureFiles = new Set<string>();
+    for (const pkg of resolution.closure.values()) for (const file of pkg.files) closureFiles.add(file);
+    const selected = resolution.selectedRoots.map(root => root.sysmlDir);
+    return file => closureFiles.has(file) || selected.some(dir => file.startsWith(dir + sep));
+}
+
+/** Whether a file is the project's own: under no library root, selected or unused. */
+export function isProjectSource(resolution: NativeProjectResolution): (file: string) => boolean {
+    const roots = [...resolution.selectedRoots, ...resolution.unusedRoots].map(root => root.sysmlDir);
+    return file => !roots.some(dir => file.startsWith(dir));
 }

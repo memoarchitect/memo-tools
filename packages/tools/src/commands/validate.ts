@@ -33,7 +33,10 @@ import { checkLockFile } from '../lock.js';
 import { runValidator } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
-import { compileModelWithSelected, compileServesValidator } from '../toolchain/operations.js';
+import { compileModelWithSelected, compileServesValidator, selectedCompilerBuildsModel } from '../toolchain/operations.js';
+import type { CompileModelResult } from '../toolchain/registry.js';
+import { discoverProjectSources, type NativeProjectResolution } from '../model/native-project.js';
+import { resolutionLoads } from '../stage2/project-from-api.js';
 import { stage1CacheDir } from './compile.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { countBySeverity, formatDiagnosticsText, type Diagnostic } from '../toolchain/diagnostic.js';
@@ -77,21 +80,70 @@ export async function validateCommand(
     for (const note of effectiveToolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
 
     // 3. Resolve the project natively: imports and the method binding decide
-    //    everything about what is loaded.
+    //    everything about what is loaded. A compiler that builds the model
+    //    resolves it from what it compiled — every library root a locator
+    //    offers, the import closure deciding which is the ontology — so MEMO
+    //    parses nothing; MEMO's own compiler resolves by parsing.
+    const compiler = effectiveToolchain.lowering;
+    const validatorFromStage1 = compileServesValidator(config, defaultRegistry);
+    let sysmlDiagnostics: Diagnostic[] = [];
     let ontologyRegistries: BuilderRegistries | undefined;
     let ontologyDocuments: ParsedDocument[] = [];
-    const loadResult = await loadOntologyRegistries(projectRoot);
-    const resolution = loadResult.resolution;
-    if (loadResult.fileCount > 0) {
-        ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
-        ontologyDocuments = loadResult.parsedDocuments;
-        const kr = loadResult.registries.kindRegistry;
-        const rr = loadResult.registries.relationshipRegistry;
+    let resolution: NativeProjectResolution | undefined;
+    let stage1: CompileModelResult | undefined;
+    let projectSourceCount = 0;
+    if (selectedCompilerBuildsModel(config, defaultRegistry)) {
+        const sources = discoverProjectSources(projectRoot);
+        projectSourceCount = sources.projectFiles.length;
+        try {
+            stage1 = await compileModelWithSelected({
+                config, projectDir: projectRoot,
+                libraryDirs: [...new Set(sources.libraryRoots.map(root => root.sysmlDir))],
+                projectFiles: new Set(sources.projectFiles.map(file => relative(projectRoot, file))),
+                resolveProject: true,
+                // Reuses a fresh `memo compile`.
+                cacheDir: stage1CacheDir(projectRoot),
+            });
+        } catch (error) {
+            console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
+            process.exit(1);
+        }
+        if (!stage1) throw new Error(`${compiler} builds the model but compiled nothing`);
+        console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}${stage1.cached ? ' (reused .memo/stage1)' : ''}`));
+        if (validatorFromStage1) {
+            sysmlDiagnostics = stage1.diagnostics;
+            console.log(chalk.gray(`Validator: ${compiler} ${stage1.providerVersion ?? ''} (stage 1's check)`));
+        }
+        // A stage 1 that reports an error stops here: stage 2 and the rules
+        // never run on a model that is not valid SysML.
+        if (!stage1.accepted || !stage1.model) {
+            const errors = stage1.diagnostics.filter(d => d.severity === 'error');
+            console.error(chalk.red(`\n❌ Stage 1 (${compiler}) reported ${errors.length} error(s); stage 2 and the rules did not run.\n`));
+            for (const d of errors) console.error(chalk.red(`  ${d.file}:${d.range?.start.line ?? '?'}:${d.range?.start.column ?? '?'} ${d.code ?? ''} ${d.message}`));
+            process.exit(1);
+        }
+        resolution = stage1.resolution;
+        ontologyRegistries = stage1.registries;
+        const kr = ontologyRegistries?.kindRegistry;
+        const rr = ontologyRegistries?.relationshipRegistry;
         console.log(chalk.gray(
             `Resolved: ${kr?.size ?? 0} kinds, ${rr?.size ?? 0} relationships `
-            + `(${loadResult.fileCount} SysML files, ${loadResult.ontologyDirs.length} packages)`));
+            + `(from ${compiler}'s handoff, ${resolution?.closure.size ?? 0} packages)`));
+        for (const d of resolution?.diagnostics ?? []) console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
+    } else {
+        const loadResult = await loadOntologyRegistries(projectRoot);
+        resolution = loadResult.resolution;
+        if (loadResult.fileCount > 0) {
+            ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
+            ontologyDocuments = loadResult.parsedDocuments;
+            const kr = loadResult.registries.kindRegistry;
+            const rr = loadResult.registries.relationshipRegistry;
+            console.log(chalk.gray(
+                `Resolved: ${kr?.size ?? 0} kinds, ${rr?.size ?? 0} relationships `
+                + `(${loadResult.fileCount} SysML files, ${loadResult.ontologyDirs.length} packages)`));
+        }
+        for (const err of loadResult.errors) console.log(chalk.yellow(`  ⚠ ${err}`));
     }
-    for (const err of loadResult.errors) console.log(chalk.yellow(`  ⚠ ${err}`));
 
     if (resolution?.binding) {
         console.log(chalk.gray(
@@ -106,8 +158,6 @@ export async function validateCommand(
     // When the compiler's own stage 1 is the validator's check (one provider in
     // both roles), its diagnostics are taken from stage 1 below instead of
     // running the same tool twice.
-    const validatorFromStage1 = compileServesValidator(config, defaultRegistry);
-    let sysmlDiagnostics: Diagnostic[] = [];
     if (!validatorFromStage1) {
         try {
             const run = await runValidator({ config, projectDir: projectRoot, registry: defaultRegistry });
@@ -150,57 +200,17 @@ export async function validateCommand(
     // The same pass that produced those documents produced these, and they are
     // the project's own — a library that will not parse is a different report.
     const parseErrors = (resolution?.parseErrors ?? []).filter(e => isProjectFile(e.file));
-    if (documents.length === 0) {
+    const projectFileCount = stage1 ? projectSourceCount : documents.length;
+    if (projectFileCount === 0) {
         console.error(chalk.yellow('⚠️  No project .sysml files found.'));
         return;
     }
-    console.log(chalk.gray(`Files: ${documents.length} project .sysml files\n`));
+    console.log(chalk.gray(`Files: ${projectFileCount} project .sysml files\n`));
 
-    // 5. Build model
-    // The model comes from the selected stage 1 compiler (toolchain.compiler,
-    // plans/memo-compiler-stages-opensysml.md milestone 3). MEMO's own parser
-    // is `internal`; any other compiler hands stage 2 the standard API JSON,
-    // and a stage 1 that reports an error stops here: stage 2 and the rules
-    // never run on a model that is not valid SysML.
-    const compiler = effectiveToolchain.lowering;
-    let stage1: Awaited<ReturnType<typeof compileModelWithSelected>>;
-    try {
-        stage1 = await compileModelWithSelected({
-            config, projectDir: projectRoot, registries: ontologyRegistries,
-            libraryDirs: (resolution?.selectedRoots ?? []).map(root => root.sysmlDir),
-            projectFiles: new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))),
-            filePackages: resolution?.filePackages,
-            // Reuses a fresh `memo compile`.
-            cacheDir: stage1CacheDir(projectRoot),
-        });
-    } catch (error) {
-        console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
-        process.exit(1);
-    }
-    let model: ReturnType<typeof buildMemoModel>;
-    if (!stage1) {
-        model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
-    } else {
-        console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}${stage1.cached ? ' (reused .memo/stage1)' : ''}`));
-        if (validatorFromStage1) {
-            sysmlDiagnostics = stage1.diagnostics;
-            console.log(chalk.gray(`Validator: ${compiler} ${stage1.providerVersion ?? ''} (stage 1's check)`));
-        }
-        if (!stage1.accepted || !stage1.model) {
-            const errors = stage1.diagnostics.filter(d => d.severity === 'error');
-            console.error(chalk.red(`\n❌ Stage 1 (${compiler}) reported ${errors.length} error(s); stage 2 and the rules did not run.\n`));
-            for (const d of errors) console.error(chalk.red(`  ${d.file}:${d.range?.start.line ?? '?'}:${d.range?.start.column ?? '?'} ${d.code ?? ''} ${d.message}`));
-            process.exit(1);
-        }
-        model = stage1.model;
-        // The ontology stage 2 reads is the one the handoff states.
-        if (stage1.registries) {
-            ontologyRegistries = stage1.registries;
-            const kinds = stage1.registries.kindRegistry?.kindNames().length ?? 0;
-            const relationships = stage1.registries.relationshipRegistry?.relTypeNames().length ?? 0;
-            console.log(chalk.gray(`Ontology: ${kinds} kinds, ${relationships} relationships (from ${compiler}'s handoff)`));
-        }
-    }
+    // 5. Build model. Stage 1 built it when the compiler resolved the
+    //    project; MEMO's own compiler builds it from its parse.
+    const model: ReturnType<typeof buildMemoModel> = stage1?.model
+        ?? buildMemoModel(documents, config, parseErrors, ontologyRegistries);
     console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
 
     // A short-name collision belongs in this report for exactly the reason a
@@ -269,8 +279,11 @@ export async function validateCommand(
     //    read from that handoff rather than from MEMO's own parse.
     const constraintDiagnostics: ConstraintDiagnostic[] = [];
     const stage1Api = stage1?.model ? stage1.api : undefined;
+    // The rules resolution loads: the ontology's and the project's own.
+    const loaded = resolution ? resolutionLoads(resolution) : () => true;
+    const ruleFileLoaded = (file: string) => loaded(file) || isProjectFile(file);
     const nativeConstraints = stage1Api
-        ? collectApiConstraints(stage1Api, constraintDiagnostics, resolution?.filePackages)
+        ? collectApiConstraints(stage1Api, constraintDiagnostics, resolution?.filePackages, ruleFileLoaded)
         : collectNativeConstraints([...ontologyDocuments, ...documents], constraintDiagnostics);
     if (nativeConstraints.length > 0) {
         const from = stage1Api ? `${compiler}'s handoff` : 'constraint def bodies';

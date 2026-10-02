@@ -31,9 +31,8 @@ import { loadOntologyRegistries } from '../../model/ontology-loader.js';
 import { modelToDTO } from '../../model/semantic.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import { SYSML_IR_VERSION } from '../../model/sysml-ir.js';
-import { handoffRegistries } from '../../stage2/registries-from-api.js';
+import { stage2FromHandoff } from '../../stage2/stage2-from-handoff.js';
 import { ApiModel, STAGE1_FORMAT, type ApiElement, type ApiIndexEntry, type Stage1Output } from '../../stage2/api-model.js';
-import { buildMemoModelFromApi } from '../../stage2/build-from-api.js';
 import type { Diagnostic } from '../diagnostic.js';
 import { SYSMLC_IR_VERSION } from '../protocol.js';
 import type {
@@ -259,7 +258,9 @@ export function openSysMLInputKey(config: MEMOConfig, documents: readonly string
 export async function compileWithOpenSysML(options: CompileModelOptions): Promise<CompileModelResult> {
     const projectDir = resolve(options.projectDir);
     let { libraryDirs, projectFiles, registries, filePackages } = options;
-    if (!libraryDirs || !projectFiles || !registries || !filePackages) {
+    // Resolving from the handoff needs only the sources; otherwise MEMO's
+    // resolution supplies what was not given.
+    if (!libraryDirs || !projectFiles || (!options.resolveProject && (!registries || !filePackages))) {
         const loaded = await loadOntologyRegistries(projectDir);
         registries ??= loaded.registries;
         filePackages ??= loaded.resolution?.filePackages;
@@ -297,9 +298,10 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
     if (!handoff.clean) return { accepted: false, diagnostics, providerVersion: handoff.providerVersion, cached: reused };
     const api = new ApiModel(handoff);
     // The ontology is the handoff's, not MEMO's parse of it.
-    const stage2 = handoffRegistries(api, registries, filePackages);
-    const model = buildMemoModelFromApi(api, options.config, stage2, projectFiles);
-    return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, model, api, registries: stage2, cached: reused };
+    const stage2 = stage2FromHandoff(api, {
+        config: options.config, projectDir, projectFiles, resolveProject: options.resolveProject, registries, filePackages,
+    });
+    return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, ...stage2, api, cached: reused };
 }
 
 /** Parse the model in the service and, when it is clean, convert it to the handoff. */

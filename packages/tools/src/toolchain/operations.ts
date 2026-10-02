@@ -84,6 +84,15 @@ export async function compileModelWithSelected(
 }
 
 /**
+ * Whether the selected compiler builds MEMO's model itself (a stage 1 that
+ * hands stage 2 a handoff), rather than MEMO's own parse building it.
+ */
+export function selectedCompilerBuildsModel(config: MEMOConfig, registry: ProviderRegistry = defaultRegistry): boolean {
+    const effective = resolveToolchain(config, registry);
+    return Boolean(registry.descriptor('lowering', effective.lowering).compileModel);
+}
+
+/**
  * Whether the selected compiler's stage 1 diagnostics stand in for the
  * validator: one provider fills both roles and says its compile is the check
  * its validator would run. A command that compiles then runs that provider
