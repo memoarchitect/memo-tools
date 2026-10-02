@@ -186,6 +186,11 @@ export interface CompileModelOptions {
      */
     resolveProject?: boolean;
     /**
+     * Stamp each element with its resolved source ownership (provenance) when
+     * resolving the project. `memo export` has never carried it.
+     */
+    provenance?: boolean;
+    /**
      * Where a compiler keeps its stage 1 output between runs (a project's
      * `.memo/stage1`). A result whose inputs are unchanged is reused without
      * running the compiler; absent, every call compiles.

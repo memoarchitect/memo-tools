@@ -33,7 +33,7 @@ import { checkLockFile } from '../lock.js';
 import { runValidator } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
-import { compileModelWithSelected, compileServesValidator, selectedCompilerBuildsModel } from '../toolchain/operations.js';
+import { compileResolvedProject, compileServesValidator, selectedCompilerBuildsModel } from '../toolchain/operations.js';
 import type { CompileModelResult } from '../toolchain/registry.js';
 import { discoverProjectSources, type NativeProjectResolution } from '../model/native-project.js';
 import { resolutionLoads } from '../stage2/project-from-api.js';
@@ -93,17 +93,10 @@ export async function validateCommand(
     let stage1: CompileModelResult | undefined;
     let projectSourceCount = 0;
     if (selectedCompilerBuildsModel(config, defaultRegistry)) {
-        const sources = discoverProjectSources(projectRoot);
-        projectSourceCount = sources.projectFiles.length;
+        projectSourceCount = discoverProjectSources(projectRoot).projectFiles.length;
         try {
-            stage1 = await compileModelWithSelected({
-                config, projectDir: projectRoot,
-                libraryDirs: [...new Set(sources.libraryRoots.map(root => root.sysmlDir))],
-                projectFiles: new Set(sources.projectFiles.map(file => relative(projectRoot, file))),
-                resolveProject: true,
-                // Reuses a fresh `memo compile`.
-                cacheDir: stage1CacheDir(projectRoot),
-            });
+            // Reuses a fresh `memo compile`.
+            stage1 = await compileResolvedProject({ config, projectDir: projectRoot, cacheDir: stage1CacheDir(projectRoot) });
         } catch (error) {
             console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
             process.exit(1);
