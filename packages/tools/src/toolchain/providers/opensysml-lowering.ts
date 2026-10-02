@@ -299,7 +299,7 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
     const api = new ApiModel(handoff);
     // The ontology is the handoff's, not MEMO's parse of it.
     const stage2 = stage2FromHandoff(api, {
-        config: options.config, projectDir, projectFiles, resolveProject: options.resolveProject, registries, filePackages,
+        config: options.config, projectDir, projectFiles, resolveProject: options.resolveProject, provenance: options.provenance, registries, filePackages,
     });
     return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, ...stage2, api, cached: reused };
 }

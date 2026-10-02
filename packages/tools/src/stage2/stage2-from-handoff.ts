@@ -26,6 +26,8 @@ export interface Stage2Options {
     projectFiles: ReadonlySet<string>;
     /** Resolve the project from the handoff, which was compiled over every library root. */
     resolveProject?: boolean;
+    /** Stamp elements with their provenance when resolving the project (default true). */
+    provenance?: boolean;
     /** The registries resolution already loaded, when it did not come from the handoff. */
     registries?: BuilderRegistries;
     filePackages?: ReadonlyMap<string, string>;
@@ -47,7 +49,7 @@ export function stage2FromHandoff(api: ApiModel, options: Stage2Options): Stage2
     const loads = resolutionLoads(resolution);
     const fileOf = handoffFileOf(api, resolution.filePackages);
     const registries: BuilderRegistries = {
-        provenance: buildProvenanceTable(resolution),
+        ...(options.provenance === false ? {} : { provenance: buildProvenanceTable(resolution) }),
         ...apiOntologyRegistries(api, fileOf, namespace => loads(fileOf(namespace))),
     };
     return {

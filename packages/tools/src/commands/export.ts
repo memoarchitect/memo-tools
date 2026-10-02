@@ -20,7 +20,7 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
-import { compileModelWithSelected } from '../toolchain/operations.js';
+import { compileResolvedProject } from '../toolchain/operations.js';
 
 
 /**
@@ -39,21 +39,23 @@ async function resolveForExport(cwd: string, options: Record<string, unknown> = 
         process.exit(1);
     }
     const config = withToolchainOverrides(loadProjectSettings(projectRoot), options, defaultRegistry);
-    let registries: BuilderRegistries | undefined;
-    try {
-        const loaded = await loadOntologyRegistries(projectRoot);
-        if (loaded.fileCount > 0) registries = loaded.registries;
-    } catch {
-        // Export still works with reduced kind resolution.
-    }
     // `toolchain.compiler` decides where the model comes from, as it does for
-    // `memo validate`; a stage 1 that reports an error exports nothing.
-    // Export has always carried every project file, its own methodology
-    // included; `memo validate` leaves a project's library roots out.
-    const stage1 = await compileModelWithSelected({
-        config, projectDir: projectRoot, registries,
-        projectFiles: new Set(findSysmlFiles(projectRoot).map(file => relative(projectRoot, file))),
-    });
+    // `memo validate`; a stage 1 that reports an error exports nothing. A
+    // compiler that builds the model also states the project's resolution and
+    // ontology, so MEMO parses nothing then. Export has always carried every
+    // project file, its own methodology included; `memo validate` leaves a
+    // project's library roots out.
+    const projectFiles = new Set(findSysmlFiles(projectRoot).map(file => relative(projectRoot, file)));
+    const stage1 = await compileResolvedProject({ config, projectDir: projectRoot, projectFiles, provenance: false });
+    let registries: BuilderRegistries | undefined = stage1?.registries;
+    if (!stage1) {
+        try {
+            const loaded = await loadOntologyRegistries(projectRoot);
+            if (loaded.fileCount > 0) registries = loaded.registries;
+        } catch {
+            // Export still works with reduced kind resolution.
+        }
+    }
     if (stage1 && (!stage1.accepted || !stage1.model)) {
         console.error(chalk.red(`❌ Stage 1 reported ${stage1.diagnostics.filter(d => d.severity === 'error').length} error(s); nothing exported.`));
         for (const d of stage1.diagnostics.filter(d => d.severity === 'error')) {

@@ -7,7 +7,8 @@
 
 import type { BuilderRegistries } from '../model/builder.js';
 import type { MEMOConfig } from '../model/config.js';
-import { discoverLibraryRoots } from '../model/native-project.js';
+import { discoverLibraryRoots, discoverProjectSources } from '../model/native-project.js';
+import { relative } from 'node:path';
 import type { Diagnostic } from './diagnostic.js';
 import { resolveToolchain, type EffectiveToolchain } from './effective.js';
 import {
@@ -81,6 +82,37 @@ export async function compileModelWithSelected(
     const effective = resolveToolchain(options.config, registry);
     const compile = registry.descriptor('lowering', effective.lowering).compileModel;
     return compile ? compile(options) : undefined;
+}
+
+/**
+ * Stage 1 over every library root a locator offers, with the project resolved
+ * from what it compiled (`resolveProject`): what a command loads when the
+ * selected compiler builds the model, so MEMO parses nothing. Undefined when
+ * MEMO's own compiler is selected. `projectFiles` defaults to the project's
+ * own sources, its library roots excluded.
+ */
+export async function compileResolvedProject(options: {
+    config: MEMOConfig;
+    projectDir: string;
+    projectFiles?: ReadonlySet<string>;
+    cacheDir?: string;
+    provenance?: boolean;
+    registry?: ProviderRegistry;
+}): Promise<CompileModelResult | undefined> {
+    const registry = options.registry ?? defaultRegistry;
+    if (!selectedCompilerBuildsModel(options.config, registry)) return undefined;
+    const sources = discoverProjectSources(options.projectDir);
+    return compileModelWithSelected({
+        config: options.config,
+        projectDir: options.projectDir,
+        libraryDirs: [...new Set(sources.libraryRoots.map(root => root.sysmlDir))],
+        projectFiles: options.projectFiles
+            ?? new Set(sources.projectFiles.map(file => relative(options.projectDir, file))),
+        resolveProject: true,
+        provenance: options.provenance,
+        cacheDir: options.cacheDir,
+        registry,
+    });
 }
 
 /**
