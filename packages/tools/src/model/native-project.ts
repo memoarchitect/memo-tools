@@ -488,7 +488,7 @@ function readNativeUsages(doc: ParsedDocument): {
 
 // ─── Import closure ───────────────────────────────────────────────────────────
 
-interface PackageIndexEntry {
+export interface PackageIndexEntry {
     qualifiedName: string;
     files: Set<string>;
     imports: Set<string>;
@@ -568,7 +568,24 @@ function originFor(root: LibraryRoot | undefined, suppliesMethodology: boolean):
  * Anything it does not reach is not part of the model, however many manifests
  * point at it.
  */
-export async function resolveNativeProject(projectRoot: string): Promise<NativeProjectResolution> {
+/**
+ * What resolution finds on disk before reading any SysML: the entrypoint, the
+ * project's source files and every library root a locator offers, each file
+ * with the root it sits under.
+ */
+export interface ProjectSources {
+    projectRoot: string;
+    entrypointPath?: string;
+    entrypoint?: string;
+    libraryRoots: LibraryRoot[];
+    projectFiles: string[];
+    libraryFiles: string[];
+    fileToRoot: Map<string, LibraryRoot | undefined>;
+    diagnostics: NativeDiagnostic[];
+}
+
+/** Find a project's sources: no SysML is read. */
+export function discoverProjectSources(projectRoot: string): ProjectSources {
     const diagnostics: NativeDiagnostic[] = [];
     const root = resolve(projectRoot);
     const entrypointPath = projectEntrypoint(root);
@@ -615,9 +632,39 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
         }
     }
 
-    const parsed = await parseFiles([...projectFiles, ...libraryFiles], '');
-    const documents = parsed.documents;
-    const parseErrors = parsed.errors;
+    return { projectRoot: root, entrypointPath, entrypoint, libraryRoots, projectFiles, libraryFiles, fileToRoot, diagnostics };
+}
+
+export async function resolveNativeProject(projectRoot: string): Promise<NativeProjectResolution> {
+    const sources = discoverProjectSources(projectRoot);
+    const parsed = await parseFiles([...sources.projectFiles, ...sources.libraryFiles], '');
+    const bindings: NativeMethodBinding[] = [];
+    const methodologyList: NativeMethodology[] = [];
+    for (const doc of parsed.documents) {
+        const { bindings: b, methodologies: m } = readNativeUsages(doc);
+        bindings.push(...b);
+        methodologyList.push(...m);
+    }
+    return finishResolution(
+        sources, indexPackages(parsed.documents, sources.fileToRoot), bindings, methodologyList,
+        parsed.documents, parsed.errors);
+}
+
+/**
+ * Close a project's resolution over its package index and native usages,
+ * however they were read: the import closure from the entrypoint, the library
+ * roots it selects, and the method binding.
+ */
+export function finishResolution(
+    sources: ProjectSources,
+    index: Map<string, PackageIndexEntry>,
+    bindings: NativeMethodBinding[],
+    methodologyList: NativeMethodology[],
+    documents: ParsedDocument[],
+    parseErrors: ParseError[],
+): NativeProjectResolution {
+    const { projectRoot: root, entrypointPath, entrypoint, libraryRoots } = sources;
+    const diagnostics = [...sources.diagnostics];
 
     if (!entrypoint || !existsSync(entrypoint)) {
         diagnostics.push({
@@ -629,7 +676,6 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
         });
     }
 
-    const index = indexPackages(documents, fileToRoot);
     const filePackages = new Map<string, string>();
     for (const entry of index.values()) {
         for (const file of entry.files) filePackages.set(file, entry.qualifiedName);
@@ -645,15 +691,10 @@ export async function resolveNativeProject(projectRoot: string): Promise<NativeP
     }
 
     const methodologyPackages = new Set<string>();
-    const bindings: NativeMethodBinding[] = [];
     const methodologies = new Map<string, NativeMethodology>();
-    for (const doc of documents) {
-        const { bindings: b, methodologies: m } = readNativeUsages(doc);
-        bindings.push(...b);
-        for (const meth of m) {
-            methodologies.set(meth.usageName, meth);
-            if (meth.packageQualifiedName) methodologyPackages.add(meth.packageQualifiedName);
-        }
+    for (const meth of methodologyList) {
+        methodologies.set(meth.usageName, meth);
+        if (meth.packageQualifiedName) methodologyPackages.add(meth.packageQualifiedName);
     }
 
     while (queue.length > 0) {

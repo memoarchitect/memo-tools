@@ -56,6 +56,8 @@ import {
 interface DocumentPlace {
     file: string;
     role: 'project' | 'library';
+    /** The absolute root `file` is relative to. */
+    root: string;
 }
 
 /** What openSysMLHandoff needs beyond the JSON. */
@@ -89,8 +91,8 @@ export function openSysMLHandoff(elements: readonly ApiElement[], options: OpenS
         const absolute = resolve(projectDir, path);
         const root = libraryRoots.find(dir => absolute === dir || absolute.startsWith(dir + sep));
         return root
-            ? { file: relative(root, absolute), role: 'library' }
-            : { file: relative(projectDir, absolute), role: 'project' };
+            ? { file: relative(root, absolute), role: 'library', root }
+            : { file: relative(projectDir, absolute), role: 'project', root: projectDir };
     };
 
     const isLibraryReference = (element: ApiElement): boolean =>
@@ -181,10 +183,10 @@ export function openSysMLHandoff(elements: readonly ApiElement[], options: OpenS
     const documents: NonNullable<Stage1Output['documents']> = [];
     for (const [path, list] of grouped) {
         const where = place(path);
-        documents.push({ file: where.file, role: where.role, elements: list });
+        documents.push({ file: where.file, role: where.role, root: where.root, elements: list });
         const lineStarts = lineStartsOf(options.source(path));
         for (const element of list) {
-            const entry: ApiIndexEntry = { file: where.file, role: where.role };
+            const entry: ApiIndexEntry = { file: where.file, role: where.role, root: where.root };
             const qualifiedName = element.qualifiedName;
             if (typeof qualifiedName === 'string') entry.qualifiedName = qualifiedName;
             const line = numberOf(element['sysx:sourceLine']);

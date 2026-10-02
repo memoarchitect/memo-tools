@@ -28,8 +28,11 @@ export function absoluteHandoffFile(
     return declaring.length === 1 ? declaring[0] : file;
 }
 
-/** The absolute file each element of a handoff is declared in. */
+/**
+ * The absolute file each element of a handoff is declared in: from the root
+ * the handoff names, else matched against the files resolution read.
+ */
 export function handoffFileOf(api: ApiModel, filePackages?: ReadonlyMap<string, string>): (element: ApiElement) => string {
-    return element => absoluteHandoffFile(
+    return element => api.absoluteFile(element['@id']) ?? absoluteHandoffFile(
         api.source(element['@id'])?.file ?? '', api.qualifiedName(element['@id']), filePackages);
 }

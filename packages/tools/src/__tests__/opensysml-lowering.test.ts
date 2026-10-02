@@ -53,6 +53,9 @@ describe('the OpenSysML stage 1 handoff', () => {
         expect(Object.keys(byFile).sort()).toEqual(['app.sysml', 'core/lib.sysml']);
         expect(byFile['app.sysml'].role).toBe('project');
         expect(byFile['core/lib.sysml'].role).toBe('library');
+        // Each document names the root its file is relative to.
+        expect(byFile['app.sysml'].root).toBe(project);
+        expect(byFile['core/lib.sysml'].root).toBe(library);
         const ids = (file: string) => byFile[file].elements.map(e => e['@id']);
         expect(ids('app.sysml')).toEqual(expect.arrayContaining(['App', 'App__e', 'App__e_ft0', 'App_om']));
         expect(ids('core/lib.sysml')).toEqual(expect.arrayContaining(['Lib', 'Lib__Engine', 'Lib_om']));
@@ -74,7 +77,7 @@ describe('the OpenSysML stage 1 handoff', () => {
 
     it('indexes positions as lines, columns and byte offsets', () => {
         expect(handoff.index?.['App__e']).toEqual({
-            file: 'app.sysml', role: 'project', qualifiedName: 'App::e',
+            file: 'app.sysml', role: 'project', root: project, qualifiedName: 'App::e',
             line: 2, column: 5, startByte: 18, endByte: 34,
         });
         expect(appText.slice(18, 34)).toBe('part e : Engine;');

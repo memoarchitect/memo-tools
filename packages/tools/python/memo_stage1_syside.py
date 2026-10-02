@@ -104,12 +104,12 @@ def main() -> int:
                 (root for root in library_roots if root in path.parents), path.parent)
             relative = os.path.relpath(path, base)
             elements = strip_uris(json.loads(_syside.json.dumps(document.root_node, options)))
-            documents.append({"file": relative, "role": role, "elements": elements})
+            documents.append({"file": relative, "role": role, "root": str(base), "elements": elements})
             exported_ids = {element["@id"] for element in elements}
             for element in document.all_nodes(syside.Element):
                 if str(element.element_id) not in exported_ids:
                     continue
-                entry = {"file": relative, "role": role}
+                entry = {"file": relative, "role": role, "root": str(base)}
                 qualified = element.qualified_name
                 if qualified:
                     entry["qualifiedName"] = str(qualified)
