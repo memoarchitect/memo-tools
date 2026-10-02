@@ -1,0 +1,229 @@
+// ─── Ontology registries from a stage 1 handoff ─────────────────────────────
+//
+// The kinds and relationships `KindRegistry.populateFromDocuments` and
+// `RelationshipRegistry.populateFromDocuments` read from MEMO's own parse,
+// read instead from the API JSON a stage 1 compiler wrote, so a project
+// compiled by SysIDE or OpenSysML needs no MEMO parser to know its ontology.
+// Each walker mirrors its parse counterpart: the same definitions, the same
+// fields, the layer and standard from the same (absolute) file path.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import type { SysMLConstruct } from '../model/config.js';
+import type { KindRegistryEntry } from '../model/kind-registry.js';
+import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from '../model/layer-resolver.js';
+import type { RelationshipEnd, RelationshipRegistryEntry } from '../model/relationship-registry.js';
+import { pascalToCamelCase, pascalToLabel } from '../model/relationship-registry.js';
+import type { MultiplicityDTO } from '../model/relationship-legality.js';
+import type { ApiElement, ApiModel } from './api-model.js';
+import { apiDefinitionFacts } from './build-from-api.js';
+
+/** The definition metaclasses a kind is declared with, and the construct each is. */
+const KIND_CONSTRUCTS: Record<string, SysMLConstruct> = {
+    PartDefinition: 'part def',
+    RequirementDefinition: 'requirement def',
+    VerificationCaseDefinition: 'verification def',
+    StateDefinition: 'state def',
+    UseCaseDefinition: 'use case def',
+    ActionDefinition: 'action def',
+    ItemDefinition: 'item def',
+    PortDefinition: 'port def',
+    InterfaceDefinition: 'interface def',
+    FlowDefinition: 'flow def',
+    AttributeDefinition: 'attribute def',
+    EnumerationDefinition: 'enum def',
+};
+
+const RELATIONSHIP_CONSTRUCTS: Record<string, string> = {
+    ConnectionDefinition: 'connection def',
+    AllocationDefinition: 'allocation def',
+};
+
+/** A view definition the kind registry records the defaults of. */
+export interface ApiViewDefinition {
+    name: string;
+    defaults: Record<string, string>;
+    superType?: string;
+}
+
+/**
+ * The top-level packages of the library documents: the ontology the registries
+ * describe. A project's own definitions are added to a copy of the registry
+ * later (`withProjectExtensions`), as with MEMO's parse.
+ */
+function rootPackages(api: ApiModel): ApiElement[] {
+    const roots: ApiElement[] = [];
+    for (const namespace of api.ofType('Namespace')) {
+        if (api.owner(namespace['@id'])) continue; // a document's root namespace owns, it is not owned
+        if (api.source(namespace['@id'])?.role !== 'library') continue;
+        for (const member of api.ownedMembers(namespace['@id'])) {
+            if (member['@type'] === 'Package' || member['@type'] === 'LibraryPackage') roots.push(member);
+        }
+    }
+    return roots;
+}
+
+/**
+ * The names a definition specializes, first the one `superType` keeps: a
+ * standard library type by its qualified name (`Connections::BinaryConnection`,
+ * as the ontology writes it), any other by its own name.
+ */
+function superTypes(api: ApiModel, definition: ApiElement): string[] {
+    return api.superclassifiers(definition['@id'])
+        .map(general => (api.source(general['@id'])?.role === 'standard'
+            ? api.qualifiedName(general['@id'])
+            : api.name(general['@id'])) ?? '')
+        .filter(Boolean);
+}
+
+/**
+ * Whether a definition is declared `abstract`. A variation is abstract by the
+ * metamodel (an enumeration definition among them), which some compilers
+ * state; that is not the keyword the registry records.
+ */
+function declaredAbstract(definition: ApiElement): true | undefined {
+    return definition.isAbstract === true && definition.isVariation !== true ? true : undefined;
+}
+
+/** The attribute usages a definition body declares, in declaration order. */
+function attributeMembers(api: ApiModel, definition: ApiElement): ApiElement[] {
+    return api.ownedMembers(definition['@id']).filter(m => m['@type'] === 'AttributeUsage');
+}
+
+/** Every kind and view definition the handoff declares under a package. */
+export function apiKindEntries(api: ApiModel, fileOf: (element: ApiElement) => string): {
+    kinds: KindRegistryEntry[]; views: ApiViewDefinition[];
+} {
+    const kinds: KindRegistryEntry[] = [];
+    const views: ApiViewDefinition[] = [];
+    const walk = (pkg: ApiElement, path: string[], file: string) => {
+        const name = api.name(pkg['@id']);
+        const here = name ? [...path, name] : path;
+        for (const member of api.ownedMembers(pkg['@id'])) {
+            const type = member['@type'];
+            if (type === 'Package' || type === 'LibraryPackage') {
+                walk(member, here, file);
+                continue;
+            }
+            const memberName = api.declaredName(member['@id']);
+            if (type === 'ViewDefinition') {
+                if (!memberName) continue;
+                const facts = apiDefinitionFacts(api, member).attributes;
+                const defaults: Record<string, string> = {};
+                for (const attribute of attributeMembers(api, member)) {
+                    const key = api.name(attribute['@id']);
+                    if (key && api.value(attribute['@id']) && facts[key] !== undefined) defaults[key] = facts[key];
+                }
+                views.push({ name: memberName, defaults, superType: superTypes(api, member)[0] });
+                continue;
+            }
+            const construct = KIND_CONSTRUCTS[type];
+            if (!construct || !memberName) continue;
+            const declared: string[] = [];
+            for (const attribute of attributeMembers(api, member)) {
+                const attributeName = api.name(attribute['@id']);
+                if (attributeName && !declared.includes(attributeName)) declared.push(attributeName);
+            }
+            const [superType, ...additional] = superTypes(api, member);
+            kinds.push({
+                name: memberName,
+                label: memberName,
+                layer: resolveLayerFromPath(file),
+                sysmlConstruct: construct,
+                superType: superType || undefined,
+                // The rest of a multiple specialization is kept by simple name.
+                additionalSuperTypes: additional.length
+                    ? additional.map(name => name.split('::').pop() ?? name)
+                    : undefined,
+                standard: resolveStandardFromPath(file),
+                isAbstract: declaredAbstract(member),
+                namespace: resolveNamespaceFromPath(file),
+                qualifiedName: [...here, memberName].join('::'),
+                sourceFile: file,
+                attributeNames: declared.length ? declared : undefined,
+            });
+        }
+    };
+    for (const pkg of rootPackages(api)) walk(pkg, [], fileOf(pkg));
+    return { kinds, views };
+}
+
+/** Every relationship type the handoff's connection and allocation definitions declare. */
+export function apiRelationshipEntries(api: ApiModel, fileOf: (element: ApiElement) => string): RelationshipRegistryEntry[] {
+    const entries: RelationshipRegistryEntry[] = [];
+    const walk = (pkg: ApiElement, layer: string) => {
+        for (const member of api.ownedMembers(pkg['@id'])) {
+            const type = member['@type'];
+            if (type === 'Package' || type === 'LibraryPackage') {
+                walk(member, layer);
+                continue;
+            }
+            const construct = RELATIONSHIP_CONSTRUCTS[type];
+            const sysmlName = api.declaredName(member['@id']);
+            if (!construct || !sysmlName) continue;
+            const ends: RelationshipEnd[] = [];
+            const attributes: string[] = [];
+            let isReflexive: boolean | undefined;
+            let isUnique: boolean | undefined;
+            for (const owned of api.ownedMembers(member['@id'])) {
+                if (owned.isEnd === true) {
+                    ends.push({
+                        name: api.name(owned['@id']) ?? '',
+                        type: api.types(owned['@id']).map(t => api.name(t['@id'])).find(Boolean),
+                        multiplicity: multiplicityOf(api, owned),
+                    });
+                } else if (owned['@type'] === 'AttributeUsage') {
+                    const name = api.name(owned['@id']);
+                    if (name) attributes.push(name);
+                    const value = api.value(owned['@id']);
+                    const flag = value?.kind === 'boolean' ? value.value : undefined;
+                    if (name === 'isReflexive') isReflexive = flag ?? isReflexive;
+                    else if (name === 'isUnique') isUnique = flag ?? isUnique;
+                }
+            }
+            entries.push({
+                sysmlName,
+                name: pascalToCamelCase(sysmlName),
+                label: pascalToLabel(sysmlName),
+                layer,
+                sysmlConstruct: construct,
+                description: docOf(api, member),
+                isAbstract: declaredAbstract(member),
+                superType: superTypes(api, member)[0] || undefined,
+                isReflexive,
+                isUnique,
+                ends,
+                attributes,
+            });
+        }
+    };
+    for (const pkg of rootPackages(api)) walk(pkg, resolveLayerFromPath(fileOf(pkg)));
+    return entries;
+}
+
+/** The first doc comment a definition states, one line, as the parse reader states it. */
+function docOf(api: ApiModel, definition: ApiElement): string | undefined {
+    return apiDefinitionFacts(api, definition).doc;
+}
+
+/**
+ * The bounds an end declares (`[0..1]`, `[1..*]`, `[3]`, `[*]`), as the parse
+ * reader states them: an exact bound pins both ends, `*` is an unbounded upper.
+ */
+function multiplicityOf(api: ApiModel, end: ApiElement): MultiplicityDTO | undefined {
+    const range = api.ownedMembers(end['@id']).find(m => m['@type'] === 'MultiplicityRange');
+    if (!range) return undefined;
+    const bounds = api.ownedMembers(range['@id']);
+    const value = (bound: ApiElement): number | null => {
+        if (bound['@type'] === 'LiteralInfinity') return null;
+        const literal = api.expression(bound['@id']);
+        return literal.kind === 'number' ? literal.value : null;
+    };
+    if (bounds.length === 1) {
+        const upper = value(bounds[0]);
+        return upper === null ? { lower: 0, upper: null } : { lower: upper, upper };
+    }
+    if (bounds.length === 2) {
+        return { lower: value(bounds[0]) ?? 0, upper: value(bounds[1]) };
+    }
+    return undefined;
+}

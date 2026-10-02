@@ -52,6 +52,8 @@ export interface KindDefinition {
     defaultAttributes?: Record<string, string>;
 }
 import type { ParsedDocument } from './parser-utils.js';
+import type { ApiElement, ApiModel } from '../stage2/api-model.js';
+import { apiKindEntries } from '../stage2/registries-from-api.js';
 import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from './layer-resolver.js';
 import type { KindDefinitionDTO } from './relationship-legality.js';
 
@@ -550,6 +552,17 @@ export class KindRegistry {
      * Populate the registry from parsed SysML documents.
      * Walks all Definition nodes in each document's AST and registers them.
      */
+    /**
+     * Discover kinds from a stage 1 handoff instead of MEMO's parse: the same
+     * definitions and fields (`apiKindEntries`), each file resolved absolute by
+     * `fileOf` so its layer and standard come from the same path.
+     */
+    populateFromApi(api: ApiModel, fileOf: (element: ApiElement) => string): void {
+        const { kinds, views } = apiKindEntries(api, fileOf);
+        for (const view of views) this.registerViewDefinition(view.name, view.defaults, view.superType);
+        for (const kind of kinds) this.register(kind);
+    }
+
     populateFromDocuments(documents: ParsedDocument[]): void {
         for (const doc of documents) {
             const model = doc.document.parseResult.value;

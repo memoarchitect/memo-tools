@@ -15,6 +15,7 @@
 
 import type { ApiElement, ApiModel } from '../stage2/api-model.js';
 import { apiDefinitionFacts } from '../stage2/build-from-api.js';
+import { absoluteHandoffFile } from '../stage2/handoff-files.js';
 import type { CompiledConstraint, ConstraintNode } from './constraint-eval.js';
 import { compileRuleDefinition, type ConstraintDiagnostic } from './constraint-loader.js';
 
@@ -44,7 +45,7 @@ export function collectApiConstraints(
     const sourceById = new Map<string, string>();
     for (const metaclass of RULE_DEFINITIONS) {
         for (const definition of api.ofType(metaclass)) {
-            const file = absoluteFile(api.source(definition['@id'])?.file ?? '', api.qualifiedName(definition['@id']), filePackages);
+            const file = absoluteHandoffFile(api.source(definition['@id'])?.file ?? '', api.qualifiedName(definition['@id']), filePackages);
             const { attributes, doc } = apiDefinitionFacts(api, definition);
             const attrs = withBareEnumerations(attributes);
             const ruleId = attrs['providedId'] || attrs['id'];
@@ -85,22 +86,6 @@ export function collectApiConstraints(
         }
     }
     return [...byId.values()];
-}
-
-/**
- * The absolute file a handoff-relative one is: the one resolved file it ends
- * with, or among several the one whose package declares the definition. The
- * relative path when nothing resolved matches.
- */
-function absoluteFile(file: string, qualifiedName: string | undefined, filePackages?: ReadonlyMap<string, string>): string {
-    if (!file || !filePackages) return file;
-    const candidates = [...filePackages.keys()].filter(path => path === file || path.endsWith(`/${file}`));
-    if (candidates.length <= 1) return candidates[0] ?? file;
-    const declaring = candidates.filter(path => {
-        const pkg = filePackages.get(path);
-        return pkg !== undefined && qualifiedName !== undefined && qualifiedName.startsWith(`${pkg}::`);
-    });
-    return declaring.length === 1 ? declaring[0] : file;
 }
 
 function withBareEnumerations(attributes: Record<string, string>): Record<string, string> {
