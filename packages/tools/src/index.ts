@@ -110,4 +110,5 @@ export * from './stage2/api-model.js';
 export * from './stage2/build-from-api.js';
 export * from './stage2/handoff-files.js';
 export * from './stage2/registries-from-api.js';
+export * from './stage2/project-from-api.js';
 export * from './stage2/sysml-names.js';

@@ -20,6 +20,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** A reference in API JSON: `{ "@id": … }`. */
+import { join } from 'node:path';
+
 export interface ApiRef { '@id': string }
 
 /** One element of the OMG API JSON; properties beyond `@type`/`@id` vary by metaclass. */
@@ -33,6 +35,11 @@ export interface ApiElement {
 export interface ApiIndexEntry {
     /** Absent for a `standard` entry: an element of SysML's own library, indexed but not exported. */
     file?: string;
+    /**
+     * The absolute root `file` is relative to: the project directory or the
+     * library root the compiler was given. Absent in a handoff written before it.
+     */
+    root?: string;
     role: 'project' | 'library' | 'standard';
     qualifiedName?: string;
     startByte?: number;
@@ -47,7 +54,7 @@ export interface Stage1Output {
     provider: string;
     providerVersion?: string;
     clean: boolean;
-    documents?: { file: string; role: 'project' | 'library'; elements: ApiElement[] }[];
+    documents?: { file: string; role: 'project' | 'library'; root?: string; elements: ApiElement[] }[];
     index?: Record<string, ApiIndexEntry>;
 }
 
@@ -122,6 +129,12 @@ export class ApiModel {
     qualifiedName(id: string): string | undefined { return this.index[id]?.qualifiedName; }
 
     source(id: string): ApiIndexEntry | undefined { return this.index[id]; }
+
+    /** The absolute file an element is declared in, when the handoff names its root. */
+    absoluteFile(id: string): string | undefined {
+        const entry = this.index[id];
+        return entry?.file !== undefined && entry.root ? join(entry.root, entry.file) : undefined;
+    }
 
     /** Every element of a metaclass, library included, in handoff order. */
     *ofType(metaclass: string): Iterable<ApiElement> {

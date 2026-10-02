@@ -45,7 +45,7 @@ export function collectApiConstraints(
     const sourceById = new Map<string, string>();
     for (const metaclass of RULE_DEFINITIONS) {
         for (const definition of api.ofType(metaclass)) {
-            const file = absoluteHandoffFile(api.source(definition['@id'])?.file ?? '', api.qualifiedName(definition['@id']), filePackages);
+            const file = api.absoluteFile(definition['@id']) ?? absoluteHandoffFile(api.source(definition['@id'])?.file ?? '', api.qualifiedName(definition['@id']), filePackages);
             const { attributes, doc } = apiDefinitionFacts(api, definition);
             const attrs = withBareEnumerations(attributes);
             const ruleId = attrs['providedId'] || attrs['id'];
