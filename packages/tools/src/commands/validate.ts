@@ -169,6 +169,7 @@ export async function validateCommand(
             config, projectDir: projectRoot, registries: ontologyRegistries,
             libraryDirs: (resolution?.selectedRoots ?? []).map(root => root.sysmlDir),
             projectFiles: new Set(documents.map(d => relative(projectRoot, resolve(projectRoot, d.filePath)))),
+            filePackages: resolution?.filePackages,
             // Reuses a fresh `memo compile`.
             cacheDir: stage1CacheDir(projectRoot),
         });
@@ -192,6 +193,13 @@ export async function validateCommand(
             process.exit(1);
         }
         model = stage1.model;
+        // The ontology stage 2 reads is the one the handoff states.
+        if (stage1.registries) {
+            ontologyRegistries = stage1.registries;
+            const kinds = stage1.registries.kindRegistry?.kindNames().length ?? 0;
+            const relationships = stage1.registries.relationshipRegistry?.relTypeNames().length ?? 0;
+            console.log(chalk.gray(`Ontology: ${kinds} kinds, ${relationships} relationships (from ${compiler}'s handoff)`));
+        }
     }
     console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
 

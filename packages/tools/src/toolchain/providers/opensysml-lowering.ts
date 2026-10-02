@@ -31,6 +31,7 @@ import { loadOntologyRegistries } from '../../model/ontology-loader.js';
 import { modelToDTO } from '../../model/semantic.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import { SYSML_IR_VERSION } from '../../model/sysml-ir.js';
+import { handoffRegistries } from '../../stage2/registries-from-api.js';
 import { ApiModel, STAGE1_FORMAT, type ApiElement, type ApiIndexEntry, type Stage1Output } from '../../stage2/api-model.js';
 import { buildMemoModelFromApi } from '../../stage2/build-from-api.js';
 import type { Diagnostic } from '../diagnostic.js';
@@ -255,10 +256,11 @@ export function openSysMLInputKey(config: MEMOConfig, documents: readonly string
  */
 export async function compileWithOpenSysML(options: CompileModelOptions): Promise<CompileModelResult> {
     const projectDir = resolve(options.projectDir);
-    let { libraryDirs, projectFiles, registries } = options;
-    if (!libraryDirs || !projectFiles || !registries) {
+    let { libraryDirs, projectFiles, registries, filePackages } = options;
+    if (!libraryDirs || !projectFiles || !registries || !filePackages) {
         const loaded = await loadOntologyRegistries(projectDir);
         registries ??= loaded.registries;
+        filePackages ??= loaded.resolution?.filePackages;
         const resolvedRoots = [...(loaded.resolution?.selectedRoots ?? []), ...(loaded.resolution?.unusedRoots ?? [])];
         libraryDirs ??= (loaded.resolution?.selectedRoots ?? []).map(root => root.sysmlDir);
         projectFiles ??= new Set(findSysmlFiles(projectDir)
@@ -292,8 +294,10 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
     const diagnostics = handoff.diagnostics ?? [];
     if (!handoff.clean) return { accepted: false, diagnostics, providerVersion: handoff.providerVersion, cached: reused };
     const api = new ApiModel(handoff);
-    const model = buildMemoModelFromApi(api, options.config, registries, projectFiles);
-    return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, model, api, cached: reused };
+    // The ontology is the handoff's, not MEMO's parse of it.
+    const stage2 = handoffRegistries(api, registries, filePackages);
+    const model = buildMemoModelFromApi(api, options.config, stage2, projectFiles);
+    return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, model, api, registries: stage2, cached: reused };
 }
 
 /** Parse the model in the service and, when it is clean, convert it to the handoff. */

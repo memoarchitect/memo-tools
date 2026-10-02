@@ -173,6 +173,12 @@ export interface CompileModelOptions {
     /** Project source files relative to the project; a project's own library roots excluded. */
     projectFiles?: ReadonlySet<string>;
     /**
+     * The files project resolution read, absolute, each with its package. A
+     * handoff names files relative to their root; the registries it states key
+     * a kind's layer on the absolute file.
+     */
+    filePackages?: ReadonlyMap<string, string>;
+    /**
      * Where a compiler keeps its stage 1 output between runs (a project's
      * `.memo/stage1`). A result whose inputs are unchanged is reused without
      * running the compiler; absent, every call compiles.
@@ -193,6 +199,11 @@ export interface CompileModelResult {
      * reads what else it needs (the ontology's rules) from it, not by parsing.
      */
     api?: ApiModel;
+    /**
+     * The registries the model was built with: the kinds and relationship
+     * types the handoff states, which stage 2 uses from here on.
+     */
+    registries?: BuilderRegistries;
     /** Whether stage 1 was reused from `cacheDir` rather than run. */
     cached?: boolean;
 }
