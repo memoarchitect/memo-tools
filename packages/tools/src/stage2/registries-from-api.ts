@@ -52,11 +52,16 @@ export interface ApiViewDefinition {
  * ontology the registries describe; a project's own definitions are added to a
  * copy of the registry (`withProjectExtensions`), as with MEMO's parse.
  */
-function rootPackages(api: ApiModel, role: 'library' | 'project' = 'library'): ApiElement[] {
+function rootPackages(
+    api: ApiModel,
+    role: 'library' | 'project' = 'library',
+    include?: (namespace: ApiElement) => boolean,
+): ApiElement[] {
     const roots: ApiElement[] = [];
     for (const namespace of api.ofType('Namespace')) {
         if (api.owner(namespace['@id'])) continue; // a document's root namespace owns, it is not owned
         if (api.source(namespace['@id'])?.role !== role) continue;
+        if (include && !include(namespace)) continue;
         for (const member of api.ownedMembers(namespace['@id'])) {
             if (member['@type'] === 'Package' || member['@type'] === 'LibraryPackage') roots.push(member);
         }
@@ -92,7 +97,12 @@ function attributeMembers(api: ApiModel, definition: ApiElement): ApiElement[] {
 }
 
 /** Every kind and view definition the handoff declares under a package. */
-export function apiKindEntries(api: ApiModel, fileOf: (element: ApiElement) => string, role: 'library' | 'project' = 'library'): {
+export function apiKindEntries(
+    api: ApiModel,
+    fileOf: (element: ApiElement) => string,
+    role: 'library' | 'project' = 'library',
+    include?: (namespace: ApiElement) => boolean,
+): {
     kinds: KindRegistryEntry[]; views: ApiViewDefinition[];
 } {
     const kinds: KindRegistryEntry[] = [];
@@ -145,12 +155,16 @@ export function apiKindEntries(api: ApiModel, fileOf: (element: ApiElement) => s
             });
         }
     };
-    for (const pkg of rootPackages(api, role)) walk(pkg, [], fileOf(pkg));
+    for (const pkg of rootPackages(api, role, include)) walk(pkg, [], fileOf(pkg));
     return { kinds, views };
 }
 
 /** Every relationship type the handoff's connection and allocation definitions declare. */
-export function apiRelationshipEntries(api: ApiModel, fileOf: (element: ApiElement) => string): RelationshipRegistryEntry[] {
+export function apiRelationshipEntries(
+    api: ApiModel,
+    fileOf: (element: ApiElement) => string,
+    include?: (namespace: ApiElement) => boolean,
+): RelationshipRegistryEntry[] {
     const entries: RelationshipRegistryEntry[] = [];
     const walk = (pkg: ApiElement, layer: string) => {
         for (const member of api.ownedMembers(pkg['@id'])) {
@@ -198,7 +212,7 @@ export function apiRelationshipEntries(api: ApiModel, fileOf: (element: ApiEleme
             });
         }
     };
-    for (const pkg of rootPackages(api)) walk(pkg, resolveLayerFromPath(fileOf(pkg)));
+    for (const pkg of rootPackages(api, 'library', include)) walk(pkg, resolveLayerFromPath(fileOf(pkg)));
     return entries;
 }
 
@@ -235,15 +249,19 @@ function multiplicityOf(api: ApiModel, end: ApiElement): MultiplicityDTO | undef
  * `loadOntologyRegistries` completes MEMO's parse of the same files: kinds
  * placed through their supertypes and the reverse `derivedBy` links filled in.
  */
-export function apiOntologyRegistries(api: ApiModel, fileOf: (element: ApiElement) => string): {
+export function apiOntologyRegistries(
+    api: ApiModel,
+    fileOf: (element: ApiElement) => string,
+    include?: (namespace: ApiElement) => boolean,
+): {
     kindRegistry: KindRegistry; relationshipRegistry: RelationshipRegistry;
 } {
     const kindRegistry = new KindRegistry();
-    kindRegistry.populateFromApi(api, fileOf);
+    kindRegistry.populateFromApi(api, fileOf, include);
     kindRegistry.inheritPlacementFromSuperTypes();
     kindRegistry.computeDerivedBy();
     const relationshipRegistry = new RelationshipRegistry();
-    relationshipRegistry.populateFromApi(api, fileOf);
+    relationshipRegistry.populateFromApi(api, fileOf, include);
     return { kindRegistry, relationshipRegistry };
 }
 

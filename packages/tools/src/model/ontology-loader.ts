@@ -809,7 +809,7 @@ export async function loadOntologyRegistries(projectRoot: string): Promise<Ontol
  * which is what session 1 left this function waiting for; before, it was the
  * package's position in an ordered walk.
  */
-function buildProvenanceTable(resolution: NativeProjectResolution): ProvenanceTable {
+export function buildProvenanceTable(resolution: NativeProjectResolution): ProvenanceTable {
     const byDir = new Map<string, ResolvedRoot>();
     for (const pkg of resolution.closure.values()) {
         if (!pkg.root) continue;

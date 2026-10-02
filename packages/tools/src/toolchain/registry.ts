@@ -17,6 +17,7 @@ import type { BuilderRegistries } from '../model/builder.js';
 import type { MEMOConfig } from '../model/config.js';
 import type { MemoModel } from '../model/semantic.js';
 import type { ApiModel } from '../stage2/api-model.js';
+import type { NativeProjectResolution } from '../model/native-project.js';
 import type { Diagnostic } from './diagnostic.js';
 import type { MemoIr } from './protocol.js';
 
@@ -179,6 +180,12 @@ export interface CompileModelOptions {
      */
     filePackages?: ReadonlyMap<string, string>;
     /**
+     * Resolve the project from the compiled model: `libraryDirs` are every
+     * root a locator offers, and the import closure stage 1 states decides
+     * which of them is the ontology. MEMO parses nothing.
+     */
+    resolveProject?: boolean;
+    /**
      * Where a compiler keeps its stage 1 output between runs (a project's
      * `.memo/stage1`). A result whose inputs are unchanged is reused without
      * running the compiler; absent, every call compiles.
@@ -204,6 +211,8 @@ export interface CompileModelResult {
      * types the handoff states, which stage 2 uses from here on.
      */
     registries?: BuilderRegistries;
+    /** The project's resolution, when stage 1 stated it (`resolveProject`). */
+    resolution?: NativeProjectResolution;
     /** Whether stage 1 was reused from `cacheDir` rather than run. */
     cached?: boolean;
 }

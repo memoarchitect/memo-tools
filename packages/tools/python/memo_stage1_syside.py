@@ -65,7 +65,8 @@ def main() -> int:
 
     project_root = args.project.resolve()
     library_roots = [lib.resolve() for lib in args.library]
-    library_files = [f for root in library_roots for f in sysml_files(root)]
+    # Roots may nest (`src` and `src/methodology`): each file is loaded once.
+    library_files = list(dict.fromkeys(f for root in library_roots for f in sysml_files(root)))
     # A library root may sit inside the project (a project's own methodology):
     # its files load once, as library, or every namespace in them is declared twice.
     in_library = set(library_files)
