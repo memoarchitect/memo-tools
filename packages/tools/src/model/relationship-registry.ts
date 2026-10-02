@@ -39,6 +39,8 @@ export interface RelationshipType {
     color: string;
 }
 import type { ParsedDocument } from './parser-utils.js';
+import type { ApiElement, ApiModel } from '../stage2/api-model.js';
+import { apiRelationshipEntries } from '../stage2/registries-from-api.js';
 import { resolveLayerFromPath } from './layer-resolver.js';
 import type {
     MultiplicityDTO,
@@ -371,12 +373,12 @@ export function pascalToCamelCase(name: string): string {
  * Convert PascalCase to a human-readable label.
  * "TraceTo" → "Trace To", "HasSubProcedure" → "Has Sub Procedure"
  */
-function pascalToLabel(name: string): string {
+export function pascalToLabel(name: string): string {
     return name.replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 
 /** Strip the `doc /* … *​/` wrapper and per-line asterisks from a doc comment. */
-function cleanDocComment(content: string): string | undefined {
+export function cleanDocComment(content: string): string | undefined {
     const text = content
         .replace(/^doc\s+\/\*\s*/, '')
         .replace(/\s*\*\/$/, '')
@@ -540,6 +542,16 @@ export class RelationshipRegistry {
      * Populate the registry from parsed SysML documents.
      * Walks all ConnectionDefinition nodes in each document's AST.
      */
+    /**
+     * Discover relationship types from a stage 1 handoff instead of MEMO's
+     * parse (`apiRelationshipEntries`), then the language-native relations, as
+     * `populateFromDocuments` does.
+     */
+    populateFromApi(api: ApiModel, fileOf: (element: ApiElement) => string): void {
+        for (const entry of apiRelationshipEntries(api, fileOf)) this.relTypes.set(entry.name, entry);
+        this.registerLanguageNatives();
+    }
+
     populateFromDocuments(documents: ParsedDocument[]): void {
         for (const doc of documents) {
             const model = doc.document.parseResult.value;

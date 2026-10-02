@@ -108,4 +108,6 @@ export * from './operations/index.js';
 // ─── Stage 2: the MEMO graph from a SysML compiler's API JSON ──────────────
 export * from './stage2/api-model.js';
 export * from './stage2/build-from-api.js';
+export * from './stage2/handoff-files.js';
+export * from './stage2/registries-from-api.js';
 export * from './stage2/sysml-names.js';
