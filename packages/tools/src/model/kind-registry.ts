@@ -348,6 +348,26 @@ export class KindRegistry {
      * FirmwareComponent everywhere the ontology accepts SoftwareComponent.
      */
     withProjectExtensions(documents: ParsedDocument[]): KindRegistry {
+        const discovered = new KindRegistry();
+        discovered.populateFromDocuments(documents);
+        return this.extendedWith(discovered);
+    }
+
+    /**
+     * `withProjectExtensions` over a stage 1 handoff: the project's own
+     * definitions (its `project` documents), resolved against this registry
+     * the same way.
+     */
+    withProjectExtensionsFromApi(api: ApiModel, fileOf: (element: ApiElement) => string): KindRegistry {
+        const discovered = new KindRegistry();
+        const { kinds, views } = apiKindEntries(api, fileOf, 'project');
+        for (const view of views) discovered.registerViewDefinition(view.name, view.defaults, view.superType);
+        for (const kind of kinds) discovered.register(kind);
+        return this.extendedWith(discovered);
+    }
+
+    /** A copy of this registry extended with the kinds a project discovered. */
+    private extendedWith(discovered: KindRegistry): KindRegistry {
         const result = new KindRegistry();
         for (const entry of this.kinds.values()) {
             result.register({
@@ -363,8 +383,6 @@ export class KindRegistry {
             result.viewSuperTypes.set(name, superType);
         }
 
-        const discovered = new KindRegistry();
-        discovered.populateFromDocuments(documents);
         let pending = discovered.entries().filter(entry => !result.has(entry.name));
 
         // Resolve repeatedly so chains of local extensions work regardless of

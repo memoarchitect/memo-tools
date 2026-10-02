@@ -9,13 +9,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { SysMLConstruct } from '../model/config.js';
-import type { KindRegistryEntry } from '../model/kind-registry.js';
+import { KindRegistry, type KindRegistryEntry } from '../model/kind-registry.js';
 import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from '../model/layer-resolver.js';
 import type { RelationshipEnd, RelationshipRegistryEntry } from '../model/relationship-registry.js';
-import { pascalToCamelCase, pascalToLabel } from '../model/relationship-registry.js';
+import { pascalToCamelCase, pascalToLabel, RelationshipRegistry } from '../model/relationship-registry.js';
 import type { MultiplicityDTO } from '../model/relationship-legality.js';
 import type { ApiElement, ApiModel } from './api-model.js';
 import { apiDefinitionFacts } from './build-from-api.js';
+import { handoffFileOf } from './handoff-files.js';
+import type { BuilderRegistries } from '../model/builder.js';
 
 /** The definition metaclasses a kind is declared with, and the construct each is. */
 const KIND_CONSTRUCTS: Record<string, SysMLConstruct> = {
@@ -46,15 +48,15 @@ export interface ApiViewDefinition {
 }
 
 /**
- * The top-level packages of the library documents: the ontology the registries
- * describe. A project's own definitions are added to a copy of the registry
- * later (`withProjectExtensions`), as with MEMO's parse.
+ * The top-level packages of the documents of one role: the library's are the
+ * ontology the registries describe; a project's own definitions are added to a
+ * copy of the registry (`withProjectExtensions`), as with MEMO's parse.
  */
-function rootPackages(api: ApiModel): ApiElement[] {
+function rootPackages(api: ApiModel, role: 'library' | 'project' = 'library'): ApiElement[] {
     const roots: ApiElement[] = [];
     for (const namespace of api.ofType('Namespace')) {
         if (api.owner(namespace['@id'])) continue; // a document's root namespace owns, it is not owned
-        if (api.source(namespace['@id'])?.role !== 'library') continue;
+        if (api.source(namespace['@id'])?.role !== role) continue;
         for (const member of api.ownedMembers(namespace['@id'])) {
             if (member['@type'] === 'Package' || member['@type'] === 'LibraryPackage') roots.push(member);
         }
@@ -90,7 +92,7 @@ function attributeMembers(api: ApiModel, definition: ApiElement): ApiElement[] {
 }
 
 /** Every kind and view definition the handoff declares under a package. */
-export function apiKindEntries(api: ApiModel, fileOf: (element: ApiElement) => string): {
+export function apiKindEntries(api: ApiModel, fileOf: (element: ApiElement) => string, role: 'library' | 'project' = 'library'): {
     kinds: KindRegistryEntry[]; views: ApiViewDefinition[];
 } {
     const kinds: KindRegistryEntry[] = [];
@@ -143,7 +145,7 @@ export function apiKindEntries(api: ApiModel, fileOf: (element: ApiElement) => s
             });
         }
     };
-    for (const pkg of rootPackages(api)) walk(pkg, [], fileOf(pkg));
+    for (const pkg of rootPackages(api, role)) walk(pkg, [], fileOf(pkg));
     return { kinds, views };
 }
 
@@ -226,4 +228,34 @@ function multiplicityOf(api: ApiModel, end: ApiElement): MultiplicityDTO | undef
         return { lower: value(bounds[0]) ?? 0, upper: value(bounds[1]) };
     }
     return undefined;
+}
+
+/**
+ * The ontology registries a stage 1 handoff states, completed as
+ * `loadOntologyRegistries` completes MEMO's parse of the same files: kinds
+ * placed through their supertypes and the reverse `derivedBy` links filled in.
+ */
+export function apiOntologyRegistries(api: ApiModel, fileOf: (element: ApiElement) => string): {
+    kindRegistry: KindRegistry; relationshipRegistry: RelationshipRegistry;
+} {
+    const kindRegistry = new KindRegistry();
+    kindRegistry.populateFromApi(api, fileOf);
+    kindRegistry.inheritPlacementFromSuperTypes();
+    kindRegistry.computeDerivedBy();
+    const relationshipRegistry = new RelationshipRegistry();
+    relationshipRegistry.populateFromApi(api, fileOf);
+    return { kindRegistry, relationshipRegistry };
+}
+
+/**
+ * The registries stage 2 builds a handoff's model with: `base`'s (provenance,
+ * which project resolution states), with the kinds and relationship types the
+ * handoff itself declares in place of any MEMO's parse produced.
+ */
+export function handoffRegistries(
+    api: ApiModel,
+    base: BuilderRegistries | undefined,
+    filePackages: ReadonlyMap<string, string> | undefined,
+): BuilderRegistries {
+    return { ...base, ...apiOntologyRegistries(api, handoffFileOf(api, filePackages)) };
 }

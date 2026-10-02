@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, collectApiConstraints, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
+import { IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, collectApiConstraints, handoffFileOf, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument, EffectiveRule, ParseError } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
@@ -243,7 +243,12 @@ export async function devCommand(options: {
         // `toolchain.compiler` decides where the model comes from. A stage 1
         // that reports errors makes this build incoherent, so a client keeps
         // showing the last good one; MEMO's own parse still backs the display.
-        const stage1 = await compileModelWithSelected({ config, projectDir: cwd, registries: projectRegistries });
+        const stage1 = await compileModelWithSelected({
+            config, projectDir: cwd, registries: projectRegistries,
+            libraryDirs: nativeResolution.selectedRoots.map(root => root.sysmlDir),
+            projectFiles: new Set(documents.map(d => relative(cwd, resolve(cwd, d.filePath)))),
+            filePackages: nativeResolution.filePackages,
+        });
         if (stage1 && (!stage1.accepted || !stage1.model)) {
             errors = [...errors, ...stage1.diagnostics.filter(d => d.severity === 'error').map(d => ({
                 file: d.file ?? '', line: d.range?.start.line, message: d.message, code: d.code,
@@ -262,7 +267,16 @@ export async function devCommand(options: {
         const nativeConstraints = stage1?.accepted && stage1.model && stage1.api
             ? collectApiConstraints(stage1.api, undefined, new Map(ruleDocuments.map(d => [d.filePath, ''])))
             : collectNativeConstraints(ruleDocuments);
-        const validation = validateModel(model, nativeConstraints, projectRegistries?.kindRegistry);
+        // An accepted stage 1 states the ontology, and the project's own kinds
+        // extend it, as MEMO's parse of the same files would.
+        const stage2Registries: BuilderRegistries | undefined = stage1?.accepted && stage1.model && stage1.api && stage1.registries
+            ? {
+                ...stage1.registries,
+                kindRegistry: stage1.registries.kindRegistry?.withProjectExtensionsFromApi(
+                    stage1.api, handoffFileOf(stage1.api, nativeResolution.filePackages)),
+            }
+            : projectRegistries;
+        const validation = validateModel(model, nativeConstraints, stage2Registries?.kindRegistry);
         const effectiveRuleSet = (() => {
             try {
                 const resolved = resolveEffectiveRules(
@@ -297,7 +311,7 @@ export async function devCommand(options: {
 
         // Views modelled in SysML (DiagramView/DocumentView usages) surface as
         // viewpoint-grouped auto diagrams.
-        const derivedViews = deriveModelViews(model, projectRegistries?.kindRegistry);
+        const derivedViews = deriveModelViews(model, stage2Registries?.kindRegistry);
         viewpoints.push(...derivedViews.viewpoints);
 
         const diagrams: DiagramDTO[] = [];
@@ -318,8 +332,8 @@ export async function devCommand(options: {
         if (existsSync(userDiagramsPath)) {
             try {
                 const rawUserDiagrams = JSON.parse(readFileSync(userDiagramsPath, 'utf8')) as DiagramDTO[];
-                const validUserDiagrams = projectRegistries
-                    ? validateDiagramsAgainstOntology(rawUserDiagrams, projectRegistries)
+                const validUserDiagrams = stage2Registries
+                    ? validateDiagramsAgainstOntology(rawUserDiagrams, stage2Registries)
                     : rawUserDiagrams;
                 diagrams.push(...validUserDiagrams);
             } catch {
@@ -329,10 +343,10 @@ export async function devCommand(options: {
 
         // Ship the ontology registries with the model so the client resolves
         // relationship legality from the ontology, not a hardcoded table.
-        const registriesDTO: OntologyRegistriesDTO | undefined = projectRegistries
+        const registriesDTO: OntologyRegistriesDTO | undefined = stage2Registries
             ? {
-                relationships: projectRegistries.relationshipRegistry?.toDefinitionDTOs() ?? [],
-                kinds: projectRegistries.kindRegistry?.toDefinitionDTOs() ?? [],
+                relationships: stage2Registries.relationshipRegistry?.toDefinitionDTOs() ?? [],
+                kinds: stage2Registries.kindRegistry?.toDefinitionDTOs() ?? [],
             }
             : undefined;
 
@@ -360,7 +374,7 @@ export async function devCommand(options: {
         // second request. Same computation as `memo standards check`.
         try {
             const library = loadStandardsLibrary(cwd);
-            const kindRegistry = projectRegistries?.kindRegistry;
+            const kindRegistry = stage2Registries?.kindRegistry;
             const declared = readDeclaredRegimes(model);
             dto.standardsReport = computeStandardsReport({
                 library,

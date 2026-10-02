@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ApiModel, type ApiElement, type Stage1Output } from '../stage2/api-model.js';
 import { KindRegistry } from '../model/kind-registry.js';
 import { RelationshipRegistry } from '../model/relationship-registry.js';
+import { handoffRegistries } from '../stage2/registries-from-api.js';
 
 // A library document of the ontology and a project document, as a stage 1
 // compiler's API JSON states them. The library declares kinds and a
@@ -161,6 +162,22 @@ describe('ontology registries read from a stage 1 handoff', () => {
             { name: 'exact', type: 'Hazard', multiplicity: { lower: 3, upper: 3 } },
             { name: 'any', type: 'Hazard', multiplicity: { lower: 0, upper: null } },
         ]);
+    });
+
+    it('extends a copy with the project\'s own kinds, placed by their library supertype', () => {
+        const extended = kinds.withProjectExtensionsFromApi(api, fileOf);
+        expect(extended.getKind('Pump')).toMatchObject({ superType: 'Hazard', layer: 'core', qualifiedName: 'app::Pump' });
+        expect(kinds.has('Pump')).toBe(false);
+    });
+
+    it('builds stage 2\'s registries from the handoff, keeping the base\'s provenance', () => {
+        const provenance = new Map() as never;
+        const parsed = { kindRegistry: new KindRegistry(), relationshipRegistry: new RelationshipRegistry(), provenance };
+        const registries = handoffRegistries(api, parsed, undefined);
+        expect(registries.provenance).toBe(provenance);
+        expect(registries.kindRegistry).not.toBe(parsed.kindRegistry);
+        expect(registries.kindRegistry?.kindNames().sort()).toEqual(['Hazard', 'Level', 'Link', 'RiskItem']);
+        expect(registries.relationshipRegistry?.has('mitigates')).toBe(true);
     });
 
     it('registers the language-native relations, as the parse reader does', () => {
