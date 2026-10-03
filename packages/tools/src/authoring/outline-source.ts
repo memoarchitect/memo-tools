@@ -19,6 +19,10 @@ import type { ParsedDocument } from '../model/parser-utils.js';
 import type { ApiModel } from '../stage2/api-model.js';
 import { loadProjectModel, Stage1RejectedError, type ProjectModel } from '../toolchain/project-model.js';
 import { selectedCompilerBuildsModel } from '../toolchain/operations.js';
+import { resolveToolchain } from '../toolchain/effective.js';
+import { defaultRegistry } from '../toolchain/default-registry.js';
+import { OPENSYSML_PROVIDER_ID } from '../toolchain/providers/opensysml.js';
+import { checkWithOpenSysML } from '../toolchain/providers/opensysml-check.js';
 import { outlineIdentities, outlineIdentityTable } from './outline-identity.js';
 import { emptyOutline, outlineFromHandoff, outlineFromParse, type SourceOutline } from './source-outline.js';
 
@@ -32,11 +36,13 @@ export interface OutlineSource {
     outline(file: string, text: string): Promise<SourceOutline>;
     /**
      * Compile the project with `text` in place of the file, before it reaches
-     * disk, and give the outline of that text. Rejects with the compiler's
-     * diagnostics when it does not accept the result: an edit that would make
-     * the project invalid SysML is not written.
+     * disk. Rejects with the compiler's diagnostics when it does not accept
+     * the result: an edit that would make the project invalid SysML is not
+     * written. Gives the outline of the text when the compile states one;
+     * OpenSysML's verdict on a content document does not, since stating it
+     * would cost a conversion of the whole model.
      */
-    verify(file: string, text: string): Promise<SourceOutline>;
+    verify(file: string, text: string): Promise<SourceOutline | undefined>;
 }
 
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -83,8 +89,30 @@ export function handoffOutlineSource(options: {
             }
             return outlineFromHandoff(api, resolve(options.projectRoot, file), file, text);
         },
-        verify: (file, text) => verifyInScratchCopy(options.projectRoot, options.config, file, text),
+        verify: (file, text) => verifyWithSelected(options.projectRoot, options.config, file, text),
     };
+}
+
+/**
+ * Verify an edit with the selected compiler: OpenSysML compiles the edited
+ * text as a content document, any other compiler a scratch copy of the
+ * project.
+ */
+function verifyWithSelected(projectRoot: string, config: MEMOConfig, file: string, text: string): Promise<SourceOutline | undefined> {
+    return resolveToolchain(config, defaultRegistry).lowering === OPENSYSML_PROVIDER_ID
+        ? verifyAsContent(projectRoot, config, file, text)
+        : verifyInScratchCopy(projectRoot, config, file, text);
+}
+
+/** OpenSysML's verdict on the project with the file's text replaced, read without writing it. */
+async function verifyAsContent(projectRoot: string, config: MEMOConfig, file: string, text: string): Promise<undefined> {
+    const absolute = resolve(projectRoot, file);
+    const errors = await checkWithOpenSysML(config, projectRoot, new Map([[absolute, text]]));
+    if (errors.length > 0) {
+        const where = (d: (typeof errors)[number]) => `${d.file ? relativeTo(projectRoot, resolve(projectRoot, d.file)) : file}:${d.range?.start.line ?? '?'}`;
+        throw new Error(`opensysml rejects the updated ${file}: ${errors.slice(0, 3).map(d => `${where(d)} ${d.message}`).join('; ')}`);
+    }
+    return undefined;
 }
 
 /** What a scratch copy of a project leaves out: tool state and dependencies, which are linked. */
@@ -141,7 +169,7 @@ export function selectedOutlineSource(projectRoot: string, config: MEMOConfig): 
             return (await source()).outline(file, text);
         },
         async verify(file, text) {
-            return verifyInScratchCopy(projectRoot, config, file, text);
+            return verifyWithSelected(projectRoot, config, file, text);
         },
     };
 }

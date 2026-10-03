@@ -406,9 +406,12 @@ export async function writeRelationship(
     if (typeof checked === 'string') {
         return { success: false, error: `The updated source was not accepted (${checked}); the file was left unchanged` };
     }
-    const written = notationIsNameable(notation)
+    // Where the compile states the edited outline, the declaration must be in
+    // it. OpenSysML's content verdict states none: its acceptance of the file
+    // with the generated declaration at a member position is the check.
+    const written = !checked || (notationIsNameable(notation)
         ? findConnectionUsage(checked, relationshipId) !== undefined
-        : containsDeclaration(checked, declaration);
+        : containsDeclaration(checked, declaration));
     if (!written) {
         return {
             success: false,
@@ -546,9 +549,9 @@ export async function updateRelationship(
         return { success: false, error: `The updated source was not accepted (${checked}); the file was left unchanged` };
     }
     const notation = notationFor(definition);
-    const present = notationIsNameable(notation)
+    const present = !checked || (notationIsNameable(notation)
         ? findConnectionUsage(checked, declaredNameOf(relationship)) !== undefined
-        : containsDeclaration(checked, declaration);
+        : containsDeclaration(checked, declaration));
     if (!present) return { success: false, error: 'The updated relationship was not present after compiling; the file was left unchanged' };
 
     try {
@@ -666,7 +669,7 @@ export async function removeRelationship(
                 'the file was left unchanged',
         };
     }
-    if (findConnectionUsage(checked, declaredNameOf(relationship))) {
+    if (checked && findConnectionUsage(checked, declaredNameOf(relationship))) {
         return { success: false, error: 'The relationship was still present after removal; the file was left unchanged' };
     }
 
@@ -744,7 +747,7 @@ function locateRelationship(
 }
 
 /** The file's outline after compiling the text, or why the compiler refused it. */
-async function verified(outlines: OutlineSource, file: string, text: string): Promise<SourceOutline | string> {
+async function verified(outlines: OutlineSource, file: string, text: string): Promise<SourceOutline | undefined | string> {
     try {
         return await outlines.verify(file, text);
     } catch (e) {
