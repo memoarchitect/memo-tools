@@ -32,12 +32,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 
-import { parseText } from '../model/parser-utils.js';
 import type { DiagramDTO, MemoElement, MemoModelDTO } from '../types/index.js';
 import { insertIntoBody, locatePackages } from './package-source.js';
 import { commitSource } from './persistor.js';
+import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import { outlineNodes } from '../authoring/source-outline.js';
 
 export interface ViewWriteResult {
     success: boolean;
@@ -167,6 +168,8 @@ export function selectionQueryLines(diagram: DiagramDTO): string[] {
 
 export async function writeViewDeclaration(
     projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO,
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<ViewWriteResult> {
     const home = conventionalHome(siblingViews(model, diagram.viewKind ?? null));
     const bootstrap = home ? undefined : bootstrapHome(projectRoot, model, diagram);
@@ -186,14 +189,20 @@ export async function writeViewDeclaration(
             '}',
             '',
         ].join('\n');
-        const seeded = await commitSource(absolute, targetFile, header);
+        const seeded = await commitSource(absolute, targetFile, header, outlines);
         if (!seeded.success) return { success: false, reason: seeded.error };
     } else if (!existsSync(absolute)) {
         return { success: false, reason: `${targetFile} does not exist` };
     }
 
     const source = readFileSync(absolute, 'utf8');
-    const packages = await locatePackages(source);
+    let outline;
+    try {
+        outline = await outlines.outline(targetFile.replaceAll('\\', '/'), source);
+    } catch (e) {
+        return { success: false, reason: `${targetFile} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
+    }
+    const packages = locatePackages(outline);
     const wanted = bootstrap ? bootstrap.pkg : exemplar.package;
     const target = packages.find(pkg => pkg.qualifiedName === wanted) ?? packages[0];
     if (!target) return { success: false, reason: `${targetFile} declares no package to hold the view` };
@@ -240,25 +249,10 @@ export async function writeViewDeclaration(
         '}',
     ].join('\n');
 
-    const updated = insertIntoBody(readFileSync(absolute, 'utf8'), target, `${body}\n`);
-    const committed = await commitSource(absolute, targetFile, updated);
+    const updated = insertIntoBody(source, target, `${body}\n`);
+    const committed = await commitSource(absolute, targetFile, updated, outlines);
     if (!committed.success) return { success: false, reason: committed.error };
     return { success: true, filePath: targetFile, identifier, created: !!bootstrap };
-}
-
-/** Every node in a parsed document, so a declaration can be found by name. */
-function allNodes(root: any): any[] {
-    const found: any[] = [];
-    const stack: any[] = [...(root.members ?? [])];
-    while (stack.length) {
-        const node = stack.pop();
-        if (!node || typeof node !== 'object') continue;
-        found.push(node);
-        for (const key of ['members', 'body']) {
-            if (Array.isArray(node[key])) stack.push(...node[key]);
-        }
-    }
-    return found;
 }
 
 /**
@@ -275,6 +269,8 @@ function allNodes(root: any): any[] {
  */
 export async function updateViewExpose(
     projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO, elementIds: string[] | undefined,
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<ViewWriteResult & { exposed?: string[] }> {
     const view = model.elements[diagram?.elementId ?? ''];
     if (!view?.file) return { success: false, reason: 'the view has no source file to edit' };
@@ -289,17 +285,19 @@ export async function updateViewExpose(
     const absolute = resolve(projectRoot, view.file);
     if (!existsSync(absolute)) return { success: false, reason: `${view.file} does not exist` };
     const source = readFileSync(absolute, 'utf8');
-    const parsed = await parseText(source);
-    if (parsed.errors.length) {
-        return { success: false, reason: `${view.file} does not parse (${parsed.errors[0].message})` };
+    const file = (isAbsolute(view.file) ? relative(projectRoot, view.file) : view.file).replaceAll('\\', '/');
+    let outline;
+    try {
+        outline = await outlines.outline(file, source);
+    } catch (e) {
+        return { success: false, reason: `${view.file} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
     }
-    const node = allNodes(parsed.document.parseResult.value as any)
-        .find(candidate => candidate.name === view.id && candidate.$cstNode);
+    // The view's id is its qualified name, which is its declaration's key.
+    const node = [...outlineNodes(outline)].find(candidate => candidate.key === view.id);
     if (!node) return { success: false, reason: `${view.id} was not found in ${view.file}` };
 
-    const cst = node.$cstNode;
-    const declaration = source.slice(cst.offset, cst.offset + cst.length);
-    const indent = ' '.repeat((cst.offset - (source.lastIndexOf('\n', cst.offset - 1) + 1)) + 4);
+    const declaration = source.slice(node.start, node.end);
+    const indent = ' '.repeat((node.start - (source.lastIndexOf('\n', node.start - 1) + 1)) + 4);
     const exposeLines = packages.map(pkg => `${indent}expose ${pkg}::*;`).join('\n');
     // Drop the existing expose members, then re-state the set just inside the
     // opening brace, where every authored view puts them.
@@ -307,9 +305,9 @@ export async function updateViewExpose(
     const brace = withoutExpose.indexOf('{');
     if (brace < 0) return { success: false, reason: `${view.id} has no body to expose into` };
     const rewritten = `${withoutExpose.slice(0, brace + 1)}\n${exposeLines}${withoutExpose.slice(brace + 1)}`;
-    const updated = source.slice(0, cst.offset) + rewritten + source.slice(cst.offset + cst.length);
+    const updated = source.slice(0, node.start) + rewritten + source.slice(node.end);
 
-    const committed = await commitSource(absolute, view.file, updated);
+    const committed = await commitSource(absolute, view.file, updated, outlines);
     if (!committed.success) return { success: false, reason: committed.error };
     return { success: true, filePath: view.file, exposed: packages };
 }

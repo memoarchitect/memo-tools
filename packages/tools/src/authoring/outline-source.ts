@@ -9,25 +9,34 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type { MEMOConfig } from '../model/config.js';
 import type { IrIdentityIndex } from '../model/ir-identity.js';
 import { parseText } from '../model/parser-utils.js';
 import type { ParsedDocument } from '../model/parser-utils.js';
 import type { ApiModel } from '../stage2/api-model.js';
-import { loadProjectModel, type ProjectModel } from '../toolchain/project-model.js';
+import { loadProjectModel, Stage1RejectedError, type ProjectModel } from '../toolchain/project-model.js';
 import { selectedCompilerBuildsModel } from '../toolchain/operations.js';
 import { outlineIdentities, outlineIdentityTable } from './outline-identity.js';
-import { outlineFromHandoff, outlineFromParse, type SourceOutline } from './source-outline.js';
+import { emptyOutline, outlineFromHandoff, outlineFromParse, type SourceOutline } from './source-outline.js';
 
 /** The outline of one project file, given its current text. */
 export interface OutlineSource {
     /**
-     * `file` is project-relative. Rejects with a message when the text is not
-     * one the selected compiler accepts: there is no outline to edit then.
+     * The outline of a file as it is on disk. `file` is project-relative.
+     * Rejects with a message when the text is not one the selected compiler
+     * accepts: there is no outline to edit then.
      */
     outline(file: string, text: string): Promise<SourceOutline>;
+    /**
+     * Compile the project with `text` in place of the file, before it reaches
+     * disk, and give the outline of that text. Rejects with the compiler's
+     * diagnostics when it does not accept the result: an edit that would make
+     * the project invalid SysML is not written.
+     */
+    verify(file: string, text: string): Promise<SourceOutline>;
 }
 
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -35,8 +44,14 @@ const sha = (text: string) => createHash('sha256').update(text).digest('hex');
 /** Outlines from MEMO's parse of the current text. */
 export const parseOutlineSource: OutlineSource = {
     async outline(file, text) {
+        if (!text.trim()) return emptyOutline(file, text);
         const { document, errors } = await parseText(text);
         if (errors.length > 0) throw new Error(`${file} does not parse (${errors[0].message})`);
+        return outlineFromParse(document.parseResult.value as never, file, text);
+    },
+    async verify(file, text) {
+        const { document, errors } = await parseText(text);
+        if (errors.length > 0) throw new Error(`the updated ${file} did not parse (${errors[0].message})`);
         return outlineFromParse(document.parseResult.value as never, file, text);
     },
 };
@@ -55,6 +70,8 @@ export function handoffOutlineSource(options: {
     let hashes = new Map([...options.texts].map(([file, text]) => [file, sha(text)]));
     return {
         async outline(file, text) {
+            // An empty file declares nothing, whether or not it was compiled.
+            if (!text.trim()) return emptyOutline(file, text);
             if (hashes.get(file) !== sha(text)) {
                 const project = await loadProjectModel({ projectRoot: options.projectRoot, config: options.config });
                 if (!project.api) throw new Error(`${project.compiler} built no handoff to outline ${file} from`);
@@ -66,7 +83,47 @@ export function handoffOutlineSource(options: {
             }
             return outlineFromHandoff(api, resolve(options.projectRoot, file), file, text);
         },
+        verify: (file, text) => verifyInScratchCopy(options.projectRoot, options.config, file, text),
     };
+}
+
+/** What a scratch copy of a project leaves out: tool state and dependencies, which are linked. */
+const NOT_COPIED = new Set(['.memo', '.git', 'node_modules']);
+
+/**
+ * Compile the project with one file's text replaced, in a scratch copy of the
+ * project: every stage 1 compiler reads its documents from disk, and the
+ * project's own file must not change until the edit is known to be valid.
+ * The libraries are not copied; the copy resolves them as the project does.
+ */
+async function verifyInScratchCopy(projectRoot: string, config: MEMOConfig, file: string, text: string): Promise<SourceOutline> {
+    const scratch = mkdtempSync(join(tmpdir(), 'memo-verify-'));
+    try {
+        cpSync(projectRoot, scratch, {
+            recursive: true,
+            filter: source => !NOT_COPIED.has(basename(source)) || source === projectRoot,
+        });
+        const modules = join(projectRoot, 'node_modules');
+        if (existsSync(modules)) symlinkSync(modules, join(scratch, 'node_modules'), 'dir');
+        const target = join(scratch, file);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, text, 'utf8');
+        let project: ProjectModel;
+        try {
+            project = await loadProjectModel({ projectRoot: scratch, config, cache: false });
+        } catch (e) {
+            if (e instanceof Stage1RejectedError) {
+                const errors = e.diagnostics.filter(d => d.severity === 'error')
+                    .map(d => `${d.file ? relative(scratch, resolve(scratch, d.file)) : file}:${d.range?.start.line ?? '?'} ${d.message}`);
+                throw new Error(`${e.compiler} rejects the updated ${file}: ${errors.slice(0, 3).join('; ')}`);
+            }
+            throw e;
+        }
+        if (!project.api) throw new Error(`${project.compiler} built no handoff to verify ${file} with`);
+        return outlineFromHandoff(project.api, target, file, text);
+    } finally {
+        rmSync(scratch, { recursive: true, force: true });
+    }
 }
 
 /**
@@ -77,11 +134,14 @@ export function handoffOutlineSource(options: {
 export function selectedOutlineSource(projectRoot: string, config: MEMOConfig): OutlineSource {
     if (!selectedCompilerBuildsModel(config)) return parseOutlineSource;
     let loaded: Promise<OutlineSource> | undefined;
+    const source = () => (loaded ??= loadProjectModel({ projectRoot, config })
+        .then(project => outlineSourceFor(projectRoot, config, project)));
     return {
         async outline(file, text) {
-            loaded ??= loadProjectModel({ projectRoot, config })
-                .then(project => outlineSourceFor(projectRoot, config, project));
-            return (await loaded).outline(file, text);
+            return (await source()).outline(file, text);
+        },
+        async verify(file, text) {
+            return verifyInScratchCopy(projectRoot, config, file, text);
         },
     };
 }

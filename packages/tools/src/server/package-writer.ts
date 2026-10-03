@@ -23,7 +23,6 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { parseText } from '../model/parser-utils.js';
 import {
     requireIrIdentity,
     StaleIrIdentityError,
@@ -31,8 +30,9 @@ import {
 } from '../model/ir-identity.js';
 import { commitSource } from './persistor.js';
 import {
-    dedent, insertIntoBody, locateContainers, locatePackages, removeLine, spliceIndented,
+    dedent, insertIntoBody, locateContainers, locatePackages, removedLine, removeLine, spliceIndented,
 } from './package-source.js';
+import { spliceOutline, type SourceOutline } from '../authoring/source-outline.js';
 import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
 import { resolveOutlineIdentity } from '../authoring/outline-identity.js';
 
@@ -76,6 +76,8 @@ const PACKAGE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export async function createPackage(
     cwd: string,
     request: { file: string; parent?: string; name: string },
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, parent, name } = request;
     if (!PACKAGE_NAME.test(name)) {
@@ -88,7 +90,9 @@ export async function createPackage(
 
     // Containers, not only packages: a grouping package is declared inside a
     // usage body, so the parent named here may be the part being grouped.
-    const existing = await locateContainers(source);
+    const outline = await outlineOf(outlines, file, source);
+    if (typeof outline === 'string') return { success: false, filePaths: [], error: outline };
+    const existing = locateContainers(outline);
     if (existing.some(pkg => pkg.isPackage && pkg.qualifiedName === qualifiedName)) {
         return { success: false, filePaths: [], error: `Package "${qualifiedName}" already exists in ${file}.` };
     }
@@ -105,7 +109,7 @@ export async function createPackage(
         updated = `${source}${separator}package ${name} {\n}\n`;
     }
 
-    const committed = await commitSource(absolute, file, updated);
+    const committed = await commitSource(absolute, file, updated, outlines);
     if (!committed.success) return { success: false, filePaths: [], error: committed.error };
     return { success: true, filePaths: [file], qualifiedName };
 }
@@ -119,6 +123,8 @@ export async function createPackage(
 export async function renamePackage(
     cwd: string,
     request: { file: string; qualifiedName: string; name: string },
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, qualifiedName, name } = request;
     if (!PACKAGE_NAME.test(name)) {
@@ -129,7 +135,9 @@ export async function renamePackage(
     if (!existsSync(absolute)) return { success: false, filePaths: [], error: `${file} does not exist.` };
     const source = readFileSync(absolute, 'utf8');
 
-    const packages = await locatePackages(source);
+    const outline = await outlineOf(outlines, file, source);
+    if (typeof outline === 'string') return { success: false, filePaths: [], error: outline };
+    const packages = locatePackages(outline);
     const target = packages.find(pkg => pkg.qualifiedName === qualifiedName);
     if (!target) {
         return { success: false, filePaths: [], error: `${file} does not declare package "${qualifiedName}".` };
@@ -150,7 +158,7 @@ export async function renamePackage(
     const nameStart = target.start + match.index + match[1].length;
     const updated = source.slice(0, nameStart) + name + source.slice(nameStart + target.name.length);
 
-    const committed = await commitSource(absolute, file, updated);
+    const committed = await commitSource(absolute, file, updated, outlines);
     if (!committed.success) return { success: false, filePaths: [], error: committed.error };
     return {
         success: true, filePaths: [file], qualifiedName: renamed,
@@ -175,6 +183,8 @@ export async function movePackage(
         targetParent?: string;
         targetFile: string;
     },
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, qualifiedName, targetParent, targetFile } = request;
     if (targetParent === qualifiedName || targetParent?.startsWith(`${qualifiedName}::`)) {
@@ -191,7 +201,9 @@ export async function movePackage(
     if (!existsSync(targetAbsolute)) return { success: false, filePaths: [], error: `${targetFile} does not exist.` };
 
     const source = readFileSync(absolute, 'utf8');
-    const target = (await locatePackages(source)).find(pkg => pkg.qualifiedName === qualifiedName);
+    const outline = await outlineOf(outlines, file, source);
+    if (typeof outline === 'string') return { success: false, filePaths: [], error: outline };
+    const target = locatePackages(outline).find(pkg => pkg.qualifiedName === qualifiedName);
     if (!target) {
         return { success: false, filePaths: [], error: `${file} does not declare package "${qualifiedName}".` };
     }
@@ -199,14 +211,20 @@ export async function movePackage(
     const renamed = targetParent ? `${targetParent}::${moved}` : moved;
 
     const declaration = dedent(source.slice(target.start, target.end).replace(/\s+$/, ''));
+    const removed = removedLine(source, target.start, target.end);
     const withoutPackage = removeLine(source, target.start, target.end);
 
     const sameFile = absolute === targetAbsolute;
     const targetSource = sameFile ? withoutPackage : readFileSync(targetAbsolute, 'utf8');
+    // The same file's outline follows the removal; another file's is its own.
+    const targetOutline = sameFile
+        ? spliceOutline(outline, removed.from, removed.to, '')
+        : await outlineOf(outlines, targetFile, targetSource);
+    if (typeof targetOutline === 'string') return { success: false, filePaths: [], error: targetOutline };
 
     let updatedTarget: string;
     if (targetParent) {
-        const parent = (await locatePackages(targetSource)).find(pkg => pkg.qualifiedName === targetParent);
+        const parent = locatePackages(targetOutline).find(pkg => pkg.qualifiedName === targetParent);
         if (!parent) {
             return { success: false, filePaths: [], error: `${targetFile} does not declare package "${targetParent}".` };
         }
@@ -218,14 +236,14 @@ export async function movePackage(
 
     const warnings = [{ code: 'package-edit-is-text-only' as const, message: PACKAGE_EDIT_IS_TEXT_ONLY }];
     if (sameFile) {
-        const committed = await commitSource(absolute, file, updatedTarget);
+        const committed = await commitSource(absolute, file, updatedTarget, outlines);
         if (!committed.success) return { success: false, filePaths: [], error: committed.error };
         return { success: true, filePaths: [file], qualifiedName: renamed, warnings };
     }
 
-    const committedTarget = await commitSource(targetAbsolute, targetFile, updatedTarget);
+    const committedTarget = await commitSource(targetAbsolute, targetFile, updatedTarget, outlines);
     if (!committedTarget.success) return { success: false, filePaths: [], error: committedTarget.error };
-    const committedSource = await commitSource(absolute, file, withoutPackage);
+    const committedSource = await commitSource(absolute, file, withoutPackage, outlines);
     if (!committedSource.success) {
         return {
             success: false, filePaths: [targetFile],
@@ -247,13 +265,17 @@ export async function movePackage(
 export async function deletePackage(
     cwd: string,
     request: { file: string; qualifiedName: string },
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, qualifiedName } = request;
     const absolute = resolve(cwd, file);
     if (!existsSync(absolute)) return { success: false, filePaths: [], error: `${file} does not exist.` };
     const source = readFileSync(absolute, 'utf8');
 
-    const target = (await locatePackages(source)).find(pkg => pkg.qualifiedName === qualifiedName);
+    const outline = await outlineOf(outlines, file, source);
+    if (typeof outline === 'string') return { success: false, filePaths: [], error: outline };
+    const target = locatePackages(outline).find(pkg => pkg.qualifiedName === qualifiedName);
     if (!target) {
         return { success: false, filePaths: [], error: `${file} does not declare package "${qualifiedName}".` };
     }
@@ -271,7 +293,7 @@ export async function deletePackage(
         ? spliceIndented(source, target.start, target.end, lifted)
         : removeLine(source, target.start, target.end);
 
-    const committed = await commitSource(absolute, file, updated);
+    const committed = await commitSource(absolute, file, updated, outlines);
     if (!committed.success) return { success: false, filePaths: [], error: committed.error };
     return {
         success: true, filePaths: [file], qualifiedName,
@@ -295,13 +317,17 @@ export async function deletePackage(
 export async function moveIntoGroupingPackage(
     cwd: string,
     request: { file: string; qualifiedName: string; targetPackage: string },
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, qualifiedName, targetPackage } = request;
     const absolute = resolve(cwd, file);
     if (!existsSync(absolute)) return { success: false, filePaths: [], error: `${file} does not exist.` };
     const source = readFileSync(absolute, 'utf8');
 
-    const containers = await locateContainers(source);
+    const outline = await outlineOf(outlines, file, source);
+    if (typeof outline === 'string') return { success: false, filePaths: [], error: outline };
+    const containers = locateContainers(outline);
     const moved = containers.find(container => container.qualifiedName === qualifiedName);
     if (!moved) {
         return { success: false, filePaths: [], error: `${file} does not declare "${qualifiedName}".` };
@@ -320,17 +346,18 @@ export async function moveIntoGroupingPackage(
     }
 
     const declaration = dedent(source.slice(moved.start, moved.end).replace(/\s+$/, ''));
+    const removed = removedLine(source, moved.start, moved.end);
     const withoutElement = removeLine(source, moved.start, moved.end);
     // The removal shifted every offset after it, so the target is located
     // again in the text the insertion will actually be applied to.
-    const relocated = (await locateContainers(withoutElement))
+    const relocated = locateContainers(spliceOutline(outline, removed.from, removed.to, ''))
         .find(container => container.qualifiedName === targetPackage);
     if (!relocated) {
         return { success: false, filePaths: [], error: `Removing "${qualifiedName}" would leave "${targetPackage}" unreachable.` };
     }
     const updated = insertIntoBody(withoutElement, relocated, `${declaration}\n`);
 
-    const committed = await commitSource(absolute, file, updated);
+    const committed = await commitSource(absolute, file, updated, outlines);
     if (!committed.success) return { success: false, filePaths: [], error: committed.error };
     return { success: true, filePaths: [file], qualifiedName: targetPackage };
 }
@@ -365,7 +392,7 @@ export async function moveElementToPackage(
     if (!existsSync(targetAbsolute)) return { success: false, filePaths: [], error: `${targetFile} does not exist.` };
 
     const source = readFileSync(sourceAbsolute, 'utf8');
-    let located: { start: number; end: number };
+    let located: { start: number; end: number; outline: SourceOutline };
     try {
         located = await locateByIdentity(sourceFile.replaceAll('\\', '/'), source, index, irIdentity, elementId, outlines);
     } catch (e) {
@@ -374,6 +401,7 @@ export async function moveElementToPackage(
     }
 
     const declaration = dedent(source.slice(located.start, located.end).replace(/\s+$/, ''));
+    const removed = removedLine(source, located.start, located.end);
     const withoutElement = removeLine(source, located.start, located.end);
 
     // A move within one file is one edit to one string. Splitting it into a
@@ -384,7 +412,11 @@ export async function moveElementToPackage(
 
     let updatedTarget: string;
     if (targetPackage) {
-        const target = (await locatePackages(targetSource)).find(pkg => pkg.qualifiedName === targetPackage);
+        const targetOutline = sameFile
+            ? spliceOutline(located.outline, removed.from, removed.to, '')
+            : await outlineOf(outlines, targetFile, targetSource);
+        if (typeof targetOutline === 'string') return { success: false, filePaths: [], error: targetOutline };
+        const target = locatePackages(targetOutline).find(pkg => pkg.qualifiedName === targetPackage);
         if (!target) {
             return { success: false, filePaths: [], error: `${targetFile} does not declare package "${targetPackage}".` };
         }
@@ -395,7 +427,7 @@ export async function moveElementToPackage(
     }
 
     if (sameFile) {
-        const committed = await commitSource(targetAbsolute, targetFile, updatedTarget);
+        const committed = await commitSource(targetAbsolute, targetFile, updatedTarget, outlines);
         if (!committed.success) return { success: false, filePaths: [], error: committed.error };
         return { success: true, filePaths: [targetFile], qualifiedName: targetPackage };
     }
@@ -403,9 +435,9 @@ export async function moveElementToPackage(
     // Across files, the destination is written first: if it fails, the source
     // file still holds the only copy of the declaration. The reverse order can
     // lose it outright.
-    const committedTarget = await commitSource(targetAbsolute, targetFile, updatedTarget);
+    const committedTarget = await commitSource(targetAbsolute, targetFile, updatedTarget, outlines);
     if (!committedTarget.success) return { success: false, filePaths: [], error: committedTarget.error };
-    const committedSource = await commitSource(sourceAbsolute, sourceFile, withoutElement);
+    const committedSource = await commitSource(sourceAbsolute, sourceFile, withoutElement, outlines);
     if (!committedSource.success) {
         return {
             success: false, filePaths: [targetFile],
@@ -422,7 +454,7 @@ export async function moveElementToPackage(
 async function locateByIdentity(
     file: string, source: string, index: IrIdentityIndex, identityId: string, elementId: string,
     outlines: OutlineSource,
-): Promise<{ start: number; end: number }> {
+): Promise<{ start: number; end: number; outline: SourceOutline }> {
     requireIrIdentity(index, identityId, elementId);
     let outline;
     try {
@@ -431,7 +463,16 @@ async function locateByIdentity(
         throw new StaleIrIdentityError(identityId, `its file no longer compiles (${e instanceof Error ? e.message : String(e)})`);
     }
     const node = resolveOutlineIdentity(outline, identityId);
-    return { start: node.start, end: node.end };
+    return { start: node.start, end: node.end, outline };
+}
+
+/** A file's outline, or why there is none: a file the selected compiler rejects has nothing to edit. */
+async function outlineOf(outlines: OutlineSource, file: string, source: string): Promise<SourceOutline | string> {
+    try {
+        return await outlines.outline(file.replaceAll('\\', '/'), source);
+    } catch (e) {
+        return `${file} cannot be edited: ${e instanceof Error ? e.message : String(e)}`;
+    }
 }
 
 // ─── Text editing ────────────────────────────────────────────────────────────

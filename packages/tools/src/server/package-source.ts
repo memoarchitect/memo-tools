@@ -2,12 +2,11 @@
 //
 // Shared by the element persistor and the package writer, because "put this
 // declaration in that package" is one question with one answer whichever of
-// them is asking. A package is found by parsing, never by matching its name in
-// the file text: a comment mentioning the name is not a declaration, and two
-// packages can differ only in their nesting.
+// them is asking. A package is found in the file's source outline, never by
+// matching its name in the text.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { parseText } from '../model/parser-utils.js';
+import { outlineNodes, type SourceOutline } from '../authoring/source-outline.js';
 
 /** One level of body indentation, matching the layout the generator emits. */
 export const INDENT = '    ';
@@ -34,9 +33,9 @@ export interface LocatedPackage {
     bodyEnd: number;
 }
 
-/** Every package declared in one file's source, with its qualified name. */
-export async function locatePackages(source: string): Promise<LocatedPackage[]> {
-    return (await locateContainers(source)).filter(container => container.isPackage);
+/** Every package declared in one file, with its qualified name. */
+export function locatePackages(outline: SourceOutline): LocatedPackage[] {
+    return locateContainers(outline).filter(container => container.isPackage);
 }
 
 /**
@@ -48,37 +47,26 @@ export async function locatePackages(source: string): Promise<LocatedPackage[]> 
  * qualified name of such a package therefore runs through the usage that holds
  * it — `catalogPackage::scrHome::grpHeader` — which is what the SysML namespace
  * says it is, and what makes it addressable by name like any other package.
+ *
+ * Read from the file's source outline, never by matching a name in the text: a
+ * comment mentioning the name is not a declaration, and two packages can
+ * differ only in their nesting.
  */
-export async function locateContainers(source: string): Promise<LocatedPackage[]> {
-    if (!source.trim()) return [];
-    const { document, errors } = await parseText(source);
-    if (errors.length > 0) return [];
-
+export function locateContainers(outline: SourceOutline): LocatedPackage[] {
     const found: LocatedPackage[] = [];
-    const visit = (node: any, parent: string): void => {
-        for (const member of [...(node.members ?? []), ...(node.body ?? [])]) {
-            const isPackage = member.$type === 'PackageDeclaration';
-            // A usage without a name or a body holds nothing and addresses
-            // nothing; `{` below would otherwise find the next sibling's brace.
-            if (!member.name || (!isPackage && !member.body)) continue;
-            const qualifiedName = parent ? `${parent}::${member.name}` : member.name;
-            const cst = member.$cstNode;
-            if (cst) {
-                const start = cst.offset;
-                const end = cst.offset + cst.length;
-                const bodyStart = source.indexOf('{', start);
-                const bodyEnd = source.lastIndexOf('}', end - 1);
-                if (bodyStart !== -1 && bodyEnd > bodyStart && bodyEnd < end) {
-                    found.push({
-                        qualifiedName, name: member.name, isPackage,
-                        start, end, bodyStart: bodyStart + 1, bodyEnd,
-                    });
-                }
-            }
-            visit(member, qualifiedName);
-        }
-    };
-    visit(document.parseResult.value as any, '');
+    for (const node of outlineNodes(outline)) {
+        // A declaration without a name or a body holds nothing and addresses nothing.
+        if (!node.name || !node.body) continue;
+        found.push({
+            qualifiedName: node.key,
+            name: node.name,
+            isPackage: node.role === 'package',
+            start: node.start,
+            end: node.end,
+            bodyStart: node.body.open,
+            bodyEnd: node.body.close,
+        });
+    }
     return found;
 }
 
@@ -106,13 +94,19 @@ export function spliceIndented(source: string, start: number, end: number, repla
 
 /** Remove a range together with the blank line it would otherwise leave behind. */
 export function removeLine(source: string, start: number, end: number): string {
+    const { from, to } = removedLine(source, start, end);
+    return source.slice(0, from) + source.slice(to);
+}
+
+/** The range `removeLine` removes: the declaration, its indentation, and its line break. */
+export function removedLine(source: string, start: number, end: number): { from: number; to: number } {
     const lineStart = source.lastIndexOf('\n', start - 1) + 1;
     const leadingIsBlank = /^[ \t]*$/.test(source.slice(lineStart, start));
     const from = leadingIsBlank ? lineStart : start;
     let to = end;
     while (to < source.length && (source[to] === ' ' || source[to] === '\t')) to += 1;
     if (source[to] === '\n') to += 1;
-    return source.slice(0, from) + source.slice(to);
+    return { from, to };
 }
 
 /** Strip the common leading whitespace from every line of a block. */
