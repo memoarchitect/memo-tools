@@ -31,7 +31,7 @@ function write(relativePath: string, contents: string): void {
 }
 
 async function violations(): Promise<{ code: string; elementId: string }[]> {
-    const revision = await recompileProject({ projectDir: projectRoot, config: { projectName: 'constraints' } });
+    const revision = await recompileProject({ projectDir: projectRoot, config: { projectName: 'constraints', toolchain: { compiler: 'internal' } } });
     return checkSysmlConstraints(revision.ir.model).map(({ code, elementId }) => ({ code, elementId }));
 }
 

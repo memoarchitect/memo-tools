@@ -134,8 +134,18 @@ pnpm run docs:build
 
 Each toolchain role is filled by one provider: the **validator** answers "is
 this valid SysML/KerML?", **lowering** answers "what can MEMO ingest from this
-revision?", and the **packager** builds the archive. Omit `toolchain` entirely
-to use MEMO's built-in parser and KPAR writer, which need nothing installed.
+revision?", and the **packager** builds the archive. A project's settings
+(`memo.tools.yaml` or `memo.package.yaml`) name the provider of every role it
+uses; MEMO chooses none, and a command that needs an unset role fails with an
+error saying what to set. `compiler` names the validator and lowering together:
+
+```yaml
+toolchain:
+  compiler: internal     # internal, syside or opensysml
+  packager: internal     # internal or sysand; only `memo pack` needs it
+```
+
+A role can also be named on its own:
 
 ```yaml
 toolchain:
@@ -165,12 +175,11 @@ against a different toolchain without editing its settings:
 
 ```bash
 memo toolchain probe                 # which provider, which binary, which version
-memo config effective                # settings + flags + defaults, fully resolved
+memo config effective                # settings + flags, fully resolved
 memo validate --toolchain.validator syside
 ```
 
-`toolchain.compiler` is a deprecated alias kept for existing settings files; see
-`docs/reference/configuration.md`.
+See `docs/reference/configuration.md` for `toolchain.compiler`.
 
 ### Core library usage
 

@@ -87,7 +87,7 @@ function project(files: Record<string, string>): string {
     // The descriptor carries the project locators. There is no conventional
     // fallback: a directory with a `project.sysml` and no `entrypoint` naming
     // it is not a project, so the helper has to write both.
-    write(root, 'memo.package.yaml', 'name: routing-test\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n');
+    write(root, 'memo.package.yaml', 'name: routing-test\nentrypoint: model/catalog/project.sysml\ninclude: [model]\ntoolchain:\n  compiler: internal\n');
     write(root, 'model/catalog/project.sysml', 'package ProjectCatalog {\n}\n');
     for (const [path, content] of Object.entries(files)) write(root, path, content);
     return root;
@@ -104,7 +104,7 @@ function registryWithAcceptingValidator() {
 }
 
 function settings(validator: string): string {
-    return `name: routing-test\ntoolchain:\n  validator: ${validator}\n`;
+    return `name: routing-test\ntoolchain:\n  validator: ${validator}\n  lowering: internal\n`;
 }
 
 describe('diagnostic domain routing', () => {
@@ -127,7 +127,7 @@ describe('diagnostic domain routing', () => {
     it('routes the same failure to sysml when MEMO is itself the validator', async () => {
         const root = project({
             'model/parts.sysml': UNPARSABLE_BY_MEMO,
-            'memo.tools.yaml': `name: routing-test\n`,
+            'memo.tools.yaml': `name: routing-test\ntoolchain:\n  compiler: internal\n`,
         });
 
         const snapshot = await buildProjectSnapshot(root);

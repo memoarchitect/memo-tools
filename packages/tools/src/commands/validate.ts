@@ -483,11 +483,10 @@ export async function validateCommand(
             parseErrors: diagnostics,
             modelFindings,
             rulesNotLoaded: constraintDiagnostics,
-            toolchain: {
-                validator: effectiveToolchain.validator,
-                lowering: effectiveToolchain.lowering,
-                packager: effectiveToolchain.packager,
-            },
+            // The roles the settings fill; a packager is named only by a
+            // project that packages.
+            toolchain: Object.fromEntries(effectiveToolchain.selections.map(s =>
+                [s.role === 'package' ? 'packager' : s.role, s.provider])),
             diagnostics: sysmlDiagnostics,
             violations: result.violations.map(v => ({
                 ruleId: v.ruleId,

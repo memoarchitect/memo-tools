@@ -43,7 +43,7 @@ import type { RelationshipDefinitionDTO } from '../model/relationship-legality.j
 import type { DiagramDTO } from '../model/semantic.js';
 import type { DiagramLayout } from '../protocol/messages.js';
 
-const config: MEMOConfig = { projectName: 'write-back' } as MEMOConfig;
+const config: MEMOConfig = { projectName: 'write-back', toolchain: { compiler: 'internal' } } as MEMOConfig;
 
 let projectRoot: string;
 

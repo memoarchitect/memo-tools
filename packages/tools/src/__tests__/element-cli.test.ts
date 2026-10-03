@@ -28,6 +28,7 @@ let projectRoot: string;
 
 beforeEach(() => {
     projectRoot = mkdtempSync(join(tmpdir(), 'memo-element-cli-'));
+    writeProjectFile('memo.tools.yaml', 'toolchain:\n  compiler: internal\n');
     writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
 });
 

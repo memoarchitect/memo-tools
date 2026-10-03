@@ -21,8 +21,8 @@ import { sysandPackageDescriptor } from './providers/sysand.js';
  * Build a registry with the providers that ship with MEMO.
  *
  * Order is registration order, which is the order roles are listed in. It
- * carries no precedence: the default for a role is whichever descriptor claims
- * `isDefault`, not whichever registered first.
+ * carries no precedence, and no provider is a default: the project's settings
+ * choose.
  */
 export function createDefaultRegistry(): ProviderRegistry {
     return new ProviderRegistry()

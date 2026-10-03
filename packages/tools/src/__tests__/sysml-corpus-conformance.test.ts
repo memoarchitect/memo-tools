@@ -56,7 +56,7 @@ const SRC = resolve(__dirname, '..');
  * files, not against a project. Minimal config, so nothing in a developer's
  * working tree can change what the sweep reports.
  */
-const CONFIG = { projectName: 'conformance', kinds: {} } as unknown as MEMOConfig;
+const CONFIG = { projectName: 'conformance', kinds: {}, toolchain: { compiler: 'internal' } } as unknown as MEMOConfig;
 
 // The corpus is vendored, not fetched, so it is present in a normal checkout.
 // Skipping rather than failing keeps a sparse checkout usable; the vendoring

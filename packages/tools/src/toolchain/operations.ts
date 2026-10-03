@@ -10,7 +10,7 @@ import type { MEMOConfig } from '../model/config.js';
 import { discoverLibraryRoots, discoverProjectSources } from '../model/native-project.js';
 import { relative } from 'node:path';
 import type { Diagnostic } from './diagnostic.js';
-import { resolveToolchain, type EffectiveToolchain } from './effective.js';
+import { resolveToolchain, ToolchainNotConfiguredError, type EffectiveToolchain } from './effective.js';
 import {
     type CompileModelResult,
     type CompileModelOptions,
@@ -173,8 +173,10 @@ export interface RoleProbe {
     role: ProviderRole;
     /** The settings key that selects this role, e.g. `validator`. */
     setting: string;
+    /** The provider the settings name, or `(not configured)`. */
     provider: string;
-    source: 'settings' | 'compiler' | 'default';
+    /** Where the setting came from; `unset` when the settings name none. */
+    source: 'settings' | 'compiler' | 'unset';
     availability: Availability;
 }
 
@@ -201,7 +203,21 @@ export function probeToolchain(options: {
     const effective = resolveToolchain(options.config, registry);
     const providerContext: ProviderContext = { config: options.config, projectDir: options.projectDir };
     const roles: RoleProbe[] = PROVIDER_ROLES.map(role => {
-        const selection = effective.selections.find(s => s.role === role)!;
+        const selection = effective.selections.find(s => s.role === role);
+        // A role the settings leave unset is reported, not given a provider.
+        if (!selection) {
+            return {
+                role,
+                setting: ROLE_SETTING[role],
+                provider: '(not configured)',
+                source: 'unset',
+                availability: {
+                    available: false,
+                    transport: 'in-process',
+                    detail: new ToolchainNotConfiguredError(role, registry).message,
+                },
+            };
+        }
         return {
             role,
             setting: ROLE_SETTING[role],
@@ -227,10 +243,11 @@ export interface EffectiveConfigReport {
     projectName: string;
     projectRoot: string;
     settingsFile?: string;
+    /** The provider of each role the settings fill; a role they leave unset is absent. */
     toolchain: {
-        validator: string;
-        lowering: string;
-        packager: string;
+        validator?: string;
+        lowering?: string;
+        packager?: string;
         selections: EffectiveToolchain['selections'];
         providers: Record<string, unknown>;
     };
@@ -255,9 +272,7 @@ export function effectiveConfigReport(options: {
         projectRoot: options.projectDir,
         settingsFile: options.settingsFile,
         toolchain: {
-            validator: effective.validator,
-            lowering: effective.lowering,
-            packager: effective.packager,
+            ...Object.fromEntries(effective.selections.map(s => [s.role === 'package' ? 'packager' : s.role, s.provider])),
             selections: effective.selections,
             providers,
         },

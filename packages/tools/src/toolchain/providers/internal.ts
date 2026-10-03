@@ -2,10 +2,8 @@
 //
 // The internal tool is a plugin like any other. It gets no early return, no
 // `if (provider === …)` shortcut, and no privileges the registry does not give
-// every descriptor. The only thing it does claim is `isDefault`, which is a
-// declaration made here in the adapter rather than a `?? 'internal'` written
-// into core code — that is the whole difference between "the default" and "the
-// special case".
+// every descriptor, and it is not a default: a project selects it in its
+// settings (`toolchain.compiler: internal`) as it would any other.
 //
 // MEMO's compiler ships inside @memoarchitect/tools, and this adapter can reach
 // its CLI over the same protocol
@@ -223,7 +221,6 @@ export const internalValidatorDescriptor: ValidatorDescriptor = {
     id: INTERNAL_PROVIDER_ID,
     role: 'validator',
     capabilities: ['check'],
-    isDefault: true,
     settingsSchema: SETTINGS_SCHEMA,
     probe: probeFor,
     create(context: ProviderContext) {
@@ -268,7 +265,6 @@ export const internalLoweringDescriptor: LoweringDescriptor = {
     id: INTERNAL_PROVIDER_ID,
     role: 'lowering',
     capabilities: [...CAPABILITIES],
-    isDefault: true,
     settingsSchema: SETTINGS_SCHEMA,
     probe: probeFor,
     create(context: ProviderContext) {
@@ -300,7 +296,6 @@ export const internalPackageDescriptor: PackageDescriptor = {
     id: INTERNAL_PROVIDER_ID,
     role: 'package',
     capabilities: ['pack'],
-    isDefault: true,
     probe: () => ({ available: true, transport: 'in-process', version: internalVersion() }),
     create(context: ProviderContext) {
         return {

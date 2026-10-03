@@ -77,6 +77,7 @@ import { compileCommand } from '../commands/compile.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import chalk from 'chalk';
 import { Stage1RejectedError } from '../toolchain/project-model.js';
+import { ToolchainNotConfiguredError } from '../toolchain/effective.js';
 
 const program = new Command();
 
@@ -834,7 +835,8 @@ rulesCmd
 // every command that loads one reports its diagnostics and fails, as
 // `memo validate` does. Anything else is still a crash, with its stack.
 program.parseAsync().catch((error: unknown) => {
-    if (error instanceof Stage1RejectedError) {
+    // So is a project whose settings name no compiler: MEMO chooses none.
+    if (error instanceof Stage1RejectedError || error instanceof ToolchainNotConfiguredError) {
         console.error(chalk.red(`\n❌ ${error.message}\n`));
         process.exit(1);
     }

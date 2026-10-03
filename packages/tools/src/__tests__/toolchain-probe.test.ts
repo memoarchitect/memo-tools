@@ -40,14 +40,26 @@ function fakeTool(root: string, name: string, version: string): string {
 const registry = createDefaultRegistry();
 
 describe('memo toolchain probe', () => {
-    it('resolves every role and reports the in-process transport for a bundled provider', () => {
+    it('resolves every role the settings name and reports the in-process transport for a bundled provider', () => {
         const root = project();
-        const probe = probeToolchain({ config: { projectName: 'p' }, projectDir: root, registry });
+        const probe = probeToolchain({
+            config: { projectName: 'p', toolchain: { compiler: 'internal', packager: 'internal' } }, projectDir: root, registry,
+        });
 
         expect(probe.roles.map(r => r.role)).toEqual(['validator', 'lowering', 'package']);
         for (const role of probe.roles) {
             expect(role.availability.available).toBe(true);
-            expect(role.source).toBe('default');
+            expect(role.source).not.toBe('unset');
+        }
+    });
+
+    it('reports a role the settings do not name as not configured, saying what to set', () => {
+        const root = project();
+        const probe = probeToolchain({ config: { projectName: 'p' }, projectDir: root, registry });
+        for (const role of probe.roles) {
+            expect(role.source).toBe('unset');
+            expect(role.availability.available).toBe(false);
+            expect(role.availability.detail).toMatch(/Set toolchain\./);
         }
     });
 
@@ -105,9 +117,10 @@ describe('memo config effective', () => {
         });
 
         expect(report.toolchain.validator).toBe('syside');
-        expect(report.toolchain.lowering).toBe(registry.defaultId('lowering'));
+        // Lowering is unset: the settings name only a validator.
+        expect(report.toolchain.lowering).toBeUndefined();
         expect(report.toolchain.selections.find(s => s.role === 'validator')?.source).toBe('settings');
-        expect(report.toolchain.selections.find(s => s.role === 'lowering')?.source).toBe('default');
+        expect(report.toolchain.selections.find(s => s.role === 'lowering')).toBeUndefined();
         expect(report.toolchain.providers.syside).toEqual({ diagnose: 'none' });
         expect(report.deprecations).toEqual([]);
     });

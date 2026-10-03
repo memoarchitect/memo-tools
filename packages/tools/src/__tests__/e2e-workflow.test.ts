@@ -302,7 +302,7 @@ describe('E2E: ontology lock + change detection', () => {
         mkdirSync(projectDir, { recursive: true });
         mkdirSync(join(projectDir, 'model'), { recursive: true });
 
-        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: lock-test\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n`);
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: lock-test\nentrypoint: model/catalog/project.sysml\ninclude: [model]\ntoolchain:\n  compiler: internal\n`);
         mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
         writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
 package lock_test_project {
@@ -428,7 +428,7 @@ describe('E2E: custom model validation', () => {
         mkdirSync(projectDir, { recursive: true });
         mkdirSync(join(projectDir, 'model'), { recursive: true });
 
-        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: custom-device\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n`);
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: custom-device\nentrypoint: model/catalog/project.sysml\ninclude: [model]\ntoolchain:\n  compiler: internal\n`);
         mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
         writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
 package custom_device_project {
