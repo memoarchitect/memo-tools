@@ -547,8 +547,13 @@ export class RelationshipRegistry {
      * parse (`apiRelationshipEntries`), then the language-native relations, as
      * `populateFromDocuments` does.
      */
-    populateFromApi(api: ApiModel, fileOf: (element: ApiElement) => string, include?: (namespace: ApiElement) => boolean): void {
-        for (const entry of apiRelationshipEntries(api, fileOf, include)) this.relTypes.set(entry.name, entry);
+    populateFromApi(
+        api: ApiModel,
+        fileOf: (element: ApiElement) => string,
+        include?: (namespace: ApiElement) => boolean,
+        role: 'library' | 'project' = 'library',
+    ): void {
+        for (const entry of apiRelationshipEntries(api, fileOf, include, role)) this.relTypes.set(entry.name, entry);
         this.registerLanguageNatives();
     }
 

@@ -13,7 +13,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ApiModel, type Stage1Output } from '../stage2/api-model.js';
+import { ApiModel, type ApiElement, type Stage1Output } from '../stage2/api-model.js';
 import { buildElementsFromApi, buildFromApi } from '../stage2/build-from-api.js';
 import { SYSML_RESERVED_KEYWORDS, textualName } from '../stage2/sysml-names.js';
 
@@ -94,5 +94,59 @@ describe('textualName', () => {
         const production = bnf.slice(bnf.indexOf('RESERVED_KEYWORD ='), bnf.indexOf('DEFINED_BY'));
         const declared = new Set([...production.matchAll(/'([a-z]+)'/g)].map(m => m[1]));
         expect(declared).toEqual(new Set(SYSML_RESERVED_KEYWORDS));
+    });
+});
+
+// `first a then b;` written in a body that declares `perform a; perform b;`
+// names the perform usages (each takes its name from the action it performs,
+// and the local member is found first); the succession MEMO records is between
+// the performed actions.
+describe('buildFromApi successions between performed actions', () => {
+    const ref = (id: string) => ({ '@id': id });
+    const index: NonNullable<Stage1Output['index']> = {};
+    const elements: ApiElement[] = [];
+    const add = (element: Record<string, unknown> & { '@id': string; '@type': string }, qualifiedName?: string) => {
+        elements.push(element);
+        index[element['@id']] = { file: 'model.sysml', role: 'project', ...(qualifiedName ? { qualifiedName } : {}) };
+        return element;
+    };
+    const own = (owner: Record<string, unknown>, member: { '@id': string }, metaclass = 'OwningMembership') => {
+        const membership = add({ '@type': metaclass, '@id': `${member['@id']}_om`, ownedRelatedElement: [ref(member['@id'])], memberElement: ref(member['@id']) });
+        ((owner.ownedRelationship ??= []) as unknown[]).push(ref(membership['@id']));
+        (member as Record<string, unknown>).owningRelationship = ref(membership['@id']);
+        membership.owningRelatedElement = ref(owner['@id'] as string);
+    };
+    const subsets = (feature: Record<string, unknown>, target: string) => {
+        const relationship = add({ '@type': 'ReferenceSubsetting', '@id': `${feature['@id']}_rs`, referencedFeature: ref(target) });
+        ((feature.ownedRelationship ??= []) as unknown[]).push(ref(relationship['@id']));
+    };
+    const root = add({ '@type': 'Namespace', '@id': 'ns' });
+    const pkg = add({ '@type': 'Package', '@id': 'P', declaredName: 'P' }, 'P');
+    own(root, pkg);
+    const a = add({ '@type': 'ActionUsage', '@id': 'P__a', declaredName: 'a' }, 'P::a');
+    const b = add({ '@type': 'ActionUsage', '@id': 'P__b', declaredName: 'b' }, 'P::b');
+    const wf = add({ '@type': 'ActionUsage', '@id': 'P__wf', declaredName: 'wf' }, 'P::wf');
+    for (const action of [a, b, wf]) own(pkg, action, 'FeatureMembership');
+    const performA = add({ '@type': 'PerformActionUsage', '@id': 'P__wf__pa' }, 'P::wf::a');
+    const performB = add({ '@type': 'PerformActionUsage', '@id': 'P__wf__pb' }, 'P::wf::b');
+    subsets(performA, a['@id']);
+    subsets(performB, b['@id']);
+    own(wf, performA, 'FeatureMembership');
+    own(wf, performB, 'FeatureMembership');
+    const succession = add({ '@type': 'SuccessionAsUsage', '@id': 'P__wf__s' });
+    own(wf, succession, 'FeatureMembership');
+    for (const [slot, perform] of [['e0', performA], ['e1', performB]] as const) {
+        const end = add({ '@type': 'ReferenceUsage', '@id': `P__wf__s_${slot}`, isEnd: true });
+        own(succession, end, 'EndFeatureMembership');
+        subsets(end, perform['@id']);
+    }
+    const { relationships } = buildFromApi(new ApiModel({
+        format: 'memo-stage1/1', provider: 'test', clean: true, index,
+        documents: [{ file: 'model.sysml', role: 'project', elements }],
+    }));
+
+    it('relates the performed actions', () => {
+        expect(relationships.filter(r => r.type === 'succession').map(r => [r.sourceId, r.targetId]))
+            .toEqual([['P::a', 'P::b']]);
     });
 });

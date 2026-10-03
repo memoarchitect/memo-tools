@@ -54,6 +54,12 @@ function subjectConstruct(
         : undefined;
 }
 
+/** A subject's display name, by the precedence an element's has. */
+function subjectName(relationship: MemoRelationship): string {
+    const attributes = relationship.attributes ?? {};
+    return attributes['label'] || attributes['name'] || attributes['title'] || relationship.shortName || relationship.id;
+}
+
 /**
  * Read-only `MemoElement` views of every named relationship that declares a
  * domain kind.
@@ -75,7 +81,9 @@ export function relationshipSubjects(
         subjects.push({
             id: relationship.id,
             ...(relationship.shortName ? { shortName: relationship.shortName } : {}),
-            name: relationship.shortName ?? relationship.id,
+            // Named as an element is: its `@MemoIdentity` label first, so a
+            // finding reads the same whether its subject is a part or an edge.
+            name: subjectName(relationship),
             kind: relationship.kind,
             construct,
             layer: registry?.getKind(relationship.kind)?.layer ?? 'unknown',

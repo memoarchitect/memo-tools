@@ -928,7 +928,8 @@ class ElementBuilder {
         const context = { packageName, ownerId: parentActionId, file: this.file(node) };
         const pseudo = (steps: ApiElement[], which: 'start' | 'done') =>
             steps.length === 1 && this.api.qualifiedName(steps[0]['@id']) === `Actions::Action::${which}`;
-        const resolve = (steps: ApiElement[]) => {
+        const resolve = (written: ApiElement[]) => {
+            const steps = this.performedSteps(written);
             if (pseudo(steps, 'start')) return parentActionId ? `${parentActionId}__start` : '__start';
             if (pseudo(steps, 'done')) return parentActionId ? `${parentActionId}__done` : '__done';
             const found = this.endpoint(steps, context);
@@ -940,6 +941,22 @@ class ElementBuilder {
         this.relationships.push({
             id: this.nextId(), type: 'succession', sourceId, sourceEnd: '', targetId, targetEnd: '', file: this.file(node),
         });
+    }
+
+    /**
+     * The steps a succession end reaches. `first actClean then …` written where
+     * the body declares `perform actClean;` names that perform usage, by the
+     * name it takes from the action it performs (SysML name resolution finds
+     * the local member first); the step MEMO records is the performed action,
+     * the feature the perform's reference subsetting references.
+     */
+    private performedSteps(steps: ApiElement[]): ApiElement[] {
+        const last = steps.at(-1);
+        if (!last || last['@type'] !== 'PerformActionUsage') return steps;
+        const performed = this.api.related(last['@id'], ['ReferenceSubsetting'], 'referencedFeature')[0];
+        if (!performed) return steps;
+        const chain = this.api.chain(performed['@id']);
+        return chain.length ? chain : [performed];
     }
 
     /** The MEMO elements declared immediately before and after a member of its owner. */

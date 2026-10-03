@@ -50,7 +50,7 @@ export function stage2FromHandoff(api: ApiModel, options: Stage2Options): Stage2
     const fileOf = handoffFileOf(api, resolution.filePackages);
     const registries: BuilderRegistries = {
         ...(options.provenance === false ? {} : { provenance: buildProvenanceTable(resolution) }),
-        ...apiOntologyRegistries(api, fileOf, namespace => loads(fileOf(namespace))),
+        ...apiOntologyRegistries(api, fileOf, namespace => loads(fileOf(namespace)), ['library', 'project']),
     };
     return {
         model: buildMemoModelFromApi(api, options.config, registries, options.projectFiles),

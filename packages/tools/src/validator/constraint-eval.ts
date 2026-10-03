@@ -559,15 +559,37 @@ function edgeEnd(current: MemoElement, side: 'source' | 'target', model: MemoMod
     return element ? [element] : [];
 }
 
+/**
+ * The elements at one end of every link of a relation. An end may be a named
+ * relationship — a trust boundary crossed by an interface — and that end is
+ * its projected subject (relationship-subjects.ts), the same view a rule
+ * scoped to its kind runs on. Dropping it would make `->forAll` over the ends
+ * pass without having looked at it.
+ */
 function relationshipEnds(model: MemoModel, relationshipType: string, side: 'source' | 'target'): MemoElement[] {
     const want = relationshipType.toLowerCase();
     const out = new Map<string, MemoElement>();
     for (const relationship of model.relationships) {
         if (relationship.type.toLowerCase() !== want) continue;
-        const element = model.elements.get(side === 'source' ? relationship.sourceId : relationship.targetId);
+        const id = side === 'source' ? relationship.sourceId : relationship.targetId;
+        const element = model.elements.get(id) ?? projectedSubjects(model).get(id);
         if (element) out.set(element.id, element);
     }
     return [...out.values()];
+}
+
+/** The projected relationship subjects in a model's subject selector, by id. */
+const projectedCache = new WeakMap<MemoModel, Map<string, MemoElement>>();
+function projectedSubjects(model: MemoModel): Map<string, MemoElement> {
+    let byId = projectedCache.get(model);
+    if (!byId) {
+        byId = new Map();
+        for (const extent of model.elementsByKind.values()) {
+            for (const element of extent) if (!model.elements.get(element.id)) byId.set(element.id, element);
+        }
+        projectedCache.set(model, byId);
+    }
+    return byId;
 }
 
 /**
