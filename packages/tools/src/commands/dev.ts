@@ -22,7 +22,7 @@ import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchit
 import { buildSourceGraphFromPackages } from '../model/source-graph.js';
 import type {
     BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument,
-    EffectiveRule, ParseError,
+    EffectiveRule, ParseError, MemoModel,
 } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
@@ -259,6 +259,17 @@ export async function devCommand(options: {
     const projectParser = new IncrementalProjectParser(cwd);
     /** Revision of the newest rebuild that parsed — what a client is still showing. */
     let lastGoodRevision = 0;
+    /**
+     * What the last accepted stage 1 built, under a compiler that builds the
+     * model: a rejected edit leaves the model, its identities, rules and
+     * registries where the last valid revision put them. MEMO's own parse is
+     * not a second opinion to fall back on.
+     */
+    let lastAccepted: {
+        model: MemoModel; irIdentities: Record<string, string>;
+        constraints: ReturnType<typeof collectApiConstraints>; registries?: BuilderRegistries;
+        sourceGraph: ReturnType<typeof buildSourceGraph>; enumerations: EnumDefinitionDTO[];
+    } | undefined;
     async function rebuildProject(changedFiles?: readonly string[]): Promise<{
         messages: ServerMessage[]; revision: number; coherent: boolean; firstErrorFile?: string;
         errors: readonly ParseError[];
@@ -266,7 +277,10 @@ export async function devCommand(options: {
         const rebuildStartedAt = performance.now();
         buildCount++;
         const sysmlFiles = findSysmlFiles(cwd);
-        const parsed = await projectParser.parse(sysmlFiles, changedFiles);
+        // MEMO parses the project only when MEMO's compiler builds the model.
+        const parsed = external
+            ? { documents: [] as ParsedDocument[], errors: [] as ParseError[] }
+            : await projectParser.parse(sysmlFiles, changedFiles);
         const documents = parsed.documents;
         let errors: ParseError[] = [...parsed.errors];
         const projectRegistries: BuilderRegistries | undefined = ontologyRegistries
@@ -277,7 +291,7 @@ export async function devCommand(options: {
             : undefined;
         // `toolchain.compiler` decides where the model comes from. A stage 1
         // that reports errors makes this build incoherent, so a client keeps
-        // showing the last good one; MEMO's own parse still backs the display.
+        // showing the last good one.
         // The same resolved compile every command runs, reusing `.memo/stage1/`.
         const stage1 = await compileResolvedProject({ config, projectDir: cwd, cacheDir: stage1CacheDir(cwd) });
         // The methodology follows the project's imports, which an edit can
@@ -293,32 +307,33 @@ export async function devCommand(options: {
                 file: d.file ?? '', line: d.range?.start.line, message: d.message, code: d.code,
             }))];
         }
-        const model = stage1?.accepted && stage1.model
-            ? stage1.model
-            : buildMemoModel(documents, config, errors, projectRegistries);
+        const accepted = stage1?.accepted && stage1.model && stage1.api;
+        const kept = external && !accepted ? lastAccepted : undefined;
+        const model = accepted
+            ? stage1.model!
+            : kept?.model ?? buildMemoModel(documents, config, errors, projectRegistries);
         // Identities for the authoring write-back: each element's declaration in
         // its file's outline (plans/memo-write-back-from-handoff.md), read from
         // the handoff when stage 1 built the model, else from the documents
         // this rebuild already parsed.
-        const irIdentities = outlineIdentityTable(
-            stage1?.accepted && stage1.model && stage1.api
-                ? outlinesFromHandoff(resolve(cwd), stage1.api)
+        const irIdentities = kept?.irIdentities ?? outlineIdentityTable(
+            accepted
+                ? outlinesFromHandoff(resolve(cwd), stage1.api!)
                 : outlinesFromDocuments(resolve(cwd), documents),
             model.elements.values(),
             resolve(cwd),
         );
         // An accepted stage 1 carries the ontology it resolved, rules included,
         // so they are read from its handoff rather than from MEMO's own parse.
-        const accepted = stage1?.accepted && stage1.model && stage1.api;
         const nativeConstraints = accepted
             ? collectApiConstraints(stage1.api!, undefined, stage1.resolution?.filePackages,
                 stage1.resolution ? resolutionLoads(stage1.resolution) : undefined)
-            : collectNativeConstraints([...ontologyDocuments, ...documents]);
+            : kept?.constraints ?? collectNativeConstraints([...ontologyDocuments, ...documents]);
         // An accepted stage 1 states the ontology with the project's own kinds,
         // as MEMO's parse of the same closure does.
         const stage2Registries: BuilderRegistries | undefined = accepted && stage1.registries
             ? stage1.registries
-            : projectRegistries;
+            : kept?.registries ?? projectRegistries;
         const validation = validateModel(model, nativeConstraints, stage2Registries?.kindRegistry);
         const effectiveRuleSet = (() => {
             try {
@@ -402,7 +417,11 @@ export async function devCommand(options: {
                 const { packages, files } = apiProjectSourcePackages(stage1.api!, resolve(cwd));
                 return buildSourceGraphFromPackages(packages, files);
             })()
-            : buildSourceGraph(documents);
+            : kept?.sourceGraph ?? buildSourceGraph(documents);
+        const enumerations = accepted ? apiEnumerations(stage1.api!) : kept?.enumerations ?? collectEnumerations(documents);
+        if (external && accepted) {
+            lastAccepted = { model, irIdentities, constraints: nativeConstraints, registries: stage2Registries, sourceGraph, enumerations };
+        }
         for (const diagram of diagrams) {
             diagram.sourceFiles = viewSourceFiles(diagram, model.elements, sourceGraph);
         }
@@ -416,7 +435,7 @@ export async function devCommand(options: {
                 relative(cwd, file).replaceAll('\\', '/'),
                 createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),
             ])),
-            enumerations: accepted ? apiEnumerations(stage1.api!) : collectEnumerations(documents),
+            enumerations,
         });
         // Compute the clause coverage report and attach it to the model DTO
         // so the Architect can badge document cards with gap counts without a
@@ -621,7 +640,7 @@ export async function devCommand(options: {
                 lastGoodRevision,
             });
             console.log(chalk.yellow(
-                `  ⚠ ${result.firstErrorFile ?? 'project source'} does not parse — showing the last good model`
+                `  ⚠ ${result.firstErrorFile ?? 'project source'} ${external ? 'does not compile' : 'does not parse'} — showing the last good model`
                 + ` (revision ${lastGoodRevision}). Mutations are held until it does.`
             ));
             return;
