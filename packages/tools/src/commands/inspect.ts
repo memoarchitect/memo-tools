@@ -11,12 +11,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve } from 'node:path';
-import {
-    buildMemoModel, findConfigFile, findProjectRoot, loadOntologyRegistries, parseFiles,
-    type BuilderRegistries,
-} from '@memoarchitect/tools';
+import { findConfigFile, findProjectRoot } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
 
 export async function inspectCommand(
     id: string,
@@ -39,13 +36,7 @@ export async function inspectCommand(
     if (!configPath) throw new Error('No memo package descriptor found beside the project.');
 
     const config = loadAndResolveConfig(configPath);
-    const loaded = await loadOntologyRegistries(projectRoot);
-    const registries: BuilderRegistries = {
-        ...loaded.registries,
-        provenance: loaded.provenance,
-    };
-    const { documents, errors } = await parseFiles(findSysmlFiles(projectRoot), `${projectRoot}/`);
-    const model = buildMemoModel(documents, config, errors, registries);
+    const { model, registries } = await loadProjectModel({ projectRoot, config });
 
     // What a person types is a name, not an id, so this resolves rather than
     // indexes: an exact qualified id, a trailing part of one, or an
@@ -62,9 +53,9 @@ export async function inspectCommand(
     // A definition is not an element, but section 19 names definitions
     // explicitly. Reporting only elements meant `memo inspect ProjectAction`
     // claimed the project's own `action def` did not exist.
-    const kind = loaded.registries.kindRegistry?.getKind(id);
+    const kind = registries?.kindRegistry?.getKind(id);
     if (kind) {
-        const provenance = kind.sourceFile ? loaded.provenance?.lookup(kind.sourceFile) : undefined;
+        const provenance = kind.sourceFile ? registries?.provenance?.lookup(kind.sourceFile) : undefined;
         console.log(JSON.stringify(options.provenance
             ? { id, definition: true, qualifiedName: kind.qualifiedName, provenance }
             : { ...kind, provenance }, null, 2));

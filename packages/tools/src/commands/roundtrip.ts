@@ -1,10 +1,10 @@
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries } from '@memoarchitect/tools';
-import type { BuilderRegistries, MemoModel } from '@memoarchitect/tools';
+import { findConfigFile } from '@memoarchitect/tools';
+import type { MemoModel } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
 
 interface RoundTripDiff {
     category: 'element_lost' | 'element_gained' | 'relationship_lost' | 'relationship_gained' | 'attribute_changed';
@@ -97,25 +97,7 @@ export async function roundTripCommand(
     const config = loadAndResolveConfig(configPath);
     log(chalk.gray(`Project: ${config.projectName}`));
 
-    let ontologyRegistries: BuilderRegistries | undefined;
-    try {
-        const loadResult = await loadOntologyRegistries(configPath);
-        if (loadResult.fileCount > 0) {
-            ontologyRegistries = loadResult.registries;
-        }
-    } catch {
-        // proceed without
-    }
-
-    const sysmlFiles = findSysmlFiles(cwd);
-    if (sysmlFiles.length === 0) {
-        console.error(chalk.yellow('⚠️  No .sysml files found.'));
-        return;
-    }
-    log(chalk.gray(`Files: ${sysmlFiles.length} .sysml files`));
-
-    const { documents, errors: parseErrors } = await parseFiles(sysmlFiles, cwd + '/');
-    const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    const { model, parseErrors } = await loadProjectModel({ projectRoot: dirname(configPath), config });
     log(chalk.gray(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
 
     if (parseErrors.length > 0) {

@@ -23,7 +23,6 @@ import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { MEMOConfig } from '../../model/config.js';
-import { loadOntologyRegistries } from '../../model/ontology-loader.js';
 import { modelToDTO } from '../../model/semantic.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import { SYSML_IR_VERSION } from '../../model/sysml-ir.js';
@@ -41,6 +40,7 @@ import type {
     ToolchainSchemaLeaf,
 } from '../registry.js';
 import { SYSIDE_PROVIDER_ID, parseSysideDiagnostics } from './syside.js';
+import { discoverProjectSources } from '../../model/native-project.js';
 
 interface SysidePythonConfig {
     python?: string;
@@ -70,19 +70,7 @@ export type SysideCompileResult = CompileModelResult;
  */
 export async function compileWithSyside(options: CompileModelOptions): Promise<CompileModelResult> {
     const projectDir = resolve(options.projectDir);
-    let { libraryDirs, projectFiles, registries, filePackages } = options;
-    // Resolving from the handoff needs only the sources; otherwise MEMO's
-    // resolution supplies what was not given.
-    if (!libraryDirs || !projectFiles || (!options.resolveProject && (!registries || !filePackages))) {
-        const loaded = await loadOntologyRegistries(projectDir);
-        registries ??= loaded.registries;
-        filePackages ??= loaded.resolution?.filePackages;
-        const resolvedRoots = [...(loaded.resolution?.selectedRoots ?? []), ...(loaded.resolution?.unusedRoots ?? [])];
-        libraryDirs ??= (loaded.resolution?.selectedRoots ?? []).map(root => root.sysmlDir);
-        projectFiles ??= new Set(findSysmlFiles(projectDir)
-            .filter(file => !resolvedRoots.some(root => resolve(file).startsWith(root.sysmlDir)))
-            .map(file => relative(projectDir, file)));
-    }
+    const { libraryDirs, projectFiles, registries, filePackages } = options;
 
     const interpreter = python(options.config);
     const key = sysideInputKey(interpreter, projectDir, libraryDirs);
@@ -188,9 +176,17 @@ export const sysideLoweringDescriptor: LoweringDescriptor = {
             transport: 'process' as const,
             invocation: () => ({ command: python(context.config), args: [EXPORT_SCRIPT], provider: SYSIDE_PROVIDER_ID }),
             async run(): Promise<LoweringRunResult> {
+                // Every library root a locator offers, the project resolved from
+                // what was compiled: what each command compiles, so MEMO parses
+                // nothing and `.memo/stage1/` is shared with them.
+                const sources = discoverProjectSources(context.projectDir);
                 const result = await compileWithSyside({
-                    config: context.config, projectDir: context.projectDir, registries: context.registries,
-                    libraryDirs: context.includeDirs,
+                    config: context.config,
+                    projectDir: context.projectDir,
+                    libraryDirs: [...new Set(sources.libraryRoots.map(root => root.sysmlDir))],
+                    projectFiles: new Set(sources.projectFiles.map(file => relative(context.projectDir, file))),
+                    resolveProject: true,
+                    cacheDir: join(context.projectDir, '.memo', 'stage1'),
                 });
                 const model = result.model
                     ? modelToDTO(result.model)
@@ -201,6 +197,7 @@ export const sysideLoweringDescriptor: LoweringDescriptor = {
                     transport: 'process',
                     accepted: result.accepted,
                     diagnostics: result.diagnostics,
+                    registries: result.registries,
                     ir: {
                         irVersion: SYSMLC_IR_VERSION,
                         model,

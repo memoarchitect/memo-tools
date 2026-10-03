@@ -12,23 +12,36 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
-import { IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable, loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject, deriveModelViews, resolveViewKind, collectNativeConstraints, collectApiConstraints, handoffFileOf, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints } from '@memoarchitect/tools';
+import {
+    IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable,
+    loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject,
+    deriveModelViews, resolveViewKind, collectNativeConstraints, collectApiConstraints,
+    handoffFileOf, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints,
+} from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
-import type { BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument, EffectiveRule, ParseError } from '@memoarchitect/tools';
+import type {
+    BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument,
+    EffectiveRule, ParseError,
+} from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
-import type { ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO, EnumDefinitionDTO } from '@memoarchitect/tools';
+import type {
+    ServerMessage, ViewpointDTO, ArchLayerDTO, DiagramDTO, ModelMetadata, OntologyRegistriesDTO,
+    EnumDefinitionDTO,
+} from '@memoarchitect/tools';
 import { createDevServer } from '../server/dev-server.js';
 import { createProjectWatcher, createOntologyWatcher } from '../server/file-watcher.js';
 import { checkLockFile } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { enforceRuntimeBudget } from '../server/runtime-budget.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
-import { compileModelWithSelected } from '../toolchain/operations.js';
+import { compileResolvedProject, selectedCompilerBuildsModel } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { computeStandardsReport, readDeclaredRegimes } from '../dhf/standards-report.js';
 import { loadStandardsLibrary } from '../dhf/standards-library.js';
+import { loadProjectModel, stage1CacheDir, type ProjectModel } from '../toolchain/project-model.js';
+import { resolutionLoads } from '../stage2/project-from-api.js';
 
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
@@ -137,7 +150,21 @@ export async function devCommand(options: {
         + `packager=${toolchain.packager}`));
     for (const note of toolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
 
-    const nativeResolution = await resolveNativeProject(cwd);
+    // A compiler that builds the model resolves the project from what it
+    // compiled, so MEMO parses neither the ontology nor the closure; a stage 1
+    // that reports an error stops here, as it stops `memo validate`.
+    const external = selectedCompilerBuildsModel(config, defaultRegistry);
+    let compiled: ProjectModel | undefined;
+    if (external) {
+        try {
+            compiled = await loadProjectModel({ projectRoot: cwd, config });
+        } catch (error) {
+            console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
+            process.exit(1);
+        }
+        console.log(chalk.gray(`Stage 1: ${toolchain.lowering} ${compiled.providerVersion ?? ''}${compiled.cached ? ' (reused .memo/stage1)' : ''}`));
+    }
+    const nativeResolution = compiled?.resolution ?? await resolveNativeProject(cwd);
     for (const d of nativeResolution.diagnostics) {
         console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
     }
@@ -159,7 +186,17 @@ export async function devCommand(options: {
     let ontologyDocuments: ParsedDocument[] = [];
     let ontologyHash = '';
 
-    try {
+    if (compiled?.registries) {
+        ontologyRegistries = compiled.registries;
+        ontologyRoots = [...new Set(nativeResolution.selectedRoots.map(root => root.sysmlDir))];
+        provenance = compiled.registries.provenance;
+        if (ontologyRegistries.kindRegistry) Object.freeze(ontologyRegistries.kindRegistry);
+        if (ontologyRegistries.relationshipRegistry) Object.freeze(ontologyRegistries.relationshipRegistry);
+        ontologyHash = computeOntologyHash(ontologyRegistries);
+        console.log(chalk.gray(
+            `Ontology: ${ontologyRegistries.kindRegistry?.size ?? 0} kinds, `
+            + `${ontologyRegistries.relationshipRegistry?.size ?? 0} relationships (from ${toolchain.lowering}'s handoff)`));
+    } else try {
         const loadResult = await loadOntologyRegistries(cwd);
         if (loadResult.fileCount > 0) {
             ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
@@ -225,11 +262,6 @@ export async function devCommand(options: {
     }> {
         const rebuildStartedAt = performance.now();
         buildCount++;
-        try {
-            methodologyDescriptor = await loadMethodologyDescriptor(cwd);
-        } catch {
-            // keep last good descriptor on transient parse failure
-        }
         const sysmlFiles = findSysmlFiles(cwd);
         const parsed = await projectParser.parse(sysmlFiles, changedFiles);
         const documents = parsed.documents;
@@ -243,12 +275,16 @@ export async function devCommand(options: {
         // `toolchain.compiler` decides where the model comes from. A stage 1
         // that reports errors makes this build incoherent, so a client keeps
         // showing the last good one; MEMO's own parse still backs the display.
-        const stage1 = await compileModelWithSelected({
-            config, projectDir: cwd, registries: projectRegistries,
-            libraryDirs: nativeResolution.selectedRoots.map(root => root.sysmlDir),
-            projectFiles: new Set(documents.map(d => relative(cwd, resolve(cwd, d.filePath)))),
-            filePackages: nativeResolution.filePackages,
-        });
+        // The same resolved compile every command runs, reusing `.memo/stage1/`.
+        const stage1 = await compileResolvedProject({ config, projectDir: cwd, cacheDir: stage1CacheDir(cwd) });
+        // The methodology follows the project's imports, which an edit can
+        // change: from the compiled resolution when there is one, else by
+        // resolving again.
+        try {
+            methodologyDescriptor = await loadMethodologyDescriptor(cwd, stage1?.resolution);
+        } catch {
+            // keep last good descriptor on transient parse failure
+        }
         if (stage1 && (!stage1.accepted || !stage1.model)) {
             errors = [...errors, ...stage1.diagnostics.filter(d => d.severity === 'error').map(d => ({
                 file: d.file ?? '', line: d.range?.start.line, message: d.message, code: d.code,
@@ -263,18 +299,15 @@ export async function devCommand(options: {
         const irIdentities = irIdentityTable(lowerAstToSysmlIr(documents, modelToDTO(model), cwd));
         // An accepted stage 1 carries the ontology it resolved, rules included,
         // so they are read from its handoff rather than from MEMO's own parse.
-        const ruleDocuments = [...ontologyDocuments, ...documents];
-        const nativeConstraints = stage1?.accepted && stage1.model && stage1.api
-            ? collectApiConstraints(stage1.api, undefined, new Map(ruleDocuments.map(d => [d.filePath, ''])))
-            : collectNativeConstraints(ruleDocuments);
-        // An accepted stage 1 states the ontology, and the project's own kinds
-        // extend it, as MEMO's parse of the same files would.
-        const stage2Registries: BuilderRegistries | undefined = stage1?.accepted && stage1.model && stage1.api && stage1.registries
-            ? {
-                ...stage1.registries,
-                kindRegistry: stage1.registries.kindRegistry?.withProjectExtensionsFromApi(
-                    stage1.api, handoffFileOf(stage1.api, nativeResolution.filePackages)),
-            }
+        const accepted = stage1?.accepted && stage1.model && stage1.api;
+        const nativeConstraints = accepted
+            ? collectApiConstraints(stage1.api!, undefined, stage1.resolution?.filePackages,
+                stage1.resolution ? resolutionLoads(stage1.resolution) : undefined)
+            : collectNativeConstraints([...ontologyDocuments, ...documents]);
+        // An accepted stage 1 states the ontology with the project's own kinds,
+        // as MEMO's parse of the same closure does.
+        const stage2Registries: BuilderRegistries | undefined = accepted && stage1.registries
+            ? stage1.registries
             : projectRegistries;
         const validation = validateModel(model, nativeConstraints, stage2Registries?.kindRegistry);
         const effectiveRuleSet = (() => {

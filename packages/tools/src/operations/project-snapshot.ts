@@ -15,7 +15,9 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { findProjectRoot, loadProjectSettings } from '@memoarchitect/tools';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { resolveToolchain } from '../toolchain/effective.js';
-import { mergeDiagnostics, runLowering, runValidator } from '../toolchain/operations.js';
+import {
+    mergeDiagnostics, runLowering, runValidator, selectedCompilerBuildsModel,
+} from '../toolchain/operations.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
 import type { ProviderRegistry } from '../toolchain/registry.js';
 
@@ -85,14 +87,18 @@ export async function buildProjectSnapshot(
     const config = configPath ? loadAndResolveConfig(configPath) : loadProjectSettings(cwd);
     const effective = resolveToolchain(config, registry);
 
-    // Loaded before either role runs, so the closure is parsed once and offered
-    // to a provider that can use it rather than loaded again inside lowering.
+    // MEMO's compiler: loaded before either role runs, so the closure is
+    // parsed once and offered to lowering rather than loaded again inside it.
+    // A compiler that builds the model resolves the ontology from its own
+    // handoff and returns it with the model, so nothing is parsed here.
     let ontologyRegistries: BuilderRegistries | undefined;
-    try {
-        const loadResult = await loadOntologyRegistries(cwd);
-        if (loadResult.fileCount > 0) ontologyRegistries = loadResult.registries;
-    } catch {
-        // Snapshot generation remains available with reduced kind resolution.
+    if (!selectedCompilerBuildsModel(config, registry)) {
+        try {
+            const loadResult = await loadOntologyRegistries(cwd);
+            if (loadResult.fileCount > 0) ontologyRegistries = loadResult.registries;
+        } catch {
+            // Snapshot generation remains available with reduced kind resolution.
+        }
     }
 
     // The validator answers "is this valid SysML?" and nothing else. Its
@@ -120,6 +126,7 @@ export async function buildProjectSnapshot(
         config, projectDir: cwd, registry, registries: ontologyRegistries,
     });
     const diagnostics = mergeDiagnostics(validatorRun.diagnostics, loweringRun.diagnostics);
+    ontologyRegistries = loweringRun.registries ?? ontologyRegistries;
 
     const semanticModel = dtoToModel(loweringRun.ir.model);
     const validation = validateModel(semanticModel, [], ontologyRegistries?.kindRegistry);

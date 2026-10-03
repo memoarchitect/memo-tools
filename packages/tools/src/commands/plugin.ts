@@ -6,17 +6,16 @@
 //   memo plugin run <id>          — Run a generator or analysis plugin
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
 import {
-    findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries,
-    validateModel, computeCompleteness, createQueryContext,
-    PluginRegistry, loadPlugins, loadPluginConfig, scaffoldPlugin,
+    findConfigFile, validateModel, computeCompleteness, createQueryContext, PluginRegistry,
+    loadPlugins, loadPluginConfig, scaffoldPlugin,
 } from '@memoarchitect/tools';
-import type { BuilderRegistries, PluginType, PluginContext, MemoPlugin } from '@memoarchitect/tools';
+import type { PluginType, PluginContext, MemoPlugin } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
 
 
 // ─── memo plugin list ───────────────────────────────────────────────────────
@@ -127,15 +126,7 @@ export async function pluginRunCommand(
 
     console.log(chalk.dim('Loading model and plugins...'));
     const config = loadAndResolveConfig(configPath);
-    let ontologyRegistries: BuilderRegistries | undefined;
-    try {
-        const loadResult = await loadOntologyRegistries(configPath);
-        if (loadResult.fileCount > 0) ontologyRegistries = loadResult.registries;
-    } catch { /* skip */ }
-
-    const sysmlFiles = findSysmlFiles(cwd);
-    const { documents, errors: parseErrors } = await parseFiles(sysmlFiles, cwd + '/');
-    const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    const { model, registries: ontologyRegistries } = await loadProjectModel({ projectRoot: dirname(configPath), config });
     const validation = validateModel(model);
     const completeness = computeCompleteness(model, validation);
     const query = createQueryContext(model, validation, completeness, config);

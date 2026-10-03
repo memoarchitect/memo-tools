@@ -11,15 +11,13 @@ import { resolve, basename, extname } from 'node:path';
 import { readFileSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import {
-    findConfigFile,
-    loadOntologyRegistries,
-    importEaJson,
-    eaResultToSysml,
-    importCameoXml,
-    importCameoJson,
+    findConfigFile, importEaJson, eaResultToSysml, importCameoXml, importCameoJson,
     cameoResultToSysml,
 } from '@memoarchitect/tools';
 import type { EaJsonExport, CameoJsonExport } from '@memoarchitect/tools';
+import { dirname } from 'node:path';
+import { loadProjectSettings } from '../model/config-loader.js';
+import { loadProjectOntology } from '../toolchain/project-model.js';
 
 /**
  * memo import ea <file> — Import from Sparx EA JSON export.
@@ -62,7 +60,7 @@ export async function importEaCommand(
     const configPath = findConfigFile(cwd);
     let kindRegistry, relRegistry;
     if (configPath) {
-        const loadResult = await loadOntologyRegistries(configPath);
+        const loadResult = await loadProjectOntology({ projectRoot: dirname(configPath), config: loadProjectSettings(dirname(configPath)) });
         kindRegistry = loadResult.registries.kindRegistry;
         relRegistry = loadResult.registries.relationshipRegistry;
     }
@@ -134,7 +132,7 @@ export async function importCameoCommand(
     const configPath = findConfigFile(cwd);
     let kindRegistry, relRegistry;
     if (configPath) {
-        const loadResult = await loadOntologyRegistries(configPath);
+        const loadResult = await loadProjectOntology({ projectRoot: dirname(configPath), config: loadProjectSettings(dirname(configPath)) });
         kindRegistry = loadResult.registries.kindRegistry;
         relRegistry = loadResult.registries.relationshipRegistry;
     }

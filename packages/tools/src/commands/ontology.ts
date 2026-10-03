@@ -13,16 +13,11 @@ import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import chalk from 'chalk';
 import type { MEMOConfig } from '@memoarchitect/tools';
 import {
-    findConfigFile,
-    loadOntologyRegistries,
-    getPackageMetadata,
-    resolveNativeProject,
-    ontologyViewFrom,
-    exportToOwlTurtle,
-    exportToOwlXml,
+    findConfigFile, getPackageMetadata, ontologyViewFrom, exportToOwlTurtle, exportToOwlXml,
     type LibraryRoot,
 } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { loadProjectOntology } from '../toolchain/project-model.js';
 
 // ─── memo ontology add-kind ──────────────────────────────────────────────────
 
@@ -111,7 +106,7 @@ export async function ontologyShowCommand(): Promise<void> {
     }
 
     const projectRoot = dirname(configPath);
-    const loadResult = await loadOntologyRegistries(projectRoot);
+    const loadResult = await loadProjectOntology({ projectRoot, config: loadAndResolveConfig(configPath) });
     const resolution = loadResult.resolution;
 
     // Identity comes from the packages the project's imports resolved to. It
@@ -198,7 +193,7 @@ export async function ontologyExportOwlCommand(options: {
 
     // Kinds and relationships come from the resolved SysML, not from a
     // `kinds:`/`relationshipTypes:` block in a settings file.
-    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const loadResult = await loadProjectOntology({ projectRoot: dirname(configPath), config });
     const ontology = ontologyViewFrom(
         loadResult.registries.kindRegistry,
         loadResult.registries.relationshipRegistry,
@@ -241,7 +236,8 @@ export async function ontologyExportSysandCommand(options: {
     // Export what the project's imports resolved to. The config `extends`
     // chain this used to walk could name packages the model never loaded.
     const currentConfig = loadAndResolveConfig(configPath);
-    const exportRoots = (await resolveNativeProject(dirname(configPath))).selectedRoots;
+    const { resolution } = await loadProjectOntology({ projectRoot: dirname(configPath), config: currentConfig });
+    const exportRoots = resolution?.selectedRoots ?? [];
 
     if (exportRoots.length === 0) {
         console.error(chalk.red(

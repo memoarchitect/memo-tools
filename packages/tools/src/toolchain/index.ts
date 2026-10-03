@@ -20,3 +20,4 @@ export * from './default-registry.js';
 export { compileWithSyside, sysideLoweringDescriptor, type SysideCompileResult } from './providers/syside-lowering.js';
 export { whichExecutable, resolveExecutable, resolveProjectPath, findBundledExecutable } from './process.js';
 export { getSysmlcClient, disposeSysmlcClients, SysmlcClient } from './sysmlc-client.js';
+export * from './project-model.js';

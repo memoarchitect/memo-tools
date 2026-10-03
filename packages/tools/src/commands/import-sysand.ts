@@ -7,12 +7,10 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import chalk from 'chalk';
-import {
-    importSysandProject,
-    loadOntologyRegistries,
-    findConfigFile,
-    verifySysandRoundTrip,
-} from '@memoarchitect/tools';
+import { importSysandProject, findConfigFile, verifySysandRoundTrip } from '@memoarchitect/tools';
+import { dirname } from 'node:path';
+import { loadProjectSettings } from '../model/config-loader.js';
+import { loadProjectOntology } from '../toolchain/project-model.js';
 
 /**
  * memo import sysand <project-dir> — Import a SysAnd project.
@@ -67,7 +65,7 @@ export async function importSysandCommand(
         if (!configPath) {
             console.log(chalk.yellow('  No MEMO config found — skipping round-trip verification.'));
         } else {
-            const original = await loadOntologyRegistries(configPath);
+            const original = await loadProjectOntology({ projectRoot: dirname(configPath), config: loadProjectSettings(dirname(configPath)) });
             const diff = verifySysandRoundTrip(
                 original.registries.kindRegistry!,
                 original.registries.relationshipRegistry!,

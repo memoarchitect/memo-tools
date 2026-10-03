@@ -12,6 +12,8 @@ import {
 } from '@memoarchitect/tools';
 import { createLockFile } from '../lock.js';
 import { scaffoldAnalysisSamples } from '../analysis-starters.js';
+import { loadProjectSettings } from '../model/config-loader.js';
+import { loadProjectOntology } from '../toolchain/project-model.js';
 
 export interface AvailableOntology {
     name: string;
@@ -355,8 +357,10 @@ export async function initCommand(name: string | undefined, options: InitOptions
     }
 
     try {
-        const { resolveNativeProject } = await import('@memoarchitect/tools');
-        const resolution = await resolveNativeProject(target.projectDir);
+        const { resolution } = await loadProjectOntology({
+            projectRoot: target.projectDir, config: loadProjectSettings(target.projectDir),
+        });
+        if (!resolution) throw new Error('the project did not resolve');
         const { lock } = createLockFile(target.projectDir, resolution.selectedRoots.map(root => ({
             ...root, origin: 'ontology', importDepth: 1,
         })));

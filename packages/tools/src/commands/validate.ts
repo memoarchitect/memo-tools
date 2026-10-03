@@ -26,18 +26,22 @@ import {
 } from '@memoarchitect/tools';
 import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
 import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, toElementIndex } from '@memoarchitect/tools';
-import { validateModel, collectNativeConstraints, collectApiConstraints, type ConstraintDiagnostic } from '@memoarchitect/tools';
+import {
+    validateModel, collectNativeConstraints, collectApiConstraints, type ConstraintDiagnostic,
+} from '@memoarchitect/tools';
 import { checkSelectorVocabulary, type SelectorVocabularyDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import { checkLockFile } from '../lock.js';
 import { runValidator } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
-import { compileResolvedProject, compileServesValidator, selectedCompilerBuildsModel } from '../toolchain/operations.js';
+import {
+    compileResolvedProject, compileServesValidator, selectedCompilerBuildsModel,
+} from '../toolchain/operations.js';
 import type { CompileModelResult } from '../toolchain/registry.js';
 import { discoverProjectSources, type NativeProjectResolution } from '../model/native-project.js';
 import { resolutionLoads } from '../stage2/project-from-api.js';
-import { stage1CacheDir } from './compile.js';
+import { stage1CacheDir } from '../toolchain/project-model.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { countBySeverity, formatDiagnosticsText, type Diagnostic } from '../toolchain/diagnostic.js';
 

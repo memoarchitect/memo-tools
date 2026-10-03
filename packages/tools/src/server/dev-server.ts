@@ -691,7 +691,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      * they share this rather than each re-deriving them.
      */
     async function llmQueryContext(): Promise<{ ctx: QueryContext; config: MEMOConfig; ontology: OntologyView }> {
-        const { createQueryContext, findConfigFile, loadOntologyRegistries, ontologyViewFrom, EMPTY_ONTOLOGY_VIEW } =
+        const { createQueryContext, findConfigFile, loadProjectOntology, ontologyViewFrom, EMPTY_ONTOLOGY_VIEW } =
             await import('@memoarchitect/tools');
         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
@@ -705,7 +705,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         // settings file the config path points at.
         let ontology = EMPTY_ONTOLOGY_VIEW;
         try {
-            const loaded = await loadOntologyRegistries(options.projectRoot);
+            const loaded = await loadProjectOntology({ projectRoot: options.projectRoot, config });
             ontology = ontologyViewFrom(loaded.registries.kindRegistry, loaded.registries.relationshipRegistry);
         } catch {
             // A project whose ontology does not resolve still has a model to query.
