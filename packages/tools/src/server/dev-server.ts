@@ -829,13 +829,14 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         };
     }
 
-    function relationshipWriterOptions(): RelationshipWriterOptions {
+    async function relationshipWriterOptions(): Promise<RelationshipWriterOptions> {
         return {
             projectRoot: options.projectRoot,
             ontologyRoots: options.ontologyRoots,
             designatedFiles: options.relationshipFiles,
             canonicalFile: options.canonicalRelationshipFile,
             irIndex: irIndex(),
+            outlines: (await authoringContext()).outlines,
         };
     }
 
@@ -862,7 +863,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         if (!model) return reject('The model is not loaded yet.');
 
         const registries = serverRegistries();
-        const writerOptions = relationshipWriterOptions();
+        const writerOptions = await relationshipWriterOptions();
 
         // The active view's profile only downgrades to a warning, so a
         // relationship the view cannot draw is still created in the model.
@@ -947,7 +948,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             return reject(first?.message ?? 'The relationship was not found.', validation.diagnostics);
         }
 
-        const result = await removeRelationship(validation.relationship, relationshipWriterOptions());
+        const result = await removeRelationship(validation.relationship, await relationshipWriterOptions());
         if (!result.success) {
             console.error(`[Relationship] Delete failed: ${result.error}`);
             return reject(result.error ?? 'The relationship could not be removed.');
@@ -1008,7 +1009,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             return reject(first?.message ?? 'The relationship update is not valid.', validation.diagnostics);
         }
 
-        const result = await updateRelationship(payload, relationship, validation.definition, model, relationshipWriterOptions());
+        const result = await updateRelationship(payload, relationship, validation.definition, model, await relationshipWriterOptions());
         if (!result.success) return reject(result.error ?? 'The relationship could not be updated.');
 
         if (result.sourceFile) {
@@ -1069,7 +1070,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             if (parent && !fileOf(parent)) {
                 return { success: false, filePaths: [], error: `Package "${parent}" was not found.` };
             }
-            return createPackage(projectRoot, { file, parent, name: String(payload.name ?? '') });
+            return createPackage(projectRoot, { file, parent, name: String(payload.name ?? '') }, (await authoringContext()).outlines);
         }
 
         const qualifiedName = String(payload.qualifiedName ?? '');
@@ -1077,15 +1078,15 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             const file = fileOf(qualifiedName);
             if (!file) return { success: false, filePaths: [], error: `Package "${qualifiedName}" was not found.` };
             if (type === 'package:rename') {
-                return renamePackage(projectRoot, { file, qualifiedName, name: String(payload.name ?? '') });
+                return renamePackage(projectRoot, { file, qualifiedName, name: String(payload.name ?? '') }, (await authoringContext()).outlines);
             }
-            if (type === 'package:delete') return deletePackage(projectRoot, { file, qualifiedName });
+            if (type === 'package:delete') return deletePackage(projectRoot, { file, qualifiedName }, (await authoringContext()).outlines);
             const targetParent: string | undefined = payload.targetParent || undefined;
             const targetFile = targetParent ? fileOf(targetParent) : file;
             if (targetParent && !targetFile) {
                 return { success: false, filePaths: [], error: `Package "${targetParent}" was not found.` };
             }
-            return movePackage(projectRoot, { file, qualifiedName, targetParent, targetFile: targetFile! });
+            return movePackage(projectRoot, { file, qualifiedName, targetParent, targetFile: targetFile! }, (await authoringContext()).outlines);
         }
 
         const elementId = String(payload.elementId ?? '');
@@ -1126,7 +1127,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                 file: element.file,
                 qualifiedName: declarationPath(element),
                 targetPackage,
-            });
+            }, (await authoringContext()).outlines);
         }
         const irIdentity = irIndex().byMemoElement[elementId];
         if (!irIdentity) {
@@ -1160,7 +1161,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         if (element.provenance && !element.provenance.declaration.writable) {
             return reject(`Element "${elementId}" is read-only ${element.provenance.declaration.origin} content.`);
         }
-        const result = await removeElement(element, model, options.projectRoot);
+        const result = await removeElement(element, model, options.projectRoot, (await authoringContext()).outlines);
         if (result.success) {
             for (const sourceFile of result.sourceFiles ?? []) {
                 const path = resolve(options.projectRoot, sourceFile);
@@ -1546,7 +1547,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // derived diagram then carrying a `sourceFile` — takes its
                     // `.viewlayout` companion out of the hidden store too.
                     const declared = await writeViewDeclaration(
-                        projectRoot, currentModel() ?? ({ elements: {}, diagrams: [] } as any), diagram);
+                        projectRoot, currentModel() ?? ({ elements: {}, diagrams: [] } as any), diagram, (await authoringContext()).outlines);
                     if (!declared.success) {
                         // No fallback. A view that cannot be declared is not one
                         // this project can hold, and recording it in a sidecar
@@ -1573,7 +1574,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     const result = declared
                         ? await updateViewExpose(
                             projectRoot, currentModel() ?? ({ elements: {} } as any), declared,
-                            (msg.payload as any)?.elementIds)
+                            (msg.payload as any)?.elementIds, (await authoringContext()).outlines)
                         : { success: false, reason: `no view "${(msg.payload as any)?.id}" is declared` } as const;
                     if (result.success) {
                         console.log(`[Diagram] Exposed ${(result as any).exposed.join(', ')} on ${declared!.name} (${(result as any).filePath})`);

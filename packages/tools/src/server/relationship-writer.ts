@@ -4,9 +4,11 @@
 // them again. A relationship is a semantic model fact, so it is always written
 // into project SysML — never into a diagram, layout sidecar, or UI state.
 //
-// Editing is CST-aware: the file is parsed, the edit is applied by source
+// Editing is outline-aware (plans/memo-write-back-from-handoff.md): the file's
+// declarations are located in its source outline, the edit is applied by source
 // offset so comments and unrelated declarations survive untouched, the result
-// is reparsed and validated, and only then does it atomically replace the file.
+// is compiled by the selected compiler and checked, and only then does it
+// atomically replace the file.
 //
 // Endpoints are addressed by **IR identity** when the caller quotes one (§6.2).
 // A relationship names two elements, so a request built against a stale
@@ -30,7 +32,6 @@ import type {
     RelationshipDefinitionDTO,
     RelationshipUpdateRequest,
 } from '../model/relationship-legality.js';
-import { parseText } from '../model/parser-utils.js';
 import {
     StaleIrIdentityError,
     type IrIdentityIndex,
@@ -40,12 +41,8 @@ import {
     type RelationshipNotation,
 } from './sysml-notation.js';
 import { shortNameOf } from '../model/element-index.js';
-import {
-    isConnectionUsage,
-    isPackageDeclaration,
-    type ConnectionUsage,
-    type PackageDeclaration,
-} from '../language/generated/ast.js';
+import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import { bodyMembers, outlineNodes, type OutlineNode, type SourceOutline } from '../authoring/source-outline.js';
 
 // Project-layout conventions, not ontology semantics — these describe where a
 // MEMO project keeps its files, so they are overridable per project rather than
@@ -90,6 +87,8 @@ export interface RelationshipWriterOptions {
      * rather than written blind.
      */
     irIndex?: IrIdentityIndex;
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines?: OutlineSource;
 }
 
 /** Why a particular file was chosen, for logging and for the UI to show. */
@@ -384,31 +383,36 @@ export async function writeRelationship(
         endpointPath(request.sourceId, model), endpointPath(request.targetId, model),
         request.flowItem, request.guard);
 
+    const outlines = options.outlines ?? parseOutlineSource;
+    const file = placement.file.replaceAll('\\', '/');
     let updated: string;
     if (!existsSync(absolutePath)) {
         updated = newRelationshipFile(placement.file, declaration);
     } else {
         const original = readFileSync(absolutePath, 'utf8');
-        const inserted = await insertIntoPackage(original, declaration);
+        let outline: SourceOutline;
+        try {
+            outline = await outlines.outline(file, original);
+        } catch (e) {
+            return { success: false, error: `The target file cannot be edited (${message(e)})` };
+        }
+        const inserted = insertIntoPackage(outline, declaration);
         if (!inserted.ok) return { success: false, error: inserted.error };
         updated = inserted.text;
     }
 
-    // Parse-before-commit: a file that does not parse never reaches disk.
-    const { document, errors } = await parseText(updated);
-    if (errors.length > 0) {
-        return {
-            success: false,
-            error: `The updated source did not parse (${errors[0].message}); the file was left unchanged`,
-        };
+    // Compile-before-commit: a file the selected compiler rejects never reaches disk.
+    const checked = await verified(outlines, file, updated);
+    if (typeof checked === 'string') {
+        return { success: false, error: `The updated source was not accepted (${checked}); the file was left unchanged` };
     }
     const written = notationIsNameable(notation)
-        ? findConnectionUsage(document.parseResult.value as any, relationshipId) !== undefined
-        : containsDeclaration(document.parseResult.value as any, updated, declaration);
+        ? findConnectionUsage(checked, relationshipId) !== undefined
+        : containsDeclaration(checked, declaration);
     if (!written) {
         return {
             success: false,
-            error: 'The relationship was not present after reparsing; the file was left unchanged',
+            error: 'The relationship was not present after compiling; the file was left unchanged',
         };
     }
 
@@ -514,15 +518,19 @@ export async function updateRelationship(
     if (!relationship.file || !isWritableRelationshipFile(relationship.file, options)) {
         return { success: false, error: `${relationship.file || 'The source file'} is not a writable project file` };
     }
-    const range = relationship.sourceRange;
-    if (!range) return { success: false, error: 'The relationship has no source range in the current model revision' };
-
     const absolutePath = resolve(options.projectRoot, relationship.file);
     if (!existsSync(absolutePath)) return { success: false, error: `${relationship.file} no longer exists` };
     const source = readFileSync(absolutePath, 'utf8');
-    if (range.offset < 0 || range.length <= 0 || range.offset + range.length > source.length) {
-        return { success: false, error: 'The relationship source range is stale' };
+    const outlines = options.outlines ?? parseOutlineSource;
+    const file = relativeFile(options.projectRoot, relationship.file);
+    let outline: SourceOutline;
+    try {
+        outline = await outlines.outline(file, source);
+    } catch (e) {
+        return { success: false, error: `${relationship.file} cannot be edited (${message(e)})` };
     }
+    const located = locateRelationship(outline, relationship);
+    if (typeof located === 'string') return { success: false, error: located };
 
     const declaration = generateRelationshipDeclaration(
         declaredNameOf(relationship),
@@ -532,16 +540,16 @@ export async function updateRelationship(
         relationship.flowItem,
         relationship.attributes?.guard,
     );
-    const updated = source.slice(0, range.offset) + declaration + source.slice(range.offset + range.length);
-    const reparsed = await parseText(updated);
-    if (reparsed.errors.length > 0) {
-        return { success: false, error: `The updated source did not parse (${reparsed.errors[0].message}); the file was left unchanged` };
+    const updated = source.slice(0, located.start) + declaration + source.slice(located.end);
+    const checked = await verified(outlines, file, updated);
+    if (typeof checked === 'string') {
+        return { success: false, error: `The updated source was not accepted (${checked}); the file was left unchanged` };
     }
     const notation = notationFor(definition);
     const present = notationIsNameable(notation)
-        ? findConnectionUsage(reparsed.document.parseResult.value as any, declaredNameOf(relationship)) !== undefined
-        : containsDeclaration(reparsed.document.parseResult.value as any, updated, declaration);
-    if (!present) return { success: false, error: 'The updated relationship was not present after reparsing; the file was left unchanged' };
+        ? findConnectionUsage(checked, declaredNameOf(relationship)) !== undefined
+        : containsDeclaration(checked, declaration);
+    if (!present) return { success: false, error: 'The updated relationship was not present after compiling; the file was left unchanged' };
 
     try {
         atomicWrite(absolutePath, updated);
@@ -557,30 +565,18 @@ export async function updateRelationship(
  * else in the file — comments, imports, unrelated declarations — is untouched
  * because only this one offset is edited.
  */
-async function insertIntoPackage(
-    source: string,
+function insertIntoPackage(
+    outline: SourceOutline,
     declaration: string,
-): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
-    const { document, errors } = await parseText(source);
-    if (errors.length > 0) {
-        return { ok: false, error: `The target file does not parse (${errors[0].message})` };
-    }
-
-    const model = document.parseResult.value as any;
-    const packages = (model.members ?? []).filter(isPackageDeclaration) as PackageDeclaration[];
+): { ok: true; text: string } | { ok: false; error: string } {
+    const source = outline.text;
+    const packages = outline.roots.filter(node => node.role === 'package');
     if (packages.length === 0) {
         return { ok: false, error: 'The target file declares no package to own the relationship' };
     }
-
     const target = packages[packages.length - 1];
-    const cst = target.$cstNode;
-    if (!cst) return { ok: false, error: 'The target package has no source range' };
-
-    // The package's own closing brace is the last '}' in its source range.
-    const packageEnd = cst.offset + cst.length;
-    const closingBrace = source.lastIndexOf('}', packageEnd - 1);
-    if (closingBrace < 0) return { ok: false, error: 'The target package is not brace-delimited' };
-
+    if (!target.body) return { ok: false, error: 'The target package is not brace-delimited' };
+    const closingBrace = target.body.close;
     const indent = memberIndent(source, target, closingBrace);
 
     // Keep the existing content up to the closing brace exactly as written, then
@@ -592,9 +588,8 @@ async function insertIntoPackage(
 }
 
 /** Indentation used by the package's existing members, defaulting to 4 spaces. */
-function memberIndent(source: string, pkg: PackageDeclaration, closingBrace: number): string {
-    const firstMember = (pkg.members ?? [])[0] as any;
-    const offset = firstMember?.$cstNode?.offset;
+function memberIndent(source: string, pkg: OutlineNode, closingBrace: number): string {
+    const offset = bodyMembers(pkg)[0]?.start;
     if (typeof offset === 'number') {
         const lineStart = source.lastIndexOf('\n', offset - 1) + 1;
         const lead = source.slice(lineStart, offset);
@@ -636,39 +631,42 @@ export async function removeRelationship(
     }
 
     const source = readFileSync(absolutePath, 'utf8');
-    const { document, errors } = await parseText(source);
-    if (errors.length > 0) {
-        return { success: false, error: `${relationship.file} does not parse (${errors[0].message})` };
+    const outlines = options.outlines ?? parseOutlineSource;
+    const file = relativeFile(options.projectRoot, relationship.file);
+    let outline: SourceOutline;
+    try {
+        outline = await outlines.outline(file, source);
+    } catch (e) {
+        return { success: false, error: `${relationship.file} cannot be edited (${message(e)})` };
     }
 
-    const usage = findConnectionUsage(document.parseResult.value as any, declaredNameOf(relationship));
-    const cst = usage?.$cstNode;
-    if (!usage || !cst) {
+    const usage = findConnectionUsage(outline, declaredNameOf(relationship));
+    if (!usage) {
         return { success: false, error: `Relationship "${relationship.id}" was not found in ${relationship.file}` };
     }
 
     // Widen the cut to the whole line when the declaration is alone on it, so
     // deletion leaves no blank indented remnant.
-    let start = cst.offset;
-    let end = cst.offset + cst.length;
+    let start = usage.start;
+    let end = usage.end;
     const lineStart = source.lastIndexOf('\n', start - 1) + 1;
     if (/^[ \t]*$/.test(source.slice(lineStart, start))) start = lineStart;
     const lineEnd = source.indexOf('\n', end);
     if (lineEnd >= 0 && /^[ \t]*$/.test(source.slice(end, lineEnd))) end = lineEnd + 1;
 
-    const removedDeclaration = source.slice(cst.offset, cst.offset + cst.length);
+    const removedDeclaration = source.slice(usage.start, usage.end);
     const updated = source.slice(0, start) + source.slice(end);
 
-    // Parse-before-commit, exactly as on the create path.
-    const reparsed = await parseText(updated);
-    if (reparsed.errors.length > 0) {
+    // Compile-before-commit, exactly as on the create path.
+    const checked = await verified(outlines, file, updated);
+    if (typeof checked === 'string') {
         return {
             success: false,
-            error: `Removing the relationship left invalid source (${reparsed.errors[0].message}); ` +
+            error: `Removing the relationship left source that was not accepted (${checked}); ` +
                 'the file was left unchanged',
         };
     }
-    if (findConnectionUsage(reparsed.document.parseResult.value as any, declaredNameOf(relationship))) {
+    if (findConnectionUsage(checked, declaredNameOf(relationship))) {
         return { success: false, error: 'The relationship was still present after removal; the file was left unchanged' };
     }
 
@@ -684,24 +682,18 @@ export async function removeRelationship(
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
 /**
- * Whether a parsed document contains exactly the declaration that was inserted.
+ * Whether a file's outline contains exactly the declaration that was inserted.
  *
  * The confirmation for anonymous notations. A named connection can be looked up
- * by name; a succession cannot, so the check is that some parsed node's own
+ * by name; a succession cannot, so the check is that some declaration's own
  * source range *is* the text that was inserted — which proves both that it
- * survived the reparse and that the parser read it as one declaration rather
+ * survived the compile and that the compiler read it as one declaration rather
  * than as a fragment of something larger.
  */
-function containsDeclaration(model: { members?: any[] }, source: string, declaration: string): boolean {
+function containsDeclaration(outline: SourceOutline, declaration: string): boolean {
     const wanted = declaration.trim();
-    const stack: any[] = [...(model.members ?? [])];
-    while (stack.length > 0) {
-        const node = stack.pop();
-        if (!node || typeof node !== 'object') continue;
-        const cst = node.$cstNode;
-        if (cst && source.slice(cst.offset, cst.offset + cst.length).trim() === wanted) return true;
-        if (Array.isArray(node.members)) stack.push(...node.members);
-        if (Array.isArray(node.body)) stack.push(...node.body);
+    for (const node of outlineNodes(outline)) {
+        if (outline.text.slice(node.start, node.end).trim() === wanted) return true;
     }
     return false;
 }
@@ -720,16 +712,52 @@ function declaredNameOf(relationship: Pick<MemoRelationship, 'id' | 'shortName'>
     return relationship.shortName ?? shortNameOf(relationship.id);
 }
 
-function findConnectionUsage(model: { members?: any[] }, name: string): ConnectionUsage | undefined {
-    const stack: any[] = [...(model.members ?? [])];
-    while (stack.length > 0) {
-        const node = stack.pop();
-        if (!node || typeof node !== 'object') continue;
-        if (isConnectionUsage(node) && node.name === name) return node;
-        if (Array.isArray(node.members)) stack.push(...node.members);
-        if (Array.isArray(node.body)) stack.push(...node.body);
+/** A named connection usage anywhere in the file. */
+function findConnectionUsage(outline: SourceOutline, name: string): OutlineNode | undefined {
+    for (const node of outlineNodes(outline)) {
+        if (node.metaclass === 'ConnectionUsage' && node.name === name) return node;
     }
     return undefined;
+}
+
+/**
+ * The declaration of a relationship the model holds, in the file as it is now:
+ * a named one by its qualified name; an anonymous one by the source range the
+ * compile recorded — in characters from MEMO's parse, in bytes from a handoff —
+ * which must still hold a relationship statement exactly.
+ */
+function locateRelationship(
+    outline: SourceOutline, relationship: Pick<MemoRelationship, 'id' | 'shortName' | 'named' | 'sourceRange'>,
+): OutlineNode | string {
+    const nodes = [...outlineNodes(outline)];
+    if (relationship.named) {
+        const found = nodes.filter(node => node.key === relationship.id);
+        if (found.length === 1) return found[0];
+    }
+    const range = relationship.sourceRange;
+    if (!range) return 'The relationship has no source range in the current model revision';
+    const bytes = (offset: number) => Buffer.byteLength(outline.text.slice(0, offset), 'utf8');
+    const matches = nodes.filter(node =>
+        (node.start === range.offset && node.end - node.start === range.length)
+        || (bytes(node.start) === range.offset && bytes(node.end) - bytes(node.start) === range.length));
+    return matches.length === 1 ? matches[0] : 'The relationship source range is stale';
+}
+
+/** The file's outline after compiling the text, or why the compiler refused it. */
+async function verified(outlines: OutlineSource, file: string, text: string): Promise<SourceOutline | string> {
+    try {
+        return await outlines.verify(file, text);
+    } catch (e) {
+        return message(e);
+    }
+}
+
+function message(e: unknown): string {
+    return e instanceof Error ? e.message : String(e);
+}
+
+function relativeFile(projectRoot: string, file: string): string {
+    return (isAbsolute(file) ? relative(projectRoot, file) : file).replaceAll('\\', '/');
 }
 
 /**

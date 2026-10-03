@@ -89,4 +89,29 @@ describe('removeElement', () => {
         expect(result.error).toContain('avoid a dangling reference');
         expect(read('model/catalog.sysml')).toBe(source);
     });
+
+    it('finds the element by its qualified id, which is what the model calls it', async () => {
+        // An element's id is its qualified name. Matching it against a
+        // declaration's short name found nothing inside any package.
+        write('model/catalog.sysml', `package Test {
+    part victim : UIElement;
+    part survivor : UIElement;
+    connection : Composes connect parent ::> victim to child ::> survivor;
+}
+package Other {
+    part victim : UIElement;
+}\n`);
+        const victim = element('Test::victim');
+        const result = await removeElement(victim, model(
+            [victim, element('Test::survivor')],
+            [relationship('out', 'Test::victim', 'Test::survivor', 'model/catalog.sysml')],
+        ), projectRoot);
+
+        expect(result).toMatchObject({ success: true });
+        const updated = read('model/catalog.sysml');
+        expect(updated).not.toContain('::> victim');
+        expect(updated).toContain('part survivor');
+        // The same-named part in another package is someone else.
+        expect(updated).toMatch(/package Other \{\s*part victim : UIElement;/);
+    });
 });

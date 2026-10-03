@@ -25,7 +25,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { generateUsage } from '../serializer/sysml-generator.js';
-import { parseText } from '../model/parser-utils.js';
 import { usageKeyword } from '../model/semantic.js';
 import {
     requireIrIdentity,
@@ -222,7 +221,13 @@ export async function saveElementToFile(
         );
         replaced = true;
     } else if (element.package) {
-        const target = (await locatePackages(content)).find(pkg => pkg.qualifiedName === element.package);
+        let outline;
+        try {
+            outline = await outlines.outline(relativePath.replaceAll('\\', '/'), content);
+        } catch (e) {
+            return { success: false, filePath: relativePath, error: `${relativePath} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
+        }
+        const target = locatePackages(outline).find(pkg => pkg.qualifiedName === element.package);
         if (!target) {
             return {
                 success: false, filePath: relativePath,
@@ -234,26 +239,29 @@ export async function saveElementToFile(
         updated = appendToLastPackage(content, buildUsage());
     }
 
-    const committed = await commitSource(filePath, relativePath, updated);
+    const committed = await commitSource(filePath, relativePath, updated, outlines);
     if (!committed.success) return { success: false, filePath: relativePath, error: committed.error };
     return { success: true, filePath: relativePath, replaced, ...(warnings.length ? { warnings } : {}) };
 }
 
 /**
- * Parse-before-commit, then write atomically.
+ * Compile-before-commit, then write atomically.
  *
- * Source that does not parse never reaches disk. The editor model (§1.1) says a
- * *user* may save anything; it does not say a machine-generated splice may
- * corrupt a file the user did not touch.
+ * Source the selected compiler does not accept never reaches disk. The editor
+ * model (§1.1) says a *user* may save anything; it does not say a
+ * machine-generated splice may corrupt a file the user did not touch.
  */
 export async function commitSource(
     absolutePath: string, relativePath: string, updated: string,
+    /** The selected compiler's outlines, which verify the text. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<{ success: boolean; error?: string }> {
-    const { errors } = await parseText(updated);
-    if (errors.length > 0) {
+    try {
+        await outlines.verify(relativePath.replaceAll('\\', '/'), updated);
+    } catch (e) {
         return {
             success: false,
-            error: `The updated source did not parse (${errors[0].message}); ${relativePath} was left unchanged.`,
+            error: `The updated source was not accepted (${e instanceof Error ? e.message : String(e)}); ${relativePath} was left unchanged.`,
         };
     }
     try {

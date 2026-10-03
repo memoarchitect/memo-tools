@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve, sep } from 'node:path';
 import type { MemoElement, MemoModelDTO } from '../model/semantic.js';
-import { parseText } from '../model/parser-utils.js';
-import { isConnectionUsage } from '../language/generated/ast.js';
+import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import { outlineNodes, type OutlineNode } from '../authoring/source-outline.js';
+import { shortNameOf } from '../model/element-index.js';
 
 export interface ElementRemoveResult {
     success: boolean;
@@ -16,6 +17,10 @@ interface Cut { start: number; end: number }
 
 const identifierPattern = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+function relativeFile(projectRoot: string, file: string): string {
+    return (relative(projectRoot, resolve(projectRoot, file))).replaceAll('\\', '/');
+}
+
 function projectFile(projectRoot: string, file: string): string | undefined {
     const absolute = resolve(projectRoot, file);
     const rel = relative(projectRoot, absolute);
@@ -23,16 +28,16 @@ function projectFile(projectRoot: string, file: string): string | undefined {
     return absolute;
 }
 
-function nodes(root: { members?: unknown[] }): any[] {
-    const found: any[] = [];
-    const stack = [...(root.members ?? [])];
-    while (stack.length) {
-        const node = stack.pop() as any;
-        if (!node || typeof node !== 'object') continue;
-        found.push(node);
-        if (Array.isArray(node.members)) stack.push(...node.members);
-    }
-    return found;
+/** Relationship statements a deletion may cut: they reference the element, they do not own it. */
+const RELATIONSHIP_STATEMENTS = new Set([
+    'ConnectionUsage', 'InterfaceUsage', 'AllocationUsage', 'FlowUsage', 'SuccessionFlowUsage',
+    'SuccessionAsUsage', 'BindingConnectorAsUsage', 'Dependency',
+]);
+
+/** Whether a relationship statement names `name` at one of its ends. */
+function namesEnd(text: string, name: string): boolean {
+    const escaped = identifierPattern(name);
+    return new RegExp(`(?:::>|\\b(?:connect|to|from|first|then|allocate|bind))\\s+${escaped}(?![A-Za-z0-9_])`).test(text);
 }
 
 function wholeLine(source: string, start: number, end: number): Cut {
@@ -60,6 +65,8 @@ export async function removeElement(
     element: MemoElement,
     model: MemoModelDTO,
     projectRoot: string,
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<ElementRemoveResult> {
     if (!element.file) return { success: false, elementId: element.id, error: 'The element has no writable source file.' };
     const connected = model.relationships.filter(relationship =>
@@ -74,7 +81,11 @@ export async function removeElement(
     }
     const files = new Set<string>([element.file, ...connected.map(relationship => relationship.file).filter((file): file is string => !!file)]);
     const prepared = new Map<string, { absolute: string; original: string; text: string }>();
-    const endpoint = new RegExp(`::>\\s*${identifierPattern(element.id)}(?![A-Za-z0-9_-])`);
+    // A connection names an end by the element's declared name or by its
+    // qualified id; either is a reference the deletion would leave dangling.
+    const declaredName = shortNameOf(element.id);
+    const endpoint = new RegExp(`::>\\s*(?:${identifierPattern(element.id)}|${identifierPattern(declaredName)})(?![A-Za-z0-9_-])`);
+    const namedRelationships = new Set(connected.map(relationship => relationship.id));
 
     for (const file of files) {
         const absolute = projectFile(projectRoot, file);
@@ -82,34 +93,41 @@ export async function removeElement(
             return { success: false, elementId: element.id, error: `${file} is not a writable project file.` };
         }
         const source = readFileSync(absolute, 'utf8');
-        const parsed = await parseText(source);
-        if (parsed.errors.length) {
-            return { success: false, elementId: element.id, error: `${file} does not parse (${parsed.errors[0].message}).` };
+        let nodes: OutlineNode[];
+        try {
+            nodes = [...outlineNodes(await outlines.outline(relativeFile(projectRoot, file), source))];
+        } catch (e) {
+            return { success: false, elementId: element.id, error: `${file} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
         }
-        const all = nodes(parsed.document.parseResult.value as any);
         const cuts: Cut[] = [];
-        for (const node of all) {
-            const cst = node.$cstNode;
-            if (!cst) continue;
-            if (file === element.file && !isConnectionUsage(node) && node.name === element.id) {
-                cuts.push(wholeLine(source, cst.offset, cst.offset + cst.length));
+        let found = false;
+        for (const node of nodes) {
+            const isRelationship = RELATIONSHIP_STATEMENTS.has(node.metaclass);
+            // The element is the declaration its id names. A bare id, with no
+            // namespace, is matched by its declared name.
+            if (file === element.file && !isRelationship
+                && (node.key === element.id || (!element.id.includes('::') && node.name === element.id))) {
+                cuts.push(wholeLine(source, node.start, node.end));
+                found = true;
                 continue;
             }
-            if (isConnectionUsage(node)) {
-                const declaration = source.slice(cst.offset, cst.offset + cst.length);
-                if (endpoint.test(declaration)) cuts.push(wholeLine(source, cst.offset, cst.offset + cst.length));
+            if (!isRelationship) continue;
+            const text = source.slice(node.start, node.end);
+            if (namedRelationships.has(node.key) || namesEnd(text, element.id) || namesEnd(text, declaredName)) {
+                cuts.push(wholeLine(source, node.start, node.end));
             }
         }
-        if (file === element.file && !cuts.some(cut => source.slice(cut.start, cut.end).includes(element.id))) {
+        if (file === element.file && !found) {
             return { success: false, elementId: element.id, error: `Element "${element.id}" was not found in ${file}.` };
         }
         const updated = applyCuts(source, cuts);
         if (endpoint.test(updated)) {
             return { success: false, elementId: element.id, error: `${file} would still reference "${element.id}" after deletion.` };
         }
-        const reparsed = await parseText(updated);
-        if (reparsed.errors.length) {
-            return { success: false, elementId: element.id, error: `Deleting the element would leave ${file} invalid (${reparsed.errors[0].message}).` };
+        try {
+            await outlines.verify(relativeFile(projectRoot, file), updated);
+        } catch (e) {
+            return { success: false, elementId: element.id, error: `Deleting the element would leave ${file} invalid (${e instanceof Error ? e.message : String(e)}).` };
         }
         prepared.set(file, { absolute, original: source, text: updated });
     }

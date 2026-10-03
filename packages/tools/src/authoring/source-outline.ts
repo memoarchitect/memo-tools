@@ -278,3 +278,36 @@ export function outlineFromParse(root: { members?: unknown[] }, file: string, te
     const roots = (root.members ?? []).flatMap(visit);
     return { file, text, roots: finish(text, roots, '') };
 }
+
+// ─── Editing an outline with its text ────────────────────────────────────────
+
+/**
+ * The outline of the text after replacing `[from, to)` with `inserted`, without
+ * compiling it: a declaration inside the replaced range is gone, one after it
+ * moves by the length difference, and one around it grows or shrinks. A writer
+ * that removes a declaration and then inserts elsewhere in the same text needs
+ * the outline of a text no compiler has seen.
+ */
+export function spliceOutline(outline: SourceOutline, from: number, to: number, inserted: string): SourceOutline {
+    const delta = inserted.length - (to - from);
+    const moved = (offset: number) => (offset >= to ? offset + delta : offset);
+    const map = (nodes: readonly OutlineNode[]): OutlineNode[] => nodes
+        .filter(node => !(to > from && node.start >= from && node.end <= to))
+        .map(node => ({
+            ...node,
+            start: moved(node.start),
+            end: moved(node.end),
+            ...(node.body ? { body: { open: moved(node.body.open), close: moved(node.body.close) } } : {}),
+            members: map(node.members),
+        }));
+    return {
+        ...outline,
+        text: outline.text.slice(0, from) + inserted + outline.text.slice(to),
+        roots: map(outline.roots),
+    };
+}
+
+/** An outline with nothing in it: the outline of an empty or new file. */
+export function emptyOutline(file: string, text = ''): SourceOutline {
+    return { file, text, roots: [] };
+}
