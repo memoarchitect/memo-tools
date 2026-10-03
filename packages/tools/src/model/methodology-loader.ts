@@ -23,6 +23,8 @@ import {
     resolveEffectiveMethodology,
     type EffectiveMethodology,
 } from './methodology-resolver.js';
+import type { ApiModel } from '../stage2/api-model.js';
+import { apiMethodologyDocuments } from '../stage2/methodology-from-api.js';
 
 /** Primitive value pulled out of a SysML attribute literal. */
 export type MethodologyAttrValue = string | number | boolean;
@@ -72,9 +74,16 @@ export interface MethodologyDescriptor {
 function literal(value: any): MethodologyAttrValue | undefined {
     if (!value) return undefined;
     switch (value.$type) {
-        case 'StringValue':
-            try { return JSON.parse(value.value ?? '""'); }
-            catch { return String(value.value ?? '').replace(/^"|"$/g, ''); }
+        case 'StringValue': {
+            // A string literal is a string: `"0.1"` stays `"0.1"`. The value
+            // may arrive with its quotes or without them.
+            const raw = String(value.value ?? '');
+            try {
+                const parsed = JSON.parse(raw);
+                if (typeof parsed === 'string') return parsed;
+            } catch { /* not quoted */ }
+            return raw.replace(/^"|"$/g, '');
+        }
         case 'IntValue':
         case 'RealValue':
             return Number(value.value);
@@ -185,6 +194,8 @@ function walkDocument(doc: ParsedDocument, projectRoot: string): {
 export async function loadMethodologyDescriptor(
     projectRoot: string,
     resolution?: NativeProjectResolution,
+    /** The stage 1 handoff the resolution was read from: its documents, in place of MEMO's parse. */
+    api?: ApiModel,
 ): Promise<MethodologyDescriptor> {
     const resolved = resolution ?? await resolveNativeProject(projectRoot);
     const errors = resolved.diagnostics.map(d => `${d.code}: ${d.message}`);
@@ -201,11 +212,14 @@ export async function loadMethodologyDescriptor(
         for (const file of pkg.files) fileToPackage.set(file, pkg.qualifiedName);
     }
 
-    for (const doc of resolved.documents) {
-        const pkgName = fileToPackage.get(doc.filePath);
+    const walkedDocuments: [string, ReturnType<typeof walkDocument>][] = api
+        ? [...apiMethodologyDocuments(api, resolved.projectRoot)]
+        : resolved.documents.map(doc => [doc.filePath, walkDocument(doc, resolved.projectRoot)]);
+    for (const [filePath, walked] of walkedDocuments) {
+        const pkgName = fileToPackage.get(filePath);
         if (!pkgName) continue;           // outside the import closure
         const pkg = resolved.closure.get(pkgName);
-        const { partDefs, parts, namespaces } = walkDocument(doc, resolved.projectRoot);
+        const { partDefs, parts, namespaces } = walked;
         const relevant = parts.filter(p => METHODOLOGY_TYPES.has(p.partType));
         if (relevant.length === 0 && partDefs.length === 0) continue;
         if (relevant.length === 0) continue;
@@ -223,7 +237,7 @@ export async function loadMethodologyDescriptor(
             };
             byRoot.set(key, folder);
         }
-        const rel = relative(resolved.projectRoot, doc.filePath) || basename(doc.filePath);
+        const rel = relative(resolved.projectRoot, filePath) || basename(filePath);
         if (!folder.sourceFiles.includes(rel)) folder.sourceFiles.push(rel);
         for (const ns of namespaces) if (!folder.namespaces.includes(ns)) folder.namespaces.push(ns);
         folder.partDefs.push(...partDefs);
