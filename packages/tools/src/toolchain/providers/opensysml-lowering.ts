@@ -24,6 +24,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
+import { closeSharedOpenSysMLConnection, sharedOpenSysMLConnection } from './opensysml-check.js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import type { MEMOConfig } from '../../model/config.js';
@@ -44,7 +45,6 @@ import type {
 } from '../registry.js';
 import {
     OPENSYSML_PROVIDER_ID,
-    connectOpenSysML,
     openSysMLSettingsKey,
     probeOpenSysML,
     toDiagnostic,
@@ -296,7 +296,9 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
 async function runStage1(
     config: MEMOConfig, projectDir: string, libraryDirs: readonly string[], documents: readonly string[],
 ): Promise<Stage1Output & { diagnostics: Diagnostic[] }> {
-    const connection = await connectOpenSysML(config);
+    // The session's service: a rebuild in `memo dev` does not start another,
+    // and the service's parse cache serves the documents that did not change.
+    const connection = await sharedOpenSysMLConnection(config);
     try {
         const version = connection.info?.version;
         const parsed = await connection.rpc.parseSources({
@@ -324,8 +326,10 @@ async function runStage1(
             source: path => (existsSync(path) ? readFileSync(path) : undefined),
         });
         return { ...handoff, diagnostics };
-    } finally {
-        await connection.close();
+    } catch (error) {
+        // A service that failed mid-call is not kept for the next one.
+        closeSharedOpenSysMLConnection();
+        throw error;
     }
 }
 

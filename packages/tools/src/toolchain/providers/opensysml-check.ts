@@ -25,9 +25,10 @@ const IDLE_MS = 60_000;
 
 let shared: { key: string; connection: Promise<OpenSysMLConnection>; timer?: NodeJS.Timeout } | undefined;
 
-async function sharedConnection(config: MEMOConfig): Promise<OpenSysMLConnection> {
+/** The session's OpenSysML service, started on first use and closed once idle. */
+export async function sharedOpenSysMLConnection(config: MEMOConfig): Promise<OpenSysMLConnection> {
     const key = openSysMLSettingsKey(config);
-    if (shared && shared.key !== key) closeShared();
+    if (shared && shared.key !== key) closeSharedOpenSysMLConnection();
     if (!shared) {
         const connection = connectOpenSysML(config);
         shared = { key, connection };
@@ -35,12 +36,13 @@ async function sharedConnection(config: MEMOConfig): Promise<OpenSysMLConnection
     }
     const current = shared;
     if (current.timer) clearTimeout(current.timer);
-    current.timer = setTimeout(() => { if (shared === current) closeShared(); }, IDLE_MS);
+    current.timer = setTimeout(() => { if (shared === current) closeSharedOpenSysMLConnection(); }, IDLE_MS);
     current.timer.unref();
     return current.connection;
 }
 
-function closeShared(): void {
+/** Close the session's service; the next call starts another. */
+export function closeSharedOpenSysMLConnection(): void {
     const closing = shared;
     shared = undefined;
     if (closing?.timer) clearTimeout(closing.timer);
@@ -69,7 +71,7 @@ export async function checkWithOpenSysML(
 ): Promise<Diagnostic[]> {
     const documents = resolvedCompileDocuments(projectRoot);
     for (const file of content.keys()) if (!documents.includes(file)) documents.push(file);
-    const connection = await sharedConnection(config);
+    const connection = await sharedOpenSysMLConnection(config);
     const version = connection.info?.version;
     let parsed;
     try {
@@ -83,7 +85,7 @@ export async function checkWithOpenSysML(
         });
     } catch (error) {
         // A service that died is not kept for the next edit.
-        closeShared();
+        closeSharedOpenSysMLConnection();
         throw error;
     }
     const diagnostics = parsed.diagnostics.map(d => toDiagnostic(d, version)).filter(d => d.severity === 'error');
