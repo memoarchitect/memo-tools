@@ -19,6 +19,7 @@ import {
     handoffFileOf, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints,
 } from '@memoarchitect/tools';
 import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
+import { buildSourceGraphFromPackages } from '../model/source-graph.js';
 import type {
     BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument,
     EffectiveRule, ParseError,
@@ -41,7 +42,7 @@ import { defaultRegistry } from '../toolchain/default-registry.js';
 import { computeStandardsReport, readDeclaredRegimes } from '../dhf/standards-report.js';
 import { loadStandardsLibrary } from '../dhf/standards-library.js';
 import { loadProjectModel, stage1CacheDir, type ProjectModel } from '../toolchain/project-model.js';
-import { resolutionLoads } from '../stage2/project-from-api.js';
+import { apiEnumerations, apiProjectSourcePackages, resolutionLoads } from '../stage2/project-from-api.js';
 
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
@@ -226,7 +227,7 @@ export async function devCommand(options: {
     // Phase B — methodology descriptor (data-only; no UI consumer yet)
     let methodologyDescriptor: MethodologyDescriptor = { folders: [], errors: [] };
     try {
-        methodologyDescriptor = await loadMethodologyDescriptor(cwd, nativeResolution);
+        methodologyDescriptor = await loadMethodologyDescriptor(cwd, nativeResolution, compiled?.api);
         const folderCount = methodologyDescriptor.folders.length;
         const totalParts = methodologyDescriptor.folders.reduce(
             (s, f) => s + Object.values(f.parts).reduce((a, p) => a + p.length, 0), 0,
@@ -281,7 +282,7 @@ export async function devCommand(options: {
         // change: from the compiled resolution when there is one, else by
         // resolving again.
         try {
-            methodologyDescriptor = await loadMethodologyDescriptor(cwd, stage1?.resolution);
+            methodologyDescriptor = await loadMethodologyDescriptor(cwd, stage1?.resolution, stage1?.resolution ? stage1.api : undefined);
         } catch {
             // keep last good descriptor on transient parse failure
         }
@@ -386,7 +387,13 @@ export async function devCommand(options: {
         // Which files can change what each view renders. Computed once per
         // rebuild so every client can answer "does this change affect me?"
         // locally, without a round trip per changed file.
-        const sourceGraph = buildSourceGraph(documents);
+        // From the handoff when stage 1 built the model, else from MEMO's parse.
+        const sourceGraph = accepted
+            ? (() => {
+                const { packages, files } = apiProjectSourcePackages(stage1.api!, resolve(cwd));
+                return buildSourceGraphFromPackages(packages, files);
+            })()
+            : buildSourceGraph(documents);
         for (const diagram of diagrams) {
             diagram.sourceFiles = viewSourceFiles(diagram, model.elements, sourceGraph);
         }
@@ -400,7 +407,7 @@ export async function devCommand(options: {
                 relative(cwd, file).replaceAll('\\', '/'),
                 createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),
             ])),
-            enumerations: collectEnumerations(documents),
+            enumerations: accepted ? apiEnumerations(stage1.api!) : collectEnumerations(documents),
         });
         // Compute the clause coverage report and attach it to the model DTO
         // so the Architect can badge document cards with gap counts without a

@@ -18,7 +18,8 @@ import type {
     PackageIndexEntry,
     ScopeMode,
 } from '../model/native-project.js';
-import { sep } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
+import type { SourceGraphPackage } from '../model/source-graph.js';
 import { discoverProjectSources, finishResolution } from '../model/native-project.js';
 import type { ApiElement, ApiModel, ApiValue } from './api-model.js';
 
@@ -258,4 +259,46 @@ export function resolutionLoads(resolution: NativeProjectResolution): (file: str
 export function isProjectSource(resolution: NativeProjectResolution): (file: string) => boolean {
     const roots = [...resolution.selectedRoots, ...resolution.unusedRoots].map(root => root.sysmlDir);
     return file => !roots.some(dir => file.startsWith(dir));
+}
+
+/**
+ * The project's packages for the view source graph: each with the files
+ * declaring it and what it imports, the files named relative to the project,
+ * as the graph built from MEMO's parse of the project names them. Library
+ * packages are left out: a project rebuild never re-reads a library file.
+ */
+export function apiProjectSourcePackages(api: ApiModel, projectRoot: string): {
+    packages: SourceGraphPackage[]; files: string[];
+} {
+    const projectDir = resolve(projectRoot);
+    const fileOf = (element: ApiElement) => resolve(api.absoluteFile(element['@id']) ?? '');
+    const inProject = (file: string) => file.startsWith(projectDir + sep);
+    const packages: SourceGraphPackage[] = [];
+    for (const entry of apiPackageIndex(api, new Map(), fileOf).values()) {
+        const files = [...entry.files].filter(inProject).map(file => relative(projectDir, file));
+        if (files.length > 0) packages.push({ qualifiedName: entry.qualifiedName, files, imports: entry.imports });
+    }
+    // Every project document, a file declaring no package included: its root namespace.
+    const files = [...new Set([...api.ofType('Namespace')]
+        .filter(namespace => !api.owner(namespace['@id']) && api.source(namespace['@id'])?.role === 'project')
+        .map(namespace => fileOf(namespace))
+        .filter(inProject)
+        .map(file => relative(projectDir, file)))];
+    return { packages, files };
+}
+
+/** The project's enumeration definitions with their literals, by name. */
+export function apiEnumerations(api: ApiModel): { name: string; literals: string[] }[] {
+    const found = new Map<string, { name: string; literals: string[] }>();
+    for (const definition of api.ofType('EnumerationDefinition')) {
+        if (api.source(definition['@id'])?.role !== 'project') continue;
+        const name = api.declaredName(definition['@id']);
+        if (!name) continue;
+        const literals = api.ownedMembers(definition['@id'])
+            .filter(member => member['@type'] === 'EnumerationUsage')
+            .map(member => api.declaredName(member['@id']))
+            .filter((literal): literal is string => Boolean(literal));
+        found.set(name, { name, literals });
+    }
+    return [...found.values()];
 }

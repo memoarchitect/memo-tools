@@ -36,29 +36,55 @@ export interface SourceGraph {
 export function buildSourceGraph(documents: ParsedDocument[]): SourceGraph {
     const registry = new PackageRegistry();
     registry.buildFromDocuments(documents);
+    return buildSourceGraphFromPackages(
+        [...registry.getPackages().values()].map(entry => ({
+            qualifiedName: entry.qualifiedName,
+            files: [entry.file],
+            imports: entry.imports.map(imported => imported.packageName),
+        })),
+        documents.map(document => document.filePath),
+    );
+}
 
+/** A package as the source graph needs it: the files declaring it and what it imports. */
+export interface SourceGraphPackage {
+    qualifiedName: string;
+    files: Iterable<string>;
+    /** The packages it imports from, by qualified name. */
+    imports: Iterable<string>;
+}
+
+/**
+ * The graph over packages read from any source — MEMO's parse, or a stage 1
+ * handoff — with `files` the nodes a file declaring no package still is.
+ */
+export function buildSourceGraphFromPackages(
+    packages: readonly SourceGraphPackage[],
+    files: Iterable<string>,
+): SourceGraph {
     // A package may be declared in more than one file (split packages), so the
     // index is package → files, not package → file.
     const packageFiles = new Map<string, Set<string>>();
-    for (const entry of registry.getPackages().values()) {
-        addTo(packageFiles, entry.qualifiedName, entry.file);
+    for (const entry of packages) {
+        for (const file of entry.files) addTo(packageFiles, entry.qualifiedName, file);
     }
 
     // Direct edges: the file declaring a package depends on every file
     // declaring a package it imports.
     const direct = new Map<string, Set<string>>();
-    for (const entry of registry.getPackages().values()) {
-        const from = entry.file;
-        if (!direct.has(from)) direct.set(from, new Set());
-        for (const imported of entry.imports) {
-            for (const target of resolveImportFiles(imported.packageName, packageFiles)) {
-                if (target !== from) direct.get(from)!.add(target);
+    for (const entry of packages) {
+        for (const from of entry.files) {
+            if (!direct.has(from)) direct.set(from, new Set());
+            for (const imported of entry.imports) {
+                for (const target of resolveImportFiles(imported, packageFiles)) {
+                    if (target !== from) direct.get(from)!.add(target);
+                }
             }
         }
     }
     // Files with no package declaration at all still belong in the graph.
-    for (const { filePath } of documents) {
-        if (!direct.has(filePath)) direct.set(filePath, new Set());
+    for (const file of files) {
+        if (!direct.has(file)) direct.set(file, new Set());
     }
 
     const dependsOn = new Map<string, Set<string>>();

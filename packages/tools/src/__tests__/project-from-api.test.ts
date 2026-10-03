@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ApiModel, type ApiElement, type Stage1Output } from '../stage2/api-model.js';
 import { apiNativeUsages, apiPackageIndex } from '../stage2/project-from-api.js';
 import type { LibraryRoot } from '../model/native-project.js';
+import { apiMethodologyDocuments } from '../stage2/methodology-from-api.js';
 
 // A project document and a library document as a stage 1 compiler's API JSON
 // states them, each naming the root its file is relative to.
@@ -150,5 +151,28 @@ describe('project resolution read from a stage 1 handoff', () => {
         expect(methodologies).toEqual([expect.objectContaining({
             usageName: 'strict', displayName: 'Strict', includedLayers: ['safety', 'core'], packageQualifiedName: 'lib',
         })]);
+    });
+});
+
+describe('methodology content read from a stage 1 handoff', () => {
+    const documents = apiMethodologyDocuments(api, projectDir);
+
+    it('reads each document\'s part definitions, parts and packages, as the parse walker does', () => {
+        const library = documents.get(`${libraryDir}/core/lib.sysml`)!;
+        expect(library.namespaces).toEqual(['lib', 'extras', 'more']);
+        expect(library.partDefs.map(d => d.name)).toEqual(['ProjectMethodBinding', 'MethodologyDefinition', 'RulePolicy']);
+        expect(library.parts).toEqual([expect.objectContaining({
+            partName: 'strict', partType: 'MethodologyDefinition', namespace: 'lib',
+            attributes: { name: 'Strict', includedLayer: 'core' },
+            multiAttributes: { name: ['Strict'], includedLayer: ['safety', 'core'] },
+        })]);
+    });
+
+    it('reads an enumeration value as written, and a part nested in a part', () => {
+        const project = documents.get(`${projectDir}/model/app.sysml`)!;
+        const binding = project.parts.find(p => p.partName === 'appBinding')!;
+        expect(binding.attributes).toMatchObject({ id: 'B-1', scopeMode: 'explicit', scopeMode__qualified: 'ScopeModeKind::explicit' });
+        expect(project.parts.map(p => p.partName)).toContain('relax');
+        expect(binding.sourceFile).toBe('model/app.sysml');
     });
 });

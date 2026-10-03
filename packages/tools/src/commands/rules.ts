@@ -69,7 +69,7 @@ async function loadContext(projectDir?: string) {
     let effectiveRules: EffectiveRule[] = [];
     let ruleDiagnostics: RuleResolutionDiagnostic[] = [];
     try {
-        const descriptor = await loadMethodologyDescriptor(projectRoot, project.resolution);
+        const descriptor = await loadMethodologyDescriptor(projectRoot, project.resolution, project.api);
 
         // The same activation `memo validate` applies. Reporting every resolved
         // constraint instead would describe a rule set the project does not

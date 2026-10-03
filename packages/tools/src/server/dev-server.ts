@@ -647,6 +647,15 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      */
     let writeBackIndex: IrIdentityIndex | undefined;
 
+    /**
+     * A recompiled index, when it addresses anything. A compiler that builds
+     * the model from its handoff states no syntax tree, so its recompile
+     * mints no identities; adopting that empty index would refuse every
+     * further write until the watcher republished. The published one stands.
+     */
+    const addressable = (index: IrIdentityIndex): IrIdentityIndex | undefined =>
+        index.byIdentity.size > 0 ? index : writeBackIndex;
+
     /** The index every write resolves its identities against. */
     const irIndex = (): IrIdentityIndex =>
         writeBackIndex ?? indexFromIdentityTable(currentModel()?.irIdentities);
@@ -675,7 +684,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
 
     async function recompileAfterWrite(): Promise<void> {
         try {
-            writeBackIndex = (await recompileProject(await authoringContext())).index;
+            writeBackIndex = addressable((await recompileProject(await authoringContext())).index);
         } catch (e) {
             // A recompile that fails leaves the previous index in place: the
             // write itself already succeeded, and refusing to answer would be
@@ -1424,7 +1433,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     if (result.success) {
                         transactionId = recordWriteTransaction(
                             result.filePath, readFileSync(resolve(projectRoot, result.filePath), 'utf8'));
-                        if (result.revision) writeBackIndex = result.revision.index;
+                        if (result.revision) writeBackIndex = addressable(result.revision.index);
                         console.log(`[Persisted] ${msg.type} to ${result.filePath}`);
                     }
                     if (result.stale) {
