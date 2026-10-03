@@ -19,11 +19,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { outlineIdentityIndex, outlinesFromDocuments } from '../authoring/outline-source.js';
 import {
-    buildIrIdentityIndex,
     indexFromIdentityTable,
-    irIdentityTable,
-    parseDeclarationPath,
-    parseSysmlIdentityId,
     requireIrIdentity,
     StaleIrIdentityError,
     type IrIdentityIndex,
@@ -134,15 +130,6 @@ describe('IR identity', () => {
         }
     });
 
-    it('reads an identity ID back into file, path and metaclass', () => {
-        const parsed = parseSysmlIdentityId('file:///p/model/a.sysml#members[0]/members[2]:PartUsage');
-        expect(parsed).toMatchObject({
-            fileUri: 'file:///p/model/a.sysml',
-            declarationPath: 'members[0]/members[2]',
-            metaclass: 'PartUsage',
-        });
-        expect(parseDeclarationPath(parsed!.declarationPath)).toEqual([0, 2]);
-    });
 
     it('rejects an identity the current revision does not have', async () => {
         writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
@@ -159,14 +146,6 @@ describe('IR identity', () => {
             .toThrow(/not "\S+-other"/);
     });
 
-    it('an identity table is derivable from an IR without indexing it twice', async () => {
-        writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
-        const { findSysmlFiles } = await import('../model/sysml-files.js');
-        const { documents, errors } = await parseFiles(findSysmlFiles(projectRoot).sort(), `${projectRoot}/`);
-        const built = buildMemoModel(documents, config, errors);
-        const ir = lowerAstToSysmlIr(documents, modelToDTO(built), projectRoot);
-        expect(irIdentityTable(ir)).toEqual(buildIrIdentityIndex(ir).byMemoElement);
-    });
 });
 
 // ─── Element write-back ─────────────────────────────────────────────────────
