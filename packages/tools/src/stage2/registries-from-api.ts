@@ -164,6 +164,7 @@ export function apiRelationshipEntries(
     api: ApiModel,
     fileOf: (element: ApiElement) => string,
     include?: (namespace: ApiElement) => boolean,
+    role: 'library' | 'project' = 'library',
 ): RelationshipRegistryEntry[] {
     const entries: RelationshipRegistryEntry[] = [];
     const walk = (pkg: ApiElement, layer: string) => {
@@ -212,7 +213,7 @@ export function apiRelationshipEntries(
             });
         }
     };
-    for (const pkg of rootPackages(api, 'library', include)) walk(pkg, resolveLayerFromPath(fileOf(pkg)));
+    for (const pkg of rootPackages(api, role, include)) walk(pkg, resolveLayerFromPath(fileOf(pkg)));
     return entries;
 }
 
@@ -248,20 +249,26 @@ function multiplicityOf(api: ApiModel, end: ApiElement): MultiplicityDTO | undef
  * The ontology registries a stage 1 handoff states, completed as
  * `loadOntologyRegistries` completes MEMO's parse of the same files: kinds
  * placed through their supertypes and the reverse `derivedBy` links filled in.
+ *
+ * `roles` are the documents read. Resolution reads the project's own as well,
+ * as `loadOntologyRegistries` does: its import closure includes the project's
+ * packages, so a `connection def` the project declares is a relationship type
+ * a view may select.
  */
 export function apiOntologyRegistries(
     api: ApiModel,
     fileOf: (element: ApiElement) => string,
     include?: (namespace: ApiElement) => boolean,
+    roles: readonly ('library' | 'project')[] = ['library'],
 ): {
     kindRegistry: KindRegistry; relationshipRegistry: RelationshipRegistry;
 } {
     const kindRegistry = new KindRegistry();
-    kindRegistry.populateFromApi(api, fileOf, include);
+    for (const role of roles) kindRegistry.populateFromApi(api, fileOf, include, role);
     kindRegistry.inheritPlacementFromSuperTypes();
     kindRegistry.computeDerivedBy();
     const relationshipRegistry = new RelationshipRegistry();
-    relationshipRegistry.populateFromApi(api, fileOf, include);
+    for (const role of roles) relationshipRegistry.populateFromApi(api, fileOf, include, role);
     return { kindRegistry, relationshipRegistry };
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ApiModel, type ApiElement, type Stage1Output } from '../stage2/api-model.js';
 import { KindRegistry } from '../model/kind-registry.js';
 import { RelationshipRegistry } from '../model/relationship-registry.js';
-import { handoffRegistries } from '../stage2/registries-from-api.js';
+import { apiOntologyRegistries, handoffRegistries } from '../stage2/registries-from-api.js';
 
 // A library document of the ontology and a project document, as a stage 1
 // compiler's API JSON states them. The library declares kinds and a
@@ -98,6 +98,9 @@ own(prjRoot, app, prj, 'project');
 const local = add({ '@type': 'PartDefinition', '@id': 'app__Pump', declaredName: 'Pump' }, prj, 'project', 'app::Pump');
 own(app, local, prj, 'project');
 relate(local, 'Subclassification', 'superclassifier', hazard['@id'], prj, 'project');
+const localLink = add({ '@type': 'ConnectionDefinition', '@id': 'app__Refines', declaredName: 'Refines' }, prj, 'project', 'app::Refines');
+own(app, localLink, prj, 'project');
+relate(localLink, 'Subclassification', 'superclassifier', 'std-binary', prj, 'project');
 
 const api = new ApiModel({
     format: 'memo-stage1/1', provider: 'test', clean: true, index,
@@ -184,5 +187,12 @@ describe('ontology registries read from a stage 1 handoff', () => {
         const parsed = new RelationshipRegistry();
         parsed.populateFromDocuments([]);
         for (const name of parsed.relTypeNames()) expect(relationships.has(name)).toBe(true);
+    });
+
+    it('reads the project\'s own definitions too when resolution asks, as MEMO\'s loader reads its closure', () => {
+        expect(relationships.has('refines')).toBe(false);
+        const resolved = apiOntologyRegistries(api, fileOf, undefined, ['library', 'project']);
+        expect(resolved.kindRegistry.has('Pump')).toBe(true);
+        expect(resolved.relationshipRegistry.getRelType('refines')).toMatchObject({ sysmlName: 'Refines', superType: 'Connections::BinaryConnection' });
     });
 });

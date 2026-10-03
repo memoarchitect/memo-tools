@@ -373,3 +373,50 @@ describe('native constraint evaluator (EE-2 breadth)', () => {
         expect(evaluateNativeConstraint(c, model).map(v => v.elementId)).toEqual(['C-BAD']);
     });
 });
+
+// `sourcesOf` / `targetsOf` range over the things at a relation's ends. An end
+// can be a named relationship — a boundary crossed by an interface — and that
+// end has to be judged as what it is, not left out: a `->forAll` that never
+// saw it passes without having tested anything.
+describe('a relation end that is a named relationship', () => {
+    const rule: NativeConstraint = {
+        id: 'CR-ONT-071', appliesToKind: 'Model', severity: 'error',
+        description: 'What crosses a boundary is an asset or an item.',
+        expression: "targetsOf(crossesTrustBoundary)->forAll(construct == 'part' or construct == 'item')",
+    };
+    const model = (crossing: MemoRelationship) => makeModel(
+        [el('edge', 'TrustBoundary'), el('a', 'Port'), el('b', 'Port')],
+        [crossing, rel('cross', 'crossesTrustBoundary', 'edge', crossing.id)],
+    );
+
+    it('is evaluated as its projected subject', () => {
+        const feed = { ...rel('P::feed', 'interface', 'a', 'b'), named: true, kind: 'Interface' };
+        expect(evaluateNativeConstraint(rule, model(feed)).map(v => v.elementId)).toEqual(['__model__']);
+    });
+
+    it('is still passed over when it is an anonymous edge that names nothing', () => {
+        expect(evaluateNativeConstraint(rule, model(rel('rel-1', 'interface', 'a', 'b')))).toHaveLength(0);
+    });
+});
+
+// A finding names its subject by its label whether the subject is a part or a
+// named edge, so `@MemoIdentity { label = … }` on an interface reads the same.
+describe('a finding on a named relationship', () => {
+    const rule: NativeConstraint = {
+        id: 'CR-MED-050', appliesToKind: 'Interface', severity: 'warning',
+        description: 'An interface states its direction.', expression: "direction != ''",
+    };
+    const feed = (attributes: Record<string, string>) => ({
+        ...rel('P::ifFeed', 'interface', 'a', 'b'), shortName: 'ifFeed', named: true, kind: 'Interface', attributes,
+    });
+
+    it('names the subject by its label', () => {
+        const model = makeModel([el('a', 'Port'), el('b', 'Port')], [feed({ label: 'GatewayToRepository' })]);
+        expect(evaluateNativeConstraint(rule, model).map(v => v.elementName)).toEqual(['GatewayToRepository']);
+    });
+
+    it('falls back to the declared name', () => {
+        const model = makeModel([el('a', 'Port'), el('b', 'Port')], [feed({})]);
+        expect(evaluateNativeConstraint(rule, model).map(v => v.elementName)).toEqual(['ifFeed']);
+    });
+});
