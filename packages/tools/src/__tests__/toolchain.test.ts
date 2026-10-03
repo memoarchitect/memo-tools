@@ -12,7 +12,7 @@ import {
     type ValidatorDescriptor,
 } from '../toolchain/registry.js';
 import { createDefaultRegistry } from '../toolchain/default-registry.js';
-import { resolveToolchain } from '../toolchain/effective.js';
+import { resolveToolchain, ToolchainNotConfiguredError } from '../toolchain/effective.js';
 import { compileServesValidator, runPackager, runValidator } from '../toolchain/operations.js';
 import { buildSysideInvocation } from '../toolchain/providers/syside.js';
 import { buildSysandInvocation } from '../toolchain/providers/sysand.js';
@@ -32,15 +32,13 @@ function context(toolchain: MEMOConfig['toolchain'], extra: Partial<ProviderCont
 }
 
 describe('role resolution', () => {
-    it('defaults every role to the provider that claims the default, not to a literal', () => {
+    it('chooses nothing for settings that name nothing, and says what to set', () => {
         const registry = createDefaultRegistry();
         const effective = resolveToolchain(config(), registry);
-        // The point is not which ID this is — it is that core code never wrote
-        // one. Whatever descriptor claims `isDefault` fills the role.
-        expect(effective.validator).toBe(registry.defaultId('validator'));
-        expect(effective.lowering).toBe(registry.defaultId('lowering'));
-        expect(effective.packager).toBe(registry.defaultId('package'));
-        expect(effective.selections.every(s => s.source === 'default')).toBe(true);
+        expect(effective.selections).toEqual([]);
+        expect(() => effective.lowering).toThrow(ToolchainNotConfiguredError);
+        expect(() => effective.validator).toThrow(/Set toolchain\.compiler \(internal, syside, opensysml\)/);
+        expect(() => effective.packager).toThrow(/Set toolchain\.packager/);
     });
 
     it('reads toolchain.compiler as the stage 1 compiler: validator and lowering together', () => {
@@ -48,8 +46,8 @@ describe('role resolution', () => {
         const effective = resolveToolchain(config({ compiler: 'internal' }), registry);
         expect(effective.validator).toBe('internal');
         expect(effective.lowering).toBe('internal');
-        // It never meant packaging, so packaging keeps its default.
-        expect(effective.packager).toBe(registry.defaultId('package'));
+        // It never meant packaging, so packaging is still unset.
+        expect(() => effective.packager).toThrow(ToolchainNotConfiguredError);
         expect(effective.deprecations).toEqual([]);
     });
 
@@ -62,7 +60,7 @@ describe('role resolution', () => {
         expect(effective.deprecations).toEqual([]);
     });
 
-    it('leaves a role at its default when the compiler cannot fill it, and says so', () => {
+    it('leaves a role unset when the compiler cannot fill it, and says so', () => {
         const registry = createDefaultRegistry();
         registry.register({
             id: 'checkonly', role: 'validator', capabilities: ['check'],
@@ -71,7 +69,7 @@ describe('role resolution', () => {
         });
         const effective = resolveToolchain(config({ compiler: 'checkonly' }), registry);
         expect(effective.validator).toBe('checkonly');
-        expect(effective.lowering).toBe(registry.defaultId('lowering'));
+        expect(() => effective.lowering).toThrow(ToolchainNotConfiguredError);
         expect(effective.deprecations.join(' ')).toContain('not registered for the lowering role');
     });
 
@@ -272,13 +270,6 @@ describe('modularity — a new provider costs one file and one registration', ()
 });
 
 describe('registry invariants', () => {
-    it('refuses two defaults for one role', () => {
-        const registry = new ProviderRegistry().register({ ...stubValidatorDescriptor, isDefault: true });
-        expect(() => registry.register({
-            ...stubValidatorDescriptor, id: 'other-stub', isDefault: true,
-        })).toThrow(/already has a default provider/);
-    });
-
     it('refuses a duplicate registration for one role', () => {
         const registry = new ProviderRegistry().register(stubValidatorDescriptor);
         expect(() => registry.register(stubValidatorDescriptor)).toThrow(/already registered/);

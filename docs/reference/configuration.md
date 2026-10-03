@@ -107,10 +107,13 @@ It runs `syside check` as well only when `syside.configFile` or a narrower
 check` always runs the CLI, because the `validator-exceptions.json` register
 applies there.
 
-`compiler: internal` is MEMO's own compiler, and remains the default. An
-explicit `toolchain.validator` or `toolchain.lowering` overrides its role. A
-provider that can't fill a role leaves it at its default, and `memo validate`
-prints a note saying so.
+`compiler: internal` is MEMO's own compiler; `compiler: opensysml` is
+OpenSysML. There is no default: a project's settings name the compiler, and
+every command fails with an error saying what to set when they do not. The
+packager is named the same way (`toolchain.packager`), and only `memo pack`
+needs it. An explicit `toolchain.validator` or `toolchain.lowering` overrides
+its role. A provider that can't fill a role leaves it unset, and `memo
+validate` prints a note saying so.
 
 To try a project against SysIDE without editing its settings:
 

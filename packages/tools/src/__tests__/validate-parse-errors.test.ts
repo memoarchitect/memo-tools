@@ -42,7 +42,7 @@ function write(relPath: string, content: string): void {
 beforeEach(() => {
     rmSync(TMP, { recursive: true, force: true });
     mkdirSync(TMP, { recursive: true });
-    write('memo.package.yaml', 'name: demo\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n');
+    write('memo.package.yaml', 'name: demo\nentrypoint: model/catalog/project.sysml\ninclude: [model]\ntoolchain:\n  compiler: internal\n');
     write('memo.manifest.yaml', [
         'manifest: 1',
         'packages:',

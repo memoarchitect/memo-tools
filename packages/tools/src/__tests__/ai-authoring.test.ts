@@ -14,6 +14,7 @@ function project(): string {
     const file = join(root, 'model/catalog/project.sysml');
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, 'package ProjectCatalog { }\n');
+    writeFileSync(join(root, 'memo.tools.yaml'), 'toolchain:\n  compiler: internal\n');
     return root;
 }
 

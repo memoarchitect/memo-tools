@@ -6,9 +6,9 @@
 // whatever has been registered.
 //
 // The rule that keeps it honest: *nothing outside an adapter module knows a
-// provider's name.* Defaults are declared by the adapter (`isDefault`), not
-// hardcoded here — otherwise `?? 'internal'` reintroduces the special case this
-// module exists to remove. A grep test enforces the rule.
+// provider's name.* No role has a default either: a project's settings name
+// the provider of every role it uses (`?? 'internal'` would reintroduce the
+// special case this module exists to remove). A grep test enforces the rule.
 //
 // Adding a provider is one new file plus one `register(...)` line.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -232,13 +232,6 @@ export interface ProviderDescriptor<R extends ProviderRunResult = ProviderRunRes
     id: string;
     role: ProviderRole;
     capabilities: readonly Capability[];
-    /**
-     * Selected for this role when the project configures nothing.
-     *
-     * At most one descriptor per role may claim it. This is how `internal`
-     * stays the default without core code naming it.
-     */
-    isDefault?: boolean;
     /** Config leaves this provider understands, relative to `toolchain`. */
     settingsSchema?: readonly ToolchainSchemaLeaf[];
     probe(context: ProviderContext): Availability;
@@ -291,15 +284,6 @@ export class ProviderRegistry {
         if (existing) {
             throw new Error(`Provider "${descriptor.id}" is already registered for role "${descriptor.role}".`);
         }
-        if (descriptor.isDefault) {
-            const claimed = [...role.values()].find(d => d.isDefault);
-            if (claimed) {
-                throw new Error(
-                    `Role "${descriptor.role}" already has a default provider ("${claimed.id}"); `
-                    + `"${descriptor.id}" cannot also claim it.`,
-                );
-            }
-        }
         role.set(descriptor.id, descriptor);
         this.byRole.set(descriptor.role, role);
         return this;
@@ -323,15 +307,6 @@ export class ProviderRegistry {
         return [...new Set(this.all().map(d => d.id))];
     }
 
-    /**
-     * The ID used when the project selects nothing for this role.
-     *
-     * Comes from whichever adapter declared `isDefault`, so core code never
-     * writes a provider name.
-     */
-    defaultId(role: ProviderRole): string | undefined {
-        return this.descriptors(role).find(d => d.isDefault)?.id;
-    }
 
     descriptor(role: ProviderRole, id: string): ProviderDescriptor<any> {
         const found = this.byRole.get(role)?.get(id);

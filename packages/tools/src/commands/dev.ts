@@ -149,8 +149,7 @@ export async function devCommand(options: {
     let buildCount = 0;
     console.log(chalk.gray(`Project: ${config.projectName}`));
     console.log(chalk.gray(
-        `Toolchain: validator=${toolchain.validator} lowering=${toolchain.lowering} `
-        + `packager=${toolchain.packager}`));
+        `Toolchain: ${toolchain.selections.map(s => `${s.role === 'package' ? 'packager' : s.role}=${s.provider}`).join(' ')}`));
     for (const note of toolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
 
     // A compiler that builds the model resolves the project from what it
