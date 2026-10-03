@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
 import {
-    IncrementalProjectParser, buildMemoModel, modelToDTO, lowerAstToSysmlIr, irIdentityTable,
+    IncrementalProjectParser, buildMemoModel, modelToDTO,
     loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject,
     deriveModelViews, resolveViewKind, collectNativeConstraints, collectApiConstraints,
     handoffFileOf, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints,
@@ -43,6 +43,8 @@ import { computeStandardsReport, readDeclaredRegimes } from '../dhf/standards-re
 import { loadStandardsLibrary } from '../dhf/standards-library.js';
 import { loadProjectModel, stage1CacheDir, type ProjectModel } from '../toolchain/project-model.js';
 import { apiEnumerations, apiProjectSourcePackages, resolutionLoads } from '../stage2/project-from-api.js';
+import { outlinesFromDocuments, outlinesFromHandoff } from '../authoring/outline-source.js';
+import { outlineIdentityTable } from '../authoring/outline-identity.js';
 
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
@@ -294,10 +296,17 @@ export async function devCommand(options: {
         const model = stage1?.accepted && stage1.model
             ? stage1.model
             : buildMemoModel(documents, config, errors, projectRegistries);
-        // Identities for the authoring write-back (§6.2). The surgical rebuild
-        // stays surgical — this lowers the documents it already parsed, and the
-        // provider-backed recompile happens on the write path, not here.
-        const irIdentities = irIdentityTable(lowerAstToSysmlIr(documents, modelToDTO(model), cwd));
+        // Identities for the authoring write-back: each element's declaration in
+        // its file's outline (plans/memo-write-back-from-handoff.md), read from
+        // the handoff when stage 1 built the model, else from the documents
+        // this rebuild already parsed.
+        const irIdentities = outlineIdentityTable(
+            stage1?.accepted && stage1.model && stage1.api
+                ? outlinesFromHandoff(resolve(cwd), stage1.api)
+                : outlinesFromDocuments(resolve(cwd), documents),
+            model.elements.values(),
+            resolve(cwd),
+        );
         // An accepted stage 1 carries the ontology it resolved, rules included,
         // so they are read from its handoff rather than from MEMO's own parse.
         const accepted = stage1?.accepted && stage1.model && stage1.api;

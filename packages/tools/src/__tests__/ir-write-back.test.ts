@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { outlineIdentityIndex, outlinesFromDocuments } from '../authoring/outline-source.js';
 import {
     buildIrIdentityIndex,
     indexFromIdentityTable,
@@ -80,7 +81,10 @@ async function lower() {
 
 /** …and index its identities, which is what a write resolves against. */
 async function compile(): Promise<IrIdentityIndex> {
-    return buildIrIdentityIndex(await lower());
+    const { findSysmlFiles } = await import('../model/sysml-files.js');
+    const { documents, errors } = await parseFiles(findSysmlFiles(projectRoot).slice().sort(), `${projectRoot}/`);
+    const built = buildMemoModel(documents, config, errors);
+    return outlineIdentityIndex(outlinesFromDocuments(projectRoot, documents), built.elements.values(), projectRoot);
 }
 
 /**
@@ -118,6 +122,8 @@ describe('IR identity', () => {
     });
 
     it('round-trips through the compact table shipped to a client', async () => {
+        // The table is element → identity; the index a server rebuilds from it
+        // must address the same declarations.
         writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
         const index = await compile();
         const rebuilt = indexFromIdentityTable(index.byMemoElement);
@@ -262,14 +268,34 @@ describe('element write-back', () => {
         expect(readProjectFile('model/plant.sysml')).toBe(before);
     });
 
-    it('fails loudly when the source moved under a still-registered identity', async () => {
+    it('still addresses its declaration after an insertion above it', async () => {
         writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
         const index = await compile();
         const identity = index.byMemoElement['Plant::pump'];
 
-        // Someone else prepends a declaration: the recorded position now holds
-        // a different node, which is exactly the silent-miss case.
-        writeProjectFile('model/plant.sysml', `package Inserted {\n    part first : Component;\n}\n${TWO_NAMESPACES}`);
+        // Someone else prepends a declaration. A position-based address would
+        // now name the newcomer; a name-based one still names `Plant::pump`.
+        writeProjectFile('model/plant.sysml', `package Inserted {\n    part feeder : Component;\n}\n${TWO_NAMESPACES}`);
+
+        const result = await saveElementToFile(projectRoot, {
+            id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part',
+            attributes: { note: 'edited' }, file: 'model/plant.sysml', irIdentity: identity,
+        }, index);
+
+        expect(result.error).toBeUndefined();
+        expect(result.success).toBe(true);
+        const source = readProjectFile('model/plant.sysml');
+        expect(source).toContain('part feeder : Component;');
+        expect(source).toContain('"edited"');
+        expect(source).toContain('"spare"');
+    });
+
+    it('fails loudly when the declaration it named was renamed underneath it', async () => {
+        writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
+        const index = await compile();
+        const identity = index.byMemoElement['Plant::pump'];
+
+        writeProjectFile('model/plant.sysml', TWO_NAMESPACES.replace('part pump', 'part mainPump'));
         const before = readProjectFile('model/plant.sysml');
 
         const result = await saveElementToFile(projectRoot, {
@@ -279,6 +305,7 @@ describe('element write-back', () => {
 
         expect(result.success).toBe(false);
         expect(result.stale).toBe(true);
+        expect(result.error).toMatch(/no declaration in the file has that name now/);
         expect(readProjectFile('model/plant.sysml')).toBe(before);
     });
 

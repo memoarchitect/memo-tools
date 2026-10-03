@@ -26,7 +26,6 @@ import { resolve } from 'node:path';
 import { parseText } from '../model/parser-utils.js';
 import {
     requireIrIdentity,
-    resolveDeclarationByIdentity,
     StaleIrIdentityError,
     type IrIdentityIndex,
 } from '../model/ir-identity.js';
@@ -34,6 +33,8 @@ import { commitSource } from './persistor.js';
 import {
     dedent, insertIntoBody, locateContainers, locatePackages, removeLine, spliceIndented,
 } from './package-source.js';
+import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import { resolveOutlineIdentity } from '../authoring/outline-identity.js';
 
 /**
  * Why a package rename or delete is only a text edit.
@@ -354,6 +355,8 @@ export async function moveElementToPackage(
         targetPackage?: string;
     },
     index: IrIdentityIndex,
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<PackageWriteResult> {
     const { elementId, irIdentity, sourceFile, targetFile, targetPackage } = request;
     const sourceAbsolute = resolve(cwd, sourceFile);
@@ -364,7 +367,7 @@ export async function moveElementToPackage(
     const source = readFileSync(sourceAbsolute, 'utf8');
     let located: { start: number; end: number };
     try {
-        located = await locateByIdentity(source, index, irIdentity, elementId);
+        located = await locateByIdentity(sourceFile.replaceAll('\\', '/'), source, index, irIdentity, elementId, outlines);
     } catch (e) {
         if (e instanceof StaleIrIdentityError) return { success: false, filePaths: [], stale: true, error: e.message };
         return { success: false, filePaths: [], error: String(e) };
@@ -415,19 +418,20 @@ export async function moveElementToPackage(
 
 // ─── Source location ─────────────────────────────────────────────────────────
 
-/** Source range of the declaration an IR identity names, in this file's text. */
+/** Source range of the declaration an identity names, in this file's text as it is now. */
 async function locateByIdentity(
-    source: string, index: IrIdentityIndex, identityId: string, elementId: string,
+    file: string, source: string, index: IrIdentityIndex, identityId: string, elementId: string,
+    outlines: OutlineSource,
 ): Promise<{ start: number; end: number }> {
-    const record = requireIrIdentity(index, identityId, elementId);
-    const { document, errors } = await parseText(source);
-    if (errors.length > 0) {
-        throw new StaleIrIdentityError(identityId, `its file no longer parses (${errors[0].message})`);
+    requireIrIdentity(index, identityId, elementId);
+    let outline;
+    try {
+        outline = await outlines.outline(file, source);
+    } catch (e) {
+        throw new StaleIrIdentityError(identityId, `its file no longer compiles (${e instanceof Error ? e.message : String(e)})`);
     }
-    const node = resolveDeclarationByIdentity(document.parseResult.value as any, record.identity);
-    const cst = node.$cstNode;
-    if (!cst) throw new StaleIrIdentityError(identityId, 'the resolved declaration has no source range');
-    return { start: cst.offset, end: cst.offset + cst.length };
+    const node = resolveOutlineIdentity(outline, identityId);
+    return { start: node.start, end: node.end };
 }
 
 // ─── Text editing ────────────────────────────────────────────────────────────

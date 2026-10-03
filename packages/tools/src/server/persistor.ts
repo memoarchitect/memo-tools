@@ -29,10 +29,12 @@ import { parseText } from '../model/parser-utils.js';
 import { usageKeyword } from '../model/semantic.js';
 import {
     requireIrIdentity,
-    resolveDeclarationByIdentity,
     StaleIrIdentityError,
     type IrIdentityIndex,
 } from '../model/ir-identity.js';
+import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import { resolveOutlineIdentity } from '../authoring/outline-identity.js';
+import { bodyMembers, type OutlineNode } from '../authoring/source-outline.js';
 import { insertIntoBody, locatePackages } from './package-source.js';
 import { shortNameOf } from '../model/element-index.js';
 
@@ -138,6 +140,8 @@ export async function saveElementToFile(
     cwd: string,
     element: ElementWriteRequest,
     index?: IrIdentityIndex,
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines: OutlineSource = parseOutlineSource,
 ): Promise<ElementWriteResult> {
     const relativePath = element.file || DEFAULT_ELEMENT_FILE;
     const filePath = resolve(cwd, relativePath);
@@ -193,7 +197,8 @@ export async function saveElementToFile(
         }
         let located: Awaited<ReturnType<typeof locateDeclaration>>;
         try {
-                located = await locateDeclaration(content, index, identity, element.renamedFrom ?? element.id);
+                located = await locateDeclaration(
+                    relativePath.replaceAll('\\', '/'), content, index, identity, element.renamedFrom ?? element.id, outlines);
         } catch (e) {
             if (e instanceof StaleIrIdentityError) {
                 return { success: false, filePath: relativePath, stale: true, error: e.message };
@@ -294,17 +299,13 @@ function withoutKeys(attributes: Record<string, string>, keys: readonly string[]
 }
 
 /** Members the generator regenerates from the element; everything else carries. */
-const REGENERATED_MEMBERS = new Set(['AttributeMember', 'DocComment']);
+const REGENERATED_ROLES = new Set(['attribute', 'doc']);
 
 /** Flat attribute keys a carried member already states in its own notation. */
-function keysSuppliedBy(member: any): string[] {
-    if (member.$type === 'MetadataApplication') {
-        return (member.body ?? []).map((field: any) => field.name).filter(Boolean);
-    }
-    if (member.$type === 'ExposeMember') return ['expose'];
-    if (member.boundRef && member.name) return [member.subsetValue ? member.boundRef : member.name];
-    if (member.name) return [member.name];
-    return [];
+function keysSuppliedBy(member: OutlineNode): string[] {
+    if (member.role === 'metadata') return member.fields;
+    if (member.role === 'expose') return ['expose'];
+    return member.name ? [member.name] : [];
 }
 
 /**
@@ -360,24 +361,22 @@ function reindent(text: string, column: number): string {
  * the caller can regenerate the attributes without them.
  */
 function carriedMembers(
-    source: string, node: any, attributes: Record<string, string> = {},
+    source: string, node: OutlineNode, attributes: Record<string, string> = {},
 ): { text: string; suppliedKeys: string[] } {
     const carried: string[] = [];
     const suppliedKeys: string[] = [];
-    for (const member of node?.body ?? []) {
-        if (REGENERATED_MEMBERS.has(member.$type)) continue;
-        const cst = member.$cstNode;
-        if (!cst) continue;
-        let text = source.slice(cst.offset, cst.offset + cst.length);
+    for (const member of bodyMembers(node)) {
+        if (REGENERATED_ROLES.has(member.role)) continue;
+        let text = source.slice(member.start, member.end);
         const keys = keysSuppliedBy(member);
-        if (member.$type === 'MetadataApplication') {
+        if (member.role === 'metadata') {
             for (const field of keys) {
                 const edited = attributes[field];
                 if (edited !== undefined) text = retargetAnnotationField(text, field, edited);
             }
         }
         suppliedKeys.push(...keys);
-        const column = cst.offset - (source.lastIndexOf('\n', cst.offset - 1) + 1);
+        const column = member.start - (source.lastIndexOf('\n', member.start - 1) + 1);
         carried.push(reindent(text, column));
     }
     return { text: carried.join('\n'), suppliedKeys };
@@ -392,23 +391,28 @@ function withCarriedMembers(usage: string, carried: string): string {
     return `${before.endsWith('\n') ? before : `${before}\n`}${carried}\n${usage.slice(close)}`;
 }
 
-/** Source range of the declaration an identity names, in this file's text. */
+/**
+ * Source range of the declaration an identity names, in this file's text: the
+ * identity must be in the revision the caller holds, and must name the same
+ * declaration in the file as it is now.
+ */
 async function locateDeclaration(
+    file: string,
     source: string,
     index: IrIdentityIndex,
     identityId: string,
     memoElementId: string,
-): Promise<{ start: number; end: number; declaredName?: string; node: any }> {
-    const record = requireIrIdentity(index, identityId, memoElementId);
-
-    const { document, errors } = await parseText(source);
-    if (errors.length > 0) {
-        throw new StaleIrIdentityError(identityId, `its file no longer parses (${errors[0].message})`);
+    outlines: OutlineSource,
+): Promise<{ start: number; end: number; declaredName?: string; node: OutlineNode }> {
+    requireIrIdentity(index, identityId, memoElementId);
+    let outline;
+    try {
+        outline = await outlines.outline(file, source);
+    } catch (e) {
+        throw new StaleIrIdentityError(identityId, `its file no longer compiles (${e instanceof Error ? e.message : String(e)})`);
     }
-    const node = resolveDeclarationByIdentity(document.parseResult.value as any, record.identity);
-    const cst = node.$cstNode;
-    if (!cst) throw new StaleIrIdentityError(identityId, 'the resolved declaration has no source range');
-    return { start: cst.offset, end: cst.offset + cst.length, declaredName: node.name, node };
+    const node = resolveOutlineIdentity(outline, identityId);
+    return { start: node.start, end: node.end, declaredName: node.name, node };
 }
 
 /** Replace a range, re-indenting the replacement to the line it starts on. */
