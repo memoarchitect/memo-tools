@@ -105,7 +105,9 @@ describe('memo element identities', () => {
 
         expect(Object.keys(table).sort()).toEqual(['Plant::Downstream::pump', 'Plant::Upstream::pump']);
         expect(rows.filter(row => row.element).length).toBe(2);
-        expect(rows.filter(row => !row.element).length).toBe(0);
+        // The rest are the packages: declarations a write can address, though
+        // no Memo element projects them.
+        expect(rows.filter(row => !row.element).map(row => row.metaclass)).toEqual(['Package', 'Package', 'Package']);
     });
 
     it('fails, rather than printing nothing, for an element the project does not have', async () => {

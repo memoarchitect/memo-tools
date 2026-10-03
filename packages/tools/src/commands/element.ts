@@ -219,7 +219,7 @@ export async function elementWriteCommand(dir: string, options: ElementWriteOpti
         if (identity) request.irIdentity = identity;
     }
 
-    const result = await writeElement({ ...context, irIndex: before.index }, request);
+    const result = await writeElement({ ...context, irIndex: before.index, outlines: before.outlines }, request);
 
     if (options.format === 'json') {
         console.log(JSON.stringify({

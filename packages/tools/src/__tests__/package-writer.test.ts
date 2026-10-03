@@ -18,7 +18,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { buildIrIdentityIndex, type IrIdentityIndex } from '../model/ir-identity.js';
+import type { IrIdentityIndex } from '../model/ir-identity.js';
+import { outlineIdentityIndex, outlinesFromDocuments } from '../authoring/outline-source.js';
 import { lowerAstToSysmlIr } from '../model/sysml-ir.js';
 import { parseFiles } from '../model/parser-utils.js';
 import { buildMemoModel } from '../model/builder.js';
@@ -66,8 +67,8 @@ async function build() {
 
 /** Compile and index identities, which is what a move resolves against. */
 async function compile(): Promise<IrIdentityIndex> {
-    const { dto, documents } = await build();
-    return buildIrIdentityIndex(lowerAstToSysmlIr(documents, dto, projectRoot));
+    const { built, documents } = await build();
+    return outlineIdentityIndex(outlinesFromDocuments(projectRoot, documents), built.elements.values(), projectRoot);
 }
 
 const PROJECT = `package Plant {

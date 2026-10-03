@@ -50,6 +50,7 @@ import {
 } from './dhf-doc-store.js';
 import { loadDashboards, saveDashboard, deleteDashboard, moveDashboard } from './dashboard-store.js';
 import { createDashboardWatcher } from './file-watcher.js';
+import { selectedOutlineSource } from '../authoring/outline-source.js';
 
 export interface DevServerOptions {
     port: number;
@@ -673,12 +674,14 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     /** What every authoring operation is given: the project, its settings, and the index. */
     async function authoringContext(): Promise<AuthoringContext> {
         const { loadAndResolveConfig } = await import('./config-resolver.js');
-        const { findConfigFile } = await import('@memoarchitect/tools');
+        const { findConfigFile, loadProjectSettings } = await import('@memoarchitect/tools');
         const configPath = findConfigFile(options.projectRoot);
+        const config = configPath ? loadAndResolveConfig(configPath) : loadProjectSettings(options.projectRoot);
         return {
             projectDir: options.projectRoot,
-            config: configPath ? loadAndResolveConfig(configPath) : undefined,
+            config,
             irIndex: irIndex(),
+            outlines: selectedOutlineSource(options.projectRoot, config),
         };
     }
 
@@ -774,7 +777,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     ...(change.changes.name !== undefined ? { name: change.changes.name } : {}),
                     ...(change.changes.doc !== undefined ? { doc: change.changes.doc } : {}),
                     attributes: { ...existing.attributes, ...(change.changes.attributes ?? {}) },
-                }, irIndex());
+                }, irIndex(), (await authoringContext()).outlines);
                 if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
                 await recompileAfterWrite();
                 return;
@@ -1134,7 +1137,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         }
         return moveElementToPackage(projectRoot, {
             elementId, irIdentity, sourceFile: element.file, targetFile: targetFile!, targetPackage,
-        }, irIndex());
+        }, irIndex(), (await authoringContext()).outlines);
     }
 
     async function handleElementDelete(payload: {
@@ -1623,11 +1626,12 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         const elements = modelMsg?.payload?.elements ?? {};
                         const { saveElementToFile } = await import('./persistor.js');
                         let remappedCount = 0;
+                        const remapOutlines = (await authoringContext()).outlines;
                         for (const element of Object.values(elements) as any[]) {
                             const newKind = mappings[element.kind];
                             if (newKind) {
                                 const result = await saveElementToFile(
-                                    projectRoot, { ...element, kind: newKind }, irIndex());
+                                    projectRoot, { ...element, kind: newKind }, irIndex(), remapOutlines);
                                 if (result.success) remappedCount++;
                             }
                         }

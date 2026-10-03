@@ -129,7 +129,9 @@ export async function loadProjectModel(options: LoadProjectModelOptions): Promis
     const resolution = loaded.resolution;
     const roots = [...(resolution?.selectedRoots ?? []), ...(resolution?.unusedRoots ?? [])];
     const isProjectFile = (file: string) => !roots.some(root => file.startsWith(root.sysmlDir));
-    const { documents, errors } = options.files || !resolution
+    // A directory with no entrypoint has no resolution to take its source from;
+    // its source is every `.sysml` file under it, as MEMO's lowering reads one.
+    const { documents, errors } = options.files || !resolution?.entrypoint
         ? await parseFiles([...(options.files ?? findSysmlFiles(projectRoot))], `${projectRoot}/`)
         : {
             documents: resolution.documents.filter(d => isProjectFile(d.filePath)),

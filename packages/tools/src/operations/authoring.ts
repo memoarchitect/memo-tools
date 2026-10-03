@@ -5,7 +5,7 @@
 // two steps that only make sense together:
 //
 //   1. edit the SysML source — by IR identity, in standard notation;
-//   2. recompile through the **selected lowering provider**, and hand back the
+//   2. recompile with the **selected compiler**, and hand back the
 //      revision that resulted.
 //
 // Step 2 is not a refresh optimisation. Before this session the editing path
@@ -22,12 +22,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MEMOConfig } from '../model/config.js';
-import { buildIrIdentityIndex, type IrIdentityIndex } from '../model/ir-identity.js';
+import type { IrIdentityIndex } from '../model/ir-identity.js';
+import { lowerAstToSysmlIr, projectSysmlIrToMemo, SYSML_IR_VERSION } from '../model/sysml-ir.js';
+import { modelToDTO } from '../model/semantic.js';
 import { loadProjectConfig } from '../toolchain/lowering.js';
-import { runLowering } from '../toolchain/operations.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
-import type { MemoIr } from '../toolchain/protocol.js';
+import { SYSMLC_IR_VERSION, type MemoIr } from '../toolchain/protocol.js';
 import { saveElementToFile, type ElementWriteRequest, type ElementWriteResult } from '../server/persistor.js';
+import {
+    outlineIdentityIndex, outlineSourceFor, parseOutlineSource, projectOutlines, type OutlineSource,
+} from '../authoring/outline-source.js';
 
 export interface AuthoringContext {
     projectDir: string;
@@ -35,6 +40,8 @@ export interface AuthoringContext {
     config?: MEMOConfig;
     /** Identity index of the revision the caller's request was built against. */
     irIndex?: IrIdentityIndex;
+    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    outlines?: OutlineSource;
 }
 
 /** What a recompile produced, in the shape every write-back returns it. */
@@ -42,24 +49,40 @@ export interface RecompiledRevision {
     ir: MemoIr;
     index: IrIdentityIndex;
     diagnostics: Diagnostic[];
-    /** The provider that answered, so the caller can report which one ran. */
+    /** The compiler that answered, so the caller can report which one ran. */
     provider: string;
+    /** Outlines for the next write, read from this revision. */
+    outlines: OutlineSource;
 }
 
 /**
- * Recompile the project through the selected lowering provider.
+ * Recompile the project with the selected compiler, and index the identities
+ * of its declarations (plans/memo-write-back-from-handoff.md).
  *
  * Exported on its own because "what does the model look like now" is a question
  * the CLI asks too, not only the thing that happens after a write.
  */
 export async function recompileProject(context: AuthoringContext): Promise<RecompiledRevision> {
     const config = context.config ?? loadProjectConfig(context.projectDir);
-    const result = await runLowering({ config, projectDir: context.projectDir });
+    const project = await loadProjectModel({ projectRoot: context.projectDir, config });
+    const dto = modelToDTO(project.model);
+    // MEMO's own lowering states its syntax tree as IR; a handoff is the record
+    // for a compiler that builds the model from one.
+    const sysml = project.api
+        ? { irVersion: SYSML_IR_VERSION, elements: [], diagnostics: [] }
+        : lowerAstToSysmlIr(project.documents, dto, context.projectDir);
     return {
-        ir: result.ir,
-        index: buildIrIdentityIndex(result.ir.model.sysmlIr),
-        diagnostics: result.diagnostics,
-        provider: result.provider,
+        ir: {
+            irVersion: SYSMLC_IR_VERSION,
+            model: projectSysmlIrToMemo(sysml, dto),
+            parseErrors: project.parseErrors,
+            accepted: true,
+            sysml,
+        },
+        index: outlineIdentityIndex(projectOutlines(context.projectDir, project), project.model.elements.values(), context.projectDir),
+        diagnostics: project.diagnostics,
+        provider: project.compiler,
+        outlines: outlineSourceFor(context.projectDir, config, project),
     };
 }
 
@@ -79,7 +102,7 @@ export async function writeElement(
     context: AuthoringContext,
     element: ElementWriteRequest,
 ): Promise<ElementWriteBackResult> {
-    const result = await saveElementToFile(context.projectDir, element, context.irIndex);
+    const result = await saveElementToFile(context.projectDir, element, context.irIndex, context.outlines ?? parseOutlineSource);
     if (!result.success) return result;
     return { ...result, revision: await recompileProject(context) };
 }

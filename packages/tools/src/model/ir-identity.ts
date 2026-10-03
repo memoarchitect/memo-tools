@@ -43,7 +43,8 @@ export type IrIdentityTable = Record<string, string>;
 
 /** What an index knows about one addressable declaration. */
 export interface IrIdentityEntry {
-    identity: SysmlIdentity;
+    /** The identity, and the metaclass of the declaration it names. */
+    identity: Pick<SysmlIdentity, 'id' | 'metaclass'>;
     /** The Memo element it projects to, when the projection mapped it. */
     memoElementId?: string;
 }
@@ -86,10 +87,12 @@ export function indexFromIdentityTable(table: IrIdentityTable | undefined): IrId
     const byMemoElement: IrIdentityTable = {};
     const byIdentity = new Map<string, IrIdentityEntry>();
     for (const [memoElementId, identityId] of Object.entries(table ?? {})) {
-        const identity = parseSysmlIdentityId(identityId);
-        if (!identity) continue;
+        // `file#key:metaclass` (authoring/outline-identity.ts).
+        const hash = identityId.indexOf('#');
+        const colon = identityId.lastIndexOf(':');
+        if (hash <= 0 || colon <= hash + 1) continue;
         byMemoElement[memoElementId] = identityId;
-        byIdentity.set(identityId, { identity, memoElementId });
+        byIdentity.set(identityId, { identity: { id: identityId, metaclass: identityId.slice(colon + 1) }, memoElementId });
     }
     return { byMemoElement, byIdentity };
 }
