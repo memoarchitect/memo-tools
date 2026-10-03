@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { parseText } from '../model/parser-utils.js';
 import { RuleRegistry } from '../validator/rule-registry.js';
 
 describe('RuleRegistry', () => {
@@ -53,5 +54,23 @@ describe('RuleRegistry', () => {
         expect(registry.byCategory('closure')).toHaveLength(1);
         expect(registry.byCategory('coverage')).toHaveLength(1);
         expect(registry.byStandard('ISO 14971')).toHaveLength(1);
+    });
+});
+
+describe('the rule catalogue', () => {
+    it('reads a rule part\'s id and label from its @MemoIdentity', async () => {
+        const text = `package Profiles {
+    part useRiskRule : ElementUsageRule {
+        @MemoIdentity { :>> providedId = "RULE-001"; :>> label = "UseRisk"; }
+        attribute :>> strength = RuleStrengthKind::required;
+    }
+    part unnamed : ElementUsageRule;
+}
+`;
+        const { document, errors } = await parseText(text);
+        expect(errors).toEqual([]);
+        const registry = new RuleRegistry();
+        registry.populateFromDocuments([{ document, filePath: 'profiles.sysml' } as never]);
+        expect(registry.entries().map(e => [e.id, e.name, e.strength])).toEqual([['RULE-001', 'UseRisk', 'required']]);
     });
 });
