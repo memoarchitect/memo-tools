@@ -78,6 +78,8 @@ import { defaultRegistry } from '../toolchain/default-registry.js';
 import chalk from 'chalk';
 import { Stage1RejectedError } from '../toolchain/project-model.js';
 import { ToolchainNotConfiguredError } from '../toolchain/effective.js';
+import { setCommandLineToolchain } from '../model/config-loader.js';
+import { toolchainOverridesFromCliOptions } from '../toolchain/schema.js';
 
 const program = new Command();
 
@@ -830,6 +832,17 @@ rulesCmd
     .action(async (dir: string, opts: { format?: string }) => {
         await rulesCoverageCommand(dir, { format: opts.format as any });
     });
+
+// Every command takes the `--toolchain.*` flags, and the running command's
+// flags apply to whatever settings it loads (model/config-loader.ts).
+const allCommands = (command: Command): Command[] => [command, ...command.commands.flatMap(allCommands)];
+for (const command of allCommands(program)) {
+    if (command.commands.length > 0 || command === program) continue;
+    if (!command.options.some(option => option.attributeName() === 'toolchain.compiler')) withToolchainOptions(command);
+}
+program.hook('preAction', (_program, action) => {
+    setCommandLineToolchain(toolchainOverridesFromCliOptions(action.opts(), defaultRegistry));
+});
 
 // A stage 1 that rejects the source is a verdict on the model, not a crash:
 // every command that loads one reports its diagnostics and fails, as
