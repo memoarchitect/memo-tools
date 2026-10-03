@@ -17,7 +17,7 @@
 import { existsSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { readIdentityRegistry } from './identity-registry.js';
-import type { MEMOConfig } from './config.js';
+import type { MEMOConfig, ToolchainConfig } from './config.js';
 import { CONFIG_SEARCH_ORDER, readManifest } from './package-manifest.js';
 
 /** Settings filenames, most product-scoped first. */
@@ -54,17 +54,46 @@ export function findConfigFile(startDir: string): string | undefined {
 export function loadConfig(filePath: string): MEMOConfig {
     const manifest = readManifest(filePath);
     const raw = manifest.raw;
-    return {
+    return withCommandLineToolchain({
         projectName: manifest.name ?? basename(dirname(resolve(filePath))),
         relationshipFiles: raw.relationshipFiles as Record<string, string> | undefined,
         canonicalRelationshipFile: raw.canonicalRelationshipFile as string | undefined,
         toolchain: raw.toolchain as MEMOConfig['toolchain'],
-    };
+    });
 }
 
-/** Settings for a project that has none. Every command works from this. */
+/**
+ * Settings for a project that has none. They name no compiler, so a command
+ * that needs one fails unless the command line names it.
+ */
 export function defaultConfig(projectName: string): MEMOConfig {
-    return { projectName };
+    return withCommandLineToolchain({ projectName });
+}
+
+// ─── The command line's toolchain flags ──────────────────────────────────────
+//
+// `--toolchain.*` flags are accepted by every `memo` command and beat the
+// settings file leaf by leaf. They are applied here, where every command reads
+// its settings, so no command has to thread them through to whatever loads
+// the project.
+
+let commandLineToolchain: ToolchainConfig = {};
+
+/** Record the running command's `--toolchain.*` flags, as a partial `toolchain` block. */
+export function setCommandLineToolchain(overrides: ToolchainConfig): void {
+    commandLineToolchain = overrides;
+}
+
+function withCommandLineToolchain(config: MEMOConfig): MEMOConfig {
+    if (Object.keys(commandLineToolchain).length === 0) return config;
+    const merged: ToolchainConfig = { ...(config.toolchain ?? {}) };
+    for (const [key, value] of Object.entries(commandLineToolchain)) {
+        const existing = merged[key];
+        merged[key] = value && typeof value === 'object' && existing && typeof existing === 'object'
+            ? { ...existing as object, ...value as object }
+            : value;
+    }
+    return { ...config, toolchain: merged };
 }
 
 /**
