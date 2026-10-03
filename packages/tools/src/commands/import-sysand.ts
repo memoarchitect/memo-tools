@@ -7,7 +7,7 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import chalk from 'chalk';
-import { importSysandProject, findConfigFile, verifySysandRoundTrip } from '@memoarchitect/tools';
+import { importSysandProject, findConfigFile, findProjectRoot, verifySysandRoundTrip } from '@memoarchitect/tools';
 import { dirname } from 'node:path';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
@@ -33,8 +33,8 @@ export async function importSysandCommand(
         process.exit(1);
     }
 
-    // Import
-    const result = await importSysandProject(dirPath);
+    // Import, with the compiler the importing project's settings name.
+    const result = await importSysandProject(dirPath, loadProjectSettings(findProjectRoot(cwd) ?? cwd));
 
     // Report
     if (result.projectJson.name) {
@@ -54,6 +54,12 @@ export async function importSysandCommand(
 
     if (result.stats.sysmlFiles === 0) {
         console.error(chalk.red('\nNo .sysml files found in the SysAnd project.'));
+        process.exit(1);
+    }
+    // Packages the compiler rejected import nothing worth reporting as a
+    // success: what they declare is not valid SysML.
+    if (result.errors.length > 0) {
+        console.error(chalk.red(`\n\u274C Import failed: ${result.errors.length} error(s) in the SysAnd project.\n`));
         process.exit(1);
     }
 

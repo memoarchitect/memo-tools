@@ -13,6 +13,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { extractDocComment, type ParsedDocument } from '../model/parser-utils.js';
+import type { ApiElement, ApiModel } from '../stage2/api-model.js';
+import { apiDefinitionFacts } from '../stage2/build-from-api.js';
 
 /** A consistency rule extracted from SysML ontology */
 export interface RuleRegistryEntry {
@@ -128,26 +130,26 @@ export class RuleRegistry {
         if (!typeName || !RuleRegistry.RULE_TYPES.has(typeName)) return;
 
         const attrs = this.extractAttributes(usage.body);
-        const id = attrs['id'];
-        if (!id) return; // Rules must have an ID
+        const entry = ruleEntry(attrs, usage.name, extractDocComment(usage.body), filePath, typeName);
+        if (entry) this.rules.set(entry.id, entry);
+    }
 
-        const entry: RuleRegistryEntry = {
-            id,
-            name: attrs['label'] ?? attrs['name'] ?? usage.name ?? id,
-            // Native `doc` first; `description` is the pre-migration attribute.
-            description: extractDocComment(usage.body) ?? attrs['description'] ?? '',
-            appliesTo: attrs['appliesTo'] ?? '',
-            predicate: attrs['predicate'] ?? '',
-            strength: attrs['strength'] ?? 'recommended',
-            severity: attrs['severity'] ?? 'warning',
-            rationaleText: attrs['rationaleText'] ?? '',
-            category: attrs['category'] ?? 'closure',
-            attributes: attrs,
-            file: filePath,
-            superType: typeName,
-        };
-
-        this.rules.set(id, entry);
+    /**
+     * Populate from a stage 1 handoff: the same rule parts, read from the
+     * compiled model rather than MEMO's parse.
+     */
+    populateFromApi(api: ApiModel, fileOf: (element: ApiElement) => string): void {
+        for (const usage of api.ofType('PartUsage')) {
+            const type = api.types(usage['@id'])[0];
+            const typeName = type ? api.name(type['@id']) : undefined;
+            if (!typeName || !RuleRegistry.RULE_TYPES.has(typeName)) continue;
+            const facts = apiDefinitionFacts(api, usage);
+            // An enumeration value is recorded by its member name, as the parse reader does.
+            const attrs = Object.fromEntries(Object.entries(facts.attributes)
+                .map(([key, value]) => [key, /^[A-Za-z_]\w*(::[A-Za-z_]\w*)+$/.test(value) ? value.slice(value.lastIndexOf('::') + 2) : value]));
+            const entry = ruleEntry(attrs, api.declaredName(usage['@id']), facts.doc, fileOf(usage), typeName);
+            if (entry) this.rules.set(entry.id, entry);
+        }
     }
 
     private extractAttributes(body: any[] | undefined): Record<string, string> {
@@ -156,6 +158,13 @@ export class RuleRegistry {
         for (const member of body) {
             if (member.$type === 'AttributeMember' && member.value) {
                 attrs[member.name] = this.extractValue(member.value);
+            }
+            // `@MemoIdentity { :>> providedId = "…"; :>> label = "…"; }` states the
+            // rule's id and label, lifted as the model builder lifts them.
+            if (member.$type === 'MetadataApplication') {
+                for (const field of member.body ?? []) {
+                    if (field.name && field.value) attrs[field.name] = this.extractValue(field.value);
+                }
             }
         }
         return attrs;
@@ -181,4 +190,32 @@ export class RuleRegistry {
                 return String(value);
         }
     }
+}
+
+/**
+ * A catalogue entry from a rule part's attributes, or nothing for a part with
+ * no id. The id is the `@MemoIdentity` `providedId`, or a pre-migration `id`
+ * attribute.
+ */
+function ruleEntry(
+    attrs: Record<string, string>, usageName: string | undefined, doc: string | undefined,
+    file: string, superType: string,
+): RuleRegistryEntry | undefined {
+    const id = attrs['providedId'] ?? attrs['id'];
+    if (!id) return undefined;
+    return {
+        id,
+        name: attrs['label'] ?? attrs['name'] ?? usageName ?? id,
+        // Native `doc` first; `description` is the pre-migration attribute.
+        description: doc ?? attrs['description'] ?? '',
+        appliesTo: attrs['appliesTo'] ?? '',
+        predicate: attrs['predicate'] ?? '',
+        strength: attrs['strength'] ?? 'recommended',
+        severity: attrs['severity'] ?? 'warning',
+        rationaleText: attrs['rationaleText'] ?? '',
+        category: attrs['category'] ?? 'closure',
+        attributes: attrs,
+        file,
+        superType,
+    };
 }

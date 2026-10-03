@@ -19,6 +19,8 @@ import {
 import type { ParsedDocument, EffectiveRule, RuleResolutionDiagnostic } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel, projectConstraints } from '../toolchain/project-model.js';
+import { handoffFileOf } from '../stage2/handoff-files.js';
+import { resolutionLoads } from '../stage2/project-from-api.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,11 +55,16 @@ async function loadContext(projectDir?: string) {
     const ontologyRegistries = project.registries;
     const filePackages: ReadonlyMap<string, string> = project.resolution?.filePackages ?? new Map<string, string>();
     const constraints = projectConstraints(project);
-    // The rule catalogue reads rule parts from MEMO's parse, so it is built
-    // only when MEMO's compiler loaded the project.
-    let ruleRegistry: RuleRegistry | undefined;
-    if (project.ontologyDocuments.length > 0) {
-        ruleRegistry = new RuleRegistry();
+    // The rule catalogue: the rule parts the project's closure declares, from
+    // the handoff when a compiler built the model, else from MEMO's parse.
+    const ruleRegistry = new RuleRegistry();
+    if (project.api) {
+        const loads = project.resolution ? resolutionLoads(project.resolution) : () => true;
+        const fileOf = handoffFileOf(project.api, project.resolution?.filePackages);
+        const catalogue = new RuleRegistry();
+        catalogue.populateFromApi(project.api, fileOf);
+        for (const entry of catalogue.entries()) if (loads(entry.file)) ruleRegistry.register(entry);
+    } else {
         ruleRegistry.populateFromDocuments(project.ontologyDocuments);
     }
 
