@@ -11,10 +11,10 @@ import { writeFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import chalk from 'chalk';
 import {
-    findConfigFile, loadOntologyRegistries,
-    resolveLLMConfig, createProvider, generateSysml, ontologyViewFrom } from '@memoarchitect/tools';
-import type { BuilderRegistries } from '@memoarchitect/tools';
+    findConfigFile, resolveLLMConfig, createProvider, generateSysml, ontologyViewFrom,
+} from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
+import { loadProjectOntology } from '../toolchain/project-model.js';
 
 export interface GenerateCommandOptions {
     output?: string;
@@ -43,29 +43,8 @@ export async function generateCommand(description: string, options: GenerateComm
 
     const config = loadAndResolveConfig(configPath);
     // Kinds and relationships come from the resolved SysML.
-    const loadResult = await loadOntologyRegistries(dirname(configPath));
-    const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
-
-    // Enrich config with ontology registries if available
-    try {
-        const loadResult = await loadOntologyRegistries(configPath);
-        if (loadResult.registries.kindRegistry && !ontology.kinds) {
-            ontology.kinds = {};
-        }
-        if (loadResult.registries.kindRegistry) {
-            // Add registry kinds to config for context serialization
-            const kr = loadResult.registries.kindRegistry;
-            for (const entry of (kr as any)._kinds?.values() || []) {
-                if (!ontology.kinds![entry.name]) {
-                    ontology.kinds![entry.name] = {
-                        label: entry.label,
-                        layer: entry.layer,
-                        sysmlConstruct: entry.sysmlConstruct,
-                    };
-                }
-            }
-        }
-    } catch { /* skip */ }
+    const { registries } = await loadProjectOntology({ projectRoot: dirname(configPath), config });
+    const ontology = ontologyViewFrom(registries.kindRegistry, registries.relationshipRegistry);
 
     // 3. Generate
     console.log(chalk.dim('Generating SysML...'));

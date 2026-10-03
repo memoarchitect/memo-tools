@@ -8,8 +8,9 @@
 import chalk from 'chalk';
 import { dirname } from 'node:path';
 import { lintTemplates, type LintFinding } from '../dhf/template-lint.js';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
 import { findConfigFile } from '../model/config-loader.js';
+import { loadProjectOntology } from '../toolchain/project-model.js';
+import { loadProjectSettings } from '../model/config-loader.js';
 
 export interface DhfLintOptions {
     /** Only lint templates whose id starts with this prefix, e.g. "iso-14971". */
@@ -33,7 +34,7 @@ export async function dhfLintCommand(options: DhfLintOptions = {}): Promise<void
         const configPath = findConfigFile(cwd);
         const root = configPath ? dirname(configPath) : cwd;
         try {
-            const loaded = await loadOntologyRegistries(root);
+            const loaded = await loadProjectOntology({ projectRoot: root, config: loadProjectSettings(root) });
             kindRegistry = loaded.registries.kindRegistry ?? undefined;
             relationshipRegistry = loaded.registries.relationshipRegistry ?? undefined;
             if (kindRegistry) {

@@ -14,11 +14,10 @@
 
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { buildMemoModel } from './builder.js';
 import { loadProjectSettings } from './config-loader.js';
 import { findProjectRoot } from './native-project.js';
-import { loadOntologyRegistries } from './ontology-loader.js';
 import { computeCensus, type ProjectCensus } from './census.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
 
 /** One subject: its baseline id and the directory holding the project. */
 export interface CensusSubject {
@@ -55,14 +54,6 @@ export function censusSubjects(examplesDir: string): CensusSubject[] {
 export async function censusOf(subject: CensusSubject): Promise<ProjectCensus> {
     const root = findProjectRoot(subject.dir);
     if (!root) throw new Error(`${subject.id}: not a MEMO project (${subject.dir})`);
-    const loaded = await loadOntologyRegistries(root);
-    const resolution = loaded.resolution;
-    const libraryRoots = [...(resolution?.selectedRoots ?? []), ...(resolution?.unusedRoots ?? [])];
-    const isProjectFile = (file: string) => !libraryRoots.some(r => file.startsWith(r.sysmlDir));
-    const documents = (resolution?.documents ?? []).filter(d => isProjectFile(d.filePath));
-    const parseErrors = (resolution?.parseErrors ?? []).filter(e => isProjectFile(e.file));
-    const model = buildMemoModel(
-        documents, loadProjectSettings(root), parseErrors,
-        { ...loaded.registries, provenance: loaded.provenance });
+    const { model } = await loadProjectModel({ projectRoot: root, config: loadProjectSettings(root) });
     return computeCensus(model, { project: subject.id, projectRoot: root });
 }

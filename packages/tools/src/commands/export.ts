@@ -5,14 +5,10 @@
 //   - png   → diagram screenshots (future)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { relative, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import chalk from 'chalk';
-import {
-    findConfigFile, findProjectRoot, loadProjectSettings, loadOntologyRegistries,
-    deriveModelViews, parseFiles, buildMemoModel, modelToDTO,
-} from '@memoarchitect/tools';
-import type { BuilderRegistries } from '@memoarchitect/tools';
+import { findProjectRoot, loadProjectSettings, deriveModelViews, modelToDTO } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import type { ViewpointDTO, ArchLayerDTO } from '@memoarchitect/tools';
@@ -20,7 +16,7 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
-import { compileResolvedProject } from '../toolchain/operations.js';
+import { loadProjectModel, type ProjectModel } from '../toolchain/project-model.js';
 
 
 /**
@@ -45,28 +41,14 @@ async function resolveForExport(cwd: string, options: Record<string, unknown> = 
     // ontology, so MEMO parses nothing then. Export has always carried every
     // project file, its own methodology included; `memo validate` leaves a
     // project's library roots out.
-    const projectFiles = new Set(findSysmlFiles(projectRoot).map(file => relative(projectRoot, file)));
-    const stage1 = await compileResolvedProject({ config, projectDir: projectRoot, projectFiles, provenance: false });
-    let registries: BuilderRegistries | undefined = stage1?.registries;
-    if (!stage1) {
-        try {
-            const loaded = await loadOntologyRegistries(projectRoot);
-            if (loaded.fileCount > 0) registries = loaded.registries;
-        } catch {
-            // Export still works with reduced kind resolution.
-        }
-    }
-    if (stage1 && (!stage1.accepted || !stage1.model)) {
-        console.error(chalk.red(`❌ Stage 1 reported ${stage1.diagnostics.filter(d => d.severity === 'error').length} error(s); nothing exported.`));
-        for (const d of stage1.diagnostics.filter(d => d.severity === 'error')) {
-            console.error(chalk.red(`  ${d.file}:${d.range?.start.line ?? '?'} ${d.code ?? ''} ${d.message}`));
-        }
+    let loaded: ProjectModel;
+    try {
+        loaded = await loadProjectModel({ projectRoot, config, files: findSysmlFiles(projectRoot), cache: false });
+    } catch (error) {
+        console.error(chalk.red(`❌ ${error instanceof Error ? error.message : error}\nNothing exported.`));
         process.exit(1);
     }
-    const model = stage1?.model ?? await (async () => {
-        const { documents, errors } = await parseFiles(findSysmlFiles(projectRoot), projectRoot + '/');
-        return buildMemoModel(documents, config, errors, registries);
-    })();
+    const { model, registries } = loaded;
     const derived = deriveModelViews(model, registries?.kindRegistry);
     const viewpoints: ViewpointDTO[] | undefined = derived.viewpoints;
     const architectureLayers: ArchLayerDTO[] | undefined = undefined;

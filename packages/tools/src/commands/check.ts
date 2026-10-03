@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
 import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { parseFiles, buildMemoModel, loadOntologyRegistries, loadProjectSettings } from '@memoarchitect/tools';
-import type { BuilderRegistries, MemoModel, MemoElement, ParseError } from '@memoarchitect/tools';
+import { findProjectRoot, loadProjectSettings } from '@memoarchitect/tools';
+import type { MemoModel, MemoElement, ParseError } from '@memoarchitect/tools';
 import { findSysmlFiles } from '../model/sysml-files.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
 
 const STANDARD_CONSTRUCTS = new Set([
     'part', 'requirement', 'action', 'item', 'port',
@@ -147,16 +148,6 @@ export async function checkCommand(
     const config = loadProjectSettings(cwd);
     log(chalk.gray(`Project: ${config.projectName}`));
 
-    let ontologyRegistries: BuilderRegistries | undefined;
-    try {
-        const loadResult = await loadOntologyRegistries(cwd);
-        if (loadResult.fileCount > 0) {
-            ontologyRegistries = loadResult.registries;
-        }
-    } catch {
-        // proceed without ontology registries
-    }
-
     const sysmlFiles = findSysmlFiles(cwd);
     if (sysmlFiles.length === 0) {
         console.error(chalk.yellow('⚠️  No .sysml files found.'));
@@ -164,8 +155,10 @@ export async function checkCommand(
     }
     log(chalk.gray(`Files: ${sysmlFiles.length} .sysml files\n`));
 
-    const { documents, errors: parseErrors } = await parseFiles(sysmlFiles, cwd + '/');
-    const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    // From the selected compiler, as every command loads it. MEMO's own
+    // compiler reports its parse errors here; an external one has already
+    // rejected a project that is not valid SysML.
+    const { model, parseErrors } = await loadProjectModel({ projectRoot: findProjectRoot(cwd) ?? cwd, config });
     const findings = [
         ...checkSysmlCompat(model, parseErrors),
         ...checkExplicitMultiplicity(sysmlFiles),

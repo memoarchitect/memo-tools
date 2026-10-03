@@ -8,17 +8,16 @@
 
 import { createServer } from 'node:http';
 import { readFileSync, readdirSync, existsSync, statSync, watch } from 'node:fs';
-import { resolve, join, extname, relative } from 'node:path';
+import { resolve, join, extname, relative, dirname } from 'node:path';
 import chalk from 'chalk';
 import {
-    findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries,
-    validateModel, computeCompleteness,
-    createQueryContext,
+    findConfigFile, validateModel, computeCompleteness, createQueryContext,
 } from '@memoarchitect/tools';
 import { compileMarkdownDocument } from '@memoarchitect/tools';
 import { loadDhfConfigV2, extractProjectMeta } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import type { BuilderRegistries, MemoModel, MEMOConfig, ValidationResult, CompletenessReport } from '@memoarchitect/tools';
+import type { MemoModel, MEMOConfig, ValidationResult, CompletenessReport } from '@memoarchitect/tools';
+import { loadProjectModel } from '../toolchain/project-model.js';
 
 const PREVIEW_PORT_DEFAULT = 3001;
 
@@ -174,26 +173,7 @@ export async function dhfPreviewCommand(options: { port?: number }): Promise<voi
     async function refreshModel(): Promise<void> {
         try {
             const config = loadAndResolveConfig(configPath!);
-            let ontologyRegistries: BuilderRegistries | undefined;
-            try {
-                const loadResult = await loadOntologyRegistries(configPath!);
-                if (loadResult.fileCount > 0) ontologyRegistries = loadResult.registries;
-            } catch { /* skip */ }
-
-            const sysmlFiles: string[] = [];
-            function findSysml(dir: string): void {
-                try {
-                    for (const e of readdirSync(dir, { withFileTypes: true })) {
-                        const full = join(dir, e.name);
-                        if (e.isDirectory() && e.name !== 'node_modules') findSysml(full);
-                        else if (e.name.endsWith('.sysml')) sysmlFiles.push(full);
-                    }
-                } catch { /* skip */ }
-            }
-            findSysml(cwd);
-
-            const { documents, errors } = await parseFiles(sysmlFiles, cwd + '/');
-            const model = buildMemoModel(documents, config, errors, ontologyRegistries);
+            const { model } = await loadProjectModel({ projectRoot: dirname(configPath!), config });
             const validation = validateModel(model);
             const completeness = computeCompleteness(model, validation);
             queryCtx = createQueryContext(model, validation, completeness, config);

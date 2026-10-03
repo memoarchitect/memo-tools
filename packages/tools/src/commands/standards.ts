@@ -24,6 +24,7 @@ import {
     type StandardsReport, type StandardRow, type BuilderRegistries, type MemoModel,
 } from '@memoarchitect/tools';
 import { findSysmlFiles } from '../model/sysml-files.js';
+import { loadProjectModel as loadSelectedModel } from '../toolchain/project-model.js';
 import { loadDhfDocs } from '../server/dhf-doc-store.js';
 
 export interface StandardsCheckOptions {
@@ -48,6 +49,13 @@ async function loadProjectModel(cwd: string): Promise<{
     const projectRoot = findProjectRoot(cwd);
     const root = projectRoot ?? cwd;
     const config = loadProjectSettings(root);
+    // A project is loaded as every command loads it, from the selected
+    // compiler. A bare directory has no entrypoint to resolve, so it is
+    // scanned and parsed.
+    if (projectRoot) {
+        const { model, registries } = await loadSelectedModel({ projectRoot, config });
+        return { model, registries, projectRoot, native: true };
+    }
 
     let registries: BuilderRegistries | undefined;
     let ontologyDirs: string[] = [];

@@ -27,7 +27,6 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import type { MEMOConfig } from '../../model/config.js';
-import { loadOntologyRegistries } from '../../model/ontology-loader.js';
 import { modelToDTO } from '../../model/semantic.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import { SYSML_IR_VERSION } from '../../model/sysml-ir.js';
@@ -50,6 +49,7 @@ import {
     probeOpenSysML,
     toDiagnostic,
 } from './opensysml.js';
+import { discoverProjectSources } from '../../model/native-project.js';
 
 /** Where a document of the model sits: its handoff file and role. */
 interface DocumentPlace {
@@ -257,19 +257,7 @@ export function openSysMLInputKey(config: MEMOConfig, documents: readonly string
  */
 export async function compileWithOpenSysML(options: CompileModelOptions): Promise<CompileModelResult> {
     const projectDir = resolve(options.projectDir);
-    let { libraryDirs, projectFiles, registries, filePackages } = options;
-    // Resolving from the handoff needs only the sources; otherwise MEMO's
-    // resolution supplies what was not given.
-    if (!libraryDirs || !projectFiles || (!options.resolveProject && (!registries || !filePackages))) {
-        const loaded = await loadOntologyRegistries(projectDir);
-        registries ??= loaded.registries;
-        filePackages ??= loaded.resolution?.filePackages;
-        const resolvedRoots = [...(loaded.resolution?.selectedRoots ?? []), ...(loaded.resolution?.unusedRoots ?? [])];
-        libraryDirs ??= (loaded.resolution?.selectedRoots ?? []).map(root => root.sysmlDir);
-        projectFiles ??= new Set(findSysmlFiles(projectDir)
-            .filter(file => !resolvedRoots.some(root => resolve(file).startsWith(root.sysmlDir)))
-            .map(file => relative(projectDir, file)));
-    }
+    const { libraryDirs, projectFiles, registries, filePackages } = options;
     const libraryFiles = libraryDirs.flatMap(dir => findSysmlFiles(dir)).map(file => resolve(file));
     const documents = [...new Set([...libraryFiles, ...[...projectFiles].map(file => resolve(projectDir, file))])];
 
@@ -361,9 +349,17 @@ export const openSysMLLoweringDescriptor: LoweringDescriptor = {
             transport: 'process' as const,
             invocation: () => undefined,
             async run(): Promise<LoweringRunResult> {
+                // Every library root a locator offers, the project resolved from
+                // what was compiled: what each command compiles, so MEMO parses
+                // nothing and `.memo/stage1/` is shared with them.
+                const sources = discoverProjectSources(context.projectDir);
                 const result = await compileWithOpenSysML({
-                    config: context.config, projectDir: context.projectDir, registries: context.registries,
-                    libraryDirs: context.includeDirs,
+                    config: context.config,
+                    projectDir: context.projectDir,
+                    libraryDirs: [...new Set(sources.libraryRoots.map(root => root.sysmlDir))],
+                    projectFiles: new Set(sources.projectFiles.map(file => relative(context.projectDir, file))),
+                    resolveProject: true,
+                    cacheDir: join(context.projectDir, '.memo', 'stage1'),
                 });
                 const model = result.model
                     ? modelToDTO(result.model)
@@ -374,6 +370,7 @@ export const openSysMLLoweringDescriptor: LoweringDescriptor = {
                     transport: 'process',
                     accepted: result.accepted,
                     diagnostics: result.diagnostics,
+                    registries: result.registries,
                     ir: {
                         irVersion: SYSMLC_IR_VERSION,
                         model,

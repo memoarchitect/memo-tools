@@ -75,6 +75,8 @@ import {
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
+import chalk from 'chalk';
+import { Stage1RejectedError } from '../toolchain/project-model.js';
 
 const program = new Command();
 
@@ -828,4 +830,13 @@ rulesCmd
         await rulesCoverageCommand(dir, { format: opts.format as any });
     });
 
-program.parse();
+// A stage 1 that rejects the source is a verdict on the model, not a crash:
+// every command that loads one reports its diagnostics and fails, as
+// `memo validate` does. Anything else is still a crash, with its stack.
+program.parseAsync().catch((error: unknown) => {
+    if (error instanceof Stage1RejectedError) {
+        console.error(chalk.red(`\n❌ ${error.message}\n`));
+        process.exit(1);
+    }
+    throw error;
+});

@@ -122,6 +122,11 @@ export interface ProviderRunResult {
  */
 export interface LoweringRunResult extends ProviderRunResult {
     ir: MemoIr;
+    /**
+     * The registries a compiler that builds the model resolved from its own
+     * handoff, so a caller needs no MEMO parse of the ontology.
+     */
+    registries?: BuilderRegistries;
 }
 
 /**
@@ -169,10 +174,10 @@ export interface CompileModelOptions {
     config: MEMOConfig;
     projectDir: string;
     registries?: BuilderRegistries;
-    /** Library roots the project's resolution selected. */
-    libraryDirs?: readonly string[];
+    /** Library roots to compile with the project (every root a locator offers, under `resolveProject`). */
+    libraryDirs: readonly string[];
     /** Project source files relative to the project; a project's own library roots excluded. */
-    projectFiles?: ReadonlySet<string>;
+    projectFiles: ReadonlySet<string>;
     /**
      * The files project resolution read, absolute, each with its package. A
      * handoff names files relative to their root; the registries it states key
@@ -187,7 +192,7 @@ export interface CompileModelOptions {
     resolveProject?: boolean;
     /**
      * Stamp each element with its resolved source ownership (provenance) when
-     * resolving the project. `memo export` has never carried it.
+     * resolving the project. On unless set false.
      */
     provenance?: boolean;
     /**

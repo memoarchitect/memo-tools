@@ -8,22 +8,18 @@
 // `memo validate` (plans/memo-compiler-stages-opensysml.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { join, relative, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { findProjectRoot } from '../model/native-project.js';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { stage1CacheDir } from '../toolchain/project-model.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { resolveToolchain } from '../toolchain/effective.js';
-import { compileModelWithSelected, runValidator } from '../toolchain/operations.js';
+import { compileResolvedProject, runValidator } from '../toolchain/operations.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 
-/** Where compilers keep stage 1 output between runs: tool state, never authored content. */
-export function stage1CacheDir(projectRoot: string): string {
-    return join(projectRoot, '.memo', 'stage1');
-}
+export { stage1CacheDir };
 
 function printDiagnostics(diagnostics: readonly Diagnostic[]): void {
     for (const d of diagnostics) {
@@ -45,19 +41,14 @@ export async function compileCommand(
     const config = withToolchainOverrides(loadProjectSettings(root), options, defaultRegistry);
     const compiler = resolveToolchain(config, defaultRegistry).lowering;
 
-    const loaded = await loadOntologyRegistries(root);
-    const resolvedRoots = [...(loaded.resolution?.selectedRoots ?? []), ...(loaded.resolution?.unusedRoots ?? [])];
-    const projectFiles = new Set(findSysmlFiles(root)
-        .filter(file => !resolvedRoots.some(r => resolve(file).startsWith(r.sysmlDir)))
-        .map(file => relative(root, file)));
-
+    // The same compile `memo validate` and every other command asks for —
+    // every library root a locator offers, the project resolved from it — so
+    // the output it leaves in `.memo/stage1/` is the one they reuse.
     const started = performance.now();
-    let result: Awaited<ReturnType<typeof compileModelWithSelected>>;
+    let result: Awaited<ReturnType<typeof compileResolvedProject>>;
     try {
-        result = await compileModelWithSelected({
-            config, projectDir: root, registries: loaded.registries,
-            libraryDirs: (loaded.resolution?.selectedRoots ?? []).map(r => r.sysmlDir),
-            projectFiles, cacheDir: stage1CacheDir(root), force: options.force === true,
+        result = await compileResolvedProject({
+            config, projectDir: root, cacheDir: stage1CacheDir(root), force: options.force === true,
         });
     } catch (error) {
         // A compiler that could not be run at all is a setup problem, not a

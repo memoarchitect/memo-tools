@@ -9,14 +9,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { statSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { findSysmlFiles } from '../model/sysml-files.js';
 // Imported from their defining modules rather than the package index: this
 // module is reached from server/persistor, which imports the package by name.
 import { findConfigFile } from '../model/config-loader.js';
-import { parseFiles } from '../model/parser-utils.js';
-import { buildMemoModel, type BuilderRegistries } from '../model/builder.js';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
 import { validateModel } from '../validator/rule-engine.js';
 import { computeCompleteness } from '../completeness/tracker.js';
 import { createQueryContext } from '../dhf/query-engine.js';
@@ -24,6 +20,7 @@ import type { QueryContext } from '../dhf/query-engine.js';
 import type { MEMOConfig } from '../model/config.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { EMPTY_ONTOLOGY_VIEW, ontologyViewFrom, type OntologyView } from '../model/kind-registry.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
 
 // Source discovery is the shared walker's job. This module kept its own copy
 // with a shorter skip list, which meant the MCP server saw files every other
@@ -76,21 +73,10 @@ export async function loadProject(projectRoot: string): Promise<LoadedProject> {
 
     const config = loadAndResolveConfig(configPath);
 
-    let ontologyRegistries: BuilderRegistries | undefined;
-    let ontology = EMPTY_ONTOLOGY_VIEW;
-    try {
-        const loadResult = await loadOntologyRegistries(projectRoot);
-        if (loadResult.fileCount > 0) {
-            ontologyRegistries = loadResult.registries;
-            ontology = ontologyViewFrom(
-                loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
-        }
-    } catch {
-        // A project without a resolvable ontology still has a parseable model.
-    }
-
-    const { documents, errors: parseErrors } = await parseFiles(files, `${projectRoot}/`);
-    const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    const { model, registries } = await loadProjectModel({ projectRoot, config });
+    const ontology = registries?.kindRegistry && registries.relationshipRegistry
+        ? ontologyViewFrom(registries.kindRegistry, registries.relationshipRegistry)
+        : EMPTY_ONTOLOGY_VIEW;
     const validation = validateModel(model);
     const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);

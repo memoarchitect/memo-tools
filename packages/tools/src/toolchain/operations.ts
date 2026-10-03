@@ -96,6 +96,8 @@ export async function compileResolvedProject(options: {
     projectDir: string;
     projectFiles?: ReadonlySet<string>;
     cacheDir?: string;
+    /** Run stage 1 even when `cacheDir` holds output for these inputs. */
+    force?: boolean;
     provenance?: boolean;
     registry?: ProviderRegistry;
 }): Promise<CompileModelResult | undefined> {
@@ -111,6 +113,7 @@ export async function compileResolvedProject(options: {
         resolveProject: true,
         provenance: options.provenance,
         cacheDir: options.cacheDir,
+        force: options.force,
         registry,
     });
 }

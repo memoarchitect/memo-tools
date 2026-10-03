@@ -14,20 +14,12 @@ import { resolve, basename, dirname } from 'node:path';
 import { readFileSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import {
-    findConfigFile,
-    parseFiles,
-    buildMemoModel,
-    parseElementsCsv,
-    parseRelationshipsCsv,
-    generateFile,
-    generateElementTemplate,
-    generateRelationshipTemplate,
-    computeImportDiff,
-    formatDiffSummary,
+    findConfigFile, parseElementsCsv, parseRelationshipsCsv, generateFile,
+    generateElementTemplate, generateRelationshipTemplate, computeImportDiff, formatDiffSummary,
 } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import { loadOntologyRegistries, ontologyViewFrom } from '@memoarchitect/tools';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { ontologyViewFrom } from '@memoarchitect/tools';
+import { loadProjectModel, loadProjectOntology } from '../toolchain/project-model.js';
 
 
 /**
@@ -47,7 +39,7 @@ export async function importCsvCommand(
     }
     const config = loadAndResolveConfig(configPath);
     // Kinds and relationships come from the resolved SysML.
-    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const loadResult = await loadProjectOntology({ projectRoot: dirname(configPath), config });
     const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     // Read CSV
@@ -112,17 +104,12 @@ export async function importRelCsvCommand(
     }
     const config = loadAndResolveConfig(configPath);
     // Kinds and relationships come from the resolved SysML.
-    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const loadResult = await loadProjectOntology({ projectRoot: dirname(configPath), config });
     const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     // Build current model to validate element references
-    const sysmlFiles = findSysmlFiles(cwd);
-    let knownIds: Set<string> | undefined;
-    if (sysmlFiles.length > 0) {
-        const parsed = await parseFiles(sysmlFiles);
-        const model = buildMemoModel(parsed.documents, config);
-        knownIds = new Set(model.elements.keys());
-    }
+    const { model: current } = await loadProjectModel({ projectRoot: dirname(configPath), config });
+    const knownIds: Set<string> | undefined = current.elements.size > 0 ? new Set(current.elements.keys()) : undefined;
 
     const csvPath = resolve(cwd, csvFile);
     let csvText: string;
@@ -183,7 +170,7 @@ export async function importTemplateCommand(
     }
     const config = loadAndResolveConfig(configPath);
     // Kinds and relationships come from the resolved SysML.
-    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const loadResult = await loadProjectOntology({ projectRoot: dirname(configPath), config });
     const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     let csv: string;
@@ -225,7 +212,7 @@ export async function importDiffCommand(
     }
     const config = loadAndResolveConfig(configPath);
     // Kinds and relationships come from the resolved SysML.
-    const loadResult = await loadOntologyRegistries(dirname(configPath));
+    const loadResult = await loadProjectOntology({ projectRoot: dirname(configPath), config });
     const ontology = ontologyViewFrom(loadResult.registries.kindRegistry, loadResult.registries.relationshipRegistry);
 
     const csvPath = resolve(cwd, csvFile);
@@ -253,12 +240,7 @@ export async function importDiffCommand(
     }
 
     // Build current model for comparison
-    const sysmlFiles = findSysmlFiles(cwd);
-    let model: any = { elements: new Map(), relationships: [] };
-    if (sysmlFiles.length > 0) {
-        const parsed = await parseFiles(sysmlFiles);
-        model = buildMemoModel(parsed.documents, config);
-    }
+    const { model } = await loadProjectModel({ projectRoot: dirname(configPath), config });
 
     const diff = computeImportDiff(model, parseResult.items, options.detectRemovals ?? false);
 

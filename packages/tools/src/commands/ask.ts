@@ -7,16 +7,14 @@
 //   memo ask "Which layers are least complete?"
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolve } from 'node:path';
+import { dirname } from 'node:path';
 import chalk from 'chalk';
 import {
-    findConfigFile, parseFiles, buildMemoModel, loadOntologyRegistries,
-    validateModel, computeCompleteness, createQueryContext,
-    resolveLLMConfig, createProvider, askModel,
+    findConfigFile, validateModel, computeCompleteness, createQueryContext, resolveLLMConfig,
+    createProvider, askModel,
 } from '@memoarchitect/tools';
-import type { BuilderRegistries } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
 
 
 export interface AskCommandOptions {
@@ -47,15 +45,7 @@ export async function askCommand(question: string, options: AskCommandOptions): 
 
     console.log(chalk.dim('Loading model...'));
     const config = loadAndResolveConfig(configPath);
-    let ontologyRegistries: BuilderRegistries | undefined;
-    try {
-        const loadResult = await loadOntologyRegistries(configPath);
-        if (loadResult.fileCount > 0) ontologyRegistries = loadResult.registries;
-    } catch { /* skip */ }
-
-    const sysmlFiles = findSysmlFiles(cwd);
-    const { documents, errors: parseErrors } = await parseFiles(sysmlFiles, cwd + '/');
-    const model = buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    const { model, registries: ontologyRegistries } = await loadProjectModel({ projectRoot: dirname(configPath), config });
     const validation = validateModel(model);
     const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);

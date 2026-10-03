@@ -6,15 +6,18 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { findMemoManifests } from '../model/manifest.js';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
 import { EMPTY_ONTOLOGY_VIEW, ontologyViewFrom } from '../model/kind-registry.js';
 import { loadProjectConfig } from '../toolchain/lowering.js';
 import { mergeDiagnostics, probeToolchain, runLowering, runValidator } from '../toolchain/operations.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
 import { validateModel } from '../validator/rule-engine.js';
 import { dtoToModel } from '../model/semantic.js';
-import { createProvider, generateSysml, repairSysml, resolveLLMConfig, type GenerateResult, type LLMProvider } from '../llm/index.js';
+import {
+    createProvider, generateSysml, repairSysml, resolveLLMConfig, type GenerateResult,
+    type LLMProvider,
+} from '../llm/index.js';
 import { SYSML_MEMO_GUIDANCE_VERSION } from '../llm/sysml-guidance.js';
+import { loadProjectOntology } from '../toolchain/project-model.js';
 
 export const MAX_SYSML_GENERATION_ATTEMPTS = 3;
 
@@ -70,7 +73,7 @@ export async function generateValidatedSysml(options: {
     })();
     let ontology = EMPTY_ONTOLOGY_VIEW;
     try {
-        const loaded = await loadOntologyRegistries(options.projectRoot);
+        const loaded = await loadProjectOntology({ projectRoot: options.projectRoot, config });
         ontology = ontologyViewFrom(loaded.registries.kindRegistry, loaded.registries.relationshipRegistry);
     } catch {
         // Generation remains available without installed MEMO content. The

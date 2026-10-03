@@ -10,27 +10,15 @@
 import { resolve } from 'node:path';
 import chalk from 'chalk';
 import {
-    findConfigFile,
-    findProjectRoot,
-    loadProjectSettings,
-    parseFiles,
-    buildMemoModel,
-    loadOntologyRegistries,
-    RuleRegistry,
-    collectNativeConstraints,
-    loadMethodologyDescriptor,
-    resolveEffectiveRules,
-    ruleCandidatesFromConstraints,
-    buildEffectiveScope,
-    activeRuleCandidates,
-    BUILTIN_RULES,
-    evaluateConstraintSubjects,
-    validateArchitecture,
+    findConfigFile, findProjectRoot, loadProjectSettings, parseFiles, RuleRegistry,
+    collectNativeConstraints, loadMethodologyDescriptor, resolveEffectiveRules,
+    ruleCandidatesFromConstraints, buildEffectiveScope, activeRuleCandidates, BUILTIN_RULES,
+    evaluateConstraintSubjects, validateArchitecture,
 } from '@memoarchitect/tools';
 // parseFiles still needed by rulesCheckCommand for project SysML files
-import type { BuilderRegistries, ParsedDocument, EffectiveRule, RuleResolutionDiagnostic } from '@memoarchitect/tools';
+import type { ParsedDocument, EffectiveRule, RuleResolutionDiagnostic } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { loadProjectModel, projectConstraints } from '../toolchain/project-model.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -59,24 +47,18 @@ async function loadContext(projectDir?: string) {
     const configPath = findConfigFile(projectRoot);
     const config = loadProjectSettings(projectRoot);
 
-    // Load ontology registries
-    let ontologyRegistries: BuilderRegistries | undefined;
+    // The project as every command loads it, from the selected compiler:
+    // the model, the registries, the resolution and the rule definitions.
+    const project = await loadProjectModel({ projectRoot, config });
+    const ontologyRegistries = project.registries;
+    const filePackages: ReadonlyMap<string, string> = project.resolution?.filePackages ?? new Map<string, string>();
+    const constraints = projectConstraints(project);
+    // The rule catalogue reads rule parts from MEMO's parse, so it is built
+    // only when MEMO's compiler loaded the project.
     let ruleRegistry: RuleRegistry | undefined;
-    let ontologyDocuments: ParsedDocument[] = [];
-    let filePackages: ReadonlyMap<string, string> = new Map();
-    try {
-        const loadResult = await loadOntologyRegistries(projectRoot);
-        filePackages = loadResult.resolution?.filePackages ?? new Map<string, string>();
-        if (loadResult.fileCount > 0) {
-            ontologyRegistries = loadResult.registries;
-            ontologyDocuments = loadResult.parsedDocuments;
-
-            // Build rule registry from already-parsed ontology documents (discovery/catalog)
-            ruleRegistry = new RuleRegistry();
-            ruleRegistry.populateFromDocuments(loadResult.parsedDocuments);
-        }
-    } catch {
-        // Ontology loading optional
+    if (project.ontologyDocuments.length > 0) {
+        ruleRegistry = new RuleRegistry();
+        ruleRegistry.populateFromDocuments(project.ontologyDocuments);
     }
 
     // The EFFECTIVE rule set, resolved exactly as `memo validate` and the dev
@@ -87,10 +69,7 @@ async function loadContext(projectDir?: string) {
     let effectiveRules: EffectiveRule[] = [];
     let ruleDiagnostics: RuleResolutionDiagnostic[] = [];
     try {
-        const projectFiles = findSysmlFiles(projectRoot);
-        const { documents } = await parseFiles(projectFiles, `${projectRoot}/`);
-        const constraints = collectNativeConstraints([...ontologyDocuments, ...documents]);
-        const descriptor = await loadMethodologyDescriptor(projectRoot);
+        const descriptor = await loadMethodologyDescriptor(projectRoot, project.resolution);
 
         // The same activation `memo validate` applies. Reporting every resolved
         // constraint instead would describe a rule set the project does not
@@ -118,7 +97,7 @@ async function loadContext(projectDir?: string) {
     }
 
     return {
-        cwd, configPath, config, ontologyRegistries, ruleRegistry, ontologyDocuments,
+        cwd, configPath, config, ontologyRegistries, ruleRegistry, constraints, model: project.model,
         effectiveRules, ruleDiagnostics,
     };
 }
@@ -232,20 +211,9 @@ export async function rulesCheckCommand(
     options?: { format?: RulesFormat }
 ): Promise<void> {
     const format = options?.format || 'text';
-    const { cwd, config, ontologyRegistries, ontologyDocuments } = await loadContext(projectDir);
+    const { ontologyRegistries, model, constraints } = await loadContext(projectDir);
 
-    // Parse project SysML files
-    const sysmlFiles = findSysmlFiles(cwd);
-    if (sysmlFiles.length === 0) {
-        console.error(chalk.red('❌ No .sysml files found.'));
-        process.exit(1);
-    }
-
-    const parseResult = await parseFiles(sysmlFiles);
-    const model = buildMemoModel(parseResult.documents, config, parseResult.errors, ontologyRegistries);
-
-    // Evaluate native `constraint def` bodies (KerML expressions) across ontology + project docs.
-    const constraints = collectNativeConstraints([...ontologyDocuments, ...parseResult.documents]);
+    // Evaluate the rule definitions across the ontology and the project.
     let rulesPassed = 0;
     let rulesVacuous = 0;
     const violations = [];
@@ -317,11 +285,11 @@ export async function rulesExplainCommand(
     options?: { format?: RulesFormat }
 ): Promise<void> {
     const format = options?.format || 'text';
-    const { ruleRegistry, ontologyDocuments } = await loadContext(projectDir);
+    const { ruleRegistry, constraints } = await loadContext(projectDir);
 
     // Look up in registry first (catalog metadata), then in native constraint defs.
     const registryEntry = ruleRegistry?.getRule(ruleId);
-    const constraint = collectNativeConstraints(ontologyDocuments).find(c => c.id === ruleId);
+    const constraint = constraints.find(c => c.id === ruleId);
 
     if (!registryEntry && !constraint) {
         console.error(chalk.red(`❌ Rule "${ruleId}" not found.`));
@@ -383,17 +351,9 @@ export async function rulesCoverageCommand(
     options?: { format?: RulesFormat }
 ): Promise<void> {
     const format = options?.format || 'text';
-    const { cwd, config, ontologyRegistries, ruleRegistry } = await loadContext(projectDir);
+    const { ruleRegistry, model } = await loadContext(projectDir);
 
     const coverageRules = ruleRegistry?.byCategory('coverage') ?? [];
-
-    // Parse project model to evaluate coverage
-    const sysmlFiles = findSysmlFiles(cwd);
-    let model: ReturnType<typeof buildMemoModel> | undefined;
-    if (sysmlFiles.length > 0) {
-        const parseResult = await parseFiles(sysmlFiles);
-        model = buildMemoModel(parseResult.documents, config, parseResult.errors, ontologyRegistries);
-    }
 
     // Evaluate each coverage rule against model
     type CoverageResult = { rule: (typeof coverageRules)[0]; passed: boolean; count: number };
