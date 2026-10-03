@@ -77,11 +77,20 @@ function address(config: MEMOConfig): string | undefined {
 }
 
 /** The part of the client's connection the OpenSysML providers use. */
+/**
+ * One document of a parse: a file the service reads, or text the caller holds,
+ * indexed under `name` — so text that is not on disk yet is reported, and
+ * resolved against, as the file it will become.
+ */
+export type SourceDocumentRequest =
+    | { source: { case: 'filePath'; value: string } }
+    | { source: { case: 'content'; value: string }; name: string };
+
 export interface OpenSysMLConnection {
     info?: { version?: string };
     rpc: {
         parseSources(request: {
-            documents: { source: { case: 'filePath'; value: string } }[];
+            documents: SourceDocumentRequest[];
         }): Promise<{ modelHash: string; diagnostics: ServiceDiagnostic[]; error?: string }>;
         convert(request: {
             source: { case: 'modelHash'; value: string };
