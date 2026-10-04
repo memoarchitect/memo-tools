@@ -25,7 +25,7 @@
 
 import { createHash } from 'node:crypto';
 import { closeSharedOpenSysMLConnection, sharedOpenSysMLConnection } from './opensysml-check.js';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import type { MEMOConfig } from '../../model/config.js';
 import { modelToDTO } from '../../model/semantic.js';
@@ -271,7 +271,7 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
         handoff = JSON.parse(readFileSync(cached, 'utf8'));
         reused = true;
     } else {
-        handoff = await runStage1(options.config, projectDir, libraryDirs, documents);
+        handoff = await runStage1(options.config, projectDir, libraryDirs, documents, libraryFiles, options.cacheDir);
         if (cached && keyFile && options.cacheDir) {
             mkdirSync(options.cacheDir, { recursive: true });
             // Tool output, never authored content: the directory ignores
@@ -292,9 +292,30 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
     return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, ...stage2, api, cached: reused };
 }
 
+/** The capability that limits a conversion to named documents. */
+const CONVERT_DOCUMENTS = 'convert_documents';
+
+/**
+ * The libraries' handoffs of this process, by what they depend on: the
+ * settings that reach the service and the content of every library file. A
+ * session pays for converting the libraries once.
+ */
+const libraryHandoffs = new Map<string, Stage1Output>();
+
+function libraryKeyOf(config: MEMOConfig, libraryFiles: readonly string[]): string {
+    const hash = createHash('sha256');
+    hash.update(`${OPENSYSML_PROVIDER_ID}-library\0${openSysMLSettingsKey(config)}\0`);
+    for (const file of [...new Set(libraryFiles)].sort()) {
+        hash.update(`\0${file}\0`);
+        hash.update(readFileSync(file));
+    }
+    return hash.digest('hex');
+}
+
 /** Parse the model in the service and, when it is clean, convert it to the handoff. */
 async function runStage1(
     config: MEMOConfig, projectDir: string, libraryDirs: readonly string[], documents: readonly string[],
+    libraryFiles: readonly string[] = [], cacheDir?: string,
 ): Promise<Stage1Output & { diagnostics: Diagnostic[] }> {
     // The session's service: a rebuild in `memo dev` does not start another,
     // and the service's parse cache serves the documents that did not change.
@@ -311,21 +332,60 @@ async function runStage1(
         const failed = (): Stage1Output & { diagnostics: Diagnostic[] } =>
             ({ format: STAGE1_FORMAT, provider: OPENSYSML_PROVIDER_ID, providerVersion: version, clean: false, diagnostics });
         if (diagnostics.some(d => d.severity === 'error')) return failed();
-        const converted = await connection.rpc.convert({ source: { case: 'modelHash', value: parsed.modelHash }, toFormat: 'api-json' });
-        if (converted.error) {
-            diagnostics.push(...converted.diagnostics.map(d => toDiagnostic(d, version)));
-            diagnostics.push({
-                domain: 'sysml', provider: OPENSYSML_PROVIDER_ID, providerVersion: version, severity: 'error',
-                message: `OpenSysML could not convert the model: ${converted.error}`,
-            });
-            return failed();
-        }
-        const elements = JSON.parse(converted.content) as ApiElement[];
-        const handoff = openSysMLHandoff(elements, {
+        const handoffOptions = {
             projectDir, libraryDirs, providerVersion: version,
-            source: path => (existsSync(path) ? readFileSync(path) : undefined),
-        });
-        return { ...handoff, diagnostics };
+            source: (path: string) => (existsSync(path) ? readFileSync(path) : undefined),
+        };
+        const convert = async (named?: string[]): Promise<ApiElement[] | undefined> => {
+            const converted = await connection.rpc.convert({
+                source: { case: 'modelHash', value: parsed.modelHash }, toFormat: 'api-json',
+                ...(named ? { documents: named } : {}),
+            });
+            if (converted.error) {
+                diagnostics.push(...converted.diagnostics.map(d => toDiagnostic(d, version)));
+                diagnostics.push({
+                    domain: 'sysml', provider: OPENSYSML_PROVIDER_ID, providerVersion: version, severity: 'error',
+                    message: `OpenSysML could not convert the model: ${converted.error}`,
+                });
+                return undefined;
+            }
+            return JSON.parse(converted.content) as ApiElement[];
+        };
+
+        if (!connection.info?.has?.(CONVERT_DOCUMENTS) || libraryFiles.length === 0) {
+            const elements = await convert();
+            return elements ? { ...openSysMLHandoff(elements, handoffOptions), diagnostics } : failed();
+        }
+
+        // The libraries are converted once per library content; each compile
+        // converts the project's documents, and the libraries' elements they
+        // reference keep the ids those were written under.
+        const libraryKey = libraryKeyOf(config, libraryFiles);
+        let library = libraryHandoffs.get(libraryKey);
+        const stored = cacheDir ? join(cacheDir, `${OPENSYSML_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`) : undefined;
+        if (!library && stored && existsSync(stored)) library = JSON.parse(readFileSync(stored, 'utf8')) as Stage1Output;
+        if (!library) {
+            const elements = await convert([...new Set(libraryFiles)]);
+            if (!elements) return failed();
+            library = openSysMLHandoff(elements, handoffOptions);
+            if (stored && cacheDir) {
+                mkdirSync(cacheDir, { recursive: true });
+                const prefix = `${OPENSYSML_PROVIDER_ID}-library-`;
+                for (const name of readdirSync(cacheDir)) if (name.startsWith(prefix)) rmSync(join(cacheDir, name), { force: true });
+                writeFileSync(stored, JSON.stringify(library));
+            }
+        }
+        libraryHandoffs.set(libraryKey, library);
+        const libraryPaths = new Set(libraryFiles);
+        const projectElements = await convert(documents.filter(file => !libraryPaths.has(file)));
+        if (!projectElements) return failed();
+        const project = openSysMLHandoff(projectElements, handoffOptions);
+        return {
+            ...project,
+            documents: [...(library.documents ?? []), ...(project.documents ?? [])],
+            index: { ...library.index, ...project.index },
+            diagnostics,
+        };
     } catch (error) {
         // A service that failed mid-call is not kept for the next one.
         closeSharedOpenSysMLConnection();
