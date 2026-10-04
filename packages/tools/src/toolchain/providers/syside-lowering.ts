@@ -16,10 +16,11 @@
 // does, found the same way (AGENTS.md, "The SysIDE licence").
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { createInterface } from 'node:readline';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { MEMOConfig } from '../../model/config.js';
@@ -27,7 +28,7 @@ import { modelToDTO } from '../../model/semantic.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import { SYSML_IR_VERSION } from '../../model/sysml-ir.js';
 import { stage2FromHandoff } from '../../stage2/stage2-from-handoff.js';
-import { ApiModel, type Stage1Output } from '../../stage2/api-model.js';
+import { ApiModel, type ApiIndexEntry, type Stage1Output } from '../../stage2/api-model.js';
 import { providerSettings } from '../effective.js';
 import { SYSMLC_IR_VERSION } from '../protocol.js';
 import type {
@@ -64,6 +65,160 @@ function python(config: MEMOConfig): string {
 
 export type SysideCompileResult = CompileModelResult;
 
+type SysideHandoff = Stage1Output & {
+    diagnostics?: { text: string }[];
+    /** A project's handoff whose libraries' handoff is written apart (`--serve`). */
+    library?: { path: string };
+};
+
+type ServedDocument = NonNullable<Stage1Output['documents']>[number] & { index?: Stage1Output['index'] };
+type ServedResponse = Omit<SysideHandoff, 'documents'> & {
+    documents?: (ServedDocument | { file: string; kept: true })[];
+    token?: number;
+    error?: string;
+};
+
+/**
+ * The export script in `--serve` mode, kept running for one interpreter: it
+ * holds the libraries loaded between compiles and sends a project document
+ * again only when it changed (plans/memo-incremental-stage1.md). `held` is
+ * what it last sent, and `token` names that, so a document it reports as kept
+ * is the one held.
+ */
+class SysideWorker {
+    private readonly process: ChildProcessWithoutNullStreams;
+    private readonly waiting: { resolve(response: ServedResponse): void; reject(error: Error): void }[] = [];
+    private stderr = '';
+    private failure?: Error;
+    token: number | null = null;
+    readonly held = new Map<string, ServedDocument>();
+
+    constructor(readonly interpreter: string, onExit: () => void) {
+        this.process = spawn(interpreter, [EXPORT_SCRIPT, '--serve'], { stdio: ['pipe', 'pipe', 'pipe'] });
+        // A command that compiles once exits without closing the worker, which
+        // ends when its input does: the worker holds the process open only
+        // while a request waits for it.
+        this.hold(false);
+        createInterface({ input: this.process.stdout }).on('line', line => {
+            const next = this.waiting.shift();
+            if (this.waiting.length === 0) this.hold(false);
+            if (!next) return;
+            try {
+                next.resolve(JSON.parse(line) as ServedResponse);
+            } catch (error) {
+                next.reject(error as Error);
+            }
+        });
+        this.process.stderr.on('data', (chunk: Buffer) => { this.stderr = (this.stderr + chunk.toString()).slice(-4000); });
+        const fail = (error: Error) => {
+            this.failure = error;
+            onExit();
+            for (const pending of this.waiting.splice(0)) pending.reject(error);
+        };
+        this.process.on('error', fail);
+        // A worker that never started fails the request through `error`, not
+        // through a write to its closed input.
+        this.process.stdin.on('error', () => undefined);
+        this.process.on('exit', code => fail(new Error(
+            `exited with ${code}: ${this.stderr.trim().split('\n').slice(-3).join(' ') || 'no output'}`)));
+    }
+
+    private hold(held: boolean): void {
+        for (const handle of [this.process, this.process.stdin, this.process.stdout, this.process.stderr]) {
+            const counted = handle as unknown as { ref?(): void; unref?(): void };
+            if (held) counted.ref?.(); else counted.unref?.();
+        }
+    }
+
+    request(body: object): Promise<ServedResponse> {
+        if (this.failure) return Promise.reject(this.failure);
+        return new Promise((resolvePromise, reject) => {
+            this.waiting.push({ resolve: resolvePromise, reject });
+            this.hold(true);
+            this.process.stdin.write(`${JSON.stringify({ ...body, known: this.token })}\n`);
+        });
+    }
+}
+
+const workers = new Map<string, SysideWorker>();
+let requests: Promise<unknown> = Promise.resolve();
+
+/** One request at a time per process: a worker answers in order, and `held` follows. */
+function serve<T>(work: () => Promise<T>): Promise<T> {
+    const run = requests.then(work, work);
+    requests = run.catch(() => undefined);
+    return run;
+}
+
+function workerFor(interpreter: string): SysideWorker {
+    let worker = workers.get(interpreter);
+    if (!worker) {
+        const started: SysideWorker = new SysideWorker(interpreter, () => {
+            if (workers.get(interpreter) === started) workers.delete(interpreter);
+        });
+        worker = started;
+        workers.set(interpreter, worker);
+    }
+    return worker;
+}
+
+/** The libraries' handoffs read so far, by path: each is written once and never changes. */
+const libraryHandoffs = new Map<string, SysideHandoff>();
+
+function libraryHandoff(path: string): SysideHandoff {
+    let handoff = libraryHandoffs.get(path);
+    if (!handoff) {
+        handoff = JSON.parse(readFileSync(path, 'utf8')) as SysideHandoff;
+        libraryHandoffs.clear();
+        libraryHandoffs.set(path, handoff);
+    }
+    return handoff;
+}
+
+/** A project's handoff joined with its libraries' handoff: what stage 2 reads. */
+function joined(handoff: SysideHandoff): SysideHandoff {
+    if (!handoff.library || !handoff.clean) return handoff;
+    const library = libraryHandoff(handoff.library.path);
+    return {
+        ...handoff,
+        documents: [...(library.documents ?? []), ...(handoff.documents ?? [])],
+        index: { ...library.index, ...handoff.index },
+    };
+}
+
+/**
+ * Stage 1 from the worker: the project's handoff with every document whole
+ * (a kept one from what the worker sent before), and its index.
+ */
+async function servedHandoff(interpreter: string, projectDir: string, libraryDirs: readonly string[], libraryOut: string): Promise<SysideHandoff> {
+    return serve(async () => {
+        const worker = workerFor(interpreter);
+        let response: ServedResponse;
+        try {
+            response = await worker.request({
+                project: projectDir, libraries: libraryDirs, libraryKey: sysideLibraryKey(interpreter, libraryDirs), libraryOut,
+            });
+        } catch (error) {
+            throw new Error(`SysIDE stage 1 could not run with "${interpreter}": ${(error as Error).message}. `
+                + `Set toolchain.${SYSIDE_PROVIDER_ID}.python to a Python with SysIDE's API.`);
+        }
+        if (response.error) throw new Error(`SysIDE stage 1 failed: ${response.error}`);
+        if (!response.clean) return response as SysideHandoff;
+        const documents: ServedDocument[] = [];
+        const index: Record<string, ApiIndexEntry> = { ...response.index };
+        for (const document of response.documents ?? []) {
+            const whole = 'kept' in document ? worker.held.get(document.file) : document;
+            if (!whole) throw new Error(`SysIDE stage 1 kept ${document.file}, which this process does not hold`);
+            if (!('kept' in document)) worker.held.set(document.file, document);
+            const { index: own, ...rest } = whole;
+            Object.assign(index, own);
+            documents.push(rest);
+        }
+        worker.token = response.token ?? null;
+        return { ...response, documents, index } as SysideHandoff;
+    });
+}
+
 /**
  * Stage 1 through SysIDE, then stage 2. A stage 1 that reports an error yields
  * no model: stage 2 never runs on a failed stage 1 (plan, Decisions).
@@ -76,48 +231,73 @@ export async function compileWithSyside(options: CompileModelOptions): Promise<C
     const key = sysideInputKey(interpreter, projectDir, libraryDirs);
     const cached = options.cacheDir ? join(options.cacheDir, `${SYSIDE_PROVIDER_ID}.json`) : undefined;
     const keyFile = cached ? `${cached}.key` : undefined;
-    let handoffPath: string;
+    let handoff: SysideHandoff | undefined;
     let reused = false;
-    let work: string | undefined;
     if (cached && keyFile && !options.force && existsSync(cached) && existsSync(keyFile)
         && readFileSync(keyFile, 'utf8') === key) {
-        handoffPath = cached;
-        reused = true;
-    } else {
-        work = mkdtempSync(join(tmpdir(), 'memo-stage1-'));
-        handoffPath = join(work, 'stage1.json');
-        const args = [EXPORT_SCRIPT, ...libraryDirs.flatMap(dir => ['--library', dir]), '--out', handoffPath, projectDir];
-        const run = spawnSync(interpreter, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-        if (run.error || !existsSync(handoffPath)) {
-            rmSync(work, { recursive: true, force: true });
-            throw new Error(`SysIDE stage 1 could not run with "${interpreter}": `
-                + `${run.error?.message ?? run.stderr.trim().split('\n').slice(-3).join(' ')}. `
-                + `Set toolchain.${SYSIDE_PROVIDER_ID}.python to a Python with SysIDE's API.`);
+        const stored = JSON.parse(readFileSync(cached, 'utf8')) as SysideHandoff;
+        if (!stored.library || existsSync(stored.library.path)) {
+            handoff = stored;
+            reused = true;
         }
+    }
+    if (!handoff) {
+        const libraryOut = options.cacheDir
+            ? join(options.cacheDir, `${SYSIDE_PROVIDER_ID}-library-${sysideLibraryKey(interpreter, libraryDirs).slice(0, 16)}.json`)
+            : join(scratchDir(), `${SYSIDE_PROVIDER_ID}-library-${sysideLibraryKey(interpreter, libraryDirs).slice(0, 16)}.json`);
+        handoff = await servedHandoff(interpreter, projectDir, libraryDirs, libraryOut);
         if (cached && keyFile && options.cacheDir) {
             mkdirSync(options.cacheDir, { recursive: true });
             // Tool output, never authored content: the directory ignores
             // itself, so no project has to know to add it to its .gitignore.
             const ignore = join(options.cacheDir, '.gitignore');
             if (!existsSync(ignore)) writeFileSync(ignore, '*\n');
-            writeFileSync(cached, readFileSync(handoffPath));
+            writeFileSync(cached, JSON.stringify(handoff));
             writeFileSync(keyFile, key);
+            removeStaleLibraryHandoffs(options.cacheDir, libraryOut);
         }
     }
-    try {
-        const handoff = JSON.parse(readFileSync(handoffPath, 'utf8')) as Stage1Output & { diagnostics?: { text: string }[] };
-        const diagnostics = parseSysideDiagnostics(
-            (handoff.diagnostics ?? []).map(d => d.text).join('\n'), handoff.providerVersion);
-        if (!handoff.clean) return { accepted: false, diagnostics, providerVersion: handoff.providerVersion, cached: reused };
-        const api = new ApiModel(handoff);
-        // The ontology is the handoff's, not MEMO's parse of it.
-        const stage2 = stage2FromHandoff(api, {
-            config: options.config, projectDir, projectFiles, resolveProject: options.resolveProject, provenance: options.provenance, registries, filePackages,
-        });
-        return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, ...stage2, api, cached: reused };
-    } finally {
-        if (work) rmSync(work, { recursive: true, force: true });
+    const diagnostics = parseSysideDiagnostics(
+        (handoff.diagnostics ?? []).map(d => d.text).join('\n'), handoff.providerVersion);
+    if (!handoff.clean) return { accepted: false, diagnostics, providerVersion: handoff.providerVersion, cached: reused };
+    const api = new ApiModel(joined(handoff));
+    // The ontology is the handoff's, not MEMO's parse of it.
+    const stage2 = stage2FromHandoff(api, {
+        config: options.config, projectDir, projectFiles, resolveProject: options.resolveProject, provenance: options.provenance, registries, filePackages,
+    });
+    return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, ...stage2, api, cached: reused };
+}
+
+let scratch: string | undefined;
+
+/** Where the libraries' handoff goes for a compile with no cache directory: one per process. */
+function scratchDir(): string {
+    return (scratch ??= mkdtempSync(join(tmpdir(), 'memo-stage1-')));
+}
+
+/** Libraries' handoffs of earlier library content: only the current one is read. */
+function removeStaleLibraryHandoffs(cacheDir: string, current: string): void {
+    const prefix = `${SYSIDE_PROVIDER_ID}-library-`;
+    for (const name of readdirSync(cacheDir)) {
+        const path = join(cacheDir, name);
+        if (name.startsWith(prefix) && path !== current && path !== `${current}.ids`) rmSync(path, { force: true });
     }
+}
+
+/**
+ * What the libraries' part of a SysIDE stage 1 result depends on: the
+ * interpreter, the export script, and the content of every library file.
+ */
+export function sysideLibraryKey(interpreter: string, libraryDirs: readonly string[]): string {
+    const hash = createHash('sha256');
+    hash.update(`${SYSIDE_PROVIDER_ID}\0${interpreter}\0`);
+    hash.update(readFileSync(EXPORT_SCRIPT));
+    const files = libraryDirs.flatMap(sysmlFilesUnder).map(file => resolve(file));
+    for (const file of [...new Set(files)].sort()) {
+        hash.update(`\0${file}\0`);
+        hash.update(readFileSync(file));
+    }
+    return hash.digest('hex');
 }
 
 /**
