@@ -12,6 +12,7 @@
 
 import { Option, type Command } from 'commander';
 import type { MEMOConfig, ToolchainConfig } from '../model/config.js';
+import { mergeToolchain } from '../model/toolchain-merge.js';
 import type { ProviderRegistry, ToolchainSchemaLeaf } from './registry.js';
 
 /** `toolchain.<provider>.<leaf>` — the option name and the settings path. */
@@ -102,18 +103,12 @@ function setPath(target: Record<string, unknown>, path: string, value: unknown):
  * Apply overrides on top of loaded settings.
  *
  * A flag beats the settings file leaf by leaf, so one provider flag does not
- * discard another leaf of the same provider's configured settings.
+ * discard another leaf of the same provider's configured settings. A
+ * `compiler` flag decides both roles it fills (`model/toolchain-merge.ts`).
  */
 export function applyToolchainOverrides(config: MEMOConfig, overrides: ToolchainConfig): MEMOConfig {
     if (Object.keys(overrides).length === 0) return config;
-    const merged: ToolchainConfig = { ...(config.toolchain ?? {}) };
-    for (const [key, value] of Object.entries(overrides)) {
-        const existing = merged[key];
-        merged[key] = value && typeof value === 'object' && existing && typeof existing === 'object'
-            ? { ...existing as object, ...value as object }
-            : value;
-    }
-    return { ...config, toolchain: merged };
+    return { ...config, toolchain: mergeToolchain(config.toolchain, overrides) };
 }
 
 /** Convenience for a command: read its options, merge, hand back settings. */

@@ -19,6 +19,8 @@ import { basename, dirname, resolve } from 'node:path';
 import { readIdentityRegistry } from './identity-registry.js';
 import type { MEMOConfig, ToolchainConfig } from './config.js';
 import { CONFIG_SEARCH_ORDER, readManifest } from './package-manifest.js';
+import { mergeToolchain } from './toolchain-merge.js';
+import { userToolchain } from './user-settings.js';
 
 /** Settings filenames, most product-scoped first. */
 const SETTINGS_FILENAMES = ['memo.tools.yaml', 'memo.tools.yml', ...CONFIG_SEARCH_ORDER] as const;
@@ -73,7 +75,8 @@ export function defaultConfig(projectName: string): MEMOConfig {
 // ─── The command line's toolchain flags ──────────────────────────────────────
 //
 // `--toolchain.*` flags are accepted by every `memo` command and beat the
-// settings file leaf by leaf. They are applied here, where every command reads
+// project's settings and the user's, a `--toolchain.compiler` deciding both
+// roles it fills. They are applied here, where every command reads
 // its settings, so no command has to thread them through to whatever loads
 // the project.
 
@@ -84,16 +87,14 @@ export function setCommandLineToolchain(overrides: ToolchainConfig): void {
     commandLineToolchain = overrides;
 }
 
+
+/**
+ * The toolchain every command sees: the user's settings, the project's on top
+ * of them, and the command line's on top of both (`toolchain-merge.ts`).
+ */
 function withCommandLineToolchain(config: MEMOConfig): MEMOConfig {
-    if (Object.keys(commandLineToolchain).length === 0) return config;
-    const merged: ToolchainConfig = { ...(config.toolchain ?? {}) };
-    for (const [key, value] of Object.entries(commandLineToolchain)) {
-        const existing = merged[key];
-        merged[key] = value && typeof value === 'object' && existing && typeof existing === 'object'
-            ? { ...existing as object, ...value as object }
-            : value;
-    }
-    return { ...config, toolchain: merged };
+    const toolchain = mergeToolchain(mergeToolchain(userToolchain(), config.toolchain), commandLineToolchain);
+    return Object.keys(toolchain).length === 0 ? config : { ...config, toolchain };
 }
 
 /**
