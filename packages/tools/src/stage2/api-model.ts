@@ -82,7 +82,7 @@ export class ApiModel {
     private readonly index: Record<string, ApiIndexEntry>;
     readonly provider: string;
 
-    constructor(output: Stage1Output) {
+    constructor(readonly output: Stage1Output) {
         if (output.format !== STAGE1_FORMAT) {
             throw new Error(`stage 1 output is ${output.format}, expected ${STAGE1_FORMAT}`);
         }

@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 interface NotebookCell {
     id?: string;
@@ -17,43 +18,45 @@ interface StarterNotebook {
     codeCells: string[];
 }
 
-const LOAD_MODEL = `from pathlib import Path
+const LOAD_MODEL = `import sys
+from pathlib import Path
 from collections import Counter, defaultdict
-import syside
 
-def find_sysml_root(start=Path.cwd()):
-    """Find the nearest model/ or src/ folder containing textual SysML."""
-    for directory in (start, *start.parents):
-        for folder_name in ('model', 'src'):
-            candidate = directory / folder_name
-            if candidate.is_dir() and next(candidate.rglob('*.sysml'), None):
-                return candidate
-    raise FileNotFoundError('No model/ or src/ directory containing .sysml files was found')
+# memo_model.py sits in the project's analysis/ folder, above this notebook.
+sys.path.insert(0, str(next(d for d in (Path.cwd(), *Path.cwd().parents) if (d / 'memo_model.py').is_file())))
+import memo_model
 
-SYSML_ROOT = find_sysml_root()
-SYSML_FILES = sorted(SYSML_ROOT.rglob('*.sysml'))
-model, diagnostics = syside.try_load_model([str(path) for path in SYSML_FILES])
-print(f'Loaded {len(SYSML_FILES)} SysML files from {SYSML_ROOT}')`;
+# Compiled by the project's selected compiler (toolchain.compiler), as every
+# MEMO command is: change the setting and this notebook follows.
+model = memo_model.load()
+diagnostics = model.diagnostics
+SYSML_FILES = model.documents
+print(f'Loaded {len(SYSML_FILES)} SysML files, compiled by {model.compiler} {model.compiler_version or ""}')`;
 
 const SAMPLES_README = `# MEMO analysis samples
 
-These notebooks are created by \`memo init\` and are designed to work with any
-MEMO textual SysML v2 project. They locate the nearest \`model/\` or \`src/\`
-directory automatically and query it through the typed Syside API.
+These notebooks are created by \`memo init\` and work with any MEMO textual
+SysML v2 project. Each one reads the model through \`analysis/memo_model.py\`,
+which compiles the project with the compiler its settings select
+(\`toolchain.compiler\`), exactly as \`memo compile\` does. Changing the
+project's compiler changes what every notebook analyses.
 
 ## Prerequisites
 
-Use Python 3.12 or newer with JupyterLab and Syside installed and licensed:
+- Python 3.12 or newer with JupyterLab.
+- The \`memo\` command on \`PATH\`, or \`MEMO_CLI\` set to the command that runs it.
+- What the selected compiler needs, as \`memo toolchain probe\` reports. A
+  compiler that builds no SysML v2 model of its own (\`internal\`) cannot serve
+  the notebooks; \`memo_model.load()\` says so.
 
 \`\`\`bash
 python -m venv analysis/.venv
 source analysis/.venv/bin/activate
-python -m pip install jupyterlab syside
+python -m pip install jupyterlab
 cd analysis
 jupyter lab --port 8888
 \`\`\`
 
-Configure the Syside license using its supported keyring or environment setup.
 MEMO Architect's **Analysis → Jupyter Notebooks** menu opens the local server at
 \`http://127.0.0.1:8888\`.
 
@@ -69,9 +72,10 @@ MEMO Architect's **Analysis → Jupyter Notebooks** menu opens the local server 
 | \`06-ownership-graph.ipynb\` | SVG network graph of model ownership relationships. |
 | \`07-model-inventory-table.ipynb\` | Filterable inventory parameters, HTML table, and CSV export. |
 
-The notebooks use \`syside.try_load_model()\`, so partial analysis remains
-available while the project contains parser or semantic diagnostics. Review the
-reported diagnostics before treating analysis results as release evidence.
+A model loads only once the compiler accepts it: \`memo_model.load()\` raises
+with the compiler's errors otherwise. Compilers can differ in the elements they
+write for the same text (anonymous features in particular), so counts can
+differ slightly from one compiler to another.
 `;
 
 const STARTERS: StarterNotebook[] = [
@@ -90,9 +94,7 @@ semantic_types = [
 ]
 counts = {}
 for type_name in semantic_types:
-    node_type = getattr(syside, type_name, None)
-    if node_type is not None:
-        counts[type_name] = len(list(model.elements(node_type)))
+    counts[type_name] = len(model.elements(type_name))
 
 largest = max(counts.values(), default=1)
 rows = ''.join(
@@ -103,9 +105,9 @@ display(HTML(f'<h3>Semantic inventory</h3><table><tr><th>Element type</th><th>Co
 
 {
     'SysML files': len(SYSML_FILES),
-    'Errors': len(list(diagnostics.errors)),
-    'Warnings': len(list(diagnostics.warnings)),
-    'Information': len(list(diagnostics.infos)),
+    'Errors': len(diagnostics.errors),
+    'Warnings': len(diagnostics.warnings),
+    'Information': len(diagnostics.infos),
 }`,
         ],
     },
@@ -117,8 +119,8 @@ display(HTML(f'<h3>Semantic inventory</h3><table><tr><th>Element type</th><th>Co
             `from IPython.display import display
 
 semantic_elements = (
-    list(model.elements(syside.Usage, include_subtypes=True))
-    + list(model.elements(syside.Definition, include_subtypes=True))
+    model.elements('Usage', include_subtypes=True)
+    + model.elements('Definition', include_subtypes=True)
 )
 
 def safe_name(element):
@@ -135,21 +137,21 @@ def ownership_depth(element):
 
 containers = []
 for element in semantic_elements:
-    children = [child for child in element.owned_elements if isinstance(child, (syside.Usage, syside.Definition))]
+    children = [child for child in element.owned_elements if child.is_a('Usage', 'Definition')]
     if children:
-        containers.append((len(children), type(element).__name__, safe_name(element)))
+        containers.append((len(children), element.type, safe_name(element)))
 
 print('Top containers by directly owned semantic elements')
 display(sorted(containers, reverse=True)[:25])
 
 print('Deepest ownership paths')
 display(sorted(
-    ((ownership_depth(item), type(item).__name__, safe_name(item)) for item in semantic_elements),
+    ((ownership_depth(item), item.type, safe_name(item)) for item in semantic_elements),
     reverse=True,
 )[:25])
 
 print('Most common semantic types')
-Counter(type(item).__name__ for item in semantic_elements).most_common(30)`,
+Counter(item.type for item in semantic_elements).most_common(30)`,
         ],
     },
     {
@@ -159,8 +161,8 @@ Counter(type(item).__name__ for item in semantic_elements).most_common(30)`,
         codeCells: [
             `from IPython.display import display
 
-usages = list(model.elements(syside.Usage, include_subtypes=True))
-definitions = list(model.elements(syside.Definition, include_subtypes=True))
+usages = model.elements('Usage', include_subtypes=True)
+definitions = model.elements('Definition', include_subtypes=True)
 semantic_elements = usages + definitions
 
 unnamed = [item for item in semantic_elements if not (item.name or item.declared_name)]
@@ -170,15 +172,15 @@ for item in semantic_elements:
     name = str(value) if value else None
     if name:
         by_name[name].append(item)
-duplicates = [(name, len(items), sorted({type(item).__name__ for item in items})) for name, items in by_name.items() if len(items) > 1]
+duplicates = [(name, len(items), sorted({item.type for item in items})) for name, items in by_name.items() if len(items) > 1]
 empty_definitions = [
     item for item in definitions
-    if not any(isinstance(child, (syside.Usage, syside.Definition)) for child in item.owned_elements)
+    if not any(child.is_a('Usage', 'Definition') for child in item.owned_elements)
 ]
 
 display({
-    'parser/semantic errors': len(list(diagnostics.errors)),
-    'warnings': len(list(diagnostics.warnings)),
+    'parser/semantic errors': len(diagnostics.errors),
+    'warnings': len(diagnostics.warnings),
     'unnamed usages or definitions': len(unnamed),
     'repeated qualified names': len(duplicates),
     'definitions with no owned usages/definitions': len(empty_definitions),
@@ -188,9 +190,9 @@ print('Repeated qualified names (first 30)')
 display(sorted(duplicates, key=lambda item: item[1], reverse=True)[:30])
 
 print('Empty definition candidates (first 30)')
-[(type(item).__name__, item.qualified_name or item.name) for item in empty_definitions[:30]]`,
+[(item.type, item.qualified_name or item.name) for item in empty_definitions[:30]]`,
             `print('First diagnostics to investigate')
-for diagnostic in list(diagnostics.errors)[:20] + list(diagnostics.warnings)[:20]:
+for diagnostic in diagnostics.errors[:20] + diagnostics.warnings[:20]:
     print(diagnostic)`,
         ],
     },
@@ -202,8 +204,8 @@ for diagnostic in list(diagnostics.errors)[:20] + list(diagnostics.warnings)[:20
             `QUERY = ''  # Example: 'pump', 'controller', 'safety', or a requirement name
 
 semantic_elements = (
-    list(model.elements(syside.Usage, include_subtypes=True))
-    + list(model.elements(syside.Definition, include_subtypes=True))
+    model.elements('Usage', include_subtypes=True)
+    + model.elements('Definition', include_subtypes=True)
 )
 
 def label(element):
@@ -219,20 +221,20 @@ else:
     matches = [item for item in semantic_elements if QUERY.casefold() in label(item).casefold()]
     print(f'{len(matches)} match(es) for {QUERY!r}')
 
-[(type(item).__name__, label(item)) for item in matches[:100]]`,
+[(item.type, label(item)) for item in matches[:100]]`,
             `def neighborhood(element):
     owner = getattr(element, 'owner', None)
-    children = [child for child in element.owned_elements if isinstance(child, (syside.Usage, syside.Definition))]
+    children = [child for child in element.owned_elements if child.is_a('Usage', 'Definition')]
     related = []
     for relationship in element.owned_relationships:
         for candidate in relationship.related_elements:
             if candidate is not element:
                 related.append(candidate)
     return {
-        'selected': (type(element).__name__, label(element)),
-        'owner': None if owner is None else (type(owner).__name__, label(owner)),
-        'children': [(type(child).__name__, label(child)) for child in children[:50]],
-        'directly related': [(type(item).__name__, label(item)) for item in related[:50]],
+        'selected': (element.type, label(element)),
+        'owner': None if owner is None else (owner.type, label(owner)),
+        'children': [(child.type, label(child)) for child in children[:50]],
+        'directly related': [(item.type, label(item)) for item in related[:50]],
     }
 
 [neighborhood(item) for item in matches[:10]]`,
@@ -253,9 +255,7 @@ type_names = [
 ]
 counts = {}
 for type_name in type_names:
-    node_type = getattr(syside, type_name, None)
-    if node_type is not None:
-        counts[type_name] = len(list(model.elements(node_type)))
+    counts[type_name] = len(model.elements(type_name))
 
 palette = ['#2d8d70', '#3887c7', '#e58a2b', '#8357b6', '#cf5c62', '#4f9d9d']
 largest = max(counts.values(), default=1)
@@ -267,9 +267,9 @@ for index, (name, count) in enumerate(sorted(counts.items(), key=lambda item: it
       <div>{escape(name)}</div><div style="background:#edf2f4;border-radius:6px;overflow:hidden"><div style="width:{width:.1f}%;height:20px;background:{color}"></div></div><strong>{count:,}</strong>
     </div>''')
 
-error_count = len(list(diagnostics.errors))
-warning_count = len(list(diagnostics.warnings))
-info_count = len(list(diagnostics.infos))
+error_count = len(diagnostics.errors)
+warning_count = len(diagnostics.warnings)
+info_count = len(diagnostics.infos)
 total_diagnostics = max(1, error_count + warning_count + info_count)
 diagnostic_gradient = (
     f'#cf5c62 0 {error_count / total_diagnostics * 100:.1f}%, '
@@ -298,8 +298,8 @@ display(HTML(f'''<div style="font-family:system-ui;max-width:900px">
 from IPython.display import SVG, display
 
 semantic_elements = (
-    list(model.elements(syside.Usage, include_subtypes=True))
-    + list(model.elements(syside.Definition, include_subtypes=True))
+    model.elements('Usage', include_subtypes=True)
+    + model.elements('Definition', include_subtypes=True)
 )
 
 def node_name(element):
@@ -309,7 +309,7 @@ def node_name(element):
 # Prefer named elements with semantic children, then fill with other named elements.
 ranked = sorted(
     (item for item in semantic_elements if item.name or item.declared_name),
-    key=lambda item: sum(isinstance(child, (syside.Usage, syside.Definition)) for child in item.owned_elements),
+    key=lambda item: sum(child.is_a('Usage', 'Definition') for child in item.owned_elements),
     reverse=True,
 )
 selected = ranked[:60]
@@ -341,7 +341,7 @@ for item in selected:
     if owner is not None and id(owner) in selected_ids:
         ox, oy = positions[id(owner)]
         edges.append(f'<path d="M {ox + 190} {oy + 20} C {ox + 215} {oy + 20}, {x - 25} {y + 20}, {x} {y + 20}" fill="none" stroke="#91a7b3" stroke-width="1.5"/>')
-    kind = type(item).__name__
+    kind = item.type
     fill = colors.get(kind, '#f4f6f7')
     label = escape(node_name(item)[:27])
     nodes.append(f'<g><rect x="{x}" y="{y}" width="190" height="40" rx="7" fill="{fill}" stroke="#547180"/><text x="{x + 9}" y="{y + 17}" font-size="11" font-weight="700">{label}</text><text x="{x + 9}" y="{y + 32}" font-size="9" fill="#587487">{kind}</text></g>')
@@ -364,8 +364,8 @@ NAME_FILTER = ''   # Case-insensitive name fragment
 ROW_LIMIT = 250
 
 semantic_elements = (
-    list(model.elements(syside.Usage, include_subtypes=True))
-    + list(model.elements(syside.Definition, include_subtypes=True))
+    model.elements('Usage', include_subtypes=True)
+    + model.elements('Definition', include_subtypes=True)
 )
 
 def text(value):
@@ -373,7 +373,7 @@ def text(value):
 
 records = []
 for item in semantic_elements:
-    kind = type(item).__name__
+    kind = item.type
     name = text(item.name or item.declared_name)
     qualified_name = text(item.qualified_name)
     owner = getattr(item, 'owner', None)
@@ -408,7 +408,7 @@ function markdownCell(starter: StarterNotebook): NotebookCell {
     return {
         cell_type: 'markdown',
         metadata: {},
-        source: [`# ${starter.title}\n\n${starter.description}\n\nThis sample uses only standard SysML v2 concepts and automatically discovers the project's \`model/\` or \`src/\` directory.`],
+        source: [`# ${starter.title}\n\n${starter.description}\n\nThis sample uses only standard SysML v2 concepts and reads the model through \`memo_model.py\`, compiled by the project's selected compiler.`],
     };
 }
 
@@ -431,10 +431,15 @@ function notebook(starter: StarterNotebook): unknown {
     };
 }
 
+/** The notebooks' model access, shipped beside the compiled library. */
+export const MEMO_MODEL_MODULE = fileURLToPath(new URL('../python/memo_model.py', import.meta.url));
+
 /** Add model-independent Jupyter samples to a newly initialized project. */
 export function scaffoldAnalysisSamples(projectDir: string): void {
     const samplesDir = resolve(projectDir, 'analysis', 'Samples');
     mkdirSync(samplesDir, { recursive: true });
+    const modulePath = resolve(projectDir, 'analysis', 'memo_model.py');
+    if (!existsSync(modulePath)) copyFileSync(MEMO_MODEL_MODULE, modulePath);
     const readmePath = resolve(samplesDir, 'README.md');
     if (!existsSync(readmePath)) writeFileSync(readmePath, SAMPLES_README);
     for (const starter of STARTERS) {
