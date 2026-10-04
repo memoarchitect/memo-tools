@@ -26,6 +26,8 @@ import {
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { loadProjectModel as loadSelectedModel } from '../toolchain/project-model.js';
 import { loadDhfDocs } from '../server/dhf-doc-store.js';
+import { loadContext as loadRulesContext } from './rules.js';
+import { computeRuleClauseCoverage, type RuleClauseCoverage } from '../validator/rule-clauses.js';
 
 export interface StandardsCheckOptions {
     /** Substring of a designation: `--standard 62304`. */
@@ -130,8 +132,13 @@ export async function standardsCheckCommand(options: StandardsCheckOptions = {})
         gapsOnly: options.gapsOnly,
     });
 
+    // Which rules enforce which clauses. Only a compiler that builds the model
+    // states the clauses and the rules' references to them, so under any other
+    // there is nothing to report and the section says so.
+    const ruleCoverage = native ? await ruleCoverageFor(projectRoot) : undefined;
+
     if (options.json) {
-        console.log(JSON.stringify(report, null, 2));
+        console.log(JSON.stringify({ ...report, ruleCoverage: ruleCoverage ?? null }, null, 2));
         return;
     }
 
@@ -145,6 +152,53 @@ export async function standardsCheckCommand(options: StandardsCheckOptions = {})
         // a status view.
         detail: !!options.gapsOnly || !!options.standard,
     });
+    printRuleCoverage(ruleCoverage, !!options.standard ? options.standard : undefined);
+}
+
+// ─── Rules that enforce clauses ───────────────────────────────────────────────
+
+/** The coverage of the library's clauses by the project's effective rules; undefined without clauses to cover. */
+async function ruleCoverageFor(projectRoot: string): Promise<RuleClauseCoverage | undefined> {
+    let context: Awaited<ReturnType<typeof loadRulesContext>>;
+    try {
+        context = await loadRulesContext(projectRoot);
+    } catch {
+        return undefined;
+    }
+    if (context.clauseFacts.length === 0) return undefined;
+    return computeRuleClauseCoverage(context.clauseFacts, context.effectiveRules);
+}
+
+function printRuleCoverage(coverage: RuleClauseCoverage | undefined, standard?: string): void {
+    console.log(chalk.bold('Rules that enforce clauses\n'));
+    if (!coverage) {
+        console.log(chalk.gray(
+            '  Not available: rules name their clauses in the compiled model, and the selected compiler\n'
+            + '  does not build one (or the project did not compile).\n'));
+        return;
+    }
+    const domains = Object.entries(coverage.byDomain).map(([name, count]) => `${count} ${name}`).join(', ');
+    console.log(chalk.gray(`  Rules by domain: ${domains}\n`));
+    console.log(chalk.bold('  Standard                          Clauses  Enforced by a rule'));
+    console.log(chalk.gray('  ' + '─'.repeat(58)));
+    for (const row of coverage.standards) {
+        if (standard && !row.designation.toLowerCase().includes(standard.toLowerCase())) continue;
+        const label = row.designation.length > 33 ? row.designation.slice(0, 32) + '…' : row.designation;
+        console.log(`  ${label.padEnd(34)}${String(row.clauses).padStart(7)}${String(row.enforced).padStart(20)}`);
+        for (const clause of coverage.enforcedClauses.filter(c => c.standard === row.designation)) {
+            const title = clause.title ? chalk.gray(` — ${clause.title}`) : '';
+            console.log(`      §${clause.clauseNumber.padEnd(8)}${title}${chalk.gray(`  ← ${clause.rules.join(', ')}`)}`);
+        }
+    }
+    if (coverage.untracedMedicalRules.length > 0) {
+        console.log(chalk.yellow(
+            `\n  ${coverage.untracedMedicalRules.length} medical-device rule(s) trace to no clause yet: `
+            + coverage.untracedMedicalRules.map(r => r.id).join(', ')));
+    }
+    for (const unknown of coverage.unknownClauses) {
+        console.log(chalk.red(`  ✖ ${unknown.ruleId} enforces ${unknown.clause}, which the model does not carry.`));
+    }
+    console.log('');
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────

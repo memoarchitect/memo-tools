@@ -20,12 +20,15 @@ import type { ParsedDocument, EffectiveRule, RuleResolutionDiagnostic } from '@m
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel, projectConstraints } from '../toolchain/project-model.js';
 import { handoffFileOf } from '../stage2/handoff-files.js';
+import { clauseLabel, readClauseFacts } from '../validator/rule-clauses.js';
+
+const RULE_DOMAINS = ['modelling', 'medicalDevice', 'organisation'];
 import { resolutionLoads } from '../stage2/project-from-api.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 
-async function loadContext(projectDir?: string) {
+export async function loadContext(projectDir?: string) {
     const cwd = resolve(projectDir || process.cwd());
 
     // The loader resolves a PROJECT ROOT, not a settings file. Passing the
@@ -103,9 +106,13 @@ async function loadContext(projectDir?: string) {
         // about the methodology, not a reason the command cannot run.
     }
 
+    // The clauses the model carries, to name what a rule enforces. Only a
+    // compiler that builds the model states them.
+    const clauseFacts = project.api ? readClauseFacts(project.api) : [];
+
     return {
         cwd, configPath, config, ontologyRegistries, ruleRegistry, constraints, model: project.model,
-        effectiveRules, ruleDiagnostics,
+        effectiveRules, ruleDiagnostics, clauseFacts,
     };
 }
 
@@ -124,23 +131,33 @@ export type RulesFormat = 'text' | 'json';
 
 export async function rulesListCommand(
     projectDir?: string,
-    options?: { format?: RulesFormat; category?: string }
+    options?: { format?: RulesFormat; category?: string; domain?: string }
 ): Promise<void> {
     const format = options?.format || 'text';
-    const { effectiveRules, ruleDiagnostics } = await loadContext(projectDir);
+    const { effectiveRules, ruleDiagnostics, clauseFacts } = await loadContext(projectDir);
+
+    if (options?.domain && !RULE_DOMAINS.includes(options.domain)) {
+        console.error(chalk.red(`❌ --domain expects one of ${RULE_DOMAINS.join(', ')}, got "${options.domain}".`));
+        process.exit(1);
+    }
 
     // Section 19 asks that the effective rule SET be auditable: identity,
     // disposition, severity, and policy chain. That is what this reports —
     // governance, not evidence that anything was validated (section 10.4).
-    const filteredRules = options?.category
-        ? effectiveRules.filter(r => r.tailoring === options.category)
-        : effectiveRules;
+    const filteredRules = effectiveRules
+        .filter(r => !options?.category || r.tailoring === options.category)
+        .filter(r => !options?.domain || r.domain === options.domain);
+    // A domain filter narrows to MEMO's tailorable rules: the built-in ones state no domain.
+    const narrowed = Boolean(options?.category || options?.domain);
 
     if (format === 'json') {
         console.log(JSON.stringify({
-            tailorable: filteredRules,
-            builtin: options?.category ? [] : BUILTIN_RULES,
-            total: filteredRules.length + (options?.category ? 0 : BUILTIN_RULES.length),
+            tailorable: filteredRules.map(rule => ({
+                ...rule,
+                clauses: (rule.enforces ?? []).map(clause => ({ qualifiedName: clause, label: clauseLabel(clauseFacts, clause) })),
+            })),
+            builtin: narrowed ? [] : BUILTIN_RULES,
+            total: filteredRules.length + (narrowed ? 0 : BUILTIN_RULES.length),
             diagnostics: ruleDiagnostics,
         }, null, 2));
         return;
@@ -171,10 +188,18 @@ export async function rulesListCommand(
                 ? '' : chalk.yellow(` [${rule.disposition}]`);
             const overridden = rule.effectiveSeverity !== rule.declaredSeverity
                 ? chalk.gray(` (declared ${rule.declaredSeverity})`) : '';
+            const domain = rule.domain === 'medicalDevice'
+                ? chalk.magenta(' [medical device]') : rule.domain === 'organisation' ? chalk.blue(' [organisation]') : '';
             console.log(`    ${icon} ${chalk.white(rule.sourceRuleId)} ${rule.sourceRuleType}`
-                + `${disposition}${overridden}`);
+                + `${domain}${disposition}${overridden}`);
             if (rule.rationaleText) {
                 console.log(`      ${chalk.gray(rule.rationaleText)}`);
+            }
+            for (const clause of rule.enforces ?? []) {
+                console.log(`      ${chalk.gray(`enforces ${clauseLabel(clauseFacts, clause)}`)}`);
+            }
+            if (rule.domain === 'medicalDevice' && (rule.enforces ?? []).length === 0) {
+                console.log(`      ${chalk.yellow('traces to no clause yet')}`);
             }
             if (rule.authority) {
                 console.log(`      ${chalk.gray(`authority: ${rule.authority}`)}`);

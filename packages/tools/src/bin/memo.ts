@@ -799,9 +799,10 @@ rulesCmd
     .description('List all consistency rules')
     .argument('[dir]', 'Project directory', '.')
     .option('--format <format>', 'Output format: text, json', 'text')
-    .option('--category <category>', 'Filter by category: closure, coverage, lifecycle, crossLayer, quantitative')
-    .action(async (dir: string, opts: { format?: string; category?: string }) => {
-        await rulesListCommand(dir, { format: opts.format as any, category: opts.category });
+    .option('--category <category>', 'Filter by tailoring class: invariant, assurance, methodology')
+    .option('--domain <domain>', 'Filter by why the rule exists: modelling, medicalDevice, organisation')
+    .action(async (dir: string, opts: { format?: string; category?: string; domain?: string }) => {
+        await rulesListCommand(dir, { format: opts.format as any, category: opts.category, domain: opts.domain });
     });
 
 rulesCmd
