@@ -18,10 +18,10 @@
 
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createInterface } from 'node:readline';
-import { join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { MEMOConfig } from '../../model/config.js';
 import { modelToDTO } from '../../model/semantic.js';
@@ -42,6 +42,10 @@ import type {
 } from '../registry.js';
 import { SYSIDE_PROVIDER_ID, parseSysideDiagnostics } from './syside.js';
 import { discoverProjectSources } from '../../model/native-project.js';
+import {
+    findShipped, readShipped, readShippedIds, shippedLibraryKey, writeShipped, writeShippedIds,
+    type LibraryRootFiles,
+} from '../shipped-library.js';
 
 interface SysidePythonConfig {
     python?: string;
@@ -313,6 +317,7 @@ export async function compileWithSyside(options: CompileModelOptions): Promise<C
     }
     if (!handoff) {
         const libraryOut = join(cacheDir ?? scratchDir(), `${SYSIDE_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`);
+        installShippedLibrary(interpreter, libraryDirs, libraryOut);
         const served = await servedHandoff(interpreter, projectDir, libraryDirs, libraryKey, libraryOut);
         handoff = served.handoff;
         if (cacheDir && keyFile && handoff.clean) {
@@ -335,6 +340,72 @@ export async function compileWithSyside(options: CompileModelOptions): Promise<C
         config: options.config, projectDir, projectFiles, resolveProject: options.resolveProject, provenance: options.provenance, registries, filePackages,
     });
     return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, ...stage2, api, cached: reused };
+}
+
+/** The SysIDE a shipped export is keyed by: its version and the export script, per interpreter. */
+const versions = new Map<string, string>();
+
+function sysideVersion(interpreter: string): string {
+    let version = versions.get(interpreter);
+    if (version === undefined) {
+        const probe = spawnSync(interpreter, ['-c', 'import syside; print(syside.__version__)'], { encoding: 'utf8' });
+        version = `${probe.status === 0 ? probe.stdout.trim() : 'unknown'}\0${createHash('sha256').update(readFileSync(EXPORT_SCRIPT)).digest('hex')}`;
+        versions.set(interpreter, version);
+    }
+    return version;
+}
+
+function shippedKey(interpreter: string, libraryDirs: readonly string[]): string {
+    const roots: LibraryRootFiles[] = libraryDirs.map(dir => ({ dir, files: sysmlFilesUnder(dir) }));
+    return shippedLibraryKey(SYSIDE_PROVIDER_ID, sysideVersion(interpreter), roots);
+}
+
+/**
+ * Put the library set's shipped export where the worker looks for its library
+ * handoff, when the package carries one for exactly this set. The worker then
+ * loads the libraries as the environment a project loads over, and skips
+ * exporting them.
+ */
+function installShippedLibrary(interpreter: string, libraryDirs: readonly string[], libraryOut: string): void {
+    const ids = `${libraryOut}.ids`;
+    if (existsSync(libraryOut) && existsSync(ids)) return;
+    const key = shippedKey(interpreter, libraryDirs);
+    const shipped = findShipped(SYSIDE_PROVIDER_ID, key, libraryDirs);
+    const shippedIds = findShipped(SYSIDE_PROVIDER_ID, key, libraryDirs, 'ids.gz');
+    if (!shipped || !shippedIds) return;
+    mkdirSync(dirname(libraryOut), { recursive: true });
+    const partial = `.${process.pid}.partial`;
+    writeFileSync(ids + partial, readShippedIds(shippedIds));
+    writeFileSync(libraryOut + partial, readShipped(shipped, libraryDirs));
+    renameSync(ids + partial, ids);
+    renameSync(libraryOut + partial, libraryOut);
+}
+
+/**
+ * Export the library set once and write it as the shipped files a package
+ * carries (`memo ship-library`). The worker exports the libraries for an empty
+ * project, so what is written is exactly what a project's compile would keep.
+ */
+export async function shipSysideLibrary(config: MEMOConfig, libraryDirs: readonly string[], outDir: string): Promise<string[]> {
+    const interpreter = python(config);
+    const work = mkdtempSync(join(tmpdir(), 'memo-ship-syside-'));
+    try {
+        const project = join(work, 'project');
+        mkdirSync(project);
+        const libraryOut = join(work, `${SYSIDE_PROVIDER_ID}-library.json`);
+        const served = await servedHandoff(interpreter, project, libraryDirs, sysideLibraryKey(interpreter, libraryDirs), libraryOut);
+        if (!served.handoff.clean) {
+            const text = (served.handoff.diagnostics ?? []).map(d => d.text).join('\n');
+            throw new Error(`SysIDE did not accept the libraries, so there is nothing to ship:\n${text}`);
+        }
+        const key = shippedKey(interpreter, libraryDirs);
+        return [
+            writeShipped(outDir, SYSIDE_PROVIDER_ID, key, readFileSync(libraryOut, 'utf8'), libraryDirs),
+            writeShippedIds(outDir, SYSIDE_PROVIDER_ID, key, readFileSync(`${libraryOut}.ids`, 'utf8')),
+        ];
+    } finally {
+        rmSync(work, { recursive: true, force: true });
+    }
 }
 
 let scratch: string | undefined;
@@ -401,6 +472,7 @@ export const sysideLoweringDescriptor: LoweringDescriptor = {
     capabilities: ['lower'],
     settingsSchema: SETTINGS_SCHEMA,
     compileModel: compileWithSyside,
+    shipLibrary: shipSysideLibrary,
     // The Python load reports what `syside check --diagnose all` does, in the
     // same text (`full_message`), so it is the validator's verdict too, unless
     // a setting only the CLI reads is in effect: a syside.toml or a narrower

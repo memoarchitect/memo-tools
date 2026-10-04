@@ -52,7 +52,10 @@ describe.runIf(available)('DHF template packaging', () => {
         // deleted. A stale entry is harmless until it is load-bearing, and
         // there is no reason to find out which one it is.
         const pkg = JSON.parse(readFileSync(join(memoRoot, 'package.json'), 'utf-8'));
+        // `stage1/` is written at release by `memo ship-library` and ignored by git,
+        // so a checkout has none; that is the one entry allowed to be absent.
         const missing = (pkg.files as string[])
+            .filter(entry => entry !== 'stage1/')
             .filter(entry => !existsSync(join(memoRoot, entry.replace(/\/$/, ''))));
         expect(missing).toEqual([]);
     });
