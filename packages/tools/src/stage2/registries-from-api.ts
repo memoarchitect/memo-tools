@@ -3,7 +3,7 @@
 // The kinds and relationships `KindRegistry.populateFromDocuments` and
 // `RelationshipRegistry.populateFromDocuments` read from MEMO's own parse,
 // read instead from the API JSON a stage 1 compiler wrote, so a project
-// compiled by SysIDE or OpenSysML needs no MEMO parser to know its ontology.
+// compiled by an external compiler needs no MEMO parser to know its ontology.
 // Each walker mirrors its parse counterpart: the same definitions, the same
 // fields, the layer and standard from the same (absolute) file path.
 // ─────────────────────────────────────────────────────────────────────────────

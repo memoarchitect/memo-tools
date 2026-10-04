@@ -172,7 +172,7 @@ interface DeferredFlow {
  * and its interior port are the same feature, not two features with something
  * travelling between them. That distinction is why it cannot be spelled as a
  * flow — a flow's source must resolve to an output and a delegation runs `in`
- * to `in` (or `out` to `out`), which SysIDE rejects. SysML v2 keeps the two
+ * to `in` (or `out` to `out`), which a SysML v2 compiler rejects. SysML v2 keeps the two
  * apart the same way: training ch. 13 wires siblings with `flow`, ch. 12
  * delegates across a boundary with `bind`.
  */
@@ -280,7 +280,7 @@ export function buildMemoModel(
 
     // Phase 2b: Report every pair of elements that wanted the same QUALIFIED
     // name — the same name under the same owner, which SysML forbids and
-    // SysIDE rejects. Only one of them is in the model, so saying nothing
+    // compilers reject. Only one of them is in the model, so saying nothing
     // would leave it missing an element its source declares. Both locations
     // are named because neither is at fault on its own.
     for (const collision of elements.collisions) {
@@ -2359,7 +2359,7 @@ function resolveSuccession(
  * Guards use the same expression AST as constraints. Previously only literal
  * `true`/`false` nodes happened to carry one of the three fields inspected by
  * the builder, so a valid guard such as `validUser == true` silently vanished
- * during lowering even though SysIDE accepted it.
+ * during lowering even though it is valid SysML.
  */
 function renderGuardExpression(expr: any): string | undefined {
     if (!expr) return undefined;

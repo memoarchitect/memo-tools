@@ -11,7 +11,7 @@
 //
 // `diagram:create` was the one path that produced such a diagram. It appended a
 // row to `.memo/user-diagrams.json`, so a view authored in the app was invisible
-// to `memo validate` and to `syside check`, absent from review, untracked by git
+// to `memo validate` and to the selected compiler, absent from review, untracked by git
 // wherever `.memo/` is ignored, and — having no source file — dragged its layout
 // into the hidden store as well. Two mechanisms for one concept, and the
 // authored half was the one the toolchain could not see.

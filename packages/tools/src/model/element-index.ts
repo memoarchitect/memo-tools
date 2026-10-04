@@ -207,7 +207,7 @@ export class ElementIndex extends Map<string, MemoElement> {
         if (isSameDeclaration(existing, element)) return false;
 
         // Same qualified name, same owner, two declarations. SysML forbids it
-        // and SysIDE rejects it; MEMO says so too rather than dropping one.
+        // and compilers reject it; MEMO says so too rather than dropping one.
         this.collisions.push({
             id: element.id,
             kept: existing,

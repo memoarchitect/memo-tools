@@ -213,7 +213,7 @@ async function ir(context: ProviderContext): Promise<MemoIr> {
  * Validator role — "is this valid SysML?" answered by MEMO's Langium grammar.
  *
  * The grammar is a MEMO subset, so this answers a narrower question than
- * `syside` does. That is exactly why the roles are separate and why a failure
+ * an external compiler does. That is exactly why the roles are separate and why a failure
  * here, when another validator accepted the file, is an ingest problem rather
  * than a SysML error.
  */

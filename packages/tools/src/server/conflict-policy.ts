@@ -3,7 +3,7 @@
 // Decide what a rejected write invalidates: one file, or the session.
 //
 // Section 13.5 is emphatic that these are different events. Editing SysML in
-// SysIDE alongside Architect is the workflow this design exists to enable, so a
+// a text editor alongside Architect is the workflow this design exists to enable, so a
 // stale hash on one project file is EXPECTED — it gets a scoped rejection and
 // the user keeps working on every other file. Escalation to mutation lockout is
 // reserved for the three enumerated cases where the server cannot prove what

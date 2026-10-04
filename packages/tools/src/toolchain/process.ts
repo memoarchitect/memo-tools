@@ -20,7 +20,7 @@ export function resolveProjectPath(value: string, projectDir: string): string {
 
 /**
  * A configured executable is a path when it looks like one, and a PATH lookup
- * otherwise. `syside` means "whatever is on PATH"; `./bin/syside` means that
+ * otherwise. `sysml` means "whatever is on PATH"; `./bin/sysml` means that
  * file.
  */
 export function resolveExecutable(
@@ -47,7 +47,7 @@ function isExecutableFile(candidate: string): boolean {
 /**
  * Absolute path of a command, resolved the way the shell would.
  *
- * `memo toolchain probe` prints this: knowing *which* `syside` ran matters as
+ * `memo toolchain probe` prints this: knowing *which* executable ran matters as
  * much as knowing that one did.
  */
 export function whichExecutable(command: string, env: NodeJS.ProcessEnv = process.env): string | undefined {

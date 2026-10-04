@@ -15,7 +15,7 @@
 //                     Draw normally and flag the element.
 //
 // Collapsing those three into one "error" list is the failure mode this type
-// exists to prevent: `syside` says the file is fine and MEMO shows nothing.
+// exists to prevent: the compiler says the file is fine and MEMO shows nothing.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Who is complaining. See the table above — this drives canvas behaviour. */
@@ -49,8 +49,8 @@ export interface Diagnostic {
     /**
      * The provider's own stable rule code, carried through verbatim.
      *
-     * `syside` publishes 151 kebab-case codes (`reference-error`,
-     * `accept-action-usage-parameters`, …). We do not renumber them into a
+     * A compiler publishes its own codes (kebab-case, such as
+     * `reference-error`). We do not renumber them into a
      * parallel MEMO scheme: suppression and configuration are by code, and a
      * project's suppressions have to survive both a provider upgrade and an
      * eventual engine swap.

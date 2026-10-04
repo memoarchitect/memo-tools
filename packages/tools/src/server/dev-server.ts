@@ -493,7 +493,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     // Every view is DECLARED in SysML — see `view-writer.ts`. The sidecar at
     // .memo/user-diagrams.json used to be merged in here as a second class of
     // view, which is how a view could exist for Architect and for nothing else:
-    // no source file, so invisible to `memo validate`, to `syside check`, to
+    // no source file, so invisible to `memo validate`, to the selected compiler, to
     // review, and — wherever `.memo/` is ignored — to git.
     //
     // Rows left in that file are therefore not views but UNDECLARED views: an
@@ -1543,7 +1543,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     const diagram: DiagramDTO = { ...msg.payload, auto: false };
                     // A view is model content, so it is DECLARED, not recorded in
                     // a sidecar. Writing the SysML puts it where `memo validate`,
-                    // `syside check`, review and git can all see it, and — the
+                    // the selected compiler, review and git can all see it, and — the
                     // derived diagram then carrying a `sourceFile` — takes its
                     // `.viewlayout` companion out of the hidden store too.
                     const declared = await writeViewDeclaration(

@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
  * hold copies of model files — parsing those reports duplicate elements and
  * phantom errors against files the author does not edit.
  *
- * A Python virtualenv is the sharpest case: SysIDE ships the entire SysML v2
+ * A Python virtualenv is the sharpest case: a compiler's package can ship the entire SysML v2
  * standard library inside `site-packages`, so a project with a notebook
  * environment beside its model hands the walker several hundred library files
  * the Langium grammar was never meant to parse. `venv` and `site-packages` are

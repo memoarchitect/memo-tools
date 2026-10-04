@@ -180,7 +180,7 @@ export interface RulePolicyWriteResultMessage {
  * The editor never composes SysML text itself. It names the rule and the
  * decision; Tools renders the `RulePolicy` and writes it through the same
  * precondition-checked path as every other mutation, so a rule tailored from
- * the browser is subject to the same conflict rules as one typed in SysIDE.
+ * the browser is subject to the same conflict rules as one typed in a text editor.
  */
 export interface RulePolicyWriteMessage {
     type: 'rule:policy:write';

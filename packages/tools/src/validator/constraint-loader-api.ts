@@ -3,7 +3,7 @@
 // Reads the rule definitions `collectNativeConstraints` reads from MEMO's own
 // parse — `constraint def`s and `requirement def`s carrying an authored id —
 // from the API JSON a stage 1 compiler wrote instead, so a project compiled by
-// SysIDE or OpenSysML needs no MEMO parser to know its rules
+// an external compiler needs no MEMO parser to know its rules
 // (plans/memo-compiler-stages-opensysml.md). Both loaders compile through
 // `compileRuleDefinition`.
 //

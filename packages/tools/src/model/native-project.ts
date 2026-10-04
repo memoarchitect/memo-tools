@@ -35,7 +35,7 @@ import type { SemanticOrigin } from './source-provenance.js';
 /**
  * SysML v2 standard-library packages.
  *
- * These are supplied by the conformant tool (SysIDE, Sysand), not by a MEMO
+ * These are supplied by the selected compiler and the package manager, not by a MEMO
  * package, so an import of one resolves to nothing on disk and that is correct.
  * Reporting it as an unresolved import would bury the real diagnostics under
  * one line per file.
@@ -256,7 +256,7 @@ export function discoverLibraryRoots(projectRoot: string): LibraryRoot[] {
         // Extensions are reusable ontology packages, so they are library roots
         // on the same terms as any other package: available, not selected.
         // They were reachable only as example directories before, which meant
-        // a project could import an extension, resolve it under `syside`, and
+        // a project could import an extension, resolve it under an external compiler, and
         // still have every extension type come back unregistered — no layer,
         // no supertype, no legality. Listing them here is what makes an
         // extension mean something to the tools and not just to the compiler.
@@ -374,10 +374,10 @@ function attr(body: any[], name: string): string | undefined {
 /**
  * Read the type a `ref :>> <name> : <Type>;` member narrows to.
  *
- * This is the reference mechanism session 1 verified across the MEMO grammar,
- * SysIDE, and Sysand: narrowing the reference's type names the rule, because
+ * This is the reference mechanism session 1 verified across MEMO's grammar and
+ * the external tools: narrowing the reference's type names the rule, because
  * each rule is its own `constraint def`. Binding a *value* to a definition is
- * not portable — SysIDE rejects it, since a value must be a feature.
+ * not portable — a SysML v2 compiler rejects it, since a value must be a feature.
  */
 function refType(body: any[], name: string): string | undefined {
     for (const member of body ?? []) {
@@ -614,7 +614,7 @@ export function discoverProjectSources(projectRoot: string): ProjectSources {
     const libraryRoots = discoverLibraryRoots(root);
     const fileToRoot = new Map<string, LibraryRoot | undefined>();
 
-    // Match SysIDE's source-root contract exactly: only explicitly included
+    // Match the `include` source-root contract exactly: only explicitly included
     // directories are project model source. Includes may name a sibling OTS
     // repository; imports, rather than physical location, decide scope.
     const projectFiles = [...new Set(includes.filter(include => extname(include).toLowerCase() !== '.kpar').flatMap(include => {

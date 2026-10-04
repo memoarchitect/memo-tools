@@ -152,12 +152,12 @@ export type PackageProvider = Provider<ProviderRunResult>;
 /**
  * One configurable leaf under `toolchain.*`.
  *
- * Adapters contribute their own leaves, so `--toolchain.syside.executable`
- * exists because the syside adapter says so, not because the CLI knows about
- * syside. The CLI and `memo config effective` both read this.
+ * Adapters contribute their own leaves, so a `--toolchain.<provider>.<leaf>`
+ * flag exists because that provider's adapter says so, not because the CLI
+ * knows the provider. The CLI and `memo config effective` both read this.
  */
 export interface ToolchainSchemaLeaf {
-    /** Dotted path under `toolchain`, e.g. `validator` or `syside.executable`. */
+    /** Dotted path under `toolchain`, e.g. `validator` or `<provider>.<leaf>`. */
     path: string;
     type: 'string' | 'boolean' | 'enum';
     /** Legal values for `enum`, or for a `string` leaf with a known roster. */

@@ -43,7 +43,7 @@ export interface MemoManifest {
     sysmlDir?: string;
     /** Project-relative native SysML entrypoint; absent uses MEMO's conventional path. */
     entrypoint?: string;
-    /** Project-relative SysML source roots, using SysIDE's `include` vocabulary. */
+    /** Project-relative SysML source roots (`include`). */
     include?: string[];
     /** Everything as parsed, for the boundary check to inspect. */
     raw: Record<string, unknown>;
