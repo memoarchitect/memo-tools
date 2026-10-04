@@ -76,6 +76,25 @@ const sysmlFiles = [
     ...collectSysmlFiles(EXAMPLES_ROOT),
 ];
 
+/**
+ * Files MEMO's own (frozen) grammar cannot parse, and the one thing it cannot
+ * parse in each. The source is valid SysML; the grammar is the gap, and a gap is
+ * recorded one case at a time rather than the model re-spelled to suit it
+ * (AGENTS.md, "A validator's gaps are recorded"). The entry fails once the
+ * grammar parses the file, so the register cannot outlive the gap.
+ *
+ * A rule names the clauses it enforces as a parenthesised list of feature
+ * chains, `ref enforces : StandardClause[1..*] = (a.b.c, d.e.f);`. KerML's
+ * SequenceExpression is `'(' SequenceExpressionList ')'` over OwnedExpressions
+ * (`KerML-textual-bnf.kebnf:1108-1111`), and a feature chain is a
+ * PrimaryExpression (`:1068`, `:1122`). Both external compilers parse it.
+ * The grammar stops at the first `.` inside the parentheses.
+ */
+const KNOWN_GRAMMAR_GAPS: Record<string, string> = {
+    'rules/closure/closure_rules.sysml': "Expecting token of type ')' but found `.`.",
+    'rules/crosslayer/cross_layer_rules.sysml': "Expecting token of type ')' but found `.`.",
+};
+
 describe('SysML v2 Conformance: ontology packages parse with zero diagnostics', () => {
     it('discovers ontology files', () => {
         expect(sysmlFiles.length).toBeGreaterThanOrEqual(30);
@@ -90,6 +109,14 @@ describe('SysML v2 Conformance: ontology packages parse with zero diagnostics', 
                 ...doc.parseResult.lexerErrors,
                 ...doc.parseResult.parserErrors,
             ];
+            const gap = KNOWN_GRAMMAR_GAPS[rel];
+            if (gap !== undefined) {
+                // Exactly the recorded gap, and still there: when the grammar
+                // learns the construct this fails, and the entry goes.
+                expect(errors.length, `${rel} parses now; remove it from KNOWN_GRAMMAR_GAPS`).toBeGreaterThan(0);
+                expect([...new Set(errors.map((e: any) => e.message))]).toEqual([gap]);
+                return;
+            }
             if (errors.length > 0) {
                 const msgs = errors.slice(0, 10).map((e: any) => e.message);
                 throw new Error(

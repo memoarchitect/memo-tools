@@ -3,7 +3,7 @@
 // The coverage computation always runs. With a compiler configured
 // (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY` with `MEMO_OPENSYSML_CLIENT`) the
 // commands run on a copy of temperature-alarm and report what the ontology
-// states: 21 medical-device rules, 15 of them tracing to a clause
+// states: 21 medical-device rules, 16 of them tracing to a clause
 // (plans/memo-rules-domain-trace-and-editor.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -78,7 +78,7 @@ function run(root: string, args: string[], flags: string[]): string {
 
 function integration(name: string, flags: string[]): void {
     describe(`rule domains and clauses, through ${name}`, () => {
-        it('lists 21 medical-device rules, 15 with a clause, and reports the other 6', () => {
+        it('lists 21 medical-device rules, 16 with a clause, and reports the other 5', () => {
             const root = mkdtempSync(join(tmpdir(), 'memo-rule-clauses-'));
             try {
                 cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
@@ -87,15 +87,15 @@ function integration(name: string, flags: string[]): void {
                 };
                 expect(listed.tailorable).toHaveLength(21);
                 expect(listed.tailorable.every(r => r.domain === 'medicalDevice')).toBe(true);
-                expect(listed.tailorable.filter(r => r.clauses.length > 0)).toHaveLength(15);
+                expect(listed.tailorable.filter(r => r.clauses.length > 0)).toHaveLength(16);
                 expect(listed.tailorable.find(r => r.sourceRuleId === 'CR-MED-011')?.clauses[0].label)
-                    .toBe('IEC 62304:2006+AMD1:2015 §5.2');
+                    .toBe('IEC 62304:2006+AMD1:2015 §5.2.1');
 
                 const checked = JSON.parse(run(root, ['standards', 'check', '--json'], flags)) as {
                     ruleCoverage: { untracedMedicalRules: { id: string }[]; unknownClauses: unknown[]; byDomain: Record<string, number> };
                 };
                 expect(checked.ruleCoverage.untracedMedicalRules.map(r => r.id).sort())
-                    .toEqual(['CR-MED-021', 'CR-MED-030', 'CR-MED-031', 'CR-MED-032', 'CR-MED-101', 'CR-ONT-032']);
+                    .toEqual(['CR-MED-021', 'CR-MED-030', 'CR-MED-031', 'CR-MED-032', 'CR-ONT-032']);
                 expect(checked.ruleCoverage.unknownClauses).toEqual([]);
                 expect(checked.ruleCoverage.byDomain).toMatchObject({ medicalDevice: 21, modelling: 35 });
             } finally {
