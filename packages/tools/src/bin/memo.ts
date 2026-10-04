@@ -53,7 +53,7 @@ import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../com
 import { reqNewCommand } from '../commands/req.js';
 import { checkCommand } from '../commands/check.js';
 import { roundTripCommand } from '../commands/roundtrip.js';
-import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand, rulesTailoringCommand } from '../commands/rules.js';
+import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand, rulesTailoringCommand, rulesNewCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
 import {
     elementIdentitiesCommand,
@@ -812,6 +812,24 @@ rulesCmd
     .option('--format <format>', 'Output format: text, json, markdown', 'text')
     .action(async (dir: string, opts: { format?: string }) => {
         await rulesTailoringCommand(dir, { format: opts.format as 'text' | 'json' | 'markdown' });
+    });
+
+rulesCmd
+    .command('new')
+    .description("Write a rule of this project's own: checked, previewed against the model, then written")
+    .argument('[dir]', 'Project directory', '.')
+    .requiredOption('--id <id>', 'The rule id, e.g. ORG-001')
+    .requiredOption('--type <name>', 'The constraint def name, e.g. EveryUserHasALabel')
+    .requiredOption('--applies-to <kind>', 'The kind the rule is checked on, e.g. Hazard')
+    .requiredOption('--predicate <expression>', 'The condition; true means the element is fine')
+    .requiredOption('--rationale <text>', 'Why the rule exists')
+    .requiredOption('--file <path>', 'Project-relative .sysml file to write it into')
+    .option('--severity <severity>', 'error, warning or info', 'warning')
+    .option('--tailoring <class>', 'assurance or methodology (default methodology)')
+    .option('--enforces <clause...>', 'A clause the rule enforces: its qualified name, or "<standard> §<number>"')
+    .option('--dry-run', 'Show what the rule would flag and write nothing')
+    .action(async (dir: string, opts: Record<string, unknown>) => {
+        await rulesNewCommand(dir, opts as import('../commands/rules.js').RulesNewOptions);
     });
 
 rulesCmd

@@ -22,6 +22,10 @@ import { loadProjectModel, projectConstraints } from '../toolchain/project-model
 import { handoffFileOf } from '../stage2/handoff-files.js';
 import { clauseLabel, readClauseFacts } from '../validator/rule-clauses.js';
 import { tailoringRecord } from '../validator/rule-tailoring.js';
+import { checkNewRule, dryRunRule, insertRule, resolveClauseReference, type NewRuleRequest } from '../server/rule-writer.js';
+import { commitSource } from '../server/persistor.js';
+import { selectedOutlineSource } from '../authoring/outline-source.js';
+import { existsSync, readFileSync } from 'node:fs';
 
 const RULE_DOMAINS = ['modelling', 'medicalDevice', 'organisation'];
 import { resolutionLoads } from '../stage2/project-from-api.js';
@@ -112,7 +116,7 @@ export async function loadContext(projectDir?: string) {
     const clauseFacts = project.api ? readClauseFacts(project.api) : [];
 
     return {
-        cwd, configPath, config, ontologyRegistries, ruleRegistry, constraints, model: project.model,
+        cwd, projectRoot, configPath, config, ontologyRegistries, ruleRegistry, constraints, model: project.model,
         effectiveRules, ruleDiagnostics, clauseFacts,
     };
 }
@@ -214,7 +218,7 @@ export async function rulesListCommand(
     // none. Listing them here is what makes this command's total reconcile
     // with `memo validate` — the two used to report different numbers because
     // only one of them knew these rules existed.
-    if (!options?.category) {
+    if (!narrowed) {
         console.log(chalk.bold.cyan(`  BUILT-IN — not tailorable (${BUILTIN_RULES.length})`));
         for (const rule of BUILTIN_RULES) {
             console.log(`    ${severityIcon(rule.severity)} ${chalk.white(rule.id)} ${rule.name}`);
@@ -511,4 +515,96 @@ export async function rulesTailoringCommand(
         for (const d of inert) console.log(chalk.gray(`    ${d.policy}: ${d.message}`));
         console.log();
     }
+}
+
+
+// ─── memo rules new ──────────────────────────────────────────────────────────
+//
+// Write a rule of the project's own. It is checked, its effect on the model as
+// it stands is shown, and it is written through the same compile-before-commit
+// path every authoring write takes, so a rule the compiler rejects never
+// reaches the file. `--dry-run` stops after the preview.
+
+export interface RulesNewOptions {
+    id?: string;
+    type?: string;
+    appliesTo?: string;
+    predicate?: string;
+    severity?: string;
+    rationale?: string;
+    enforces?: string[];
+    file?: string;
+    tailoring?: string;
+    dryRun?: boolean;
+}
+
+export async function rulesNewCommand(projectDir: string | undefined, options: RulesNewOptions): Promise<void> {
+    const missing = (['id', 'type', 'appliesTo', 'predicate', 'rationale', 'file'] as const).filter(key => !options[key]);
+    if (missing.length > 0) {
+        console.error(chalk.red(`❌ Missing: ${missing.map(m => `--${m.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}`).join(', ')}`));
+        process.exit(1);
+    }
+    const { projectRoot, config, constraints, model, ontologyRegistries, clauseFacts } = await loadContext(projectDir);
+
+    const enforces: string[] = [];
+    for (const text of options.enforces ?? []) {
+        const clause = resolveClauseReference(clauseFacts, text);
+        if (!clause) {
+            console.error(chalk.red(`❌ "${text}" names no single clause. Use the qualified name, or "<standard> §<number>" such as "62304 §5.2".`));
+            process.exit(1);
+        }
+        enforces.push(clause.qualifiedName);
+    }
+    const request: NewRuleRequest = {
+        id: options.id!, typeName: options.type!, appliesTo: options.appliesTo!,
+        predicateExpression: options.predicate!, severity: (options.severity ?? 'warning') as NewRuleRequest['severity'],
+        rationaleText: options.rationale!, file: options.file!,
+        ...(options.tailoring ? { tailoring: options.tailoring as NewRuleRequest['tailoring'] } : {}),
+        ...(enforces.length > 0 ? { enforces } : {}),
+    };
+
+    const kindRegistry = ontologyRegistries?.kindRegistry;
+    const refusal = checkNewRule(request, {
+        existingIds: new Set(constraints.map(c => c.id)),
+        existingTypeNames: new Set(constraints.map(c => c.typeName).filter((n): n is string => Boolean(n))),
+        kindNames: kindRegistry ? new Set(kindRegistry.kindNames()) : undefined,
+        clauses: clauseFacts,
+    });
+    if (refusal) {
+        console.error(chalk.red(`❌ [${refusal.code}] ${refusal.message}`));
+        process.exit(1);
+    }
+
+    if (model) {
+        const result = dryRunRule(request, model, kindRegistry);
+        console.log(chalk.bold(`\nDry run: ${request.id} would flag ${result.flagged.length} of ${result.subjects} ${request.appliesTo}`));
+        for (const element of result.flagged.slice(0, 20)) {
+            console.log(`  ${chalk.yellow('⚠')} ${element.elementKind} ${element.elementName || element.elementId}`);
+        }
+        if (result.flagged.length > 20) console.log(chalk.gray(`  … and ${result.flagged.length - 20} more`));
+        console.log();
+    }
+    if (options.dryRun) return;
+
+    const relativePath = request.file.replaceAll('\\', '/');
+    const filePath = resolve(projectRoot, relativePath);
+    if (!existsSync(filePath)) {
+        // A methodology runs the rules of the packages it includes, so a rule in a
+        // package nothing includes is written and never runs. Put it in one the project has.
+        console.error(chalk.red(
+            `❌ ${relativePath} does not exist. Write the rule into a file of a package the project already includes; `
+            + 'a methodology only runs the rules of the packages it includes.'));
+        process.exit(1);
+    }
+    const updated = insertRule(readFileSync(filePath, 'utf8'), request);
+    if (updated === undefined) {
+        console.error(chalk.red(`❌ ${relativePath} declares no package to put the rule in; nothing was written.`));
+        process.exit(1);
+    }
+    const committed = await commitSource(filePath, relativePath, updated, selectedOutlineSource(projectRoot, config));
+    if (!committed.success) {
+        console.error(chalk.red(`❌ ${committed.error}`));
+        process.exit(1);
+    }
+    console.log(chalk.green(`✅ Wrote ${request.id} (${request.typeName}) to ${relativePath}`));
 }
