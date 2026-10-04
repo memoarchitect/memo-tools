@@ -74,6 +74,7 @@ import {
 } from '../commands/conformance.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
+import { shipLibraryCommand } from '../commands/ship-library.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import chalk from 'chalk';
 import { Stage1RejectedError } from '../toolchain/project-model.js';
@@ -97,6 +98,16 @@ program
     .name('memo')
     .description('MEMO — Model-Based Systems Engineering for Medical Devices')
     .version('0.6.7');
+
+withToolchainOptions(
+    program
+        .command('ship-library')
+        .description("Export a package's library set with the selected compiler, for the package to carry (stage1/)")
+        .argument('[dir]', 'Package directory whose manifest offers the library roots', '.')
+        .option('--out <dir>', 'Directory to write the shipped files to (default: <dir>/stage1)'),
+).action(async (dir: string, opts: Record<string, unknown>) => {
+    await shipLibraryCommand(dir, opts);
+});
 
 withToolchainOptions(
     program

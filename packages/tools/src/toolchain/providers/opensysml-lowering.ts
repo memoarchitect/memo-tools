@@ -50,6 +50,7 @@ import {
     toDiagnostic,
 } from './opensysml.js';
 import { discoverProjectSources } from '../../model/native-project.js';
+import { findShipped, readShipped, shippedLibraryKey, writeShipped } from '../shipped-library.js';
 
 /** Where a document of the model sits: its handoff file and role. */
 interface DocumentPlace {
@@ -312,6 +313,40 @@ function libraryKeyOf(config: MEMOConfig, libraryFiles: readonly string[]): stri
     return hash.digest('hex');
 }
 
+/** What a shipped export of the libraries is keyed by, besides their content. */
+function shippedKeyOf(serviceVersion: string | undefined, libraryDirs: readonly string[]): string {
+    return shippedLibraryKey(OPENSYSML_PROVIDER_ID, `${serviceVersion ?? 'unknown'}\0qualified`,
+        libraryDirs.map(dir => ({ dir, files: findSysmlFiles(dir) })));
+}
+
+/**
+ * Convert the library set once and write it as the shipped file a package
+ * carries (`memo ship-library`): the handoff `runStage1` would keep for it.
+ */
+export async function shipOpenSysMLLibrary(config: MEMOConfig, libraryDirs: readonly string[], outDir: string): Promise<string[]> {
+    const files = [...new Set(libraryDirs.flatMap(dir => findSysmlFiles(dir)).map(file => resolve(file)))];
+    const connection = await sharedOpenSysMLConnection(config);
+    try {
+        const version = connection.info?.version;
+        const parsed = await connection.rpc.parseSources({ documents: files.map(file => ({ source: { case: 'filePath', value: file } })) });
+        const errors = [...parsed.diagnostics.map(d => toDiagnostic(d, version)), ...(parsed.error ? [{ message: parsed.error, severity: 'error' }] : [])]
+            .filter(d => d.severity === 'error');
+        if (errors.length > 0) {
+            throw new Error(`OpenSysML did not accept the libraries, so there is nothing to ship:\n${errors.map(d => d.message).join('\n')}`);
+        }
+        const converted = await connection.rpc.convert({ source: { case: 'modelHash', value: parsed.modelHash }, toFormat: 'api-json' });
+        if (converted.error) throw new Error(`OpenSysML could not convert the libraries: ${converted.error}`);
+        const handoff = openSysMLHandoff(JSON.parse(converted.content) as ApiElement[], {
+            projectDir: resolve(libraryDirs[0] ?? '.'), libraryDirs, providerVersion: version,
+            source: path => (existsSync(path) ? readFileSync(path) : undefined),
+        });
+        return [writeShipped(outDir, OPENSYSML_PROVIDER_ID, shippedKeyOf(version, libraryDirs), JSON.stringify(handoff), libraryDirs)];
+    } catch (error) {
+        closeSharedOpenSysMLConnection();
+        throw error;
+    }
+}
+
 /** Parse the model in the service and, when it is clean, convert it to the handoff. */
 async function runStage1(
     config: MEMOConfig, projectDir: string, libraryDirs: readonly string[], documents: readonly string[],
@@ -365,6 +400,11 @@ async function runStage1(
         const stored = cacheDir ? join(cacheDir, `${OPENSYSML_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`) : undefined;
         if (!library && stored && existsSync(stored)) library = JSON.parse(readFileSync(stored, 'utf8')) as Stage1Output;
         if (!library) {
+            // The package that carries the libraries may carry their export.
+            const shipped = findShipped(OPENSYSML_PROVIDER_ID, shippedKeyOf(version, libraryDirs), libraryDirs);
+            if (shipped) library = JSON.parse(readShipped(shipped, libraryDirs)) as Stage1Output;
+        }
+        if (!library) {
             const elements = await convert([...new Set(libraryFiles)]);
             if (!elements) return failed();
             library = openSysMLHandoff(elements, handoffOptions);
@@ -377,7 +417,9 @@ async function runStage1(
         }
         libraryHandoffs.set(libraryKey, library);
         const libraryPaths = new Set(libraryFiles);
-        const projectElements = await convert(documents.filter(file => !libraryPaths.has(file)));
+        // An empty list would write every document: a project with none of its own converts nothing.
+        const own = documents.filter(file => !libraryPaths.has(file));
+        const projectElements = own.length > 0 ? await convert(own) : [];
         if (!projectElements) return failed();
         const project = openSysMLHandoff(projectElements, handoffOptions);
         return {
@@ -398,6 +440,7 @@ export const openSysMLLoweringDescriptor: LoweringDescriptor = {
     role: 'lowering',
     capabilities: ['lower'],
     compileModel: compileWithOpenSysML,
+    shipLibrary: shipOpenSysMLLibrary,
     // ParseSources reports what the OpenSysML validator does over the same
     // documents, so a compile is the validator's verdict too.
     compileServesValidator(): boolean {

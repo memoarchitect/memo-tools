@@ -248,6 +248,11 @@ export interface ProviderDescriptor<R extends ProviderRunResult = ProviderRunRes
      * too. False when a setting only the validator honours is in effect.
      */
     compileServesValidator?(config: MEMOConfig): boolean;
+    /**
+     * Export a library set once and write it into `outDir` as the files a
+     * package ships (`shipped-library.ts`); returns the files written.
+     */
+    shipLibrary?(config: MEMOConfig, libraryDirs: readonly string[], outDir: string): Promise<string[]>;
 }
 
 export type ValidatorDescriptor = ProviderDescriptor<ProviderRunResult>;
