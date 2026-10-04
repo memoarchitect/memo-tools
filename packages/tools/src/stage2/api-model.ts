@@ -1,6 +1,6 @@
 // ─── Stage 2 read model over stage 1's API JSON ──────────────────────────────
 //
-// Stage 1 (a SysML compiler: OpenSysML or SysIDE) hands stage 2 the OMG SysML v2
+// Stage 1 (an external SysML compiler) hands stage 2 the OMG SysML v2
 // API JSON of every document, plus an element index the standard JSON does not
 // carry: each element's qualified name and source position
 // (plans/memo-compiler-stages-opensysml.md, "Milestone 2 design"). This module is
@@ -8,7 +8,7 @@
 // asks it, never the compiler, so which compiler ran is invisible from here up.
 //
 // **Identity is the qualified name.** The `@id` a compiler writes is its own
-// (OpenSysML derives it from the qualified name, SysIDE writes UUIDs), so it is
+// (one derives it from the qualified name, another writes UUIDs), so it is
 // used only to follow references inside one handoff and never escapes this
 // module as an element's identity.
 //

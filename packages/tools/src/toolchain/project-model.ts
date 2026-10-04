@@ -2,7 +2,7 @@
 //
 // Every command that needs a MEMO model asks here, so `toolchain.compiler`
 // means the same thing to all of them. A compiler that builds the model
-// (SysIDE, OpenSysML) compiles every library root a locator offers and states
+// (an external compiler) compiles every library root a locator offers and states
 // the project's resolution, registries and rules in its handoff, so MEMO
 // parses nothing. MEMO's own compiler resolves the project, loads the ontology
 // and builds the model from its parse, as it always has.

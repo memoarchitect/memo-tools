@@ -12,7 +12,7 @@
 // the allocation, properly scoped; CR-MED-023 now requires the connection.
 //
 // This one stays because it is neither: it is a TYPE check, and it is not the
-// ontology's to make. SysIDE — the compiler of record — accepts a flow whose
+// ontology's to make. A SysML v2 compiler accepts a flow whose
 // payload matches neither end's parameters (measured, not assumed), and the
 // constraint grammar cannot compare a flow's item type against the direction
 // and type of a parameter on the action at each end.

@@ -119,8 +119,8 @@ function resolveExposePath(path: string, model: MemoModel, fromPackage?: string)
     }
     const id = element.id;
 
-    // SysIDE rejects a bare `expose SomeDefinition;` — "Expected Feature
-    // element but found ActionDefinition" — because a definition is not
+    // A SysML v2 compiler rejects a bare `expose SomeDefinition;` (it expects
+    // a feature and finds a definition) because a definition is not
     // itself a feature, only its members are. `X::**`/`X::*` on a definition
     // is legal, and it means exactly that: the definition's owned features,
     // never the definition itself. A usage, by contrast, IS a feature, so it
@@ -487,7 +487,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         }
 
         // A view usage inherits the attribute values its `view def` binds, and
-        // SysIDE forbids restating them on the usage, so the definition is the
+        // a binding feature value cannot be restated on the usage, so the definition is the
         // only place they can live. The usage's own values still win where it
         // declares any.
         const inherited = kindRegistry?.getViewDefaults(el.kind) ?? {};

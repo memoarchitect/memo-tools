@@ -2,7 +2,7 @@
 //
 // Stage 1 only: is this valid SysML? The compiler `toolchain.compiler` selects
 // checks the project against the OMG specification and reports per line. A
-// compiler that builds the model itself (SysIDE) also writes its output, the
+// compiler that builds the model itself also writes its output, the
 // API JSON handoff, to `.memo/stage1/`, where `memo validate` reuses it while
 // the inputs are unchanged. MEMO's rules are not run here; that is
 // `memo validate` (plans/memo-compiler-stages-opensysml.md).

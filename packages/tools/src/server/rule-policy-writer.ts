@@ -6,7 +6,7 @@
 // the point of "writing SysML through the command boundary" (section 18.4
 // deliverable 8): the browser never composes model source, so a policy authored
 // in the UI is the same construct, in the same file, subject to the same
-// precondition checks, as one typed in SysIDE.
+// precondition checks, as one typed in a text editor.
 //
 // The refusals below are section 10.2's, enforced here rather than in the UI —
 // a check that lives in a React component is a suggestion, because the message
@@ -99,7 +99,7 @@ export function checkRulePolicy(
  *
  * The target is named by narrowing the reference's TYPE — `ref :>> targetRule :
  * X` — not by binding a value. Session 3 established that binding a value to a
- * `constraint def` is not portable: SysIDE rejects it, because a value must be
+ * `constraint def` is not portable: a SysML v2 compiler rejects it, because a value must be
  * a feature and a definition is not.
  */
 export function renderRulePolicy(request: RulePolicyRequest, indent = '        '): string {

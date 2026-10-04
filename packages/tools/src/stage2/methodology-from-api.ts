@@ -4,7 +4,7 @@
 // part definitions and the typed part and action usages of every resolved
 // file — by the root that supplied it. It reads them from MEMO's parse with
 // `walkDocument`; this reads the same facts, file by file, from the API JSON
-// a stage 1 compiler wrote, so a project compiled by SysIDE or OpenSysML
+// a stage 1 compiler wrote, so a project compiled by an external compiler
 // shows its methodology without MEMO parsing it.
 // ─────────────────────────────────────────────────────────────────────────────
 

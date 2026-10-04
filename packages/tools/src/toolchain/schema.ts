@@ -14,12 +14,12 @@ import { Option, type Command } from 'commander';
 import type { MEMOConfig, ToolchainConfig } from '../model/config.js';
 import type { ProviderRegistry, ToolchainSchemaLeaf } from './registry.js';
 
-/** `toolchain.syside.executable` — the option name and the settings path. */
+/** `toolchain.<provider>.<leaf>` — the option name and the settings path. */
 export function toolchainOptionName(leaf: ToolchainSchemaLeaf): string {
     return `toolchain.${leaf.path}`;
 }
 
-/** The flag string commander is given, e.g. `--toolchain.syside.executable <value>`. */
+/** The flag string commander is given, e.g. `--toolchain.<provider>.<leaf> <value>`. */
 export function toolchainOptionFlag(leaf: ToolchainSchemaLeaf): string {
     const placeholder = leaf.type === 'boolean' ? '<true|false>'
         : leaf.type === 'enum' ? `<${(leaf.values ?? []).join('|') || 'value'}>`
@@ -37,7 +37,7 @@ function optionDescription(leaf: ToolchainSchemaLeaf): string {
  * Add every generated option to a command.
  *
  * Commander stores an option whose name contains dots under that exact key —
- * it only camel-cases across dashes — so `opts()['toolchain.syside.executable']`
+ * it only camel-cases across dashes — so `opts()['toolchain.<provider>.<leaf>']`
  * is what comes back, and the settings path is recoverable without a lookup
  * table that could drift from the schema.
  */
@@ -101,8 +101,8 @@ function setPath(target: Record<string, unknown>, path: string, value: unknown):
 /**
  * Apply overrides on top of loaded settings.
  *
- * A flag beats the settings file leaf by leaf, so `--toolchain.syside.diagnose`
- * does not discard a configured `--toolchain.syside.executable`.
+ * A flag beats the settings file leaf by leaf, so one provider flag does not
+ * discard another leaf of the same provider's configured settings.
  */
 export function applyToolchainOverrides(config: MEMOConfig, overrides: ToolchainConfig): MEMOConfig {
     if (Object.keys(overrides).length === 0) return config;

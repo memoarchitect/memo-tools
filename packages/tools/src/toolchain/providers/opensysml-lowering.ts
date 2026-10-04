@@ -5,7 +5,7 @@
 // project and the library roots its resolution selects as one model
 // (`ParseSources`) and, only when that model is clean, converts it to the OMG
 // API JSON (`Convert` of the model hash). This module turns that JSON into the
-// same `memo-stage1/1` handoff SysIDE's export script writes, and stage 2
+// same `memo-stage1/1` handoff every external compiler's provider writes, and stage 2
 // builds the MEMO model from it (`stage2/build-from-api.ts`); MEMO's own
 // parser is not involved.
 //

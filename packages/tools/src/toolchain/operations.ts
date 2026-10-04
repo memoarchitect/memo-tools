@@ -190,7 +190,7 @@ export interface ToolchainProbe {
  * Resolve every role and ask each selected provider whether it can run here,
  * without running it.
  *
- * This is what answers "which `syside` am I actually using?" — a question that
+ * This is what answers "which compiler am I actually using?" — a question that
  * costs an afternoon when the only way to ask it is to run a build and read
  * the errors.
  */

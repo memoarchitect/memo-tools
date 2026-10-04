@@ -127,8 +127,8 @@ export async function devCommand(options: {
      * Parsed `--toolchain.*` options, exactly as commander produced them.
      *
      * The server takes the same overrides the CLI does, so a session started
-     * with `--toolchain.validator=syside` draws from the same selection
-     * `memo validate --toolchain.validator=syside` reports on. A capability
+     * with `--toolchain.validator=<provider>` draws from the same selection
+     * `memo validate --toolchain.validator=<provider>` reports on. A capability
      * that exists only in one of them is a defect.
      */
     toolchainOptions?: Record<string, unknown>;

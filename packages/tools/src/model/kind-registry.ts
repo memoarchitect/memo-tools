@@ -188,8 +188,9 @@ export class KindRegistry {
      * definition's own supertype chain already merged in.
      *
      * A view usage inherits these — `view mainScreenLayout : MemoScreenLayoutView`
-     * gets that definition's `viewKind` without restating it, and SysIDE in fact
-     * REJECTS restating it ("Cannot override a binding feature value"). So the
+     * gets that definition's `viewKind` without restating it, and a SysML v2
+     * compiler in fact REJECTS restating it (a binding feature value cannot be
+     * overridden). So the
      * definition is the only place the value can live, and consumers resolve a
      * usage's presentation by falling back here.
      *

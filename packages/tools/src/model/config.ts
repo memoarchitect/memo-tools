@@ -43,8 +43,8 @@ export type DiagramType =
  * whatever is registered, checked at resolution time against the registry, and
  * a third-party adapter must be selectable without editing this file.
  *
- * Per-provider settings live under the provider's own ID (`syside`, `sysand`,
- * …). They are typed as `unknown` here and read by that provider's adapter,
+ * Per-provider settings live under the provider's own ID
+ * (`toolchain.<provider>`). They are typed as `unknown` here and read by that provider's adapter,
  * which is the only module that knows the shape — see the index signature.
  */
 export interface ToolchainConfig {
