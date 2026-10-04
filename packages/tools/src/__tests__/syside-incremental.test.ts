@@ -8,9 +8,10 @@
 // equals the one stage 2 builds from a one-shot export of the same files.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { createInterface } from 'node:readline';
 import { join, relative, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { discoverProjectSources } from '../model/native-project.js';
@@ -75,4 +76,52 @@ describe.runIf(Boolean(python) && existsSync(example))('SysIDE stage 1, compiled
         edit(text => text.replace(/\npackage broken \{[^\n]*\}\n$/, ''));
         expect(await compiled()).toBe(fresh());
     }, 120_000);
+});
+
+describe.runIf(Boolean(python))('the SysIDE stage 1 worker', () => {
+    // An edit to one document can change another's export without touching its
+    // text: here b.sysml redefines `rpm`, which a.sysml moves to a base definition.
+    it('sends again a document whose export an edit elsewhere changed, and equals a one-shot export', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'memo-syside-worker-'));
+        try {
+            const project = join(dir, 'project');
+            mkdirSync(project);
+            writeFileSync(join(project, 'a.sysml'), 'package A {\n    part def Engine { attribute rpm : ScalarValues::Integer; }\n}\n');
+            writeFileSync(join(project, 'b.sysml'), 'package B {\n    private import A::*;\n    part e : Engine { attribute :>> rpm = 2; }\n}\n');
+            const worker = spawn(python!, [script, '--serve'], { stdio: ['pipe', 'pipe', 'inherit'] });
+            const lines = createInterface({ input: worker.stdout })[Symbol.asyncIterator]();
+            let known: number | null = null;
+            const held = new Map<string, unknown>();
+            const request = async () => {
+                worker.stdin.write(`${JSON.stringify({ project, libraries: [], libraryKey: 'none', libraryOut: join(dir, 'library.json'), known })}\n`);
+                const response = JSON.parse((await lines.next()).value as string);
+                known = response.token;
+                const sent: string[] = [];
+                const documents = response.documents.map((document: { file: string; kept?: boolean }) => {
+                    if (document.kept) return held.get(document.file);
+                    sent.push(document.file);
+                    held.set(document.file, document);
+                    return document;
+                });
+                return { sent, documents };
+            };
+            const oneShot = () => {
+                const out = join(dir, 'one-shot.json');
+                execFileSync(python!, [script, '--out', out, project]);
+                return JSON.parse(readFileSync(out, 'utf8')).documents;
+            };
+            const elements = (documents: { file: string; elements: unknown }[]) =>
+                Object.fromEntries(documents.map(d => [d.file, d.elements]));
+
+            expect((await request()).sent.sort()).toEqual(['a.sysml', 'b.sysml']);
+            expect((await request()).sent).toEqual([]);
+            writeFileSync(join(project, 'a.sysml'), 'package A {\n    part def Base { attribute rpm : ScalarValues::Integer; }\n    part def Engine :> Base;\n}\n');
+            const after = await request();
+            expect(after.sent.sort()).toEqual(['a.sysml', 'b.sysml']);
+            expect(elements(after.documents)).toEqual(elements(oneShot()));
+            worker.stdin.end();
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    }, 60_000);
 });
