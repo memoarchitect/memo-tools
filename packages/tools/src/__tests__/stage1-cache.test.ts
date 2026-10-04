@@ -11,7 +11,7 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { compileWithSyside, sysideInputKey } from '../toolchain/providers/syside-lowering.js';
+import { compileWithSyside, sysideInputKey, sysideLibraryKey } from '../toolchain/providers/syside-lowering.js';
 
 const fixtureDir = resolve(import.meta.dirname, 'fixtures/stage2');
 const NO_PYTHON = '/nonexistent/python-for-stage1-cache-test';
@@ -21,7 +21,7 @@ function project() {
     cpSync(join(fixtureDir, 'api-model-src'), dir, { recursive: true });
     const cacheDir = join(dir, '.memo', 'stage1');
     cpSync(join(fixtureDir, 'api-model.stage1.json'), join(cacheDir, 'syside.json'));
-    writeFileSync(join(cacheDir, 'syside.json.key'), sysideInputKey(NO_PYTHON, dir, []));
+    writeFileSync(join(cacheDir, 'syside.json.key'), sysideInputKey(NO_PYTHON, dir, sysideLibraryKey(NO_PYTHON, [])));
     const options = {
         config: { projectName: 'p', toolchain: { syside: { python: NO_PYTHON } } },
         projectDir: dir, libraryDirs: [], projectFiles: new Set(['model.sysml']), cacheDir,

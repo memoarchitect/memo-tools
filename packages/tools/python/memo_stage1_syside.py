@@ -18,7 +18,8 @@ environment may hold a copy of SysIDE's standard library.
 `--serve` answers one JSON request per line on standard input, one JSON
 response per line on standard output, until input ends. It keeps the libraries
 loaded as a SysIDE environment between requests and writes their export once,
-so a request costs the project alone (plans/memo-incremental-stage1.md):
+so a request costs the project alone, and it sends a project document again
+only when that document's export changed (plans/memo-incremental-stage1.md):
 
     {"project": DIR, "libraries": [DIR, ...], "libraryKey": KEY, "libraryOut": PATH}
 
@@ -105,16 +106,21 @@ def has_errors(diagnostics: list[dict]) -> bool:
 OPTIONS = None
 
 
-def export_document(document, role: str, base: Path) -> tuple[dict, dict[str, dict], set[str]]:
-    """One document's API JSON, the index of the elements it declares, and the
-    ids its references name."""
+def serialized(document) -> str:
+    """A document's API JSON as SysIDE writes it: the cheapest part of an export."""
     global OPTIONS
     if OPTIONS is None:
         OPTIONS = syside.SerializationOptions.minimal().with_options(use_standard_names=True)
+    return _syside.json.dumps(document.root_node, OPTIONS)
+
+
+def export_document(document, role: str, base: Path, raw: str | None = None) -> tuple[dict, dict[str, dict], set[str]]:
+    """One document's API JSON, the index of the elements it declares, and the
+    ids its references name. `raw` is its serialization, when already made."""
     path = Path(document.url.path).resolve()
     relative = os.path.relpath(path, base)
     referenced: set[str] = set()
-    elements = read_elements(_syside.json.dumps(document.root_node, OPTIONS), referenced)
+    elements = read_elements(raw if raw is not None else serialized(document), referenced)
     exported_ids = {element["@id"] for element in elements}
     index: dict[str, dict] = {}
     for element in document.all_nodes(syside.Element):
@@ -267,47 +273,25 @@ class Libraries:
         written.replace(out)
 
 
-# Fields an edit can change without changing what any other document resolves:
-# a literal's value and a comment's text.
-LOCAL_FIELDS = {"value", "body"}
-
-
-def signature(elements: list) -> str:
-    """What other documents can depend on in a document's export: everything
-    but literal values and comment text."""
-    def shape(value):
-        if isinstance(value, dict):
-            return {k: shape(v) for k, v in value.items() if k not in LOCAL_FIELDS}
-        if isinstance(value, list):
-            return [shape(v) for v in value]
-        return value
-    return json.dumps(shape(elements), sort_keys=True)
-
-
 class Exported:
-    """A project document's export as last sent: its text, export, index, the
-    ids it references and its signature."""
+    """A project document's export as last sent: its text, its serialization,
+    export and index, and the ids it references."""
 
-    def __init__(self, text: bytes, document: dict, index: dict[str, dict], referenced: set[str]):
+    def __init__(self, text: bytes, raw: str, document: dict, index: dict[str, dict], referenced: set[str]):
         self.text = text
+        self.raw = raw
         self.document = document
         self.index = index
         self.referenced = referenced
-        self._signature: str | None = None
-
-    @property
-    def signature(self) -> str:
-        if self._signature is None:
-            self._signature = signature(self.document["elements"])
-        return self._signature
 
 
 class Project:
     """A project's documents as this worker last exported them, so a request
-    exports again only the documents whose text changed, unless one of those
-    changed what another document can resolve; then every one. `token` names
-    what was last sent: a caller holding it may be sent `{"kept": true}` for a
-    document it already has."""
+    sends again only the documents whose export changed. A document whose text
+    changed is exported again; one whose text did not is serialized and compared
+    with what was sent, since an edit elsewhere can change what it resolves to.
+    `token` names what was last sent: a caller holding it may be sent
+    `{"kept": true}` for a document it already has."""
 
     def __init__(self):
         self.exported: dict[str, Exported] = {}
@@ -317,19 +301,25 @@ class Project:
     def answer(self, model, project_files: list[Path], project_root: Path, libraries: Libraries, known) -> tuple[list[dict], dict]:
         texts = {str(f): f.read_bytes() for f in project_files}
         reusable = known == self.token and self.libraries_key == libraries.key and set(texts) == set(self.exported)
-        changed = {path for path, text in texts.items() if not reusable or self.exported[path].text != text}
-        fresh: dict[str, Exported] = {}
+        if not reusable:
+            self.exported = {}
+        sent: set[str] = set()
         for shared in model.user_docs:
             with shared.lock() as document:
                 path = str(Path(document.url.path).resolve())
-                if path in changed:
-                    exported, index, referenced = export_document(document, "project", project_root)
-                    fresh[path] = Exported(texts[path], exported, index, referenced)
-        if reusable and any(fresh[path].signature != self.exported[path].signature for path in fresh):
-            # A changed document now resolves differently for the others: all again.
-            return self.answer(model, project_files, project_root, libraries, None)
-        sent = changed if reusable else set(texts)
-        self.exported = {path: fresh.get(path) or self.exported[path] for path in texts}
+                if path not in texts:
+                    continue
+                previous = self.exported.get(path)
+                if previous is not None and previous.text == texts[path]:
+                    raw = serialized(document)
+                    if raw == previous.raw:
+                        continue
+                else:
+                    raw = None
+                raw = raw if raw is not None else serialized(document)
+                exported, index, referenced = export_document(document, "project", project_root, raw)
+                self.exported[path] = Exported(texts[path], raw, exported, index, referenced)
+                sent.add(path)
         self.libraries_key = libraries.key
         self.token += 1
         documents = []

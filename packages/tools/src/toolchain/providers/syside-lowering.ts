@@ -186,37 +186,109 @@ function joined(handoff: SysideHandoff): SysideHandoff {
     };
 }
 
+/** A project's stage 1 from the worker: every document whole, with its own index. */
+interface Served {
+    handoff: SysideHandoff;
+    /** The project's documents, each with the index of what it declares. */
+    documents: ServedDocument[];
+    /** The documents the worker sent this time: the only ones whose stored copy is stale. */
+    sent: ReadonlySet<string>;
+}
+
 /**
  * Stage 1 from the worker: the project's handoff with every document whole
  * (a kept one from what the worker sent before), and its index.
  */
-async function servedHandoff(interpreter: string, projectDir: string, libraryDirs: readonly string[], libraryOut: string): Promise<SysideHandoff> {
+async function servedHandoff(interpreter: string, projectDir: string, libraryDirs: readonly string[],
+    libraryKey: string, libraryOut: string): Promise<Served> {
     return serve(async () => {
         const worker = workerFor(interpreter);
         let response: ServedResponse;
         try {
-            response = await worker.request({
-                project: projectDir, libraries: libraryDirs, libraryKey: sysideLibraryKey(interpreter, libraryDirs), libraryOut,
-            });
+            response = await worker.request({ project: projectDir, libraries: libraryDirs, libraryKey, libraryOut });
         } catch (error) {
             throw new Error(`SysIDE stage 1 could not run with "${interpreter}": ${(error as Error).message}. `
                 + `Set toolchain.${SYSIDE_PROVIDER_ID}.python to a Python with SysIDE's API.`);
         }
         if (response.error) throw new Error(`SysIDE stage 1 failed: ${response.error}`);
-        if (!response.clean) return response as SysideHandoff;
+        if (!response.clean) return { handoff: response as SysideHandoff, documents: [], sent: new Set() };
         const documents: ServedDocument[] = [];
-        const index: Record<string, ApiIndexEntry> = { ...response.index };
+        const sent = new Set<string>();
         for (const document of response.documents ?? []) {
             const whole = 'kept' in document ? worker.held.get(document.file) : document;
             if (!whole) throw new Error(`SysIDE stage 1 kept ${document.file}, which this process does not hold`);
-            if (!('kept' in document)) worker.held.set(document.file, document);
-            const { index: own, ...rest } = whole;
-            Object.assign(index, own);
-            documents.push(rest);
+            if (!('kept' in document)) {
+                worker.held.set(document.file, document);
+                sent.add(document.file);
+            }
+            documents.push(whole);
         }
         worker.token = response.token ?? null;
-        return { ...response, documents, index } as SysideHandoff;
+        return { handoff: withDocuments(response as SysideHandoff, documents), documents, sent };
     });
+}
+
+/** A handoff carrying `documents` whole, their own indexes merged into its index. */
+function withDocuments(handoff: SysideHandoff, documents: readonly ServedDocument[]): SysideHandoff {
+    const index: Record<string, ApiIndexEntry> = { ...handoff.index };
+    const whole = documents.map(({ index: own, ...rest }) => {
+        Object.assign(index, own);
+        return rest;
+    });
+    return { ...handoff, documents: whole, index };
+}
+
+/**
+ * The stage 1 output kept in a cache directory: `syside.json` names the
+ * project's documents, each stored apart (`syside-documents/`) so a compile
+ * rewrites only the documents the worker sent, and the libraries' handoff.
+ */
+const DOCUMENTS_DIR = `${SYSIDE_PROVIDER_ID}-documents`;
+
+type StoredHandoff = Omit<SysideHandoff, 'documents'> & {
+    documents?: (ServedDocument | { file: string; role: 'project' | 'library'; root?: string; stored: string })[];
+};
+
+function storedName(file: string): string {
+    return `${createHash('sha256').update(file).digest('hex').slice(0, 24)}.json`;
+}
+
+function store(cacheDir: string, served: Served): void {
+    const directory = join(cacheDir, DOCUMENTS_DIR);
+    mkdirSync(directory, { recursive: true });
+    const names = new Set<string>();
+    const listed = served.documents.map(document => {
+        const name = storedName(document.file);
+        names.add(name);
+        if (served.sent.has(document.file) || !existsSync(join(directory, name))) {
+            writeFileSync(join(directory, name), JSON.stringify(document));
+        }
+        return { file: document.file, role: document.role, root: document.root, stored: name };
+    });
+    for (const name of readdirSync(directory)) {
+        if (!names.has(name)) rmSync(join(directory, name), { force: true });
+    }
+    const { documents: _whole, index: _merged, ...rest } = served.handoff;
+    const standard = Object.fromEntries(Object.entries(served.handoff.index ?? {}).filter(([, entry]) => entry.role === 'standard'));
+    const manifest: StoredHandoff = { ...rest, documents: listed, index: standard };
+    writeFileSync(join(cacheDir, `${SYSIDE_PROVIDER_ID}.json`), JSON.stringify(manifest));
+}
+
+/** The stored handoff, its documents read back; undefined when any is missing. */
+function stored(cacheDir: string): SysideHandoff | undefined {
+    const manifest = JSON.parse(readFileSync(join(cacheDir, `${SYSIDE_PROVIDER_ID}.json`), 'utf8')) as StoredHandoff;
+    if (manifest.library && !existsSync(manifest.library.path)) return undefined;
+    const documents: ServedDocument[] = [];
+    for (const document of manifest.documents ?? []) {
+        if (!('stored' in document)) {
+            documents.push(document);
+            continue;
+        }
+        const path = join(cacheDir, DOCUMENTS_DIR, document.stored);
+        if (!existsSync(path)) return undefined;
+        documents.push(JSON.parse(readFileSync(path, 'utf8')) as ServedDocument);
+    }
+    return withDocuments(manifest as SysideHandoff, documents);
 }
 
 /**
@@ -228,33 +300,30 @@ export async function compileWithSyside(options: CompileModelOptions): Promise<C
     const { libraryDirs, projectFiles, registries, filePackages } = options;
 
     const interpreter = python(options.config);
-    const key = sysideInputKey(interpreter, projectDir, libraryDirs);
-    const cached = options.cacheDir ? join(options.cacheDir, `${SYSIDE_PROVIDER_ID}.json`) : undefined;
-    const keyFile = cached ? `${cached}.key` : undefined;
+    const libraryKey = sysideLibraryKey(interpreter, libraryDirs);
+    const key = sysideInputKey(interpreter, projectDir, libraryKey);
+    const cacheDir = options.cacheDir;
+    const keyFile = cacheDir ? join(cacheDir, `${SYSIDE_PROVIDER_ID}.json.key`) : undefined;
     let handoff: SysideHandoff | undefined;
     let reused = false;
-    if (cached && keyFile && !options.force && existsSync(cached) && existsSync(keyFile)
-        && readFileSync(keyFile, 'utf8') === key) {
-        const stored = JSON.parse(readFileSync(cached, 'utf8')) as SysideHandoff;
-        if (!stored.library || existsSync(stored.library.path)) {
-            handoff = stored;
-            reused = true;
-        }
+    if (cacheDir && keyFile && !options.force && existsSync(join(cacheDir, `${SYSIDE_PROVIDER_ID}.json`))
+        && existsSync(keyFile) && readFileSync(keyFile, 'utf8') === key) {
+        handoff = stored(cacheDir);
+        reused = Boolean(handoff);
     }
     if (!handoff) {
-        const libraryOut = options.cacheDir
-            ? join(options.cacheDir, `${SYSIDE_PROVIDER_ID}-library-${sysideLibraryKey(interpreter, libraryDirs).slice(0, 16)}.json`)
-            : join(scratchDir(), `${SYSIDE_PROVIDER_ID}-library-${sysideLibraryKey(interpreter, libraryDirs).slice(0, 16)}.json`);
-        handoff = await servedHandoff(interpreter, projectDir, libraryDirs, libraryOut);
-        if (cached && keyFile && options.cacheDir) {
-            mkdirSync(options.cacheDir, { recursive: true });
+        const libraryOut = join(cacheDir ?? scratchDir(), `${SYSIDE_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`);
+        const served = await servedHandoff(interpreter, projectDir, libraryDirs, libraryKey, libraryOut);
+        handoff = served.handoff;
+        if (cacheDir && keyFile && handoff.clean) {
+            mkdirSync(cacheDir, { recursive: true });
             // Tool output, never authored content: the directory ignores
             // itself, so no project has to know to add it to its .gitignore.
-            const ignore = join(options.cacheDir, '.gitignore');
+            const ignore = join(cacheDir, '.gitignore');
             if (!existsSync(ignore)) writeFileSync(ignore, '*\n');
-            writeFileSync(cached, JSON.stringify(handoff));
+            store(cacheDir, served);
             writeFileSync(keyFile, key);
-            removeStaleLibraryHandoffs(options.cacheDir, libraryOut);
+            removeStaleLibraryHandoffs(cacheDir, libraryOut);
         }
     }
     const diagnostics = parseSysideDiagnostics(
@@ -301,18 +370,16 @@ export function sysideLibraryKey(interpreter: string, libraryDirs: readonly stri
 }
 
 /**
- * Everything a SysIDE stage 1 result depends on: the interpreter, the export
- * script, and the content of every SysML file it loads. A result is reused only
- * while this is unchanged; a SysIDE upgrade in the same interpreter is not seen,
+ * Everything a SysIDE stage 1 result depends on: the libraries' key
+ * (`sysideLibraryKey`: the interpreter, the export script and every library
+ * file) and the content of every project file. A result is reused only while
+ * this is unchanged; a SysIDE upgrade in the same interpreter is not seen,
  * which is what `memo compile --force` is for.
  */
-export function sysideInputKey(interpreter: string, projectDir: string, libraryDirs: readonly string[]): string {
+export function sysideInputKey(interpreter: string, projectDir: string, libraryKey: string): string {
     const hash = createHash('sha256');
-    hash.update(`${SYSIDE_PROVIDER_ID}\0${interpreter}\0`);
-    hash.update(readFileSync(EXPORT_SCRIPT));
-    const files = [...findSysmlFiles(projectDir), ...libraryDirs.flatMap(sysmlFilesUnder)]
-        .map(file => resolve(file));
-    for (const file of [...new Set(files)].sort()) {
+    hash.update(`${SYSIDE_PROVIDER_ID}\0${interpreter}\0${libraryKey}\0`);
+    for (const file of [...new Set(findSysmlFiles(projectDir).map(file => resolve(file)))].sort()) {
         hash.update(`\0${file}\0`);
         hash.update(readFileSync(file));
     }
