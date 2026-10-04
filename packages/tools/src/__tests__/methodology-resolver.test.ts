@@ -396,3 +396,89 @@ describe('resolveEffectiveRules', () => {
         expect(active).toEqual(['CR-003', 'CR-ONT-001']);
     });
 });
+
+// ─── A policy that selects several rules ─────────────────────────────────────
+
+describe('a policy selecting by standard or category', () => {
+    const risk = 'memo_ontology_risk';
+    const BULK: RuleCandidate[] = [
+        rule({ id: 'CR-MED-001', typeName: 'HazardRule', subjectPackage: risk,
+            constraint: { enforces: ['memo_std_14971::iso14971::clause7::clause7_1'] } as any }),
+        rule({ id: 'CR-MED-002', typeName: 'RiskRule', subjectPackage: `${risk}_analysis`,
+            constraint: { enforces: ['memo_std_14971::iso14971::clause5::clause5_5', 'memo_std_62304::iec62304::c5'] } as any }),
+        rule({ id: 'CR-MED-011', typeName: 'SoftwareRule', subjectPackage: 'memo_ontology_software',
+            constraint: { enforces: ['memo_std_62304::iec62304::c5::c5_2'] } as any }),
+        rule({ id: 'ORG-001', typeName: 'OwnRule', subjectPackage: undefined }),
+        rule({ id: 'CR-ONT-001', typeName: 'AcyclicRule', tailoring: 'invariant', subjectPackage: risk,
+            constraint: { enforces: ['memo_std_14971::iso14971::clause7::clause7_1'] } as any }),
+    ];
+    const disabled = (set: ReturnType<typeof resolveEffectiveRules>) =>
+        set.rules.filter(r => r.disposition === 'disabled').map(r => r.sourceRuleId);
+
+    it('disables every rule that enforces a clause of the standard, as one recorded decision', () => {
+        const p = policy({
+            usageName: 'noRiskStandard', targetStandard: 'memo_std_14971::iso14971', disposition: 'disabled',
+            rationaleText: 'out of scope', authority: 'QA lead',
+        });
+        const set = resolveEffectiveRules(BULK, chain(p));
+        expect(disabled(set)).toEqual(['CR-MED-001', 'CR-MED-002']);
+        for (const id of ['CR-MED-001', 'CR-MED-002']) {
+            const r = set.rules.find(x => x.sourceRuleId === id)!;
+            expect(r.policyChain.map(e => e.policy.usageName)).toEqual(['noRiskStandard']);
+            expect(r.authority).toBe('QA lead');
+        }
+        // The invariant that enforces a clause of it keeps running, and the policy says so.
+        expect(set.rules.find(r => r.sourceRuleId === 'CR-ONT-001')!.disposition).toBe('enabled');
+        expect(set.diagnostics.map(d => d.code)).toEqual(['invariant-protected']);
+    });
+
+    it('names a standard by its usage name, as written beside the qualified form', () => {
+        const set = resolveEffectiveRules(BULK, chain(policy({
+            usageName: 'no62304', targetStandard: 'iec62304', disposition: 'disabled', rationaleText: 'r',
+        })));
+        expect(disabled(set)).toEqual(['CR-MED-002', 'CR-MED-011']);
+    });
+
+    it('selects a category by the layer namespace of the subject kind, including nested packages', () => {
+        const set = resolveEffectiveRules(BULK, chain(policy({
+            usageName: 'noRisk', targetCategory: risk, disposition: 'disabled', rationaleText: 'r',
+        })));
+        expect(disabled(set)).toEqual(['CR-MED-001', 'CR-MED-002']);
+        // A rule with no subject kind is in no category.
+        expect(set.rules.find(r => r.sourceRuleId === 'ORG-001')!.disposition).toBe('enabled');
+    });
+
+    it('lets a bulk policy change severity without disabling', () => {
+        const set = resolveEffectiveRules(BULK, chain(policy({
+            usageName: 'soften', targetCategory: risk, severityOverride: 'info',
+        })));
+        expect(set.rules.filter(r => r.effectiveSeverity === 'info').map(r => r.sourceRuleId))
+            .toEqual(['CR-MED-001', 'CR-MED-002', 'CR-ONT-001']);
+        expect(disabled(set)).toEqual([]);
+    });
+
+    it('reports a selection that reaches nothing instead of staying silent', () => {
+        const set = resolveEffectiveRules(BULK, chain(policy({
+            usageName: 'none', targetStandard: 'iso99999', disposition: 'disabled', rationaleText: 'r',
+        })));
+        expect(set.diagnostics.map(d => d.code)).toEqual(['missing-target']);
+        expect(disabled(set)).toEqual([]);
+    });
+
+    it('refuses a disable with no rationale, a bulk replacement, and a policy naming two selectors', () => {
+        const noReason = resolveEffectiveRules(BULK, chain(policy({
+            usageName: 'a', targetCategory: risk, disposition: 'disabled',
+        })));
+        expect(noReason.diagnostics.map(d => d.code)).toContain('missing-rationale');
+        const bulkReplace = resolveEffectiveRules(BULK, chain(policy({
+            usageName: 'b', targetCategory: risk, disposition: 'replaced', replacementRuleType: 'OwnRule', rationaleText: 'r',
+        })));
+        expect(bulkReplace.diagnostics.map(d => d.code)).toEqual(['bulk-replacement']);
+        expect(disabled(bulkReplace)).toEqual([]);
+        const both = resolveEffectiveRules(BULK, chain(policy({
+            usageName: 'c', targetCategory: risk, targetRuleType: 'HazardRule', disposition: 'disabled', rationaleText: 'r',
+        })));
+        expect(both.diagnostics.map(d => d.code)).toEqual(['multiple-targets']);
+        expect(disabled(both)).toEqual([]);
+    });
+});

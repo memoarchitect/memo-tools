@@ -23,9 +23,13 @@ import { handoffFileOf } from '../stage2/handoff-files.js';
 import { clauseLabel, readClauseFacts } from '../validator/rule-clauses.js';
 import { inactiveRules, resolveProjectRules, type InactiveRule } from '../model/effective-scope.js';
 import { isProjectSource } from '../stage2/project-from-api.js';
-import { tailoringRecord } from '../validator/rule-tailoring.js';
+import { bulkDecisions, tailoringRecord } from '../validator/rule-tailoring.js';
 import { checkNewRule, dryRunRule, insertRule, resolveClauseReference, type NewRuleRequest } from '../server/rule-writer.js';
 import { commitSource } from '../server/persistor.js';
+import {
+    checkRulePolicy, insertRulePolicy, renderRulePolicy, resolveStandardReference, type RulePolicyRequest,
+} from '../server/rule-policy-writer.js';
+import { rulesSelectedBy } from '../model/methodology-resolver.js';
 import { selectedOutlineSource } from '../authoring/outline-source.js';
 import { existsSync, readFileSync } from 'node:fs';
 
@@ -468,19 +472,32 @@ export async function rulesTailoringCommand(
 ): Promise<void> {
     const { effectiveRules, ruleDiagnostics } = await loadContext(projectDir);
     const entries = tailoringRecord(effectiveRules);
+    const decisions = bulkDecisions(entries);
+    const describe = (d: { selection: { standard?: string; category?: string } }) =>
+        d.selection.standard ? `every rule of the standard ${d.selection.standard}` : `every rule on the layer ${d.selection.category}`;
     // A policy whose target is not in the project's rule set changes nothing,
     // but the decision it states is still the project's record.
     const inert = ruleDiagnostics.filter(d => d.code === 'missing-target');
     const format = options?.format ?? 'text';
 
     if (format === 'json') {
-        console.log(JSON.stringify({ tailored: entries, total: entries.length, inertPolicies: inert }, null, 2));
+        console.log(JSON.stringify({ tailored: entries, total: entries.length, decisions, inertPolicies: inert }, null, 2));
         return;
     }
 
     if (format === 'markdown') {
         console.log('# Rule tailoring record\n');
         if (entries.length === 0) console.log('No rule has been switched off, downgraded or replaced.');
+        if (decisions.length > 0) {
+            console.log('## Decisions that reached several rules\n');
+            for (const d of decisions) {
+                console.log(`### ${d.policy}: ${describe(d)}\n`);
+                console.log(`- ${d.disposition ?? 'enabled'}${d.severityOverride ? `, severity ${d.severityOverride}` : ''} (${d.level}, ${d.source}): ${d.rationaleText ?? '*no rationale*'}`);
+                console.log(`- Authority: ${d.authority ?? '*none*'}; approval: ${d.approvalReference ?? '*none*'}`);
+                console.log(`- Reached ${d.ruleIds.length} rule(s): ${d.ruleIds.join(', ')}\n`);
+            }
+            console.log('## Rules\n');
+        }
         for (const entry of entries) {
             console.log(`## ${entry.ruleId} ${entry.ruleType}${entry.domain === 'medicalDevice' ? ' (medical device)' : ''}\n`);
             console.log(`- Disposition: ${entry.disposition}${entry.activeRuleId ? ` → ${entry.activeRuleId}` : ''}`);
@@ -504,6 +521,13 @@ export async function rulesTailoringCommand(
     if (entries.length === 0) {
         console.log(chalk.gray('  No rule has been switched off, downgraded or replaced.\n'));
     }
+    for (const d of decisions) {
+        console.log(`  ${chalk.bold(d.policy)} — ${chalk.yellow(`${d.disposition ?? 'enabled'}${d.severityOverride ? ` at ${d.severityOverride}` : ''} ${describe(d)}`)}`);
+        console.log(chalk.gray(`    ${d.rationaleText ?? 'no rationale'}`));
+        console.log(chalk.gray(`    authority: ${d.authority ?? 'none'}; approval: ${d.approvalReference ?? 'none'}`));
+        console.log(chalk.gray(`    reached ${d.ruleIds.length} rule(s): ${d.ruleIds.join(', ')}`));
+    }
+    if (decisions.length > 0) console.log();
     for (const entry of entries) {
         const medical = entry.domain === 'medicalDevice' ? chalk.magenta(' [medical device]') : '';
         const state = entry.disposition === 'enabled'
@@ -615,4 +639,97 @@ export async function rulesNewCommand(projectDir: string | undefined, options: R
         process.exit(1);
     }
     console.log(chalk.green(`✅ Wrote ${request.id} (${request.typeName}) to ${relativePath}`));
+}
+
+
+// ─── memo rules tailor ───────────────────────────────────────────────────────
+//
+// Switch off, or change the severity of, a rule, every rule that enforces a
+// clause of a standard, or every rule on a layer: one `RulePolicy`, so one
+// decision with one rationale and one approval in the tailoring record. It goes
+// through the checks and the writer Architect uses, and through the
+// compile-before-commit write, so a policy the compiler rejects never reaches
+// the file. `--dry-run` shows the rules the policy reaches and stops.
+
+export interface RulesTailorOptions {
+    rule?: string;
+    standard?: string;
+    category?: string;
+    disable?: boolean;
+    severity?: string;
+    replaceWith?: string;
+    rationale?: string;
+    authority?: string;
+    approval?: string;
+    file?: string;
+    dryRun?: boolean;
+}
+
+export async function rulesTailorCommand(projectDir: string | undefined, options: RulesTailorOptions): Promise<void> {
+    const fail = (message: string): never => { console.error(chalk.red(`❌ ${message}`)); process.exit(1); };
+    const given = [options.rule, options.standard, options.category].filter(Boolean);
+    if (given.length !== 1) fail('Name exactly one of --rule, --standard and --category.');
+    if (!options.disable && !options.severity && !options.replaceWith) {
+        fail('State the decision: --disable, --severity <error|warning|info>, or --replace-with <rule> (one rule only).');
+    }
+    if (options.severity && !['error', 'warning', 'info'].includes(options.severity)) fail('--severity expects error, warning or info.');
+    if (!options.dryRun && !options.file) fail('Missing --file: the project binding or methodology source to write the policy into.');
+
+    const { projectRoot, config, effectiveRules, clauseFacts } = await loadContext(projectDir);
+
+    const request: RulePolicyRequest = {
+        disposition: options.replaceWith ? 'replaced' : options.disable ? 'disabled' : 'enabled',
+        rationaleText: options.rationale ?? '',
+        ...(options.severity ? { severityOverride: options.severity as 'error' | 'warning' | 'info' } : {}),
+        ...(options.replaceWith ? { replacementRuleType: options.replaceWith } : {}),
+        ...(options.authority ? { authority: options.authority } : {}),
+        ...(options.approval ? { approvalReference: options.approval } : {}),
+    };
+    if (options.rule) {
+        // A rule is named by its `constraint def` or by its id.
+        const target = effectiveRules.find(r => r.sourceRuleType === options.rule || r.sourceRuleId === options.rule);
+        request.targetRuleType = target?.sourceRuleType ?? options.rule;
+    } else if (options.standard) {
+        if (clauseFacts.length === 0) {
+            fail('A standard is selected by the clauses its rules enforce, which only a compiler that builds the model can read. '
+                + 'Select the compiler (--toolchain.compiler, or the compiler setting), or name rules one at a time.');
+        }
+        const standard = resolveStandardReference(clauseFacts, options.standard);
+        if (!standard) fail(`"${options.standard}" names no single standard of the model. Use its designation, such as "ISO 14971", or its qualified name.`);
+        request.targetStandard = standard;
+    } else {
+        request.targetCategory = options.category;
+    }
+
+    const refusal = checkRulePolicy(request, effectiveRules);
+    if (refusal) fail(`[${refusal.code}] ${refusal.message}`);
+
+    const reached = request.targetRuleType
+        ? effectiveRules.filter(r => r.sourceRuleType === request.targetRuleType)
+        : rulesSelectedBy(effectiveRules, request);
+    const left = reached.filter(r => r.tailoring === 'invariant' && request.disposition !== 'enabled');
+    const changed = reached.filter(r => !left.includes(r));
+    console.log(chalk.bold(`\n${request.disposition === 'disabled' ? 'Disables' : request.disposition === 'replaced' ? 'Replaces' : 'Changes the severity of'} ${changed.length} rule(s):`));
+    for (const r of changed) {
+        const medical = r.domain === 'medicalDevice' ? chalk.magenta(' [medical device]') : '';
+        console.log(`  ${r.sourceRuleId} ${r.sourceRuleType}${medical}`);
+    }
+    if (left.length > 0) {
+        console.log(chalk.yellow(`  ${left.length} invariant rule(s) in the selection keep running: ${left.map(r => r.sourceRuleId).join(', ')}`));
+    }
+    if (changed.some(r => r.domain === 'medicalDevice') && request.disposition !== 'enabled'
+        && !(request.authority && request.approvalReference)) {
+        console.log(chalk.yellow('  A medical-device rule\'s record also needs --authority and --approval; the tailoring record will report it incomplete.'));
+    }
+    console.log();
+    if (options.dryRun) return;
+
+    const relativePath = options.file!.replaceAll('\\', '/');
+    const filePath = resolve(projectRoot, relativePath);
+    if (!existsSync(filePath)) fail(`${relativePath} does not exist.`);
+    const updated = insertRulePolicy(readFileSync(filePath, 'utf8'), renderRulePolicy(request));
+    if (updated === undefined) fail(`${relativePath} declares no ProjectMethodBinding or MethodologyDefinition to attach the policy to; nothing was written.`);
+    const committed = await commitSource(filePath, relativePath, updated!, selectedOutlineSource(projectRoot, config));
+    if (!committed.success) fail(committed.error ?? 'The compiler rejected the policy; nothing was written.');
+    console.log(chalk.green(`✅ Wrote the policy to ${relativePath}`));
 }

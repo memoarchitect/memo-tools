@@ -19,6 +19,8 @@ export interface ClauseFact {
     qualifiedName: string;
     /** The standard's designation (`IEC 62304:2006+AMD1:2015`). */
     standard: string;
+    /** The standard's qualified name: what a policy that selects by standard names. */
+    standardName: string;
     clauseNumber: string;
     /** A MEMO-authored scope phrase, not the standard's wording. */
     title?: string;
@@ -28,10 +30,12 @@ export interface ClauseFact {
 export function readClauseFacts(api: ApiModel): ClauseFact[] {
     const typedBy = (id: string, suffix: string): boolean =>
         api.types(id).some(type => api.qualifiedName(type['@id'])?.endsWith(`::${suffix}`));
-    const standardOf = (id: string): string | undefined => {
+    const standardOf = (id: string): { designation: string; name: string } | undefined => {
         for (let owner = api.owner(id); owner; owner = api.owner(owner['@id'])) {
             if (owner['@type'] === 'PartUsage' && typedBy(owner['@id'], 'RegulatoryStandard')) {
-                return apiDefinitionFacts(api, owner).attributes['designation'];
+                const designation = apiDefinitionFacts(api, owner).attributes['designation'];
+                const name = api.qualifiedName(owner['@id']);
+                return designation && name ? { designation, name } : undefined;
             }
         }
         return undefined;
@@ -45,7 +49,7 @@ export function readClauseFacts(api: ApiModel): ClauseFact[] {
         const standard = standardOf(usage['@id']);
         if (!standard || !attributes['clauseNumber']) continue;
         facts.push({
-            qualifiedName, standard, clauseNumber: attributes['clauseNumber'],
+            qualifiedName, standard: standard.designation, standardName: standard.name, clauseNumber: attributes['clauseNumber'],
             ...(attributes['title'] ? { title: attributes['title'] } : {}),
         });
     }

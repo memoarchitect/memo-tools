@@ -65,6 +65,8 @@ export interface EffectiveRule {
     domain?: RuleDomain;
     /** The clauses the rule enforces (qualified names). */
     enforces?: readonly string[];
+    /** The package that declares the rule's subject kind: its layer, for a policy that selects by category. */
+    subjectPackage?: string;
 }
 
 export interface RuleResolutionDiagnostic {
@@ -76,6 +78,10 @@ export interface RuleResolutionDiagnostic {
         | 'replacement-without-target'
         | 'missing-rationale'
         | 'ambiguous-target'
+        /** A policy names more than one of a rule, a standard and a category. */
+        | 'multiple-targets'
+        /** A policy that selects several rules cannot replace them. */
+        | 'bulk-replacement'
         /** Resolution itself threw. Reported so the UI shows why the set is empty. */
         | 'resolution-failed';
     message: string;
@@ -292,6 +298,8 @@ export interface RuleCandidate {
     tailoring: RuleTailoring;
     file?: string;
     constraint?: CompiledConstraint;
+    /** The package that declares the rule's subject kind, when it has one. */
+    subjectPackage?: string;
 }
 
 /**
@@ -309,6 +317,7 @@ export interface RuleCandidate {
  */
 export function ruleCandidatesFromConstraints(
     constraints: readonly CompiledConstraint[],
+    subjectPackage: (constraint: CompiledConstraint) => string | undefined = () => undefined,
 ): RuleCandidate[] {
     const candidates: RuleCandidate[] = [];
     for (const constraint of constraints) {
@@ -320,9 +329,133 @@ export function ruleCandidatesFromConstraints(
             tailoring: constraint.tailoring ?? 'assurance',
             file: constraint.sourceFile,
             constraint,
+            ...(subjectPackage(constraint) ? { subjectPackage: subjectPackage(constraint) } : {}),
         });
     }
     return candidates;
+}
+
+/** Whether a clause (a qualified name) belongs to a standard named as written: qualified, or by its usage name. */
+export function clauseInStandard(clause: string, standard: string): boolean {
+    if (standard.includes('::')) return clause === standard || clause.startsWith(`${standard}::`);
+    return clause.split('::').includes(standard);
+}
+
+/** The rules a policy's standard or category selects (none when it states neither). */
+export function rulesSelectedBy<T extends Pick<EffectiveRule, 'enforces' | 'subjectPackage'>>(
+    rules: readonly T[],
+    selector: { targetStandard?: string; targetCategory?: string },
+): T[] {
+    if (selector.targetStandard) {
+        const standard = selector.targetStandard;
+        return rules.filter(rule => (rule.enforces ?? []).some(clause => clauseInStandard(clause, standard)));
+    }
+    if (selector.targetCategory) {
+        const category = selector.targetCategory;
+        return rules.filter(rule => rule.subjectPackage !== undefined && isWithinLayerNamespace(category, rule.subjectPackage));
+    }
+    return [];
+}
+
+/** The layer namespaces that have rules: the values `targetCategory` can take, spelled as a methodology's `includedLayer`. */
+export function layersWithRules(rules: readonly Pick<EffectiveRule, 'subjectPackage'>[]): string[] {
+    const packages = [...new Set(rules.map(rule => rule.subjectPackage).filter((p): p is string => Boolean(p)))].sort();
+    // The layer is the namespace the packages share: `memo_assurance_safety_risk`, not a sub-package of it.
+    return packages.filter(name => !packages.some(other => other !== name && name.startsWith(`${other}_`)));
+}
+
+/** The standards some rule enforces a clause of: what `targetStandard` can name, by qualified name and designation. */
+export function standardsWithRules(
+    rules: readonly Pick<EffectiveRule, 'enforces'>[],
+    clauses: readonly { qualifiedName: string; standard: string; standardName: string }[],
+): { standardName: string; standard: string }[] {
+    const enforced = new Set(rules.flatMap(rule => rule.enforces ?? []));
+    const found = new Map<string, string>();
+    for (const clause of clauses) if (enforced.has(clause.qualifiedName)) found.set(clause.standardName, clause.standard);
+    return [...found].map(([standardName, standard]) => ({ standardName, standard })).sort((a, b) => a.standard.localeCompare(b.standard));
+}
+
+/**
+ * Apply a policy that selects by standard or by category.
+ *
+ * It expands to the rules it matches and applies one decision to each, so the
+ * tailoring record shows one policy with every rule it reached, and a rule
+ * added later that matches is covered. A selection that reaches nothing, or
+ * only invariants, is reported: a bulk policy that changes nothing must say so.
+ */
+function applyBulkPolicy(
+    entry: PolicyChainEntry,
+    rules: EffectiveRule[],
+    diagnostics: RuleResolutionDiagnostic[],
+): void {
+    const { policy } = entry;
+    const disposition = policy.disposition ?? 'enabled';
+    const selection = policy.targetStandard
+        ? `the standard "${policy.targetStandard}"`
+        : `the category "${policy.targetCategory}"`;
+    if (disposition === 'replaced') {
+        diagnostics.push({
+            code: 'bulk-replacement',
+            message:
+                `Policy "${policy.usageName}" replaces the rules of ${selection}. A replacement answers one rule; `
+                + `a selection of several can be disabled or have its severity changed, not replaced.`,
+            policy: policy.usageName,
+            file: policy.sourceFile,
+        });
+        return;
+    }
+    if (disposition !== 'enabled' && !policy.rationaleText) {
+        diagnostics.push({
+            code: 'missing-rationale',
+            message:
+                `Policy "${policy.usageName}" ${disposition}s the rules of ${selection} without a rationale. `
+                + `A tailoring decision that records no reason cannot be audited.`,
+            policy: policy.usageName,
+            file: policy.sourceFile,
+        });
+    }
+
+    const matched = rulesSelectedBy(rules, policy);
+    if (matched.length === 0) {
+        diagnostics.push({
+            code: 'missing-target',
+            message:
+                `Policy "${policy.usageName}" selects ${selection}, which matches no rule in the resolved rule set. `
+                + (policy.targetStandard
+                    ? `A rule is selected by the clauses it enforces, which only a compiler that builds the model can read; `
+                      + `check the standard's name and that its package is in the project.`
+                    : `A category is a layer namespace as a methodology's \`includedLayer\` spells it, and selects the rules `
+                      + `whose subject kind is declared in it.`),
+            policy: policy.usageName,
+            file: policy.sourceFile,
+        });
+        return;
+    }
+
+    const protectedIds: string[] = [];
+    for (const rule of matched) {
+        if (rule.tailoring === 'invariant' && disposition !== 'enabled') {
+            protectedIds.push(rule.sourceRuleId);
+            continue;
+        }
+        rule.disposition = disposition;
+        if (policy.severityOverride) rule.effectiveSeverity = policy.severityOverride;
+        rule.policyChain.push(entry);
+        if (policy.rationaleText) rule.rationaleText = policy.rationaleText;
+        if (policy.authority) rule.authority = policy.authority;
+        if (policy.approvalReference) rule.approvalReference = policy.approvalReference;
+    }
+    if (protectedIds.length > 0) {
+        diagnostics.push({
+            code: 'invariant-protected',
+            message:
+                `Policy "${policy.usageName}" selects ${protectedIds.length} invariant rule(s) of ${selection} `
+                + `(${protectedIds.join(', ')}); they keep running. Invariant rules hold the ontology's internal `
+                + `consistency and can only change in an ontology release.`,
+            policy: policy.usageName,
+            file: policy.sourceFile,
+        });
+    }
 }
 
 export interface EffectiveRuleSet {
@@ -383,11 +516,28 @@ export function resolveEffectiveRules(
             sourceFile: c.file,
             ...(c.constraint?.domain ? { domain: c.constraint.domain } : {}),
             ...(c.constraint?.enforces ? { enforces: c.constraint.enforces } : {}),
+            ...(c.subjectPackage ? { subjectPackage: c.subjectPackage } : {}),
         });
     }
 
     for (const entry of policyChain) {
         const { policy } = entry;
+        const selectors = [policy.targetRuleType, policy.targetStandard, policy.targetCategory].filter(Boolean);
+        if (selectors.length > 1) {
+            diagnostics.push({
+                code: 'multiple-targets',
+                message:
+                    `Policy "${policy.usageName}" names more than one of a rule, a standard and a category. A policy `
+                    + `selects what it governs in exactly one way; state one decision per selection.`,
+                policy: policy.usageName,
+                file: policy.sourceFile,
+            });
+            continue;
+        }
+        if (policy.targetStandard || policy.targetCategory) {
+            applyBulkPolicy(entry, [...state.values()], diagnostics);
+            continue;
+        }
         const targetType = policy.targetRuleType;
         if (!targetType) {
             diagnostics.push({

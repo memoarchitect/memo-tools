@@ -53,7 +53,7 @@ import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../com
 import { reqNewCommand } from '../commands/req.js';
 import { checkCommand } from '../commands/check.js';
 import { roundTripCommand } from '../commands/roundtrip.js';
-import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand, rulesTailoringCommand, rulesNewCommand } from '../commands/rules.js';
+import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand, rulesTailoringCommand, rulesNewCommand, rulesTailorCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
 import {
     elementIdentitiesCommand,
@@ -812,6 +812,25 @@ rulesCmd
     .option('--format <format>', 'Output format: text, json, markdown', 'text')
     .action(async (dir: string, opts: { format?: string }) => {
         await rulesTailoringCommand(dir, { format: opts.format as 'text' | 'json' | 'markdown' });
+    });
+
+rulesCmd
+    .command('tailor')
+    .description('Switch off or re-grade one rule, every rule of a standard, or every rule on a layer, as one recorded policy')
+    .argument('[dir]', 'Project directory', '.')
+    .option('--rule <rule>', 'One rule: its id or constraint def name')
+    .option('--standard <standard>', 'Every rule that enforces a clause of this standard, e.g. "ISO 14971"')
+    .option('--category <layer>', "Every rule whose subject kind is in this layer (the discipline), as a methodology's includedLayer spells it, e.g. memo_assurance_safety_risk")
+    .option('--disable', 'Switch the selected rules off (needs --rationale)')
+    .option('--severity <severity>', 'Change the severity to error, warning or info')
+    .option('--replace-with <rule>', 'Replace one rule with another constraint def (--rule only)')
+    .option('--rationale <text>', 'Why: required to disable or replace')
+    .option('--authority <text>', 'Who decided')
+    .option('--approval <reference>', 'The approval reference')
+    .option('--file <path>', 'Project-relative .sysml file with the project binding or methodology to write the policy into')
+    .option('--dry-run', 'Show the rules the policy would reach and write nothing')
+    .action(async (dir: string, opts: Record<string, unknown>) => {
+        await rulesTailorCommand(dir, opts as import('../commands/rules.js').RulesTailorOptions);
     });
 
 rulesCmd

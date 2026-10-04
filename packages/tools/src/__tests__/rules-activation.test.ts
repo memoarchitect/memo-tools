@@ -91,3 +91,39 @@ describe.runIf(Boolean(python) && existsSync(example))('a project reached throug
         }
     }, 240_000);
 });
+
+// ─── Switching off a whole standard, by one policy ───────────────────────────
+
+function tailorStandard(name: string, flags: string[]): void {
+    describe(`a policy that disables a standard, through ${name}`, () => {
+        it('is written once, reaches every rule that enforces a clause of it, and is recorded as one decision', () => {
+            const root = realpathSync(mkdtempSync(join(tmpdir(), 'memo-rules-tailor-')));
+            try {
+                cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
+                const before = JSON.parse(run(root, ['rules', 'list', '.', '--format', 'json'], flags)) as { tailorable: unknown[] };
+                const written = run(root, ['rules', 'tailor', '.', '--standard', 'ISO 14971', '--disable',
+                    '--rationale', 'test', '--authority', 'QA', '--approval', 'T-1', '--file', 'model/catalog/project.sysml'], flags);
+                expect(written).toContain('Wrote the policy');
+
+                const record = JSON.parse(run(root, ['rules', 'tailoring', '.', '--format', 'json'], flags)) as {
+                    decisions: { policy: string; ruleIds: string[] }[]; tailored: { ruleId: string; disposition: string }[];
+                };
+                expect(record.decisions).toHaveLength(1);
+                expect(record.decisions[0].ruleIds).toContain('CR-MED-001');
+                expect(record.tailored.every(t => t.disposition === 'disabled')).toBe(true);
+                expect(record.tailored.map(t => t.ruleId).sort()).toEqual([...record.decisions[0].ruleIds].sort());
+
+                // The rules stay in the set, switched off: nothing disappears from the list.
+                const after = JSON.parse(run(root, ['rules', 'list', '.', '--format', 'json'], flags)) as { tailorable: unknown[] };
+                expect(after.tailorable.length).toBe(before.tailorable.length);
+            } finally {
+                rmSync(root, { recursive: true, force: true });
+            }
+        }, 240_000);
+    });
+}
+
+if (python && existsSync(example)) tailorStandard('SysIDE', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`]);
+if (binary && client && existsSync(example)) {
+    tailorStandard('OpenSysML', ['--toolchain.compiler=opensysml', `--toolchain.opensysml.binary=${binary}`, `--toolchain.opensysml.client=${client}`]);
+}

@@ -16,6 +16,8 @@ export interface TailoringChange {
     source: string;
     level: 'methodology' | 'project';
     policy: string;
+    /** What the policy selected, when it selects by standard or category rather than naming the rule. */
+    selection?: { standard?: string; category?: string };
     disposition?: string;
     severityOverride?: string;
     replacement?: string;
@@ -51,6 +53,8 @@ export function tailoringRecord(rules: readonly EffectiveRule[]): TailoringEntry
         if (rule.policyChain.length === 0 && rule.disposition === 'enabled' && rule.effectiveSeverity === rule.declaredSeverity) continue;
         const changes: TailoringChange[] = rule.policyChain.map(({ source, level, policy }) => ({
             source, level, policy: policy.usageName,
+            ...(policy.targetStandard ? { selection: { standard: policy.targetStandard } } : {}),
+            ...(policy.targetCategory ? { selection: { category: policy.targetCategory } } : {}),
             ...(policy.disposition ? { disposition: policy.disposition } : {}),
             ...(policy.severityOverride ? { severityOverride: policy.severityOverride } : {}),
             ...(policy.replacementRuleType ? { replacement: policy.replacementRuleType } : {}),
@@ -81,4 +85,45 @@ export function tailoringRecord(rules: readonly EffectiveRule[]): TailoringEntry
         });
     }
     return entries.sort((a, b) => a.ruleId.localeCompare(b.ruleId));
+}
+
+/** A policy that selected several rules: one decision, and every rule it reached. */
+export interface BulkDecision {
+    policy: string;
+    source: string;
+    level: 'methodology' | 'project';
+    selection: { standard?: string; category?: string };
+    disposition?: string;
+    severityOverride?: string;
+    rationaleText?: string;
+    authority?: string;
+    approvalReference?: string;
+    ruleIds: string[];
+}
+
+/**
+ * The decisions that reached several rules, each once. A bulk disable is one
+ * decision a reader should see as one, with the rules it reached under it,
+ * rather than as the same sentence repeated under each rule.
+ */
+export function bulkDecisions(entries: readonly TailoringEntry[]): BulkDecision[] {
+    const byPolicy = new Map<string, BulkDecision>();
+    for (const entry of entries) {
+        for (const change of entry.changes) {
+            if (!change.selection) continue;
+            const key = `${change.file}::${change.source}::${change.policy}`;
+            const decision = byPolicy.get(key) ?? {
+                policy: change.policy, source: change.source, level: change.level, selection: change.selection,
+                ...(change.disposition ? { disposition: change.disposition } : {}),
+                ...(change.severityOverride ? { severityOverride: change.severityOverride } : {}),
+                ...(change.rationaleText ? { rationaleText: change.rationaleText } : {}),
+                ...(change.authority ? { authority: change.authority } : {}),
+                ...(change.approvalReference ? { approvalReference: change.approvalReference } : {}),
+                ruleIds: [],
+            };
+            decision.ruleIds.push(entry.ruleId);
+            byPolicy.set(key, decision);
+        }
+    }
+    return [...byPolicy.values()];
 }

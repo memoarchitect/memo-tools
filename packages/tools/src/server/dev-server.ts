@@ -1772,7 +1772,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         const updated = insertRulePolicy(onDisk, renderRulePolicy(request));
                         if (!updated) {
                             throw new Error(
-                                `${request.sourceFile} declares no MethodologyDefinition to attach the policy to.`);
+                                `${request.sourceFile} declares no ProjectMethodBinding or MethodologyDefinition to attach the policy to.`);
                         }
                         writeFileSync(path, updated, 'utf8');
                         const transactionId = recordWriteTransaction(String(request.sourceFile), updated);

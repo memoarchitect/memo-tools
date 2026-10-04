@@ -145,3 +145,56 @@ describe('insertRulePolicy', () => {
         expect((out.match(/\{/g) ?? []).length).toBe((out.match(/\}/g) ?? []).length);
     });
 });
+
+// ─── A policy that selects several rules ─────────────────────────────────────
+
+describe('a policy selecting by standard or category', () => {
+    const risk = (type: string, over: Partial<EffectiveRule> = {}): EffectiveRule => ({
+        ...rule(type, 'assurance'), subjectPackage: 'memo_assurance_safety_risk',
+        enforces: ['memo_std::iso14971::c7'], ...over,
+    });
+    const set = [risk('HazardRule'), risk('InvRule', { tailoring: 'invariant' }), rule('Other', 'assurance')];
+    const bulk: RulePolicyRequest = {
+        targetStandard: 'memo_std::iso14971', disposition: 'disabled', rationaleText: 'out of scope',
+    };
+
+    it('accepts a selection that reaches a rule it can change', () => {
+        expect(checkRulePolicy(bulk, set)).toBeUndefined();
+        expect(checkRulePolicy({ ...bulk, targetStandard: undefined, targetCategory: 'memo_assurance_safety_risk' }, set))
+            .toBeUndefined();
+    });
+
+    it('refuses a selection that reaches nothing, naming the layers that have rules', () => {
+        const refusal = checkRulePolicy({ ...bulk, targetStandard: undefined, targetCategory: 'risk' }, set);
+        expect(refusal?.code).toBe('selects-no-rule');
+        expect(refusal?.message).toContain('memo_assurance_safety_risk');
+        expect(checkRulePolicy({ ...bulk, targetStandard: 'memo_std::other' }, set)?.code).toBe('selects-no-rule');
+    });
+
+    it('refuses two selectors, none, a bulk replacement, a missing rationale, and a selection of only invariants', () => {
+        expect(checkRulePolicy({ ...bulk, targetCategory: 'x' }, set)?.code).toBe('multiple-targets');
+        expect(checkRulePolicy({ ...bulk, targetStandard: undefined }, set)?.code).toBe('no-target');
+        expect(checkRulePolicy({ ...bulk, disposition: 'replaced', replacementRuleType: 'Other' }, set)?.code).toBe('bulk-replacement');
+        expect(checkRulePolicy({ ...bulk, rationaleText: ' ' }, set)?.code).toBe('missing-rationale');
+        expect(checkRulePolicy(bulk, [risk('InvRule', { tailoring: 'invariant' })])?.code).toBe('invariant-not-tailorable');
+    });
+
+    it('renders a standard as a valued reference and a category as an attribute', () => {
+        const standard = renderRulePolicy(bulk);
+        expect(standard).toContain('part policyIso14971 : RulePolicy :> rulePolicy {');
+        expect(standard).toContain('ref :>> targetStandard = memo_std::iso14971;');
+        expect(standard).not.toContain('targetRule');
+        const category = renderRulePolicy({ ...bulk, targetStandard: undefined, targetCategory: 'memo_assurance_safety_risk' });
+        expect(category).toContain('part policyMemoAssuranceSafetyRisk : RulePolicy');
+        expect(category).toContain('attribute :>> targetCategory = "memo_assurance_safety_risk";');
+    });
+
+    it('writes into a project binding, and numbers a policy whose name is taken', () => {
+        const source = 'package p {\n    part b : ProjectMethodBinding {\n        attribute x = 1;\n    }\n}\n';
+        const once = insertRulePolicy(source, renderRulePolicy(bulk))!;
+        expect(once).toContain('part policyIso14971 :');
+        const twice = insertRulePolicy(once, renderRulePolicy(bulk))!;
+        expect(twice).toContain('part policyIso14971 :');
+        expect(twice).toContain('part policyIso149712 :');
+    });
+});

@@ -20,6 +20,7 @@ export * from '../import/column-mapper.js';
 export type * from '../validator/types.js';
 export type * from '../protocol/messages.js';
 export type { StandardsReport } from '../dhf/standards-report.js';
+export { layersWithRules, standardsWithRules, rulesSelectedBy } from '../model/methodology-resolver.js';
 export type { ClauseFact } from '../validator/rule-clauses.js';
 export type { ConditionSpec } from '../server/rule-writer.js';
 export type { MethodologyDescriptor } from '../model/methodology-loader.js';

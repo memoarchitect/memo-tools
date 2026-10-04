@@ -172,6 +172,8 @@ that is not in a standards file is an error and not a typo that survives.
 memo rules list --domain medicalDevice        # each rule with the clauses it enforces
 memo standards check                          # clause coverage, then which clauses rules enforce
 memo rules tailoring --format markdown        # every rule a policy changed, with who and why
+memo rules tailor --standard "ISO 14971" --disable --rationale "not claimed" \
+    --authority "QA lead" --approval DHF-12 --file model/catalog/project.sysml --dry-run
 memo rules new --id ORG-001 --type TwoControls --applies-to Hazard \
     --predicate "mitigates->size() >= 2" --rationale "SOP 4.1" \
     --enforces "14971 §7" --file model/catalog/project_rules.sysml --dry-run
@@ -184,6 +186,23 @@ reference, and notes where a medical-device rule's record lacks an authority or
 an approval. It lists the policies that target no rule in the project too,
 because a decision you wrote down is still yours. Only an `invariant`, a rule
 the ontology's own structure depends on, cannot be tailored.
+
+`memo rules tailor` writes one policy that governs a rule (`--rule`, by id or
+name), every rule that enforces a clause of a standard (`--standard`), or every
+rule on a layer (`--category`). It disables the selection (`--disable`, with a
+rationale) or changes its severity; a selection of several rules cannot be
+replaced. A bulk policy is still one decision: the record lists it once with the
+rules it reached, and a rule added later that the selection matches is covered by
+it. A *category* is the layer of the rule's subject kind, spelled as a
+methodology's `includedLayer` spells it (`memo_assurance_safety_risk`); that is
+a different thing from the tailoring class `memo rules list --category` filters
+by. An invariant in the selection keeps running and the command says so. A
+standard is selected by the clauses its rules enforce, which only a compiler that
+builds the model can read: under the `internal` compiler a policy by standard
+reaches no rule and is reported as such. `--dry-run` lists the rules the policy
+would reach and writes nothing; otherwise it writes into the project binding or
+methodology in `--file` through the compile-before-commit path. Architect's
+Rules view offers the same choice (one rule, a standard, a layer).
 
 `memo rules new` checks a rule (a unique id and name, a kind the project
 has, a condition that parses, a rationale, clauses that exist), shows what it

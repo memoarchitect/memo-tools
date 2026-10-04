@@ -15,8 +15,8 @@ import { checkNewRule, insertRule, renderRule, resolveClauseReference, type NewR
 import type { ClauseFact } from '../validator/rule-clauses.js';
 
 const clauses: ClauseFact[] = [
-    { qualifiedName: 'memo_artifacts_standards_iso_14971::iso14971::iso14971Clause7', standard: 'ISO 14971:2019', clauseNumber: '7', title: 'risk control' },
-    { qualifiedName: 'memo_artifacts_standards_iec_62304::iec62304::iec62304Clause5::iec62304Clause5_2', standard: 'IEC 62304:2006+AMD1:2015', clauseNumber: '5.2' },
+    { qualifiedName: 'memo_artifacts_standards_iso_14971::iso14971::iso14971Clause7', standard: 'ISO 14971:2019', standardName: 'memo_artifacts_standards_iso_14971::iso14971', clauseNumber: '7', title: 'risk control' },
+    { qualifiedName: 'memo_artifacts_standards_iec_62304::iec62304::iec62304Clause5::iec62304Clause5_2', standard: 'IEC 62304:2006+AMD1:2015', standardName: 'memo_artifacts_standards_iec_62304::iec62304', clauseNumber: '5.2' },
 ];
 const context = {
     existingIds: new Set(['CR-MED-001']), existingTypeNames: new Set(['HazardMitigationRule']),

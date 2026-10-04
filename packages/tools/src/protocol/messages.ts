@@ -194,8 +194,10 @@ export interface RulePolicyWriteMessage {
     type: 'rule:policy:write';
     payload: {
         requestId: string;
-        /** `constraint def` type name the policy targets. */
-        targetRuleType: string;
+        /** What the policy governs: exactly one of a rule's `constraint def` name, a standard's qualified name, or a layer namespace. */
+        targetRuleType?: string;
+        targetStandard?: string;
+        targetCategory?: string;
         disposition: 'enabled' | 'disabled' | 'replaced';
         severityOverride?: 'error' | 'warning' | 'info';
         replacementRuleType?: string;

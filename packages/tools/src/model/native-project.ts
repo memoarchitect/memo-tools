@@ -123,6 +123,10 @@ export interface NativeRulePolicy {
     usageName: string;
     /** Type name of the referenced `constraint def`, from `ref :>> targetRule : X`. */
     targetRuleType?: string;
+    /** The standard whose rules the policy selects: its name as written, qualified or not. */
+    targetStandard?: string;
+    /** A layer namespace: selects the rules whose subject kind sits in it. */
+    targetCategory?: string;
     replacementRuleType?: string;
     disposition?: 'enabled' | 'disabled' | 'replaced';
     severityOverride?: 'error' | 'warning' | 'info';
@@ -419,6 +423,8 @@ function readRulePolicy(node: any, file: string): NativeRulePolicy {
     return {
         usageName: node.name,
         targetRuleType: refType(body, 'targetRule'),
+        targetStandard: refType(body, 'targetStandard'),
+        targetCategory: attr(body, 'targetCategory'),
         replacementRuleType: refType(body, 'replacementRule'),
         disposition:
             disposition === 'enabled' || disposition === 'disabled' || disposition === 'replaced'

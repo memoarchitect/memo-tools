@@ -15,9 +15,9 @@ import { describe, expect, it } from 'vitest';
 import { computeRuleClauseCoverage, clauseLabel, type ClauseFact } from '../validator/rule-clauses.js';
 
 const clauses: ClauseFact[] = [
-    { qualifiedName: 'p::std::c5', standard: 'ISO 14971:2019', clauseNumber: '5', title: 'risk analysis' },
-    { qualifiedName: 'p::std::c7', standard: 'ISO 14971:2019', clauseNumber: '7', title: 'risk control' },
-    { qualifiedName: 'p::other::c1', standard: 'IEC 62304', clauseNumber: '1' },
+    { qualifiedName: 'p::std::c5', standard: 'ISO 14971:2019', standardName: 'p::std', clauseNumber: '5', title: 'risk analysis' },
+    { qualifiedName: 'p::std::c7', standard: 'ISO 14971:2019', standardName: 'p::std', clauseNumber: '7', title: 'risk control' },
+    { qualifiedName: 'p::other::c1', standard: 'IEC 62304', standardName: 'p::other', clauseNumber: '1' },
 ];
 const rule = (id: string, over: Record<string, unknown> = {}) =>
     ({ sourceRuleId: id, sourceRuleType: `${id}Rule`, disposition: 'enabled' as const, ...over });
