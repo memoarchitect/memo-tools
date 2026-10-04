@@ -67,7 +67,16 @@ export interface NativeConstraint {
     tailoring?: 'invariant' | 'assurance' | 'methodology';
     /** File the rule is declared in. */
     sourceFile?: string;
+    /** Why the rule exists: `modelling`, `medicalDevice` or `organisation`. Absent when the rule states none. */
+    domain?: RuleDomain;
+    /**
+     * The qualified names of the standard or guidance clauses the rule enforces,
+     * as the compiler resolved them. Empty or absent for a rule that traces to none.
+     */
+    enforces?: string[];
 }
+
+export type RuleDomain = 'modelling' | 'medicalDevice' | 'organisation';
 
 /** Constraint metadata without the expression body — used by the AST entry point. */
 export type ConstraintMeta = Omit<NativeConstraint, 'expression'>;
