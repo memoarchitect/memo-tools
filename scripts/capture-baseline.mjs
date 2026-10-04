@@ -20,6 +20,11 @@ import { resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
+// The baselines were frozen under MEMO's own compiler, and the projects name no
+// compiler of their own, so the capture says which one it runs under (a caller
+// may still set another and expect a divergence).
+process.env.MEMO_TOOLCHAIN_COMPILER ??= 'internal';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const toolsRoot = resolve(here, '..');
 const metaRoot = resolve(toolsRoot, '..');
