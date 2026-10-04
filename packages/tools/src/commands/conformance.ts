@@ -32,7 +32,6 @@ import {
     type DiffXmiReport,
 } from '../conformance/index.js';
 import { memoVersion } from '../version.js';
-import { classifyConstraints } from '../validator/sysml-constraints.js';
 
 export interface ConformanceCliOptions extends Record<string, unknown> {
     corpus?: string;
@@ -227,67 +226,4 @@ export async function conformanceBnfCommand(
             process.exitCode = 1;
         }
     }
-}
-
-// ─── memo conformance rules ──────────────────────────────────────────────────
-//
-// The B4 scoreboard: MEMO's reimplemented well-formedness constraints against
-// the 151 codes Syside publishes. Reads the vendored checklist, so it needs no
-// external tool (§1.3 rule 1).
-
-export interface RulesCliOptions extends ConformanceCliOptions {
-    /** List the codes with no implementation, and why. */
-    missing?: boolean;
-}
-
-export async function conformanceRulesCommand(
-    _dir: string | undefined,
-    options: RulesCliOptions = {},
-): Promise<void> {
-    const score = classifyConstraints();
-
-    if (options.format === 'json') {
-        emit('', {
-            sysideVersion: score.sysideVersion,
-            total: score.total,
-            implemented: score.implemented.map(constraint => ({
-                code: constraint.code,
-                clause: constraint.clause,
-                appliesTo: constraint.appliesTo,
-                ...(constraint.limitation ? { limitation: constraint.limitation } : {}),
-            })),
-            byReason: score.byReason,
-            unpublished: score.unpublished,
-            unimplemented: score.unimplemented,
-        }, options);
-        return;
-    }
-
-    const lines: string[] = [''];
-    lines.push(`checklist         ${score.sysideVersion}`);
-    lines.push('');
-    lines.push(`implemented       ${String(score.implemented.length).padStart(4)} / ${score.total}`);
-    lines.push(`blocked           ${String(score.byReason.blocked).padStart(4)}   needs the resolution core or a workspace index (B3, B5)`);
-    lines.push(`not yet written   ${String(score.byReason['not-yet']).padStart(4)}`);
-    lines.push(`out of scope      ${String(score.byReason['out-of-scope']).padStart(4)}`);
-    lines.push('');
-    for (const constraint of score.implemented) {
-        lines.push(`  ${constraint.code.padEnd(38)} ${constraint.clause}`);
-        if (constraint.limitation) lines.push(chalk.yellow(`  ${' '.repeat(38)} partial — ${constraint.limitation}`));
-    }
-    if (score.unpublished.length > 0) {
-        // A code MEMO invented is a §5.1.2 violation, not a bonus rule.
-        lines.push('');
-        lines.push(chalk.red(`  ${score.unpublished.length} implemented code(s) Syside does not publish: ${score.unpublished.join(', ')}`));
-    }
-    if (options.missing) {
-        lines.push('');
-        lines.push(`Not implemented (${score.unimplemented.length}):`);
-        for (const entry of score.unimplemented) {
-            lines.push(`  ${entry.code.padEnd(58)} ${entry.reason.padEnd(12)} ${entry.detail}`);
-        }
-    }
-    lines.push('');
-    emit(lines.join('\n'), score, options);
-    if (score.unpublished.length > 0) process.exitCode = 1;
 }
