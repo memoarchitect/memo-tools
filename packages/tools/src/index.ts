@@ -25,6 +25,8 @@ export * from './model/methodology-resolver.js';
 export * from './model/effective-scope.js';
 export * from './model/settings-boundary.js';
 export * from './model/config-loader.js';
+export { mergeToolchain } from './model/toolchain-merge.js';
+export { userToolchain, userSettingsPath, USER_COMPILER_ENV } from './model/user-settings.js';
 export * from './model/semantic.js';
 export * from './model/element-index.js';
 export * from './model/sysml-ir.js';
