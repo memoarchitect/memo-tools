@@ -36,7 +36,7 @@ memo init --list       # packages, templates, and examples together
 | `memo sysand publish` | Validate and package content for SysAnd publication. |
 | `memo check [dir]` | Check SysML v2 tool compatibility. |
 | `memo round-trip [dir]` | Predict round-trip conformance for SysON, SysIDE, or Cameo. |
-| `memo rules …` | List, check, explain, and report coverage for consistency rules. |
+| `memo rules …` | List, check, explain, tailor and write consistency rules, and report their coverage of standards clauses. |
 | `memo toolchain probe [dir]` | Resolve each toolchain role to a provider and report its executable and version. |
 | `memo toolchain check [paths...]` | Run the selected validator over SysML paths, less the project's `validator-exceptions.json`. |
 | `memo config effective [dir]` | Print settings after flags and `toolchain.compiler` are applied; an unset role is reported as not configured. |
@@ -159,6 +159,42 @@ the gate: re-freezing is deliberate and reviewable.
 
 Neither subcommand is reachable from `validate`, `dev`, `build`, or an Architect
 refresh — they grade MEMO against the OMG's files, not against your project.
+
+## Rules, standards and tailoring
+
+Every rule states a **domain**: `modelling` (it keeps a model well formed
+whatever the product), `medicalDevice` (a medical-device standard or guidance
+asks for what it checks) or `organisation` (a rule of your own). A rule names
+the clauses it enforces, and the compiler checks each exists, so a clause
+that is not in a standards file is an error and not a typo that survives.
+
+```bash
+memo rules list --domain medicalDevice        # each rule with the clauses it enforces
+memo standards check                          # clause coverage, then which clauses rules enforce
+memo rules tailoring --format markdown        # every rule a policy changed, with who and why
+memo rules new --id ORG-001 --type TwoControls --applies-to Hazard \
+    --predicate "mitigates->size() >= 2" --rationale "SOP 4.1" \
+    --enforces "14971 §7" --file model/catalog/project_rules.sysml --dry-run
+```
+
+You may switch off, downgrade or replace any rule, a medical-device rule
+included. What the project owes is the record: `memo rules tailoring` lists
+every rule a policy changed with its rationale, authority and approval
+reference, and notes where a medical-device rule's record lacks an authority or
+an approval. It lists the policies that target no rule in the project too,
+because a decision you wrote down is still yours. Only an `invariant`, a rule
+the ontology's own structure depends on, cannot be tailored.
+
+`memo rules new` checks a rule (a unique id and name, a kind the project
+has, a condition that parses, a rationale, clauses that exist), shows what it
+would flag in the model as it stands, and writes it through the same
+compile-before-commit path as every authoring write: a rule the compiler
+rejects never reaches the file. Write it into a file of a package the project
+already includes. A methodology runs only the rules of the packages it includes,
+so a rule in a new package is written and never runs. `--enforces` takes a
+qualified name or `"<standard> §<number>"` (`"62304 §5.2"`). Clause numbers
+and titles come from the standards files in the ontology; a medical-device rule
+that traces to no clause yet is listed, not hidden.
 
 ## Common examples
 

@@ -433,7 +433,7 @@ function spliceIndented(source: string, start: number, end: number, replacement:
 }
 
 /** Append a new declaration as the last member of the file's final package. */
-function appendToLastPackage(source: string, usage: string): string {
+export function appendToLastPackage(source: string, usage: string): string {
     const lastBrace = source.lastIndexOf('}');
     if (lastBrace === -1) return `${source}\n${usage}\n`;
     const braceLineStart = source.lastIndexOf('\n', lastBrace - 1) + 1;
