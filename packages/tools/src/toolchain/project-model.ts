@@ -19,7 +19,7 @@ import { parseFiles } from '../model/parser-utils.js';
 import type { MemoModel, ParseError } from '../model/semantic.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import type { ApiModel } from '../stage2/api-model.js';
-import { resolutionLoads } from '../stage2/project-from-api.js';
+import { isProjectSource, resolutionLoads } from '../stage2/project-from-api.js';
 import { collectNativeConstraints, type ConstraintDiagnostic } from '../validator/constraint-loader.js';
 import type { CompiledConstraint } from '../validator/constraint-eval.js';
 import { collectApiConstraints } from '../validator/constraint-loader-api.js';
@@ -159,7 +159,8 @@ export async function loadProjectModel(options: LoadProjectModelOptions): Promis
 export function projectConstraints(
     project: ProjectModel,
     diagnostics: ConstraintDiagnostic[] = [],
-    isProjectFile: (file: string) => boolean = () => false,
+    /** Files that are the project's own; by default, every file under no library root. */
+    isProjectFile: (file: string) => boolean = project.resolution ? isProjectSource(project.resolution) : () => false,
 ): CompiledConstraint[] {
     if (project.api) {
         const loaded = project.resolution ? resolutionLoads(project.resolution) : () => true;

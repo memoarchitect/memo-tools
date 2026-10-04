@@ -46,6 +46,8 @@ import { apiEnumerations, apiProjectSourcePackages, resolutionLoads } from '../s
 import { outlinesFromDocuments, outlinesFromHandoff } from '../authoring/outline-source.js';
 import { outlineIdentityTable } from '../authoring/outline-identity.js';
 import { discoverProjectSources } from '../model/native-project.js';
+import { isRulePackageInScope, resolveProjectRules, scopedSubjectIds } from '../model/effective-scope.js';
+import { isProjectSource } from '../stage2/project-from-api.js';
 import { readClauseFacts, type ClauseFact } from '../validator/rule-clauses.js';
 import type { RuleServiceContext } from '../server/rule-service.js';
 
@@ -330,27 +332,50 @@ export async function devCommand(options: {
         );
         // An accepted stage 1 carries the ontology it resolved, rules included,
         // so they are read from its handoff rather than from MEMO's own parse.
+        // The rules resolution loads, and the project's own: a rule the project
+        // wrote in a file nothing imports still runs, as in `memo validate`.
+        const resolutionOf = stage1?.resolution ?? nativeResolution;
+        const ruleFileLoaded = resolutionOf
+            ? (file: string) => resolutionLoads(resolutionOf)(file) || isProjectSource(resolutionOf)(file)
+            : undefined;
         const nativeConstraints = accepted
-            ? collectApiConstraints(stage1.api!, undefined, stage1.resolution?.filePackages,
-                stage1.resolution ? resolutionLoads(stage1.resolution) : undefined)
+            ? collectApiConstraints(stage1.api!, undefined, stage1.resolution?.filePackages, ruleFileLoaded)
             : kept?.constraints ?? collectNativeConstraints([...ontologyDocuments, ...documents]);
         // An accepted stage 1 states the ontology with the project's own kinds,
         // as MEMO's parse of the same closure does.
         const stage2Registries: BuilderRegistries | undefined = accepted && stage1.registries
             ? stage1.registries
             : kept?.registries ?? projectRegistries;
-        const validation = validateModel(model, nativeConstraints, stage2Registries?.kindRegistry);
+        // The effective rule set, activated and tailored as `memo validate` and
+        // `memo rules list` do it (`resolveProjectRules`), so Architect reports
+        // the rule set they do. Rule resolution must never take the rebuild down:
+        // a bad policy is a diagnostic about the methodology, not a reason the
+        // model cannot be shown.
+        let validation: ReturnType<typeof validateModel>;
         const effectiveRuleSet = (() => {
             try {
-                const resolved = resolveEffectiveRules(
-                    ruleCandidatesFromConstraints(nativeConstraints),
-                    methodologyDescriptor.effective?.policyChain ?? [],
-                );
+                const kindRegistry = stage2Registries?.kindRegistry;
+                const filePackages = resolutionOf?.filePackages ?? new Map<string, string>();
+                const { rules: resolved, scope } = resolveProjectRules({
+                    constraints: nativeConstraints,
+                    effective: methodologyDescriptor.effective,
+                    filePackages,
+                    kindSourceFile: kind => kindRegistry?.getKind(kind)?.sourceFile,
+                    isOwnFile: resolutionOf ? isProjectSource(resolutionOf) : undefined,
+                });
+                // Scope decides which elements rules RUN ON, not the model they navigate.
+                const inScopeIds = scope && scope.mode !== 'allAvailable'
+                    ? scopedSubjectIds(model, kind => {
+                        const sourceFile = kindRegistry?.getKind(kind)?.sourceFile;
+                        const declaringPackage = sourceFile ? filePackages.get(sourceFile) : undefined;
+                        return !declaringPackage || isRulePackageInScope(scope, declaringPackage);
+                    })
+                    : undefined;
+                validation = validateModel(model, resolved.activeConstraints, kindRegistry, resolved.rules,
+                    inScopeIds && (element => inScopeIds.has(element.id)));
                 return { rules: resolved.rules, diagnostics: resolved.diagnostics };
             } catch (error) {
-                // Rule resolution must never take the rebuild down: a bad
-                // policy is a diagnostic about the methodology, not a reason
-                // the model cannot be shown.
+                validation = validateModel(model, nativeConstraints, stage2Registries?.kindRegistry);
                 return {
                     rules: [] as EffectiveRule[],
                     diagnostics: [{

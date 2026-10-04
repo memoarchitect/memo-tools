@@ -7,7 +7,7 @@
 
 import type { BuilderRegistries } from '../model/builder.js';
 import type { MEMOConfig } from '../model/config.js';
-import { discoverLibraryRoots, discoverProjectSources } from '../model/native-project.js';
+import { canonicalPath, discoverLibraryRoots, discoverProjectSources } from '../model/native-project.js';
 import { relative } from 'node:path';
 import type { Diagnostic } from './diagnostic.js';
 import { resolveToolchain, ToolchainNotConfiguredError, type EffectiveToolchain } from './effective.js';
@@ -81,7 +81,29 @@ export async function compileModelWithSelected(
     const registry = options.registry ?? defaultRegistry;
     const effective = resolveToolchain(options.config, registry);
     const compile = registry.descriptor('lowering', effective.lowering).compileModel;
-    return compile ? compile(options) : undefined;
+    if (!compile) return undefined;
+    // The compiler names files by their real paths, so the project and its
+    // libraries are given by them: through a symbolic link nothing would match.
+    const result = await compile({
+        ...options,
+        projectDir: canonicalPath(options.projectDir),
+        libraryDirs: options.libraryDirs.map(canonicalPath),
+    });
+    // A compile that accepted the project but found none of its own files
+    // resolved nothing. That is not a valid empty model, it is a failure to say so.
+    const unresolved = result.resolution?.diagnostics.find(d => d.code === 'entrypoint-not-compiled');
+    if (result.accepted && unresolved) {
+        const { model: _model, ...rest } = result;
+        return {
+            ...rest,
+            accepted: false,
+            diagnostics: [...result.diagnostics, {
+                domain: 'sysml', provider: effective.lowering, severity: 'error', message: unresolved.message,
+                ...(unresolved.file ? { file: unresolved.file } : {}),
+            }],
+        };
+    }
+    return result;
 }
 
 /**
@@ -103,13 +125,14 @@ export async function compileResolvedProject(options: {
 }): Promise<CompileModelResult | undefined> {
     const registry = options.registry ?? defaultRegistry;
     if (!selectedCompilerBuildsModel(options.config, registry)) return undefined;
-    const sources = discoverProjectSources(options.projectDir);
+    const projectDir = canonicalPath(options.projectDir);
+    const sources = discoverProjectSources(projectDir);
     return compileModelWithSelected({
         config: options.config,
-        projectDir: options.projectDir,
+        projectDir,
         libraryDirs: [...new Set(sources.libraryRoots.map(root => root.sysmlDir))],
         projectFiles: options.projectFiles
-            ?? new Set(sources.projectFiles.map(file => relative(options.projectDir, file))),
+            ?? new Set(sources.projectFiles.map(file => relative(projectDir, file))),
         resolveProject: true,
         provenance: options.provenance,
         cacheDir: options.cacheDir,

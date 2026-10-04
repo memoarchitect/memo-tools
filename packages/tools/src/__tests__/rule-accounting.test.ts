@@ -58,11 +58,16 @@ describe('one activation path', () => {
         // reported 20 rules from `validate` and 38 from `rules list`, because
         // only one of them applied effective scope. A rule count that changes
         // with the question asked is not an audit.
+        //
+        // Every command asks `resolveProjectRules`, and none calls the lower
+        // functions itself: the dev server is the third view of the same answer
+        // (it reported the unscoped set to the Architect until it was made to ask).
         const fs = await import('node:fs');
-        const validate = fs.readFileSync(new URL('../commands/validate.ts', import.meta.url), 'utf-8');
-        const rules = fs.readFileSync(new URL('../commands/rules.ts', import.meta.url), 'utf-8');
-        expect(validate).toContain('activeRuleCandidates(');
-        expect(rules).toContain('activeRuleCandidates(');
+        for (const file of ['validate', 'rules', 'dev']) {
+            const source = fs.readFileSync(new URL(`../commands/${file}.ts`, import.meta.url), 'utf-8');
+            expect(source, file).toContain('resolveProjectRules(');
+            expect(source, file).not.toContain('activeRuleCandidates(');
+        }
     });
 
     it('filters by declaring package and by subject kind', async () => {
@@ -73,6 +78,8 @@ describe('one activation path', () => {
         const scope = fs.readFileSync(new URL('../model/effective-scope.ts', import.meta.url), 'utf-8');
         expect(scope).toContain('isRulePackageInScope(scope, packageOf(c.sourceFile))');
         expect(scope).toContain('subjectInScope(c.appliesToKind)');
+        // ...except that a rule the project wrote itself is not filtered by package.
+        expect(scope).toContain('isOwnFile(c.sourceFile)');
     });
 });
 

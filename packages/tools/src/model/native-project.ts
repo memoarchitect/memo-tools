@@ -22,7 +22,7 @@
 // Design reference: sections 5.1, 5.3, 6.2, 9.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, realpathSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { ParsedDocument } from './parser-utils.js';
 import type { ParseError } from './semantic.js';
@@ -161,6 +161,7 @@ export interface NativeDiagnostic {
         | 'unresolved-methodology'
         | 'unresolved-import'
         | 'unresolved-module'
+        | 'entrypoint-not-compiled'
         | 'scope-mode-conflict'
         | 'settings-graph-mismatch'
         | 'invalid-kpar';
@@ -216,6 +217,20 @@ export function findProjectRoot(startDir: string): string | undefined {
         const parent = dirname(dir);
         if (parent === dir) return undefined;
         dir = parent;
+    }
+}
+
+/**
+ * The real path of a directory, symbolic links resolved. A compiler names the
+ * files it read by their real paths; a project reached through a symlink (macOS
+ * `/tmp` and `/var`, a linked home) would otherwise never match them, and
+ * resolve to nothing.
+ */
+export function canonicalPath(path: string): string {
+    try {
+        return realpathSync.native(resolve(path));
+    } catch {
+        return resolve(path);
     }
 }
 
@@ -688,6 +703,17 @@ export function finishResolution(
     const queue: Array<{ name: string; depth: number; via?: string }> = [];
     for (const entry of index.values()) {
         if (entrypoint && entry.files.has(entrypoint)) queue.push({ name: entry.qualifiedName, depth: 0 });
+    }
+    if (entrypoint && existsSync(entrypoint) && queue.length === 0) {
+        // The entrypoint is on disk and nothing that was compiled declares it, so
+        // the project resolves to nothing. Said, not left as an empty model.
+        diagnostics.push({
+            code: 'entrypoint-not-compiled',
+            message:
+                `No compiled document declares the entrypoint ${entrypoint}, so nothing of the project could be resolved. `
+                + 'A project reached through a symbolic link is the usual cause: open it by its real path.',
+            file: entrypoint,
+        });
     }
 
     const methodologyPackages = new Set<string>();
