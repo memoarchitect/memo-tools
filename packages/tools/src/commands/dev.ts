@@ -45,6 +45,9 @@ import { loadProjectModel, stage1CacheDir, type ProjectModel } from '../toolchai
 import { apiEnumerations, apiProjectSourcePackages, resolutionLoads } from '../stage2/project-from-api.js';
 import { outlinesFromDocuments, outlinesFromHandoff } from '../authoring/outline-source.js';
 import { outlineIdentityTable } from '../authoring/outline-identity.js';
+import { discoverProjectSources } from '../model/native-project.js';
+import { readClauseFacts, type ClauseFact } from '../validator/rule-clauses.js';
+import type { RuleServiceContext } from '../server/rule-service.js';
 
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
@@ -264,6 +267,9 @@ export async function devCommand(options: {
      * registries where the last valid revision put them. MEMO's own parse is
      * not a second opinion to fall back on.
      */
+    /** The project as last built, for previewing and writing a user's rule. */
+    let ruleContext: RuleServiceContext | undefined;
+    let latestClauses: ClauseFact[] = [];
     let lastAccepted: {
         model: MemoModel; irIdentities: Record<string, string>;
         constraints: ReturnType<typeof collectApiConstraints>; registries?: BuilderRegistries;
@@ -354,6 +360,17 @@ export async function devCommand(options: {
                 };
             }
         })();
+        // The clauses the model carries, to name and choose what a rule enforces.
+        // Only an accepted stage 1 states them; a rejected edit keeps the last.
+        if (accepted) latestClauses = readClauseFacts(stage1.api!);
+        const projectSourceFiles = discoverProjectSources(cwd).projectFiles;
+        (effectiveRuleSet as Record<string, unknown>).clauses = latestClauses;
+        (effectiveRuleSet as Record<string, unknown>).projectFiles = projectSourceFiles
+            .map(file => relative(cwd, file).replaceAll('\\', '/')).sort();
+        ruleContext = {
+            projectRoot: cwd, config, model, kindRegistry: stage2Registries?.kindRegistry,
+            constraints: nativeConstraints, clauses: latestClauses, projectFiles: new Set(projectSourceFiles.map(file => resolve(file))),
+        };
         const completeness = computeCompleteness(model, validation);
 
         console.log(chalk.cyan(
@@ -521,6 +538,7 @@ export async function devCommand(options: {
         projectRoot: cwd,
         webPackagePath: options.clientRoot,
         initialMessages: initial.messages,
+        ruleContext: () => ruleContext,
         ontologyRegistries,
         ontologyRoots,
         relationshipFiles: config.relationshipFiles,

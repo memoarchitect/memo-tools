@@ -40,6 +40,7 @@ import { assertSingleDomainMutation, MixedMutationDomainError } from './mutation
 import { classifyConflict } from './conflict-policy.js';
 import type { SemanticOrigin } from '../model/source-provenance.js';
 import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-policy-writer.js';
+import { createRule, previewRule } from './rule-service.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import { updateViewExpose, writeViewDeclaration } from './view-writer.js';
 import { usageKeyword } from '../model/semantic.js';
@@ -79,6 +80,12 @@ export interface DevServerOptions {
     transformClientHtml?: (html: string) => string;
     /** Notified whenever a browser WebSocket connects or disconnects. */
     onClientCountChanged?: (count: number) => void;
+    /**
+     * The project as last built, for previewing and writing a user's rule. The
+     * host owns the build, so it hands over the state; absent, the server
+     * refuses rule previews and writes.
+     */
+    ruleContext?: () => import('./rule-service.js').RuleServiceContext | undefined;
 }
 
 export interface DevServer {
@@ -1770,6 +1777,34 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         writeFileSync(path, updated, 'utf8');
                         const transactionId = recordWriteTransaction(String(request.sourceFile), updated);
                         reply({ success: true, revision: fileRevision(updated), transactionId });
+                    } catch (error) {
+                        reply({ success: false, error: error instanceof Error ? error.message : String(error) });
+                    }
+                } else if (msg.type === 'rule:preview' || msg.type === 'rule:create') {
+                    // A rule of the user's. Preview and write take the same
+                    // request through the same checks (rule-service.ts); the
+                    // browser names the rule and Tools renders and verifies it.
+                    const { requestId } = msg.payload ?? {};
+                    const resultType = msg.type === 'rule:preview' ? 'rule:preview:result' : 'rule:create:result';
+                    const reply = (payload: any) => ws.send(JSON.stringify({ type: resultType, payload: { requestId, ...payload } }));
+                    try {
+                        const context = options.ruleContext?.();
+                        if (!context) {
+                            reply({ success: false, error: 'The project has not built yet, so a rule cannot be checked against it.' });
+                            return;
+                        }
+                        const form = msg.payload as any;
+                        if (msg.type === 'rule:preview') {
+                            reply(previewRule(context, form));
+                        } else {
+                            const written = await createRule(context, form);
+                            if (written.success) {
+                                const transactionId = recordWriteTransaction(String(form.file), written.text);
+                                reply({ success: true, revision: written.revision, transactionId });
+                            } else {
+                                reply(written);
+                            }
+                        }
                     } catch (error) {
                         reply({ success: false, error: error instanceof Error ? error.message : String(error) });
                     }
