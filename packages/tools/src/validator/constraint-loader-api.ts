@@ -13,7 +13,7 @@
 // as not loaded rather than silently skipped or evaluated as `true`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ApiElement, ApiModel } from '../stage2/api-model.js';
+import type { ApiElement, ApiModel, ApiValue } from '../stage2/api-model.js';
 import { apiDefinitionFacts } from '../stage2/build-from-api.js';
 import { absoluteHandoffFile } from '../stage2/handoff-files.js';
 import type { CompiledConstraint, ConstraintNode } from './constraint-eval.js';
@@ -26,7 +26,7 @@ const RULE_DEFINITIONS = ['ConstraintDefinition', 'RequirementDefinition'];
  * `Kind::member`, MEMO's parse as the bare member, which is what the rule
  * compiler reads.
  */
-const ENUMERATION_VALUED = ['severity', 'tailoring'];
+const ENUMERATION_VALUED = ['severity', 'tailoring', 'domain'];
 
 /**
  * Every rule the handoff's definitions state, library and project alike.
@@ -61,6 +61,7 @@ export function collectApiConstraints(
                     doc,
                     file,
                     body: ruleBody(api, definition),
+                    enforces: enforcedClauses(api, definition),
                 });
             } catch (error) {
                 diagnostics?.push({
@@ -89,6 +90,30 @@ export function collectApiConstraints(
         }
     }
     return [...byId.values()];
+}
+
+/**
+ * The clauses a rule enforces: the qualified names of what its `enforces`
+ * reference is valued with. The compiler resolved the references, so each
+ * names a clause that exists (a missing one never reaches here: stage 1 fails
+ * first). A path through nested usages (`standard.clause.subclause`) names the
+ * last step.
+ */
+export function enforcedClauses(api: ApiModel, definition: ApiElement): string[] {
+    const feature = api.ownedMembers(definition['@id']).find(member =>
+        (member['@type'] === 'ReferenceUsage' || member['@type'] === 'AttributeUsage')
+        && api.declaredName(member['@id']) === 'enforces');
+    const value = feature ? api.value(feature['@id']) : undefined;
+    return value ? clauseNames(value) : [];
+}
+
+function clauseNames(value: ApiValue): string[] {
+    switch (value.kind) {
+        case 'reference': return [value.qualifiedName];
+        case 'chain': return value.steps.length > 0 ? [value.steps[value.steps.length - 1]] : [];
+        case 'sequence': return value.items.flatMap(clauseNames);
+        default: return [];
+    }
 }
 
 function withBareEnumerations(attributes: Record<string, string>): Record<string, string> {

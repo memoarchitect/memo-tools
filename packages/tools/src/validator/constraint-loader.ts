@@ -17,7 +17,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { extractDocComment, type ParsedDocument } from '../model/parser-utils.js';
-import type { CompiledConstraint, ConstraintNode } from './constraint-eval.js';
+import type { CompiledConstraint, ConstraintNode, RuleDomain } from './constraint-eval.js';
 import { langiumExprToNode, parseConstraintExpression } from './constraint-eval.js';
 
 /** A rule that could not be loaded, or that conflicts with another rule. */
@@ -100,6 +100,12 @@ function walk(
     }
 }
 
+/** The rule's domain, or undefined when it states none (an enumeration literal as `Kind::member` or the bare member). */
+export function mapDomain(raw?: string): RuleDomain | undefined {
+    const member = raw?.includes('::') ? raw.slice(raw.lastIndexOf('::') + 2) : raw;
+    return member === 'modelling' || member === 'medicalDevice' || member === 'organisation' ? member : undefined;
+}
+
 function mapTailoring(raw?: string): 'invariant' | 'assurance' | 'methodology' {
     // A rule with no declared class is treated as `assurance`: tailorable with
     // rationale. Defaulting to `invariant` would silently make every
@@ -148,6 +154,8 @@ export interface RuleDefinitionParts {
     file?: string;
     /** The boolean body, in evaluator form; absent when the definition states none. */
     body?: ConstraintNode;
+    /** Qualified names of the clauses the rule enforces, when the reader found them. */
+    enforces?: string[];
 }
 
 /** Compile one rule definition, or undefined when it is no rule (no id, no body or coverage target). */
@@ -195,6 +203,8 @@ export function compileRuleDefinition(parts: RuleDefinitionParts): CompiledConst
         typeName: parts.typeName,
         tailoring: mapTailoring(attrs['tailoring']),
         sourceFile: parts.file,
+        ...(mapDomain(attrs['domain']) ? { domain: mapDomain(attrs['domain']) } : {}),
+        ...(parts.enforces && parts.enforces.length > 0 ? { enforces: parts.enforces } : {}),
         ast,
     };
 }

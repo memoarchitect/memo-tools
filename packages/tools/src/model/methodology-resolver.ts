@@ -22,7 +22,7 @@ import type {
     NativeRulePolicy,
     ScopeMode,
 } from './native-project.js';
-import type { CompiledConstraint } from '../validator/constraint-eval.js';
+import type { CompiledConstraint, RuleDomain } from '../validator/constraint-eval.js';
 
 /** Severity as the ontology and policies spell it. */
 export type RuleSeverity = 'error' | 'warning' | 'info';
@@ -61,6 +61,10 @@ export interface EffectiveRule {
     approvalReference?: string;
     /** Where the rule is declared. */
     sourceFile?: string;
+    /** Why the rule exists, as the rule states it. */
+    domain?: RuleDomain;
+    /** The clauses the rule enforces (qualified names). */
+    enforces?: readonly string[];
 }
 
 export interface RuleResolutionDiagnostic {
@@ -377,6 +381,8 @@ export function resolveEffectiveRules(
             tailoring: c.tailoring,
             policyChain: [],
             sourceFile: c.file,
+            ...(c.constraint?.domain ? { domain: c.constraint.domain } : {}),
+            ...(c.constraint?.enforces ? { enforces: c.constraint.enforces } : {}),
         });
     }
 
