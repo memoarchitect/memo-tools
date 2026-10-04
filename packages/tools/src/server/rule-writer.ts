@@ -193,3 +193,36 @@ export function dryRunRule(
         flagged: violations.map(v => ({ elementId: v.elementId, elementKind: v.elementKind, elementName: v.elementName })),
     };
 }
+
+// ─── Conditions ──────────────────────────────────────────────────────────────
+
+/**
+ * What a form asks for. The server turns it into the rule expression, so the
+ * browser never writes the language; `expression` is the way out for anything
+ * the three shapes do not say.
+ */
+export type ConditionSpec =
+    | { kind: 'atLeast' | 'atMost'; relation: string; count: number }
+    | { kind: 'attributeSet'; attribute: string }
+    | { kind: 'expression'; expression: string };
+
+const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/** The expression a condition stands for. Throws on a name or count that is not one. */
+export function conditionExpression(spec: ConditionSpec): string {
+    switch (spec.kind) {
+        case 'atLeast':
+        case 'atMost':
+            if (!NAME.test(spec.relation)) throw new Error(`"${spec.relation}" is not a relation name.`);
+            if (!Number.isInteger(spec.count) || spec.count < 0) throw new Error('The count must be a whole number, zero or more.');
+            return `${spec.relation}->size() ${spec.kind === 'atLeast' ? '>=' : '<='} ${spec.count}`;
+        case 'attributeSet':
+            if (!NAME.test(spec.attribute)) throw new Error(`"${spec.attribute}" is not an attribute name.`);
+            return `attributes.${spec.attribute} != ''`;
+        case 'expression':
+            if (!spec.expression.trim()) throw new Error('The condition is empty.');
+            return spec.expression.trim();
+        default:
+            throw new Error('Unknown condition.');
+    }
+}

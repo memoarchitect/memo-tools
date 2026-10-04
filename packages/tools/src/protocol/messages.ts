@@ -17,6 +17,8 @@ import type {
 import type { ChatMessage } from '../llm/llm-provider.js';
 import type { ProposedChange } from '../llm/chat-engine.js';
 import type { LlmSettingsStatus, LLMProviderName } from '../llm/llm-settings.js';
+import type { ClauseFact } from '../validator/rule-clauses.js';
+import type { ConditionSpec } from '../server/rule-writer.js';
 
 /**
  * Transport ordering for one live project workspace. This intentionally sits
@@ -90,6 +92,8 @@ export type ServerMessage =
     | PackageMutationResultMessage
     | MethodologySourceResultMessage
     | RulePolicyWriteResultMessage
+    | RulePreviewResultMessage
+    | RuleCreateResultMessage
     | ScreenCaptureUploadResultMessage
     | SourceCoherenceMessage
     | SourceChangedMessage;
@@ -156,6 +160,10 @@ export interface RulesUpdateMessage {
     payload: {
         rules: EffectiveRule[];
         diagnostics: RuleResolutionDiagnostic[];
+        /** Every clause of every standard the model carries, for naming and choosing what a rule enforces. */
+        clauses?: ClauseFact[];
+        /** The project's own `.sysml` files, project-relative: where a rule of the user's may be written. */
+        projectFiles?: string[];
     };
 }
 
@@ -197,6 +205,66 @@ export interface RulePolicyWriteMessage {
         /** Methodology source file to write into. */
         sourceFile: string;
         baseRevision: string;
+    };
+}
+
+/** What a rule of the user's is, as the form states it. The server turns the condition into the expression. */
+export interface RuleFormPayload {
+    requestId: string;
+    id: string;
+    typeName: string;
+    appliesTo: string;
+    condition: ConditionSpec;
+    severity: 'error' | 'warning' | 'info';
+    rationaleText: string;
+    tailoring?: 'assurance' | 'methodology';
+    /** Qualified names of the clauses the rule enforces. */
+    enforces?: string[];
+    /** Project-relative file the rule is written into. */
+    file: string;
+}
+
+/** Client asks what a rule would flag in the model as it stands. Writes nothing. */
+export interface RulePreviewMessage {
+    type: 'rule:preview';
+    payload: RuleFormPayload;
+}
+
+export interface RulePreviewResultMessage {
+    type: 'rule:preview:result';
+    payload: {
+        requestId: string;
+        success: boolean;
+        code?: string;
+        error?: string;
+        predicateExpression?: string;
+        /** The target file's revision when previewed; send it back with `rule:create`. */
+        baseRevision?: string;
+        subjects?: number;
+        flagged?: { elementId: string; elementKind: string; elementName: string }[];
+    };
+}
+
+/**
+ * Client asks the server to write a rule of the user's. The form names the
+ * rule; Tools renders the `constraint def`, checks it, and writes it through
+ * the compile-before-commit path, so the browser never composes model source.
+ */
+export interface RuleCreateMessage {
+    type: 'rule:create';
+    payload: RuleFormPayload & { baseRevision: string };
+}
+
+export interface RuleCreateResultMessage {
+    type: 'rule:create:result';
+    payload: {
+        requestId: string;
+        success: boolean;
+        code?: string;
+        error?: string;
+        revision?: string;
+        transactionId?: string;
+        conflict?: boolean;
     };
 }
 
@@ -252,6 +320,8 @@ export type ClientMessage =
     | MethodologySourceRequestMessage
     | MethodologySourceSaveMessage
     | RulePolicyWriteMessage
+    | RulePreviewMessage
+    | RuleCreateMessage
     | OntologySaveSelectionMessage
     | OntologyInstallMessage
     | OntologyRemoveMessage
