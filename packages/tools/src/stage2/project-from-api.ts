@@ -206,6 +206,16 @@ class UsageReader {
         return out;
     }
 
+    /** The qualified name a `ref :>> <name> = <element>;` member is valued with. */
+    refQualified(owner: ApiElement, name: string): string | undefined {
+        for (const member of this.members(owner, 'ReferenceUsage', name)) {
+            const value = this.api.value(member['@id']);
+            if (value?.kind === 'reference') return value.qualifiedName;
+            if (value?.kind === 'chain' && value.steps.length > 0) return value.steps[value.steps.length - 1];
+        }
+        return undefined;
+    }
+
     /** The type a `ref :>> <name> : <Type>;` member narrows to, else its value. */
     refType(owner: ApiElement, name: string): string | undefined {
         for (const member of this.members(owner, 'ReferenceUsage', name)) {
@@ -227,6 +237,8 @@ class UsageReader {
                 return {
                     usageName: this.api.name(policy['@id']) ?? '',
                     targetRuleType: this.refType(policy, 'targetRule'),
+                    targetStandard: this.refQualified(policy, 'targetStandard'),
+                    targetCategory: this.attr(policy, 'targetCategory'),
                     replacementRuleType: this.refType(policy, 'replacementRule'),
                     disposition: disposition === 'enabled' || disposition === 'disabled' || disposition === 'replaced'
                         ? disposition : undefined,

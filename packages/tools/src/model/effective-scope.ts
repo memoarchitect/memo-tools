@@ -199,7 +199,21 @@ export function activeRuleCandidates(
             || (((c.sourceFile !== undefined && isOwnFile(c.sourceFile))
                 || isRulePackageInScope(scope, packageOf(c.sourceFile)))
                 && subjectInScope(c.appliesToKind))),
+        constraint => subjectPackageOf(constraint, filePackages, kindSourceFile),
     );
+}
+
+/** The package that declares a rule's subject kind: its layer, for a policy that selects by category. */
+function subjectPackageOf(
+    constraint: CompiledConstraint,
+    filePackages: ReadonlyMap<string, string>,
+    kindSourceFile: (kindName: string) => string | undefined,
+): string | undefined {
+    const appliesTo = constraint.appliesToKind;
+    // A model-level rule has no single subject kind to place.
+    if (!appliesTo || appliesTo === 'Model') return undefined;
+    const file = kindSourceFile(appliesTo.split('[')[0]);
+    return file ? filePackages.get(file) : undefined;
 }
 
 export interface InactiveRule {
@@ -253,7 +267,9 @@ export function resolveProjectRules(input: {
     const scope = input.effective ? buildEffectiveScope(input.effective) : undefined;
     const candidates = scope
         ? activeRuleCandidates(input.constraints, scope, input.filePackages, input.kindSourceFile, input.isOwnFile)
-        : ruleCandidatesFromConstraints(input.constraints);
+        : ruleCandidatesFromConstraints(
+            input.constraints,
+            constraint => subjectPackageOf(constraint, input.filePackages, input.kindSourceFile));
     return { rules: resolveEffectiveRules(candidates, input.effective?.policyChain ?? []), scope };
 }
 
