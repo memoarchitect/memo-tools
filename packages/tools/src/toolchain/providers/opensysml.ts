@@ -87,7 +87,7 @@ export type SourceDocumentRequest =
     | { source: { case: 'content'; value: string }; name: string };
 
 export interface OpenSysMLConnection {
-    info?: { version?: string };
+    info?: { version?: string; has?(capability: string): boolean };
     rpc: {
         parseSources(request: {
             documents: SourceDocumentRequest[];
@@ -95,6 +95,8 @@ export interface OpenSysMLConnection {
         convert(request: {
             source: { case: 'modelHash'; value: string };
             toFormat: string;
+            /** Only these documents are written; needs the `convert_documents` capability. */
+            documents?: string[];
         }): Promise<{ content: string; error?: string; diagnostics: ServiceDiagnostic[] }>;
     };
     close(): Promise<void>;
