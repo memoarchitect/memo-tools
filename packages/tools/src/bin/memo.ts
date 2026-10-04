@@ -66,10 +66,8 @@ import { configEffectiveCommand, toolchainCheckCommand, toolchainProbeCommand } 
 import {
     conformanceBnfCommand,
     conformanceDiffXmiCommand,
-    conformanceRulesCommand,
     conformanceRunCommand,
     type BnfCliOptions,
-    type RulesCliOptions,
     type ConformanceCliOptions,
 } from '../commands/conformance.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
@@ -313,17 +311,6 @@ conformanceCmd
     .option('--update-baseline', 'Re-freeze the baseline from this run')
     .action(async (dir: string, opts: Record<string, unknown>) => {
         await conformanceBnfCommand(dir, opts as BnfCliOptions);
-    });
-
-conformanceCmd
-    .command('rules')
-    .description("Score MEMO's well-formedness constraints against Syside's published rule codes")
-    .argument('[dir]', 'Unused; accepted so every conformance subcommand takes the same shape', '.')
-    .option('--missing', 'List the codes with no implementation, and why')
-    .option('--format <format>', 'Output format: text, json', 'text')
-    .option('-o, --output <file>', 'Write the report to a file instead of stdout')
-    .action(async (dir: string, opts: Record<string, unknown>) => {
-        await conformanceRulesCommand(dir, opts as RulesCliOptions);
     });
 
 // ─── memo config ────────────────────────────────────────────────────────────
