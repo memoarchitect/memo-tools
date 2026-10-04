@@ -121,5 +121,5 @@ export async function convertCommand(dir: string, options: ConvertOptions = {}):
         `Converted: ${result.moved.length} moved, ${result.written.length} rewritten in place, ` +
         `${result.created.length} created, ${result.removed.length} removed.`,
     ));
-    console.log(chalk.dim('Run `memo validate` and `syside check` to confirm the result parses.'));
+    console.log(chalk.dim('Run `memo compile` and `memo validate` to confirm the result is valid SysML for the selected compiler and passes MEMO\'s rules.'));
 }

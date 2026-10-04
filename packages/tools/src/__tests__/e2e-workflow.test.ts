@@ -75,9 +75,14 @@ describe('E2E: memo init → validate → export', () => {
             '07-model-inventory-table.ipynb',
             'README.md',
         ]);
+        expect(existsSync(join(projectDir, 'analysis', 'memo_model.py'))).toBe(true);
         const overview = JSON.parse(readFileSync(join(samplesDir, '01-model-overview.ipynb'), 'utf-8'));
         expect(overview.nbformat).toBe(4);
-        expect(overview.cells.some((cell: { source?: string[] }) => cell.source?.join('').includes('find_sysml_root'))).toBe(true);
+        expect(overview.cells.some((cell: { source?: string[] }) => cell.source?.join('').includes('memo_model.load()'))).toBe(true);
+        // The notebooks follow toolchain.compiler: none of them names a compiler.
+        for (const name of readdirSync(samplesDir).filter(file => file.endsWith('.ipynb'))) {
+            expect(readFileSync(join(samplesDir, name), 'utf-8')).not.toMatch(/syside|opensysml/i);
+        }
         expect(readFileSync(join(samplesDir, 'README.md'), 'utf-8')).toContain('Analysis → Jupyter Notebooks');
 
         // Check new-format config content

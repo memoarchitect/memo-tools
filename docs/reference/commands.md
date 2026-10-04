@@ -14,7 +14,7 @@ memo init --list       # packages, templates, and examples together
 
 | Command | Purpose |
 |---|---|
-| `memo compile [dir]` | Check the project is valid SysML with the compiler `toolchain.compiler` selects (stage 1). No MEMO rules. A compiler that builds the model keeps its output in `.memo/stage1/` (ignored by git), and `memo validate` reuses it while the inputs are unchanged; `--force` recompiles. |
+| `memo compile [dir]` | Check the project is valid SysML with the compiler `toolchain.compiler` selects (stage 1). No MEMO rules. A compiler that builds the model keeps its output in `.memo/stage1/` (ignored by git), and `memo validate` reuses it while the inputs are unchanged; `--force` recompiles. `--out <file>` writes the compiled SysML v2 model (each document's API JSON with its role, the diagnostics, the element index, and each metaclass's supertypes), which analysis notebooks read through `analysis/memo_model.py`; MEMO's internal compiler builds no SysML v2 model and refuses it. |
 | `memo validate [dir]` | Evaluate closure rules and completeness; supports `text`, `junit`, and `json`. Reuses a fresh `memo compile`; a stage 1 error stops it before any rule runs. |
 | `memo init [name]` | Create a project from the default, a template, or a worked example. |
 | `memo convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
@@ -58,9 +58,10 @@ memo init [name] [--template <id> | --example <id>]
 | `--no-install` | Do not run the project dependency installation step. |
 
 Every initialization path, including `--template` and `--example`, creates
-`analysis/Samples/README.md` and seven model-independent Jupyter notebooks.
-They use Syside to discover and query the project's nearest `model/` or `src/`
-tree; existing sample files are never overwritten.
+`analysis/Samples/README.md`, seven model-independent Jupyter notebooks, and
+`analysis/memo_model.py`, through which they read the model as the project's
+selected compiler builds it (`memo compile --out`); existing sample files are
+never overwritten.
 
 ## Command groups
 

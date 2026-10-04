@@ -103,7 +103,8 @@ withToolchainOptions(
         .command('compile')
         .description('Check the project is valid SysML with the selected compiler (stage 1); no MEMO rules')
         .argument('[dir]', 'Project directory', '.')
-        .option('--force', 'Compile even when the stage 1 output in .memo/stage1 is fresh'),
+        .option('--force', 'Compile even when the stage 1 output in .memo/stage1 is fresh')
+        .option('--out <file>', 'Write the compiled SysML v2 model (API JSON, diagnostics, element index) to this file'),
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     await compileCommand(dir, opts);
 });

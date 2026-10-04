@@ -46,13 +46,15 @@ a model inventory table. To use them:
 ```bash
 python -m venv analysis/.venv
 source analysis/.venv/bin/activate
-python -m pip install jupyterlab syside
+python -m pip install jupyterlab
 cd analysis
 jupyter lab --port 8888
 ```
 
-Syside must be configured with a valid license. The notebooks use its tolerant
-loader so diagnostics can be inspected even before the model is fully clean.
+The notebooks read the model through `analysis/memo_model.py`, which runs
+`memo compile --out` with the compiler the project selects
+(`toolchain.compiler`), so they need `memo` on `PATH` (or `MEMO_CLI`) and
+whatever that compiler needs. A model loads once the compiler accepts it.
 
 ## Check the resolved vocabulary
 
