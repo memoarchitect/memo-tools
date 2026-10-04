@@ -47,6 +47,18 @@ export const FIXTURES = [
 ];
 
 /**
+ * BASELINE RE-FROZEN 2026-10-04 — one fixture, `ui-regions`.
+ *
+ * Thirteen rules were written for clauses of ISO 14971 and IEC 62304 that the
+ * model can check (plans/memo-rules-domain-trace-and-editor.md, Step 5). On this
+ * fixture CR-MED-005 reports five hazards that reach no hazardous situation:
+ * InfusionAtIncorrectRate, TherapyConfiguredForWrongDrug,
+ * UnexpectedTherapyInterruptionFromPowerLoss, IncorrectDeliveredVolumeAssessment
+ * and IncorrectTherapyEventChronology. Violations 4 → 9, warnings 3 → 8, nothing
+ * else moved. They are real gaps in the example, authored as warnings and left;
+ * the other three fixtures are unchanged.
+ */
+/**
  * BASELINE RE-FROZEN 2026-08-02 — all four fixtures, end of session 4.
  *
  * The baselines had been red since the session-3 flip and were never re-frozen,

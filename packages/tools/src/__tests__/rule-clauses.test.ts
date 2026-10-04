@@ -3,7 +3,7 @@
 // The coverage computation always runs. With a compiler configured
 // (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY` with `MEMO_OPENSYSML_CLIENT`) the
 // commands run on a copy of temperature-alarm and report what the ontology
-// states: 21 medical-device rules, 16 of them tracing to a clause
+// states: 34 medical-device rules, 29 of them tracing to a clause
 // (plans/memo-rules-domain-trace-and-editor.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -78,16 +78,16 @@ function run(root: string, args: string[], flags: string[]): string {
 
 function integration(name: string, flags: string[]): void {
     describe(`rule domains and clauses, through ${name}`, () => {
-        it('lists 21 medical-device rules, 16 with a clause, and reports the other 5', () => {
+        it('lists 34 medical-device rules, 29 with a clause, and reports the other 5', () => {
             const root = mkdtempSync(join(tmpdir(), 'memo-rule-clauses-'));
             try {
                 cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
                 const listed = JSON.parse(run(root, ['rules', 'list', '.', '--format', 'json', '--domain', 'medicalDevice'], flags)) as {
                     tailorable: { sourceRuleId: string; domain: string; clauses: { label: string }[] }[];
                 };
-                expect(listed.tailorable).toHaveLength(21);
+                expect(listed.tailorable).toHaveLength(34);
                 expect(listed.tailorable.every(r => r.domain === 'medicalDevice')).toBe(true);
-                expect(listed.tailorable.filter(r => r.clauses.length > 0)).toHaveLength(16);
+                expect(listed.tailorable.filter(r => r.clauses.length > 0)).toHaveLength(29);
                 expect(listed.tailorable.find(r => r.sourceRuleId === 'CR-MED-011')?.clauses[0].label)
                     .toBe('IEC 62304:2006+AMD1:2015 §5.2.1');
 
@@ -97,7 +97,7 @@ function integration(name: string, flags: string[]): void {
                 expect(checked.ruleCoverage.untracedMedicalRules.map(r => r.id).sort())
                     .toEqual(['CR-MED-021', 'CR-MED-030', 'CR-MED-031', 'CR-MED-032', 'CR-ONT-032']);
                 expect(checked.ruleCoverage.unknownClauses).toEqual([]);
-                expect(checked.ruleCoverage.byDomain).toMatchObject({ medicalDevice: 21, modelling: 35 });
+                expect(checked.ruleCoverage.byDomain).toMatchObject({ medicalDevice: 34, modelling: 35 });
             } finally {
                 rmSync(root, { recursive: true, force: true });
             }

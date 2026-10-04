@@ -814,9 +814,11 @@ function compare(op: CmpOp, l: Value, r: Value): boolean {
 
 /** Compare enum values by literal, regardless of qualified storage form. */
 function normalizeEnum(value: string): string {
-    const trimmed = value.trim().replace(/^['"]|['"]$/g, '');
+    const trimmed = value.trim();
     const separator = trimmed.lastIndexOf('::');
-    return separator >= 0 ? trimmed.slice(separator + 2) : trimmed;
+    // A name that is a SysML keyword is written quoted (`ModuleKind::'item'`):
+    // the quotes belong to the spelling, the name is `item`.
+    return (separator >= 0 ? trimmed.slice(separator + 2) : trimmed).replace(/^['"]|['"]$/g, '');
 }
 
 function isElement(v: Value): v is MemoElement {

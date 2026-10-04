@@ -218,6 +218,16 @@ describe('native constraint evaluator (EE-2 breadth)', () => {
         expect(evaluateNativeConstraint(c, model)).toHaveLength(0);
     });
 
+    it('compares a keyword-named enum literal by its name, not its quoted spelling', () => {
+        // `ModuleKind::'item'`: `item` is a SysML keyword, so the literal is written quoted.
+        const model = makeModel([el('M-1', 'SoftwareModule', { moduleKind: "ModuleKind::'item'" })], []);
+        const c: NativeConstraint = {
+            id: 'EE-ENUM-002', description: 'not an item', appliesToKind: 'SoftwareModule',
+            expression: "moduleKind != 'item'", severity: 'error',
+        };
+        expect(evaluateNativeConstraint(c, model)).toHaveLength(1);
+    });
+
     it('filters a Kind[attribute=value] subject scope', () => {
         const model = makeModel([
             el('H-C', 'Hazard', { severity: 'SeverityKind::critical' }),

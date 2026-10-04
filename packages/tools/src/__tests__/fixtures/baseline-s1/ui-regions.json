@@ -1048,6 +1048,31 @@
   "validation": {
     "violations": [
       {
+        "rule": "CR-MED-005",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectDeliveredVolumeAssessment"
+      },
+      {
+        "rule": "CR-MED-005",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectEventChronology"
+      },
+      {
+        "rule": "CR-MED-005",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzUnexpectedPowerLoss"
+      },
+      {
+        "rule": "CR-MED-005",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongDrug"
+      },
+      {
+        "rule": "CR-MED-005",
+        "severity": "warning",
+        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongRate"
+      },
+      {
         "rule": "CR-MED-023",
         "severity": "warning",
         "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus"
@@ -1070,7 +1095,7 @@
     ],
     "counts": {
       "error": 1,
-      "warning": 3
+      "warning": 8
     }
   },
   "errors": [],
