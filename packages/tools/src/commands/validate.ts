@@ -17,7 +17,7 @@ import {
     resolveEffectiveMethodology,
     resolveEffectiveRules,
     buildEffectiveScope,
-    activeRuleCandidates,
+    resolveProjectRules,
     isRulePackageInScope,
     isInScope,
     scopedSubjectIds,
@@ -317,11 +317,13 @@ export async function validateCommand(
     // cannot report different rule sets for one project.
     const ruleFileToPackage = resolution?.filePackages ?? new Map<string, string>();
     const kindRegistry = ontologyRegistries?.kindRegistry;
-    const candidates: RuleCandidate[] = activeRuleCandidates(
-        nativeConstraints, scope, ruleFileToPackage,
-        kindName => kindRegistry?.getKind(kindName)?.sourceFile,
-    );
-    const effectiveRules = resolveEffectiveRules(candidates, effectiveMethodology.policyChain);
+    const { rules: effectiveRules } = resolveProjectRules({
+        constraints: nativeConstraints,
+        effective: effectiveMethodology,
+        filePackages: ruleFileToPackage,
+        kindSourceFile: kindName => kindRegistry?.getKind(kindName)?.sourceFile,
+        isOwnFile: isProjectFile,
+    });
 
     // A rule-resolution diagnostic is not advisory. A policy that targets a
     // rule that is not there, or tries to disable an invariant, means the

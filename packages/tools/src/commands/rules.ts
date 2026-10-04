@@ -21,6 +21,8 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel, projectConstraints } from '../toolchain/project-model.js';
 import { handoffFileOf } from '../stage2/handoff-files.js';
 import { clauseLabel, readClauseFacts } from '../validator/rule-clauses.js';
+import { inactiveRules, resolveProjectRules, type InactiveRule } from '../model/effective-scope.js';
+import { isProjectSource } from '../stage2/project-from-api.js';
 import { tailoringRecord } from '../validator/rule-tailoring.js';
 import { checkNewRule, dryRunRule, insertRule, resolveClauseReference, type NewRuleRequest } from '../server/rule-writer.js';
 import { commitSource } from '../server/persistor.js';
@@ -83,29 +85,26 @@ export async function loadContext(projectDir?: string) {
     // with `validate` about how many rules exist.
     let effectiveRules: EffectiveRule[] = [];
     let ruleDiagnostics: RuleResolutionDiagnostic[] = [];
+    let inactive: InactiveRule[] = [];
     try {
         const descriptor = await loadMethodologyDescriptor(projectRoot, project.resolution, project.api);
 
-        // The same activation `memo validate` applies. Reporting every resolved
-        // constraint instead would describe a rule set the project does not
-        // have: GPCA's methodology excludes cybersecurity, and listing its
-        // rules as effective is the exact claim the scope work exists to stop.
-        const scope = descriptor.effective
-            ? buildEffectiveScope(descriptor.effective)
-            : undefined;
+        // The same activation `memo validate` and the dev server apply
+        // (`resolveProjectRules`). Reporting every resolved constraint instead
+        // would describe a rule set the project does not have: GPCA's methodology
+        // excludes cybersecurity, and listing its rules as effective is the exact
+        // claim the scope work exists to stop. A rule the project wrote in its own
+        // files always counts; the rules the methodology leaves out are listed
+        // with the reason, so an absent rule is never mistaken for a passing one.
         const kindRegistry = ontologyRegistries?.kindRegistry;
-        const candidates = scope
-            ? activeRuleCandidates(
-                constraints, scope, filePackages,
-                kindName => kindRegistry?.getKind(kindName)?.sourceFile)
-            : ruleCandidatesFromConstraints(constraints);
-
-        const resolved = resolveEffectiveRules(
-            candidates,
-            descriptor.effective?.policyChain ?? [],
-        );
+        const kindSourceFile = (kindName: string) => kindRegistry?.getKind(kindName)?.sourceFile;
+        const isOwnFile = project.resolution ? isProjectSource(project.resolution) : () => false;
+        const { rules: resolved, scope } = resolveProjectRules({
+            constraints, effective: descriptor.effective, filePackages, kindSourceFile, isOwnFile,
+        });
         effectiveRules = resolved.rules;
         ruleDiagnostics = resolved.diagnostics;
+        if (scope) inactive = inactiveRules(constraints, scope, filePackages, kindSourceFile, isOwnFile);
     } catch {
         // Rule resolution is reported, not fatal: a bad policy is a diagnostic
         // about the methodology, not a reason the command cannot run.
@@ -117,7 +116,7 @@ export async function loadContext(projectDir?: string) {
 
     return {
         cwd, projectRoot, configPath, config, ontologyRegistries, ruleRegistry, constraints, model: project.model,
-        effectiveRules, ruleDiagnostics, clauseFacts,
+        effectiveRules, ruleDiagnostics, inactive, clauseFacts,
     };
 }
 
@@ -139,7 +138,7 @@ export async function rulesListCommand(
     options?: { format?: RulesFormat; category?: string; domain?: string }
 ): Promise<void> {
     const format = options?.format || 'text';
-    const { effectiveRules, ruleDiagnostics, clauseFacts } = await loadContext(projectDir);
+    const { effectiveRules, ruleDiagnostics, inactive, clauseFacts } = await loadContext(projectDir);
 
     if (options?.domain && !RULE_DOMAINS.includes(options.domain)) {
         console.error(chalk.red(`❌ --domain expects one of ${RULE_DOMAINS.join(', ')}, got "${options.domain}".`));
@@ -164,6 +163,7 @@ export async function rulesListCommand(
             builtin: narrowed ? [] : BUILTIN_RULES,
             total: filteredRules.length + (narrowed ? 0 : BUILTIN_RULES.length),
             diagnostics: ruleDiagnostics,
+            inactive,
         }, null, 2));
         return;
     }
@@ -238,6 +238,14 @@ export async function rulesListCommand(
     console.log(chalk.gray('  Tailorable rules are the set a methodology governs (design section 10).'));
     for (const diagnostic of ruleDiagnostics) {
         console.log(chalk.yellow(`  [${diagnostic.code}] ${diagnostic.message}`));
+    }
+    // A rule that does not run for this project says so, with the reason: a rule
+    // that is silently absent reads as one that passed.
+    if (!narrowed && inactive.length > 0) {
+        console.log(chalk.bold.cyan(`\n  NOT RUNNING IN THIS PROJECT (${inactive.length})`));
+        for (const rule of inactive) {
+            console.log(chalk.gray(`    ${rule.id} ${rule.typeName ?? ''} — ${rule.detail}`));
+        }
     }
 }
 

@@ -15,7 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { EffectiveMethodology, RuleCandidate } from './methodology-resolver.js';
-import { ruleCandidatesFromConstraints, isWithinLayerNamespace } from './methodology-resolver.js';
+import { ruleCandidatesFromConstraints, isWithinLayerNamespace, resolveEffectiveRules } from './methodology-resolver.js';
 import type { CompiledConstraint } from '../validator/constraint-eval.js';
 import type { MemoModel } from './semantic.js';
 
@@ -168,6 +168,8 @@ export function activeRuleCandidates(
     scope: EffectiveScope,
     filePackages: ReadonlyMap<string, string>,
     kindSourceFile: (kindName: string) => string | undefined,
+    /** A rule in one of the project's own files is its authors': its package is always in scope. */
+    isOwnFile: (file: string) => boolean = () => false,
 ): RuleCandidate[] {
     const packageOf = (file: string | undefined) =>
         file ? filePackages.get(file) : undefined;
@@ -188,11 +190,71 @@ export function activeRuleCandidates(
     // of the selection disabled it just the same, with no policy and no
     // diagnostic to show for it. An invariant over a kind the project never
     // uses runs on nothing and reports as vacuous, which is the honest answer.
+    //
+    // A rule the project wrote itself is not filtered by package: a methodology's
+    // inclusion lists name the ontology's packages, and a project's own rule
+    // belongs to a package no list could name. Its subject kind is still checked.
     return ruleCandidatesFromConstraints(
         constraints.filter(c => c.tailoring === 'invariant'
-            || (isRulePackageInScope(scope, packageOf(c.sourceFile))
+            || (((c.sourceFile !== undefined && isOwnFile(c.sourceFile))
+                || isRulePackageInScope(scope, packageOf(c.sourceFile)))
                 && subjectInScope(c.appliesToKind))),
     );
+}
+
+export interface InactiveRule {
+    id: string;
+    typeName?: string;
+    file?: string;
+    reason: 'package-not-selected' | 'subject-not-selected';
+    detail: string;
+}
+
+/**
+ * The rules a methodology does not activate, and why. A rule that does not run
+ * must say so: one that is silently absent reads as one that passed.
+ */
+export function inactiveRules(
+    constraints: readonly CompiledConstraint[],
+    scope: EffectiveScope,
+    filePackages: ReadonlyMap<string, string>,
+    kindSourceFile: (kindName: string) => string | undefined,
+    isOwnFile: (file: string) => boolean = () => false,
+): InactiveRule[] {
+    const active = new Set(activeRuleCandidates(constraints, scope, filePackages, kindSourceFile, isOwnFile).map(c => c.id));
+    return constraints.filter(c => !active.has(c.id)).map(c => {
+        const own = c.sourceFile !== undefined && isOwnFile(c.sourceFile);
+        const packageIn = own || isRulePackageInScope(scope, c.sourceFile ? filePackages.get(c.sourceFile) : undefined);
+        const kind = (c.appliesToKind ?? '').split('[')[0];
+        return packageIn
+            ? {
+                id: c.id, typeName: c.typeName, file: c.sourceFile, reason: 'subject-not-selected' as const,
+                detail: `it applies to ${kind}, which the project's methodology does not select`,
+            }
+            : {
+                id: c.id, typeName: c.typeName, file: c.sourceFile, reason: 'package-not-selected' as const,
+                detail: 'the package that declares it is not one the project\'s methodology selects',
+            };
+    });
+}
+
+/**
+ * The project's effective rule set: the rules its methodology activates, with
+ * its policies applied. One answer, asked by `memo validate`, `memo rules list`
+ * and the Architect's dev server, so they report one rule set.
+ */
+export function resolveProjectRules(input: {
+    constraints: readonly CompiledConstraint[];
+    effective: EffectiveMethodology | undefined;
+    filePackages: ReadonlyMap<string, string>;
+    kindSourceFile: (kindName: string) => string | undefined;
+    isOwnFile?: (file: string) => boolean;
+}): { rules: ReturnType<typeof resolveEffectiveRules>; scope: EffectiveScope | undefined } {
+    const scope = input.effective ? buildEffectiveScope(input.effective) : undefined;
+    const candidates = scope
+        ? activeRuleCandidates(input.constraints, scope, input.filePackages, input.kindSourceFile, input.isOwnFile)
+        : ruleCandidatesFromConstraints(input.constraints);
+    return { rules: resolveEffectiveRules(candidates, input.effective?.policyChain ?? []), scope };
 }
 
 /**
