@@ -21,6 +21,7 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel, projectConstraints } from '../toolchain/project-model.js';
 import { handoffFileOf } from '../stage2/handoff-files.js';
 import { clauseLabel, readClauseFacts } from '../validator/rule-clauses.js';
+import { tailoringRecord } from '../validator/rule-tailoring.js';
 
 const RULE_DOMAINS = ['modelling', 'medicalDevice', 'organisation'];
 import { resolutionLoads } from '../stage2/project-from-api.js';
@@ -441,4 +442,73 @@ export async function rulesCoverageCommand(
     const totalPct = results.length > 0 ? Math.round((totalPassed / results.length) * 100) : 0;
     const totalColor = totalPct >= 90 ? chalk.green : totalPct >= 50 ? chalk.yellow : chalk.red;
     console.log(chalk.gray(`  Total: ${totalPassed}/${results.length} coverage rules satisfied`) + ` ${totalColor(`(${totalPct}%)`)}`);
+}
+
+// ─── memo rules tailoring ────────────────────────────────────────────────────
+//
+// The record of every rule this project's policies switched off, downgraded or
+// replaced, with who decided and why. A user may tailor any rule; what the
+// project owes is this record, and it belongs in the DHF.
+
+export async function rulesTailoringCommand(
+    projectDir?: string,
+    options?: { format?: 'text' | 'json' | 'markdown' },
+): Promise<void> {
+    const { effectiveRules, ruleDiagnostics } = await loadContext(projectDir);
+    const entries = tailoringRecord(effectiveRules);
+    // A policy whose target is not in the project's rule set changes nothing,
+    // but the decision it states is still the project's record.
+    const inert = ruleDiagnostics.filter(d => d.code === 'missing-target');
+    const format = options?.format ?? 'text';
+
+    if (format === 'json') {
+        console.log(JSON.stringify({ tailored: entries, total: entries.length, inertPolicies: inert }, null, 2));
+        return;
+    }
+
+    if (format === 'markdown') {
+        console.log('# Rule tailoring record\n');
+        if (entries.length === 0) console.log('No rule has been switched off, downgraded or replaced.');
+        for (const entry of entries) {
+            console.log(`## ${entry.ruleId} ${entry.ruleType}${entry.domain === 'medicalDevice' ? ' (medical device)' : ''}\n`);
+            console.log(`- Disposition: ${entry.disposition}${entry.activeRuleId ? ` → ${entry.activeRuleId}` : ''}`);
+            console.log(`- Severity: ${entry.declaredSeverity} → ${entry.effectiveSeverity}`);
+            for (const change of entry.changes) {
+                console.log(`- ${change.policy} (${change.level}, ${change.source}): ${change.rationaleText ?? '*no rationale*'}`);
+                console.log(`  - Authority: ${change.authority ?? '*none*'}; approval: ${change.approvalReference ?? '*none*'}`
+                    + `${change.approvedBy ? `; approved by ${change.approvedBy}` : ''}${change.approvedOn ? ` on ${change.approvedOn}` : ''}`);
+            }
+            if (entry.gaps.length > 0) console.log(`- **Record incomplete:** ${entry.gaps.join(', ')}`);
+            console.log();
+        }
+        if (inert.length > 0) {
+            console.log('## Policies that target a rule outside the project\'s rule set\n');
+            for (const d of inert) console.log(`- ${d.policy}: ${d.message}`);
+        }
+        return;
+    }
+
+    console.log(chalk.bold('\n📝 Rule tailoring record\n'));
+    if (entries.length === 0) {
+        console.log(chalk.gray('  No rule has been switched off, downgraded or replaced.\n'));
+    }
+    for (const entry of entries) {
+        const medical = entry.domain === 'medicalDevice' ? chalk.magenta(' [medical device]') : '';
+        const state = entry.disposition === 'enabled'
+            ? `severity ${entry.declaredSeverity} → ${entry.effectiveSeverity}`
+            : entry.disposition === 'replaced' ? `replaced by ${entry.activeRuleId}` : 'disabled';
+        console.log(`  ${chalk.white(entry.ruleId)} ${entry.ruleType}${medical} — ${chalk.yellow(state)}`);
+        for (const change of entry.changes) {
+            console.log(chalk.gray(`    ${change.policy} (${change.level}): ${change.rationaleText ?? 'no rationale'}`));
+            console.log(chalk.gray(`    authority: ${change.authority ?? 'none'}; approval: ${change.approvalReference ?? 'none'}`
+                + `${change.approvedBy ? `; approved by ${change.approvedBy}` : ''}${change.approvedOn ? ` on ${change.approvedOn}` : ''}`));
+        }
+        if (entry.gaps.length > 0) console.log(chalk.yellow(`    record incomplete: ${entry.gaps.join(', ')}`));
+    }
+    if (entries.length > 0) console.log(chalk.gray(`\n  ${entries.length} rule(s) tailored.\n`));
+    if (inert.length > 0) {
+        console.log(chalk.bold('  Policies that target a rule outside this project\'s rule set (they change nothing)\n'));
+        for (const d of inert) console.log(chalk.gray(`    ${d.policy}: ${d.message}`));
+        console.log();
+    }
 }

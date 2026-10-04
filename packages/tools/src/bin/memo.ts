@@ -53,7 +53,7 @@ import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../com
 import { reqNewCommand } from '../commands/req.js';
 import { checkCommand } from '../commands/check.js';
 import { roundTripCommand } from '../commands/roundtrip.js';
-import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand } from '../commands/rules.js';
+import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand, rulesTailoringCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
 import {
     elementIdentitiesCommand,
@@ -803,6 +803,15 @@ rulesCmd
     .option('--domain <domain>', 'Filter by why the rule exists: modelling, medicalDevice, organisation')
     .action(async (dir: string, opts: { format?: string; category?: string; domain?: string }) => {
         await rulesListCommand(dir, { format: opts.format as any, category: opts.category, domain: opts.domain });
+    });
+
+rulesCmd
+    .command('tailoring')
+    .description('The record of every rule switched off, downgraded or replaced, with who decided and why')
+    .argument('[dir]', 'Project directory', '.')
+    .option('--format <format>', 'Output format: text, json, markdown', 'text')
+    .action(async (dir: string, opts: { format?: string }) => {
+        await rulesTailoringCommand(dir, { format: opts.format as 'text' | 'json' | 'markdown' });
     });
 
 rulesCmd
