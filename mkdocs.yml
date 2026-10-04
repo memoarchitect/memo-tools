@@ -7,6 +7,7 @@ repo_name: memoarchitect/memo-tools
 
 theme:
   name: material
+  custom_dir: overrides
   font:
     text: Nunito
     code: JetBrains Mono

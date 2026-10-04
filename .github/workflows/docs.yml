@@ -5,6 +5,7 @@ on:
     paths:
       - "docs/**"
       - "mkdocs.yml"
+      - "overrides/**"
       - "pyproject.toml"
       - "packages/tools/src/bin/memo.ts"
       - "packages/tools/src/commands/init.ts"
