@@ -1,13 +1,12 @@
 {
   "name": "@memoarchitect/tools",
   "version": "0.13.2",
-  "description": "MEMO tools \u2014 SysML v2 parser, semantic model, validation, project operations, and CLI",
+  "description": "MEMO tools — SysML v2 parser, semantic model, validation, project operations, and CLI",
   "type": "module",
   "main": "./packages/tools/lib/index.js",
   "types": "./packages/tools/lib/index.d.ts",
   "bin": {
-    "memo": "packages/tools/lib/bin/memo.js",
-    "memo-sysmlc": "packages/tools/lib/sysmlc/bin/memo-sysmlc.js"
+    "memo": "packages/tools/lib/bin/memo.js"
   },
   "memo": {
     "contentPackage": "@memoarchitect/ontology"
@@ -28,7 +27,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "pnpm generate:ir && cd packages/tools && langium generate && tsc",
+    "build": "pnpm generate:ir && cd packages/tools && tsc",
     "generate:ir": "node scripts/generate-sysml-ir.mjs",
     "prepack": "pnpm clean && pnpm build",
     "dev": "tsc -p packages/tools/tsconfig.json --watch",
@@ -62,7 +61,6 @@
     "chokidar": "^4.0.0",
     "commander": "^12.1.0",
     "glob": "^13.0.6",
-    "langium": "~4.3.1",
     "open": "^10.1.0",
     "ora": "^8.1.0",
     "uuid": "^11.1.1",
@@ -76,7 +74,6 @@
     "@types/node": "^22.0.0",
     "@types/ws": "^8.5.0",
     "@vitest/coverage-v8": "^2.1.0",
-    "langium-cli": "~4.3.0",
     "typescript": "~5.5.0",
     "vite": "^6.0.0",
     "vitest": "^2.1.0"

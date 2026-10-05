@@ -8,7 +8,7 @@
 // parse decides it, so no SysML is parsed by MEMO.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { BuilderRegistries } from '../model/builder.js';
+import type { BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
 import type { NativeProjectResolution } from '../model/native-project.js';
 import { buildProvenanceTable } from '../model/ontology-loader.js';

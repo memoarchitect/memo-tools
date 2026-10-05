@@ -37,7 +37,7 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import type { DiagramDTO, MemoElement, MemoModelDTO } from '../types/index.js';
 import { insertIntoBody, locatePackages } from './package-source.js';
 import { commitSource } from './persistor.js';
-import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import type { OutlineSource } from '../authoring/outline-source.js';
 import { outlineNodes } from '../authoring/source-outline.js';
 
 export interface ViewWriteResult {
@@ -168,8 +168,8 @@ export function selectionQueryLines(diagram: DiagramDTO): string[] {
 
 export async function writeViewDeclaration(
     projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO,
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<ViewWriteResult> {
     const home = conventionalHome(siblingViews(model, diagram.viewKind ?? null));
     const bootstrap = home ? undefined : bootstrapHome(projectRoot, model, diagram);
@@ -269,8 +269,8 @@ export async function writeViewDeclaration(
  */
 export async function updateViewExpose(
     projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO, elementIds: string[] | undefined,
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<ViewWriteResult & { exposed?: string[] }> {
     const view = model.elements[diagram?.elementId ?? ''];
     if (!view?.file) return { success: false, reason: 'the view has no source file to edit' };

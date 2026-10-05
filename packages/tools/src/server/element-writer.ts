@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve, sep } from 'node:path';
 import type { MemoElement, MemoModelDTO } from '../model/semantic.js';
-import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import type { OutlineSource } from '../authoring/outline-source.js';
 import { outlineNodes, type OutlineNode } from '../authoring/source-outline.js';
 import { shortNameOf } from '../model/element-index.js';
 
@@ -65,8 +65,8 @@ export async function removeElement(
     element: MemoElement,
     model: MemoModelDTO,
     projectRoot: string,
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<ElementRemoveResult> {
     if (!element.file) return { success: false, elementId: element.id, error: 'The element has no writable source file.' };
     const connected = model.relationships.filter(relationship =>
@@ -124,12 +124,18 @@ export async function removeElement(
         if (endpoint.test(updated)) {
             return { success: false, elementId: element.id, error: `${file} would still reference "${element.id}" after deletion.` };
         }
+        prepared.set(file, { absolute, original: source, text: updated });
+    }
+
+    // The deletion is valid as a whole or not at all: one file's edit alone can
+    // leave a reference to what another's removed.
+    const edits = new Map([...prepared].map(([file, entry]) => [relativeFile(projectRoot, file), entry.text] as const));
+    for (const file of prepared.keys()) {
         try {
-            await outlines.verify(relativeFile(projectRoot, file), updated);
+            await outlines.verify(relativeFile(projectRoot, file), prepared.get(file)!.text, edits);
         } catch (e) {
             return { success: false, elementId: element.id, error: `Deleting the element would leave ${file} invalid (${e instanceof Error ? e.message : String(e)}).` };
         }
-        prepared.set(file, { absolute, original: source, text: updated });
     }
 
     const written: Array<{ absolute: string; original: string }> = [];

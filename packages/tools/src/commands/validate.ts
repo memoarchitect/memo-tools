@@ -10,24 +10,19 @@ import chalk from 'chalk';
 import { identityKey, writeIdentityRegistry } from '../model/identity-registry.js';
 import type { IdentityRegistry } from '../model/identity-registry.js';
 import {
-    buildMemoModel,
-    loadOntologyRegistries,
     loadProjectSettings,
     findProjectRoot,
     resolveEffectiveMethodology,
-    resolveEffectiveRules,
     buildEffectiveScope,
     resolveProjectRules,
     isRulePackageInScope,
-    isInScope,
     scopedSubjectIds,
     checkSemanticFields,
-    type RuleCandidate,
 } from '@memoarchitect/tools';
-import type { BuilderRegistries, ParsedDocument } from '@memoarchitect/tools';
+import type { BuilderRegistries, MemoModel, ParseError } from '@memoarchitect/tools';
 import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, toElementIndex } from '@memoarchitect/tools';
 import {
-    validateModel, collectNativeConstraints, collectApiConstraints, type ConstraintDiagnostic,
+    validateModel, collectApiConstraints, type ConstraintDiagnostic,
 } from '@memoarchitect/tools';
 import { checkSelectorVocabulary, type SelectorVocabularyDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
@@ -35,9 +30,7 @@ import { checkLockFile } from '../lock.js';
 import { runValidator } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
-import {
-    compileResolvedProject, compileServesValidator, selectedCompilerBuildsModel,
-} from '../toolchain/operations.js';
+import { compileResolvedProject, compileServesValidator } from '../toolchain/operations.js';
 import type { CompileModelResult } from '../toolchain/registry.js';
 import { discoverProjectSources, type NativeProjectResolution } from '../model/native-project.js';
 import { resolutionLoads } from '../stage2/project-from-api.js';
@@ -83,21 +76,18 @@ export async function validateCommand(
     const effectiveToolchain = resolveToolchain(config, defaultRegistry);
     for (const note of effectiveToolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
 
-    // 3. Resolve the project natively: imports and the method binding decide
-    //    everything about what is loaded. A compiler that builds the model
-    //    resolves it from what it compiled — every library root a locator
-    //    offers, the import closure deciding which is the ontology — so MEMO
-    //    parses nothing; MEMO's own compiler resolves by parsing.
+    // 3. Resolve the project: imports and the method binding decide everything
+    //    about what is loaded. The compiler resolves it from what it compiled —
+    //    every library root a locator offers, the import closure deciding which
+    //    is the ontology — so MEMO parses nothing.
     const compiler = effectiveToolchain.lowering;
     const validatorFromStage1 = compileServesValidator(config, defaultRegistry);
     let sysmlDiagnostics: Diagnostic[] = [];
     let ontologyRegistries: BuilderRegistries | undefined;
-    let ontologyDocuments: ParsedDocument[] = [];
     let resolution: NativeProjectResolution | undefined;
-    let stage1: CompileModelResult | undefined;
-    let projectSourceCount = 0;
-    if (selectedCompilerBuildsModel(config, defaultRegistry)) {
-        projectSourceCount = discoverProjectSources(projectRoot).projectFiles.length;
+    let stage1: CompileModelResult;
+    const projectSourceCount = discoverProjectSources(projectRoot).projectFiles.length;
+    {
         try {
             // Reuses a fresh `memo compile`.
             stage1 = await compileResolvedProject({ config, projectDir: projectRoot, cacheDir: stage1CacheDir(projectRoot) });
@@ -105,7 +95,6 @@ export async function validateCommand(
             console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
             process.exit(1);
         }
-        if (!stage1) throw new Error(`${compiler} builds the model but compiled nothing`);
         console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}${stage1.cached ? ' (reused .memo/stage1)' : ''}`));
         if (validatorFromStage1) {
             sysmlDiagnostics = stage1.diagnostics;
@@ -127,19 +116,6 @@ export async function validateCommand(
             `Resolved: ${kr?.size ?? 0} kinds, ${rr?.size ?? 0} relationships `
             + `(from ${compiler}'s handoff, ${resolution?.closure.size ?? 0} packages)`));
         for (const d of resolution?.diagnostics ?? []) console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
-    } else {
-        const loadResult = await loadOntologyRegistries(projectRoot);
-        resolution = loadResult.resolution;
-        if (loadResult.fileCount > 0) {
-            ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
-            ontologyDocuments = loadResult.parsedDocuments;
-            const kr = loadResult.registries.kindRegistry;
-            const rr = loadResult.registries.relationshipRegistry;
-            console.log(chalk.gray(
-                `Resolved: ${kr?.size ?? 0} kinds, ${rr?.size ?? 0} relationships `
-                + `(${loadResult.fileCount} SysML files, ${loadResult.ontologyDirs.length} packages)`));
-        }
-        for (const err of loadResult.errors) console.log(chalk.yellow(`  ⚠ ${err}`));
     }
 
     if (resolution?.binding) {
@@ -193,21 +169,17 @@ export async function validateCommand(
     //    not in the model at all.
     const resolvedRoots = [...(resolution?.selectedRoots ?? []), ...(resolution?.unusedRoots ?? [])];
     const isProjectFile = (file: string) => !resolvedRoots.some(r => file.startsWith(r.sysmlDir));
-    const documents = (resolution?.documents ?? []).filter(d => isProjectFile(d.filePath));
-    // The same pass that produced those documents produced these, and they are
-    // the project's own — a library that will not parse is a different report.
-    const parseErrors = (resolution?.parseErrors ?? []).filter(e => isProjectFile(e.file));
-    const projectFileCount = stage1 ? projectSourceCount : documents.length;
+    // Stage 1 was clean, so nothing the project declares failed to parse.
+    const parseErrors: ParseError[] = [];
+    const projectFileCount = projectSourceCount;
     if (projectFileCount === 0) {
         console.error(chalk.yellow('⚠️  No project .sysml files found.'));
         return;
     }
     console.log(chalk.gray(`Files: ${projectFileCount} project .sysml files\n`));
 
-    // 5. Build model. Stage 1 built it when the compiler resolved the
-    //    project; MEMO's own compiler builds it from its parse.
-    const model: ReturnType<typeof buildMemoModel> = stage1?.model
-        ?? buildMemoModel(documents, config, parseErrors, ontologyRegistries);
+    // 5. The model stage 1 built from its handoff.
+    const model: MemoModel = stage1.model!;
     console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
 
     // A short-name collision belongs in this report for exactly the reason a
@@ -270,21 +242,16 @@ export async function validateCommand(
     }
 
     // 6. Validate — native ontology constraints (constraint def bodies) + structural checks.
-    //    Constraint defs live in the ontology packages (parsed by loadOntologyRegistries),
-    //    so collect across both ontology and project documents.
-    //    A stage 1 compiler's handoff carries the ontology too, so its rules are
-    //    read from that handoff rather than from MEMO's own parse.
+    //    The compiler's handoff carries the ontology, so its rules are read from
+    //    that handoff.
     const constraintDiagnostics: ConstraintDiagnostic[] = [];
-    const stage1Api = stage1?.model ? stage1.api : undefined;
+    const stage1Api = stage1.api!;
     // The rules resolution loads: the ontology's and the project's own.
     const loaded = resolution ? resolutionLoads(resolution) : () => true;
     const ruleFileLoaded = (file: string) => loaded(file) || isProjectFile(file);
-    const nativeConstraints = stage1Api
-        ? collectApiConstraints(stage1Api, constraintDiagnostics, resolution?.filePackages, ruleFileLoaded)
-        : collectNativeConstraints([...ontologyDocuments, ...documents], constraintDiagnostics);
+    const nativeConstraints = collectApiConstraints(stage1Api, constraintDiagnostics, resolution?.filePackages, ruleFileLoaded);
     if (nativeConstraints.length > 0) {
-        const from = stage1Api ? `${compiler}'s handoff` : 'constraint def bodies';
-        console.log(chalk.gray(`Native constraints: ${nativeConstraints.length} (from ${from})`));
+        console.log(chalk.gray(`Native constraints: ${nativeConstraints.length} (from ${compiler}'s handoff)`));
     }
     // A rule that failed to load is a check that is not running. Report it
     // prominently: silence here reads as "all rules passed".

@@ -40,7 +40,6 @@
 
 import type { MemoModel, MemoElement } from '../model/semantic.js';
 import type { Violation } from './types.js';
-import type { ConstraintExpr } from '../language/generated/ast.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 import { withRelationshipSubjects } from '../model/relationship-subjects.js';
 
@@ -101,7 +100,7 @@ export function evaluateNativeConstraint(
 /**
  * Evaluate a pre-parsed constraint body against every element of its subject kind.
  * This is the shared core used by both the string entry point (above) and the
- * ontology loader, which compiles `constraint def` bodies via {@link langiumExprToNode}.
+ * rule loader, which compiles `constraint def` bodies.
  */
 export function evaluateConstraintNode(
     meta: ConstraintMeta,
@@ -855,49 +854,3 @@ function toStringValue(v: Value): string {
     return v.id;
 }
 
-// ─── Langium AST → evaluator AST (EE-1 grammar → EE-2 evaluator) ──────────────
-//
-// EE-1 moved expression PARSING into the Langium grammar (memo-sysml.langium,
-// ConstraintExpr rule family). EE-2 extends the evaluator to the full ADR-1-18
-// subset, so this mapping no longer defers attribute access, quantifiers,
-// arithmetic, string literals, or multi-segment feature chains. See ADR-1-18.
-
-const COMPARISON_OPS = new Set(['==', '!=', '>=', '<=', '>', '<']);
-const ARITH_OPS = new Set(['+', '-', '*', '/']);
-
-/** Map a Langium-parsed constraint expression to the evaluator AST. */
-export function langiumExprToNode(expr: ConstraintExpr): Node {
-    switch (expr.$type) {
-        case 'LiteralExpr': {
-            if (expr.intValue !== undefined) return { kind: 'int', value: parseInt(expr.intValue, 10) };
-            if (expr.boolValue !== undefined) return { kind: 'bool', value: expr.boolValue === 'true' };
-            return { kind: 'str', value: expr.strValue ?? '' };
-        }
-        case 'FeatureChain':
-            return { kind: 'feature', root: 'current', segments: [...expr.segments] };
-        case 'CollectionOp': {
-            if (COLLECTION_OPS.has(expr.op)) {
-                if (expr.argument) throw new Error(`'->${expr.op}()' takes no argument`);
-                return { kind: 'method', target: langiumExprToNode(expr.target), name: expr.op as 'size' | 'notEmpty' | 'isEmpty' };
-            }
-            if (QUANTIFIER_OPS.has(expr.op)) {
-                if (!expr.argument) throw new Error(`'->${expr.op}(expr)' requires a sub-expression`);
-                return { kind: 'quant', target: langiumExprToNode(expr.target), name: expr.op as 'forAll' | 'exists' | 'select', body: langiumExprToNode(expr.argument) };
-            }
-            throw new Error(`Unsupported collection op '->${expr.op}()' (not in ADR-1-18 subset)`);
-        }
-        case 'UnaryExpr':
-            return { kind: 'not', operand: langiumExprToNode(expr.operand) };
-        case 'BinaryExpr': {
-            if (expr.op === 'and') return { kind: 'and', left: langiumExprToNode(expr.left), right: langiumExprToNode(expr.right) };
-            if (expr.op === 'or') return { kind: 'or', left: langiumExprToNode(expr.left), right: langiumExprToNode(expr.right) };
-            if (COMPARISON_OPS.has(expr.op)) {
-                return { kind: 'cmp', op: expr.op as CmpOp, left: langiumExprToNode(expr.left), right: langiumExprToNode(expr.right) };
-            }
-            if (ARITH_OPS.has(expr.op)) {
-                return { kind: 'arith', op: expr.op as ArithOp, left: langiumExprToNode(expr.left), right: langiumExprToNode(expr.right) };
-            }
-            throw new Error(`Unsupported operator '${expr.op}'`);
-        }
-    }
-}

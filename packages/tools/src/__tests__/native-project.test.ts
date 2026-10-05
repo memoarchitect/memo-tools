@@ -9,10 +9,24 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { findProjectRoot, resolveNativeProject } from '../model/native-project.js';
+import { findProjectRoot, type NativeProjectResolution } from '../model/native-project.js';
+import { compileResolvedProject } from '../toolchain/operations.js';
+import { compilerConfigured } from './helpers/compile-source.js';
 import { checkSemanticFields } from '../model/settings-boundary.js';
 
 const TMP = resolve(__dirname, '__tmp_native_project__');
+
+/** The project's resolution, from what the selected compiler compiled. */
+async function resolveNativeProject(projectDir: string): Promise<NativeProjectResolution> {
+    const result = await compileResolvedProject({
+        config: { projectName: 'demo', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never,
+        projectDir, force: true,
+    });
+    if (!result.accepted) {
+        throw new Error(`stage 1 rejected the project:\n${result.diagnostics.filter(d => d.severity === 'error').map(d => `${d.file}:${d.range?.start.line} ${d.message}`).join('\n')}`);
+    }
+    return result.resolution!;
+}
 
 function write(relPath: string, content: string): void {
     const full = join(TMP, relPath);
@@ -47,8 +61,16 @@ beforeEach(() => {
 
     library('lib-a', 'lib_a', `
 package lib_a {
-    part def MethodologyDefinition;
-    part def ProjectMethodBinding;
+    private import ScalarValues::*;
+    enum def ScopeModeKind { enum allAvailable; enum explicit; }
+    part def MethodologyDefinition { attribute id : String; attribute scopeMode : ScopeModeKind; }
+    part def ProjectMethodBinding {
+        attribute id : String;
+        attribute projectName : String;
+        ref selectedMethodology : MethodologyDefinition;
+        attribute scopeMode : ScopeModeKind;
+        attribute includedModule : String[0..*];
+    }
     part def Widget;
     part chosenMethod : MethodologyDefinition {
         attribute :>> id = "METH-A";
@@ -95,7 +117,7 @@ describe('findProjectRoot', () => {
     });
 });
 
-describe('resolveNativeProject', () => {
+describe.runIf(compilerConfigured)('the resolution of a compiled project', () => {
     it('roots explicit scope and the binding at a configured entrypoint', async () => {
         write('memo.package.yaml', 'name: demo\nentrypoint: src/project.sysml\ninclude: [src]\n');
         write('src/project.sysml', `
@@ -120,6 +142,7 @@ package demo_project {
         write('memo.package.yaml', 'name: demo\nentrypoint: src/project.sysml\ninclude: [src, ../ots]\n');
         write('src/project.sysml', `
 package demo_project {
+    private import lib_a::*;
     private import ots_lib::*;
     part projectBinding : ProjectMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
@@ -176,13 +199,6 @@ package demo_project {
         expect(r.closure.get('demo_project')?.origin).toBe('project');
     });
 
-    it('reports an import no resolved source can satisfy', async () => {
-        writeEntrypoint('    private import lib_missing::*;\n');
-        const r = await resolveNativeProject(TMP);
-        expect(r.diagnostics.map(d => d.code)).toContain('unresolved-import');
-        expect(r.diagnostics[0].message).toContain('lib_missing');
-    });
-
     it('does not report Metaobjects standard-library imports as unresolved', async () => {
         writeEntrypoint('    private import Metaobjects::SemanticMetadata;\n');
         const r = await resolveNativeProject(TMP);
@@ -192,19 +208,6 @@ package demo_project {
     it('reports a project with no entrypoint', async () => {
         const r = await resolveNativeProject(TMP);
         expect(r.diagnostics.map(d => d.code)).toEqual(['no-entrypoint']);
-    });
-
-    it('reports a methodology reference nothing declares', async () => {
-        write('model/catalog/project.sysml', `
-package demo_project {
-    private import lib_a::*;
-    part projectBinding : ProjectMethodBinding {
-        ref :>> selectedMethodology = ghostMethod;
-    }
-}
-`);
-        const r = await resolveNativeProject(TMP);
-        expect(r.diagnostics.map(d => d.code)).toContain('unresolved-methodology');
     });
 
     it('does not let an unimported source file supply a second project binding', async () => {

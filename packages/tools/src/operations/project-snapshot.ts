@@ -4,9 +4,8 @@ import { deriveModelViews } from '../model/view-deriver.js';
 import { findConfigFile } from '../model/config-loader.js';
 import { identityKey, writeIdentityRegistry } from '../model/identity-registry.js';
 import type { IdentityRegistry } from '../model/identity-registry.js';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
 import { validateModel } from '../validator/rule-engine.js';
-import type { BuilderRegistries } from '../model/builder.js';
+import type { BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
 import { dtoToModel, modelToDTO } from '../model/semantic.js';
 import type { ArchLayerDTO, DiagramDTO, MemoModelDTO, ViewpointDTO } from '../model/semantic.js';
@@ -16,7 +15,7 @@ import { findProjectRoot, loadProjectSettings } from '@memoarchitect/tools';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import {
-    mergeDiagnostics, runLowering, runValidator, selectedCompilerBuildsModel,
+    mergeDiagnostics, runLowering, runValidator,
 } from '../toolchain/operations.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
 import type { ProviderRegistry } from '../toolchain/registry.js';
@@ -87,19 +86,9 @@ export async function buildProjectSnapshot(
     const config = configPath ? loadAndResolveConfig(configPath) : loadProjectSettings(cwd);
     const effective = resolveToolchain(config, registry);
 
-    // MEMO's compiler: loaded before either role runs, so the closure is
-    // parsed once and offered to lowering rather than loaded again inside it.
-    // A compiler that builds the model resolves the ontology from its own
-    // handoff and returns it with the model, so nothing is parsed here.
+    // The compiler resolves the ontology from its own handoff and returns it
+    // with the model, so nothing is parsed here.
     let ontologyRegistries: BuilderRegistries | undefined;
-    if (!selectedCompilerBuildsModel(config, registry)) {
-        try {
-            const loadResult = await loadOntologyRegistries(cwd);
-            if (loadResult.fileCount > 0) ontologyRegistries = loadResult.registries;
-        } catch {
-            // Snapshot generation remains available with reduced kind resolution.
-        }
-    }
 
     // The validator answers "is this valid SysML?" and nothing else. Its
     // failures are `sysml` errors; a failure to *run* it is still an exception,

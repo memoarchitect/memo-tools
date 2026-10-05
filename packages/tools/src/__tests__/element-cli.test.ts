@@ -8,13 +8,18 @@
 // than merely checking that a command exists.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { elementIdentitiesCommand, elementWriteCommand } from '../commands/element.js';
+import { compilerConfigured, examplesPresent } from './helpers/compile-source.js';
+
+const EXAMPLE = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
 
 const TWO_NAMESPACES = `package Plant {
+    private import ScalarValues::*;
+    part def Component { attribute pressure : String; }
     package Upstream {
         part pump : Component;
     }
@@ -27,8 +32,9 @@ const TWO_NAMESPACES = `package Plant {
 let projectRoot: string;
 
 beforeEach(() => {
-    projectRoot = mkdtempSync(join(tmpdir(), 'memo-element-cli-'));
-    writeProjectFile('memo.tools.yaml', 'toolchain:\n  compiler: internal\n');
+    // A real project, so the compiler resolves it: a shipped example, with the fixture beside its model.
+    projectRoot = realpathSync(mkdtempSync(join(tmpdir(), 'memo-element-cli-')));
+    cpSync(EXAMPLE, projectRoot, { recursive: true, filter: path => !path.includes('/.memo') });
     writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
 });
 
@@ -67,15 +73,18 @@ async function capture(run: () => Promise<void>): Promise<{ out: string; err: st
 
 async function identities(): Promise<Record<string, string>> {
     const { out } = await capture(() => elementIdentitiesCommand(projectRoot, { format: 'json' }));
-    return JSON.parse(out).identities as Record<string, string>;
+    const all = JSON.parse(out).identities as Record<string, string>;
+    // The fixture's own elements, not the example's.
+    return Object.fromEntries(Object.entries(all).filter(([, identity]) => identity.includes('plant.sysml')));
 }
 
 async function declarations(): Promise<{ identity: string; element?: string; metaclass: string }[]> {
     const { out } = await capture(() => elementIdentitiesCommand(projectRoot, { format: 'json' }));
-    return JSON.parse(out).declarations;
+    return (JSON.parse(out).declarations as { identity: string; element?: string; metaclass: string }[])
+        .filter(row => row.identity.includes('plant.sysml'));
 }
 
-describe('memo element identities', () => {
+describe.runIf(compilerConfigured && examplesPresent)('memo element identities', () => {
     it('prints an addressable identity per projected element', async () => {
         const { out } = await capture(() => elementIdentitiesCommand(projectRoot, { format: 'json' }));
         const report = JSON.parse(out);
@@ -104,11 +113,11 @@ describe('memo element identities', () => {
         const table = await identities();
         const rows = await declarations();
 
-        expect(Object.keys(table).sort()).toEqual(['Plant::Downstream::pump', 'Plant::Upstream::pump']);
-        expect(rows.filter(row => row.element).length).toBe(2);
+        expect(Object.keys(table).filter(id => id.endsWith('::pump')).sort()).toEqual(['Plant::Downstream::pump', 'Plant::Upstream::pump']);
+        expect(rows.filter(row => row.element && row.identity.endsWith(':PartUsage')).length).toBe(2);
         // The rest are the packages: declarations a write can address, though
         // no Memo element projects them.
-        expect(rows.filter(row => !row.element).map(row => row.metaclass)).toEqual(['Package', 'Package', 'Package']);
+        expect(rows.filter(row => !row.element).map(row => row.metaclass)).toEqual(expect.arrayContaining(['Package', 'Package', 'Package']));
     });
 
     it('fails, rather than printing nothing, for an element the project does not have', async () => {
@@ -124,7 +133,7 @@ describe('memo element identities', () => {
     });
 });
 
-describe('memo element write', () => {
+describe.runIf(compilerConfigured && examplesPresent)('memo element write', () => {
     it('creates a declaration and returns the identity the write minted', async () => {
         const { out } = await capture(() => elementWriteCommand(projectRoot, {
             id: 'tank', kind: 'Component', construct: 'part', file: 'model/plant.sysml', format: 'json',

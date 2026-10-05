@@ -41,7 +41,7 @@ import {
     type RelationshipNotation,
 } from './sysml-notation.js';
 import { shortNameOf } from '../model/element-index.js';
-import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import type { OutlineSource } from '../authoring/outline-source.js';
 import { bodyMembers, outlineNodes, type OutlineNode, type SourceOutline } from '../authoring/source-outline.js';
 
 // Project-layout conventions, not ontology semantics — these describe where a
@@ -87,8 +87,8 @@ export interface RelationshipWriterOptions {
      * rather than written blind.
      */
     irIndex?: IrIdentityIndex;
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines?: OutlineSource;
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource;
 }
 
 /** Why a particular file was chosen, for logging and for the UI to show. */
@@ -383,7 +383,7 @@ export async function writeRelationship(
         endpointPath(request.sourceId, model), endpointPath(request.targetId, model),
         request.flowItem, request.guard);
 
-    const outlines = options.outlines ?? parseOutlineSource;
+    const outlines = options.outlines;
     const file = placement.file.replaceAll('\\', '/');
     let updated: string;
     if (!existsSync(absolutePath)) {
@@ -524,7 +524,7 @@ export async function updateRelationship(
     const absolutePath = resolve(options.projectRoot, relationship.file);
     if (!existsSync(absolutePath)) return { success: false, error: `${relationship.file} no longer exists` };
     const source = readFileSync(absolutePath, 'utf8');
-    const outlines = options.outlines ?? parseOutlineSource;
+    const outlines = options.outlines;
     const file = relativeFile(options.projectRoot, relationship.file);
     let outline: SourceOutline;
     try {
@@ -634,7 +634,7 @@ export async function removeRelationship(
     }
 
     const source = readFileSync(absolutePath, 'utf8');
-    const outlines = options.outlines ?? parseOutlineSource;
+    const outlines = options.outlines;
     const file = relativeFile(options.projectRoot, relationship.file);
     let outline: SourceOutline;
     try {

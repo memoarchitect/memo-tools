@@ -26,7 +26,7 @@ The subpaths are hard boundaries, not conveniences:
 | Export | Environment | Contents |
 |---|---|---|
 | `@memoarchitect/tools` | Node only | Project lifecycle (`initializeProject`, `validateProject`, …), parser, filesystem operations. Used by the CLI's own commands and by the Architect server. |
-| `@memoarchitect/tools/browser` | Browser-safe | Pure model querying and diagram/view derivation. No Langium, no `node:*`, no server code. |
+| `@memoarchitect/tools/browser` | Browser-safe | Pure model querying and diagram/view derivation. No `node:*`, no server code. |
 | `@memoarchitect/tools/types` | Anywhere | DTOs, WebSocket event schemas, and shared types — the protocol surface. |
 
 The `memo` bin ships from this package; Architect ships its own
@@ -38,7 +38,6 @@ Everything lives under `packages/tools/src`:
 
 | Directory | Responsibility |
 |---|---|
-| `grammar/`, `language/` | Langium grammar and generated SysML v2 language services |
 | `model/` | Semantic model (`MemoModel`), ontology loading, and package resolution |
 | `validator/`, `completeness/` | Rule evaluation: closure, consistency, and coverage checks |
 | `operations/` | Reusable project operations shared by CLI, server, and tests |

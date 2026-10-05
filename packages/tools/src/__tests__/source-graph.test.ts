@@ -1,40 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { parseFiles } from '../model/parser-utils.js';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { compileSources, compilerConfigured, stubKinds } from './helpers/compile-source.js';
+import { apiProjectSourcePackages } from '../stage2/project-from-api.js';
 import {
-    buildSourceGraph, sourceGraphToDTO, viewSourceFiles,
+    buildSourceGraphFromPackages, sourceGraphToDTO, viewSourceFiles,
 } from '../model/source-graph.js';
 import { affectedBy, affectingFiles, changeAffects } from '../model/source-affinity.js';
 import type { MemoElement } from '../model/semantic.js';
 
-/** Parse a set of in-memory SysML files, keeping project-relative paths. */
+/** Compile a set of in-memory SysML files, keeping project-relative paths, and take their source graph. */
 async function parseProject(files: Record<string, string>) {
-    const root = mkdtempSync(join(tmpdir(), 'memo-source-graph-'));
-    try {
-        const paths: string[] = [];
-        for (const [relativePath, contents] of Object.entries(files)) {
-            const absolute = join(root, relativePath);
-            mkdirSync(join(absolute, '..'), { recursive: true });
-            writeFileSync(absolute, contents, 'utf8');
-            paths.push(absolute);
-        }
-        const { documents } = await parseFiles(paths, root + '/');
-        return buildSourceGraph(documents);
-    } finally {
-        rmSync(root, { recursive: true, force: true });
-    }
+    const { api, root } = await compileSources(
+        Object.entries(files).map(([filePath, source]) => ({ filePath, source })),
+        { asGiven: true, stubs: stubKinds(['PartDef']) });
+    const { packages, files: projectFiles } = apiProjectSourcePackages(api, root);
+    // The padding document the helper adds is not part of what a test declares.
+    const own = (file: string) => !file.endsWith('__stubs.sysml');
+    return buildSourceGraphFromPackages(
+        packages.map(entry => ({ ...entry, files: [...entry.files].filter(own) })).filter(entry => [...entry.files].length > 0),
+        [...projectFiles].filter(own));
 }
 
 function element(id: string, file: string): MemoElement {
     return { id, name: id, kind: 'SoftwareComponent', construct: 'part', layer: 'software', file, attributes: {} };
 }
 
-describe('buildSourceGraph', () => {
+describe.runIf(compilerConfigured)('the source graph of a compiled project', () => {
     it('links a file to the file declaring the package it imports', async () => {
         const graph = await parseProject({
-            'model/views/architecture.sysml': 'package Views { import Catalog::*; }\n',
+            'model/views/architecture.sysml': 'package Views { private import Catalog::*; }\n',
             'model/catalog/parts.sysml': 'package Catalog { part pump : PartDef; }\n',
         });
 
@@ -47,8 +40,8 @@ describe('buildSourceGraph', () => {
 
     it('follows imports transitively', async () => {
         const graph = await parseProject({
-            'model/a.sysml': 'package A { import B::*; }\n',
-            'model/b.sysml': 'package B { import C::*; }\n',
+            'model/a.sysml': 'package A { private import B::*; }\n',
+            'model/b.sysml': 'package B { private import C::*; }\n',
             'model/c.sysml': 'package C { part leaf : PartDef; }\n',
         });
 
@@ -58,8 +51,8 @@ describe('buildSourceGraph', () => {
 
     it('terminates on an import cycle without listing the file as its own dependency', async () => {
         const graph = await parseProject({
-            'model/a.sysml': 'package A { import B::*; }\n',
-            'model/b.sysml': 'package B { import A::*; }\n',
+            'model/a.sysml': 'package A { private import B::*; }\n',
+            'model/b.sysml': 'package B { private import A::*; }\n',
         });
 
         expect([...graph.dependsOn.get('model/a.sysml')!]).toEqual(['model/b.sysml']);
@@ -68,7 +61,7 @@ describe('buildSourceGraph', () => {
 
     it('reaches nested packages through a parent-package import', async () => {
         const graph = await parseProject({
-            'model/a.sysml': 'package A { import Lib::*; }\n',
+            'model/a.sysml': 'package A { private import Lib::*; }\n',
             'model/lib.sysml': 'package Lib { package Inner { part p : PartDef; } }\n',
         });
 
@@ -89,11 +82,12 @@ describe('buildSourceGraph', () => {
         // that contributes nothing rather than an exception.
         const graph = await parseProject({
             'model/anonymous.sysml': 'package { part def P; }\n',
-            'model/importer.sysml': 'package Importer { import Other::*; }\n',
+            'model/importer.sysml': 'package Importer { }\n',
         });
         expect([...graph.dependsOn.keys()].sort())
             .toEqual(['model/anonymous.sysml', 'model/importer.sysml']);
-        // It resolves to nothing — it cannot satisfy an import it has no name for.
+        // It resolves to nothing — it cannot satisfy an import it has no name for
+        // (an import of a package nothing declares is a stage 1 error, so none reaches here).
         expect(graph.dependsOn.get('model/importer.sysml')).toEqual(new Set());
     });
 });
@@ -101,8 +95,8 @@ describe('buildSourceGraph', () => {
 describe('viewSourceFiles', () => {
     it('covers the view source, its element files, and their import closure', async () => {
         const graph = await parseProject({
-            'model/views/overview.sysml': 'package Views { import Catalog::*; }\n',
-            'model/catalog/parts.sysml': 'package Catalog { import Shared::*; }\n',
+            'model/views/overview.sysml': 'package Views { private import Catalog::*; }\n',
+            'model/catalog/parts.sysml': 'package Catalog { private import Shared::*; }\n',
             'model/shared/types.sysml': 'package Shared { }\n',
             'model/other/unrelated.sysml': 'package Other { }\n',
         });
@@ -140,7 +134,7 @@ describe('viewSourceFiles', () => {
 describe('source affinity', () => {
     it('treats a file as affected by itself and by what it imports', async () => {
         const graph = sourceGraphToDTO(await parseProject({
-            'model/a.sysml': 'package A { import B::*; }\n',
+            'model/a.sysml': 'package A { private import B::*; }\n',
             'model/b.sysml': 'package B { }\n',
         }));
 

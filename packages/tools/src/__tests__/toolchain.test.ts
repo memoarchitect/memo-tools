@@ -37,15 +37,15 @@ describe('role resolution', () => {
         const effective = resolveToolchain(config(), registry);
         expect(effective.selections).toEqual([]);
         expect(() => effective.lowering).toThrow(ToolchainNotConfiguredError);
-        expect(() => effective.validator).toThrow(/Set toolchain\.compiler \(internal, syside, opensysml\)/);
+        expect(() => effective.validator).toThrow(/Set toolchain\.compiler \(syside, opensysml\)/);
         expect(() => effective.packager).toThrow(/Set toolchain\.packager/);
     });
 
     it('reads toolchain.compiler as the stage 1 compiler: validator and lowering together', () => {
         const registry = createDefaultRegistry();
-        const effective = resolveToolchain(config({ compiler: 'internal' }), registry);
-        expect(effective.validator).toBe('internal');
-        expect(effective.lowering).toBe('internal');
+        const effective = resolveToolchain(config({ compiler: 'opensysml' }), registry);
+        expect(effective.validator).toBe('opensysml');
+        expect(effective.lowering).toBe('opensysml');
         // It never meant packaging, so packaging is still unset.
         expect(() => effective.packager).toThrow(ToolchainNotConfiguredError);
         expect(effective.deprecations).toEqual([]);
@@ -76,9 +76,9 @@ describe('role resolution', () => {
     it('lets an explicit role key win over toolchain.compiler', () => {
         const registry = createDefaultRegistry();
         const effective = resolveToolchain(
-            config({ compiler: 'syside', lowering: 'internal' }), registry);
+            config({ compiler: 'syside', lowering: 'opensysml' }), registry);
         expect(effective.validator).toBe('syside');
-        expect(effective.lowering).toBe('internal');
+        expect(effective.lowering).toBe('opensysml');
         expect(effective.selections.find(s => s.role === 'lowering')?.source).toBe('settings');
         expect(effective.selections.find(s => s.role === 'validator')?.source).toBe('compiler');
     });
@@ -86,10 +86,9 @@ describe('role resolution', () => {
     it('takes the validator verdict from stage 1 only when one provider fills both roles', () => {
         const registry = createDefaultRegistry();
         expect(compileServesValidator(config({ compiler: 'syside' }), registry)).toBe(true);
-        // `internal` builds its own model: no stage 1 to take a verdict from.
-        expect(compileServesValidator(config({ compiler: 'internal' }), registry)).toBe(false);
-        expect(compileServesValidator(config({ compiler: 'syside', lowering: 'internal' }), registry)).toBe(false);
-        expect(compileServesValidator(config({ validator: 'internal', lowering: 'syside' }), registry)).toBe(false);
+        // Two providers: the validator's verdict is its own, not stage 1's.
+        expect(compileServesValidator(config({ compiler: 'syside', lowering: 'opensysml' }), registry)).toBe(false);
+        expect(compileServesValidator(config({ validator: 'opensysml', lowering: 'syside' }), registry)).toBe(false);
     });
 
     it('runs the SysIDE CLI after all when a setting only it reads is in effect', () => {
@@ -105,7 +104,7 @@ describe('role resolution', () => {
         const registry = createDefaultRegistry();
         // `sysand` is a real provider — for packaging. Asking it to validate is
         // an unknown-provider error naming what *is* registered, not a
-        // hardcoded "choose internal or syside" message.
+        // hardcoded "choose one or the other" message.
         expect(() => resolveToolchain(config({ validator: 'sysand' }), registry))
             .toThrow(UnknownProviderError);
         expect(() => resolveToolchain(config({ packager: 'syside' }), registry))

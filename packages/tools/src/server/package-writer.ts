@@ -33,7 +33,7 @@ import {
     dedent, insertIntoBody, locateContainers, locatePackages, removedLine, removeLine, spliceIndented,
 } from './package-source.js';
 import { spliceOutline, type SourceOutline } from '../authoring/source-outline.js';
-import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import type { OutlineSource } from '../authoring/outline-source.js';
 import { resolveOutlineIdentity } from '../authoring/outline-identity.js';
 
 /**
@@ -76,8 +76,8 @@ const PACKAGE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export async function createPackage(
     cwd: string,
     request: { file: string; parent?: string; name: string },
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, parent, name } = request;
     if (!PACKAGE_NAME.test(name)) {
@@ -123,8 +123,8 @@ export async function createPackage(
 export async function renamePackage(
     cwd: string,
     request: { file: string; qualifiedName: string; name: string },
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, qualifiedName, name } = request;
     if (!PACKAGE_NAME.test(name)) {
@@ -183,8 +183,8 @@ export async function movePackage(
         targetParent?: string;
         targetFile: string;
     },
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, qualifiedName, targetParent, targetFile } = request;
     if (targetParent === qualifiedName || targetParent?.startsWith(`${qualifiedName}::`)) {
@@ -265,8 +265,8 @@ export async function movePackage(
 export async function deletePackage(
     cwd: string,
     request: { file: string; qualifiedName: string },
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, qualifiedName } = request;
     const absolute = resolve(cwd, file);
@@ -317,8 +317,8 @@ export async function deletePackage(
 export async function moveIntoGroupingPackage(
     cwd: string,
     request: { file: string; qualifiedName: string; targetPackage: string },
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<PackageWriteResult> {
     const { file, qualifiedName, targetPackage } = request;
     const absolute = resolve(cwd, file);
@@ -382,8 +382,8 @@ export async function moveElementToPackage(
         targetPackage?: string;
     },
     index: IrIdentityIndex,
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<PackageWriteResult> {
     const { elementId, irIdentity, sourceFile, targetFile, targetPackage } = request;
     const sourceAbsolute = resolve(cwd, sourceFile);

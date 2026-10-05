@@ -17,7 +17,7 @@ import type { MultiplicityDTO } from '../model/relationship-legality.js';
 import type { ApiElement, ApiModel } from './api-model.js';
 import { apiDefinitionFacts } from './build-from-api.js';
 import { handoffFileOf } from './handoff-files.js';
-import type { BuilderRegistries } from '../model/builder.js';
+import type { BuilderRegistries } from '../model/complete-model.js';
 
 /** The definition metaclasses a kind is declared with, and the construct each is. */
 const KIND_CONSTRUCTS: Record<string, SysMLConstruct> = {

@@ -2,10 +2,9 @@
 //
 // The methodology content a project resolved, as a DTO the server can publish.
 //
-// Two things changed at the native flip. The scan is an AST walk over the
-// documents the native resolver already parsed, not a regex pass over whatever
-// `.sysml` files sat under a `methodology/` directory — a folder convention is
-// not a selection mechanism. And the descriptor now carries the *effective*
+// The scan reads the documents the compiler's handoff holds, not whatever
+// `.sysml` files sit under a `methodology/` directory — a folder convention is
+// not a selection mechanism. The descriptor carries the *effective*
 // methodology and rule set, so a client can show the inheritance and policy
 // chain rather than re-deriving it from raw parts.
 //
@@ -13,12 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { basename, relative } from 'node:path';
-import type { ParsedDocument } from './parser-utils.js';
-import {
-    resolveNativeProject,
-    type NativeMethodology,
-    type NativeProjectResolution,
-} from './native-project.js';
+import type { NativeMethodology, NativeProjectResolution } from './native-project.js';
 import {
     resolveEffectiveMethodology,
     type EffectiveMethodology,
@@ -71,117 +65,6 @@ export interface MethodologyDescriptor {
 
 // ─── AST reading ──────────────────────────────────────────────────────────────
 
-function literal(value: any): MethodologyAttrValue | undefined {
-    if (!value) return undefined;
-    switch (value.$type) {
-        case 'StringValue': {
-            // A string literal is a string: `"0.1"` stays `"0.1"`. The value
-            // may arrive with its quotes or without them.
-            const raw = String(value.value ?? '');
-            try {
-                const parsed = JSON.parse(raw);
-                if (typeof parsed === 'string') return parsed;
-            } catch { /* not quoted */ }
-            return raw.replace(/^"|"$/g, '');
-        }
-        case 'IntValue':
-        case 'RealValue':
-            return Number(value.value);
-        case 'BooleanValue':
-            return value.value === 'true' || value.value === true;
-        case 'EnumValue': {
-            const ref: string = value.enumRef ?? '';
-            const idx = ref.lastIndexOf('::');
-            return idx >= 0 ? ref.slice(idx + 2) : ref;
-        }
-        default:
-            return undefined;
-    }
-}
-
-function readBody(body: any[]): Pick<MethodologyPart, 'attributes' | 'multiAttributes'> {
-    const attributes: Record<string, MethodologyAttrValue> = {};
-    const multiAttributes: Record<string, MethodologyAttrValue[]> = {};
-    const push = (key: string, v: MethodologyAttrValue) => {
-        (multiAttributes[key] ??= []).push(v);
-        attributes[key] = v;
-    };
-    for (const member of body ?? []) {
-        if (member.$type !== 'AttributeMember' || !member.name || !member.value) continue;
-        if (member.value.$type === 'SetLiteral') {
-            for (const el of member.value.elements ?? []) {
-                const raw = el.stringValue ?? el.value;
-                if (typeof raw !== 'string') continue;
-                try { push(member.name, JSON.parse(raw)); }
-                catch { push(member.name, raw.replace(/^"|"$/g, '')); }
-            }
-        } else if (member.value.$type === 'EnumValue') {
-            const ref: string = member.value.enumRef ?? '';
-            const v = literal(member.value);
-            if (v !== undefined) push(member.name, v);
-            attributes[`${member.name}__qualified`] = ref;
-        } else {
-            const v = literal(member.value);
-            if (v !== undefined) push(member.name, v);
-        }
-    }
-    return { attributes, multiAttributes };
-}
-
-function shortName(qualified: string | undefined): string | undefined {
-    if (!qualified) return undefined;
-    const idx = qualified.lastIndexOf('::');
-    return idx >= 0 ? qualified.slice(idx + 2) : qualified;
-}
-
-function walkDocument(doc: ParsedDocument, projectRoot: string): {
-    partDefs: MethodologyPartDef[];
-    parts: MethodologyPart[];
-    namespaces: string[];
-} {
-    const partDefs: MethodologyPartDef[] = [];
-    const parts: MethodologyPart[] = [];
-    const namespaces: string[] = [];
-    const model = doc.document.parseResult?.value as any;
-    if (!model) return { partDefs, parts, namespaces };
-    const sourceFile = relative(projectRoot, doc.filePath) || basename(doc.filePath);
-
-    const visit = (node: any, ns?: string) => {
-        if (!node) return;
-        if (node.$type === 'PackageDeclaration') {
-            if (node.name && !namespaces.includes(node.name)) namespaces.push(node.name);
-            for (const m of node.members ?? []) visit(m, node.name ?? ns);
-            return;
-        }
-        if (node.$type === 'PartDefinition') {
-            partDefs.push({
-                name: node.name,
-                superType: shortName(node.specialization?.superType),
-                sourceFile,
-                namespace: ns,
-            });
-            return;
-        }
-        // `action` usages carry workflow steps, so they are read alongside parts.
-        if (node.$type === 'PartUsage' || node.$type === 'PartMember' || node.$type === 'ActionUsage') {
-            const partType = shortName(node.type);
-            if (partType && node.name) {
-                parts.push({
-                    partName: node.name,
-                    partType,
-                    ...readBody(node.body ?? node.usageBody ?? []),
-                    sourceFile,
-                    namespace: ns,
-                });
-            }
-            for (const m of node.body ?? []) visit(m, ns);
-        }
-    };
-
-    for (const member of model.members ?? []) visit(member);
-    return { partDefs, parts, namespaces };
-}
-
 /**
  * Build the methodology descriptor for a project.
  *
@@ -193,11 +76,14 @@ function walkDocument(doc: ParsedDocument, projectRoot: string): {
  */
 export async function loadMethodologyDescriptor(
     projectRoot: string,
-    resolution?: NativeProjectResolution,
-    /** The stage 1 handoff the resolution was read from: its documents, in place of MEMO's parse. */
-    api?: ApiModel,
+    resolution: NativeProjectResolution | undefined,
+    /** The stage 1 handoff the resolution was read from. */
+    api: ApiModel,
 ): Promise<MethodologyDescriptor> {
-    const resolved = resolution ?? await resolveNativeProject(projectRoot);
+    if (!resolution) {
+        return { folders: [], errors: [`No project resolved under ${projectRoot}, so there is no methodology to describe.`] };
+    }
+    const resolved = resolution;
     const errors = resolved.diagnostics.map(d => `${d.code}: ${d.message}`);
 
     const METHODOLOGY_TYPES = new Set([
@@ -212,9 +98,7 @@ export async function loadMethodologyDescriptor(
         for (const file of pkg.files) fileToPackage.set(file, pkg.qualifiedName);
     }
 
-    const walkedDocuments: [string, ReturnType<typeof walkDocument>][] = api
-        ? [...apiMethodologyDocuments(api, resolved.projectRoot)]
-        : resolved.documents.map(doc => [doc.filePath, walkDocument(doc, resolved.projectRoot)]);
+    const walkedDocuments = [...apiMethodologyDocuments(api, resolved.projectRoot)];
     for (const [filePath, walked] of walkedDocuments) {
         const pkgName = fileToPackage.get(filePath);
         if (!pkgName) continue;           // outside the import closure

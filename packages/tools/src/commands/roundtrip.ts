@@ -97,12 +97,8 @@ export async function roundTripCommand(
     const config = loadAndResolveConfig(configPath);
     log(chalk.gray(`Project: ${config.projectName}`));
 
-    const { model, parseErrors } = await loadProjectModel({ projectRoot: dirname(configPath), config });
+    const { model } = await loadProjectModel({ projectRoot: dirname(configPath), config });
     log(chalk.gray(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
-
-    if (parseErrors.length > 0) {
-        log(chalk.yellow(`⚠ ${parseErrors.length} parse error(s) — round-trip fidelity reduced\n`));
-    }
 
     const diffs = computeRoundTripDiffs(model);
 

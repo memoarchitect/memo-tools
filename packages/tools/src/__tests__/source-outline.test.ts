@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ApiModel, type ApiElement, type Stage1Output } from '../stage2/api-model.js';
-import { parseText } from '../model/parser-utils.js';
+import { join } from 'node:path';
+import { compileSources, compilerConfigured } from './helpers/compile-source.js';
 import {
-    bodyMembers, findBody, outlineFromHandoff, outlineFromParse, outlineNodes,
+    bodyMembers, findBody, outlineFromHandoff, outlineNodes,
     type OutlineNode, type SourceOutline,
 } from '../authoring/source-outline.js';
 import {
@@ -128,13 +129,6 @@ describe('a source outline', () => {
         expect(conn.members.map(m => m.key)).toContain('Plant::@ConnectionUsage[0]::source');
         expect(bodyMembers(conn).map(m => m.key)).toEqual(['Plant::@ConnectionUsage[0]::note']);
     });
-
-    it('reads the same from MEMO\'s parse of the file', async () => {
-        const { document, errors } = await parseText(TEXT);
-        expect(errors).toEqual([]);
-        const fromParse = outlineFromParse(document.parseResult.value as never, FILE, TEXT);
-        expect(shape(fromParse)).toEqual(shape(fromHandoff));
-    });
 });
 
 describe('an identity minted from the outline', () => {
@@ -158,20 +152,26 @@ describe('an identity minted from the outline', () => {
         });
     });
 
-    it('resolves against the file as it is now, surviving an insertion above it', async () => {
-        const edited = TEXT.replace('    part def Pump;\n', '    part def Pump;\n    part def Valve;\n');
-        const { document } = await parseText(edited);
-        const now = outlineFromParse(document.parseResult.value as never, FILE, edited);
-        const found = resolveOutlineIdentity(now, 'model/plant.sysml#Plant::pump:PartUsage');
+    // The file as it is now is the compiler's outline of the text on disk.
+    const VALID = 'package Plant {\n    part def Pump;\n    part pump : Pump;\n}\n';
+    const outlineOf = async (text: string) => {
+        const { api, root } = await compileSources([{ filePath: FILE, source: text }], { asGiven: true });
+        return outlineFromHandoff(api, join(root, FILE), FILE, text);
+    };
+
+    it.runIf(compilerConfigured)('resolves against the file as it is now, surviving an insertion above it', async () => {
+        const edited = VALID.replace('    part def Pump;\n', '    part def Pump;\n    part def Valve;\n');
+        const found = resolveOutlineIdentity(await outlineOf(edited), 'model/plant.sysml#Plant::pump:PartUsage');
         expect(edited.slice(found.start, found.start + 14)).toBe('part pump : Pu');
     });
 
-    it('is stale once the declaration is renamed, retyped or gone', async () => {
-        const stale = (text: string) => parseText(text).then(({ document }) =>
-            () => resolveOutlineIdentity(outlineFromParse(document.parseResult.value as never, FILE, text),
-                'model/plant.sysml#Plant::pump:PartUsage'));
-        expect(await stale(TEXT.replace('part pump : Pump', 'part pump2 : Pump'))).toThrow(StaleIrIdentityError);
-        expect(await stale(TEXT.replace('part pump : Pump', 'item pump : Pump'))).toThrow(/now names a ItemUsage/);
+    it.runIf(compilerConfigured)('is stale once the declaration is renamed, retyped or gone', async () => {
+        const stale = async (text: string) => {
+            const outline = await outlineOf(text);
+            return () => resolveOutlineIdentity(outline, 'model/plant.sysml#Plant::pump:PartUsage');
+        };
+        expect(await stale(VALID.replace('part pump : Pump', 'part pump2 : Pump'))).toThrow(StaleIrIdentityError);
+        expect(await stale(VALID.replace('part pump : Pump', 'item pump : Pump'))).toThrow(/now names a ItemUsage/);
         expect(() => resolveOutlineIdentity(outline, 'other.sysml#Plant::pump:PartUsage')).toThrow(/names other.sysml/);
     });
 });

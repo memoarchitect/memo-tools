@@ -1,32 +1,25 @@
-// ─── A project's model, from whichever compiler is selected ─────────────────
+// ─── A project's model, from the selected compiler ───────────────────────────
 //
 // Every command that needs a MEMO model asks here, so `toolchain.compiler`
-// means the same thing to all of them. A compiler that builds the model
-// (an external compiler) compiles every library root a locator offers and states
-// the project's resolution, registries and rules in its handoff, so MEMO
-// parses nothing. MEMO's own compiler resolves the project, loads the ontology
-// and builds the model from its parse, as it always has.
+// means the same thing to all of them. The compiler compiles every library root
+// a locator offers and states the project's resolution, registries and rules in
+// its handoff, so MEMO parses nothing: it reads the handoff.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { join, relative } from 'node:path';
-import type { BuilderRegistries } from '../model/builder.js';
-import { buildMemoModel } from '../model/builder.js';
+import type { BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
-import { findProjectRoot, type NativeProjectResolution } from '../model/native-project.js';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
-import type { ParsedDocument } from '../model/parser-utils.js';
-import { parseFiles } from '../model/parser-utils.js';
-import type { MemoModel, ParseError } from '../model/semantic.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import type { NativeProjectResolution } from '../model/native-project.js';
+import type { MemoModel } from '../model/semantic.js';
 import type { ApiModel } from '../stage2/api-model.js';
 import { isProjectSource, resolutionLoads } from '../stage2/project-from-api.js';
-import { collectNativeConstraints, type ConstraintDiagnostic } from '../validator/constraint-loader.js';
+import type { ConstraintDiagnostic } from '../validator/constraint-loader.js';
 import type { CompiledConstraint } from '../validator/constraint-eval.js';
 import { collectApiConstraints } from '../validator/constraint-loader-api.js';
 import { defaultRegistry } from './default-registry.js';
 import type { Diagnostic } from './diagnostic.js';
 import { resolveToolchain } from './effective.js';
-import { compileResolvedProject, selectedCompilerBuildsModel } from './operations.js';
+import { compileResolvedProject } from './operations.js';
 import type { ProviderRegistry } from './registry.js';
 
 export interface ProjectModel {
@@ -36,22 +29,14 @@ export interface ProjectModel {
     resolution?: NativeProjectResolution;
     /** The selected compiler (`toolchain.compiler`). */
     compiler: string;
-    /** Whether the selected compiler built the model from its handoff. */
-    fromHandoff: boolean;
-    /** The compiler's version, when it built the model. */
+    /** The compiler's version. */
     providerVersion?: string;
-    /** Stage 1's diagnostics, when it built the model. */
+    /** Stage 1's diagnostics. */
     diagnostics: Diagnostic[];
-    /** MEMO's parse errors, when it built the model. */
-    parseErrors: ParseError[];
     /** Messages from resolving the project and loading its ontology. */
     loadWarnings: string[];
-    /** The project files MEMO parsed, when it built the model. */
-    documents: ParsedDocument[];
-    /** The ontology files MEMO parsed, when it built the model. */
-    ontologyDocuments: ParsedDocument[];
     /** The handoff the model was built from, library included. */
-    api?: ApiModel;
+    api: ApiModel;
     /** Whether stage 1 was reused from the project's `.memo/stage1`. */
     cached?: boolean;
 }
@@ -93,68 +78,30 @@ export async function loadProjectModel(options: LoadProjectModelOptions): Promis
     const { projectRoot, config } = options;
     const registry = options.registry ?? defaultRegistry;
     const compiler = resolveToolchain(config, registry).lowering;
-    if (selectedCompilerBuildsModel(config, registry)) {
-        const stage1 = await compileResolvedProject({
-            config,
-            projectDir: projectRoot,
-            projectFiles: options.files ? new Set(options.files.map(file => relative(projectRoot, file))) : undefined,
-            cacheDir: options.cache === false ? undefined : stage1CacheDir(projectRoot),
-            registry,
-        });
-        if (!stage1) throw new Error(`${compiler} builds the model but compiled nothing`);
-        if (!stage1.accepted || !stage1.model) throw new Stage1RejectedError(compiler, stage1.diagnostics);
-        return {
-            model: stage1.model,
-            registries: stage1.registries,
-            resolution: stage1.resolution,
-            compiler,
-            fromHandoff: true,
-            providerVersion: stage1.providerVersion,
-            diagnostics: stage1.diagnostics,
-            parseErrors: [],
-            loadWarnings: (stage1.resolution?.diagnostics ?? []).map(d => `${d.code}: ${d.message}`),
-            documents: [],
-            ontologyDocuments: [],
-            api: stage1.api,
-            cached: stage1.cached,
-        };
-    }
-
-    const loaded = await loadOntologyRegistries(projectRoot);
-    const registries: BuilderRegistries | undefined = loaded.fileCount > 0
-        ? { ...loaded.registries, provenance: loaded.provenance }
-        : undefined;
-    // The project's own source is everything resolution parsed under no
-    // library root, selected or unused, as `memo validate` takes it.
-    const resolution = loaded.resolution;
-    const roots = [...(resolution?.selectedRoots ?? []), ...(resolution?.unusedRoots ?? [])];
-    const isProjectFile = (file: string) => !roots.some(root => file.startsWith(root.sysmlDir));
-    // A directory with no entrypoint has no resolution to take its source from;
-    // its source is every `.sysml` file under it, as MEMO's lowering reads one.
-    const { documents, errors } = options.files || !resolution?.entrypoint
-        ? await parseFiles([...(options.files ?? findSysmlFiles(projectRoot))], `${projectRoot}/`)
-        : {
-            documents: resolution.documents.filter(d => isProjectFile(d.filePath)),
-            errors: resolution.parseErrors.filter(e => isProjectFile(e.file)),
-        };
+    const stage1 = await compileResolvedProject({
+        config,
+        projectDir: projectRoot,
+        projectFiles: options.files ? new Set(options.files.map(file => relative(projectRoot, file))) : undefined,
+        cacheDir: options.cache === false ? undefined : stage1CacheDir(projectRoot),
+        registry,
+    });
+    if (!stage1.accepted || !stage1.model || !stage1.api) throw new Stage1RejectedError(compiler, stage1.diagnostics);
     return {
-        model: buildMemoModel(documents, config, errors, registries),
-        registries,
-        resolution: loaded.resolution,
+        model: stage1.model,
+        registries: stage1.registries,
+        resolution: stage1.resolution,
         compiler,
-        fromHandoff: false,
-        diagnostics: [],
-        parseErrors: errors,
-        loadWarnings: loaded.errors,
-        documents,
-        ontologyDocuments: loaded.fileCount > 0 ? loaded.parsedDocuments : [],
+        providerVersion: stage1.providerVersion,
+        diagnostics: stage1.diagnostics,
+        loadWarnings: (stage1.resolution?.diagnostics ?? []).map(d => `${d.code}: ${d.message}`),
+        api: stage1.api,
+        cached: stage1.cached,
     };
 }
 
 /**
- * The rule definitions a loaded project declares: from the handoff when the
- * compiler built the model, else from MEMO's parse of the ontology and the
- * project. Restricted to what resolution loads, as `memo validate` restricts it.
+ * The rule definitions a loaded project declares, from the handoff, restricted
+ * to what resolution loads, as `memo validate` restricts it.
  */
 export function projectConstraints(
     project: ProjectModel,
@@ -162,12 +109,9 @@ export function projectConstraints(
     /** Files that are the project's own; by default, every file under no library root. */
     isProjectFile: (file: string) => boolean = project.resolution ? isProjectSource(project.resolution) : () => false,
 ): CompiledConstraint[] {
-    if (project.api) {
-        const loaded = project.resolution ? resolutionLoads(project.resolution) : () => true;
-        return collectApiConstraints(project.api, diagnostics, project.resolution?.filePackages,
-            file => loaded(file) || isProjectFile(file));
-    }
-    return collectNativeConstraints([...project.ontologyDocuments, ...project.documents], diagnostics);
+    const loaded = project.resolution ? resolutionLoads(project.resolution) : () => true;
+    return collectApiConstraints(project.api, diagnostics, project.resolution?.filePackages,
+        file => loaded(file) || isProjectFile(file));
 }
 
 export interface ProjectOntology {
@@ -180,28 +124,16 @@ export interface ProjectOntology {
 
 /**
  * The ontology a project resolves — its kinds, relationship types and the
- * resolution itself — for a command that needs no model. From the selected
- * compiler's handoff when it builds the model; else from MEMO's parse of the
- * resolved library files, which is also how a directory with no entrypoint
- * (a bare ontology checkout) resolves.
+ * resolution itself — for a command that needs no model, from the selected
+ * compiler's handoff.
  */
 export async function loadProjectOntology(options: LoadProjectModelOptions): Promise<ProjectOntology> {
-    const registry = options.registry ?? defaultRegistry;
-    if (selectedCompilerBuildsModel(options.config, registry) && findProjectRoot(options.projectRoot)) {
-        const project = await loadProjectModel(options);
-        return {
-            registries: project.registries ?? {},
-            resolution: project.resolution,
-            fileCount: project.resolution ? resolutionFileCount(project.resolution) : 0,
-            loadWarnings: project.loadWarnings,
-        };
-    }
-    const loaded = await loadOntologyRegistries(options.projectRoot);
+    const project = await loadProjectModel(options);
     return {
-        registries: { ...loaded.registries, provenance: loaded.provenance },
-        resolution: loaded.resolution,
-        fileCount: loaded.fileCount,
-        loadWarnings: loaded.errors,
+        registries: project.registries ?? {},
+        resolution: project.resolution,
+        fileCount: project.resolution ? resolutionFileCount(project.resolution) : 0,
+        loadWarnings: project.loadWarnings,
     };
 }
 

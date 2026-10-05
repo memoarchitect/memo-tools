@@ -1,6 +1,6 @@
 // ─── Rule Registry ───────────────────────────────────────────────────────────
 //
-// Discovery index for ConsistencyRule instances in parsed SysML documents.
+// Discovery index for ConsistencyRule instances in a compiled project.
 // Surfaces rule metadata (id, category, severity, standard) for the `memo rules`
 // catalog and coverage reporting. Rule EVALUATION is handled by the native
 // constraint evaluator (constraint-eval.ts); the proprietary ClosureRule
@@ -8,11 +8,10 @@
 //
 // Usage:
 //   const registry = new RuleRegistry();
-//   registry.populateFromDocuments(parsedDocs);
+//   registry.populateFromApi(api, fileOf);
 //   const rules = registry.entries();
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { extractDocComment, type ParsedDocument } from '../model/parser-utils.js';
 import type { ApiElement, ApiModel } from '../stage2/api-model.js';
 import { apiDefinitionFacts } from '../stage2/build-from-api.js';
 
@@ -99,44 +98,8 @@ export class RuleRegistry {
     }
 
     /**
-     * Populate registry from parsed SysML documents.
-     * Looks for part usages whose type is a known ConsistencyRule subtype.
-     */
-    populateFromDocuments(docs: ParsedDocument[]): void {
-        for (const doc of docs) {
-            const model = doc.document.parseResult?.value;
-            if (!model) continue;
-
-            for (const member of (model as any).members ?? []) {
-                if (member.$type === 'PackageDeclaration') {
-                    this.walkPackage(member, doc.filePath);
-                }
-            }
-        }
-    }
-
-    private walkPackage(pkg: any, filePath: string): void {
-        for (const member of pkg.members ?? []) {
-            if (member.$type === 'PackageDeclaration') {
-                this.walkPackage(member, filePath);
-            } else if (member.$type === 'PartUsage') {
-                this.tryExtractRule(member, filePath);
-            }
-        }
-    }
-
-    private tryExtractRule(usage: any, filePath: string): void {
-        const typeName = usage.type;
-        if (!typeName || !RuleRegistry.RULE_TYPES.has(typeName)) return;
-
-        const attrs = this.extractAttributes(usage.body);
-        const entry = ruleEntry(attrs, usage.name, extractDocComment(usage.body), filePath, typeName);
-        if (entry) this.rules.set(entry.id, entry);
-    }
-
-    /**
-     * Populate from a stage 1 handoff: the same rule parts, read from the
-     * compiled model rather than MEMO's parse.
+     * Populate from a stage 1 handoff: part usages whose type is a known
+     * ConsistencyRule subtype.
      */
     populateFromApi(api: ApiModel, fileOf: (element: ApiElement) => string): void {
         for (const usage of api.ofType('PartUsage')) {
@@ -149,45 +112,6 @@ export class RuleRegistry {
                 .map(([key, value]) => [key, /^[A-Za-z_]\w*(::[A-Za-z_]\w*)+$/.test(value) ? value.slice(value.lastIndexOf('::') + 2) : value]));
             const entry = ruleEntry(attrs, api.declaredName(usage['@id']), facts.doc, fileOf(usage), typeName);
             if (entry) this.rules.set(entry.id, entry);
-        }
-    }
-
-    private extractAttributes(body: any[] | undefined): Record<string, string> {
-        if (!body) return {};
-        const attrs: Record<string, string> = {};
-        for (const member of body) {
-            if (member.$type === 'AttributeMember' && member.value) {
-                attrs[member.name] = this.extractValue(member.value);
-            }
-            // `@MemoIdentity { :>> providedId = "…"; :>> label = "…"; }` states the
-            // rule's id and label, lifted as the model builder lifts them.
-            if (member.$type === 'MetadataApplication') {
-                for (const field of member.body ?? []) {
-                    if (field.name && field.value) attrs[field.name] = this.extractValue(field.value);
-                }
-            }
-        }
-        return attrs;
-    }
-
-    private extractValue(value: any): string {
-        if (!value) return '';
-        switch (value.$type) {
-            case 'StringValue':
-                return value.value?.replace(/^"|"$/g, '') ?? '';
-            case 'IntValue':
-            case 'RealValue':
-                return String(value.value);
-            case 'BooleanValue':
-                return value.value;
-            case 'EnumValue': {
-                // Strip enum type prefix: "RuleStrengthKind::required" → "required"
-                const ref: string = value.enumRef ?? '';
-                const colonIdx = ref.lastIndexOf('::');
-                return colonIdx >= 0 ? ref.slice(colonIdx + 2) : ref;
-            }
-            default:
-                return String(value);
         }
     }
 }

@@ -1,20 +1,21 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { generateValidatedSysml, MAX_SYSML_GENERATION_ATTEMPTS } from '../operations/ai-authoring.js';
+import { compilerConfigured, examplesPresent } from './helpers/compile-source.js';
 import type { LLMProvider } from '../llm/llm-provider.js';
 
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach(root => rmSync(root, { recursive: true, force: true })));
 
+const EXAMPLE = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
+
+/** A real project, so the compiler that validates the candidate has a model to resolve it in. */
 function project(): string {
-    const root = mkdtempSync(join(tmpdir(), 'memo-ai-authoring-'));
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'memo-ai-authoring-')));
     roots.push(root);
-    const file = join(root, 'model/catalog/project.sysml');
-    mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, 'package ProjectCatalog { }\n');
-    writeFileSync(join(root, 'memo.tools.yaml'), 'toolchain:\n  compiler: internal\n');
+    cpSync(EXAMPLE, root, { recursive: true, filter: path => !path.includes('/.memo') });
     return root;
 }
 
@@ -26,7 +27,7 @@ function provider(responses: string[]): LLMProvider {
     })) };
 }
 
-describe('AI authoring through the validator', () => {
+describe.runIf(compilerConfigured && examplesPresent)('AI authoring through the validator', () => {
     it('repairs a known-bad draft within the fixed retry bound', async () => {
         const llm = provider([
             '```sysml\npackage Broken { part def Pump \n```',

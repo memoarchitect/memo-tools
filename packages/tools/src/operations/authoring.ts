@@ -23,15 +23,15 @@
 
 import type { MEMOConfig } from '../model/config.js';
 import type { IrIdentityIndex } from '../model/ir-identity.js';
-import { lowerAstToSysmlIr, projectSysmlIrToMemo, SYSML_IR_VERSION } from '../model/sysml-ir.js';
+import { projectSysmlIrToMemo, SYSML_IR_VERSION } from '../model/sysml-ir.js';
 import { modelToDTO } from '../model/semantic.js';
-import { loadProjectConfig } from '../toolchain/lowering.js';
+import { loadProjectConfig } from '../toolchain/project-config.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
 import { SYSMLC_IR_VERSION, type MemoIr } from '../toolchain/protocol.js';
 import { saveElementToFile, type ElementWriteRequest, type ElementWriteResult } from '../server/persistor.js';
 import {
-    outlineIdentityIndex, outlineSourceFor, parseOutlineSource, projectOutlines, type OutlineSource,
+    outlineIdentityIndex, outlineSourceFor, projectOutlines, selectedOutlineSource, type OutlineSource,
 } from '../authoring/outline-source.js';
 
 export interface AuthoringContext {
@@ -40,7 +40,7 @@ export interface AuthoringContext {
     config?: MEMOConfig;
     /** Identity index of the revision the caller's request was built against. */
     irIndex?: IrIdentityIndex;
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
+    /** Outlines of the project's files, from the selected compiler. Its own when absent. */
     outlines?: OutlineSource;
 }
 
@@ -66,16 +66,13 @@ export async function recompileProject(context: AuthoringContext): Promise<Recom
     const config = context.config ?? loadProjectConfig(context.projectDir);
     const project = await loadProjectModel({ projectRoot: context.projectDir, config });
     const dto = modelToDTO(project.model);
-    // MEMO's own lowering states its syntax tree as IR; a handoff is the record
-    // for a compiler that builds the model from one.
-    const sysml = project.api
-        ? { irVersion: SYSML_IR_VERSION, elements: [], diagnostics: [] }
-        : lowerAstToSysmlIr(project.documents, dto, context.projectDir);
+    // The handoff is the record of the compile; the IR states no syntax tree.
+    const sysml = { irVersion: SYSML_IR_VERSION, elements: [], diagnostics: [] };
     return {
         ir: {
             irVersion: SYSMLC_IR_VERSION,
             model: projectSysmlIrToMemo(sysml, dto),
-            parseErrors: project.parseErrors,
+            parseErrors: [],
             accepted: true,
             sysml,
         },
@@ -102,7 +99,9 @@ export async function writeElement(
     context: AuthoringContext,
     element: ElementWriteRequest,
 ): Promise<ElementWriteBackResult> {
-    const result = await saveElementToFile(context.projectDir, element, context.irIndex, context.outlines ?? parseOutlineSource);
+    const config = context.config ?? loadProjectConfig(context.projectDir);
+    const outlines = context.outlines ?? selectedOutlineSource(context.projectDir, config);
+    const result = await saveElementToFile(context.projectDir, element, context.irIndex, outlines);
     if (!result.success) return result;
     return { ...result, revision: await recompileProject(context) };
 }

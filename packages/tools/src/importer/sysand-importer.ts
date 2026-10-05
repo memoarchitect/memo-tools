@@ -12,11 +12,10 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join, relative } from 'node:path';
 import { KindRegistry } from '../model/kind-registry.js';
 import { RelationshipRegistry } from '../model/relationship-registry.js';
-import { parseFiles } from '../model/parser-utils.js';
 import type { MEMOConfig } from '../model/config.js';
 import { apiOntologyRegistries } from '../stage2/registries-from-api.js';
 import { handoffFileOf } from '../stage2/handoff-files.js';
-import { compileModelWithSelected, selectedCompilerBuildsModel } from '../toolchain/operations.js';
+import { compileModelWithSelected } from '../toolchain/operations.js';
 
 /** .project.json format from SysAnd */
 export interface SysAndProjectJson {
@@ -169,30 +168,23 @@ export async function importSysandProject(projectDir: string, config: MEMOConfig
     }
 
     // Read the packages' kinds and relationship types with the importing
-    // project's compiler. One that builds the model compiles the packages as
-    // library roots and states them in its handoff; MEMO's compiler parses.
-    if (selectedCompilerBuildsModel(config)) {
+    // project's compiler, which compiles the packages as library roots and
+    // states them in its handoff.
+    {
         const sysmlDirs = [...new Set(packageDirs.map(dir => existsSync(resolve(dir, 'sysml')) ? resolve(dir, 'sysml') : dir))];
         const compiled = await compileModelWithSelected({
             config, projectDir, libraryDirs: sysmlDirs, projectFiles: new Set(),
         });
-        if (!compiled?.accepted || !compiled.api) {
-            for (const d of compiled?.diagnostics.filter(d => d.severity === 'error') ?? []) {
+        if (!compiled.accepted || !compiled.api) {
+            for (const d of compiled.diagnostics.filter(d => d.severity === 'error')) {
                 errors.push(`${d.file ?? ''}${d.range ? `:${d.range.start.line}` : ''}: ${d.message}`);
             }
-            if (!compiled?.diagnostics.some(d => d.severity === 'error')) errors.push('The SysAnd packages did not compile.');
+            if (!compiled.diagnostics.some(d => d.severity === 'error')) errors.push('The SysAnd packages did not compile.');
         } else {
             const registries = apiOntologyRegistries(compiled.api, handoffFileOf(compiled.api));
             for (const kind of registries.kindRegistry.entries()) kindRegistry.register(kind);
             for (const entry of registries.relationshipRegistry.entries()) relationshipRegistry.register(entry);
         }
-    } else {
-        const parseResult = await parseFiles(allSysmlFiles, '');
-        for (const err of parseResult.errors) {
-            errors.push(`${err.file}${err.line ? `:${err.line}` : ''}: ${err.message}`);
-        }
-        kindRegistry.populateFromDocuments(parseResult.documents);
-        relationshipRegistry.populateFromDocuments(parseResult.documents);
     }
 
     const relativeSysmlFiles = allSysmlFiles.map(f => relative(projectDir, f));

@@ -197,9 +197,8 @@ it. A *category* is the layer of the rule's subject kind, spelled as a
 methodology's `includedLayer` spells it (`memo_assurance_safety_risk`); that is
 a different thing from the tailoring class `memo rules list --category` filters
 by. An invariant in the selection keeps running and the command says so. A
-standard is selected by the clauses its rules enforce, which only a compiler that
-builds the model can read: under the `internal` compiler a policy by standard
-reaches no rule and is reported as such. `--dry-run` lists the rules the policy
+standard is selected by the clauses its rules enforce, which a stage 1 compiler's handoff
+provides. A policy by standard that reaches no rule is reported as such. `--dry-run` lists the rules the policy
 would reach and writes nothing; otherwise it writes into the project binding or
 methodology in `--file` through the compile-before-commit path. Architect's
 Rules view offers the same choice (one rule, a standard, a layer).

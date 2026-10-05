@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
+import { compiledExample, compilerConfigured } from './helpers/compile-source.js';
 
 // ─── Native-duplicate lint ───────────────────────────────────────────────────
 //
@@ -141,7 +141,7 @@ const NATIVE_DUPLICATES: Record<string, DuplicateRow> = {
  * prevent, in the other direction.
  */
 async function ontologyDefinitionNames(): Promise<Set<string>> {
-    const { registries } = await loadOntologyRegistries(GPCA_PROJECT);
+    const { registries = {} } = await compiledExample('gpca-pump');
     const names = new Set<string>();
     for (const entry of registries.kindRegistry?.entries() ?? []) names.add(entry.name);
     for (const entry of registries.relationshipRegistry?.entries() ?? []) {
@@ -152,8 +152,7 @@ async function ontologyDefinitionNames(): Promise<Set<string>> {
 }
 
 describe('MEMO constructs that duplicate a native SysML v2 one', () => {
-    it('every row marked removed is really gone', async () => {
-        if (!existsSync(GPCA_PROJECT)) return; // sibling ontology checkout absent
+    it.runIf(compilerConfigured && existsSync(GPCA_PROJECT))('every row marked removed is really gone', async () => {
         const names = await ontologyDefinitionNames();
         const resurrected = Object.entries(NATIVE_DUPLICATES)
             .filter(([name, row]) => row.status === 'removed' && names.has(name))
@@ -161,10 +160,9 @@ describe('MEMO constructs that duplicate a native SysML v2 one', () => {
         expect(resurrected, 'a construct recorded as removed is back in the ontology').toEqual([]);
     });
 
-    it('every row marked present really is present', async () => {
+    it.runIf(compilerConfigured && existsSync(GPCA_PROJECT))('every row marked present really is present', async () => {
         // The direction that actually rotted. Without this the table keeps
         // listing finished work and nobody can tell what is left.
-        if (!existsSync(GPCA_PROJECT)) return;
         const names = await ontologyDefinitionNames();
         const stale = Object.entries(NATIVE_DUPLICATES)
             .filter(([name, row]) => row.status === 'present' && !names.has(name))

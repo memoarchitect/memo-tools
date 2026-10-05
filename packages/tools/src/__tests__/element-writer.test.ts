@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { removeElement } from '../server/element-writer.js';
-import { parseText } from '../model/parser-utils.js';
+import { compilerConfigured, directoryOutlines } from './helpers/compile-source.js';
 import type { MemoElement, MemoModelDTO, MemoRelationship } from '../model/semantic.js';
 
 let projectRoot: string;
@@ -30,10 +30,14 @@ function model(elements: MemoElement[], relationships: MemoRelationship[]): Memo
     return { elements: Object.fromEntries(elements.map(item => [item.id, item])), relationships } as MemoModelDTO;
 }
 
+// What the fixtures use: a kind, and a relation with the ends they name.
+const STUBS = 'part def UIElement;\nconnection def Composes { end parent; end child; }';
+const outlines = () => directoryOutlines(projectRoot, STUBS);
+
 beforeEach(() => { projectRoot = mkdtempSync(join(tmpdir(), 'memo-element-writer-')); });
 afterEach(() => { rmSync(projectRoot, { recursive: true, force: true }); });
 
-describe('removeElement', () => {
+describe.runIf(compilerConfigured)('removeElement', () => {
     it('removes the element and all incoming and outgoing connections while preserving unrelated connections', async () => {
         const source = `package Test {
     part parent : UIElement;
@@ -52,28 +56,29 @@ describe('removeElement', () => {
                 relationship('out', 'victim', 'survivor', 'model/catalog.sysml'),
                 relationship('keep', 'parent', 'survivor', 'model/catalog.sysml'),
             ],
-        ), projectRoot);
+        ), projectRoot, outlines());
 
         expect(result).toMatchObject({ success: true, removedRelationshipIds: ['in', 'out'] });
         const updated = read('model/catalog.sysml');
         expect(updated).not.toContain('part victim');
         expect(updated).not.toContain('::> victim');
         expect(updated).toContain('connect parent ::> parent to child ::> survivor');
-        expect((await parseText(updated)).errors).toHaveLength(0);
+        await expect(outlines().verify('model/catalog.sysml', updated)).resolves.toBeDefined();
     });
 
     it('cleans connected relationships owned by a different source file', async () => {
         write('model/catalog.sysml', `package Catalog { part victim : UIElement; part survivor : UIElement; }\n`);
         write('model/relationships.sysml', `package Relations {
+    private import Catalog::*;
     connection : Composes connect parent ::> victim to child ::> survivor;
 }\n`);
         const victim = element('victim');
         const result = await removeElement(victim, model(
             [victim, element('survivor')],
             [relationship('cross-file', 'victim', 'survivor', 'model/relationships.sysml')],
-        ), projectRoot);
+        ), projectRoot, outlines());
 
-        expect(result.success).toBe(true);
+        expect(result, JSON.stringify(result)).toMatchObject({ success: true });
         expect(read('model/catalog.sysml')).not.toContain('part victim');
         expect(read('model/relationships.sysml')).not.toContain('::> victim');
     });
@@ -83,7 +88,7 @@ describe('removeElement', () => {
         write('model/catalog.sysml', source);
         const victim = element('victim');
         const unowned = relationship('unowned', 'victim', 'survivor', undefined);
-        const result = await removeElement(victim, model([victim, element('survivor')], [unowned]), projectRoot);
+        const result = await removeElement(victim, model([victim, element('survivor')], [unowned]), projectRoot, outlines());
 
         expect(result.success).toBe(false);
         expect(result.error).toContain('avoid a dangling reference');
@@ -105,7 +110,7 @@ package Other {
         const result = await removeElement(victim, model(
             [victim, element('Test::survivor')],
             [relationship('out', 'Test::victim', 'Test::survivor', 'model/catalog.sysml')],
-        ), projectRoot);
+        ), projectRoot, outlines());
 
         expect(result).toMatchObject({ success: true });
         const updated = read('model/catalog.sysml');

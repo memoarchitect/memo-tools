@@ -13,15 +13,13 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import chalk from 'chalk';
 import {
-    IncrementalProjectParser, buildMemoModel, modelToDTO,
-    loadOntologyRegistries, getPackageMetadata, loadMethodologyDescriptor, resolveNativeProject,
-    deriveModelViews, resolveViewKind, collectNativeConstraints, collectApiConstraints,
-    handoffFileOf, loadProjectSettings, resolveEffectiveRules, ruleCandidatesFromConstraints,
+    modelToDTO, apiPackageMetadata, loadMethodologyDescriptor, deriveModelViews, collectApiConstraints,
+    loadProjectSettings,
 } from '@memoarchitect/tools';
-import { buildSourceGraph, sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
+import { sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import { buildSourceGraphFromPackages } from '../model/source-graph.js';
 import type {
-    BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, ParsedDocument,
+    BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, OntologyPackageInfo,
     EffectiveRule, ParseError, MemoModel,
 } from '@memoarchitect/tools';
 import { validateModel } from '@memoarchitect/tools';
@@ -36,14 +34,14 @@ import { checkLockFile } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { enforceRuntimeBudget } from '../server/runtime-budget.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
-import { compileResolvedProject, selectedCompilerBuildsModel } from '../toolchain/operations.js';
+import { compileResolvedProject } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { computeStandardsReport, readDeclaredRegimes } from '../dhf/standards-report.js';
 import { loadStandardsLibrary } from '../dhf/standards-library.js';
 import { loadProjectModel, stage1CacheDir, type ProjectModel } from '../toolchain/project-model.js';
 import { apiEnumerations, apiProjectSourcePackages, resolutionLoads } from '../stage2/project-from-api.js';
-import { outlinesFromDocuments, outlinesFromHandoff } from '../authoring/outline-source.js';
+import { outlinesFromHandoff } from '../authoring/outline-source.js';
 import { outlineIdentityTable } from '../authoring/outline-identity.js';
 import { discoverProjectSources } from '../model/native-project.js';
 import { isRulePackageInScope, resolveProjectRules, scopedSubjectIds } from '../model/effective-scope.js';
@@ -72,20 +70,6 @@ function getGitInfo(cwd: string): Partial<ModelMetadata> {
         gitDirty: porcelain ? true : undefined,
     };
 }
-
-/** Presentation enums are model facts, so ship their literal sets to the canvas. */
-function collectEnumerations(documents: readonly ParsedDocument[]): EnumDefinitionDTO[] {
-    const found = new Map<string, EnumDefinitionDTO>();
-    const visit = (member: any): void => {
-        if (member?.$type === 'EnumDefinition' && member.name) {
-            found.set(member.name, { name: member.name, literals: (member.literals ?? []).map((literal: any) => literal.name).filter(Boolean) });
-        }
-        for (const child of member?.members ?? []) visit(child);
-    };
-    for (const document of documents) for (const member of document.document.parseResult.value.members) visit(member);
-    return [...found.values()];
-}
-
 
 /**
  * Strip stale relationship types from user diagrams, warn on any dropped.
@@ -157,21 +141,21 @@ export async function devCommand(options: {
         `Toolchain: ${toolchain.selections.map(s => `${s.role === 'package' ? 'packager' : s.role}=${s.provider}`).join(' ')}`));
     for (const note of toolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
 
-    // A compiler that builds the model resolves the project from what it
-    // compiled, so MEMO parses neither the ontology nor the closure; a stage 1
-    // that reports an error stops here, as it stops `memo validate`.
-    const external = selectedCompilerBuildsModel(config, defaultRegistry);
-    let compiled: ProjectModel | undefined;
-    if (external) {
-        try {
-            compiled = await loadProjectModel({ projectRoot: cwd, config });
-        } catch (error) {
-            console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
-            process.exit(1);
-        }
-        console.log(chalk.gray(`Stage 1: ${toolchain.lowering} ${compiled.providerVersion ?? ''}${compiled.cached ? ' (reused .memo/stage1)' : ''}`));
+    // The compiler resolves the project from what it compiled, so MEMO parses
+    // neither the ontology nor the closure; a stage 1 that reports an error
+    // stops here, as it stops `memo validate`.
+    let compiled: ProjectModel;
+    try {
+        compiled = await loadProjectModel({ projectRoot: cwd, config });
+    } catch (error) {
+        console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
+        process.exit(1);
     }
-    const nativeResolution = compiled?.resolution ?? await resolveNativeProject(cwd);
+    console.log(chalk.gray(`Stage 1: ${toolchain.lowering} ${compiled.providerVersion ?? ''}${compiled.cached ? ' (reused .memo/stage1)' : ''}`));
+    const nativeResolution = compiled.resolution ?? (() => {
+        console.error(chalk.red(`\n❌ ${toolchain.lowering} resolved no project: no entrypoint was compiled.\n`));
+        return process.exit(1);
+    })();
     for (const d of nativeResolution.diagnostics) {
         console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
     }
@@ -190,10 +174,9 @@ export async function devCommand(options: {
     let ontologyRegistries: BuilderRegistries | undefined;
     let ontologyRoots: string[] = [];
     let provenance: import('@memoarchitect/tools').ProvenanceTable | undefined;
-    let ontologyDocuments: ParsedDocument[] = [];
     let ontologyHash = '';
 
-    if (compiled?.registries) {
+    if (compiled.registries) {
         ontologyRegistries = compiled.registries;
         ontologyRoots = [...new Set(nativeResolution.selectedRoots.map(root => root.sysmlDir))];
         provenance = compiled.registries.provenance;
@@ -203,37 +186,14 @@ export async function devCommand(options: {
         console.log(chalk.gray(
             `Ontology: ${ontologyRegistries.kindRegistry?.size ?? 0} kinds, `
             + `${ontologyRegistries.relationshipRegistry?.size ?? 0} relationships (from ${toolchain.lowering}'s handoff)`));
-    } else try {
-        const loadResult = await loadOntologyRegistries(cwd);
-        if (loadResult.fileCount > 0) {
-            ontologyRegistries = { ...loadResult.registries, provenance: loadResult.provenance };
-            // Include the resolved KPAR cache roots as restart-scoped library
-            // content. They must never be picked up by the project hot watcher.
-            ontologyRoots = [...new Set([
-                ...loadResult.ontologyDirs,
-                ...nativeResolution.selectedRoots.map(root => root.sysmlDir),
-            ])];
-            provenance = loadResult.provenance;
-            ontologyDocuments = loadResult.parsedDocuments;
-            if (ontologyRegistries.kindRegistry) Object.freeze(ontologyRegistries.kindRegistry);
-            if (ontologyRegistries.relationshipRegistry) Object.freeze(ontologyRegistries.relationshipRegistry);
-            ontologyHash = computeOntologyHash(ontologyRegistries);
-
-            const kr = loadResult.registries.kindRegistry;
-            const rr = loadResult.registries.relationshipRegistry;
-            console.log(chalk.gray(
-                `Ontology: ${kr?.size ?? 0} kinds, ${rr?.size ?? 0} relationships ` +
-                `(from ${loadResult.fileCount} SysML files)`
-            ));
-        }
-    } catch (e) {
-        console.log(chalk.yellow(`  ⚠ Could not load ontology registries: ${e instanceof Error ? e.message : e}`));
+    } else {
+        console.log(chalk.yellow(`  ⚠ ${toolchain.lowering}'s handoff stated no ontology registries`));
     }
 
     // Phase B — methodology descriptor (data-only; no UI consumer yet)
     let methodologyDescriptor: MethodologyDescriptor = { folders: [], errors: [] };
     try {
-        methodologyDescriptor = await loadMethodologyDescriptor(cwd, nativeResolution, compiled?.api);
+        methodologyDescriptor = await loadMethodologyDescriptor(cwd, nativeResolution, compiled.api);
         const folderCount = methodologyDescriptor.folders.length;
         const totalParts = methodologyDescriptor.folders.reduce(
             (s, f) => s + Object.values(f.parts).reduce((a, p) => a + p.length, 0), 0,
@@ -260,22 +220,21 @@ export async function devCommand(options: {
     // ── end bootstrap ──────────────────────────────────────────────────────────
 
     // ── rebuildProject: hot path — no ontology reload ─────────────────────────
-    const projectParser = new IncrementalProjectParser(cwd);
     /** Revision of the newest rebuild that parsed — what a client is still showing. */
     let lastGoodRevision = 0;
     /**
-     * What the last accepted stage 1 built, under a compiler that builds the
-     * model: a rejected edit leaves the model, its identities, rules and
-     * registries where the last valid revision put them. MEMO's own parse is
-     * not a second opinion to fall back on.
+     * What the last accepted stage 1 built: a rejected edit leaves the model,
+     * its identities, rules and registries where the last valid revision put
+     * them. There is no second opinion to fall back on.
      */
     /** The project as last built, for previewing and writing a user's rule. */
     let ruleContext: RuleServiceContext | undefined;
     let latestClauses: ClauseFact[] = [];
+    let lastPackages: OntologyPackageInfo[] = [];
     let lastAccepted: {
         model: MemoModel; irIdentities: Record<string, string>;
         constraints: ReturnType<typeof collectApiConstraints>; registries?: BuilderRegistries;
-        sourceGraph: ReturnType<typeof buildSourceGraph>; enumerations: EnumDefinitionDTO[];
+        sourceGraph: ReturnType<typeof buildSourceGraphFromPackages>; enumerations: EnumDefinitionDTO[];
     } | undefined;
     async function rebuildProject(changedFiles?: readonly string[]): Promise<{
         messages: ServerMessage[]; revision: number; coherent: boolean; firstErrorFile?: string;
@@ -284,49 +243,35 @@ export async function devCommand(options: {
         const rebuildStartedAt = performance.now();
         buildCount++;
         const sysmlFiles = findSysmlFiles(cwd);
-        // MEMO parses the project only when MEMO's compiler builds the model.
-        const parsed = external
-            ? { documents: [] as ParsedDocument[], errors: [] as ParseError[] }
-            : await projectParser.parse(sysmlFiles, changedFiles);
-        const documents = parsed.documents;
-        let errors: ParseError[] = [...parsed.errors];
-        const projectRegistries: BuilderRegistries | undefined = ontologyRegistries
-            ? {
-                ...ontologyRegistries,
-                kindRegistry: ontologyRegistries.kindRegistry?.withProjectExtensions(documents),
-            }
-            : undefined;
+        let errors: ParseError[] = [];
         // `toolchain.compiler` decides where the model comes from. A stage 1
         // that reports errors makes this build incoherent, so a client keeps
         // showing the last good one.
         // The same resolved compile every command runs, reusing `.memo/stage1/`.
         const stage1 = await compileResolvedProject({ config, projectDir: cwd, cacheDir: stage1CacheDir(cwd) });
         // The methodology follows the project's imports, which an edit can
-        // change: from the compiled resolution when there is one, else by
-        // resolving again.
+        // change: from the compiled resolution.
         try {
-            methodologyDescriptor = await loadMethodologyDescriptor(cwd, stage1?.resolution, stage1?.resolution ? stage1.api : undefined);
+            if (stage1.api) methodologyDescriptor = await loadMethodologyDescriptor(cwd, stage1.resolution, stage1.api);
         } catch {
             // keep last good descriptor on transient parse failure
         }
-        if (stage1 && (!stage1.accepted || !stage1.model)) {
+        if (!stage1.accepted || !stage1.model) {
             errors = [...errors, ...stage1.diagnostics.filter(d => d.severity === 'error').map(d => ({
                 file: d.file ?? '', line: d.range?.start.line, message: d.message, code: d.code,
             }))];
         }
-        const accepted = stage1?.accepted && stage1.model && stage1.api;
-        const kept = external && !accepted ? lastAccepted : undefined;
-        const model = accepted
-            ? stage1.model!
-            : kept?.model ?? buildMemoModel(documents, config, errors, projectRegistries);
+        const accepted = stage1.accepted && stage1.model && stage1.api;
+        const kept = !accepted ? lastAccepted : undefined;
+        // A rejected first build has nothing to keep: the dev server starts only
+        // from a valid project, so `lastAccepted` is set by the bootstrap compile.
+        if (!accepted && !kept) throw new Error('No accepted build to show');
+        const model = accepted ? stage1.model! : kept!.model;
         // Identities for the authoring write-back: each element's declaration in
         // its file's outline (plans/memo-write-back-from-handoff.md), read from
-        // the handoff when stage 1 built the model, else from the documents
-        // this rebuild already parsed.
+        // the handoff stage 1 built the model from.
         const irIdentities = kept?.irIdentities ?? outlineIdentityTable(
-            accepted
-                ? outlinesFromHandoff(resolve(cwd), stage1.api!)
-                : outlinesFromDocuments(resolve(cwd), documents),
+            outlinesFromHandoff(resolve(cwd), stage1.api!),
             model.elements.values(),
             resolve(cwd),
         );
@@ -334,18 +279,17 @@ export async function devCommand(options: {
         // so they are read from its handoff rather than from MEMO's own parse.
         // The rules resolution loads, and the project's own: a rule the project
         // wrote in a file nothing imports still runs, as in `memo validate`.
-        const resolutionOf = stage1?.resolution ?? nativeResolution;
+        const resolutionOf = stage1.resolution ?? nativeResolution;
         const ruleFileLoaded = resolutionOf
             ? (file: string) => resolutionLoads(resolutionOf)(file) || isProjectSource(resolutionOf)(file)
             : undefined;
         const nativeConstraints = accepted
             ? collectApiConstraints(stage1.api!, undefined, stage1.resolution?.filePackages, ruleFileLoaded)
-            : kept?.constraints ?? collectNativeConstraints([...ontologyDocuments, ...documents]);
-        // An accepted stage 1 states the ontology with the project's own kinds,
-        // as MEMO's parse of the same closure does.
+            : kept!.constraints;
+        // An accepted stage 1 states the ontology with the project's own kinds.
         const stage2Registries: BuilderRegistries | undefined = accepted && stage1.registries
             ? stage1.registries
-            : kept?.registries ?? projectRegistries;
+            : kept?.registries;
         // The effective rule set, activated and tailored as `memo validate` and
         // `memo rules list` do it (`resolveProjectRules`), so Architect reports
         // the rule set they do. Rule resolution must never take the rebuild down:
@@ -452,15 +396,15 @@ export async function devCommand(options: {
         // Which files can change what each view renders. Computed once per
         // rebuild so every client can answer "does this change affect me?"
         // locally, without a round trip per changed file.
-        // From the handoff when stage 1 built the model, else from MEMO's parse.
+        // From the handoff stage 1 built the model from.
         const sourceGraph = accepted
             ? (() => {
                 const { packages, files } = apiProjectSourcePackages(stage1.api!, resolve(cwd));
                 return buildSourceGraphFromPackages(packages, files);
             })()
-            : kept?.sourceGraph ?? buildSourceGraph(documents);
-        const enumerations = accepted ? apiEnumerations(stage1.api!) : kept?.enumerations ?? collectEnumerations(documents);
-        if (external && accepted) {
+            : kept!.sourceGraph;
+        const enumerations = accepted ? apiEnumerations(stage1.api!) : kept!.enumerations;
+        if (accepted) {
             lastAccepted = { model, irIdentities, constraints: nativeConstraints, registries: stage2Registries, sourceGraph, enumerations };
         }
         for (const diagram of diagrams) {
@@ -499,7 +443,12 @@ export async function devCommand(options: {
         dto.metadata = metadata;
         (dto as any).ontologyHash = ontologyHash;
 
-        const ontologyPackages = getPackageMetadata(cwd);
+        // The packages of the last accepted build: a rejected edit keeps them.
+        if (accepted) {
+            lastPackages = apiPackageMetadata(
+                stage1.api!, cwd, new Set(nativeResolution.selectedRoots.map(root => root.dir)), resolutionOf?.filePackages);
+        }
+        const ontologyPackages = lastPackages;
 
         if (errors.length === 0) lastGoodRevision = buildCount;
         const result: {
@@ -566,6 +515,7 @@ export async function devCommand(options: {
         ruleContext: () => ruleContext,
         ontologyRegistries,
         ontologyRoots,
+        packageMetadata: () => lastPackages,
         relationshipFiles: config.relationshipFiles,
         canonicalRelationshipFile: config.canonicalRelationshipFile,
         transformClientHtml: options.transformClientHtml,
@@ -682,7 +632,7 @@ export async function devCommand(options: {
                 lastGoodRevision,
             });
             console.log(chalk.yellow(
-                `  ⚠ ${result.firstErrorFile ?? 'project source'} ${external ? 'does not compile' : 'does not parse'} — showing the last good model`
+                `  ⚠ ${result.firstErrorFile ?? 'project source'} does not compile — showing the last good model`
                 + ` (revision ${lastGoodRevision}). Mutations are held until it does.`
             ));
             return;

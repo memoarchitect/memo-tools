@@ -1,33 +1,16 @@
 // ─── Kind Registry ───────────────────────────────────────────────────────────
 //
-// Discovers kinds from SysML AST Definition nodes, replacing config.kinds.
-// Walks PartDefinition, RequirementDefinition, VerificationDefinition,
-// StateDefinition, UseCaseDeclaration definitions, ActionDefinition,
-// ItemDefinition, PortDefinition, InterfaceDefinition, AttributeDefinition, and EnumDefinition
-// nodes. Derives layer from the file's directory path (Apollo-11 convention).
+// The kinds a compiled project declares: its definitions, with the layer taken
+// from the file's directory path. Populated from a stage 1 handoff
+// (`populateFromApi`); a kind is a part, requirement, verification, state, use
+// case, action, item, port, interface, flow, attribute or enumeration definition.
 //
 // Usage:
 //   const registry = new KindRegistry();
-//   registry.populateFromDocuments(parsedDocs);
+//   registry.populateFromApi(api, fileOf, 'ontology');
 //   const kind = registry.getKind("Hazard");
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { PackageDeclaration } from '../language/generated/ast.js';
-import {
-    isPartDefinition,
-    isRequirementDefinition,
-    isVerificationDefinition,
-    isStateDefinition,
-    isUseCaseDeclaration,
-    isActionDefinition,
-    isItemDefinition,
-    isPortDefinition,
-    isInterfaceDefinition,
-    isFlowDefinition,
-    isAttributeDefinition,
-    isEnumDefinition,
-    isPackageDeclaration,
-} from '../language/generated/ast.js';
 import type { SysMLConstruct } from './config.js';
 
 /**
@@ -51,10 +34,8 @@ export interface KindDefinition {
     /** Default attributes for new instances */
     defaultAttributes?: Record<string, string>;
 }
-import type { ParsedDocument } from './parser-utils.js';
 import type { ApiElement, ApiModel } from '../stage2/api-model.js';
 import { apiKindEntries } from '../stage2/registries-from-api.js';
-import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from './layer-resolver.js';
 import type { KindDefinitionDTO } from './relationship-legality.js';
 
 /** Entry in the KindRegistry, matching KindDefinition shape */
@@ -129,58 +110,7 @@ export interface KindNameCollision {
     sourceFiles: string[];
 }
 
-/** AST $type → SysMLConstruct mapping */
-/**
- * Literal attribute values declared in a definition body. Only literals are
- * read: an inherited presentation hint is always a literal, and anything else
- * belongs to the usage.
- */
-function extractBoundAttributes(body: any[] | undefined): Record<string, string> {
-    const out: Record<string, string> = {};
-    for (const member of body ?? []) {
-        if (member?.$type !== 'AttributeMember' || !member.value || !member.name) continue;
-        const v = member.value;
-        switch (v.$type) {
-            case 'StringValue': out[member.name] = String(v.value).replace(/^"|"$/g, ''); break;
-            case 'IntValue':
-            case 'RealValue': out[member.name] = String(v.value); break;
-            case 'BooleanValue': out[member.name] = String(v.value); break;
-            case 'EnumValue': out[member.name] = String(v.enumRef ?? ''); break;
-            default: break;
-        }
-    }
-    return out;
-}
-
-/** Attribute names a definition body declares, in declaration order. */
-function extractDeclaredAttributeNames(body: any[] | undefined): string[] {
-    const names: string[] = [];
-    for (const member of body ?? []) {
-        if (member?.$type !== 'AttributeMember' || !member.name) continue;
-        if (!names.includes(member.name)) names.push(member.name);
-    }
-    return names;
-}
-
-const AST_TYPE_TO_CONSTRUCT: Record<string, SysMLConstruct> = {
-    PartDefinition: 'part def',
-    RequirementDefinition: 'requirement def',
-    VerificationDefinition: 'verification def',
-    StateDefinition: 'state def',
-    UseCaseDeclaration: 'use case def',
-    ActionDefinition: 'action def',
-    ItemDefinition: 'item def',
-    PortDefinition: 'port def',
-    InterfaceDefinition: 'interface def',
-    FlowDefinition: 'flow def',
-    AttributeDefinition: 'attribute def',
-    EnumDefinition: 'enum def',
-};
-
-/**
- * Registry that discovers kinds from SysML AST Definition nodes.
- * Replaces config.kinds lookups in the builder.
- */
+/** The kinds a compiled project declares, found from the definitions in its handoff. */
 export class KindRegistry {
     private readonly kinds = new Map<string, KindRegistryEntry>();
     /**
@@ -336,28 +266,12 @@ export class KindRegistry {
     }
 
     /**
-     * Return a registry augmented with project-local definitions. Definitions
-     * that derive from a registered ontology kind inherit that kind's
-     * placement. Other valid SysML definitions remain available under the
-     * standard SysML area instead of being reported as undefined. The
-     * ontology registry itself remains unchanged (it is frozen for the
-     * lifetime of an Architect session).
-     *
-     * Local extension kinds inherit their ontology parent's placement while
-     * retaining their own name and construct. This lets a project declare,
-     * for example, `FirmwareComponent specializes SoftwareComponent` and use
-     * FirmwareComponent everywhere the ontology accepts SoftwareComponent.
-     */
-    withProjectExtensions(documents: ParsedDocument[]): KindRegistry {
-        const discovered = new KindRegistry();
-        discovered.populateFromDocuments(documents);
-        return this.extendedWith(discovered);
-    }
-
-    /**
-     * `withProjectExtensions` over a stage 1 handoff: the project's own
-     * definitions (its `project` documents), resolved against this registry
-     * the same way.
+     * This registry extended with the project's own definitions (its `project`
+     * documents of a stage 1 handoff). Local extension kinds inherit their
+     * ontology parent's placement while retaining their own name and construct,
+     * so a project can declare `FirmwareComponent specializes SoftwareComponent`
+     * and use it wherever the ontology accepts SoftwareComponent. The ontology
+     * registry itself stays frozen for the lifetime of an Architect session.
      */
     withProjectExtensionsFromApi(api: ApiModel, fileOf: (element: ApiElement) => string): KindRegistry {
         const discovered = new KindRegistry();
@@ -587,99 +501,6 @@ export class KindRegistry {
         for (const kind of kinds) this.register(kind);
     }
 
-    populateFromDocuments(documents: ParsedDocument[]): void {
-        for (const doc of documents) {
-            const model = doc.document.parseResult.value;
-            const layer = resolveLayerFromPath(doc.filePath);
-            const standard = resolveStandardFromPath(doc.filePath);
-            const namespace = resolveNamespaceFromPath(doc.filePath);
-
-            for (const member of model.members) {
-                if (isPackageDeclaration(member)) {
-                    this.walkPackage(member, layer, standard, namespace, [], doc.filePath);
-                }
-            }
-        }
-    }
-
-    /** Walk a package declaration and register all Definition nodes */
-    private walkPackage(
-        pkg: PackageDeclaration,
-        layer: string,
-        standard?: string,
-        namespace?: string[],
-        packagePath: string[] = [],
-        sourceFile?: string,
-    ): void {
-        // A declaration's qualified name is the enclosing package chain, which
-        // is why nested package declarations are required: a file declaring
-        // `package a::b` gives no chain to walk.
-        const here = pkg.name ? [...packagePath, pkg.name] : packagePath;
-        for (const member of pkg.members) {
-            if (isPackageDeclaration(member)) {
-                this.walkPackage(member, layer, standard, namespace, here, sourceFile);
-                continue;
-            }
-
-            if (member.$type === 'ViewDefinition') {
-                const viewName = (member as any).name;
-                if (viewName) {
-                    this.registerViewDefinition(
-                        viewName,
-                        extractBoundAttributes((member as any).body),
-                        (member as any).specialization?.superType);
-                }
-                continue;
-            }
-
-            // Check each definition type
-            if (
-                isPartDefinition(member) ||
-                isRequirementDefinition(member) ||
-                isVerificationDefinition(member) ||
-                isStateDefinition(member) ||
-                (isUseCaseDeclaration(member) && member.isDefinition) ||
-                isActionDefinition(member) ||
-                isItemDefinition(member) ||
-                isPortDefinition(member) ||
-                isInterfaceDefinition(member) ||
-                isFlowDefinition(member) ||
-                isAttributeDefinition(member) ||
-                isEnumDefinition(member)
-            ) {
-                const construct = AST_TYPE_TO_CONSTRUCT[member.$type];
-                if (!construct) continue;
-
-                const declaredAttributes = extractDeclaredAttributeNames(
-                    (member as { body?: any[] }).body);
-
-                const name = member.name;
-                if (!name) continue;
-
-                const superType = 'specialization' in member
-                    ? member.specialization?.superType
-                    : undefined;
-                const additional = ('additionalSpecializations' in member
-                    ? (member as { additionalSpecializations?: string[] }).additionalSpecializations
-                    : undefined)?.map(name => name.split('::').pop()!).filter(Boolean);
-
-                this.register({
-                    name,
-                    label: name,
-                    layer,
-                    sysmlConstruct: construct,
-                    superType: superType || undefined,
-                    additionalSuperTypes: additional?.length ? additional : undefined,
-                    standard,
-                    isAbstract: ('isAbstract' in member && member.isAbstract) || undefined,
-                    namespace,
-                    qualifiedName: [...here, name].join('::'),
-                    sourceFile,
-                    attributeNames: declaredAttributes.length ? declaredAttributes : undefined,
-                });
-            }
-        }
-    }
 }
 
 /**

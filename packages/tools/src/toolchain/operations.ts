@@ -5,7 +5,7 @@
 // normalized `Diagnostic`s back. Nothing here branches on a provider name.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { BuilderRegistries } from '../model/builder.js';
+import type { BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
 import { canonicalPath, discoverLibraryRoots, discoverProjectSources } from '../model/native-project.js';
 import { relative } from 'node:path';
@@ -69,19 +69,20 @@ export async function runLowering(options: ToolchainRunOptions): Promise<Lowerin
 }
 
 /**
- * The MEMO model from the selected stage 1 compiler, when that compiler builds
- * one itself (`compileModel`): its check, then stage 2 over its API JSON.
- * `undefined` means the selected compiler leaves the model to MEMO's own
- * builder, which is what `internal` does. Every command that needs a model asks
- * here, so `toolchain.compiler` means the same thing to all of them.
+ * The MEMO model from the selected stage 1 compiler: its check, then stage 2
+ * over its API JSON. Every command that needs a model asks here, so
+ * `toolchain.compiler` means the same thing to all of them. MEMO has no compiler
+ * of its own: a lowering provider that cannot build the model is an error.
  */
 export async function compileModelWithSelected(
     options: CompileModelOptions & { registry?: ProviderRegistry },
-): Promise<CompileModelResult | undefined> {
+): Promise<CompileModelResult> {
     const registry = options.registry ?? defaultRegistry;
     const effective = resolveToolchain(options.config, registry);
     const compile = registry.descriptor('lowering', effective.lowering).compileModel;
-    if (!compile) return undefined;
+    if (!compile) {
+        throw new Error(`The compiler "${effective.lowering}" does not build a model, so it cannot be selected as \`toolchain.compiler\`.`);
+    }
     // The compiler names files by their real paths, so the project and its
     // libraries are given by them: through a symbolic link nothing would match.
     const result = await compile({
@@ -108,10 +109,9 @@ export async function compileModelWithSelected(
 
 /**
  * Stage 1 over every library root a locator offers, with the project resolved
- * from what it compiled (`resolveProject`): what a command loads when the
- * selected compiler builds the model, so MEMO parses nothing. Undefined when
- * MEMO's own compiler is selected. `projectFiles` defaults to the project's
- * own sources, its library roots excluded.
+ * from what it compiled (`resolveProject`): what a command loads, so MEMO parses
+ * nothing. `projectFiles` defaults to the project's own sources, its library
+ * roots excluded.
  */
 export async function compileResolvedProject(options: {
     config: MEMOConfig;
@@ -122,9 +122,8 @@ export async function compileResolvedProject(options: {
     force?: boolean;
     provenance?: boolean;
     registry?: ProviderRegistry;
-}): Promise<CompileModelResult | undefined> {
+}): Promise<CompileModelResult> {
     const registry = options.registry ?? defaultRegistry;
-    if (!selectedCompilerBuildsModel(options.config, registry)) return undefined;
     const projectDir = canonicalPath(options.projectDir);
     const sources = discoverProjectSources(projectDir);
     return compileModelWithSelected({
@@ -139,15 +138,6 @@ export async function compileResolvedProject(options: {
         force: options.force,
         registry,
     });
-}
-
-/**
- * Whether the selected compiler builds MEMO's model itself (a stage 1 that
- * hands stage 2 a handoff), rather than MEMO's own parse building it.
- */
-export function selectedCompilerBuildsModel(config: MEMOConfig, registry: ProviderRegistry = defaultRegistry): boolean {
-    const effective = resolveToolchain(config, registry);
-    return Boolean(registry.descriptor('lowering', effective.lowering).compileModel);
 }
 
 /**

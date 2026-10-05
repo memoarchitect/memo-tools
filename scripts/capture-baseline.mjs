@@ -20,10 +20,10 @@ import { resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-// The baselines were frozen under MEMO's own compiler, and the projects name no
+// The baselines were frozen under a stage 1 compiler, and the projects name no
 // compiler of their own, so the capture says which one it runs under (a caller
 // may still set another and expect a divergence).
-process.env.MEMO_TOOLCHAIN_COMPILER ??= 'internal';
+process.env.MEMO_TOOLCHAIN_COMPILER ??= 'opensysml';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const toolsRoot = resolve(here, '..');
@@ -278,6 +278,18 @@ export const FIXTURES = [
  * `core` as an intentional consequence of eliminating the taxonomy.
  */
 
+/**
+ * BASELINE RE-FROZEN 2026-10-04 — MEMO's own compiler retired.
+ *
+ * The capture now runs under a stage 1 compiler (OpenSysML), not the Langium
+ * parser, so the model is built from a handoff.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | -1 element: `gpcaMethodDefinition` (`MethodologyDefinition`) | The example's `methodology/` directory is a library root, so the compiler's handoff marks its documents `library`; the old parser read every resolved file as project content. A methodology is configuration the project selects, not model content (the same rule `e2e-workflow` states for the ontology's own). |
+ *
+ * default, extension-clinical and ui-regions are unchanged.
+ */
 /**
  * BASELINE RE-FROZEN 2026-08-13 — R10-S4 `IncludedIn` retired.
  *

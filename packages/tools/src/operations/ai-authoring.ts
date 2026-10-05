@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { findMemoManifests } from '../model/manifest.js';
 import { EMPTY_ONTOLOGY_VIEW, ontologyViewFrom } from '../model/kind-registry.js';
-import { loadProjectConfig } from '../toolchain/lowering.js';
+import { loadProjectConfig } from '../toolchain/project-config.js';
 import { mergeDiagnostics, probeToolchain, runLowering, runValidator } from '../toolchain/operations.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
 import { validateModel } from '../validator/rule-engine.js';
@@ -46,7 +46,10 @@ export async function validateGeneratedSysml(projectRoot: string, sysml: string)
         const diagnostics = mergeDiagnostics(validator.diagnostics, lowering.diagnostics);
         if (lowering.accepted) {
             const model = dtoToModel(lowering.ir.model);
-            diagnostics.push(...validateModel(model).violations.map(violation => ({
+            // Only what the candidate declares: the project's own findings are not the candidate's to repair.
+            const aboutCandidate = (violation: { provenance?: { declaration: { sourceUri?: string } } }) =>
+                violation.provenance?.declaration.sourceUri === candidatePath;
+            diagnostics.push(...validateModel(model).violations.filter(aboutCandidate).map(violation => ({
                 domain: 'memo-methodology' as const,
                 provider: 'memo', severity: violation.severity === 'error' ? 'warning' as const : violation.severity,
                 code: violation.ruleId,

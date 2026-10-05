@@ -1,13 +1,6 @@
 // @memoarchitect/tools — public API
 
-// ─── Language (generated parser + AST) ──────────────────────────────────────
-export * from './language/generated/ast.js';
-export * from './language/generated/module.js';
-export * from './language/memo-sysml-module.js';
-
 // ─── Model (config, semantic, builder) ──────────────────────────────────────
-// Re-export config types selectively to avoid name collision with AST's
-// ViewpointDefinition (generated from grammar) vs config's ViewpointDefinition.
 export {
     type SysMLConstruct,
     type DiagramType,
@@ -34,9 +27,9 @@ export * from './model/ir-identity.js';
 export * from './model/source-graph.js';
 export * from './model/source-provenance.js';
 export * from './model/short-id.js';
-export * from './model/parser-utils.js';
+export * from './stage2/package-metadata-from-api.js';
 export * from './model/sysml-files.js';
-export * from './model/builder.js';
+export * from './model/complete-model.js';
 export * from './model/layer-resolver.js';
 export * from './model/kind-registry.js';
 export * from './model/view-deriver.js';

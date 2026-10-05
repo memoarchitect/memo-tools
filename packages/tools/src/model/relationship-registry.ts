@@ -1,27 +1,16 @@
 // ─── Relationship Registry ──────────────────────────────────────────────────
 //
-// Discovers relationship types from SysML AST ConnectionDefinition nodes,
-// replacing config.relationshipTypes. Walks ConnectionDefinition nodes and
-// derives layer from the file's directory path (Apollo-11 convention).
-// Normalizes PascalCase SysML names to camelCase for matching.
+// The relationship types a compiled project declares: its `connection def` and
+// `allocation def` nodes, with the layer taken from the file's directory path.
+// Populated from a stage 1 handoff (`populateFromApi`). Normalizes PascalCase
+// SysML names to camelCase for matching.
 //
 // Usage:
 //   const registry = new RelationshipRegistry();
-//   registry.populateFromDocuments(parsedDocs);
+//   registry.populateFromApi(api, fileOf);
 //   const rel = registry.getRelType("mitigates");
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type {
-    AttributeValue, BooleanValue, Multiplicity, PackageDeclaration,
-} from '../language/generated/ast.js';
-import {
-    isAllocationDefinition,
-    isAttributeMember,
-    isConnectionDefinition,
-    isDocComment,
-    isEndDeclaration,
-    isPackageDeclaration,
-} from '../language/generated/ast.js';
 /**
  * A typed relationship as the registry reports it.
  *
@@ -38,10 +27,8 @@ export interface RelationshipType {
     /** Hex colour for relationship visualization */
     color: string;
 }
-import type { ParsedDocument } from './parser-utils.js';
 import type { ApiElement, ApiModel } from '../stage2/api-model.js';
 import { apiRelationshipEntries } from '../stage2/registries-from-api.js';
-import { resolveLayerFromPath } from './layer-resolver.js';
 import type {
     MultiplicityDTO,
     RelationshipDefinitionDTO,
@@ -387,47 +374,13 @@ export function cleanDocComment(content: string): string | undefined {
     return text || undefined;
 }
 
-/** Convert a parsed Multiplicity node into its serializable bounds. */
-function toMultiplicityDTO(multiplicity: Multiplicity | undefined): MultiplicityDTO | undefined {
-    if (!multiplicity) return undefined;
-    // `[3]` — an exact bound pins both ends.
-    if (multiplicity.exact !== undefined) {
-        const exact = Number(multiplicity.exact);
-        return { lower: exact, upper: exact };
-    }
-    // `[*]` — no lower bound was written, so it stays 0.
-    if (multiplicity.lower === undefined) {
-        return { lower: 0, upper: multiplicity.unbounded ? null : null };
-    }
-    // `[0..1]` / `[1..*]`
-    return {
-        lower: Number(multiplicity.lower),
-        upper: multiplicity.unbounded || multiplicity.upper === undefined
-            ? null
-            : Number(multiplicity.upper),
-    };
-}
-
-/**
- * Read a Boolean attribute value, or undefined when the attribute declares a
- * type rather than stating a value. Undefined is meaningful: it means the
- * ontology is silent, and the caller applies the documented default.
- */
-function booleanAttributeValue(value: AttributeValue | undefined): boolean | undefined {
-    if (!value || value.$type !== 'BooleanValue') return undefined;
-    return (value as BooleanValue).value === 'true';
-}
-
 /** Project one registry end (possibly absent) into its DTO. */
 function toEndDTO(end: RelationshipEnd | undefined, fallbackName: string): RelationshipEndDTO {
     if (!end) return { name: fallbackName };
     return { name: end.name || fallbackName, type: end.type, multiplicity: end.multiplicity };
 }
 
-/**
- * Registry that discovers relationship types from SysML AST ConnectionDefinition nodes.
- * Replaces config.relationshipTypes lookups in the builder.
- */
+/** The relationship types a compiled project declares. */
 export class RelationshipRegistry {
     private readonly relTypes = new Map<string, RelationshipRegistryEntry>();
 
@@ -539,13 +492,9 @@ export class RelationshipRegistry {
     }
 
     /**
-     * Populate the registry from parsed SysML documents.
-     * Walks all ConnectionDefinition nodes in each document's AST.
-     */
-    /**
-     * Discover relationship types from a stage 1 handoff instead of MEMO's
-     * parse (`apiRelationshipEntries`), then the language-native relations, as
-     * `populateFromDocuments` does.
+     * Populate the registry from a stage 1 handoff (`apiRelationshipEntries`):
+     * the `connection def` and `allocation def` declarations, then the
+     * language-native relations.
      */
     populateFromApi(
         api: ApiModel,
@@ -554,20 +503,6 @@ export class RelationshipRegistry {
         role: 'library' | 'project' = 'library',
     ): void {
         for (const entry of apiRelationshipEntries(api, fileOf, include, role)) this.relTypes.set(entry.name, entry);
-        this.registerLanguageNatives();
-    }
-
-    populateFromDocuments(documents: ParsedDocument[]): void {
-        for (const doc of documents) {
-            const model = doc.document.parseResult.value;
-            const layer = resolveLayerFromPath(doc.filePath);
-
-            for (const member of model.members) {
-                if (isPackageDeclaration(member)) {
-                    this.walkPackage(member, layer);
-                }
-            }
-        }
         this.registerLanguageNatives();
     }
 
@@ -604,73 +539,6 @@ export class RelationshipRegistry {
                 nativeKeyword: native.keyword,
                 ends: native.ends,
             });
-        }
-    }
-
-    /** Walk a package declaration and register all ConnectionDefinition nodes */
-    private walkPackage(pkg: PackageDeclaration, layer: string): void {
-        for (const member of pkg.members) {
-            if (isPackageDeclaration(member)) {
-                this.walkPackage(member, layer);
-                continue;
-            }
-
-            // An `allocation def` is a relation with a different keyword, not a
-            // different thing: `Allocations::Allocation :> BinaryConnection`,
-            // it declares the same `end`s, and it produces the same links. The
-            // registry derived relations from `connection def` alone, so an
-            // allocation def would have been invisible to every tool that
-            // reads the registry — the authoring picker, the writer, the DSM,
-            // the legality check — while still being valid, checked ontology.
-            if (isConnectionDefinition(member) || isAllocationDefinition(member)) {
-                const sysmlName = member.name;
-                if (!sysmlName) continue;
-
-                const name = pascalToCamelCase(sysmlName);
-                const label = pascalToLabel(sysmlName);
-
-                // Extract end declarations
-                const ends: RelationshipEnd[] = [];
-                const attributes: string[] = [];
-                let description: string | undefined;
-                let isReflexive: boolean | undefined;
-                let isUnique: boolean | undefined;
-                for (const bodyMember of member.body) {
-                    if (isEndDeclaration(bodyMember)) {
-                        ends.push({
-                            name: bodyMember.name || '',
-                            type: bodyMember.type || undefined,
-                            multiplicity: toMultiplicityDTO(bodyMember.multiplicity),
-                        });
-                    } else if (isDocComment(bodyMember) && description === undefined) {
-                        description = cleanDocComment(bodyMember.content);
-                    } else if (isAttributeMember(bodyMember)) {
-                        if (bodyMember.name) attributes.push(bodyMember.name);
-                        // Only a valued attribute states anything — a bare
-                        // `attribute isUnique : Boolean;` declares the slot.
-                        if (bodyMember.name === 'isReflexive') {
-                            isReflexive = booleanAttributeValue(bodyMember.value) ?? isReflexive;
-                        } else if (bodyMember.name === 'isUnique') {
-                            isUnique = booleanAttributeValue(bodyMember.value) ?? isUnique;
-                        }
-                    }
-                }
-
-                this.relTypes.set(name, {
-                    sysmlName,
-                    name,
-                    label,
-                    layer,
-                    sysmlConstruct: isAllocationDefinition(member) ? 'allocation def' : 'connection def',
-                    description,
-                    isAbstract: member.isAbstract || undefined,
-                    superType: member.specialization?.superType || undefined,
-                    isReflexive,
-                    isUnique,
-                    ends,
-                    attributes,
-                });
-            }
         }
     }
 }

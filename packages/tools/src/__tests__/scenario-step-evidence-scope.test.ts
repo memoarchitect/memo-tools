@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EmptyFileSystem } from 'langium';
-import { parseHelper } from 'langium/test';
-import { createMemoSysMLServices } from '../language/memo-sysml-module.js';
-import type { Model } from '../language/generated/ast.js';
-import type { MEMOConfig } from '../model/config.js';
-import { buildMemoModel } from '../model/builder.js';
+import { compilerConfigured, modelFromSources } from './helpers/compile-source.js';
 import { KindRegistry } from '../model/kind-registry.js';
 import { modelToDTO, type MemoModel } from '../model/semantic.js';
 import { evaluateNativeConstraint } from '../validator/constraint-eval.js';
@@ -27,18 +22,8 @@ import { evaluateNativeConstraint } from '../validator/constraint-eval.js';
 // two positions and make one test look like coverage of both.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const services = createMemoSysMLServices({ ...EmptyFileSystem }).MemoSysML;
-const parse = parseHelper<Model>(services);
-const config: MEMOConfig = { projectName: 'test' } as MEMOConfig;
-
 async function build(source: string, kinds: string[] = []): Promise<MemoModel> {
-    const doc = await parse(source);
-    const errors = [
-        ...doc.parseResult.lexerErrors.map(e => e.message),
-        ...doc.parseResult.parserErrors.map(e => e.message),
-    ];
-    expect(errors, `failed to parse:\n${source}`).toEqual([]);
-    return buildMemoModel([{ document: doc, filePath: 'test.sysml' }], config, [], { kindRegistry: registry(kinds) });
+    return modelFromSources([{ source, filePath: 'test.sysml' }], { registries: { kindRegistry: registry(kinds) } });
 }
 
 function registry(kinds: string[]): KindRegistry {
@@ -83,7 +68,7 @@ package P {
     }
 }`;
 
-describe('one contract used on two paths', () => {
+describe.runIf(compilerConfigured)('one contract used on two paths', () => {
     it('keeps each usage as its own element, typed by the shared contract', async () => {
         const model = await build(PATHS);
         const button = model.elements.get('P::buttonPath::evaluate');
@@ -171,7 +156,7 @@ const verifiedRule = (kind: string) => ({
     severity: 'error' as const,
 });
 
-describe('one function at two flow steps', () => {
+describe.runIf(compilerConfigured)('one function at two flow steps', () => {
     const BOLUS = 'P::fcPatientBolus::fcsBolusSense';
     const ALARM = 'P::fcAlarmStop::fcsAlarmSense';
 
@@ -197,7 +182,7 @@ describe('one function at two flow steps', () => {
     // test of the function would not be a test of either position.
     it('does not lift step evidence onto the function', async () => {
         const model = await build(GPCA_SHAPE, KINDS);
-        const unverified = evaluateNativeConstraint(verifiedRule('SystemFunction'), model, registry(KINDS))
+        const unverified = evaluateNativeConstraint(verifiedRule('ActionUsage[usageType=SystemFunction]'), model, registry(KINDS))
             .map(v => v.elementName);
         expect(unverified).toEqual(['fnAcquireSensors', 'fnLogEvents', 'fnAnnunciate']);
     });

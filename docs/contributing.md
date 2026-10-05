@@ -16,9 +16,10 @@ pnpm run build
 pnpm run test
 ```
 
-Use Node.js 26 or later and pnpm 9 or later. The build runs
-`langium generate` before `tsc`, so grammar changes under
-`packages/tools/src/grammar` are picked up automatically.
+Use Node.js 26 or later and pnpm 9 or later. The build is `tsc`; MEMO has no grammar of its own. Tests that compile SysML run
+where a stage 1 compiler is configured (`OPENSYSML_BINARY` and
+`MEMO_OPENSYSML_CLIENT`, or `MEMO_TOOLCHAIN_COMPILER=syside` with
+`MEMO_SYSIDE_PYTHON`) and are skipped elsewhere.
 
 ## Maintainer checks
 
@@ -65,7 +66,7 @@ element ids and relationship endpoints for four reference projects and answers
 ## Boundaries to respect
 
 - **No UI code.** Nothing in this package may import React or DOM APIs.
-- **`/browser` stays browser-safe.** No Langium, `node:*`, or server imports
+- **`/browser` stays browser-safe.** No `node:*`, or server imports
   reachable from `packages/tools/src/browser` — the Architect web bundle
   builds directly against it.
 - **No content knowledge in the engine.** Ontology package names, SysML

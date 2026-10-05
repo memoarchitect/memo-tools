@@ -22,7 +22,7 @@ import type {
     SourceCoherenceMessage,
     ModelMutationPrecondition,
 } from '@memoarchitect/tools';
-import type { BuilderRegistries } from '@memoarchitect/tools';
+import type { BuilderRegistries, OntologyPackageInfo } from '@memoarchitect/tools';
 import { findMemoManifests, validateRelationshipMutation, validateRelationshipDeletion } from '@memoarchitect/tools';
 import { indexFromIdentityTable, type IrIdentityIndex } from '../model/ir-identity.js';
 import { recompileProject, writeElement, type AuthoringContext } from '../operations/authoring.js';
@@ -51,7 +51,7 @@ import {
 } from './dhf-doc-store.js';
 import { loadDashboards, saveDashboard, deleteDashboard, moveDashboard } from './dashboard-store.js';
 import { createDashboardWatcher } from './file-watcher.js';
-import { selectedOutlineSource } from '../authoring/outline-source.js';
+import { selectedOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
 
 export interface DevServerOptions {
     port: number;
@@ -66,6 +66,8 @@ export interface DevServerOptions {
      * into these — they are read-only library content.
      */
     ontologyRoots?: string[];
+    /** The ontology packages of the last accepted build, for the browser's package list. */
+    packageMetadata?: () => OntologyPackageInfo[];
     /** Per-package relationship files from project config. */
     relationshipFiles?: Record<string, string>;
     /** Configured canonical relationship file from project config. */
@@ -679,7 +681,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      * which is the price of an address that is never a revision behind.
      */
     /** What every authoring operation is given: the project, its settings, and the index. */
-    async function authoringContext(): Promise<AuthoringContext> {
+    async function authoringContext(): Promise<AuthoringContext & { outlines: OutlineSource }> {
         const { loadAndResolveConfig } = await import('./config-resolver.js');
         const { findConfigFile, loadProjectSettings } = await import('@memoarchitect/tools');
         const configPath = findConfigFile(options.projectRoot);
@@ -770,7 +772,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     layer: change.layer ?? kindDef?.layer ?? '',
                     doc: change.doc ?? '',
                     attributes: change.attributes ?? {},
-                });
+                }, irIndex(), (await authoringContext()).outlines);
                 if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
                 await recompileAfterWrite();
                 return;
@@ -1241,16 +1243,21 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         return createHash('sha256').update(contents).digest('hex').slice(0, 16);
     }
 
-    /** Parse errors in SysML text, so the editor can show them without a rebuild. */
-    async function sysmlParseErrors(text: string): Promise<string[]> {
+    /**
+     * What the selected compiler says about SysML text, so the editor can show
+     * it without waiting for the rebuild. The write already stands, so a
+     * compiler that cannot be reached is not a save failure.
+     */
+    async function sysmlParseErrors(file: string, text: string): Promise<string[]> {
         try {
-            const { parseText } = await import('../model/parser-utils.js');
-            const { errors } = await parseText(text);
-            return errors.slice(0, 10).map(error =>
-                typeof error.line === 'number' ? `Line ${error.line}: ${error.message}` : error.message);
-        } catch {
-            // A parser failure is not a save failure — the write already stands.
+            const { loadAndResolveConfig } = await import('./config-resolver.js');
+            const { findConfigFile, loadProjectSettings } = await import('@memoarchitect/tools');
+            const configPath = findConfigFile(options.projectRoot);
+            const config = configPath ? loadAndResolveConfig(configPath) : loadProjectSettings(options.projectRoot);
+            await selectedOutlineSource(options.projectRoot, config).verify(file, text);
             return [];
+        } catch (error) {
+            return [(error instanceof Error ? error.message : String(error))];
         }
     }
 
@@ -1870,7 +1877,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                                 requestId, diagramId, operation: 'save', success: true,
                                 sourceFile: source.sourceFile, revision: fileRevision(text),
                                 transactionId,
-                                parseErrors: await sysmlParseErrors(text),
+                                parseErrors: await sysmlParseErrors(source.sourceFile, text),
                             },
                         }));
                         // The project watcher rebuilds and broadcasts the resulting model.
@@ -1994,8 +2001,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             }
 
                             // Refresh packages and broadcast
-                            const { getPackageMetadata } = await import('@memoarchitect/tools');
-                            const packages = getPackageMetadata(projectRoot);
+                            // The list is read from the last build's handoff: a package just
+                            // installed joins it when the project next compiles.
+                            const packages = options.packageMetadata?.() ?? [];
                             const pkgMsg = { type: 'ontology:packages' as const, payload: { packages } };
                             for (const client of clients) {
                                 if (client.readyState === 1) client.send(JSON.stringify(pkgMsg));
@@ -2383,8 +2391,7 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                                 rmSync(memoPkgsPath, { recursive: true, force: true });
                             }
                             // Refresh and broadcast
-                            const { getPackageMetadata } = await import('@memoarchitect/tools');
-                            const packages = getPackageMetadata(projectRoot);
+                            const packages = options.packageMetadata?.() ?? [];
                             const pkgMsg = { type: 'ontology:packages' as const, payload: { packages } };
                             for (const client of clients) {
                                 if (client.readyState === 1) client.send(JSON.stringify(pkgMsg));

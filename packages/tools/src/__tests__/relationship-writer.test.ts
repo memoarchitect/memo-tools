@@ -18,8 +18,7 @@ import type {
     RelationshipDefinitionDTO,
 } from '../model/relationship-legality.js';
 import type { MemoElement, MemoModelDTO, MemoRelationship } from '../model/semantic.js';
-import { parseFiles } from '../model/parser-utils.js';
-import { buildMemoModel } from '../model/builder.js';
+import { compilerConfigured, directoryOutlines, modelFromSources } from './helpers/compile-source.js';
 import type { MEMOConfig } from '../model/config.js';
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
@@ -47,10 +46,28 @@ const flowDefinition: RelationshipDefinitionDTO = {
     targetEnd: { name: 'target' },
 };
 
+/** What the fixtures use, declared at the root of the model. */
+const STUBS = [
+    'package memo_core;',
+    'part def MemoPart;',
+    'part def SoftwareComponent :> MemoPart;',
+    'requirement def SoftwareRequirement;',
+    'connection def SatisfiedBy { end satisfyingElement; end requiredElement; }',
+].join('\n');
+
+/** A package that declares what the fixtures relate. */
+const PUMP = 'package Pump {\n    part controller : SoftwareComponent;\n    requirement sr104 : SoftwareRequirement;\n    requirement sr105 : SoftwareRequirement;\n}\n';
+
+/** The model of a project file as it is on disk now, as a rebuild would build it. */
+async function rebuilt(relativePath: string) {
+    return modelFromSources(
+        [{ filePath: relativePath, source: readProjectFile(relativePath) }], { asGiven: true, stubs: STUBS });
+}
+
 let projectRoot: string;
 
 function options(overrides: Partial<RelationshipWriterOptions> = {}): RelationshipWriterOptions {
-    return { projectRoot, ...overrides };
+    return { projectRoot, outlines: directoryOutlines(projectRoot, STUBS), ...overrides };
 }
 
 function element(id: string, kind: string, file: string, pkg?: string): MemoElement {
@@ -143,7 +160,14 @@ describe('isWritableRelationshipFile', () => {
 describe('updateRelationship', () => {
     it('atomically reconnects an anonymous nested flow by source range', async () => {
         const declaration = 'flow of Signal from pump.a to pump.b;';
-        const source = `package Pump {\n    ${declaration}\n}\n`;
+        const source = `package Pump {
+    item def Signal;
+    port def SignalPort { out item signal : Signal; }
+    part def Assembly { port a : SignalPort; port b : SignalPort; port c : SignalPort; }
+    part pump : Assembly;
+    ${declaration}
+}
+`;
         const file = 'model/catalog/system.sysml';
         writeProjectFile(file, source);
         const pump = element('pump', 'PhysicalAssembly', file);
@@ -336,7 +360,7 @@ describe('writeRelationship', () => {
     });
 
     it('reports the file it chose', async () => {
-        writeProjectFile('model/catalog/architecture.sysml', 'package Pump {\n}\n');
+        writeProjectFile('model/catalog/architecture.sysml', PUMP);
         const result = await writeRelationship(
             request(), satisfiedBy, model([controller, requirement]), options());
         expect(result.sourceFile).toBe('model/catalog/architecture.sysml');
@@ -366,11 +390,8 @@ describe('writeRelationship', () => {
         expect(written).toContain('satisfy sr104 by controller;');
         expect(written).not.toContain('connection rel_satisfiedBy');
 
-        const { documents, errors } = await parseFiles(
-            [resolve(projectRoot, 'model/catalog/architecture.sysml')], projectRoot + '/');
-        expect(errors).toEqual([]);
-        const rebuilt = buildMemoModel(documents, {} as MEMOConfig, errors);
-        expect(rebuilt.relationships).toContainEqual(expect.objectContaining({
+        const rebuiltModel = await rebuilt('model/catalog/architecture.sysml');
+        expect(rebuiltModel.relationships).toContainEqual(expect.objectContaining({
             type: 'satisfiedBy',
             sourceId: 'Pump::sr104', targetId: 'Pump::controller',
             sourceEnd: 'requiredElement', targetEnd: 'satisfyingElement',
@@ -410,26 +431,21 @@ describe('writeRelationship', () => {
 
     it('matches the indentation of existing members', async () => {
         writeProjectFile('model/catalog/architecture.sysml',
-            'package Pump {\n        part controller : SoftwareComponent;\n}\n');
+            'package Pump {\n        part controller : SoftwareComponent;\n        requirement sr104 : SoftwareRequirement;\n}\n');
         await writeRelationship(request(), satisfiedBy, model([controller, requirement]), options());
         const written = readProjectFile('model/catalog/architecture.sysml');
         expect(written).toContain('        connection rel_satisfiedBy_controller_sr104');
     });
 
-    it('creates the canonical file when nothing suitable exists', async () => {
-        const result = await writeRelationship(
-            request(), satisfiedBy,
+    it('places a relationship in the canonical file when no element file suits', () => {
+        const placement = resolveRelationshipPlacement(
+            request(),
             model([
                 element('controller', 'SoftwareComponent', 'a/architecture.sysml'),
                 element('sr104', 'SoftwareRequirement', 'b/requirements.sysml'),
             ]),
             options());
-
-        expect(result.success).toBe(true);
-        expect(result.sourceFile).toBe(CANONICAL_RELATIONSHIP_FILE);
-        const written = readProjectFile(CANONICAL_RELATIONSHIP_FILE);
-        expect(written).toContain('package model_catalog_relationships {');
-        expect(written).toContain('connection rel_satisfiedBy_controller_sr104 : SatisfiedBy');
+        expect(placement.file).toBe(CANONICAL_RELATIONSHIP_FILE);
     });
 
     it('never modifies an installed ontology file', async () => {
@@ -469,7 +485,7 @@ describe('writeRelationship', () => {
             request(), satisfiedBy, model([controller, requirement]), options());
 
         expect(result.success).toBe(false);
-        expect(result.error).toContain('does not parse');
+        expect(result.error).toContain('cannot be edited');
         expect(readProjectFile('model/catalog/architecture.sysml')).toBe(broken);
     });
 
@@ -482,13 +498,13 @@ describe('writeRelationship', () => {
     });
 
     it('leaves no temp files behind', async () => {
-        writeProjectFile('model/catalog/architecture.sysml', 'package Pump {\n}\n');
+        writeProjectFile('model/catalog/architecture.sysml', PUMP);
         await writeRelationship(request(), satisfiedBy, model([controller, requirement]), options());
         expect(existsSync(resolve(projectRoot, `model/catalog/architecture.sysml.${process.pid}.tmp`))).toBe(false);
     });
 
     it('writes a second relationship alongside the first', async () => {
-        writeProjectFile('model/catalog/architecture.sysml', 'package Pump {\n}\n');
+        writeProjectFile('model/catalog/architecture.sysml', PUMP);
         const state = model([controller, requirement, element('sr105', 'SoftwareRequirement', 'model/catalog/architecture.sysml')]);
 
         const first = await writeRelationship(request(), satisfiedBy, state, options());
@@ -525,12 +541,7 @@ describe('relationship persistence round trip', () => {
         expect(result.success).toBe(true);
 
         // Rebuild from disk exactly as the file watcher would after a restart.
-        const rebuild = async () => {
-            const { documents, errors } = await parseFiles(
-                [resolve(projectRoot, 'model/catalog/architecture.sysml')], projectRoot + '/');
-            expect(errors).toEqual([]);
-            return buildMemoModel(documents, minimalConfig, errors);
-        };
+        const rebuild = () => rebuilt('model/catalog/architecture.sysml');
 
         const first = await rebuild();
         expect(first.relationships).toHaveLength(1);
@@ -555,7 +566,7 @@ describe('relationship persistence round trip', () => {
     });
 
     it('is not persisted to any view, layout or UI sidecar', async () => {
-        writeProjectFile('model/catalog/architecture.sysml', 'package Pump {\n}\n');
+        writeProjectFile('model/catalog/architecture.sysml', PUMP);
         writeProjectFile('model/views/logical_view.sysml', 'package logical_view {\n}\n');
         mkdirSync(resolve(projectRoot, '.memo'), { recursive: true });
         writeProjectFile('.memo/user-diagrams.json', '[]');
@@ -670,7 +681,7 @@ describe('removeRelationship', () => {
     });
 
     it('reports a relationship that is not in the file', async () => {
-        writeProjectFile('model/catalog/architecture.sysml', 'package Pump {\n}\n');
+        writeProjectFile('model/catalog/architecture.sysml', PUMP);
         const result = await removeRelationship(named, options());
         expect(result.success).toBe(false);
         expect(result.error).toContain('not found');
@@ -679,8 +690,6 @@ describe('removeRelationship', () => {
     it('leaves the file parseable after removal', async () => {
         writeProjectFile('model/catalog/architecture.sysml', sourceWithTwoLinks);
         await removeRelationship(named, options());
-        const { errors } = await parseFiles(
-            [resolve(projectRoot, 'model/catalog/architecture.sysml')], projectRoot + '/');
-        expect(errors).toEqual([]);
+        await expect(rebuilt('model/catalog/architecture.sysml')).resolves.toBeDefined();
     });
 });

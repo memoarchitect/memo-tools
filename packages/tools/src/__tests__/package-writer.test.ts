@@ -19,23 +19,38 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { IrIdentityIndex } from '../model/ir-identity.js';
-import { outlineIdentityIndex, outlinesFromDocuments } from '../authoring/outline-source.js';
-import { lowerAstToSysmlIr } from '../model/sysml-ir.js';
-import { parseFiles } from '../model/parser-utils.js';
-import { buildMemoModel } from '../model/builder.js';
+import { outlineIdentityIndex, outlinesFromHandoff } from '../authoring/outline-source.js';
 import { modelToDTO } from '../model/semantic.js';
 import type { MEMOConfig } from '../model/config.js';
-import {
-    createPackage,
-    deletePackage,
-    moveElementToPackage,
-    moveIntoGroupingPackage,
-    renamePackage,
-} from '../server/package-writer.js';
-import { saveElementToFile } from '../server/persistor.js';
+import * as writer from '../server/package-writer.js';
+import { saveElementToFile as save } from '../server/persistor.js';
+import { compilerConfigured, directoryOutlines, withCompiled } from './helpers/compile-source.js';
+import { readdirSync, statSync } from 'node:fs';
+import { relative } from 'node:path';
 import { shortNameOf } from '../model/element-index.js';
 
 const config: MEMOConfig = { projectName: 'packages' } as MEMOConfig;
+
+// What the fixtures use, declared at the root of the model.
+const STUBS = [
+    'part def Component { attribute note : ScalarValues::String; }',
+    'part def UIElement { attribute note : ScalarValues::String; }',
+    'metadata def MemoIdentity { attribute providedId : ScalarValues::String; attribute label : ScalarValues::String; }',
+].join('\n');
+
+// The writers take the selected compiler's outlines; these are of the scratch project on disk.
+const outlines = () => directoryOutlines(projectRoot, STUBS);
+const createPackage = (root: string, request: Parameters<typeof writer.createPackage>[1]) =>
+    writer.createPackage(root, request, outlines());
+const renamePackage = (root: string, request: Parameters<typeof writer.renamePackage>[1]) =>
+    writer.renamePackage(root, request, outlines());
+const deletePackage = (root: string, request: Parameters<typeof writer.deletePackage>[1]) =>
+    writer.deletePackage(root, request, outlines());
+const moveIntoGroupingPackage = (root: string, request: Parameters<typeof writer.moveIntoGroupingPackage>[1]) =>
+    writer.moveIntoGroupingPackage(root, request, outlines());
+const moveElementToPackage = (root: string, request: Parameters<typeof writer.moveElementToPackage>[1], index: IrIdentityIndex) =>
+    writer.moveElementToPackage(root, request, index, outlines());
+const saveElementToFile = (root: string, element: Parameters<typeof save>[1]) => save(root, element, undefined, outlines());
 
 let projectRoot: string;
 
@@ -57,31 +72,41 @@ function readProjectFile(relativePath: string): string {
     return readFileSync(resolve(projectRoot, relativePath), 'utf8');
 }
 
+function sysmlFiles(dir: string = projectRoot, out: string[] = []): string[] {
+    for (const name of readdirSync(dir)) {
+        const full = join(dir, name);
+        if (statSync(full).isDirectory()) sysmlFiles(full, out);
+        else if (name.endsWith('.sysml')) out.push(relative(projectRoot, full).replaceAll('\\', '/'));
+    }
+    return out.sort();
+}
+
+/** The model the project on disk compiles to, with the outlines its identities are minted from. */
 async function build() {
-    const { findSysmlFiles } = await import('../model/sysml-files.js');
-    const files = findSysmlFiles(projectRoot).slice().sort();
-    const { documents, errors } = await parseFiles(files, `${projectRoot}/`);
-    const built = buildMemoModel(documents, config, errors);
-    return { built, dto: modelToDTO(built), documents };
+    return withCompiled(
+        sysmlFiles().map(filePath => ({ filePath, source: readFileSync(join(projectRoot, filePath), 'utf8') })),
+        { config, asGiven: true, stubs: STUBS },
+        ({ model, api, root }) => ({ built: model, dto: modelToDTO(model), outlines: outlinesFromHandoff(root, api), root }),
+    );
 }
 
 /** Compile and index identities, which is what a move resolves against. */
 async function compile(): Promise<IrIdentityIndex> {
-    const { built, documents } = await build();
-    return outlineIdentityIndex(outlinesFromDocuments(projectRoot, documents), built.elements.values(), projectRoot);
+    const { built, outlines: compiled, root } = await build();
+    return outlineIdentityIndex(compiled, built.elements.values(), root);
 }
 
 const PROJECT = `package Plant {
     part pump : Component {
-        attribute redefines note = "pump";
+        attribute :>> note = "pump";
     }
     part valve : Component {
-        attribute redefines note = "valve";
+        attribute :>> note = "valve";
     }
 }
 `;
 
-describe('createPackage', () => {
+describe.runIf(compilerConfigured)('createPackage', () => {
     it('nests a package inside its parent and reports the qualified name', async () => {
         writeProjectFile('model/plant.sysml', PROJECT);
 
@@ -138,26 +163,26 @@ describe('createPackage', () => {
     });
 });
 
-describe('element placement on create', () => {
+describe.runIf(compilerConfigured)('element placement on create', () => {
     it('declares a new element inside the package the request names', async () => {
         writeProjectFile('model/plant.sysml', PROJECT);
         await createPackage(projectRoot, { file: 'model/plant.sysml', parent: 'Plant', name: 'Hydraulics' });
 
         const result = await saveElementToFile(projectRoot, {
-            id: 'filter', name: 'Filter', kind: 'Component', construct: 'part',
+            id: 'strainer', name: 'Strainer', kind: 'Component', construct: 'part',
             file: 'model/plant.sysml', package: 'Plant::Hydraulics',
         });
 
-        expect(result.success).toBe(true);
+        expect(result, JSON.stringify(result)).toMatchObject({ success: true });
         const { built } = await build();
-        expect(built.elements.lookup('filter')?.package).toBe('Plant::Hydraulics');
+        expect(built.elements.lookup('strainer')?.package).toBe('Plant::Hydraulics');
     });
 
     it('refuses to place an element in a package the file does not declare', async () => {
         writeProjectFile('model/plant.sysml', PROJECT);
 
         const result = await saveElementToFile(projectRoot, {
-            id: 'filter', name: 'Filter', kind: 'Component', construct: 'part',
+            id: 'strainer', name: 'Strainer', kind: 'Component', construct: 'part',
             file: 'model/plant.sysml', package: 'Plant::Missing',
         });
 
@@ -166,7 +191,7 @@ describe('element placement on create', () => {
     });
 });
 
-describe('renamePackage', () => {
+describe.runIf(compilerConfigured)('renamePackage', () => {
     it('renames the declaration and says what it did not update', async () => {
         writeProjectFile('model/plant.sysml', PROJECT);
 
@@ -183,12 +208,12 @@ describe('renamePackage', () => {
     });
 });
 
-describe('deletePackage', () => {
+describe.runIf(compilerConfigured)('deletePackage', () => {
     it('lifts members into the enclosing package instead of deleting them', async () => {
         writeProjectFile('model/plant.sysml', `package Plant {
     package Hydraulics {
         part pump : Component {
-            attribute redefines note = "pump";
+            attribute :>> note = "pump";
         }
     }
 }
@@ -239,14 +264,14 @@ describe('deletePackage', () => {
 const SCREEN = `package Ui {
     part scrHome : UIElement {
         part btnBack : UIElement {
-            attribute redefines note = "back";
+            attribute :>> note = "back";
         }
         part btnClose : UIElement;
     }
 }
 `;
 
-describe('a grouping package inside a usage body', () => {
+describe.runIf(compilerConfigured)('a grouping package inside a usage body', () => {
     it('is created inside the part the parent names', async () => {
         writeProjectFile('model/ui.sysml', SCREEN);
 
@@ -283,7 +308,7 @@ describe('a grouping package inside a usage body', () => {
         expect(moved?.attributes['elementPackage']).toBe('grpHeader');
         expect(built.elements.lookup('btnClose')?.attributes['elementPackage']).toBeUndefined();
         // Moved verbatim, not regenerated.
-        expect(readProjectFile('model/ui.sysml')).toContain('attribute redefines note = "back"');
+        expect(readProjectFile('model/ui.sysml')).toContain('attribute :>> note = "back"');
     });
 
     it('refuses to file a declaration inside itself', async () => {
@@ -302,7 +327,7 @@ describe('a grouping package inside a usage body', () => {
     });
 });
 
-describe('moveElementToPackage', () => {
+describe.runIf(compilerConfigured)('moveElementToPackage', () => {
     it('moves a declaration into another package in the same file', async () => {
         writeProjectFile('model/plant.sysml', PROJECT);
         await createPackage(projectRoot, { file: 'model/plant.sysml', parent: 'Plant', name: 'Hydraulics' });
@@ -321,7 +346,7 @@ describe('moveElementToPackage', () => {
         expect(built.elements.lookup('pump')?.package).toBe('Plant::Hydraulics');
         expect(built.elements.lookup('valve')?.package).toBe('Plant');
         // The declaration is moved, not regenerated: its body survives intact.
-        expect(readProjectFile('model/plant.sysml')).toContain('attribute redefines note = "pump"');
+        expect(readProjectFile('model/plant.sysml')).toContain('attribute :>> note = "pump"');
     });
 
     it('moves a declaration into a package in another file', async () => {
