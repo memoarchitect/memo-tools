@@ -176,19 +176,28 @@ export function outlineSourceFor(projectRoot: string, config: MEMOConfig, projec
 /** The project's own files and their text, by project-relative path. */
 function projectTexts(projectRoot: string, project: ProjectModel): Map<string, string> {
     const texts = new Map<string, string>();
-    for (const file of projectFilesOf(project.api)) {
+    for (const file of projectFilesOf(project.api, projectRoot)) {
         if (existsSync(file)) texts.set(relative(projectRoot, file), readFileSync(file, 'utf8'));
     }
     return texts;
 }
 
-/** The absolute files of a handoff's project documents. */
-function projectFilesOf(api: ApiModel): string[] {
+/**
+ * The absolute files of the project's own documents: the handoff's project
+ * documents, and those of a library root inside the project directory (a
+ * project's `methodology/`), which the handoff marks as library documents but
+ * which are the project's files to edit. A library outside it is not.
+ */
+function projectFilesOf(api: ApiModel, projectRoot: string): string[] {
+    const root = resolve(projectRoot);
+    const inProject = (file: string) => !relative(root, file).startsWith('..') && !isAbsolute(relative(root, file));
     const files = new Set<string>();
     for (const namespace of api.ofType('Namespace')) {
-        if (api.owner(namespace['@id']) || api.source(namespace['@id'])?.role !== 'project') continue;
+        if (api.owner(namespace['@id'])) continue;
+        const role = api.source(namespace['@id'])?.role;
         const file = api.absoluteFile(namespace['@id']);
-        if (file) files.add(file);
+        if (!file) continue;
+        if (role === 'project' || (role === 'library' && inProject(resolve(file)))) files.add(file);
     }
     return [...files];
 }
@@ -203,7 +212,7 @@ export function projectOutlines(projectRoot: string, project: ProjectModel): Sou
 
 /** The outlines of a handoff's project files, read against the files on disk. */
 export function outlinesFromHandoff(projectRoot: string, api: ApiModel): SourceOutline[] {
-    return projectFilesOf(api).filter(file => existsSync(file)).map(file => {
+    return projectFilesOf(api, projectRoot).filter(file => existsSync(file)).map(file => {
         const name = relativeTo(projectRoot, file);
         return outlineFromHandoff(api, file, name, readFileSync(file, 'utf8'));
     });
