@@ -12,6 +12,7 @@ describe('a retired command', () => {
         const root = new Command('memo').exitOverride();
         retiredCommand(root, 'examples', 'memo init --list');
         retiredCommand(root.command('rules'), 'check', 'memo validate');
+        retiredCommand(root, 'conformance', { reason: 'nothing replaces it.' });
         return root;
     }
 
@@ -20,6 +21,13 @@ describe('a retired command', () => {
         await program().parseAsync(['rules', 'check', '.', '--format', 'json'], { from: 'user' });
         expect(process.exitCode).toBe(1);
         expect(error.mock.calls[0][0]).toContain('`memo rules check` was removed; use `memo validate`.');
+    });
+
+    it('gives the reason when nothing replaces it', async () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        await program().parseAsync(['conformance', 'run'], { from: 'user' });
+        expect(process.exitCode).toBe(1);
+        expect(error.mock.calls[0][0]).toContain('`memo conformance` was removed: nothing replaces it.');
     });
 
     it('is not listed in help', () => {

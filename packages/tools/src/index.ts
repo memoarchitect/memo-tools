@@ -44,7 +44,6 @@ export * from './model/ontology-loader.js';
 export * from './model/manifest.js';
 export * from './model/content-store.js';
 export * from './toolchain/index.js';
-export * from './conformance/index.js';
 export { memoVersion } from './version.js';
 export * from './model/methodology-loader.js';
 export * from './model/paths.js';

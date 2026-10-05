@@ -12,9 +12,10 @@ import chalk from 'chalk';
 
 /**
  * Register `name` under `parent` as a removed command: hidden, accepting any
- * arguments, exiting 1 with the replacement named.
+ * arguments, exiting 1 with the replacement named, or, for one nothing
+ * replaces, the reason it went.
  */
-export function retiredCommand(parent: Command, name: string, replacement: string): void {
+export function retiredCommand(parent: Command, name: string, replacement: string | { reason: string }): void {
     const path = [...ancestry(parent), name].join(' ');
     parent
         .command(name, { hidden: true })
@@ -22,7 +23,9 @@ export function retiredCommand(parent: Command, name: string, replacement: strin
         .allowExcessArguments()
         .argument('[args...]')
         .action(() => {
-            console.error(chalk.red(`✖ \`${path}\` was removed; use \`${replacement}\`.`));
+            console.error(chalk.red(typeof replacement === 'string'
+                ? `✖ \`${path}\` was removed; use \`${replacement}\`.`
+                : `✖ \`${path}\` was removed: ${replacement.reason}`));
             process.exitCode = 1;
         });
 }
