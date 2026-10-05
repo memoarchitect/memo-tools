@@ -78,14 +78,17 @@ def severity_of(diagnostic) -> str:
     return str(getattr(diagnostic, "severity", "")).rsplit(".", 1)[-1].lower()
 
 
-def classify(project_root: Path, library_roots: list[Path]) -> tuple[list[Path], list[Path]]:
-    """The library files and the project files, each loaded once."""
+def classify(project_root: Path, library_roots: list[Path], files: list[str] | None = None) -> tuple[list[Path], list[Path]]:
+    """The library files and the project files, each loaded once. `files` are the
+    project's files as the caller resolved them (an `include` root may sit outside
+    the project directory); without them the project directory is walked."""
     # Roots may nest (`src` and `src/methodology`): each file is loaded once.
     library_files = list(dict.fromkeys(f for root in library_roots for f in sysml_files(root)))
     # A library root may sit inside the project (a project's own methodology):
     # its files load once, as library, or every namespace in them is declared twice.
     in_library = set(library_files)
-    project_files = [f for f in sysml_files(project_root) if f not in in_library]
+    candidates = sorted(dict.fromkeys(Path(f).resolve() for f in files)) if files is not None else sysml_files(project_root)
+    project_files = [f for f in candidates if f not in in_library]
     return library_files, project_files
 
 
@@ -344,7 +347,7 @@ class Project:
 def answer(request: dict, libraries: Libraries | None, project: Project) -> tuple[dict, Libraries | None]:
     project_root = Path(request["project"]).resolve()
     library_roots = [Path(root).resolve() for root in request.get("libraries", [])]
-    library_files, project_files = classify(project_root, library_roots)
+    library_files, project_files = classify(project_root, library_roots, request.get("files"))
     started = time.perf_counter()
     if libraries is None or libraries.key != request["libraryKey"] or libraries.files != library_files:
         libraries = Libraries(request["libraryKey"], library_roots, library_files)

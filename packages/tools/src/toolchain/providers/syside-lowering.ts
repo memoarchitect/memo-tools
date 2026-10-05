@@ -204,12 +204,14 @@ interface Served {
  * (a kept one from what the worker sent before), and its index.
  */
 async function servedHandoff(interpreter: string, projectDir: string, libraryDirs: readonly string[],
-    libraryKey: string, libraryOut: string): Promise<Served> {
+    libraryKey: string, libraryOut: string, files?: readonly string[]): Promise<Served> {
     return serve(async () => {
         const worker = workerFor(interpreter);
         let response: ServedResponse;
         try {
-            response = await worker.request({ project: projectDir, libraries: libraryDirs, libraryKey, libraryOut });
+            // The project's files as MEMO resolved them (its `include` roots may sit
+            // outside the project directory); without them the worker walks the directory.
+            response = await worker.request({ project: projectDir, libraries: libraryDirs, libraryKey, libraryOut, ...(files ? { files } : {}) });
         } catch (error) {
             throw new Error(`SysIDE stage 1 could not run with "${interpreter}": ${(error as Error).message}. `
                 + `Set toolchain.${SYSIDE_PROVIDER_ID}.python to a Python with SysIDE's API.`);
@@ -305,7 +307,8 @@ export async function compileWithSyside(options: CompileModelOptions): Promise<C
 
     const interpreter = python(options.config);
     const libraryKey = sysideLibraryKey(interpreter, libraryDirs);
-    const key = sysideInputKey(interpreter, projectDir, libraryKey);
+    const files = [...projectFiles].map(file => resolve(projectDir, file));
+    const key = sysideInputKey(interpreter, projectDir, libraryKey, files);
     const cacheDir = options.cacheDir;
     const keyFile = cacheDir ? join(cacheDir, `${SYSIDE_PROVIDER_ID}.json.key`) : undefined;
     let handoff: SysideHandoff | undefined;
@@ -318,7 +321,7 @@ export async function compileWithSyside(options: CompileModelOptions): Promise<C
     if (!handoff) {
         const libraryOut = join(cacheDir ?? scratchDir(), `${SYSIDE_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`);
         installShippedLibrary(interpreter, libraryDirs, libraryOut);
-        const served = await servedHandoff(interpreter, projectDir, libraryDirs, libraryKey, libraryOut);
+        const served = await servedHandoff(interpreter, projectDir, libraryDirs, libraryKey, libraryOut, files);
         handoff = served.handoff;
         if (cacheDir && keyFile && handoff.clean) {
             mkdirSync(cacheDir, { recursive: true });
@@ -447,10 +450,11 @@ export function sysideLibraryKey(interpreter: string, libraryDirs: readonly stri
  * this is unchanged; a SysIDE upgrade in the same interpreter is not seen,
  * which is what `memo compile --force` is for.
  */
-export function sysideInputKey(interpreter: string, projectDir: string, libraryKey: string): string {
+export function sysideInputKey(interpreter: string, projectDir: string, libraryKey: string, files?: readonly string[]): string {
     const hash = createHash('sha256');
     hash.update(`${SYSIDE_PROVIDER_ID}\0${interpreter}\0${libraryKey}\0`);
-    for (const file of [...new Set(findSysmlFiles(projectDir).map(file => resolve(file)))].sort()) {
+    // The files compiled, an include root outside the directory among them.
+    for (const file of [...new Set((files ?? findSysmlFiles(projectDir)).map(file => resolve(file)))].sort()) {
         hash.update(`\0${file}\0`);
         hash.update(readFileSync(file));
     }
