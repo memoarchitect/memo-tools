@@ -10,7 +10,8 @@ memo init --list       # packages, templates, and examples
 
 A command that only repeated another has been removed. For one release its old
 name still runs, fails, and names its replacement: `memo examples` and
-`memo templates` (use `memo init --list`), `memo rules check` (use `memo validate`).
+`memo templates` (use `memo init --list`), `memo rules check` (use `memo validate`),
+`memo rules coverage` (use `memo standards check`).
 
 ## Top-level commands
 
@@ -223,6 +224,6 @@ memo validate . --format junit --output validation.xml
 memo export json --output memo-model.json
 memo import csv elements.csv --dry-run
 memo ontology show
-memo rules coverage
+memo standards check
 memo check . --sysml-compat
 ```

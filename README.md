@@ -88,7 +88,7 @@ memo sysand publish --dry-run
 # Generate assurance artifacts
 memo dhf status
 memo export dhf --format docx --output dhf-output
-memo rules coverage
+memo standards check
 ```
 
 Run `memo --help` or `memo <command> --help` for the complete command surface.
