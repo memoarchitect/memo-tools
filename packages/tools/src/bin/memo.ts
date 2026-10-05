@@ -54,7 +54,7 @@ import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../com
 import { reqNewCommand } from '../commands/req.js';
 import { checkCommand } from '../commands/check.js';
 import { roundTripCommand } from '../commands/roundtrip.js';
-import { rulesListCommand, rulesExplainCommand, rulesCoverageCommand, rulesTailoringCommand, rulesNewCommand, rulesTailorCommand } from '../commands/rules.js';
+import { rulesListCommand, rulesExplainCommand, rulesTailoringCommand, rulesNewCommand, rulesTailorCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
 import {
     elementIdentitiesCommand,
@@ -841,14 +841,7 @@ rulesCmd
         await rulesExplainCommand(ruleId, dir, { format: opts.format as any });
     });
 
-rulesCmd
-    .command('coverage')
-    .description('Show coverage rules grouped by regulatory standard')
-    .argument('[dir]', 'Project directory', '.')
-    .option('--format <format>', 'Output format: text, json', 'text')
-    .action(async (dir: string, opts: { format?: string }) => {
-        await rulesCoverageCommand(dir, { format: opts.format as any });
-    });
+retiredCommand(rulesCmd, 'coverage', 'memo standards check');
 
 // Every command takes the `--toolchain.*` flags, and the running command's
 // flags apply to whatever settings it loads (model/config-loader.ts).

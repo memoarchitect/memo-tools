@@ -2,9 +2,9 @@
 //
 // CLI subcommands for consistency rule management:
 //   memo rules list     — list all rules with category and severity
-//   memo rules check    — evaluate rules against the current model
 //   memo rules explain  — show detailed info for a specific rule
-//   memo rules coverage — show coverage rules grouped by standard
+// `memo validate` evaluates the rules; `memo standards check` reports which
+// clauses they enforce.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve } from 'node:path';
@@ -312,73 +312,6 @@ export async function rulesExplainCommand(
         console.log(`  ${chalk.cyan('Severity:')}     ${constraint.severity}`);
         console.log(`  ${chalk.cyan('Source:')}       native constraint def`);
     }
-}
-
-// ─── memo rules coverage ────────────────────────────────────────────────────
-
-export async function rulesCoverageCommand(
-    projectDir?: string,
-    options?: { format?: RulesFormat }
-): Promise<void> {
-    const format = options?.format || 'text';
-    const { ruleRegistry, model } = await loadContext(projectDir);
-
-    const coverageRules = ruleRegistry?.byCategory('coverage') ?? [];
-
-    // Evaluate each coverage rule against model
-    type CoverageResult = { rule: (typeof coverageRules)[0]; passed: boolean; count: number };
-    const results: CoverageResult[] = coverageRules.map(rule => {
-        const target = rule.attributes['coverageTarget'] || rule.appliesTo;
-        const count = model ? [...model.elements.values()].filter((e: any) => e.kind === target).length : 0;
-        return { rule, passed: count > 0, count };
-    });
-
-    if (format === 'json') {
-        const grouped: Record<string, { id: string; name: string; passed: boolean; count: number }[]> = {};
-        for (const r of results) {
-            const std = r.rule.attributes['standard'] || 'unspecified';
-            if (!grouped[std]) grouped[std] = [];
-            grouped[std].push({ id: r.rule.id, name: r.rule.name, passed: r.passed, count: r.count });
-        }
-        const totalPassed = results.filter(r => r.passed).length;
-        const pct = results.length > 0 ? Math.round((totalPassed / results.length) * 100) : 0;
-        console.log(JSON.stringify({ total: results.length, passed: totalPassed, percentage: pct, byStandard: grouped }, null, 2));
-        return;
-    }
-
-    console.log(chalk.bold('\n📊 Coverage Rules by Standard\n'));
-
-    if (coverageRules.length === 0) {
-        console.log(chalk.gray('  No coverage rules found.'));
-        return;
-    }
-
-    // Group by standard
-    const byStandard = new Map<string, CoverageResult[]>();
-    for (const r of results) {
-        const std = r.rule.attributes['standard'] || 'unspecified';
-        if (!byStandard.has(std)) byStandard.set(std, []);
-        byStandard.get(std)!.push(r);
-    }
-
-    for (const [standard, stdResults] of byStandard) {
-        const stdPassed = stdResults.filter(r => r.passed).length;
-        const stdPct = Math.round((stdPassed / stdResults.length) * 100);
-        const pctColor = stdPct >= 90 ? chalk.green : stdPct >= 50 ? chalk.yellow : chalk.red;
-        console.log(chalk.bold.cyan(`  ${standard}`) + chalk.gray(` (${stdResults.length} rules)`) + ` ${pctColor(`${stdPct}%`)}`);
-        for (const r of stdResults) {
-            const clause = r.rule.attributes['clause'] ? chalk.gray(`[${r.rule.attributes['clause']}]`) : '';
-            const icon = r.passed ? chalk.green('✔') : severityIcon(r.rule.severity);
-            const countLabel = r.passed ? chalk.green(`${r.count} found`) : chalk.red('0 found');
-            console.log(`    ${icon} ${chalk.white(r.rule.id)} ${r.rule.name} ${clause} — ${countLabel}`);
-        }
-        console.log();
-    }
-
-    const totalPassed = results.filter(r => r.passed).length;
-    const totalPct = results.length > 0 ? Math.round((totalPassed / results.length) * 100) : 0;
-    const totalColor = totalPct >= 90 ? chalk.green : totalPct >= 50 ? chalk.yellow : chalk.red;
-    console.log(chalk.gray(`  Total: ${totalPassed}/${results.length} coverage rules satisfied`) + ` ${totalColor(`(${totalPct}%)`)}`);
 }
 
 // ─── memo rules tailoring ────────────────────────────────────────────────────
