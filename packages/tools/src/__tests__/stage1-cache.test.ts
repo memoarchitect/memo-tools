@@ -49,4 +49,15 @@ describe('stage 1 output reuse', () => {
         const { options } = project();
         await expect(compileWithSyside({ ...options, force: true })).rejects.toThrow(/could not run/);
     });
+
+    it('keys on the files compiled, an include root outside the project among them', () => {
+        const outside = mkdtempSync(join(tmpdir(), 'memo-stage1-include-'));
+        const file = join(outside, 'ots.sysml');
+        writeFileSync(file, 'package ots_lib;\n');
+        const { dir } = project();
+        const key = () => sysideInputKey(NO_PYTHON, dir, sysideLibraryKey(NO_PYTHON, []), [join(dir, 'model.sysml'), file]);
+        const before = key();
+        writeFileSync(file, 'package ots_lib { part def OtsPart; }\n');
+        expect(key()).not.toBe(before);
+    });
 });
