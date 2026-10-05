@@ -424,7 +424,6 @@ describe('conformance stays out of the interactive commands', () => {
         'commands/validate.ts',
         'commands/dev.ts',
         'commands/pack.ts',
-        'commands/check.ts',
         'operations/project-snapshot.ts',
         'server/dev-server.ts',
         'toolchain/lowering.ts',

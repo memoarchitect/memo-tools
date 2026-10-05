@@ -11,7 +11,8 @@ memo init --list       # packages, templates, and examples
 A command that only repeated another has been removed. For one release its old
 name still runs, fails, and names its replacement: `memo examples` and
 `memo templates` (use `memo init --list`), `memo rules check` (use `memo validate`),
-`memo rules coverage` (use `memo standards check`).
+`memo rules coverage` (use `memo standards check`), `memo check` and `memo round-trip`
+(use `memo compile`: the selected compiler is the authority on whether SysML is valid).
 
 ## Top-level commands
 
@@ -35,8 +36,6 @@ name still runs, fails, and names its replacement: `memo examples` and
 | `memo plugin …` | List, create, or run plugins. |
 | `memo dhf …` | Initialize, preview, assess, snapshot, diff, redline, or draft DHF content. |
 | `memo sysand publish` | Validate and package content for SysAnd publication. |
-| `memo check [dir]` | Check SysML v2 tool compatibility. |
-| `memo round-trip [dir]` | Predict round-trip conformance for SysON, SysIDE, or Cameo. |
 | `memo rules …` | List, explain, tailor and write consistency rules, and report their coverage of standards clauses. `memo validate` evaluates them. |
 | `memo toolchain probe [dir]` | Resolve each toolchain role to a provider and report its executable and version. |
 | `memo toolchain check [paths...]` | Run the selected validator over SysML paths, less the project's `validator-exceptions.json`. |
@@ -225,5 +224,4 @@ memo export json --output memo-model.json
 memo import csv elements.csv --dry-run
 memo ontology show
 memo standards check
-memo check . --sysml-compat
 ```

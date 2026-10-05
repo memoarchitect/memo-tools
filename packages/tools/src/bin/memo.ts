@@ -9,8 +9,6 @@
 //   memo export dot     — Export model as Graphviz DOT
 //   memo ontology show  — Show resolved ontology summary
 //   memo ontology export— Export ontology as OWL/RDF or a SysAnd project
-//   memo check          — Check model compatibility (--sysml-compat)
-//   memo round-trip     — Predict round-trip conformance with external tools
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Command } from 'commander';
@@ -52,8 +50,6 @@ import { dhfPreviewCommand } from '../commands/dhf-preview.js';
 import { standardsCheckCommand } from '../commands/standards.js';
 import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../commands/plugin.js';
 import { reqNewCommand } from '../commands/req.js';
-import { checkCommand } from '../commands/check.js';
-import { roundTripCommand } from '../commands/roundtrip.js';
 import { rulesListCommand, rulesExplainCommand, rulesTailoringCommand, rulesNewCommand, rulesTailorCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
 import {
@@ -740,31 +736,11 @@ sysandCmd
         await sysandPublishCommand({ ...options, dryRun: options.dryRun ?? true });
     });
 
-// ─── memo check ─────────────────────────────────────────────────────────────
-
-program
-    .command('check')
-    .description('Check model compatibility with SysML v2 tools')
-    .argument('[dir]', 'Project directory', '.')
-    .option('--sysml-compat', 'Run SysML v2 standard compatibility check')
-    .option('--format <format>', 'Output format: text, json', 'text')
-    .option('-o, --output <file>', 'Write report to file instead of stdout')
-    .action(async (dir: string, opts: { sysmlCompat?: boolean; format?: string; output?: string }) => {
-        await checkCommand(dir, { sysmlCompat: opts.sysmlCompat, format: opts.format as any, output: opts.output });
-    });
-
-// ─── memo round-trip ────────────────────────────────────────────────────────
-
-program
-    .command('round-trip')
-    .description('Predict round-trip conformance with external SysML tools')
-    .argument('[dir]', 'Project directory', '.')
-    .option('--tool <tool>', 'Target tool: syson, syside, cameo', 'syson')
-    .option('--format <format>', 'Output format: text, json', 'text')
-    .option('-o, --output <file>', 'Write report to file instead of stdout')
-    .action(async (dir: string, opts: { tool?: string; format?: string; output?: string }) => {
-        await roundTripCommand(dir, { tool: opts.tool, format: opts.format as any, output: opts.output });
-    });
+// ─── Retired: check, round-trip ──────────────────────────────────────────────
+// Heuristic guesses at what external SysML tools accept, from before the
+// selected compiler was the authority on validity; `memo compile` asks it.
+retiredCommand(program, 'check', 'memo compile');
+retiredCommand(program, 'round-trip', 'memo compile');
 
 // ─── memo rules ────────────────────────────────────────────────────────────
 
