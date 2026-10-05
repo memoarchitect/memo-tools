@@ -60,11 +60,6 @@ import {
 } from '../commands/element.js';
 import { convertCommand } from '../commands/convert.js';
 import { configEffectiveCommand, toolchainCheckCommand, toolchainProbeCommand } from '../commands/toolchain.js';
-import {
-    conformanceDiffXmiCommand,
-    conformanceRunCommand,
-    type ConformanceCliOptions,
-} from '../commands/conformance.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
 import { shipLibraryCommand } from '../commands/ship-library.js';
@@ -244,47 +239,10 @@ withToolchainOptions(
     await toolchainCheckCommand(paths, opts);
 });
 
-// ─── memo conformance ───────────────────────────────────────────────────────
-//
-// Its own command, reached no other way. Nothing in `validate`, `dev`, `build`
-// or Architect's refresh calls into `conformance/`: a sweep grades MEMO against
-// the OMG's published files, which is a question about MEMO and not about the
-// project the user is working on.
-
-const conformanceCmd = program
-    .command('conformance')
-    .description('Run the toolchain against the pinned SysML v2 Release corpus');
-
-withToolchainOptions(
-    conformanceCmd
-        .command('run')
-        .description('Validate and lower the corpus; report diagnostic counts by domain')
-        .argument('[dir]', 'Project whose toolchain settings select the providers', '.')
-        .option('--corpus <dir>', 'Corpus directory (defaults to the vendored one)')
-        .option('--unit <id...>', 'Corpus units to run; a prefix selects a group')
-        .option('--format <format>', 'Output format: text, json', 'text')
-        .option('-o, --output <file>', 'Write the report to a file instead of stdout')
-        .option('--verify <scope>', 'Checksum scope: sources, full, skipped', 'sources')
-        .option('--baseline [file]', 'Compare against a frozen baseline and fail on any change')
-        .option('--update-baseline', 'Re-freeze the baseline from this run'),
-).action(async (dir: string, opts: Record<string, unknown>) => {
-    await conformanceRunCommand(dir, opts as ConformanceCliOptions);
-});
-
-withToolchainOptions(
-    conformanceCmd
-        .command('diff-xmi')
-        .description("Compare MEMO's computed semantics against the Release xmi.implied files")
-        .argument('[dir]', 'Project whose toolchain settings select the lowering provider', '.')
-        .option('--corpus <dir>', 'Corpus directory (defaults to the vendored one)')
-        .option('--library <path...>', 'Library sources to compare, e.g. Parts.sysml')
-        .option('--format <format>', 'Output format: text, json', 'text')
-        .option('-o, --output <file>', 'Write the report to a file instead of stdout')
-        .option('--verify <scope>', 'Checksum scope: sources, skipped', 'sources')
-        .option('--baseline [file]', 'Compare against a frozen baseline and fail on any change')
-        .option('--update-baseline', 'Re-freeze the baseline from this run'),
-).action(async (dir: string, opts: Record<string, unknown>) => {
-    await conformanceDiffXmiCommand(dir, opts as ConformanceCliOptions);
+// ─── Retired: conformance ───────────────────────────────────────────────────
+retiredCommand(program, 'conformance', {
+    reason: 'it graded MEMO\'s own SysML compiler against the OMG corpus, and that compiler is gone. '
+        + 'The selected compiler is the authority on validity: `memo compile`.',
 });
 
 // ─── memo config ────────────────────────────────────────────────────────────
