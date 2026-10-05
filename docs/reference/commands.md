@@ -5,21 +5,21 @@ Run `memo --help` for the installed version's authoritative command list and
 discovered from the installed ontology content manifest:
 
 ```bash
-memo examples
-memo templates
-memo init --list       # packages, templates, and examples together
+memo init --list       # packages, templates, and examples
 ```
+
+A command that only repeated another has been removed. For one release its old
+name still runs, fails, and names its replacement: `memo examples` and
+`memo templates` (use `memo init --list`), `memo rules check` (use `memo validate`).
 
 ## Top-level commands
 
 | Command | Purpose |
 |---|---|
-| `memo compile [dir]` | Check the project is valid SysML with the compiler `toolchain.compiler` selects (stage 1). No MEMO rules. A compiler that builds the model keeps its output in `.memo/stage1/` (ignored by git), and `memo validate` reuses it while the inputs are unchanged; `--force` recompiles. `--out <file>` writes the compiled SysML v2 model (each document's API JSON with its role, the diagnostics, the element index, and each metaclass's supertypes), which analysis notebooks read through `analysis/memo_model.py`; MEMO's internal compiler builds no SysML v2 model and refuses it. |
+| `memo compile [dir]` | Check the project is valid SysML with the compiler `toolchain.compiler` selects (stage 1). No MEMO rules. A compiler that builds the model keeps its output in `.memo/stage1/` (ignored by git), and `memo validate` reuses it while the inputs are unchanged; `--force` recompiles. `--out <file>` writes the compiled SysML v2 model (each document's API JSON with its role, the diagnostics, the element index, and each metaclass's supertypes), which analysis notebooks read through `analysis/memo_model.py`. |
 | `memo validate [dir]` | Evaluate closure rules and completeness; supports `text`, `junit`, and `json`. Reuses a fresh `memo compile`; a stage 1 error stops it before any rule runs. |
 | `memo init [name]` | Create a project from the default, a template, or a worked example. |
 | `memo convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
-| `memo examples` | List worked-example IDs accepted by `memo init --example`. |
-| `memo templates` | List project-template IDs accepted by `memo init --template`. |
 | `memo pack` | Build a Knowledge Package Archive (`.kpar`). |
 | `memo export …` | Export JSON, Graphviz DOT, or DHF artifacts. |
 | `memo create-package <name>` | Scaffold an ontology, profile, library, or device package. |
@@ -36,7 +36,7 @@ memo init --list       # packages, templates, and examples together
 | `memo sysand publish` | Validate and package content for SysAnd publication. |
 | `memo check [dir]` | Check SysML v2 tool compatibility. |
 | `memo round-trip [dir]` | Predict round-trip conformance for SysON, SysIDE, or Cameo. |
-| `memo rules …` | List, check, explain, tailor and write consistency rules, and report their coverage of standards clauses. |
+| `memo rules …` | List, explain, tailor and write consistency rules, and report their coverage of standards clauses. `memo validate` evaluates them. |
 | `memo toolchain probe [dir]` | Resolve each toolchain role to a provider and report its executable and version. |
 | `memo toolchain check [paths...]` | Run the selected validator over SysML paths, less the project's `validator-exceptions.json`. |
 | `memo config effective [dir]` | Print settings after flags and `toolchain.compiler` are applied; an unset role is reported as not configured. |
@@ -51,8 +51,8 @@ memo init [name] [--template <id> | --example <id>]
 
 | Option | Meaning |
 |---|---|
-| `-t, --template <id>` | Copy a template listed by `memo templates`. |
-| `--example <id>` | Copy an example listed by `memo examples`. |
+| `-t, --template <id>` | Copy a template listed by `memo init --list`. |
+| `--example <id>` | Copy an example listed by `memo init --list`. |
 | `--ontology <package>` | Select the logical ontology/profile package. |
 | `--list` | List installed packages, templates, and examples, then exit. |
 | `--no-install` | Do not run the project dependency installation step. |
@@ -217,7 +217,7 @@ that traces to no clause yet is listed, not hidden.
 ## Common examples
 
 ```bash
-memo templates
+memo init --list
 memo init infusion-device --template infusion-pump
 memo validate . --format junit --output validation.xml
 memo export json --output memo-model.json

@@ -11,7 +11,7 @@ import { resolve } from 'node:path';
 import chalk from 'chalk';
 import {
     findConfigFile, findProjectRoot, loadProjectSettings, RuleRegistry,
-    loadMethodologyDescriptor, BUILTIN_RULES, evaluateConstraintSubjects, validateArchitecture,
+    loadMethodologyDescriptor, BUILTIN_RULES,
 } from '@memoarchitect/tools';
 import type { EffectiveRule, RuleResolutionDiagnostic } from '@memoarchitect/tools';
 import { loadProjectModel, projectConstraints } from '../toolchain/project-model.js';
@@ -243,79 +243,6 @@ export async function rulesListCommand(
         console.log(chalk.bold.cyan(`\n  NOT RUNNING IN THIS PROJECT (${inactive.length})`));
         for (const rule of inactive) {
             console.log(chalk.gray(`    ${rule.id} ${rule.typeName ?? ''} — ${rule.detail}`));
-        }
-    }
-}
-
-// ─── memo rules check ────────────────────────────────────────────────────────
-
-export async function rulesCheckCommand(
-    projectDir?: string,
-    options?: { format?: RulesFormat }
-): Promise<void> {
-    const format = options?.format || 'text';
-    const { ontologyRegistries, model, constraints } = await loadContext(projectDir);
-
-    // Evaluate the rule definitions across the ontology and the project.
-    let rulesPassed = 0;
-    let rulesVacuous = 0;
-    const violations = [];
-    for (const constraint of constraints) {
-        if (constraint.evaluator && constraint.evaluator !== 'native') {
-            const ruleViolations = constraint.evaluator === 'architecture'
-                ? validateArchitecture(model, constraint.appliesToKind, ontologyRegistries?.kindRegistry)
-                : [];
-            if (ruleViolations.length === 0) rulesPassed++;
-            violations.push(...ruleViolations);
-            continue;
-        }
-        const { violations: ruleViolations, subjectCount } = evaluateConstraintSubjects(
-            constraint, constraint.ast, model, ontologyRegistries?.kindRegistry);
-        if (subjectCount === 0) rulesVacuous++;
-        else if (ruleViolations.length === 0) rulesPassed++;
-        violations.push(...ruleViolations);
-    }
-    const result = {
-        rulesEvaluated: constraints.length,
-        rulesPassed,
-        rulesVacuous,
-        violations,
-        timestamp: Date.now(),
-    };
-
-    if (format === 'json') {
-        console.log(JSON.stringify(result, null, 2));
-        return;
-    }
-
-    console.log(chalk.bold('\n📋 Rule Check Results\n'));
-    console.log(chalk.gray(`  Rules evaluated: ${result.rulesEvaluated}`));
-    console.log(chalk.gray(`  Rules passed:    ${result.rulesPassed}`));
-    console.log(chalk.gray(`  No subject:      ${result.rulesVacuous}`));
-    console.log(chalk.gray(`  Violations:      ${result.violations.length}`));
-    console.log();
-
-    if (result.violations.length === 0) {
-        console.log(chalk.green('  ✅ All rules passed!'));
-        return;
-    }
-
-    // Group violations by rule
-    const byRule = new Map<string, typeof result.violations>();
-    for (const v of result.violations) {
-        if (!byRule.has(v.ruleId)) byRule.set(v.ruleId, []);
-        byRule.get(v.ruleId)!.push(v);
-    }
-
-    for (const [ruleId, violations] of byRule) {
-        const first = violations[0];
-        const icon = severityIcon(first.severity);
-        console.log(`  ${icon} ${chalk.white(ruleId)}: ${first.description} (${violations.length} violations)`);
-        for (const v of violations.slice(0, 5)) {
-            console.log(`    ${chalk.gray('→')} ${v.elementKind}/${v.elementName} ${chalk.gray(`(${v.elementId})`)}`);
-        }
-        if (violations.length > 5) {
-            console.log(chalk.gray(`    ... and ${violations.length - 5} more`));
         }
     }
 }

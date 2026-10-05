@@ -15,7 +15,8 @@
 
 import { Command } from 'commander';
 import { validateCommand } from '../commands/validate.js';
-import { initCommand, listExamplesCommand, listTemplatesCommand } from '../commands/init.js';
+import { initCommand } from '../commands/init.js';
+import { retiredCommand } from '../commands/retired.js';
 import { packCommand } from '../commands/pack.js';
 import { exportJsonCommand, exportDotCommand } from '../commands/export.js';
 import {
@@ -53,7 +54,7 @@ import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../com
 import { reqNewCommand } from '../commands/req.js';
 import { checkCommand } from '../commands/check.js';
 import { roundTripCommand } from '../commands/roundtrip.js';
-import { rulesListCommand, rulesCheckCommand, rulesExplainCommand, rulesCoverageCommand, rulesTailoringCommand, rulesNewCommand, rulesTailorCommand } from '../commands/rules.js';
+import { rulesListCommand, rulesExplainCommand, rulesCoverageCommand, rulesTailoringCommand, rulesNewCommand, rulesTailorCommand } from '../commands/rules.js';
 import { inspectCommand } from '../commands/inspect.js';
 import {
     elementIdentitiesCommand,
@@ -203,19 +204,13 @@ program
         await convertCommand(dir, options);
     });
 
-program
-    .command('examples')
-    .description('List installed worked examples and the IDs accepted by memo init --example')
-    .action(() => listExamplesCommand());
+retiredCommand(program, 'examples', 'memo init --list');
 
 const packageCmd = program.command('package').description('Inspect and import interoperable KPAR libraries');
 packageCmd.command('inspect').argument('<archive>').action((archive: string) => console.log(JSON.stringify(inspectKpar(archive), null, 2)));
 packageCmd.command('import').argument('<archive>').option('-C, --project <dir>', 'Project directory', '.').action((archive: string, options: { project: string }) => console.log(JSON.stringify(importKpar(options.project, archive), null, 2)));
 
-program
-    .command('templates')
-    .description('List installed project templates and the IDs accepted by memo init --template')
-    .action(() => listTemplatesCommand());
+retiredCommand(program, 'templates', 'memo init --list');
 
 withToolchainOptions(
     program
@@ -834,14 +829,7 @@ rulesCmd
         await rulesNewCommand(dir, opts as import('../commands/rules.js').RulesNewOptions);
     });
 
-rulesCmd
-    .command('check')
-    .description('Evaluate rules against the current model')
-    .argument('[dir]', 'Project directory', '.')
-    .option('--format <format>', 'Output format: text, json', 'text')
-    .action(async (dir: string, opts: { format?: string }) => {
-        await rulesCheckCommand(dir, { format: opts.format as any });
-    });
+retiredCommand(rulesCmd, 'check', 'memo validate');
 
 rulesCmd
     .command('explain')
