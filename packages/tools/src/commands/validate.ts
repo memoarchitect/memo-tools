@@ -46,8 +46,11 @@ export async function validateCommand(
     options?: { format?: ValidateFormat; output?: string } & Record<string, unknown>,
 ): Promise<void> {
     const format = options?.format || 'text';
+    // A report written to stdout (json or junit without -o) is the whole of
+    // stdout, so a script can parse it; the progress goes to stderr.
+    const say: (...args: unknown[]) => void = format !== 'text' && !options?.output ? console.error : console.log;
     const cwd = resolve(projectDir || process.cwd());
-    console.log(chalk.bold('\n📋 MEMO Validate\n'));
+    say(chalk.bold('\n📋 MEMO Validate\n'));
 
     // 1. Find the project by its native entrypoint, not by a settings file.
     const projectRoot = findProjectRoot(cwd);
@@ -58,7 +61,7 @@ export async function validateCommand(
             + 'and method binding — run `memo init` to scaffold one.'));
         process.exit(1);
     }
-    console.log(chalk.gray(`Project root: ${projectRoot}`));
+    say(chalk.gray(`Project root: ${projectRoot}`));
 
     // 2. Reject semantic configuration before anything reads it.
     const rejections = checkSemanticFields(projectRoot);
@@ -74,7 +77,7 @@ export async function validateCommand(
     const config = withToolchainOverrides(
         loadProjectSettings(projectRoot), options ?? {}, defaultRegistry);
     const effectiveToolchain = resolveToolchain(config, defaultRegistry);
-    for (const note of effectiveToolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
+    for (const note of effectiveToolchain.deprecations) say(chalk.yellow(`  ⚠ ${note}`));
 
     // 3. Resolve the project: imports and the method binding decide everything
     //    about what is loaded. The compiler resolves it from what it compiled —
@@ -95,10 +98,10 @@ export async function validateCommand(
             console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
             process.exit(1);
         }
-        console.log(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}${stage1.cached ? ' (reused .memo/stage1)' : ''}`));
+        say(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}${stage1.cached ? ' (reused .memo/stage1)' : ''}`));
         if (validatorFromStage1) {
             sysmlDiagnostics = stage1.diagnostics;
-            console.log(chalk.gray(`Validator: ${compiler} ${stage1.providerVersion ?? ''} (stage 1's check)`));
+            say(chalk.gray(`Validator: ${compiler} ${stage1.providerVersion ?? ''} (stage 1's check)`));
         }
         // A stage 1 that reports an error stops here: stage 2 and the rules
         // never run on a model that is not valid SysML.
@@ -112,14 +115,14 @@ export async function validateCommand(
         ontologyRegistries = stage1.registries;
         const kr = ontologyRegistries?.kindRegistry;
         const rr = ontologyRegistries?.relationshipRegistry;
-        console.log(chalk.gray(
+        say(chalk.gray(
             `Resolved: ${kr?.size ?? 0} kinds, ${rr?.size ?? 0} relationships `
             + `(from ${compiler}'s handoff, ${resolution?.closure.size ?? 0} packages)`));
-        for (const d of resolution?.diagnostics ?? []) console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
+        for (const d of resolution?.diagnostics ?? []) say(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
     }
 
     if (resolution?.binding) {
-        console.log(chalk.gray(
+        say(chalk.gray(
             `Binding: ${resolution.binding.projectName ?? resolution.binding.usageName} → `
             + `${resolution.binding.selectedMethodologyName ?? '(none)'}`));
     }
@@ -135,7 +138,7 @@ export async function validateCommand(
         try {
             const run = await runValidator({ config, projectDir: projectRoot, registry: defaultRegistry });
             sysmlDiagnostics = run.diagnostics;
-            console.log(chalk.gray(
+            say(chalk.gray(
                 `Validator: ${run.provider}${run.providerVersion ? ` ${run.providerVersion}` : ''}`));
         } catch (error) {
             console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
@@ -153,7 +156,7 @@ export async function validateCommand(
         process.exit(1);
     }
     if (lockCheck.locked) {
-        console.log(chalk.gray(`Ontology: locked to ${lockCheck.locked.ontology} v${lockCheck.locked.version}`));
+        say(chalk.gray(`Ontology: locked to ${lockCheck.locked.ontology} v${lockCheck.locked.version}`));
     }
 
     // 4. The project's own source is everything parsed that belongs to no
@@ -176,11 +179,11 @@ export async function validateCommand(
         console.error(chalk.yellow('⚠️  No project .sysml files found.'));
         return;
     }
-    console.log(chalk.gray(`Files: ${projectFileCount} project .sysml files\n`));
+    say(chalk.gray(`Files: ${projectFileCount} project .sysml files\n`));
 
     // 5. The model stage 1 built from its handoff.
     const model: MemoModel = stage1.model!;
-    console.log(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
+    say(chalk.cyan(`Model: ${model.elements.size} elements, ${model.relationships.length} relationships\n`));
 
     // A short-name collision belongs in this report for exactly the reason a
     // parse error does: an element the project declared is not in the model, so
@@ -212,8 +215,8 @@ export async function validateCommand(
     // drop was committed as work that had not landed.
     //
     // So it is printed before any of those numbers, and it fails the command.
-    reportParseErrors(diagnostics, projectRoot);
-    reportModelFindings(modelFindings, projectRoot);
+    reportParseErrors(diagnostics, projectRoot, say);
+    reportModelFindings(modelFindings, projectRoot, say);
 
     // A selector naming a kind, relationship or attribute the ontology never
     // declared matches nothing — in this model and in every other one, which is
@@ -251,18 +254,18 @@ export async function validateCommand(
     const ruleFileLoaded = (file: string) => loaded(file) || isProjectFile(file);
     const nativeConstraints = collectApiConstraints(stage1Api, constraintDiagnostics, resolution?.filePackages, ruleFileLoaded);
     if (nativeConstraints.length > 0) {
-        console.log(chalk.gray(`Native constraints: ${nativeConstraints.length} (from ${compiler}'s handoff)`));
+        say(chalk.gray(`Native constraints: ${nativeConstraints.length} (from ${compiler}'s handoff)`));
     }
     // A rule that failed to load is a check that is not running. Report it
     // prominently: silence here reads as "all rules passed".
     if (constraintDiagnostics.length > 0) {
-        console.log(chalk.red(
+        say(chalk.red(
             `\n⚠  ${constraintDiagnostics.length} rule(s) could not be loaded and are NOT being evaluated:`));
         for (const d of constraintDiagnostics) {
-            console.log(chalk.red(`   ${d.ruleId} (${d.file})`));
-            console.log(chalk.gray(`     ${d.message}`));
+            say(chalk.red(`   ${d.ruleId} (${d.file})`));
+            say(chalk.gray(`     ${d.message}`));
         }
-        console.log('');
+        say('');
     }
     // 6a. Effective methodology and the deterministic effective rule set.
     // A module is available when a resolved package supplies it. That is wider
@@ -277,7 +280,7 @@ export async function validateCommand(
     );
     const scope = buildEffectiveScope(effectiveMethodology);
     for (const d of effectiveMethodology.diagnostics) {
-        console.log(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
+        say(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
     }
 
     // Rule activation is shared with `memo rules list` so the two commands
@@ -296,23 +299,23 @@ export async function validateCommand(
     // rule that is not there, or tries to disable an invariant, means the
     // effective rule set is not the one the methodology describes.
     if (effectiveRules.diagnostics.length > 0) {
-        console.log(chalk.red.bold(`\nRule resolution (${effectiveRules.diagnostics.length}):`));
+        say(chalk.red.bold(`\nRule resolution (${effectiveRules.diagnostics.length}):`));
         for (const d of effectiveRules.diagnostics) {
-            console.log(chalk.red(`  ${d.code}${d.ruleId ? ` [${d.ruleId}]` : ''}: ${d.message}`));
+            say(chalk.red(`  ${d.code}${d.ruleId ? ` [${d.ruleId}]` : ''}: ${d.message}`));
         }
-        console.log();
+        say();
         process.exitCode = 1;
     }
 
     const disabled = effectiveRules.rules.filter(r => r.disposition !== 'enabled');
     if (disabled.length > 0) {
-        console.log(chalk.gray(`Tailored rules (${disabled.length}):`));
+        say(chalk.gray(`Tailored rules (${disabled.length}):`));
         for (const r of disabled) {
             const chain = r.policyChain.map(p => `${p.level}:${p.source}`).join(' → ');
-            console.log(chalk.gray(`  ${r.sourceRuleId} ${r.disposition} by ${chain}`));
-            if (r.rationaleText) console.log(chalk.gray(`    ${r.rationaleText}`));
+            say(chalk.gray(`  ${r.sourceRuleId} ${r.disposition} by ${chain}`));
+            if (r.rationaleText) say(chalk.gray(`    ${r.rationaleText}`));
         }
-        console.log();
+        say();
     }
 
     // Rules evaluate over in-scope elements only.
@@ -583,16 +586,17 @@ const PARSE_ERRORS_LISTED = 10;
 function reportParseErrors(
     parseErrors: readonly import('@memoarchitect/tools').ParseError[],
     projectRoot: string,
+    say: (...args: unknown[]) => void = console.log,
 ): void {
     if (parseErrors.length === 0) return;
     const show = (file: string) => (file.startsWith(projectRoot) ? relative(projectRoot, file) : file);
     const byFile = filesWithParseErrors(parseErrors);
-    console.log(chalk.red.bold(
+    say(chalk.red.bold(
         `\u26d4 ${parseErrors.length} parse error(s) in ${byFile.size} file(s). `
         + 'Whatever those files declare past the error is missing from the model, '
         + 'so every count below is a count of less than the project:'));
     for (const [file, count] of byFile) {
-        console.log(chalk.red(`   ${show(file)} (${count})`));
+        say(chalk.red(`   ${show(file)} (${count})`));
     }
     // GNU one-liners, the same prefix the SysML diagnostics use, so an editor
     // or CI annotator picks them up without knowing anything about MEMO.
@@ -602,12 +606,12 @@ function reportParseErrors(
         // inside it. An absolute path from a build machine is noise in a report
         // read next to relative ones.
         const message = e.message.split(`${projectRoot}/`).join('');
-        console.log(chalk.gray(`     ${show(e.file)}:${e.line ?? 1}:${e.column ?? 1}: error: ${message}`));
+        say(chalk.gray(`     ${show(e.file)}:${e.line ?? 1}:${e.column ?? 1}: error: ${message}`));
     }
     if (parseErrors.length > PARSE_ERRORS_LISTED) {
-        console.log(chalk.gray(`     \u2026 and ${parseErrors.length - PARSE_ERRORS_LISTED} more`));
+        say(chalk.gray(`     \u2026 and ${parseErrors.length - PARSE_ERRORS_LISTED} more`));
     }
-    console.log('');
+    say('');
 }
 
 /**
@@ -620,18 +624,19 @@ function reportParseErrors(
 function reportModelFindings(
     findings: readonly import('@memoarchitect/tools').ParseError[],
     projectRoot: string,
+    say: (...args: unknown[]) => void = console.log,
 ): void {
     if (findings.length === 0) return;
     const show = (file: string) => (file.startsWith(projectRoot) ? relative(projectRoot, file) : file);
-    console.log(chalk.red.bold(
+    say(chalk.red.bold(
         `\u26d4 ${findings.length} model finding(s). The model loaded, and says something `
         + 'the ontology does not allow:'));
     for (const f of findings) {
         const message = f.message.split(`${projectRoot}/`).join('');
-        console.log(chalk.gray(
+        say(chalk.gray(
             `     ${show(f.file)}:${f.line ?? 1}:${f.column ?? 1}: error: ${message} [${f.code}]`));
     }
-    console.log('');
+    say('');
 }
 
 /**
