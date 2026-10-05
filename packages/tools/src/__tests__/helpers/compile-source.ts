@@ -81,11 +81,11 @@ export async function withCompiled<T>(
             writeFileSync(target, document.source, 'utf8');
             files.add(where);
         }
-        // A second document always: OpenSysML states which document an element is
-        // in only for a model of several, and a project always has the library's.
-        mkdirSync(join(root, 'model'), { recursive: true });
-        writeFileSync(join(root, 'model', '__stubs.sysml'), options.stubs || 'package MemoTestPadding;', 'utf8');
-        files.add(join('model', '__stubs.sysml'));
+        if (options.stubs) {
+            mkdirSync(join(root, 'model'), { recursive: true });
+            writeFileSync(join(root, 'model', '__stubs.sysml'), options.stubs, 'utf8');
+            files.add(join('model', '__stubs.sysml'));
+        }
         const result = await compileModelWithSelected({
             config: baseConfig(options.config),
             projectDir: root,

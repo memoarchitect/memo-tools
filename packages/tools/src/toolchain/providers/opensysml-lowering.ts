@@ -67,6 +67,12 @@ export interface OpenSysMLHandoffOptions {
     providerVersion?: string;
     /** The bytes of a document, by the path the service was given, for byte offsets. */
     source(path: string): Buffer | undefined;
+    /**
+     * The model's one document, when it was parsed from one. OpenSysML writes
+     * `sysx:sourceDocument` only for a model of several documents, so for one
+     * every element is in this document.
+     */
+    soleDocument?: string;
 }
 
 const refs = (value: unknown): string[] =>
@@ -142,7 +148,12 @@ export function openSysMLHandoff(elements: readonly ApiElement[], options: OpenS
             };
             continue;
         }
-        const document = findDocument(element);
+        // A model of one document states none: everything but the root namespace,
+        // which owns the document's roots and has no owner, is in that document.
+        const hasOwner = OWNER_PROPERTIES.some(property => ref(element[property]) !== undefined);
+        const document = options.soleDocument !== undefined
+            ? (hasOwner ? options.soleDocument : undefined)
+            : findDocument(element);
         if (document === undefined) {
             unplaced.push(element);
             continue;
@@ -161,7 +172,7 @@ export function openSysMLHandoff(elements: readonly ApiElement[], options: OpenS
         const byDocument = new Map<string, string[]>();
         for (const id of memberships) {
             const membership = byId.get(id);
-            const document = membership ? findDocument(membership) : undefined;
+            const document = !membership ? undefined : options.soleDocument ?? findDocument(membership);
             if (document === undefined) continue;
             const list = byDocument.get(document) ?? [];
             list.push(id);
@@ -370,6 +381,7 @@ async function runStage1(
         const handoffOptions = {
             projectDir, libraryDirs, providerVersion: version,
             source: (path: string) => (existsSync(path) ? readFileSync(path) : undefined),
+            ...(documents.length === 1 ? { soleDocument: documents[0] } : {}),
         };
         const convert = async (named?: string[]): Promise<ApiElement[] | undefined> => {
             const converted = await connection.rpc.convert({
