@@ -4,13 +4,14 @@
 // its package, and `memo validate` and `memo rules list` report one rule set.
 // And a project reached through a symbolic link resolves like any other: it used
 // to compile to nothing and be reported valid. With a compiler configured
-// (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY` with `MEMO_OPENSYSML_CLIENT`).
+// (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY`, and `MEMO_OPENSYSML_CLIENT` only to override the pinned client).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { openSysMLFlags, openSysMLUnderTest } from './helpers/compile-source.js';
 import { describe, expect, it } from 'vitest';
 import { compileResolvedProject } from '../toolchain/operations.js';
 import type { MEMOConfig } from '../model/config.js';
@@ -18,8 +19,7 @@ import type { MEMOConfig } from '../model/config.js';
 const example = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
 const python = process.env.MEMO_SYSIDE_PYTHON;
-const binary = process.env.OPENSYSML_BINARY;
-const client = process.env.MEMO_OPENSYSML_CLIENT;
+const opensysml = openSysMLUnderTest;
 
 const OWN_RULE = `package org_rules {
     private import memo_core_consistency_rules::*;
@@ -69,8 +69,8 @@ function activation(name: string, flags: string[]): void {
 }
 
 if (python && existsSync(example)) activation('SysIDE', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`]);
-if (binary && client && existsSync(example)) {
-    activation('OpenSysML', ['--toolchain.compiler=opensysml', `--toolchain.opensysml.binary=${binary}`, `--toolchain.opensysml.client=${client}`]);
+if (opensysml && existsSync(example)) {
+    activation('OpenSysML', openSysMLFlags(opensysml));
 }
 
 describe.runIf(Boolean(python) && existsSync(example))('a project reached through a symbolic link', () => {
@@ -124,6 +124,6 @@ function tailorStandard(name: string, flags: string[]): void {
 }
 
 if (python && existsSync(example)) tailorStandard('SysIDE', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`]);
-if (binary && client && existsSync(example)) {
-    tailorStandard('OpenSysML', ['--toolchain.compiler=opensysml', `--toolchain.opensysml.binary=${binary}`, `--toolchain.opensysml.client=${client}`]);
+if (opensysml && existsSync(example)) {
+    tailorStandard('OpenSysML', openSysMLFlags(opensysml));
 }

@@ -1,7 +1,7 @@
 // ─── A library's shipped stage 1 export ──────────────────────────────────────
 //
 // The portable-path round trip always runs. With a compiler configured
-// (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY` with `MEMO_OPENSYSML_CLIENT`), the
+// (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY`, and `MEMO_OPENSYSML_CLIENT` only to override the pinned client), the
 // library set of temperature-alarm is shipped into a scratch package and a cold
 // compile that reads the shipped file must build the model a cold compile that
 // exports the libraries itself builds (plans/memo-incremental-stage1.md, step 4).
@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { openSysMLFlags, openSysMLUnderTest } from './helpers/compile-source.js';
 import { describe, expect, it } from 'vitest';
 import { discoverProjectSources } from '../model/native-project.js';
 import type { MEMOConfig } from '../model/config.js';
@@ -40,8 +41,7 @@ describe('portable library paths', () => {
 const memo = resolve(__dirname, '../../../../../memo');
 const example = join(memo, 'examples/temperature-alarm');
 const python = process.env.MEMO_SYSIDE_PYTHON;
-const binary = process.env.OPENSYSML_BINARY;
-const client = process.env.MEMO_OPENSYSML_CLIENT;
+const opensysml = openSysMLUnderTest;
 
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
 
@@ -96,10 +96,10 @@ describe.runIf(Boolean(python) && existsSync(example))('shipped library export, 
     }, 300_000);
 });
 
-describe.runIf(Boolean(binary && client) && existsSync(example))('shipped library export, OpenSysML', () => {
+describe.runIf(Boolean(opensysml) && existsSync(example))('shipped library export, OpenSysML', () => {
     it('a cold compile from the shipped file equals one that exports the libraries', async () => {
         await check('opensysml',
-            ['--toolchain.compiler=opensysml', `--toolchain.opensysml.binary=${binary}`, `--toolchain.opensysml.client=${client}`],
-            shipOpenSysMLLibrary, { projectName: 'x', toolchain: { compiler: 'opensysml', opensysml: { binary, client } } });
+            openSysMLFlags(opensysml!),
+            shipOpenSysMLLibrary, { projectName: 'x', toolchain: { compiler: 'opensysml', opensysml: opensysml! } });
     }, 300_000);
 });

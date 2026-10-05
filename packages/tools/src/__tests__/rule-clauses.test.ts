@@ -1,7 +1,7 @@
 // ─── Which rules enforce which clauses ───────────────────────────────────────
 //
 // The coverage computation always runs. With a compiler configured
-// (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY` with `MEMO_OPENSYSML_CLIENT`) the
+// (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY`, and `MEMO_OPENSYSML_CLIENT` only to override the pinned client) the
 // commands run on a copy of temperature-alarm and report what the ontology
 // states: 34 medical-device rules, 29 of them tracing to a clause
 // (plans/memo-rules-domain-trace-and-editor.md).
@@ -11,6 +11,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { openSysMLFlags, openSysMLUnderTest } from './helpers/compile-source.js';
 import { describe, expect, it } from 'vitest';
 import { computeRuleClauseCoverage, clauseLabel, type ClauseFact } from '../validator/rule-clauses.js';
 
@@ -69,8 +70,7 @@ describe('clauseLabel', () => {
 const example = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
 const python = process.env.MEMO_SYSIDE_PYTHON;
-const binary = process.env.OPENSYSML_BINARY;
-const client = process.env.MEMO_OPENSYSML_CLIENT;
+const opensysml = openSysMLUnderTest;
 
 function run(root: string, args: string[], flags: string[]): string {
     return execFileSync(process.execPath, [cli, ...args, ...flags], { cwd: root, encoding: 'utf8', env: process.env });
@@ -106,6 +106,6 @@ function integration(name: string, flags: string[]): void {
 }
 
 if (python && existsSync(example)) integration('SysIDE', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`]);
-if (binary && client && existsSync(example)) {
-    integration('OpenSysML', ['--toolchain.compiler=opensysml', `--toolchain.opensysml.binary=${binary}`, `--toolchain.opensysml.client=${client}`]);
+if (opensysml && existsSync(example)) {
+    integration('OpenSysML', openSysMLFlags(opensysml));
 }
