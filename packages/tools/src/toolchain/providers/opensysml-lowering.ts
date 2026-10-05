@@ -274,25 +274,17 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
     const documents = [...new Set([...libraryFiles, ...[...projectFiles].map(file => resolve(projectDir, file))])];
 
     const key = openSysMLInputKey(options.config, documents);
-    const cached = options.cacheDir ? join(options.cacheDir, `${OPENSYSML_PROVIDER_ID}.json`) : undefined;
-    const keyFile = cached ? `${cached}.key` : undefined;
-    let handoff: Stage1Output & { diagnostics?: Diagnostic[] };
+    const handoffOptions = openSysMLHandoffOptions(projectDir, libraryDirs, documents);
+    let handoff: Stage1Output & { diagnostics?: Diagnostic[] } | undefined;
     let reused = false;
-    if (cached && keyFile && !options.force && existsSync(cached) && existsSync(keyFile)
-        && readFileSync(keyFile, 'utf8') === key) {
-        handoff = JSON.parse(readFileSync(cached, 'utf8'));
-        reused = true;
-    } else {
-        handoff = await runStage1(options.config, projectDir, libraryDirs, documents, libraryFiles, options.cacheDir);
-        if (cached && keyFile && options.cacheDir) {
-            mkdirSync(options.cacheDir, { recursive: true });
-            // Tool output, never authored content: the directory ignores
-            // itself, so no project has to know to add it to its .gitignore.
-            const ignore = join(options.cacheDir, '.gitignore');
-            if (!existsSync(ignore)) writeFileSync(ignore, '*\n');
-            writeFileSync(cached, JSON.stringify(handoff));
-            writeFileSync(keyFile, key);
-        }
+    if (options.cacheDir && !options.force) {
+        handoff = readStoredStage1(options.cacheDir, key, handoffOptions);
+        reused = Boolean(handoff);
+    }
+    if (!handoff) {
+        const run = await runStage1(options.config, projectDir, libraryDirs, documents, libraryFiles, options.cacheDir);
+        handoff = run.handoff;
+        if (options.cacheDir) storeStage1(options.cacheDir, key, run);
     }
     const diagnostics = handoff.diagnostics ?? [];
     if (!handoff.clean) return { accepted: false, diagnostics, providerVersion: handoff.providerVersion, cached: reused };
@@ -302,6 +294,93 @@ export async function compileWithOpenSysML(options: CompileModelOptions): Promis
         config: options.config, projectDir, projectFiles, resolveProject: options.resolveProject, provenance: options.provenance, registries, filePackages,
     });
     return { accepted: true, diagnostics, providerVersion: handoff.providerVersion, ...stage2, api, cached: reused };
+}
+
+/** How a handoff is built from the service's conversion of these documents. */
+function openSysMLHandoffOptions(projectDir: string, libraryDirs: readonly string[], documents: readonly string[]): OpenSysMLHandoffOptions {
+    return {
+        projectDir, libraryDirs,
+        source: (path: string) => (existsSync(path) ? readFileSync(path) : undefined),
+        ...(documents.length === 1 ? { soleDocument: documents[0] } : {}),
+    };
+}
+
+/**
+ * What a compile stores for the next process to reuse: the service's own
+ * conversion text, written as it came, and what rebuilding the handoff from it
+ * needs. Serializing the handoff instead costs a large model more than the
+ * rest of MEMO's share of a compile, on every edit of a `memo dev` session; the
+ * text is already a string, and the libraries' handoff has a file of its own.
+ */
+interface StoredStage1 {
+    providerVersion?: string;
+    clean: boolean;
+    diagnostics: Diagnostic[];
+    /** `whole`: the conversion is the whole model's; `project`: the project's documents, over the libraries' handoff stored under libraryKey. */
+    converted?: 'whole' | 'project';
+    libraryKey?: string;
+}
+
+interface Stage1Run {
+    handoff: Stage1Output & { diagnostics: Diagnostic[] };
+    stored: StoredStage1;
+    /** The service's api-json text the handoff was built from; absent when the model was not clean. */
+    content?: string;
+}
+
+const STORED = `${OPENSYSML_PROVIDER_ID}.stage1.json`;
+const CONTENT = `${OPENSYSML_PROVIDER_ID}.api.json`;
+const KEY = `${OPENSYSML_PROVIDER_ID}.json.key`;
+
+function libraryFileOf(cacheDir: string, libraryKey: string): string {
+    return join(cacheDir, `${OPENSYSML_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`);
+}
+
+function storeStage1(cacheDir: string, key: string, run: Stage1Run): void {
+    mkdirSync(cacheDir, { recursive: true });
+    // Tool output, never authored content: the directory ignores
+    // itself, so no project has to know to add it to its .gitignore.
+    const ignore = join(cacheDir, '.gitignore');
+    if (!existsSync(ignore)) writeFileSync(ignore, '*\n');
+    // The handoff an earlier version stored whole, which nothing reads now.
+    rmSync(join(cacheDir, `${OPENSYSML_PROVIDER_ID}.json`), { force: true });
+    rmSync(join(cacheDir, KEY), { force: true });
+    if (run.content !== undefined) writeFileSync(join(cacheDir, CONTENT), run.content);
+    else rmSync(join(cacheDir, CONTENT), { force: true });
+    writeFileSync(join(cacheDir, STORED), JSON.stringify(run.stored));
+    // Written last: a key on disk means everything it keys was written.
+    writeFileSync(join(cacheDir, KEY), key);
+}
+
+/** The stage 1 a compile stored under key, rebuilt; undefined when anything it needs is missing. */
+function readStoredStage1(cacheDir: string, key: string, options: OpenSysMLHandoffOptions): (Stage1Output & { diagnostics: Diagnostic[] }) | undefined {
+    const keyFile = join(cacheDir, KEY);
+    if (!existsSync(keyFile) || readFileSync(keyFile, 'utf8') !== key || !existsSync(join(cacheDir, STORED))) return undefined;
+    const stored = JSON.parse(readFileSync(join(cacheDir, STORED), 'utf8')) as StoredStage1;
+    if (!stored.clean) {
+        return { format: STAGE1_FORMAT, provider: OPENSYSML_PROVIDER_ID, providerVersion: stored.providerVersion, clean: false, diagnostics: stored.diagnostics };
+    }
+    if (!existsSync(join(cacheDir, CONTENT))) return undefined;
+    let library: Stage1Output | undefined;
+    if (stored.converted === 'project') {
+        library = stored.libraryKey ? libraryHandoffs.get(stored.libraryKey) : undefined;
+        const file = stored.libraryKey ? libraryFileOf(cacheDir, stored.libraryKey) : undefined;
+        if (!library && file && existsSync(file)) library = JSON.parse(readFileSync(file, 'utf8')) as Stage1Output;
+        if (!library) return undefined;
+        libraryHandoffs.set(stored.libraryKey!, library);
+    }
+    const elements = JSON.parse(readFileSync(join(cacheDir, CONTENT), 'utf8')) as ApiElement[];
+    const converted = openSysMLHandoff(elements, { ...options, providerVersion: stored.providerVersion });
+    return { ...(library ? overLibrary(library, converted) : converted), diagnostics: stored.diagnostics };
+}
+
+/** The project's handoff over the libraries': their documents and indexes together. */
+function overLibrary(library: Stage1Output, project: Stage1Output): Stage1Output {
+    return {
+        ...project,
+        documents: [...(library.documents ?? []), ...(project.documents ?? [])],
+        index: { ...library.index, ...project.index },
+    };
 }
 
 /** The capability that limits a conversion to named documents. */
@@ -362,7 +441,7 @@ export async function shipOpenSysMLLibrary(config: MEMOConfig, libraryDirs: read
 async function runStage1(
     config: MEMOConfig, projectDir: string, libraryDirs: readonly string[], documents: readonly string[],
     libraryFiles: readonly string[] = [], cacheDir?: string,
-): Promise<Stage1Output & { diagnostics: Diagnostic[] }> {
+): Promise<Stage1Run> {
     // The session's service: a rebuild in `memo dev` does not start another,
     // and the service's parse cache serves the documents that did not change.
     const connection = await sharedOpenSysMLConnection(config);
@@ -375,14 +454,14 @@ async function runStage1(
         if (parsed.error) {
             diagnostics.push({ domain: 'sysml', provider: OPENSYSML_PROVIDER_ID, providerVersion: version, severity: 'error', message: parsed.error });
         }
-        const failed = (): Stage1Output & { diagnostics: Diagnostic[] } =>
-            ({ format: STAGE1_FORMAT, provider: OPENSYSML_PROVIDER_ID, providerVersion: version, clean: false, diagnostics });
+        const failed = (): Stage1Run => ({
+            handoff: { format: STAGE1_FORMAT, provider: OPENSYSML_PROVIDER_ID, providerVersion: version, clean: false, diagnostics },
+            stored: { providerVersion: version, clean: false, diagnostics },
+        });
         if (diagnostics.some(d => d.severity === 'error')) return failed();
-        const handoffOptions = {
-            projectDir, libraryDirs, providerVersion: version,
-            source: (path: string) => (existsSync(path) ? readFileSync(path) : undefined),
-            ...(documents.length === 1 ? { soleDocument: documents[0] } : {}),
-        };
+        const handoffOptions = { ...openSysMLHandoffOptions(projectDir, libraryDirs, documents), providerVersion: version };
+        // The conversion's text as the service wrote it, kept for the stage 1 store.
+        let content: string | undefined;
         const convert = async (named?: string[]): Promise<ApiElement[] | undefined> => {
             const converted = await connection.rpc.convert({
                 source: { case: 'modelHash', value: parsed.modelHash }, toFormat: 'api-json',
@@ -396,12 +475,18 @@ async function runStage1(
                 });
                 return undefined;
             }
+            content = converted.content;
             return JSON.parse(converted.content) as ApiElement[];
         };
 
         if (!connection.info?.has?.(CONVERT_DOCUMENTS) || libraryFiles.length === 0) {
             const elements = await convert();
-            return elements ? { ...openSysMLHandoff(elements, handoffOptions), diagnostics } : failed();
+            if (!elements) return failed();
+            return {
+                handoff: { ...openSysMLHandoff(elements, handoffOptions), diagnostics },
+                stored: { providerVersion: version, clean: true, diagnostics, converted: 'whole' },
+                content,
+            };
         }
 
         // The libraries are converted once per library content; each compile
@@ -409,7 +494,7 @@ async function runStage1(
         // reference keep the ids those were written under.
         const libraryKey = libraryKeyOf(config, libraryFiles);
         let library = libraryHandoffs.get(libraryKey);
-        const stored = cacheDir ? join(cacheDir, `${OPENSYSML_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`) : undefined;
+        const stored = cacheDir ? libraryFileOf(cacheDir, libraryKey) : undefined;
         if (!library && stored && existsSync(stored)) library = JSON.parse(readFileSync(stored, 'utf8')) as Stage1Output;
         if (!library) {
             // The package that carries the libraries may carry their export.
@@ -431,14 +516,14 @@ async function runStage1(
         const libraryPaths = new Set(libraryFiles);
         // An empty list would write every document: a project with none of its own converts nothing.
         const own = documents.filter(file => !libraryPaths.has(file));
+        content = '[]';
         const projectElements = own.length > 0 ? await convert(own) : [];
         if (!projectElements) return failed();
         const project = openSysMLHandoff(projectElements, handoffOptions);
         return {
-            ...project,
-            documents: [...(library.documents ?? []), ...(project.documents ?? [])],
-            index: { ...library.index, ...project.index },
-            diagnostics,
+            handoff: { ...overLibrary(library, project), diagnostics },
+            stored: { providerVersion: version, clean: true, diagnostics, converted: 'project', libraryKey },
+            content,
         };
     } catch (error) {
         // A service that failed mid-call is not kept for the next one.
