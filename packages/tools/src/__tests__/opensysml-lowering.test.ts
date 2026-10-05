@@ -93,3 +93,34 @@ describe('the OpenSysML stage 1 handoff', () => {
         expect(handoff).toMatchObject({ format: 'memo-stage1/1', provider: 'opensysml', providerVersion: 'test', clean: true });
     });
 });
+
+describe('the OpenSysML handoff of a model of one document', () => {
+    // OpenSysML writes sysx:sourceDocument only for a model of several documents.
+    const one: ApiElement[] = [
+        { '@type': 'Namespace', '@id': 'P_ns', ownedRelationship: [{ '@id': 'P_om' }] },
+        { '@type': 'OwningMembership', '@id': 'P_om', memberElement: { '@id': 'P' }, ownedRelatedElement: [{ '@id': 'P' }], owningRelatedElement: { '@id': 'P_ns' } },
+        { '@type': 'Package', '@id': 'P', qualifiedName: 'P', 'sysx:sourceLine': 1, 'sysx:sourceColumn': 1, 'sysx:sourceEndLine': 1, 'sysx:sourceEndColumn': 26, owningRelationship: { '@id': 'P_om' } },
+        { '@type': 'PartDefinition', '@id': 'P__A', qualifiedName: 'P::A', owner: { '@id': 'P' } },
+        { '@type': 'DataType', '@id': 'real', qualifiedName: 'ScalarValues::Real', isLibraryElement: true },
+    ];
+    const text = 'package P { part def A; }\n';
+
+    it('puts every element in the document it was parsed from', () => {
+        const single = openSysMLHandoff(one, {
+            projectDir: project, libraryDirs: [], soleDocument: app,
+            source: path => (path === app ? Buffer.from(text) : undefined),
+        });
+        expect(single.documents?.map(d => d.file)).toEqual(['app.sysml']);
+        const ids = single.documents![0].elements.map(e => e['@id']);
+        expect(ids).toEqual(expect.arrayContaining(['P', 'P__A', 'P_om']));
+        // The model's root namespace is replaced by the document's own, as for several documents.
+        expect(ids).not.toContain('P_ns');
+        expect(single.index?.P).toMatchObject({ file: 'app.sysml', role: 'project', startByte: 0, endByte: 25 });
+        expect(single.index?.real).toMatchObject({ role: 'standard' });
+    });
+
+    it('places nothing without it', () => {
+        const unnamed = openSysMLHandoff(one, { projectDir: project, libraryDirs: [], source: () => undefined });
+        expect(unnamed.documents).toEqual([]);
+    });
+});
