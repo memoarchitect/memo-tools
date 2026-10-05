@@ -8,6 +8,7 @@
 // (plans/memo-incremental-stage1.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { openSysMLFlags, openSysMLUnderTest } from './helpers/compile-source.js';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
@@ -21,12 +22,11 @@ import type { CompileModelOptions } from '../toolchain/registry.js';
 import { connectOpenSysML } from '../toolchain/providers/opensysml.js';
 import { compileWithOpenSysML, openSysMLHandoff } from '../toolchain/providers/opensysml-lowering.js';
 
-const binary = process.env.OPENSYSML_BINARY;
-const client = process.env.MEMO_OPENSYSML_CLIENT;
+const opensysml = openSysMLUnderTest;
 const example = resolve(__dirname, `../../../../../memo/examples/${process.env.MEMO_INCREMENTAL_EXAMPLE ?? 'temperature-alarm'}`);
 const FILE = process.env.MEMO_INCREMENTAL_FILE ?? 'model/catalog/temperature_alarm.sysml';
 
-describe.runIf(Boolean(binary && client) && existsSync(example))('OpenSysML stage 1, converting the project only', () => {
+describe.runIf(Boolean(opensysml) && existsSync(example))('OpenSysML stage 1, converting the project only', () => {
     let root: string;
     let options: CompileModelOptions;
     beforeAll(() => {
@@ -34,7 +34,7 @@ describe.runIf(Boolean(binary && client) && existsSync(example))('OpenSysML stag
         cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
         const sources = discoverProjectSources(root);
         options = {
-            config: { projectName: 'x', toolchain: { compiler: 'opensysml', opensysml: { binary, client } } } as unknown as CompileModelOptions['config'],
+            config: { projectName: 'x', toolchain: { compiler: 'opensysml', opensysml } } as unknown as CompileModelOptions['config'],
             projectDir: root,
             libraryDirs: [...new Set(sources.libraryRoots.map(r => r.sysmlDir))],
             projectFiles: new Set(sources.projectFiles.map(file => relative(root, file))),

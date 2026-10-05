@@ -4,13 +4,14 @@
 // the rule expression; a preview says what the rule would flag; a write goes
 // through the compiler and refuses a file that changed. The conditions always
 // run; the service runs against a real compile when a compiler is configured
-// (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY` with `MEMO_OPENSYSML_CLIENT`).
+// (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY`, and `MEMO_OPENSYSML_CLIENT` only to override the pinned client).
 // (plans/memo-rules-domain-trace-and-editor.md)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { cpSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { openSysMLFlags, openSysMLUnderTest } from './helpers/compile-source.js';
 import { describe, expect, it } from 'vitest';
 import { discoverProjectSources } from '../model/native-project.js';
 import { compileResolvedProject } from '../toolchain/operations.js';
@@ -38,8 +39,7 @@ describe('conditionExpression', () => {
 
 const example = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
 const python = process.env.MEMO_SYSIDE_PYTHON;
-const binary = process.env.OPENSYSML_BINARY;
-const client = process.env.MEMO_OPENSYSML_CLIENT;
+const opensysml = openSysMLUnderTest;
 const FILE = 'model/catalog/temperature_alarm.sysml';
 
 function service(name: string, toolchain: Record<string, unknown>): void {
@@ -97,4 +97,4 @@ function service(name: string, toolchain: Record<string, unknown>): void {
 }
 
 if (python && existsSync(example)) service('SysIDE', { compiler: 'syside', syside: { python } });
-if (binary && client && existsSync(example)) service('OpenSysML', { compiler: 'opensysml', opensysml: { binary, client } });
+if (opensysml && existsSync(example)) service('OpenSysML', { compiler: 'opensysml', opensysml });

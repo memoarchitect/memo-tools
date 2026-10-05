@@ -4,9 +4,10 @@
 // without units, so a rule over them runs on nothing there. This puts one of
 // each, flawed and sound, in a copy of temperature-alarm and reads what
 // `memo validate` reports. With a compiler configured (`MEMO_SYSIDE_PYTHON`;
-// `OPENSYSML_BINARY` with `MEMO_OPENSYSML_CLIENT`).
+// `OPENSYSML_BINARY`, and `MEMO_OPENSYSML_CLIENT` only to override the pinned client).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { openSysMLFlags, openSysMLUnderTest } from './helpers/compile-source.js';
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -16,8 +17,7 @@ import { describe, expect, it } from 'vitest';
 const example = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
 const python = process.env.MEMO_SYSIDE_PYTHON;
-const binary = process.env.OPENSYSML_BINARY;
-const client = process.env.MEMO_OPENSYSML_CLIENT;
+const opensysml = openSysMLUnderTest;
 
 const MODEL = `package org_lifecycle {
     private import ScalarValues::*;
@@ -86,6 +86,6 @@ function clauseRules(name: string, flags: string[]): void {
 }
 
 if (python && existsSync(example)) clauseRules('SysIDE', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`]);
-if (binary && client && existsSync(example)) {
-    clauseRules('OpenSysML', ['--toolchain.compiler=opensysml', `--toolchain.opensysml.binary=${binary}`, `--toolchain.opensysml.client=${client}`]);
+if (opensysml && existsSync(example)) {
+    clauseRules('OpenSysML', openSysMLFlags(opensysml));
 }

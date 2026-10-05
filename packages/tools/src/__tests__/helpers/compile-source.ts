@@ -19,10 +19,28 @@ import type { MemoModel } from '../../model/semantic.js';
 import type { ApiModel } from '../../stage2/api-model.js';
 import { compileModelWithSelected } from '../../toolchain/operations.js';
 
+/**
+ * OpenSysML as this run configures it: the `sysml-grpc` to start, and a Node
+ * client module only when one overrides the pinned `@openmbee/opensysml`
+ * dependency (MEMO_OPENSYSML_CLIENT). Undefined without a service binary.
+ */
+export const openSysMLUnderTest: { binary: string; client?: string } | undefined = process.env.OPENSYSML_BINARY
+    ? { binary: process.env.OPENSYSML_BINARY, ...(process.env.MEMO_OPENSYSML_CLIENT ? { client: process.env.MEMO_OPENSYSML_CLIENT } : {}) }
+    : undefined;
+
+/** The `memo` flags that select OpenSysML as this run configures it. */
+export function openSysMLFlags(opensysml: { binary: string; client?: string }): string[] {
+    return [
+        '--toolchain.compiler=opensysml',
+        `--toolchain.opensysml.binary=${opensysml.binary}`,
+        ...(opensysml.client ? [`--toolchain.opensysml.client=${opensysml.client}`] : []),
+    ];
+}
+
 /** Whether a stage 1 compiler is configured for this run of the suite. */
 export const compilerConfigured = process.env.MEMO_TOOLCHAIN_COMPILER === 'syside'
     ? Boolean(process.env.MEMO_SYSIDE_PYTHON)
-    : Boolean(process.env.OPENSYSML_BINARY && process.env.MEMO_OPENSYSML_CLIENT);
+    : Boolean(openSysMLUnderTest);
 
 /** One source document: its text, and the project-relative file it is written to. */
 export interface SourceDocument {

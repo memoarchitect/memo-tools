@@ -1,11 +1,12 @@
 // ─── Writing a rule of one's own ─────────────────────────────────────────────
 //
 // The checks, the rendering and the clause lookup always run. With a compiler
-// configured (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY` with
-// `MEMO_OPENSYSML_CLIENT`) a rule is written into a copy of temperature-alarm
+// configured (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY`, and `MEMO_OPENSYSML_CLIENT`
+// only to override the pinned client) a rule is written into a copy of temperature-alarm
 // through the CLI and read back (plans/memo-rules-domain-trace-and-editor.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { openSysMLFlags, openSysMLUnderTest } from './helpers/compile-source.js';
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -91,8 +92,7 @@ describe('renderRule and insertRule', () => {
 const example = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
 const python = process.env.MEMO_SYSIDE_PYTHON;
-const binary = process.env.OPENSYSML_BINARY;
-const client = process.env.MEMO_OPENSYSML_CLIENT;
+const opensysml = openSysMLUnderTest;
 
 function integration(name: string, flags: string[]): void {
     describe(`a rule written through ${name}`, () => {
@@ -133,6 +133,6 @@ function integration(name: string, flags: string[]): void {
 }
 
 if (python && existsSync(example)) integration('SysIDE', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`]);
-if (binary && client && existsSync(example)) {
-    integration('OpenSysML', ['--toolchain.compiler=opensysml', `--toolchain.opensysml.binary=${binary}`, `--toolchain.opensysml.client=${client}`]);
+if (opensysml && existsSync(example)) {
+    integration('OpenSysML', openSysMLFlags(opensysml));
 }
