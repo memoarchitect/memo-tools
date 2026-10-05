@@ -9,13 +9,11 @@
 // — the file itself, everything it imports, and the files owning the elements
 // it displays.
 //
-// The graph is derived from the same PackageRegistry the builder resolves
-// references with, so a file is a dependency here exactly when it can
+// The graph is derived from the packages the compiler's handoff declares and
+// the packages each imports, so a file is a dependency here exactly when it can
 // contribute a resolvable name there.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { PackageRegistry } from './package-registry.js';
-import type { ParsedDocument } from './parser-utils.js';
 import type { DiagramDTO, MemoElement, SourceGraphDTO } from './semantic.js';
 
 /** A file and the files it can draw names from. */
@@ -24,26 +22,6 @@ export interface SourceGraph {
     dependsOn: Map<string, Set<string>>;
     /** file → files that depend on it, transitively. */
     dependents: Map<string, Set<string>>;
-}
-
-/**
- * Build the file-level dependency graph from parsed documents.
- *
- * Import paths name packages, not files, so resolution goes
- * package → declaring file. A package declared across several files
- * contributes all of them: any one can supply the imported name.
- */
-export function buildSourceGraph(documents: ParsedDocument[]): SourceGraph {
-    const registry = new PackageRegistry();
-    registry.buildFromDocuments(documents);
-    return buildSourceGraphFromPackages(
-        [...registry.getPackages().values()].map(entry => ({
-            qualifiedName: entry.qualifiedName,
-            files: [entry.file],
-            imports: entry.imports.map(imported => imported.packageName),
-        })),
-        documents.map(document => document.filePath),
-    );
 }
 
 /** A package as the source graph needs it: the files declaring it and what it imports. */
@@ -55,8 +33,7 @@ export interface SourceGraphPackage {
 }
 
 /**
- * The graph over packages read from any source — MEMO's parse, or a stage 1
- * handoff — with `files` the nodes a file declaring no package still is.
+ * The graph over packages read from a stage 1 handoff, with `files` the nodes a file declaring no package still is.
  */
 export function buildSourceGraphFromPackages(
     packages: readonly SourceGraphPackage[],

@@ -367,8 +367,10 @@ function readViewpoint(authored: MemoElement | undefined, ref: string, model: Me
     const parent = owner?.construct === 'viewpoint' ? owner : undefined;
     return {
         id: viewpointId(authored, ref),
+        // The label a viewpoint states is `@MemoIdentity`'s, which is the element's name.
         label: authored?.attributes['title']
             || authored?.attributes['name']
+            || authored?.attributes['label']
             || `${viewpointLabel(ref)} Viewpoint`,
         group: authored?.attributes['group'],
         // The viewpoint's own `includedLayers`, as authored. Distinct from
@@ -395,7 +397,11 @@ function resolveViewpoints(
     const raw = view.attributes['viewpointDefinition'] || view.attributes['viewpoint'];
     if (!raw) return [];
 
-    return splitList(raw).map(ref => readViewpoint(model.elements.lookup(ref), ref, model));
+    // A viewpoint nested in another is bound by its path (`vpSoS.vpPump`): the
+    // compiler writes a chain, and the element is the one its last step names.
+    const resolve = (ref: string) =>
+        model.elements.lookup(ref) ?? (ref.includes('.') ? model.elements.lookup(ref.slice(ref.lastIndexOf('.') + 1)) : undefined);
+    return splitList(raw).map(ref => readViewpoint(resolve(ref), ref, model));
 }
 
 /** Scenario links are authored on the view; they are never inferred from content. */

@@ -18,12 +18,11 @@
 
 import chalk from 'chalk';
 import {
-    parseFiles, buildMemoModel, loadOntologyRegistries, loadProjectSettings, findProjectRoot,
+    loadProjectSettings, findProjectRoot,
     loadStandardsLibrary, computeStandardsReport, filterStandardsReport,
     readDeclaredRegimes, collectDocumentClauses,
     type StandardsReport, type StandardRow, type BuilderRegistries, type MemoModel,
 } from '@memoarchitect/tools';
-import { findSysmlFiles } from '../model/sysml-files.js';
 import { loadProjectModel as loadSelectedModel } from '../toolchain/project-model.js';
 import { loadDhfDocs } from '../server/dhf-doc-store.js';
 import { loadContext as loadRulesContext } from './rules.js';
@@ -52,32 +51,13 @@ async function loadProjectModel(cwd: string): Promise<{
     const root = projectRoot ?? cwd;
     const config = loadProjectSettings(root);
     // A project is loaded as every command loads it, from the selected
-    // compiler. A bare directory has no entrypoint to resolve, so it is
-    // scanned and parsed.
+    // compiler. A bare directory has no entrypoint to compile: there is no
+    // model then, and the report is the library alone.
     if (projectRoot) {
         const { model, registries } = await loadSelectedModel({ projectRoot, config });
         return { model, registries, projectRoot, native: true };
     }
-
-    let registries: BuilderRegistries | undefined;
-    let ontologyDirs: string[] = [];
-    try {
-        const loaded = await loadOntologyRegistries(root);
-        if (loaded.fileCount > 0) {
-            registries = loaded.registries;
-            ontologyDirs = (loaded.resolution?.selectedRoots ?? []).map(r => r.sysmlDir);
-        }
-    } catch {
-        // A report without resolved kinds still has a library and a set of
-        // ConformsTo edges; the evidence closure degrades, which is stated.
-    }
-
-    const files = findSysmlFiles(root).filter(f => !ontologyDirs.some(dir => f.startsWith(dir)));
-    if (files.length === 0) return { model: undefined, registries, projectRoot: root, native: !!projectRoot };
-
-    const { documents, errors } = await parseFiles(files, root + '/');
-    const model = buildMemoModel(documents, config, errors, registries);
-    return { model, registries, projectRoot: root, native: !!projectRoot };
+    return { model: undefined, registries: undefined, projectRoot: root, native: false };
 }
 
 // ─── The report, for anything that needs it ───────────────────────────────────

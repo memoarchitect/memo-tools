@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
-import { findProjectRoot } from '../model/native-project.js';
-import { buildMemoModel } from '../model/builder.js';
-import { loadProjectSettings } from '../model/config-loader.js';
+import { relative } from 'node:path';
+import { findSysmlFiles } from '../model/sysml-files.js';
 import { checkSelectorVocabulary } from '../model/selector-vocabulary.js';
+import { compileModelWithSelected } from '../toolchain/operations.js';
+import { compiledExample, compilerConfigured, examplesPresent } from './helpers/compile-source.js';
 
 // `memo validate` checks a PROJECT's selectors, and deliberately builds only
 // project source: a library that will not parse is a different report. That
@@ -17,29 +17,29 @@ import { checkSelectorVocabulary } from '../model/selector-vocabulary.js';
 //
 // This is that check, run over the resolved ontology itself.
 
-const GPCA_PROJECT = resolve(__dirname, '../../../../../memo/examples/gpca-pump');
+const MEMO_ROOT = resolve(__dirname, '../../../../../memo');
 
-describe('the ontology\'s own selectors name declared vocabulary', () => {
+describe.runIf(compilerConfigured && examplesPresent)('the ontology\'s own selectors name declared vocabulary', () => {
     it('no view, rule or legend names a kind, relation or attribute that is not there', async () => {
-        if (!existsSync(GPCA_PROJECT)) {
-            // The sibling ontology checkout is not present in every consumer
-            // install; skipping is correct there, failing would be noise.
-            return;
-        }
-        const root = findProjectRoot(GPCA_PROJECT);
-        expect(root, 'the gpca-pump example should resolve as a project').toBeTruthy();
-        const loaded = await loadOntologyRegistries(root!);
-        // `parsedDocuments` is the LIBRARY side of the resolution — the
-        // ontology and extension packages themselves, which is exactly what
-        // `memo validate` subtracts before it builds the project's model.
-        expect(loaded.parsedDocuments.length).toBeGreaterThan(0);
-        const model = buildMemoModel(
-            loaded.parsedDocuments, loadProjectSettings(root!), [],
-            { ...loaded.registries, provenance: loaded.provenance });
+        // The ontology and its extensions, compiled as if they were a project's
+        // own source: the library side of a resolution is what `memo validate`
+        // subtracts before it builds the project's model, so this builds it.
+        const example = await compiledExample('gpca-pump');
+        const files = [...findSysmlFiles(resolve(MEMO_ROOT, 'src')), ...findSysmlFiles(resolve(MEMO_ROOT, 'extensions'))];
+        expect(files.length).toBeGreaterThan(0);
+        const compiled = await compileModelWithSelected({
+            config: { projectName: 'ontology', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never,
+            projectDir: MEMO_ROOT,
+            libraryDirs: [],
+            projectFiles: new Set(files.map(file => relative(MEMO_ROOT, file))),
+            registries: example.registries,
+            provenance: false,
+        });
+        expect(compiled.accepted, JSON.stringify(compiled.diagnostics.slice(0, 3))).toBe(true);
 
-        const diagnostics = checkSelectorVocabulary(model, loaded.registries);
+        const diagnostics = checkSelectorVocabulary(compiled.model!, example.registries ?? {});
 
         const detail = diagnostics.map(d => `\n  ${d.file}\n    ${d.message}`).join('');
         expect(diagnostics, `Selectors naming undeclared vocabulary:${detail}\n`).toEqual([]);
-    });
+    }, 300_000);
 });

@@ -155,12 +155,11 @@ export async function checkCommand(
     }
     log(chalk.gray(`Files: ${sysmlFiles.length} .sysml files\n`));
 
-    // From the selected compiler, as every command loads it. MEMO's own
-    // compiler reports its parse errors here; an external one has already
+    // From the selected compiler, as every command loads it; it has already
     // rejected a project that is not valid SysML.
-    const { model, parseErrors } = await loadProjectModel({ projectRoot: findProjectRoot(cwd) ?? cwd, config });
+    const { model } = await loadProjectModel({ projectRoot: findProjectRoot(cwd) ?? cwd, config });
     const findings = [
-        ...checkSysmlCompat(model, parseErrors),
+        ...checkSysmlCompat(model, []),
         ...checkExplicitMultiplicity(sysmlFiles),
     ];
 
@@ -176,7 +175,7 @@ export async function checkCommand(
         summary: {
             elements: model.elements.size,
             relationships: model.relationships.length,
-            parseErrors: parseErrors.length,
+            parseErrors: 0,
             errors: errors.length,
             warnings: warnings.length,
             infos: infos.length,

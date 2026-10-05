@@ -10,14 +10,10 @@
 import { resolve } from 'node:path';
 import chalk from 'chalk';
 import {
-    findConfigFile, findProjectRoot, loadProjectSettings, parseFiles, RuleRegistry,
-    collectNativeConstraints, loadMethodologyDescriptor, resolveEffectiveRules,
-    ruleCandidatesFromConstraints, buildEffectiveScope, activeRuleCandidates, BUILTIN_RULES,
-    evaluateConstraintSubjects, validateArchitecture,
+    findConfigFile, findProjectRoot, loadProjectSettings, RuleRegistry,
+    loadMethodologyDescriptor, BUILTIN_RULES, evaluateConstraintSubjects, validateArchitecture,
 } from '@memoarchitect/tools';
-// parseFiles still needed by rulesCheckCommand for project SysML files
-import type { ParsedDocument, EffectiveRule, RuleResolutionDiagnostic } from '@memoarchitect/tools';
-import { loadAndResolveConfig } from '../server/config-resolver.js';
+import type { EffectiveRule, RuleResolutionDiagnostic } from '@memoarchitect/tools';
 import { loadProjectModel, projectConstraints } from '../toolchain/project-model.js';
 import { handoffFileOf } from '../stage2/handoff-files.js';
 import { clauseLabel, readClauseFacts } from '../validator/rule-clauses.js';
@@ -70,16 +66,14 @@ export async function loadContext(projectDir?: string) {
     const filePackages: ReadonlyMap<string, string> = project.resolution?.filePackages ?? new Map<string, string>();
     const constraints = projectConstraints(project);
     // The rule catalogue: the rule parts the project's closure declares, from
-    // the handoff when a compiler built the model, else from MEMO's parse.
+    // the compiler's handoff.
     const ruleRegistry = new RuleRegistry();
-    if (project.api) {
+    {
         const loads = project.resolution ? resolutionLoads(project.resolution) : () => true;
         const fileOf = handoffFileOf(project.api, project.resolution?.filePackages);
         const catalogue = new RuleRegistry();
         catalogue.populateFromApi(project.api, fileOf);
         for (const entry of catalogue.entries()) if (loads(entry.file)) ruleRegistry.register(entry);
-    } else {
-        ruleRegistry.populateFromDocuments(project.ontologyDocuments);
     }
 
     // The EFFECTIVE rule set, resolved exactly as `memo validate` and the dev

@@ -1,11 +1,10 @@
 // ─── Outlines of a project, from whichever compiler is selected ─────────────
 //
 // A write resolves its identity against the outline of the file as it is on
-// disk now (plans/memo-write-back-from-handoff.md). Under MEMO's compiler that
-// is a parse of the text. Under a compiler that builds the model from its
-// handoff it is the last handoff, when the file is unchanged since that
-// compile, and otherwise a fresh compile: an outline read from a handoff of
-// other bytes would put every range in the wrong place.
+// disk now (plans/memo-write-back-from-handoff.md). That is the last handoff,
+// when the file is unchanged since that compile, and otherwise a fresh compile:
+// an outline read from a handoff of other bytes would put every range in the
+// wrong place.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
@@ -14,17 +13,14 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type { MEMOConfig } from '../model/config.js';
 import type { IrIdentityIndex } from '../model/ir-identity.js';
-import { parseText } from '../model/parser-utils.js';
-import type { ParsedDocument } from '../model/parser-utils.js';
 import type { ApiModel } from '../stage2/api-model.js';
 import { loadProjectModel, Stage1RejectedError, type ProjectModel } from '../toolchain/project-model.js';
-import { selectedCompilerBuildsModel } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { OPENSYSML_PROVIDER_ID } from '../toolchain/providers/opensysml.js';
 import { checkWithOpenSysML } from '../toolchain/providers/opensysml-check.js';
 import { outlineIdentities, outlineIdentityTable } from './outline-identity.js';
-import { emptyOutline, outlineFromHandoff, outlineFromParse, type SourceOutline } from './source-outline.js';
+import { emptyOutline, outlineFromHandoff, type SourceOutline } from './source-outline.js';
 
 /** The outline of one project file, given its current text. */
 export interface OutlineSource {
@@ -38,29 +34,17 @@ export interface OutlineSource {
      * Compile the project with `text` in place of the file, before it reaches
      * disk. Rejects with the compiler's diagnostics when it does not accept
      * the result: an edit that would make the project invalid SysML is not
-     * written. Gives the outline of the text when the compile states one;
+     * written. `also` is every other file the same edit changes, project-relative,
+     * since an edit that spans files is valid only as a whole: one file alone can
+     * leave a reference to what another file's edit removed. Gives the outline of
+     * the text when the compile states one;
      * OpenSysML's verdict on a content document does not, since stating it
      * would cost a conversion of the whole model.
      */
-    verify(file: string, text: string): Promise<SourceOutline | undefined>;
+    verify(file: string, text: string, also?: ReadonlyMap<string, string>): Promise<SourceOutline | undefined>;
 }
 
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
-
-/** Outlines from MEMO's parse of the current text. */
-export const parseOutlineSource: OutlineSource = {
-    async outline(file, text) {
-        if (!text.trim()) return emptyOutline(file, text);
-        const { document, errors } = await parseText(text);
-        if (errors.length > 0) throw new Error(`${file} does not parse (${errors[0].message})`);
-        return outlineFromParse(document.parseResult.value as never, file, text);
-    },
-    async verify(file, text) {
-        const { document, errors } = await parseText(text);
-        if (errors.length > 0) throw new Error(`the updated ${file} did not parse (${errors[0].message})`);
-        return outlineFromParse(document.parseResult.value as never, file, text);
-    },
-};
 
 /**
  * Outlines from a handoff, recompiling when a file changed since it was
@@ -89,7 +73,7 @@ export function handoffOutlineSource(options: {
             }
             return outlineFromHandoff(api, resolve(options.projectRoot, file), file, text);
         },
-        verify: (file, text) => verifyWithSelected(options.projectRoot, options.config, file, text),
+        verify: (file, text, also) => verifyWithSelected(options.projectRoot, options.config, file, text, also),
     };
 }
 
@@ -98,16 +82,22 @@ export function handoffOutlineSource(options: {
  * text as a content document, any other compiler a scratch copy of the
  * project.
  */
-function verifyWithSelected(projectRoot: string, config: MEMOConfig, file: string, text: string): Promise<SourceOutline | undefined> {
+function verifyWithSelected(
+    projectRoot: string, config: MEMOConfig, file: string, text: string, also?: ReadonlyMap<string, string>,
+): Promise<SourceOutline | undefined> {
     return resolveToolchain(config, defaultRegistry).lowering === OPENSYSML_PROVIDER_ID
-        ? verifyAsContent(projectRoot, config, file, text)
-        : verifyInScratchCopy(projectRoot, config, file, text);
+        ? verifyAsContent(projectRoot, config, file, text, also)
+        : verifyInScratchCopy(projectRoot, config, file, text, also);
 }
 
 /** OpenSysML's verdict on the project with the file's text replaced, read without writing it. */
-async function verifyAsContent(projectRoot: string, config: MEMOConfig, file: string, text: string): Promise<undefined> {
+async function verifyAsContent(
+    projectRoot: string, config: MEMOConfig, file: string, text: string, also?: ReadonlyMap<string, string>,
+): Promise<undefined> {
     const absolute = resolve(projectRoot, file);
-    const errors = await checkWithOpenSysML(config, projectRoot, new Map([[absolute, text]]));
+    const replaced = new Map([...(also ?? [])].map(([path, content]) => [resolve(projectRoot, path), content] as const));
+    replaced.set(absolute, text);
+    const errors = await checkWithOpenSysML(config, projectRoot, replaced);
     if (errors.length > 0) {
         const where = (d: (typeof errors)[number]) => `${d.file ? relativeTo(projectRoot, resolve(projectRoot, d.file)) : file}:${d.range?.start.line ?? '?'}`;
         throw new Error(`opensysml rejects the updated ${file}: ${errors.slice(0, 3).map(d => `${where(d)} ${d.message}`).join('; ')}`);
@@ -124,7 +114,9 @@ const NOT_COPIED = new Set(['.memo', '.git', 'node_modules']);
  * project's own file must not change until the edit is known to be valid.
  * The libraries are not copied; the copy resolves them as the project does.
  */
-async function verifyInScratchCopy(projectRoot: string, config: MEMOConfig, file: string, text: string): Promise<SourceOutline> {
+async function verifyInScratchCopy(
+    projectRoot: string, config: MEMOConfig, file: string, text: string, also?: ReadonlyMap<string, string>,
+): Promise<SourceOutline> {
     const scratch = mkdtempSync(join(tmpdir(), 'memo-verify-'));
     try {
         cpSync(projectRoot, scratch, {
@@ -133,9 +125,12 @@ async function verifyInScratchCopy(projectRoot: string, config: MEMOConfig, file
         });
         const modules = join(projectRoot, 'node_modules');
         if (existsSync(modules)) symlinkSync(modules, join(scratch, 'node_modules'), 'dir');
+        for (const [path, content] of [...(also ?? []), [file, text] as const]) {
+            const target = join(scratch, path);
+            mkdirSync(dirname(target), { recursive: true });
+            writeFileSync(target, content, 'utf8');
+        }
         const target = join(scratch, file);
-        mkdirSync(dirname(target), { recursive: true });
-        writeFileSync(target, text, 'utf8');
         let project: ProjectModel;
         try {
             project = await loadProjectModel({ projectRoot: scratch, config, cache: false });
@@ -156,11 +151,10 @@ async function verifyInScratchCopy(projectRoot: string, config: MEMOConfig, file
 
 /**
  * The outline source of the selected compiler, for a caller holding no loaded
- * project: a compiler that builds the model loads it on first use, reusing
- * `.memo/stage1/` when nothing changed.
+ * project: the project loads on first use, reusing `.memo/stage1/` when
+ * nothing changed.
  */
 export function selectedOutlineSource(projectRoot: string, config: MEMOConfig): OutlineSource {
-    if (!selectedCompilerBuildsModel(config)) return parseOutlineSource;
     let loaded: Promise<OutlineSource> | undefined;
     const source = () => (loaded ??= loadProjectModel({ projectRoot, config })
         .then(project => outlineSourceFor(projectRoot, config, project)));
@@ -176,22 +170,14 @@ export function selectedOutlineSource(projectRoot: string, config: MEMOConfig): 
 
 /** The outline source for a loaded project: its compiler's. */
 export function outlineSourceFor(projectRoot: string, config: MEMOConfig, project: ProjectModel): OutlineSource {
-    return project.api
-        ? handoffOutlineSource({ projectRoot, config, api: project.api, texts: projectTexts(projectRoot, project) })
-        : parseOutlineSource;
+    return handoffOutlineSource({ projectRoot, config, api: project.api, texts: projectTexts(projectRoot, project) });
 }
 
 /** The project's own files and their text, by project-relative path. */
 function projectTexts(projectRoot: string, project: ProjectModel): Map<string, string> {
     const texts = new Map<string, string>();
-    if (project.api) {
-        for (const file of projectFilesOf(project.api)) {
-            if (existsSync(file)) texts.set(relative(projectRoot, file), readFileSync(file, 'utf8'));
-        }
-    } else {
-        for (const document of project.documents) {
-            texts.set(relativeTo(projectRoot, document.filePath), document.document.textDocument.getText());
-        }
+    for (const file of projectFilesOf(project.api)) {
+        if (existsSync(file)) texts.set(relative(projectRoot, file), readFileSync(file, 'utf8'));
     }
     return texts;
 }
@@ -212,7 +198,7 @@ const relativeTo = (projectRoot: string, file: string) =>
 
 /** The outlines of every project file of a loaded project. */
 export function projectOutlines(projectRoot: string, project: ProjectModel): SourceOutline[] {
-    return project.api ? outlinesFromHandoff(projectRoot, project.api) : outlinesFromDocuments(projectRoot, project.documents);
+    return outlinesFromHandoff(projectRoot, project.api);
 }
 
 /** The outlines of a handoff's project files, read against the files on disk. */
@@ -221,15 +207,6 @@ export function outlinesFromHandoff(projectRoot: string, api: ApiModel): SourceO
         const name = relativeTo(projectRoot, file);
         return outlineFromHandoff(api, file, name, readFileSync(file, 'utf8'));
     });
-}
-
-/** The outlines of documents MEMO parsed. */
-export function outlinesFromDocuments(projectRoot: string, documents: readonly ParsedDocument[]): SourceOutline[] {
-    return documents.map(document => outlineFromParse(
-        document.document.parseResult.value as never,
-        relativeTo(projectRoot, document.filePath),
-        document.document.textDocument.getText(),
-    ));
 }
 
 /**

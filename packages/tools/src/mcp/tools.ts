@@ -12,6 +12,7 @@ import { saveElementToFile } from '../server/persistor.js';
 import type { QueryContext } from '../dhf/query-engine.js';
 import type { OntologyView } from '../model/kind-registry.js';
 import type { MEMOConfig } from '../model/config.js';
+import { selectedOutlineSource } from '../authoring/outline-source.js';
 import { usageKeyword } from '../model/semantic.js';
 
 /** An MCP tool as advertised in `tools/list`. */
@@ -218,7 +219,7 @@ define({
         },
         required: ['id', 'name', 'kind'],
     },
-}, async (input, { ctx, ontology, projectRoot }) => {
+}, async (input, { ctx, config, ontology, projectRoot }) => {
     const id = String(input.id).trim();
     const kind = String(input.kind).trim();
     if (ctx.element(id)) throw new Error(`Element "${id}" already exists.`);
@@ -237,7 +238,7 @@ define({
         doc: input.doc ?? '',
         attributes: input.attributes ?? {},
         file: input.file,
-    });
+    }, undefined, selectedOutlineSource(projectRoot, config));
     if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
     return { created: id, file: result.filePath };
 }, true);

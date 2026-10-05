@@ -4623,13 +4623,6 @@
         "package": "memo_examples_gpca_pump_gpca_verification"
       },
       {
-        "id": "memo_examples_gpca_pump_methodology_gpca_profiles::gpcaMethodDefinition",
-        "kind": "MethodologyDefinition",
-        "construct": "part",
-        "layer": "methodology",
-        "package": "memo_examples_gpca_pump_methodology_gpca_profiles"
-      },
-      {
         "id": "memo_examples_gpca_pump_project::gpcaProjectBinding",
         "kind": "ProjectMethodBinding",
         "construct": "part",
@@ -9350,7 +9343,6 @@
       "MemoEvidence": 11,
       "MemoState": 9,
       "MemoUsabilityEngineeringView": 1,
-      "MethodologyDefinition": 1,
       "MinimalCutSet": 2,
       "ModeConfiguration": 5,
       "Need": 4,
@@ -9402,7 +9394,7 @@
       "human-factors": 4,
       "implementation": 27,
       "logical": 128,
-      "methodology": 2,
+      "methodology": 1,
       "operational": 44,
       "realization": 29,
       "requirements": 146,
@@ -9462,7 +9454,7 @@
   },
   "errors": [],
   "summary": {
-    "elements": 688,
+    "elements": 687,
     "completeness": 100
   }
 }

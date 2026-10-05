@@ -17,17 +17,13 @@ import { findConfigFile, loadProjectSettings } from '../model/config-loader.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import {
-    compareBnfBaseline,
     compareConformanceBaseline,
     compareDiffXmiBaseline,
     formatBaselineComparison,
-    formatBnfCoverageReport,
     formatConformanceReport,
     formatDiffXmiReport,
-    runBnfCoverage,
     runConformance,
     runDiffXmi,
-    type BnfCoverageReport,
     type ConformanceReport,
     type DiffXmiReport,
 } from '../conformance/index.js';
@@ -54,7 +50,7 @@ export interface ConformanceCliOptions extends Record<string, unknown> {
  * baseline in the same diff. Neither is published — `files` in package.json is
  * an allowlist and lists neither.
  */
-export function defaultBaselinePath(kind: 'run' | 'diff-xmi' | 'bnf'): string {
+export function defaultBaselinePath(kind: 'run' | 'diff-xmi'): string {
     return resolve(
         dirname(fileURLToPath(import.meta.url)),
         `../../../../corpus/baselines/${kind}.json`,
@@ -62,7 +58,7 @@ export function defaultBaselinePath(kind: 'run' | 'diff-xmi' | 'bnf'): string {
 }
 
 /** `--baseline` may carry a path or nothing at all; both mean "gate on it". */
-function baselinePath(options: ConformanceCliOptions, kind: 'run' | 'diff-xmi' | 'bnf'): string {
+function baselinePath(options: ConformanceCliOptions, kind: 'run' | 'diff-xmi'): string {
     return typeof options.baseline === 'string'
         ? resolve(options.baseline)
         : defaultBaselinePath(kind);
@@ -184,45 +180,6 @@ export async function conformanceDiffXmiCommand(
     if (options.baseline !== undefined || options.updateBaseline) {
         const path = baselinePath(options, 'diff-xmi');
         if (gate(report, path, options.updateBaseline === true, compareDiffXmiBaseline)) {
-            process.exitCode = 1;
-        }
-    }
-}
-
-// ─── memo conformance bnf ────────────────────────────────────────────────────
-//
-// Grammar coverage against the normative textual BNF (Track B B5). Reads two
-// files and one grammar; no toolchain, no corpus parse, so it is instant.
-
-export interface BnfCliOptions extends ConformanceCliOptions {
-    /** List the syntactic productions that have no rule. */
-    missing?: boolean;
-    /** Grammar to score; defaults to MEMO's own. */
-    grammar?: string;
-}
-
-export async function conformanceBnfCommand(
-    dir: string | undefined,
-    options: BnfCliOptions = {},
-): Promise<void> {
-    let report: BnfCoverageReport;
-    try {
-        report = runBnfCoverage({
-            corpusDir: options.corpus,
-            grammarPath: options.grammar ? resolve(options.grammar) : undefined,
-            memoVersion: memoVersion(),
-        });
-    } catch (error) {
-        console.error(chalk.red(`\n  ${error instanceof Error ? error.message : String(error)}\n`));
-        process.exitCode = 1;
-        return;
-    }
-
-    emit(formatBnfCoverageReport(report, { missing: options.missing }), report, options);
-
-    if (options.baseline !== undefined || options.updateBaseline) {
-        const path = baselinePath(options, 'bnf');
-        if (gate(report, path, options.updateBaseline === true, compareBnfBaseline)) {
             process.exitCode = 1;
         }
     }

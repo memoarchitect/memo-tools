@@ -40,17 +40,18 @@ function fakeTool(root: string, name: string, version: string): string {
 const registry = createDefaultRegistry();
 
 describe('memo toolchain probe', () => {
-    it('resolves every role the settings name and reports the in-process transport for a bundled provider', () => {
+    it('reports the in-process transport for the bundled packager, and leaves the roles it does not name unset', () => {
         const root = project();
         const probe = probeToolchain({
-            config: { projectName: 'p', toolchain: { compiler: 'internal', packager: 'internal' } }, projectDir: root, registry,
+            config: { projectName: 'p', toolchain: { packager: 'internal' } }, projectDir: root, registry,
         });
 
         expect(probe.roles.map(r => r.role)).toEqual(['validator', 'lowering', 'package']);
-        for (const role of probe.roles) {
-            expect(role.availability.available).toBe(true);
-            expect(role.source).not.toBe('unset');
-        }
+        const packager = probe.roles.find(r => r.role === 'package')!;
+        expect(packager.availability).toMatchObject({ available: true, transport: 'in-process' });
+        expect(packager.source).not.toBe('unset');
+        // MEMO has no compiler of its own, so nothing fills the compiler roles unnamed.
+        for (const role of probe.roles.filter(r => r.role !== 'package')) expect(role.source).toBe('unset');
     });
 
     it('reports a role the settings do not name as not configured, saying what to set', () => {

@@ -19,7 +19,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { CONTROL_KIND_METACLASS } from '../model/activity-notation.js';
-import { completeModel, type BuilderRegistries } from '../model/builder.js';
+import { completeModel, type BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
 import { toModelType } from '../model/naming.js';
 import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } from '../model/relationship-registry.js';

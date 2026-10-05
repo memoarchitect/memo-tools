@@ -31,7 +31,7 @@ import {
     StaleIrIdentityError,
     type IrIdentityIndex,
 } from '../model/ir-identity.js';
-import { parseOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
+import type { OutlineSource } from '../authoring/outline-source.js';
 import { resolveOutlineIdentity } from '../authoring/outline-identity.js';
 import { bodyMembers, type OutlineNode } from '../authoring/source-outline.js';
 import { insertIntoBody, locatePackages } from './package-source.js';
@@ -138,9 +138,9 @@ export const RENAME_IS_TEXT_ONLY =
 export async function saveElementToFile(
     cwd: string,
     element: ElementWriteRequest,
-    index?: IrIdentityIndex,
-    /** Outlines of the project's files, from the selected compiler. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    index: IrIdentityIndex | undefined,
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
 ): Promise<ElementWriteResult> {
     const relativePath = element.file || DEFAULT_ELEMENT_FILE;
     const filePath = resolve(cwd, relativePath);
@@ -253,8 +253,8 @@ export async function saveElementToFile(
  */
 export async function commitSource(
     absolutePath: string, relativePath: string, updated: string,
-    /** The selected compiler's outlines, which verify the text. MEMO's parse when absent. */
-    outlines: OutlineSource = parseOutlineSource,
+    /** The selected compiler's outlines, which verify the text. */
+    outlines: OutlineSource,
 ): Promise<{ success: boolean; error?: string }> {
     try {
         await outlines.verify(relativePath.replaceAll('\\', '/'), updated);

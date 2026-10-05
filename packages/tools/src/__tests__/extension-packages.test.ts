@@ -17,17 +17,16 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
-import { resolveNativeProject } from '../model/native-project.js';
+import { compiledExample, compilerConfigured } from './helpers/compile-source.js';
 import { resolveContentPackageRoot } from '../model/paths.js';
 
 const CONTENT_ROOT = resolveContentPackageRoot();
 const ROS_PROJECT = resolve(CONTENT_ROOT, 'examples/ros-mobile-robot');
 const PLAIN_PROJECT = resolve(CONTENT_ROOT, 'examples/temperature-alarm');
 
-describe.runIf(existsSync(ROS_PROJECT))('a project that imports an extension', () => {
+describe.runIf(compilerConfigured && existsSync(ROS_PROJECT))('a project that imports an extension', () => {
     it('registers the extension kinds, placed by what they specialize', async () => {
-        const { registries } = await loadOntologyRegistries(ROS_PROJECT);
+        const { registries = {} } = await compiledExample('ros-mobile-robot');
         // The project imports the base ontology and the extension, so both
         // registries are a required part of this acceptance fixture. The
         // public loader type keeps them optional for lightweight callers.
@@ -83,9 +82,10 @@ describe.runIf(existsSync(ROS_PROJECT))('a project that imports an extension', (
     });
 });
 
-describe.runIf(existsSync(PLAIN_PROJECT))('a project that imports no extension', () => {
+describe.runIf(compilerConfigured && existsSync(PLAIN_PROJECT))('a project that imports no extension', () => {
     it('reaches no extension package and treats none of them as its own source', async () => {
-        const resolution = await resolveNativeProject(PLAIN_PROJECT);
+        const project = await compiledExample('temperature-alarm');
+        const resolution = project.resolution!;
 
         const reached = [...resolution.closure.keys()].filter(name => name.includes('memo_extension'));
         expect(reached).toEqual([]);
@@ -96,10 +96,9 @@ describe.runIf(existsSync(PLAIN_PROJECT))('a project that imports no extension',
         const unusedDirs = resolution.unusedRoots.map(root => root.sysmlDir);
         expect(unusedDirs.some(dir => dir.includes(`extensions`))).toBe(true);
 
-        const projectSource = resolution.documents.filter(doc =>
-            ![...resolution.selectedRoots, ...resolution.unusedRoots]
-                .some(root => doc.filePath.startsWith(root.sysmlDir)));
-        expect(projectSource.every(doc => !doc.filePath.includes('/extensions/'))).toBe(true);
+        const projectSource = ((project.api.output.documents ?? []) as { file: string; role: string; root?: string }[])
+            .filter(doc => doc.role === 'project');
+        expect(projectSource.every(doc => !`${doc.root}/${doc.file}`.includes('/extensions/'))).toBe(true);
         expect(projectSource.length).toBeGreaterThan(0);
     });
 });

@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
-import { collectNativeConstraints } from '../validator/constraint-loader.js';
+import { projectConstraints } from '../toolchain/project-model.js';
+import type { ConstraintDiagnostic } from '../validator/constraint-loader.js';
+import { compiledExample, compilerConfigured } from './helpers/compile-source.js';
 import { evaluateConstraintNode, type CompiledConstraint } from '../validator/constraint-eval.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
@@ -180,14 +181,14 @@ function buildModel(links: RelSpec[], exchangeEndpoints?: { source: string; targ
 
 let rules: Map<string, CompiledConstraint>;
 let kindRegistry: KindRegistry | undefined;
-const available = existsSync(GPCA_PROJECT);
+const available = compilerConfigured && existsSync(GPCA_PROJECT);
 
 beforeAll(async () => {
     if (!available) return;
-    const loaded = await loadOntologyRegistries(GPCA_PROJECT);
-    kindRegistry = loaded.registries.kindRegistry;
-    const diagnostics: Parameters<typeof collectNativeConstraints>[1] = [];
-    const constraints = collectNativeConstraints(loaded.parsedDocuments ?? [], diagnostics);
+    const project = await compiledExample('gpca-pump');
+    kindRegistry = project.registries?.kindRegistry;
+    const diagnostics: ConstraintDiagnostic[] = [];
+    const constraints = projectConstraints(project, diagnostics);
     // A rule that fails to COMPILE is skipped by the loader and reported. That
     // failure mode is exactly how a strictness rule silently stops constraining
     // anything, so it fails the test rather than reducing the rule set.
@@ -196,7 +197,7 @@ beforeAll(async () => {
     rules = new Map(constraints.map(constraint => [constraint.id, constraint]));
 }, 120_000);
 
-describe('Track A0 relation-end rules', () => {
+describe.runIf(available)('Track A0 relation-end rules', () => {
     it('all fifteen are declared in the ontology', () => {
         if (!available) return;
         expect([...A0_RULES, ...FUNCTION_RULES, ...FAMILY_RULES, ...CAUSES_RULES].filter(id => !rules.has(id))).toEqual([]);

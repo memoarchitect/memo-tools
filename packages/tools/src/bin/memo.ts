@@ -64,10 +64,8 @@ import {
 import { convertCommand } from '../commands/convert.js';
 import { configEffectiveCommand, toolchainCheckCommand, toolchainProbeCommand } from '../commands/toolchain.js';
 import {
-    conformanceBnfCommand,
     conformanceDiffXmiCommand,
     conformanceRunCommand,
-    type BnfCliOptions,
     type ConformanceCliOptions,
 } from '../commands/conformance.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
@@ -297,21 +295,6 @@ withToolchainOptions(
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     await conformanceDiffXmiCommand(dir, opts as ConformanceCliOptions);
 });
-
-conformanceCmd
-    .command('bnf')
-    .description("Score the grammar's rule coverage against the normative textual BNF")
-    .argument('[dir]', 'Unused; accepted so every conformance subcommand takes the same shape', '.')
-    .option('--corpus <dir>', 'Corpus directory (defaults to the vendored one)')
-    .option('--grammar <file>', "Grammar to score (defaults to MEMO's)")
-    .option('--missing', 'List the syntactic productions with no rule')
-    .option('--format <format>', 'Output format: text, json', 'text')
-    .option('-o, --output <file>', 'Write the report to a file instead of stdout')
-    .option('--baseline [file]', 'Compare against a frozen baseline and fail on any change')
-    .option('--update-baseline', 'Re-freeze the baseline from this run')
-    .action(async (dir: string, opts: Record<string, unknown>) => {
-        await conformanceBnfCommand(dir, opts as BnfCliOptions);
-    });
 
 // ─── memo config ────────────────────────────────────────────────────────────
 

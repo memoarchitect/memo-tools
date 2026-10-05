@@ -20,7 +20,7 @@ function run(cmd: string, cwd: string): string {
         cwd,
         encoding: 'utf-8',
         timeout: 30_000,
-        env: { ...process.env, NO_COLOR: '1' },
+        env: { MEMO_TOOLCHAIN_COMPILER: 'opensysml', ...process.env, NO_COLOR: '1' },
     });
 }
 
@@ -30,7 +30,7 @@ function runMayFail(cmd: string, cwd: string): { stdout: string; exitCode: numbe
             cwd,
             encoding: 'utf-8',
             timeout: 30_000,
-            env: { ...process.env, NO_COLOR: '1' },
+            env: { MEMO_TOOLCHAIN_COMPILER: 'opensysml', ...process.env, NO_COLOR: '1' },
             stdio: ['pipe', 'pipe', 'pipe'],
         });
         return { stdout, exitCode: 0 };
@@ -307,18 +307,18 @@ describe('E2E: ontology lock + change detection', () => {
         mkdirSync(projectDir, { recursive: true });
         mkdirSync(join(projectDir, 'model'), { recursive: true });
 
-        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: lock-test\nentrypoint: model/catalog/project.sysml\ninclude: [model]\ntoolchain:\n  compiler: internal\n`);
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: lock-test\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n`);
         mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
         writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
 package lock_test_project {
     private import memo_core_enumerations::*;
     private import memo_methodology_core::*;
     private import memo_methodology_profiles::*;
+    private import memo_core_common::*;
     private import lock_test_model::*;
 
     part projectBinding : ProjectMethodBinding {
-        attribute :>> id = "PMB-TEST";
-        attribute :>> name = "lock-testBinding";
+        @MemoIdentity { :>> providedId = "PMB-TEST"; :>> label = "lock-testBinding"; }
         attribute :>> projectName = "lock-test";
         ref :>> selectedMethodology = mdDefaultDefinition;
         attribute :>> scopeMode = ScopeModeKind::explicit;
@@ -328,8 +328,10 @@ package lock_test_project {
 
         writeFileSync(join(projectDir, 'model', 'device.sysml'), `
 package lock_test_model {
+    private import memo_core_common::*;
+    private import memo_architecture_logical_structure::*;
     part sys : System {
-        attribute redefines name = "Lock Test";
+        @MemoIdentity { :>> providedId = "SYS-LOCK"; :>> label = "Lock Test"; }
     }
 }
 `);
@@ -433,18 +435,18 @@ describe('E2E: custom model validation', () => {
         mkdirSync(projectDir, { recursive: true });
         mkdirSync(join(projectDir, 'model'), { recursive: true });
 
-        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: custom-device\nentrypoint: model/catalog/project.sysml\ninclude: [model]\ntoolchain:\n  compiler: internal\n`);
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: custom-device\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n`);
         mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
         writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
 package custom_device_project {
     private import memo_core_enumerations::*;
     private import memo_methodology_core::*;
     private import memo_methodology_profiles::*;
+    private import memo_core_common::*;
     private import custom_device_model::*;
 
     part projectBinding : ProjectMethodBinding {
-        attribute :>> id = "PMB-TEST";
-        attribute :>> name = "custom-deviceBinding";
+        @MemoIdentity { :>> providedId = "PMB-TEST"; :>> label = "custom-deviceBinding"; }
         attribute :>> projectName = "custom-device";
         ref :>> selectedMethodology = mdDefaultDefinition;
         attribute :>> scopeMode = ScopeModeKind::explicit;
@@ -455,24 +457,26 @@ package custom_device_project {
         // Write a SysML model with elements and a traced relationship
         writeFileSync(join(projectDir, 'model', 'device.sysml'), `
 package custom_device_model {
+    private import memo_core_common::*;
+    private import memo_architecture_logical_structure::*;
+    private import memo_assurance_requirements::*;
 
     part mySystem : System {
-        attribute redefines name = "Custom Device";
+        @MemoIdentity { :>> providedId = "SYS-CUSTOM"; :>> label = "Custom Device"; }
     }
 
-    part need1 : Requirement {
-        attribute redefines source = "User";
-        attribute redefines reqId = "REQ-001";
-        attribute redefines statement = "User need 1";
+    requirement need1 : Requirement {
+        @MemoIdentity { :>> providedId = "REQ-001"; :>> label = "User need 1"; }
+        attribute :>> statement = "User need 1";
     }
 
-    part sysReq1 : Requirement {
-        attribute redefines source = "System";
-        attribute redefines reqId = "REQ-002";
-        attribute redefines statement = "System requirement 1";
+    requirement sysReq1 : Requirement {
+        @MemoIdentity { :>> providedId = "REQ-002"; :>> label = "System requirement 1"; }
+        attribute :>> statement = "System requirement 1";
     }
 
-    connection : TraceTo connect source ::> sysReq1 to target ::> need1;
+    satisfy sysReq1 by mySystem;
+
 }
 `);
     });
@@ -933,5 +937,36 @@ describe('I-1: memo ontology add-kind', () => {
         const entries = readdirSync(join(tmpDir, 'ontology', 'risk'));
         const nonSysml = entries.filter(f => !f.endsWith('.sysml'));
         expect(nonSysml).toHaveLength(0);
+    });
+});
+
+describe('E2E: a model the compiler rejects', () => {
+    let projectDir: string;
+
+    beforeAll(() => {
+        projectDir = join(REPO_ROOT, '.test-rejected-' + process.pid);
+        rmSync(projectDir, { recursive: true, force: true });
+        mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: rejected\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n`);
+        writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
+package rejected_project {
+    part broken : NoSuchDefinition;
+}
+`);
+    });
+
+    afterAll(() => {
+        rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    // The rules never run on a model that is not valid SysML: stage 1's errors
+    // are the result, and nothing from stage 2 is reported beside them.
+    it('memo validate stops at stage 1 and runs no rule', () => {
+        const { stdout, exitCode } = runMayFail('validate', projectDir);
+
+        expect(exitCode).not.toBe(0);
+        expect(stdout).toContain('NoSuchDefinition');
+        expect(stdout).not.toContain('Rules:');
+        expect(stdout).not.toContain('Model:');
     });
 });

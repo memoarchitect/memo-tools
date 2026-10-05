@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadOntologyRegistries } from '../model/ontology-loader.js';
+import { compiledExample, compilerConfigured, examplesPresent } from './helpers/compile-source.js';
 
 // A definition name is what a modeller types. If two definitions share one,
 // the reference resolves by load order and the usage is silently validated
@@ -14,18 +14,12 @@ import { loadOntologyRegistries } from '../model/ontology-loader.js';
 // memo_architecture_operational_workflows (entryCondition/performedActivity/…).
 // The methodology one is now MethodologyWorkflowStep.
 
-const GPCA_CONFIG = resolve(
-    __dirname, '../../../../../memo/examples/gpca-pump/memo.config.yaml');
-
-describe('ontology definition names are unique', () => {
+describe.runIf(compilerConfigured && examplesPresent)('ontology definition names are unique', () => {
     it('no short name is claimed by two definitions', async () => {
-        if (!existsSync(GPCA_CONFIG)) {
-            // The sibling ontology checkout is not present in every consumer
-            // install; skipping is correct there, failing would be noise.
-            return;
-        }
-        const result = await loadOntologyRegistries(GPCA_CONFIG);
-        const collisions = result.kindNameCollisions;
+        // The compiled project's handoff holds the ontology and every extension a
+        // locator offers; its kind registry records each short name claimed twice.
+        const project = await compiledExample('gpca-pump');
+        const collisions = project.registries?.kindRegistry?.getCollisions() ?? [];
 
         // Report the whole conflict, not just a count: whoever breaks this
         // needs to see which two definitions collided and where they live.
@@ -34,5 +28,5 @@ describe('ontology definition names are unique', () => {
                 .map((q, i) => `    ${q}  (${c.sourceFiles[i]})`).join('\n')}`)
             .join('');
         expect(collisions, `Overloaded definition names:${detail}\n`).toEqual([]);
-    });
+    }, 120_000);
 });

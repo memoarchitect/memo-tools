@@ -24,9 +24,6 @@
 
 import { existsSync, readdirSync, realpathSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
-import type { ParsedDocument } from './parser-utils.js';
-import type { ParseError } from './semantic.js';
-import { parseFiles } from './parser-utils.js';
 import { readPackageManifest } from './package-manifest.js';
 import { discoverMemoManifests, findMemoManifests, resolveManifestPath } from './manifest.js';
 import { importKpar } from '../commands/package.js';
@@ -185,17 +182,6 @@ export interface NativeProjectResolution {
     selectedRoots: LibraryRoot[];
     /** Roots a locator offered that no import reached. */
     unusedRoots: LibraryRoot[];
-    /** Every parsed document, project and reusable alike. */
-    documents: ParsedDocument[];
-    /**
-     * Every parse error the same pass produced, project and reusable alike.
-     *
-     * Carried rather than discarded because a file that failed to parse
-     * contributes no elements, and a caller counting elements cannot tell that
-     * from a file that genuinely declares none. `documents` alone lets a
-     * catastrophic failure read as a small model.
-     */
-    parseErrors: ParseError[];
     /**
      * File → the SysML package it declares, for every parsed file.
      *
@@ -323,190 +309,6 @@ export function discoverLibraryRoots(projectRoot: string): LibraryRoot[] {
     return [...roots.values()];
 }
 
-// ─── AST reading ──────────────────────────────────────────────────────────────
-
-function attrString(value: any): string | undefined {
-    if (!value) return undefined;
-    switch (value.$type) {
-        case 'StringValue':
-            try { return JSON.parse(value.value ?? '""'); }
-            catch { return value.value?.replace(/^"|"$/g, ''); }
-        case 'IntValue':
-        case 'RealValue':
-        case 'BooleanValue':
-            return String(value.value);
-        case 'EnumValue': {
-            const ref: string = value.enumRef ?? '';
-            const idx = ref.lastIndexOf('::');
-            return idx >= 0 ? ref.slice(idx + 2) : ref;
-        }
-        case 'SetLiteral':
-            return undefined;   // handled by attrList
-        default:
-            return undefined;
-    }
-}
-
-/**
- * Read a list-valued attribute.
- *
- * SysML spells a multi-valued attribute either as a set literal
- * (`= ("a", "b")`) or as repeated single assignments. Both are read here so the
- * ontology's authoring style is not a semantic difference.
- */
-function attrList(body: any[], name: string): string[] {
-    const out: string[] = [];
-    for (const member of body ?? []) {
-        if (member.$type !== 'AttributeMember' || member.name !== name || !member.value) continue;
-        if (member.value.$type === 'SetLiteral') {
-            // A SetElement is either a quoted string or a qualified name; the
-            // grammar puts them in different properties.
-            for (const el of member.value.elements ?? []) {
-                const raw = el.stringValue ?? el.value;
-                if (typeof raw === 'string') {
-                    try { out.push(JSON.parse(raw)); }
-                    catch { out.push(stripQuotes(raw)); }
-                }
-            }
-        } else {
-            const v = attrString(member.value);
-            if (v !== undefined) out.push(v);
-        }
-    }
-    return out;
-}
-
-function stripQuotes(s: string): string {
-    return s.replace(/^"|"$/g, '');
-}
-
-function attr(body: any[], name: string): string | undefined {
-    for (const member of body ?? []) {
-        if (member.$type === 'AttributeMember' && member.name === name && member.value) {
-            const v = attrString(member.value);
-            if (v !== undefined) return v;
-        }
-    }
-    return undefined;
-}
-
-/**
- * Read the type a `ref :>> <name> : <Type>;` member narrows to.
- *
- * This is the reference mechanism session 1 verified across MEMO's grammar and
- * the external tools: narrowing the reference's type names the rule, because
- * each rule is its own `constraint def`. Binding a *value* to a definition is
- * not portable — a SysML v2 compiler rejects it, since a value must be a feature.
- */
-function refType(body: any[], name: string): string | undefined {
-    for (const member of body ?? []) {
-        if (member.$type !== 'RefMember' || member.name !== name) continue;
-        if (member.type) return shortName(member.type);
-        if (member.value) return attrString(member.value);
-    }
-    return undefined;
-}
-
-function shortName(qualified: string): string {
-    const idx = qualified.lastIndexOf('::');
-    return idx >= 0 ? qualified.slice(idx + 2) : qualified;
-}
-
-function asScopeMode(raw: string | undefined): ScopeMode | undefined {
-    return raw === 'allAvailable' || raw === 'explicit' ? raw : undefined;
-}
-
-function readRulePolicy(node: any, file: string): NativeRulePolicy {
-    const body = node.body ?? [];
-    const disposition = attr(body, 'disposition');
-    const severity = attr(body, 'severityOverride');
-    return {
-        usageName: node.name,
-        targetRuleType: refType(body, 'targetRule'),
-        targetStandard: refType(body, 'targetStandard'),
-        targetCategory: attr(body, 'targetCategory'),
-        replacementRuleType: refType(body, 'replacementRule'),
-        disposition:
-            disposition === 'enabled' || disposition === 'disabled' || disposition === 'replaced'
-                ? disposition
-                : undefined,
-        severityOverride:
-            severity === 'error' || severity === 'warning' || severity === 'info' ? severity : undefined,
-        rationaleText: attr(body, 'rationaleText'),
-        authority: attr(body, 'authority'),
-        approvalReference: attr(body, 'approvalReference'),
-        approvedBy: attr(body, 'approvedBy'),
-        approvedOn: attr(body, 'approvedOn'),
-        sourceFile: file,
-    };
-}
-
-function nestedPolicies(node: any, file: string): NativeRulePolicy[] {
-    const out: NativeRulePolicy[] = [];
-    for (const member of node.body ?? []) {
-        if (member.$type === 'PartMember' && member.type && shortName(member.type) === 'RulePolicy') {
-            out.push(readRulePolicy(member, file));
-        }
-    }
-    return out;
-}
-
-/** Walk one document for `ProjectMethodBinding` and `MethodologyDefinition` usages. */
-function readNativeUsages(doc: ParsedDocument): {
-    bindings: NativeMethodBinding[];
-    methodologies: NativeMethodology[];
-} {
-    const bindings: NativeMethodBinding[] = [];
-    const methodologies: NativeMethodology[] = [];
-    const model = doc.document.parseResult?.value as any;
-    if (!model) return { bindings, methodologies };
-
-    const visit = (node: any, pkg?: string) => {
-        if (!node) return;
-        if (node.$type === 'PackageDeclaration') {
-            for (const m of node.members ?? []) visit(m, node.name ?? pkg);
-            return;
-        }
-        if (node.$type !== 'PartUsage' && node.$type !== 'PartMember') return;
-        const type = node.type ? shortName(node.type) : undefined;
-        const body = node.body ?? [];
-        if (type === 'ProjectMethodBinding') {
-            bindings.push({
-                usageName: node.name,
-                bindingId: attr(body, 'id'),
-                projectName: attr(body, 'projectName'),
-                selectedMethodologyName: refType(body, 'selectedMethodology'),
-                scopeMode: asScopeMode(attr(body, 'scopeMode')),
-                includedModules: attrList(body, 'includedModule'),
-                rulePolicies: nestedPolicies(node, doc.filePath),
-                sourceFile: doc.filePath,
-                packageQualifiedName: pkg,
-            });
-        } else if (type === 'MethodologyDefinition') {
-            methodologies.push({
-                usageName: node.name,
-                methodologyId: attr(body, 'id'),
-                displayName: attr(body, 'name'),
-                version: attr(body, 'version'),
-                baseMethodologyName: refType(body, 'baseMethodology'),
-                scopeMode: asScopeMode(attr(body, 'scopeMode')),
-                includedLayers: attrList(body, 'includedLayer'),
-                includedModules: attrList(body, 'includedModule'),
-                includedStandards: attrList(body, 'includedStandard'),
-                includedArtifactKinds: attrList(body, 'includedArtifactKind'),
-                includedViewpoints: attrList(body, 'includedViewpoint'),
-                rulePolicies: nestedPolicies(node, doc.filePath),
-                sourceFile: doc.filePath,
-                packageQualifiedName: pkg,
-            });
-        }
-        for (const m of body) visit(m, pkg);
-    };
-
-    for (const member of model.members ?? []) visit(member);
-    return { bindings, methodologies };
-}
-
 // ─── Import closure ───────────────────────────────────────────────────────────
 
 export interface PackageIndexEntry {
@@ -514,41 +316,6 @@ export interface PackageIndexEntry {
     files: Set<string>;
     imports: Set<string>;
     root?: LibraryRoot;
-}
-
-function indexPackages(
-    documents: ParsedDocument[],
-    fileToRoot: Map<string, LibraryRoot | undefined>,
-): Map<string, PackageIndexEntry> {
-    const index = new Map<string, PackageIndexEntry>();
-    for (const doc of documents) {
-        const model = doc.document.parseResult?.value as any;
-        if (!model) continue;
-        const walk = (node: any) => {
-            if (!node || node.$type !== 'PackageDeclaration') return;
-            const name: string = node.name;
-            let entry = index.get(name);
-            if (!entry) {
-                entry = { qualifiedName: name, files: new Set(), imports: new Set(), root: fileToRoot.get(doc.filePath) };
-                index.set(name, entry);
-            }
-            entry.files.add(doc.filePath);
-            if (!entry.root) entry.root = fileToRoot.get(doc.filePath);
-            for (const member of node.members ?? []) {
-                if (member.$type === 'ImportDeclaration') {
-                    const path: string = member.path ?? '';
-                    const pkgName = path.endsWith('::**') ? path.slice(0, -4)
-                        : path.endsWith('::*') ? path.slice(0, -3)
-                        : path.split('::').slice(0, -1).join('::') || path;
-                    if (pkgName) entry.imports.add(pkgName);
-                } else {
-                    walk(member);
-                }
-            }
-        };
-        for (const member of model.members ?? []) walk(member);
-    }
-    return index;
 }
 
 function collectSysmlFiles(dir: string, out: string[] = []): string[] {
@@ -656,21 +423,6 @@ export function discoverProjectSources(projectRoot: string): ProjectSources {
     return { projectRoot: root, entrypointPath, entrypoint, libraryRoots, projectFiles, libraryFiles, fileToRoot, diagnostics };
 }
 
-export async function resolveNativeProject(projectRoot: string): Promise<NativeProjectResolution> {
-    const sources = discoverProjectSources(projectRoot);
-    const parsed = await parseFiles([...sources.projectFiles, ...sources.libraryFiles], '');
-    const bindings: NativeMethodBinding[] = [];
-    const methodologyList: NativeMethodology[] = [];
-    for (const doc of parsed.documents) {
-        const { bindings: b, methodologies: m } = readNativeUsages(doc);
-        bindings.push(...b);
-        methodologyList.push(...m);
-    }
-    return finishResolution(
-        sources, indexPackages(parsed.documents, sources.fileToRoot), bindings, methodologyList,
-        parsed.documents, parsed.errors);
-}
-
 /**
  * Close a project's resolution over its package index and native usages,
  * however they were read: the import closure from the entrypoint, the library
@@ -681,8 +433,6 @@ export function finishResolution(
     index: Map<string, PackageIndexEntry>,
     bindings: NativeMethodBinding[],
     methodologyList: NativeMethodology[],
-    documents: ParsedDocument[],
-    parseErrors: ParseError[],
 ): NativeProjectResolution {
     const { projectRoot: root, entrypointPath, entrypoint, libraryRoots } = sources;
     const diagnostics = [...sources.diagnostics];
@@ -829,8 +579,6 @@ export function finishResolution(
         closure,
         selectedRoots,
         unusedRoots,
-        documents,
-        parseErrors,
         filePackages,
         diagnostics,
     };

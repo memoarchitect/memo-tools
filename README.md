@@ -141,7 +141,7 @@ error saying what to set. `compiler` names the validator and lowering together:
 
 ```yaml
 toolchain:
-  compiler: internal     # internal, syside or opensysml
+  compiler: opensysml    # syside or opensysml
   packager: internal     # internal or sysand; only `memo pack` needs it
 ```
 
@@ -150,7 +150,7 @@ A role can also be named on its own:
 ```yaml
 toolchain:
   validator: syside
-  lowering: internal
+  lowering: opensysml
   packager: sysand
   syside:
     executable: ~/.local/bin/syside

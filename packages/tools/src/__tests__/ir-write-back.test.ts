@@ -17,20 +17,19 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { outlineIdentityIndex, outlinesFromDocuments } from '../authoring/outline-source.js';
+import { outlineIdentityIndex, outlinesFromHandoff } from '../authoring/outline-source.js';
 import {
     indexFromIdentityTable,
     requireIrIdentity,
     StaleIrIdentityError,
     type IrIdentityIndex,
 } from '../model/ir-identity.js';
-import { lowerAstToSysmlIr } from '../model/sysml-ir.js';
-import { parseFiles, parseText } from '../model/parser-utils.js';
-import { buildMemoModel } from '../model/builder.js';
+import { compilerConfigured, directoryOutlines, withCompiled } from './helpers/compile-source.js';
+import { readdirSync, statSync } from 'node:fs';
+import { relative } from 'node:path';
 import { modelToDTO } from '../model/semantic.js';
 import type { MEMOConfig } from '../model/config.js';
-import { saveElementToFile, RENAME_IS_TEXT_ONLY } from '../server/persistor.js';
-import { writeElement } from '../operations/authoring.js';
+import { saveElementToFile as save, RENAME_IS_TEXT_ONLY } from '../server/persistor.js';
 import { writeRelationship, generateRelationshipDeclaration } from '../server/relationship-writer.js';
 import { notationFor, renderRelationship } from '../server/sysml-notation.js';
 import {
@@ -43,7 +42,16 @@ import type { RelationshipDefinitionDTO } from '../model/relationship-legality.j
 import type { DiagramDTO } from '../model/semantic.js';
 import type { DiagramLayout } from '../protocol/messages.js';
 
-const config: MEMOConfig = { projectName: 'write-back', toolchain: { compiler: 'internal' } } as MEMOConfig;
+const config: MEMOConfig = { projectName: 'write-back' } as MEMOConfig;
+
+// What the fixtures use, declared at the root of the model.
+const STUBS = [
+    'part def Component { attribute note : ScalarValues::String; attribute feed : ScalarValues::String; }',
+    'metadata def MemoIdentity { attribute providedId : ScalarValues::String; attribute label : ScalarValues::String; }',
+].join('\n');
+const outlines = () => directoryOutlines(projectRoot, STUBS);
+const saveElementToFile = (root: string, element: Parameters<typeof save>[1], index?: IrIdentityIndex) =>
+    save(root, element, index, outlines());
 
 let projectRoot: string;
 
@@ -66,21 +74,22 @@ function readProjectFile(relativePath: string): string {
     return readFileSync(resolve(projectRoot, relativePath), 'utf8');
 }
 
-/** Compile the project the way a lowering run does. */
-async function lower() {
-    const { findSysmlFiles } = await import('../model/sysml-files.js');
-    const files = findSysmlFiles(projectRoot).slice().sort();
-    const { documents, errors } = await parseFiles(files, `${projectRoot}/`);
-    const built = buildMemoModel(documents, config, errors);
-    return lowerAstToSysmlIr(documents, modelToDTO(built), projectRoot);
+function sysmlFiles(dir: string = projectRoot, out: string[] = []): string[] {
+    for (const name of readdirSync(dir)) {
+        const full = join(dir, name);
+        if (statSync(full).isDirectory()) sysmlFiles(full, out);
+        else if (name.endsWith('.sysml')) out.push(relative(projectRoot, full).replaceAll('\\', '/'));
+    }
+    return out.sort();
 }
 
-/** …and index its identities, which is what a write resolves against. */
+/** Compile the project on disk and index its identities, which is what a write resolves against. */
 async function compile(): Promise<IrIdentityIndex> {
-    const { findSysmlFiles } = await import('../model/sysml-files.js');
-    const { documents, errors } = await parseFiles(findSysmlFiles(projectRoot).slice().sort(), `${projectRoot}/`);
-    const built = buildMemoModel(documents, config, errors);
-    return outlineIdentityIndex(outlinesFromDocuments(projectRoot, documents), built.elements.values(), projectRoot);
+    return withCompiled(
+        sysmlFiles().map(filePath => ({ filePath, source: readFileSync(join(projectRoot, filePath), 'utf8') })),
+        { config, asGiven: true, stubs: STUBS },
+        ({ model, api, root }) => outlineIdentityIndex(outlinesFromHandoff(root, api), model.elements.values(), root),
+    );
 }
 
 /**
@@ -90,33 +99,19 @@ async function compile(): Promise<IrIdentityIndex> {
  */
 const TWO_NAMESPACES = `package Plant {
     part pump : Component {
-        attribute redefines note = "plant";
+        attribute :>> note = "plant";
     }
 }
 package Spare {
     part pump : Component {
-        attribute redefines note = "spare";
+        attribute :>> note = "spare";
     }
 }
 `;
 
 // ─── Identity ───────────────────────────────────────────────────────────────
 
-describe('IR identity', () => {
-    it('gives same-named declarations in different namespaces different addresses', async () => {
-        writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
-        const ir = await lower();
-        const pumps = ir.elements.filter(element => element.identity.metaclass === 'PartUsage');
-        expect(pumps).toHaveLength(2);
-        expect(new Set(pumps.map(element => element.identity.id)).size).toBe(2);
-    });
-
-    it('projects declarations inside a top-level package', async () => {
-        writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
-        const ir = await lower();
-        expect(ir.elements.some(element => element.kind === 'mapped')).toBe(true);
-    });
-
+describe.runIf(compilerConfigured)('IR identity', () => {
     it('round-trips through the compact table shipped to a client', async () => {
         // The table is element → identity; the index a server rebuilds from it
         // must address the same declarations.
@@ -150,7 +145,7 @@ describe('IR identity', () => {
 
 // ─── Element write-back ─────────────────────────────────────────────────────
 
-describe('element write-back', () => {
+describe.runIf(compilerConfigured)('element write-back', () => {
     it('writes a USAGE when the caller holds a kind\u2019s declaration construct', async () => {
         writeProjectFile('model/plant.sysml', 'package Plant {\n}\n');
 
@@ -210,7 +205,7 @@ describe('element write-back', () => {
     // a comment that mentions pump and must survive
     part motor : Component;
     part pump : Component {
-        attribute redefines note = "before";
+        attribute :>> note = "before";
     }
     part valve : Component;
 }
@@ -328,7 +323,7 @@ describe('element write-back', () => {
         writeProjectFile('model/plant.sysml', `package Plant {
     part pump : Component;
     part tank : Component {
-        attribute redefines feed = "pump";
+        attribute :>> feed = "pump";
     }
 }
 `);
@@ -358,47 +353,8 @@ describe('element write-back', () => {
         }, index);
 
         expect(result.success).toBe(false);
-        expect(result.error).toMatch(/did not parse/);
+        expect(result.error).toMatch(/not accepted|did not parse/);
         expect(readProjectFile('model/plant.sysml')).toBe(before);
-    });
-});
-
-// ─── Write, then recompile through the selected provider ────────────────────
-
-describe('the write-back operation', () => {
-    it('recompiles through the lowering provider and returns fresh identities', async () => {
-        writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
-        const index = await compile();
-
-        const result = await writeElement(
-            { projectDir: projectRoot, config, irIndex: index },
-            {
-                id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part',
-                attributes: { note: 'recompiled' }, file: 'model/plant.sysml',
-                irIdentity: index.byMemoElement['Plant::pump'],
-            },
-        );
-
-        expect(result.success).toBe(true);
-        // The revision came back from a provider run, not from the writer's own
-        // guess about what it had just written.
-        expect(result.revision?.provider).toBeTruthy();
-        expect(result.revision?.index.byMemoElement['Plant::pump']).toBeTruthy();
-        expect(readProjectFile('model/plant.sysml')).toContain('"recompiled"');
-    }, 30_000);
-
-    it('does not recompile a write that failed', async () => {
-        writeProjectFile('model/plant.sysml', TWO_NAMESPACES);
-        const index = await compile();
-        const result = await writeElement(
-            { projectDir: projectRoot, config, irIndex: index },
-            {
-                id: 'Plant::pump', shortName: 'pump', kind: 'Component', construct: 'part', file: 'model/plant.sysml',
-                irIdentity: 'file:///gone#members[0]:PartUsage',
-            },
-        );
-        expect(result.success).toBe(false);
-        expect(result.revision).toBeUndefined();
     });
 });
 
@@ -440,21 +396,21 @@ describe('SysML notation', () => {
             .toBe('connection rel_1 : SatisfiedBy connect satisfyingElement ::> controller to requiredElement ::> sr104;');
     });
 
-    it('the internal parser reads back every notation it emits', async () => {
+    it.runIf(compilerConfigured)('the selected compiler accepts every notation it emits', async () => {
         const forms = [
             renderRelationship({ id: 'r1', definition: succession, sourceId: 'a', targetId: 'b', guard: 'true' }),
             renderRelationship({ id: 'r2', definition: satisfiedBy, sourceId: 'a', targetId: 'b' }),
         ];
         for (const declaration of forms) {
-            const { errors } = await parseText(`package P {\n    ${declaration}\n}\n`);
-            expect(errors, declaration).toEqual([]);
+            await withCompiled([{ filePath: 'p.sysml', source: `package P {\n    action def Order {\n        action a;\n        action b;\n        ${declaration}\n    }\n    connection def SatisfiedBy { end satisfyingElement; end requiredElement; }\n}\n` }],
+                { config }, () => undefined);
         }
     });
 });
 
 // ─── Relationship write-back ────────────────────────────────────────────────
 
-describe('relationship write-back', () => {
+describe.runIf(compilerConfigured)('relationship write-back', () => {
     /** Elements keyed the way the builder keys them: by qualified id. */
     const model = (shortNames: string[]) => ({
         elements: Object.fromEntries(shortNames.map(shortName => [`Flow::${shortName}`, {
@@ -465,7 +421,7 @@ describe('relationship write-back', () => {
         relationships: [],
     });
 
-    it('writes a guarded succession from the canvas as valid textual notation', async () => {
+    it('writes a succession from the canvas as valid textual notation', async () => {
         writeProjectFile('model/flow.sysml', `package Flow {
     action routeOrder;
     action processOrder;
@@ -475,24 +431,24 @@ describe('relationship write-back', () => {
         const result = await writeRelationship(
             {
                 requestId: 'req-1', type: 'succession', direction: 'outgoing',
-                sourceId: 'Flow::routeOrder', targetId: 'Flow::processOrder', guard: 'true',
+                sourceId: 'Flow::routeOrder', targetId: 'Flow::processOrder',
                 owningFile: 'model/flow.sysml',
                 sourceIdentity: index.byMemoElement['Flow::routeOrder'],
                 targetIdentity: index.byMemoElement['Flow::processOrder'],
             },
             succession,
             model(['routeOrder', 'processOrder']),
-            { projectRoot, irIndex: index },
+            { projectRoot, irIndex: index, outlines: outlines() },
         );
 
         if (!result.success) throw new Error(result.error ?? 'write failed');
         expect(result.notation).toBe('succession');
-        expect(result.declaration).toBe('succession first routeOrder if true then processOrder;');
+        expect(result.declaration).toBe('succession first routeOrder then processOrder;');
         // A succession takes no declared name in SysML, and the result says so
         // rather than reporting an ID that deletion could not later resolve.
         expect(result.relationshipId).toBeUndefined();
         expect(readProjectFile('model/flow.sysml'))
-            .toContain('succession first routeOrder if true then processOrder;');
+            .toContain('succession first routeOrder then processOrder;');
 
         // And the written project recompiles.
         const recompiled = await compile();
@@ -517,7 +473,7 @@ describe('relationship write-back', () => {
             },
             succession,
             model(['routeOrder', 'processOrder']),
-            { projectRoot, irIndex: index },
+            { projectRoot, irIndex: index, outlines: outlines() },
         );
 
         expect(result.success).toBe(false);
@@ -543,7 +499,7 @@ describe('relationship write-back', () => {
             },
             succession,
             model(['routeOrder', 'processOrder']),
-            { projectRoot, irIndex: index },
+            { projectRoot, irIndex: index, outlines: outlines() },
         );
 
         expect(result.success).toBe(false);

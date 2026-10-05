@@ -13,11 +13,12 @@ import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import chalk from 'chalk';
 import type { MEMOConfig } from '@memoarchitect/tools';
 import {
-    findConfigFile, getPackageMetadata, ontologyViewFrom, exportToOwlTurtle, exportToOwlXml,
+    findConfigFile, ontologyViewFrom, exportToOwlTurtle, exportToOwlXml,
     type LibraryRoot,
 } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import { loadProjectOntology } from '../toolchain/project-model.js';
+import { loadProjectModel, loadProjectOntology } from '../toolchain/project-model.js';
+import { apiPackageMetadata } from '../stage2/package-metadata-from-api.js';
 
 // ─── memo ontology add-kind ──────────────────────────────────────────────────
 
@@ -106,8 +107,9 @@ export async function ontologyShowCommand(): Promise<void> {
     }
 
     const projectRoot = dirname(configPath);
-    const loadResult = await loadProjectOntology({ projectRoot, config: loadAndResolveConfig(configPath) });
-    const resolution = loadResult.resolution;
+    const project = await loadProjectModel({ projectRoot, config: loadAndResolveConfig(configPath) });
+    const loadResult = { registries: project.registries ?? {} };
+    const resolution = project.resolution;
 
     // Identity comes from the packages the project's imports resolved to. It
     // used to come from an `ontologyMetadata:` block in the settings file,
@@ -121,9 +123,11 @@ export async function ontologyShowCommand(): Promise<void> {
     console.log(chalk.cyan('  Resolved:') + ` ${resolution?.selectedRoots.length ?? 0} package(s) in the import closure`);
     console.log('');
 
-    const layers = getPackageMetadata(
+    const layers = apiPackageMetadata(
+        project.api,
         projectRoot,
         new Set((resolution?.selectedRoots ?? []).map(r => r.dir)),
+        resolution?.filePackages,
     ).filter(p => p.selected).flatMap(p => p.layers);
     console.log(chalk.bold(`  Layers (${layers.length}):`));
     for (const l of layers) {

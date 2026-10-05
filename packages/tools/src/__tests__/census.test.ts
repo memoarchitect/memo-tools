@@ -157,6 +157,35 @@ const EXAMPLES = resolve(__dirname, '../../../../../memo/examples');
 const BASELINES = resolve(__dirname, 'fixtures/census');
 const REFREEZE = 'Re-freeze deliberately with `pnpm census:capture`, and say in the commit what left the model and why.';
 
+/**
+ * Drops a compiler's API JSON causes, by compiler and project: counts the model
+ * holds less of than the baseline, because that compiler writes the construct
+ * with another metaclass than the OMG grammar gives it. Exactly these drops, and
+ * still there: when the compiler conforms the entry fails and goes.
+ *
+ * OpenSysML (develop, 2026-10-04), `sysml-diagram-samples`:
+ * - `action x accept p : T;` and `action x send e to r;` are one
+ *   `AcceptActionUsage` and one `SendActionUsage` (`SysML-textual-bnf.kebnf:1006-1011`,
+ *   `:1056-1063`); it writes a plain `ActionUsage` (the send node as a nameless
+ *   child of it), so both kinds and the succession into the send are lost.
+ * - `include u;` is an `IncludeUseCaseUsage` related to the included use case by a
+ *   `ReferenceSubsetting` (the metamodel's documentation of `IncludeUseCaseUsage`);
+ *   it writes a non-standard `includes` property, so no `includesStep` is built.
+ */
+const KNOWN_UPSTREAM_DROPS: Record<string, Record<string, string[]>> = {
+    opensysml: {
+        'sysml-diagram-samples': [
+            '(totals): relationships',
+            'model/catalog/viewpoints/unassigned/views/use_case_view.sysml: relationships',
+            'model/catalog/viewpoints/unassigned/views/use_case_view.sysml: relationshipType:includesStep',
+            'model/sysml_v2_activity_example.sysml: relationships',
+            'model/sysml_v2_activity_example.sysml: kind:AcceptActionUsage',
+            'model/sysml_v2_activity_example.sysml: kind:SendActionUsage',
+            'model/sysml_v2_activity_example.sysml: relationshipType:succession',
+        ],
+    },
+};
+
 describe('the shipped examples still contain what the baseline recorded', () => {
     const subjects = censusSubjects(EXAMPLES);
 
@@ -187,7 +216,15 @@ describe('the shipped examples still contain what the baseline recorded', () => 
             const baseline = JSON.parse(readFileSync(baselinePath, 'utf-8')) as ProjectCensus;
 
             const findings = compareCensus(baseline, await censusOf(subject));
-            const drops = findings.filter(f => f.severity === 'drop');
+            const known = KNOWN_UPSTREAM_DROPS[process.env.MEMO_TOOLCHAIN_COMPILER ?? '']?.[subject.id];
+            const dropped = findings.filter(f => f.severity === 'drop');
+            if (known) {
+                // Exactly the recorded gap, and still there.
+                expect(dropped.map(f => `${f.file}: ${f.measure}`).sort(),
+                    `${subject.id}'s recorded upstream gap changed; update or remove KNOWN_UPSTREAM_DROPS`).toEqual([...known].sort());
+                return;
+            }
+            const drops = dropped;
 
             // `expect.fail` rather than an assertion on the array: a
             // shared-definition change moves hundreds of counts, and the

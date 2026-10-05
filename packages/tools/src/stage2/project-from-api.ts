@@ -28,7 +28,7 @@ export function resolveNativeProjectFromApi(projectRoot: string, api: ApiModel):
     const sources = discoverProjectSources(projectRoot);
     const fileOf = (element: ApiElement) => api.absoluteFile(element['@id']) ?? '';
     const { bindings, methodologies } = apiNativeUsages(api, fileOf);
-    return finishResolution(sources, apiPackageIndex(api, sources.fileToRoot, fileOf), bindings, methodologies, [], []);
+    return finishResolution(sources, apiPackageIndex(api, sources.fileToRoot, fileOf), bindings, methodologies);
 }
 
 /** The top-level packages of every document, with the file each is declared in. */

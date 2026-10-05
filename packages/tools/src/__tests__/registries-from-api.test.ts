@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApiModel, type ApiElement, type Stage1Output } from '../stage2/api-model.js';
 import { KindRegistry } from '../model/kind-registry.js';
-import { RelationshipRegistry } from '../model/relationship-registry.js';
+import { LANGUAGE_NATIVE_RELATIONS, RelationshipRegistry } from '../model/relationship-registry.js';
 import { apiOntologyRegistries, handoffRegistries } from '../stage2/registries-from-api.js';
 
 // A library document of the ontology and a project document, as a stage 1
@@ -183,10 +183,8 @@ describe('ontology registries read from a stage 1 handoff', () => {
         expect(registries.relationshipRegistry?.has('mitigates')).toBe(true);
     });
 
-    it('registers the language-native relations, as the parse reader does', () => {
-        const parsed = new RelationshipRegistry();
-        parsed.populateFromDocuments([]);
-        for (const name of parsed.relTypeNames()) expect(relationships.has(name)).toBe(true);
+    it('registers the language-native relations', () => {
+        for (const name of Object.keys(LANGUAGE_NATIVE_RELATIONS)) expect(relationships.has(name)).toBe(true);
     });
 
     it('reads the project\'s own definitions too when resolution asks, as MEMO\'s loader reads its closure', () => {

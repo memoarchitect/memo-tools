@@ -13,7 +13,7 @@
 // Adding a provider is one new file plus one `register(...)` line.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { BuilderRegistries } from '../model/builder.js';
+import type { BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
 import type { MemoModel } from '../model/semantic.js';
 import type { ApiModel } from '../stage2/api-model.js';
@@ -238,8 +238,8 @@ export interface ProviderDescriptor<R extends ProviderRunResult = ProviderRunRes
     create(context: ProviderContext): Provider<R>;
     /**
      * A lowering provider that is a stage 1 compiler builds the MEMO model
-     * itself: its own check, then stage 2 over its API JSON. One without it
-     * (`internal`) leaves the model to MEMO's own builder.
+     * itself: its own check, then stage 2 over its API JSON. MEMO has no
+     * compiler of its own, so one without it cannot be selected.
      */
     compileModel?(options: CompileModelOptions): Promise<CompileModelResult>;
     /**

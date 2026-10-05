@@ -3,7 +3,9 @@ import { resolve, join } from 'node:path';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolveContentPackageRoot } from '../model/paths.js';
 import { RelationshipRegistry, pascalToCamelCase } from '../model/relationship-registry.js';
-import { parseFiles, parseText } from '../model/parser-utils.js';
+import { compileSources, compiledExample, compilerConfigured, examplesPresent, stubKinds } from './helpers/compile-source.js';
+import { handoffFileOf } from '../stage2/handoff-files.js';
+import type { ApiElement } from '../stage2/api-model.js';
 
 function getSysmlFiles(dir: string): string[] {
     const files: string[] = [];
@@ -118,13 +120,14 @@ describe('RelationshipRegistry', () => {
 // they survive the parse, inherit down the specialization chain, and stay
 // undefined when the ontology declares a slot without stating a value.
 
-describe('RelationshipRegistry structural properties', () => {
-    /** Populate a registry from SysML source text. */
+describe.runIf(compilerConfigured)('RelationshipRegistry structural properties', () => {
+    /** Populate a registry from SysML source text, compiled as a project's own. */
     async function registryFrom(source: string): Promise<RelationshipRegistry> {
-        const { document, errors } = await parseText(source);
-        expect(errors).toEqual([]);
+        const { api } = await compileSources(
+            [{ source: `private import ScalarValues::*;\n${source}`, filePath: 'src/core/relationships/test.sysml' }],
+            { stubs: stubKinds(['MemoPart']) });
         const registry = new RelationshipRegistry();
-        registry.populateFromDocuments([{ document, filePath: 'src/core/relationships/test.sysml' }]);
+        registry.populateFromApi(api, handoffFileOf(api), undefined, 'project');
         return registry;
     }
 
@@ -178,7 +181,7 @@ package memo_core_relationships {
         const registry = await registryFrom(`
 package memo_core_relationships {
     abstract connection def MemoRelationship {
-        attribute :>> isUnique = true;
+        attribute isUnique : Boolean = true;
     }
     connection def Composes :> MemoRelationship {
         end parent : MemoPart;
@@ -194,7 +197,7 @@ package memo_core_relationships {
         const registry = await registryFrom(`
 package memo_core_relationships {
     abstract connection def MemoRelationship {
-        attribute :>> isReflexive = false;
+        attribute isReflexive : Boolean default = false;
     }
     connection def TracesTo :> MemoRelationship {
         attribute :>> isReflexive = true;
@@ -218,15 +221,12 @@ package memo_core_relationships {
 
 // ─── The shipped ontology ───────────────────────────────────────────────────
 
-describe('MEMO ontology relationship properties', () => {
+describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationship properties', () => {
     it('keeps comment, rationale, and note targets universal', async () => {
-        const source = readFileSync(
-            join(resolveContentPackageRoot(), 'src/core/annotations/memo_annotations.sysml'),
-            'utf8');
-        const { document, errors } = await parseText(source);
-        expect(errors).toEqual([]);
+        const project = await compiledExample();
+        const fileOf = handoffFileOf(project.api);
         const registry = new RelationshipRegistry();
-        registry.populateFromDocuments([{ document, filePath: 'src/core/annotations/memo_annotations.sysml' }]);
+        registry.populateFromApi(project.api, fileOf, namespace => fileOf(namespace).endsWith('memo_annotations.sysml'));
 
         const expected = [
             ['CommentsOn', 'ModelComment'],
@@ -241,18 +241,17 @@ describe('MEMO ontology relationship properties', () => {
     });
 
     it('declares the structural slots on MemoRelationship', async () => {
-        // Resolve through the installed ontology package, as the loader does.
         const source = readFileSync(
             join(resolveContentPackageRoot(), 'src/core/relationships/memo_relationships.sysml'),
             'utf8');
         expect(source).toContain('attribute isReflexive : Boolean;');
         expect(source).toContain('attribute isUnique : Boolean;');
 
-        // And they survive the real parse, not just a grep.
-        const { document, errors } = await parseText(source);
-        expect(errors).toEqual([]);
+        // And they survive the compile, not just a grep.
+        const project = await compiledExample();
+        const fileOf = handoffFileOf(project.api);
         const registry = new RelationshipRegistry();
-        registry.populateFromDocuments([{ document, filePath: 'src/core/relationships/memo_relationships.sysml' }]);
+        registry.populateFromApi(project.api, fileOf, namespace => fileOf(namespace).endsWith('memo_relationships.sysml'));
         expect(registry.getRelType('memoRelationship')).toBeDefined();
         // Slots are declared, no values stated — every relation takes the default.
         expect(registry.toDefinitionDTOs().every(d => d.isReflexive === undefined)).toBe(true);
@@ -324,13 +323,10 @@ describe('MEMO ontology relationship properties', () => {
     ];
 
     it('keeps the universal relation identifiable among fully untyped relations', async () => {
-        const source = readFileSync(
-            join(resolveContentPackageRoot(), 'src/core/relationships/memo_relationships.sysml'),
-            'utf8');
-        const { document, errors } = await parseText(source);
-        expect(errors).toEqual([]);
+        const project = await compiledExample();
+        const fileOf = handoffFileOf(project.api);
         const registry = new RelationshipRegistry();
-        registry.populateFromDocuments([{ document, filePath: 'src/core/relationships/memo_relationships.sysml' }]);
+        registry.populateFromApi(project.api, fileOf, namespace => fileOf(namespace).endsWith('memo_relationships.sysml'));
 
         const bothEndsUntyped = registry.toDefinitionDTOs()
             .filter(d => !d.isAbstract && !d.sourceEnd.type && !d.targetEnd.type);
@@ -348,12 +344,10 @@ describe('MEMO ontology relationship properties', () => {
     });
 
     it('types both ends on every other concrete relation', async () => {
-        const source = readFileSync(
-            join(resolveContentPackageRoot(), 'src/core/relationships/memo_relationships.sysml'),
-            'utf8');
-        const { document } = await parseText(source);
+        const project = await compiledExample();
+        const fileOf = handoffFileOf(project.api);
         const registry = new RelationshipRegistry();
-        registry.populateFromDocuments([{ document, filePath: 'src/core/relationships/memo_relationships.sysml' }]);
+        registry.populateFromApi(project.api, fileOf, namespace => fileOf(namespace).endsWith('memo_relationships.sysml'));
 
         const untypedEnds = registry.toDefinitionDTOs()
             .filter(d => !d.isAbstract && !UNTYPED_END_EXEMPTIONS.includes(d.sysmlName))

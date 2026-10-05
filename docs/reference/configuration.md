@@ -51,7 +51,7 @@ so they are selected separately:
 ```yaml
 toolchain:
   validator: syside
-  lowering: internal
+  lowering: opensysml
   packager: sysand
   syside:
     executable: syside
@@ -107,8 +107,8 @@ It runs `syside check` as well only when `syside.configFile` or a narrower
 check` always runs the CLI, because the `validator-exceptions.json` register
 applies there.
 
-`compiler: internal` is MEMO's own compiler; `compiler: opensysml` is
-OpenSysML. There is no default: some setting must name the compiler, and
+`compiler: syside` is SysIDE; `compiler: opensysml` is OpenSysML. MEMO has
+no compiler of its own: both produce the API JSON stage 2 builds from. There is no default: some setting must name the compiler, and
 every command fails with an error saying what to set when none does. The
 packager is named the same way (`toolchain.packager`), and only `memo pack`
 needs it. An explicit `toolchain.validator` or `toolchain.lowering` overrides
