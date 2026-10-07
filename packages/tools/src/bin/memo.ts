@@ -114,7 +114,8 @@ withToolchainOptions(
         .description('Validate the model against closure rules and show completeness')
         .argument('[dir]', 'Project directory', '.')
         .option('--format <format>', 'Output format: text, junit, json', 'text')
-        .option('-o, --output <file>', 'Write output to file instead of stdout'),
+        .option('-o, --output <file>', 'Write output to file instead of stdout')
+        .option('--no-server', 'Compile here even when `memo dev` is running for the project'),
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     await validateCommand(dir, { ...opts, format: opts.format as any, output: opts.output as string });
 });

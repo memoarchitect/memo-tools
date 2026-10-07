@@ -34,6 +34,11 @@ import { checkLockFile } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { enforceRuntimeBudget } from '../server/runtime-budget.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
+import { format } from 'node:util';
+import type { CompileModelResult } from '../toolchain/registry.js';
+import { sourceFingerprint } from '../toolchain/source-fingerprint.js';
+import { newToken, removeDevServerRecord, writeDevServerRecord } from '../server/dev-validate.js';
+import { runValidation, validationExitCode, type ValidateOptions, type ValidationIO } from './validate.js';
 import { compileResolvedProject } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
@@ -236,6 +241,10 @@ export async function devCommand(options: {
         constraints: ReturnType<typeof collectApiConstraints>; registries?: BuilderRegistries;
         sourceGraph: ReturnType<typeof buildSourceGraphFromPackages>; enumerations: EnumDefinitionDTO[];
     } | undefined;
+    // The newest compile, with the fingerprint of the sources it read (taken
+    // before it ran): what `memo validate` is answered from while the
+    // fingerprint still matches the files on disk.
+    let latestCompile: { fingerprint: string; stage1: CompileModelResult } | undefined;
     async function rebuildProject(changedFiles?: readonly string[]): Promise<{
         messages: ServerMessage[]; revision: number; coherent: boolean; firstErrorFile?: string;
         errors: readonly ParseError[];
@@ -248,7 +257,9 @@ export async function devCommand(options: {
         // that reports errors makes this build incoherent, so a client keeps
         // showing the last good one.
         // The same resolved compile every command runs, reusing `.memo/stage1/`.
+        const fingerprint = sourceFingerprint(cwd);
         const stage1 = await compileResolvedProject({ config, projectDir: cwd, cacheDir: stage1CacheDir(cwd) });
+        latestCompile = { fingerprint, stage1 };
         // The methodology follows the project's imports, which an edit can
         // change: from the compiled resolution.
         try {
@@ -502,12 +513,45 @@ export async function devCommand(options: {
         console.log(chalk.gray(`\n  ${reason}`));
         projectWatcher?.close();
         ontologyWatcher?.close();
+        removeDevServerRecord(cwd);
         server.close();
         process.exit(0);
     };
 
+    // Compiles run one at a time, whether a save or a `memo validate` asked.
+    let compileChain: Promise<unknown> = Promise.resolve();
+    const serialized = <T>(run: () => Promise<T>): Promise<T> => {
+        const next = compileChain.then(run, run);
+        compileChain = next.then(() => undefined, () => undefined);
+        return next;
+    };
+    // `memo validate`, answered from the model held here (server/dev-validate.ts).
+    // The settings are read once, at startup: changed since, this process is
+    // not the one to validate them, and the caller validates on its own.
+    const settingsAtStart = JSON.stringify(loadProjectSettings(cwd));
+    const validateToken = newToken();
+    const validateHere = (validateOptions: ValidateOptions) => serialized(async () => {
+        if (JSON.stringify(loadProjectSettings(cwd)) !== settingsAtStart) {
+            throw new Error('the project settings changed since memo dev started');
+        }
+        if (latestCompile?.fingerprint !== sourceFingerprint(cwd)) await rebuildAndPublish([]);
+        const held = latestCompile;
+        if (!held) throw new Error('memo dev holds no compile');
+        let stdout = '';
+        let stderr = '';
+        const io: ValidationIO = {
+            out: (...args) => { stdout += format(...args) + '\n'; },
+            err: (...args) => { stderr += format(...args) + '\n'; },
+            write: text => { stdout += text; },
+        };
+        const exitCode = await validationExitCode(() => runValidation(cwd, validateOptions, io, async () => held.stage1));
+        return { exitCode, stdout, stderr };
+    });
+
     // Start dev server
     const server = await createDevServer({
+        validate: validateHere,
+        validateToken,
         port,
         projectRoot: cwd,
         webPackagePath: options.clientRoot,
@@ -535,6 +579,15 @@ export async function devCommand(options: {
             }
         },
     });
+
+    // Say where `memo validate` can find this model. Not when this run names a
+    // toolchain of its own: a plain `memo validate` would then be answered by
+    // another compiler than the settings select.
+    const ownToolchain = Object.values(options.toolchainOptions ?? {}).some(value => value !== undefined);
+    if (!ownToolchain) {
+        writeDevServerRecord({ pid: process.pid, url: `http://${host}:${port}`, token: validateToken, projectRoot: cwd });
+        process.once('exit', () => removeDevServerRecord(cwd));
+    }
 
     if (!initial.coherent) {
         // Starting on a project that does not parse is allowed — the user
@@ -655,7 +708,7 @@ export async function devCommand(options: {
             while (pendingRebuildFiles.size > 0) {
                 const nextFiles = [...pendingRebuildFiles].sort();
                 pendingRebuildFiles.clear();
-                await rebuildAndPublish(nextFiles);
+                await serialized(() => rebuildAndPublish(nextFiles));
             }
         } finally {
             rebuildInFlight = false;

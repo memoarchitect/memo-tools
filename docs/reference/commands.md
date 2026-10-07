@@ -20,7 +20,7 @@ and `memo conformance` (it graded MEMO's own compiler, which is gone).
 | Command | Purpose |
 |---|---|
 | `memo compile [dir]` | Check the project is valid SysML with the compiler `toolchain.compiler` selects (stage 1). No MEMO rules. A compiler that builds the model keeps its output in `.memo/stage1/` (ignored by git), and `memo validate` reuses it while the inputs are unchanged; `--force` recompiles. `--out <file>` writes the compiled SysML v2 model (each document's API JSON with its role, the diagnostics, the element index, and each metaclass's supertypes), which analysis notebooks read through `analysis/memo_model.py`. |
-| `memo validate [dir]` | Evaluate closure rules and completeness; supports `text`, `junit`, and `json`. Reuses a fresh `memo compile`; a stage 1 error stops it before any rule runs. |
+| `memo validate [dir]` | Evaluate closure rules and completeness; supports `text`, `junit`, and `json`. Reuses a fresh `memo compile`; a stage 1 error stops it before any rule runs. Beside a running `memo-architect dev` for the project, it is answered from the model that server holds, recompiled first if a file changed since; `--no-server` compiles here instead. |
 | `memo init [name]` | Create a project from the default, a template, or a worked example. |
 | `memo convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
 | `memo pack` | Build a Knowledge Package Archive (`.kpar`). |

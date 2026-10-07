@@ -20,6 +20,16 @@ Start with errors, then review warnings. For each finding:
 3. correct the source;
 4. rerun validation.
 
+With `memo-architect dev` running for the project, `memo validate` asks its
+server rather than compiling the project again: the server already holds the
+compiled model and keeps it current as files change, so a rerun takes a fraction
+of a second. A file changed since its last build is compiled first, so the answer
+is always the one a run of its own gives. It says so on stderr; `--no-server`
+compiles here instead. A server started with toolchain flags of its own, or whose
+project settings changed since it started, is not asked. The server stops 10
+seconds after its last browser tab closes; start it with `--keep-alive` to
+validate against it without Architect open.
+
 ## Machine-readable results
 
 ```bash
