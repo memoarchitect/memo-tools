@@ -192,12 +192,11 @@ function projectFilesOf(api: ApiModel, projectRoot: string): string[] {
     const root = resolve(projectRoot);
     const inProject = (file: string) => !relative(root, file).startsWith('..') && !isAbsolute(relative(root, file));
     const files = new Set<string>();
-    for (const namespace of api.ofType('Namespace')) {
-        if (api.owner(namespace['@id'])) continue;
-        const role = api.source(namespace['@id'])?.role;
-        const file = api.absoluteFile(namespace['@id']);
-        if (!file) continue;
-        if (role === 'project' || (role === 'library' && inProject(resolve(file)))) files.add(file);
+    for (const [file, namespaces] of api.rootNamespacesByFile()) {
+        for (const namespace of namespaces) {
+            const role = api.source(namespace['@id'])?.role;
+            if (role === 'project' || (role === 'library' && inProject(resolve(file)))) files.add(file);
+        }
     }
     return [...files];
 }
@@ -210,11 +209,24 @@ export function projectOutlines(projectRoot: string, project: ProjectModel): Sou
     return outlinesFromHandoff(projectRoot, project.api);
 }
 
+/**
+ * An outline kept with the document it was read from: a document the last
+ * compile did not convert keeps its element objects, so the same root
+ * namespace and the same text give the same outline.
+ */
+const keptOutlines = new WeakMap<object, { name: string; text: string; roots: number; outline: SourceOutline }>();
+
 /** The outlines of a handoff's project files, read against the files on disk. */
 export function outlinesFromHandoff(projectRoot: string, api: ApiModel): SourceOutline[] {
     return projectFilesOf(api, projectRoot).filter(file => existsSync(file)).map(file => {
         const name = relativeTo(projectRoot, file);
-        return outlineFromHandoff(api, file, name, readFileSync(file, 'utf8'));
+        const text = readFileSync(file, 'utf8');
+        const roots = api.rootNamespacesIn(file);
+        const kept = roots.length > 0 ? keptOutlines.get(roots[0]) : undefined;
+        if (kept && kept.name === name && kept.text === text && kept.roots === roots.length) return kept.outline;
+        const outline = outlineFromHandoff(api, file, name, text);
+        if (roots.length > 0) keptOutlines.set(roots[0], { name, text, roots: roots.length, outline });
+        return outline;
     });
 }
 

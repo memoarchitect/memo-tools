@@ -79,6 +79,8 @@ const refs = (value: unknown): string[] =>
 export class ApiModel {
     private readonly byId = new Map<string, ApiElement>();
     private readonly byQualifiedName = new Map<string, string>();
+    private byType?: Map<string, ApiElement[]>;
+    private rootsByFile?: Map<string, ApiElement[]>;
     private readonly index: Record<string, ApiIndexEntry>;
     readonly provider: string;
 
@@ -137,8 +139,38 @@ export class ApiModel {
     }
 
     /** Every element of a metaclass, library included, in handoff order. */
-    *ofType(metaclass: string): Iterable<ApiElement> {
-        for (const element of this.byId.values()) if (element['@type'] === metaclass) yield element;
+    ofType(metaclass: string): readonly ApiElement[] {
+        if (!this.byType) {
+            // One pass over the handoff, on first ask: the model is not changed after it is built.
+            this.byType = new Map();
+            for (const element of this.byId.values()) {
+                const same = this.byType.get(element['@type']);
+                if (same) same.push(element); else this.byType.set(element['@type'], [element]);
+            }
+        }
+        return this.byType.get(metaclass) ?? [];
+    }
+
+    /**
+     * The namespaces nothing owns, by the absolute file they are declared in:
+     * what a file's outline starts from, found for every file in one pass.
+     */
+    rootNamespacesByFile(): ReadonlyMap<string, readonly ApiElement[]> {
+        if (!this.rootsByFile) {
+            this.rootsByFile = new Map();
+            for (const namespace of this.ofType('Namespace')) {
+                if (this.owner(namespace['@id'])) continue;
+                const file = this.absoluteFile(namespace['@id']);
+                if (file === undefined) continue;
+                const same = this.rootsByFile.get(file);
+                if (same) same.push(namespace); else this.rootsByFile.set(file, [namespace]);
+            }
+        }
+        return this.rootsByFile;
+    }
+
+    rootNamespacesIn(absoluteFile: string): readonly ApiElement[] {
+        return this.rootNamespacesByFile().get(absoluteFile) ?? [];
     }
 
     /** Elements the project declares, not the library. */
