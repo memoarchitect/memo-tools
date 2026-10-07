@@ -208,8 +208,7 @@ export function outlineFromHandoff(api: ApiModel, absoluteFile: string, file: st
         }];
     };
     const roots: RawNode[] = [];
-    for (const namespace of api.ofType('Namespace')) {
-        if (api.owner(namespace['@id']) || api.absoluteFile(namespace['@id']) !== absoluteFile) continue;
+    for (const namespace of api.rootNamespacesIn(absoluteFile)) {
         for (const member of api.ownedMembers(namespace['@id'])) roots.push(...visit(member));
     }
     roots.sort((a, b) => a.start - b.start);

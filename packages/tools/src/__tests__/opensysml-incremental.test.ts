@@ -13,6 +13,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { outlinesFromHandoff } from '../authoring/outline-source.js';
 import { discoverProjectSources } from '../model/native-project.js';
 import { modelToDTO } from '../model/semantic.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
@@ -44,6 +45,10 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('OpenSysML stage 1, co
     });
     afterAll(() => rmSync(root, { recursive: true, force: true }));
 
+    /** The outlines of the last `fresh()` model (a new handoff's elements, so none kept from an earlier compile). */
+    let freshOutlines = '';
+    let compiledOutlines = '';
+
     /** The model from one conversion of the whole model: what the provider did before. */
     async function fresh(): Promise<string> {
         const connection = await connectOpenSysML(options.config);
@@ -58,7 +63,9 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('OpenSysML stage 1, co
                 projectDir: root, libraryDirs: options.libraryDirs, providerVersion: connection.info?.version,
                 source: path => (existsSync(path) ? readFileSync(path) : undefined),
             });
-            return JSON.stringify(modelToDTO(stage2FromHandoff(new ApiModel(handoff), { ...options }).model));
+            const api = new ApiModel(handoff);
+            freshOutlines = JSON.stringify(outlinesFromHandoff(root, api));
+            return JSON.stringify(modelToDTO(stage2FromHandoff(api, { ...options }).model));
         } finally {
             await connection.close();
         }
@@ -67,6 +74,7 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('OpenSysML stage 1, co
     async function compiled(): Promise<string> {
         const result = await compileWithOpenSysML({ ...options, force: true });
         expect(result.accepted).toBe(true);
+        compiledOutlines = JSON.stringify(outlinesFromHandoff(root, result.api!));
         return JSON.stringify(modelToDTO(result.model!));
     }
 
@@ -86,19 +94,25 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('OpenSysML stage 1, co
             return model;
         };
         expect(await timed()).toBe(await fresh());
+        expect(compiledOutlines).toBe(freshOutlines);
         edit(text => text.replace(/=\s*(\d+)\s*;/, (_, n: string) => `= ${Number(n) + 1};`));
         expect(await timed()).toBe(await fresh());
+        expect(compiledOutlines).toBe(freshOutlines);
         edit(text => text.replace('{', '{ part def IncrementalProbe; '));
         expect(await timed()).toBe(await fresh());
+        expect(compiledOutlines).toBe(freshOutlines);
         edit(text => `${text}\npackage broken { part p : NoSuchType; }\n`);
         expect((await compileWithOpenSysML({ ...options, force: true })).accepted).toBe(false);
         edit(text => text.replace(/\npackage broken \{[^\n]*\}\n$/, ''));
         expect(await timed()).toBe(await fresh());
+        expect(compiledOutlines).toBe(freshOutlines);
         // The service reports an edit narrow only once it has seen the documents twice; comments stay narrow.
         edit(text => `${text}\n// a comment\n`);
         expect(await timed()).toBe(await fresh());
+        expect(compiledOutlines).toBe(freshOutlines);
         edit(text => `${text}\n// another comment\n`);
         expect(await timed()).toBe(await fresh());
+        expect(compiledOutlines).toBe(freshOutlines);
         console.log('documents compile ms (first, value, declaration, repaired, comment, comment):', times.join(', '), '| converted:', reached.join(', '));
         // Only the documents the edit reached are converted; a service without `parse_sources_affected` converts them all.
         if (openSysMLLastConversion.incremental) expect(reached.slice(1).some(r => r.split('/')[0] !== r.split('/')[1])).toBe(true);
