@@ -91,7 +91,13 @@ export interface OpenSysMLConnection {
     rpc: {
         parseSources(request: {
             documents: SourceDocumentRequest[];
-        }): Promise<{ modelHash: string; diagnostics: ServiceDiagnostic[]; error?: string }>;
+            /** The model hash of a model the caller holds results of; needs `parse_sources_affected` to be answered. */
+            baseModelHash?: string;
+        }): Promise<{
+            modelHash: string; diagnostics: ServiceDiagnostic[]; error?: string;
+            /** The documents whose results may differ from the base's; every one when the service cannot relate the base. */
+            affected?: string[];
+        }>;
         convert(request: {
             source: { case: 'modelHash'; value: string };
             toFormat: string;
