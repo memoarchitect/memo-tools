@@ -167,6 +167,13 @@ export interface ToolchainSchemaLeaf {
     provider?: string;
     /** Present on leaves kept only for backwards compatibility. */
     deprecated?: string;
+    /**
+     * `user`: the setting belongs to the person running the tool (which
+     * compiler, where its binary or interpreter is on this machine), so a
+     * project's checked-in settings file may not set it. It is set in the
+     * user's settings, the environment or on the command line.
+     */
+    scope?: 'user';
 }
 
 /** What `compileModel` needs: the project, as its resolution already found it. */
@@ -342,6 +349,8 @@ export class ProviderRegistry {
             type: 'enum' as const,
             values: this.ids(role),
             description: `Provider for the ${role} role.`,
+            // How a project is packed is the project's; which compiler runs is the user's.
+            ...(role === 'package' ? {} : { scope: 'user' as const }),
         }));
         leaves.push({
             path: COMPILER_SETTING,
@@ -349,6 +358,7 @@ export class ProviderRegistry {
             values: this.ids('validator'),
             description:
                 'The stage 1 SysML compiler: sets toolchain.validator and toolchain.lowering together.',
+            scope: 'user',
         });
         const seen = new Set<string>();
         for (const descriptor of this.all()) {

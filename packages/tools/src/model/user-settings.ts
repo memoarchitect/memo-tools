@@ -15,10 +15,11 @@
 //   MEMO_TOOLCHAIN_COMPILER=<id>   beats the file, for CI and scripts.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { Document, parse as parseYaml, parseDocument } from 'yaml';
 import type { ToolchainConfig } from './config.js';
 import { mergeToolchain } from './toolchain-merge.js';
 
@@ -31,18 +32,56 @@ export function userSettingsPath(env: NodeJS.ProcessEnv = process.env): string {
     return join(dir, 'settings.yaml');
 }
 
+/** The `toolchain` block of the user's settings file alone. */
+export function userFileToolchain(env: NodeJS.ProcessEnv = process.env): ToolchainConfig {
+    const path = userSettingsPath(env);
+    if (!existsSync(path)) return {};
+    try {
+        const raw = parseYaml(readFileSync(path, 'utf8')) as { toolchain?: ToolchainConfig } | null;
+        return raw?.toolchain && typeof raw.toolchain === 'object' ? raw.toolchain : {};
+    } catch (error) {
+        throw new Error(`The user settings file ${path} could not be read: ${error instanceof Error ? error.message : error}`);
+    }
+}
+
 /** The user's `toolchain` settings: the file, then the compiler variable over it. */
 export function userToolchain(env: NodeJS.ProcessEnv = process.env): ToolchainConfig {
-    const path = userSettingsPath(env);
-    let fromFile: ToolchainConfig = {};
-    if (existsSync(path)) {
-        try {
-            const raw = parseYaml(readFileSync(path, 'utf8')) as { toolchain?: ToolchainConfig } | null;
-            fromFile = raw?.toolchain && typeof raw.toolchain === 'object' ? raw.toolchain : {};
-        } catch (error) {
-            throw new Error(`The user settings file ${path} could not be read: ${error instanceof Error ? error.message : error}`);
-        }
-    }
     const compiler = env[USER_COMPILER_ENV]?.trim();
-    return mergeToolchain(fromFile, compiler ? { compiler } : undefined);
+    return mergeToolchain(userFileToolchain(env), compiler ? { compiler } : undefined);
+}
+
+// ─── Writing the user's settings ─────────────────────────────────────────────
+//
+// `memo config set` edits the file with the YAML document model, so a user's
+// comments and other keys stay where they were.
+
+function readDocument(path: string): Document {
+    if (!existsSync(path)) return new Document({});
+    const document = parseDocument(readFileSync(path, 'utf8'));
+    if (document.errors.length > 0) {
+        throw new Error(`The user settings file ${path} could not be read: ${document.errors[0].message}`);
+    }
+    return document.contents === null ? new Document({}) : document;
+}
+
+/** Set a toolchain leaf (`compiler`, `opensysml.binary`) in the user's settings file. Returns the file. */
+export function setUserToolchainSetting(path: string, value: string, env: NodeJS.ProcessEnv = process.env): string {
+    const file = userSettingsPath(env);
+    const document = readDocument(file);
+    document.setIn(['toolchain', ...path.split('.')], value);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, document.toString());
+    return file;
+}
+
+/** Remove a toolchain leaf from the user's settings file; false when it was not set. */
+export function unsetUserToolchainSetting(path: string, env: NodeJS.ProcessEnv = process.env): boolean {
+    const file = userSettingsPath(env);
+    if (!existsSync(file)) return false;
+    const document = readDocument(file);
+    const steps = ['toolchain', ...path.split('.')];
+    if (!document.hasIn(steps)) return false;
+    document.deleteIn(steps);
+    writeFileSync(file, document.toString());
+    return true;
 }

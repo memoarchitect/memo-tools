@@ -100,6 +100,15 @@ export interface MEMOConfig {
     toolchain?: ToolchainConfig;
 
     /**
+     * The `toolchain` block the project's own settings file wrote, before the
+     * user's and the command line's layers were put over it, and the file it
+     * came from. Kept so a setting that belongs to the user can be refused where
+     * a project wrote it (`toolchain/ownership.ts`).
+     */
+    projectToolchain?: ToolchainConfig;
+    projectSettingsFile?: string;
+
+    /**
      * Identities assigned on earlier builds, from `memo.identity.yaml`.
      *
      * The builder is pure — it has no project root and does no file access — so

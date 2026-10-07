@@ -25,6 +25,7 @@ import type { MEMOConfig } from '../../model/config.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import type { Diagnostic, DiagnosticSeverity } from '../diagnostic.js';
 import { providerSettings } from '../effective.js';
+import { OPENSYSML_DISPLAY_NAME, OPENSYSML_ENV, OPENSYSML_NPM_PACKAGE, OPENSYSML_PROVIDER_ID } from './opensysml-names.js';
 import type {
     Availability,
     ProviderContext,
@@ -33,7 +34,7 @@ import type {
     ValidatorDescriptor,
 } from '../registry.js';
 
-export const OPENSYSML_PROVIDER_ID = 'opensysml';
+export { OPENSYSML_PROVIDER_ID };
 
 interface OpenSysMLConfig {
     client?: string;
@@ -45,17 +46,20 @@ const SETTINGS_SCHEMA: readonly ToolchainSchemaLeaf[] = [
     {
         path: `${OPENSYSML_PROVIDER_ID}.client`,
         type: 'string',
-        description: 'Module the Node client is imported from: a built `dist/node/index.js`, or `@openmbee/opensysml` (the default).',
+        scope: 'user',
+        description: `Module the Node client is imported from: a built \`dist/node/index.js\`, or \`${OPENSYSML_NPM_PACKAGE}\` (the default).`,
     },
     {
         path: `${OPENSYSML_PROVIDER_ID}.binary`,
         type: 'string',
-        description: 'The `sysml-grpc` executable the client starts. Defaults to `$OPENSYSML_BINARY`.',
+        scope: 'user',
+        description: `The \`sysml-grpc\` executable the client starts. Defaults to \`$${OPENSYSML_ENV.binary}\`.`,
     },
     {
         path: `${OPENSYSML_PROVIDER_ID}.service`,
         type: 'string',
-        description: 'Address of a running `sysml-grpc` to use instead of starting one. Defaults to `$OPENSYSML_SERVICE`.',
+        scope: 'user',
+        description: `Address of a running \`sysml-grpc\` to use instead of starting one. Defaults to \`$${OPENSYSML_ENV.service}\`.`,
     },
 ];
 
@@ -64,16 +68,16 @@ function settings(config: MEMOConfig): OpenSysMLConfig {
 }
 
 function clientModule(config: MEMOConfig): string {
-    const spec = settings(config).client ?? process.env.MEMO_OPENSYSML_CLIENT ?? '@openmbee/opensysml';
+    const spec = settings(config).client ?? process.env[OPENSYSML_ENV.client] ?? OPENSYSML_NPM_PACKAGE;
     return spec.startsWith('.') || spec.startsWith('/') ? pathToFileURL(resolve(spec)).href : spec;
 }
 
 function binary(config: MEMOConfig): string | undefined {
-    return settings(config).binary ?? process.env.OPENSYSML_BINARY;
+    return settings(config).binary ?? process.env[OPENSYSML_ENV.binary];
 }
 
 function address(config: MEMOConfig): string | undefined {
-    return settings(config).service ?? process.env.OPENSYSML_SERVICE;
+    return settings(config).service ?? process.env[OPENSYSML_ENV.service];
 }
 
 /** The part of the client's connection the OpenSysML providers use. */
@@ -168,13 +172,13 @@ export function toDiagnostic(d: ServiceDiagnostic, version?: string): Diagnostic
  */
 export async function connectOpenSysML(config: MEMOConfig): Promise<OpenSysMLConnection> {
     const executable = binary(config);
-    if (executable) process.env.OPENSYSML_BINARY = executable;
+    if (executable) process.env[OPENSYSML_ENV.binary] = executable;
     let client: OpenSysMLClient;
     try {
         client = await import(clientModule(config)) as OpenSysMLClient;
     } catch (error) {
-        throw new Error(`OpenSysML's Node client could not be loaded from "${clientModule(config)}": `
-            + `${error instanceof Error ? error.message : error}. Install @openmbee/opensysml, or set `
+        throw new Error(`${OPENSYSML_DISPLAY_NAME}'s Node client could not be loaded from "${clientModule(config)}": `
+            + `${error instanceof Error ? error.message : error}. Install ${OPENSYSML_NPM_PACKAGE}, or set `
             + `toolchain.${OPENSYSML_PROVIDER_ID}.client to a built checkout's dist/node/index.js.`);
     }
     const service = address(config);

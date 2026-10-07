@@ -37,7 +37,8 @@ describe('role resolution', () => {
         const effective = resolveToolchain(config(), registry);
         expect(effective.selections).toEqual([]);
         expect(() => effective.lowering).toThrow(ToolchainNotConfiguredError);
-        expect(() => effective.validator).toThrow(/Set toolchain\.compiler \(syside, opensysml\)/);
+        // The compiler is the user's to choose: the message names their command, not the project file.
+        expect(() => effective.validator).toThrow(/memo config set compiler <syside\|opensysml>/);
         expect(() => effective.packager).toThrow(/Set toolchain\.packager/);
     });
 

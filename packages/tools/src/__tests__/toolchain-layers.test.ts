@@ -1,7 +1,8 @@
 // ─── Toolchain settings come from layers ─────────────────────────────────────
 //
 // The user's settings, then the project's, then the command line's flags: each beats the one
-// before, and a `compiler` decides both roles it fills.
+// before, and a `compiler` decides both roles it fills. What is the user's to choose (the
+// compiler, where its tools are) is refused in a project's checked-in file.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -13,6 +14,7 @@ import { mergeToolchain } from '../model/toolchain-merge.js';
 import { USER_COMPILER_ENV, userToolchain } from '../model/user-settings.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { resolveToolchain, ToolchainNotConfiguredError } from '../toolchain/effective.js';
+import { ProjectNamesUserSettingError } from '../toolchain/ownership.js';
 
 describe('mergeToolchain', () => {
     it('a higher compiler decides both roles, dropping the explicit ones below it', () => {
@@ -58,16 +60,34 @@ describe('the layers a command sees', () => {
         user('toolchain: {}\n');
         expect(() => lowering(project(''))).toThrow(ToolchainNotConfiguredError);
     });
-    it('the variable beats the user\'s file; the project beats both', () => {
+    it('the variable beats the user\'s file', () => {
         user('toolchain:\n  compiler: syside\n');
         process.env[USER_COMPILER_ENV] = 'opensysml';
         expect(userToolchain().compiler).toBe('opensysml');
         expect(lowering(project(''))).toBe('opensysml');
-        expect(lowering(project('toolchain:\n  compiler: syside\n'))).toBe('syside');
     });
-    it('the command line\'s override beats a project that sets the roles explicitly', () => {
-        user('toolchain: {}\n');
-        const dir = project('toolchain:\n  validator: syside\n  lowering: syside\n');
+    it('a project\'s checked-in file may not name the compiler, its roles or a tool on this machine', () => {
+        user('toolchain:\n  compiler: syside\n');
+        for (const pinned of [
+            'toolchain:\n  compiler: opensysml\n',
+            'toolchain:\n  validator: syside\n  lowering: syside\n',
+            'toolchain:\n  opensysml:\n    binary: /usr/local/bin/sysml-grpc\n',
+            'toolchain:\n  syside:\n    python: /usr/bin/python3\n',
+        ]) {
+            expect(() => lowering(project(pinned)), pinned).toThrow(ProjectNamesUserSettingError);
+        }
+        // The error says where it is set instead, and is not a fallback: the user's choice is not used.
+        expect(() => lowering(project('toolchain:\n  compiler: opensysml\n'))).toThrow(/memo config set compiler/);
+    });
+    it('a project keeps the settings that are the project\'s', () => {
+        user('toolchain:\n  compiler: syside\n');
+        const dir = project('toolchain:\n  packager: internal\n  syside:\n    diagnose: project\n    configFile: syside.toml\n');
+        const effective = resolveToolchain(loadProjectSettings(dir), defaultRegistry);
+        expect([effective.lowering, effective.packager]).toEqual(['syside', 'internal']);
+    });
+    it('the command line\'s override beats the user\'s roles', () => {
+        user('toolchain:\n  validator: syside\n  lowering: syside\n');
+        const dir = project('');
         expect(lowering(dir)).toBe('syside');
         setCommandLineToolchain({ compiler: 'opensysml' });
         const effective = resolveToolchain(loadProjectSettings(dir), defaultRegistry);

@@ -32,6 +32,7 @@ const SETTINGS_SCHEMA: readonly ToolchainSchemaLeaf[] = [
     {
         path: `${SYSAND_PROVIDER_ID}.executable`,
         type: 'string',
+        scope: 'user',
         description: `Executable name or path. Defaults to \`${SYSAND_PROVIDER_ID}\` on PATH.`,
     },
     {
