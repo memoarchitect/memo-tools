@@ -103,6 +103,11 @@ export interface OpenSysMLConnection {
             toFormat: string;
             /** Only these documents are written; needs the `convert_documents` capability. */
             documents?: string[];
+            /** The compact document in place of the element array; needs `convert_compact`. */
+            compact?: boolean;
+            /** With `compact`: derived properties are left out except `keepDerived`. */
+            omitDerived?: boolean;
+            keepDerived?: string[];
         }): Promise<{ content: string; error?: string; diagnostics: ServiceDiagnostic[] }>;
     };
     close(): Promise<void>;

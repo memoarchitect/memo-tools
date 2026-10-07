@@ -24,6 +24,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { closeSharedOpenSysMLConnection, sharedOpenSysMLConnection } from './opensysml-check.js';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
@@ -34,6 +35,7 @@ import { SYSML_IR_VERSION } from '../../model/sysml-ir.js';
 import { stage2FromHandoff } from '../../stage2/stage2-from-handoff.js';
 import { ApiModel, STAGE1_FORMAT, type ApiElement, type ApiIndexEntry, type Stage1Output } from '../../stage2/api-model.js';
 import type { Diagnostic } from '../diagnostic.js';
+import { CONVERT_COMPACT, KEPT_DERIVED_PROPERTIES, parseApiJson } from './opensysml-compact.js';
 import { SYSMLC_IR_VERSION } from '../protocol.js';
 import type {
     Availability,
@@ -376,14 +378,23 @@ interface Stage1Run {
 }
 
 const STORED = `${OPENSYSML_PROVIDER_ID}.stage1.json`;
-const CONTENT = `${OPENSYSML_PROVIDER_ID}.api.json`;
+const CONTENT = `${OPENSYSML_PROVIDER_ID}.api.json.gz`;
 const KEY = `${OPENSYSML_PROVIDER_ID}.json.key`;
 
 /** The directory of the per-document pieces. */
 const PIECES = `${OPENSYSML_PROVIDER_ID}-documents`;
-const STANDARD = '_standard.json';
+const STANDARD = '_standard.json.gz';
 
-const pieceFileOf = (path: string): string => `${createHash('sha1').update(path).digest('hex').slice(0, 20)}.json`;
+const pieceFileOf = (path: string): string => `${createHash('sha1').update(path).digest('hex').slice(0, 20)}.json.gz`;
+
+/**
+ * The stage 1 store's data files are gzipped at the fastest level: the JSON of
+ * a large project is mostly repeated ids and keys, so a file is a fraction of
+ * its size for a few tens of milliseconds, and the store is written and read
+ * far more often than it is looked at.
+ */
+const writePacked = (file: string, text: string): void => writeFileSync(file, gzipSync(text, { level: 1 }));
+const readPacked = (file: string): string => gunzipSync(readFileSync(file)).toString('utf8');
 
 /** Write the pieces a compile converted, drop the files of documents that are gone, and the standard entries when they grew. */
 function storePieces(cacheDir: string, run: Stage1Run): void {
@@ -394,18 +405,18 @@ function storePieces(cacheDir: string, run: Stage1Run): void {
     for (const name of readdirSync(dir)) if (!keep.has(name)) rmSync(join(dir, name), { force: true });
     for (const [path, piece] of run.pieces ?? []) {
         const file = join(dir, pieceFileOf(path));
-        if (run.written === undefined || run.written.has(path) || !existsSync(file)) writeFileSync(file, JSON.stringify(piece));
+        if (run.written === undefined || run.written.has(path) || !existsSync(file)) writePacked(file, JSON.stringify(piece));
     }
     const standard = join(dir, STANDARD);
     // A conversion only adds to the standard entries, so a file with as many is the same.
     const count = Object.keys(run.standard ?? {}).length;
-    if (run.written === undefined || !existsSync(standard) || (JSON.parse(readFileSync(standard, 'utf8')) as unknown[]).length !== count) {
-        writeFileSync(standard, JSON.stringify(Object.entries(run.standard ?? {})));
+    if (run.written === undefined || !existsSync(standard) || (JSON.parse(readPacked(standard)) as unknown[]).length !== count) {
+        writePacked(standard, JSON.stringify(Object.entries(run.standard ?? {})));
     }
 }
 
 function libraryFileOf(cacheDir: string, libraryKey: string): string {
-    return join(cacheDir, `${OPENSYSML_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`);
+    return join(cacheDir, `${OPENSYSML_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json.gz`);
 }
 
 function storeStage1(cacheDir: string, key: string, run: Stage1Run): void {
@@ -417,7 +428,9 @@ function storeStage1(cacheDir: string, key: string, run: Stage1Run): void {
     // The handoff an earlier version stored whole, which nothing reads now.
     rmSync(join(cacheDir, `${OPENSYSML_PROVIDER_ID}.json`), { force: true });
     rmSync(join(cacheDir, KEY), { force: true });
-    if (run.content !== undefined) writeFileSync(join(cacheDir, CONTENT), run.content);
+    // The whole conversion an earlier version stored unpacked.
+    rmSync(join(cacheDir, `${OPENSYSML_PROVIDER_ID}.api.json`), { force: true });
+    if (run.content !== undefined) writePacked(join(cacheDir, CONTENT), run.content);
     else rmSync(join(cacheDir, CONTENT), { force: true });
     if (run.pieces) storePieces(cacheDir, run);
     else if (run.stored.clean) rmSync(join(cacheDir, PIECES), { recursive: true, force: true });
@@ -438,7 +451,7 @@ function readStoredStage1(cacheDir: string, key: string, options: OpenSysMLHando
     if (stored.converted === 'documents') {
         library = stored.libraryKey ? libraryHandoffs.get(stored.libraryKey) : undefined;
         const file = stored.libraryKey ? libraryFileOf(cacheDir, stored.libraryKey) : undefined;
-        if (!library && file && existsSync(file)) library = JSON.parse(readFileSync(file, 'utf8')) as Stage1Output;
+        if (!library && file && existsSync(file)) library = JSON.parse(readPacked(file)) as Stage1Output;
         if (!library) return undefined;
         libraryHandoffs.set(stored.libraryKey!, library);
         const dir = join(cacheDir, PIECES);
@@ -446,13 +459,13 @@ function readStoredStage1(cacheDir: string, key: string, options: OpenSysMLHando
         const pieces = new Map<string, ProjectPiece>();
         for (const { path, file } of stored.pieces ?? []) {
             if (!existsSync(join(dir, file))) return undefined;
-            pieces.set(path, JSON.parse(readFileSync(join(dir, file), 'utf8')) as ProjectPiece);
+            pieces.set(path, JSON.parse(readPacked(join(dir, file))) as ProjectPiece);
         }
-        const standard = Object.fromEntries(JSON.parse(readFileSync(join(dir, STANDARD), 'utf8')) as [string, ApiIndexEntry][]);
+        const standard = Object.fromEntries(JSON.parse(readPacked(join(dir, STANDARD))) as [string, ApiIndexEntry][]);
         return { ...overLibrary(library, projectOf(pieces, standard, stored.providerVersion)), diagnostics: stored.diagnostics };
     }
     if (stored.converted !== 'whole' || !existsSync(join(cacheDir, CONTENT))) return undefined;
-    const elements = JSON.parse(readFileSync(join(cacheDir, CONTENT), 'utf8')) as ApiElement[];
+    const elements = parseApiJson(readPacked(join(cacheDir, CONTENT)));
     return { ...openSysMLHandoff(elements, { ...options, providerVersion: stored.providerVersion }), diagnostics: stored.diagnostics };
 }
 
@@ -566,10 +579,14 @@ async function runStage1(
         const handoffOptions = { ...openSysMLHandoffOptions(projectDir, libraryDirs, documents), providerVersion: version };
         // The conversion's text as the service wrote it, kept for the stage 1 store.
         let content: string | undefined;
+        // The compact document when the service writes one: far fewer bytes to
+        // read, with the derived properties the handoff does not read left out.
+        const compact = Boolean(connection.info?.has?.(CONVERT_COMPACT));
         const convert = async (named?: string[]): Promise<ApiElement[] | undefined> => {
             const converted = await connection.rpc.convert({
                 source: { case: 'modelHash', value: parsed.modelHash }, toFormat: 'api-json',
                 ...(named ? { documents: named } : {}),
+                ...(compact ? { compact: true, omitDerived: true, keepDerived: [...KEPT_DERIVED_PROPERTIES] } : {}),
             });
             if (converted.error) {
                 diagnostics.push(...converted.diagnostics.map(d => toDiagnostic(d, version)));
@@ -580,7 +597,7 @@ async function runStage1(
                 return undefined;
             }
             content = converted.content;
-            return JSON.parse(converted.content) as ApiElement[];
+            return parseApiJson(converted.content);
         };
 
         if (!connection.info?.has?.(CONVERT_DOCUMENTS) || libraryFiles.length === 0) {
@@ -598,7 +615,7 @@ async function runStage1(
         // elements they reference keep the ids those were written under.
         let library = libraryHandoffs.get(libraryKey!);
         const stored = cacheDir ? libraryFileOf(cacheDir, libraryKey!) : undefined;
-        if (!library && stored && existsSync(stored)) library = JSON.parse(readFileSync(stored, 'utf8')) as Stage1Output;
+        if (!library && stored && existsSync(stored)) library = JSON.parse(readPacked(stored)) as Stage1Output;
         if (!library) {
             // The package that carries the libraries may carry their export.
             const shipped = findShipped(OPENSYSML_PROVIDER_ID, shippedKeyOf(version, libraryDirs), libraryDirs);
@@ -612,7 +629,7 @@ async function runStage1(
                 mkdirSync(cacheDir, { recursive: true });
                 const prefix = `${OPENSYSML_PROVIDER_ID}-library-`;
                 for (const name of readdirSync(cacheDir)) if (name.startsWith(prefix)) rmSync(join(cacheDir, name), { force: true });
-                writeFileSync(stored, JSON.stringify(library));
+                writePacked(stored, JSON.stringify(library));
             }
         }
         libraryHandoffs.set(libraryKey!, library);
