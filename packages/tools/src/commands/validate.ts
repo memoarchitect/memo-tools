@@ -37,41 +37,105 @@ import { resolutionLoads } from '../stage2/project-from-api.js';
 import { stage1CacheDir } from '../toolchain/project-model.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { countBySeverity, formatDiagnosticsText, type Diagnostic } from '../toolchain/diagnostic.js';
+import { servable, validateWithDevServer } from './validate-client.js';
 
 
 export type ValidateFormat = 'text' | 'junit' | 'json';
 
+export type ValidateOptions = { format?: ValidateFormat; output?: string } & Record<string, unknown>;
+
+/**
+ * Where a validation run writes: progress and the text report (`out`), what
+ * must stay off a machine-readable stdout (`err`), and a report written whole
+ * (`write`). The CLI passes the console; `memo dev` captures it to answer a
+ * `memo validate` that asked it (see validate-client.ts).
+ */
+export interface ValidationIO {
+    out(...args: unknown[]): void;
+    err(...args: unknown[]): void;
+    write(text: string): void;
+}
+
+/** Stage 1 for a validation run: compiled here, or the model `memo dev` holds. */
+export type ValidationCompile = typeof compileResolvedProject;
+
+/** A run that stops early with this exit code; thrown, never left to escape. */
+export class ValidationExit extends Error {
+    constructor(readonly code: number) {
+        super(`validation stopped with exit code ${code}`);
+    }
+}
+
+/** The console, as the CLI writes. */
+export const consoleIO: ValidationIO = {
+    out: (...args) => console.log(...args),
+    err: (...args) => console.error(...args),
+    write: text => { process.stdout.write(text); },
+};
+
+/** Runs a validation, stopping early with its code instead of throwing. */
+export async function validationExitCode(run: () => Promise<number>): Promise<number> {
+    try {
+        return await run();
+    } catch (error) {
+        if (error instanceof ValidationExit) return error.code;
+        throw error;
+    }
+}
+
 export async function validateCommand(
     projectDir?: string,
-    options?: { format?: ValidateFormat; output?: string } & Record<string, unknown>,
+    options?: ValidateOptions,
 ): Promise<void> {
+    // A running `memo dev` holds the compiled model already: ask it first.
+    const cwd = resolve(projectDir || process.cwd());
+    const projectRoot = servable(options) ? findProjectRoot(cwd) : undefined;
+    const served = projectRoot ? await validateWithDevServer(projectRoot, process.cwd(), options) : undefined;
+    if (served) {
+        process.stderr.write(chalk.gray(`(answered by the dev server running for this project, from the model it holds; --no-server to compile here)\n`));
+        process.stderr.write(served.stderr);
+        process.stdout.write(served.stdout);
+        if (served.exitCode !== 0) process.exitCode = served.exitCode;
+        return;
+    }
+    const code = await validationExitCode(() => runValidation(projectDir, options, consoleIO));
+    if (code !== 0) process.exitCode = code;
+}
+
+export async function runValidation(
+    projectDir: string | undefined,
+    options: ValidateOptions | undefined,
+    io: ValidationIO,
+    compile: ValidationCompile = compileResolvedProject,
+): Promise<number> {
+    let exitCode = 0;
     const format = options?.format || 'text';
     // A report written to stdout (json or junit without -o) is the whole of
     // stdout, so a script can parse it; the progress goes to stderr.
-    const say: (...args: unknown[]) => void = format !== 'text' && !options?.output ? console.error : console.log;
+    const say: (...args: unknown[]) => void = format !== 'text' && !options?.output ? io.err : io.out;
     const cwd = resolve(projectDir || process.cwd());
     say(chalk.bold('\n📋 MEMO Validate\n'));
 
     // 1. Find the project by its native entrypoint, not by a settings file.
     const projectRoot = findProjectRoot(cwd);
     if (!projectRoot) {
-        console.error(chalk.red(
+        io.err(chalk.red(
             '❌ No MEMO project found. A project is located by the `entrypoint` in its '
             + '`memo.package.yaml`, which names the SysML file declaring its identity '
             + 'and method binding — run `memo init` to scaffold one.'));
-        process.exit(1);
+        throw new ValidationExit(1);
     }
     say(chalk.gray(`Project root: ${projectRoot}`));
 
     // 2. Reject semantic configuration before anything reads it.
     const rejections = checkSemanticFields(projectRoot);
     if (rejections.length > 0) {
-        console.error(chalk.red(`\n❌ Semantic configuration found in application settings (${rejections.length}):\n`));
+        io.err(chalk.red(`\n❌ Semantic configuration found in application settings (${rejections.length}):\n`));
         for (const r of rejections) {
-            console.error(chalk.red(`  ${r.file}`));
-            console.error(chalk.gray(`    ${r.message}\n`));
+            io.err(chalk.red(`  ${r.file}`));
+            io.err(chalk.gray(`    ${r.message}\n`));
         }
-        process.exit(1);
+        throw new ValidationExit(1);
     }
 
     const config = withToolchainOverrides(
@@ -93,10 +157,10 @@ export async function validateCommand(
     {
         try {
             // Reuses a fresh `memo compile`.
-            stage1 = await compileResolvedProject({ config, projectDir: projectRoot, cacheDir: stage1CacheDir(projectRoot) });
+            stage1 = await compile({ config, projectDir: projectRoot, cacheDir: stage1CacheDir(projectRoot) });
         } catch (error) {
-            console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
-            process.exit(1);
+            io.err(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
+            throw new ValidationExit(1);
         }
         say(chalk.gray(`Stage 1: ${compiler} ${stage1.providerVersion ?? ''} — ${stage1.accepted ? 'clean' : 'errors'}${stage1.cached ? ' (reused .memo/stage1)' : ''}`));
         if (validatorFromStage1) {
@@ -107,9 +171,9 @@ export async function validateCommand(
         // never run on a model that is not valid SysML.
         if (!stage1.accepted || !stage1.model) {
             const errors = stage1.diagnostics.filter(d => d.severity === 'error');
-            console.error(chalk.red(`\n❌ Stage 1 (${compiler}) reported ${errors.length} error(s); stage 2 and the rules did not run.\n`));
-            for (const d of errors) console.error(chalk.red(`  ${d.file}:${d.range?.start.line ?? '?'}:${d.range?.start.column ?? '?'} ${d.code ?? ''} ${d.message}`));
-            process.exit(1);
+            io.err(chalk.red(`\n❌ Stage 1 (${compiler}) reported ${errors.length} error(s); stage 2 and the rules did not run.\n`));
+            for (const d of errors) io.err(chalk.red(`  ${d.file}:${d.range?.start.line ?? '?'}:${d.range?.start.column ?? '?'} ${d.code ?? ''} ${d.message}`));
+            throw new ValidationExit(1);
         }
         resolution = stage1.resolution;
         ontologyRegistries = stage1.registries;
@@ -141,8 +205,8 @@ export async function validateCommand(
             say(chalk.gray(
                 `Validator: ${run.provider}${run.providerVersion ? ` ${run.providerVersion}` : ''}`));
         } catch (error) {
-            console.error(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
-            process.exit(1);
+            io.err(chalk.red(`\n❌ ${error instanceof Error ? error.message : error}\n`));
+            throw new ValidationExit(1);
         }
     }
 
@@ -152,8 +216,8 @@ export async function validateCommand(
         importDepth: 1,
     })));
     if (!lockCheck.ok) {
-        console.error(chalk.red(`\n❌ ${lockCheck.message}\n`));
-        process.exit(1);
+        io.err(chalk.red(`\n❌ ${lockCheck.message}\n`));
+        throw new ValidationExit(1);
     }
     if (lockCheck.locked) {
         say(chalk.gray(`Ontology: locked to ${lockCheck.locked.ontology} v${lockCheck.locked.version}`));
@@ -176,8 +240,8 @@ export async function validateCommand(
     const parseErrors: ParseError[] = [];
     const projectFileCount = projectSourceCount;
     if (projectFileCount === 0) {
-        console.error(chalk.yellow('⚠️  No project .sysml files found.'));
-        return;
+        io.err(chalk.yellow('⚠️  No project .sysml files found.'));
+        return exitCode;
     }
     say(chalk.gray(`Files: ${projectFileCount} project .sysml files\n`));
 
@@ -227,7 +291,7 @@ export async function validateCommand(
         kindRegistry: ontologyRegistries?.kindRegistry,
         relationshipRegistry: ontologyRegistries?.relationshipRegistry,
     });
-    reportSelectorDiagnostics(selectorDiagnostics, projectRoot);
+    reportSelectorDiagnostics(selectorDiagnostics, projectRoot, say);
 
     // Record the identities this build assigned. `validate` is the command that
     // runs most, so it is where a project first acquires memo.identity.yaml;
@@ -304,7 +368,7 @@ export async function validateCommand(
             say(chalk.red(`  ${d.code}${d.ruleId ? ` [${d.ruleId}]` : ''}: ${d.message}`));
         }
         say();
-        process.exitCode = 1;
+        exitCode = 1;
     }
 
     const disabled = effectiveRules.rules.filter(r => r.disposition !== 'enabled');
@@ -423,12 +487,12 @@ export async function validateCommand(
             result, completeness, config.projectName || 'memo', diagnostics, modelFindings);
         if (options?.output) {
             writeFileSync(resolve(cwd, options.output), xml);
-            console.log(chalk.green(`JUnit XML written to ${options.output}`));
+            io.out(chalk.green(`JUnit XML written to ${options.output}`));
         } else {
-            process.stdout.write(xml);
+            io.write(xml);
         }
-        if (failed()) process.exitCode = 1;
-        return;
+        if (failed()) exitCode = 1;
+        return exitCode;
     }
 
     if (format === 'json') {
@@ -485,12 +549,12 @@ export async function validateCommand(
         const jsonStr = JSON.stringify(jsonOutput, null, 2);
         if (options?.output) {
             writeFileSync(resolve(cwd, options.output), jsonStr);
-            console.log(chalk.green(`JSON report written to ${options.output}`));
+            io.out(chalk.green(`JSON report written to ${options.output}`));
         } else {
-            process.stdout.write(jsonStr + '\n');
+            io.write(jsonStr + '\n');
         }
-        if (failed()) process.exitCode = 1;
-        return;
+        if (failed()) exitCode = 1;
+        return exitCode;
     }
 
     // ─── Default text output ─────────────────────────────────────────────────
@@ -500,63 +564,64 @@ export async function validateCommand(
     // MEMO. The trailing `[domain/provider]` is additive.
     if (sysmlDiagnostics.length > 0) {
         const counts = countBySeverity(sysmlDiagnostics);
-        console.log(chalk.red.bold(
+        io.out(chalk.red.bold(
             `SysML diagnostics (${counts.error} error, ${counts.warning} warning, ${counts.info} info):`));
-        console.log(formatDiagnosticsText(sysmlDiagnostics));
-        console.log();
+        io.out(formatDiagnosticsText(sysmlDiagnostics));
+        io.out();
     }
 
     if (errors.length > 0) {
-        console.log(chalk.red.bold(`Errors (${errors.length}):`));
+        io.out(chalk.red.bold(`Errors (${errors.length}):`));
         for (const v of errors) {
-            console.log(chalk.red(`  ✖ [${v.ruleId}] ${v.elementKind}/${v.elementName}: ${v.description}`));
+            io.out(chalk.red(`  ✖ [${v.ruleId}] ${v.elementKind}/${v.elementName}: ${v.description}`));
         }
-        console.log();
+        io.out();
     }
 
     if (warnings.length > 0) {
-        console.log(chalk.yellow.bold(`Warnings (${warnings.length}):`));
+        io.out(chalk.yellow.bold(`Warnings (${warnings.length}):`));
         for (const v of warnings) {
-            console.log(chalk.yellow(`  ⚠ [${v.ruleId}] ${v.elementKind}/${v.elementName}: ${v.description}`));
+            io.out(chalk.yellow(`  ⚠ [${v.ruleId}] ${v.elementKind}/${v.elementName}: ${v.description}`));
         }
-        console.log();
+        io.out();
     }
 
     if (infos.length > 0) {
-        console.log(chalk.blue.bold(`Info (${infos.length}):`));
+        io.out(chalk.blue.bold(`Info (${infos.length}):`));
         for (const v of infos) {
-            console.log(chalk.blue(`  ℹ [${v.ruleId}] ${v.elementKind}/${v.elementName}: ${v.description}`));
+            io.out(chalk.blue(`  ℹ [${v.ruleId}] ${v.elementKind}/${v.elementName}: ${v.description}`));
         }
-        console.log();
+        io.out();
     }
 
-    console.log(chalk.bold('Completeness by Layer:'));
+    io.out(chalk.bold('Completeness by Layer:'));
     for (const layer of completeness.layers) {
         if (layer.totalElements === 0) continue;
         const pct = layer.percentage;
         const color = pct >= 80 ? chalk.green : pct >= 50 ? chalk.yellow : chalk.red;
         const bar = makeBar(pct);
-        console.log(`  ${layer.layerLabel.padEnd(22)} ${color(bar)} ${color(`${pct}%`)} (${layer.completeElements}/${layer.totalElements})`);
+        io.out(`  ${layer.layerLabel.padEnd(22)} ${color(bar)} ${color(`${pct}%`)} (${layer.completeElements}/${layer.totalElements})`);
     }
 
-    console.log();
+    io.out();
     const overallColor = completeness.overall >= 80 ? chalk.green : completeness.overall >= 50 ? chalk.yellow : chalk.red;
-    console.log(chalk.bold(`Overall: ${overallColor(completeness.overall + '%')} (${completeness.completeElements}/${completeness.totalElements} elements complete)`));
-    console.log(chalk.gray(`Rules: ${result.rulesEvaluated} evaluated, ${result.rulesPassed} passed, `
+    io.out(chalk.bold(`Overall: ${overallColor(completeness.overall + '%')} (${completeness.completeElements}/${completeness.totalElements} elements complete)`));
+    io.out(chalk.gray(`Rules: ${result.rulesEvaluated} evaluated, ${result.rulesPassed} passed, `
         + `${result.rulesVacuous} ran on no subject, ${result.violations.length} violations`));
     const parseErrorFiles = filesWithParseErrors(diagnostics).size;
-    console.log((diagnostics.length > 0 ? chalk.red : chalk.gray)(
+    io.out((diagnostics.length > 0 ? chalk.red : chalk.gray)(
         `Parse errors: ${diagnostics.length}`
         + (diagnostics.length > 0
             ? ` in ${parseErrorFiles} file(s) \u2014 this report describes an incomplete model`
             : '')));
-    console.log((modelFindings.length > 0 ? chalk.red : chalk.gray)(
+    io.out((modelFindings.length > 0 ? chalk.red : chalk.gray)(
         `Model findings: ${modelFindings.length}`));
-    console.log();
+    io.out();
 
     if (failed()) {
-        process.exitCode = 1;
+        exitCode = 1;
     }
+    return exitCode;
 
     /**
      * Whether this run is a failure.
@@ -586,7 +651,7 @@ const PARSE_ERRORS_LISTED = 10;
 function reportParseErrors(
     parseErrors: readonly import('@memoarchitect/tools').ParseError[],
     projectRoot: string,
-    say: (...args: unknown[]) => void = console.log,
+    say: (...args: unknown[]) => void,
 ): void {
     if (parseErrors.length === 0) return;
     const show = (file: string) => (file.startsWith(projectRoot) ? relative(projectRoot, file) : file);
@@ -624,7 +689,7 @@ function reportParseErrors(
 function reportModelFindings(
     findings: readonly import('@memoarchitect/tools').ParseError[],
     projectRoot: string,
-    say: (...args: unknown[]) => void = console.log,
+    say: (...args: unknown[]) => void,
 ): void {
     if (findings.length === 0) return;
     const show = (file: string) => (file.startsWith(projectRoot) ? relative(projectRoot, file) : file);
@@ -649,17 +714,18 @@ function reportModelFindings(
 function reportSelectorDiagnostics(
     selectorDiagnostics: readonly SelectorVocabularyDiagnostic[],
     projectRoot: string,
+    say: (...args: unknown[]) => void,
 ): void {
     if (selectorDiagnostics.length === 0) return;
     const show = (file: string) => (file.startsWith(projectRoot) ? relative(projectRoot, file) : file);
-    console.log(chalk.red.bold(
+    say(chalk.red.bold(
         `\u26d4 ${selectorDiagnostics.length} selector(s) name vocabulary no resolved ontology `
         + 'declares. Each one matches nothing, whatever the model contains:'));
     for (const d of selectorDiagnostics) {
-        console.log(chalk.gray(
+        say(chalk.gray(
             `     ${show(d.file)}: error: ${d.message}`));
     }
-    console.log('');
+    say('');
 }
 
 // ─── JUnit XML Generator ─────────────────────────────────────────────────────

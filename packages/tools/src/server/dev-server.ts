@@ -5,6 +5,7 @@
 //   - WebSocket endpoint for pushing model updates to browser
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { serveValidate } from './dev-validate.js';
 import { createServer as createHttpServer, type Server } from 'node:http';
 import { createHash, randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
@@ -88,6 +89,12 @@ export interface DevServerOptions {
      * refuses rule previews and writes.
      */
     ruleContext?: () => import('./rule-service.js').RuleServiceContext | undefined;
+    /**
+     * Runs `memo validate` on the model the host holds (dev-validate.ts), for a
+     * caller presenting `validateToken`; absent, the route answers 404.
+     */
+    validate?: (options: import('../commands/validate.js').ValidateOptions) => Promise<import('./dev-validate.js').ValidationReply>;
+    validateToken?: string;
 }
 
 export interface DevServer {
@@ -443,6 +450,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         });
 
         server = createHttpServer((req, res) => {
+            if (serveValidate(req, res, options.validateToken, options.validate)) return;
             if (serveProjectAsset(req, res)) return;
             if (serveHelp(req, res)) return;
             viteServer.middlewares(req, res);
@@ -450,6 +458,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     } else if (hasWebDist) {
         // Packaged install: serve the prebuilt web app statically
         server = createHttpServer((req, res) => {
+            if (serveValidate(req, res, options.validateToken, options.validate)) return;
             if (serveProjectAsset(req, res)) return;
             if (serveHelp(req, res)) return;
             serveWebDist(req, res);
@@ -457,6 +466,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     } else {
         // Fallback: serve a basic page that connects via WebSocket
         server = createHttpServer((req, res) => {
+            if (serveValidate(req, res, options.validateToken, options.validate)) return;
             if (serveProjectAsset(req, res)) return;
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(`
