@@ -6,6 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MEMOConfig, ToolchainConfig } from '../model/config.js';
+import { userSettingsPath } from '../model/user-settings.js';
+import { rejectUserSettingsInProject } from './ownership.js';
 import {
     COMPILER_SETTING,
     PROVIDER_ROLES,
@@ -45,9 +47,12 @@ export class ToolchainNotConfiguredError extends Error {
         const key = role === 'package' ? ROLE_SETTING[role] : COMPILER_SETTING;
         const choices = registry.descriptors(role).map(d => d.id).join(', ');
         super(
-            `No ${role === 'package' ? 'packager' : 'SysML compiler'} is configured. `
-            + `Set toolchain.${key} (${choices}) in the project's settings file `
-            + `(memo.tools.yaml or memo.package.yaml), or pass --toolchain.${key}.`,
+            role === 'package'
+                ? `No packager is configured. Set toolchain.${key} (${choices}) in the project's settings file `
+                    + `(memo.tools.yaml or memo.package.yaml), or pass --toolchain.${key}.`
+                // The compiler is the user's to choose, not the project's.
+                : `No SysML compiler is configured. Choose one for yourself with \`memo config set ${key} <${choices.replace(/, /g, '|')}>\` `
+                    + `(your settings: ${userSettingsPath()}), or set MEMO_TOOLCHAIN_COMPILER, or pass --toolchain.${key}.`,
         );
         this.name = 'ToolchainNotConfiguredError';
     }
@@ -67,6 +72,7 @@ export function resolveToolchain(
     config: MEMOConfig | undefined,
     registry: ProviderRegistry,
 ): EffectiveToolchain {
+    rejectUserSettingsInProject(config, registry);
     const toolchain: ToolchainConfig = config?.toolchain ?? {};
     const alias = readString(toolchain, COMPILER_SETTING);
     const deprecations: string[] = [];

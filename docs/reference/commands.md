@@ -40,6 +40,7 @@ and `memo conformance` (it graded MEMO's own compiler, which is gone).
 | `memo rules …` | List, explain, tailor and write consistency rules, and report their coverage of standards clauses. `memo validate` evaluates them. |
 | `memo toolchain probe [dir]` | Resolve each toolchain role to a provider and report its executable and version. |
 | `memo toolchain check [paths...]` | Run the selected validator over SysML paths, less the project's `validator-exceptions.json`. |
+| `memo config set <setting> <value>`, `get [setting]`, `unset <setting>` | Read and write your own settings (the compiler, where its tools are) in your user settings file; `get` shows which layer decided each |
 | `memo config effective [dir]` | Print settings after flags and `toolchain.compiler` are applied; an unset role is reported as not configured. |
 
 ## Project creation

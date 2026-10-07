@@ -752,6 +752,12 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     }
 
     /** Settings status for the client — provider/model/origin, never the key. */
+    async function toolchainSettings() {
+        const { userToolchainStatus } = await import('../toolchain/user-settings-status.js');
+        const { defaultRegistry } = await import('../toolchain/default-registry.js');
+        return userToolchainStatus(defaultRegistry);
+    }
+
     async function llmSettings() {
         const { llmSettingsStatus } = await import('@memoarchitect/tools');
         return llmSettingsStatus(options.projectRoot);
@@ -1336,6 +1342,15 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         } catch (e) {
             console.error('[DHF] initial load failed:', e);
         }
+
+        // The user's own toolchain settings: shown in Architect, written to their file.
+        void (async () => {
+            try {
+                ws.send(JSON.stringify({ type: 'toolchain:settings', payload: { settings: await toolchainSettings() } }));
+            } catch (e) {
+                console.error('[toolchain] settings load failed:', e);
+            }
+        })();
 
         // Announce LLM availability and settings on connect. Resolution spans
         // the environment, a project .env, project settings and stored
@@ -2186,6 +2201,23 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     } catch (e: any) {
                         console.error('[LLM] apply failed:', e);
                         ws.send(JSON.stringify({ type: 'llm:chat:apply:result', payload: { requestId, applied, failed, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'toolchain:settings:save') {
+                    // Not a model mutation: it writes the user's own file, and is how a
+                    // user gets out of a compiler that rejects their project.
+                    const { requestId, path, value } = msg.payload ?? {};
+                    try {
+                        const { applyUserSetting } = await import('../toolchain/user-settings-status.js');
+                        const { defaultRegistry } = await import('../toolchain/default-registry.js');
+                        applyUserSetting(String(path ?? ''), typeof value === 'string' && value.length > 0 ? value : undefined, defaultRegistry);
+                        const settings = await toolchainSettings();
+                        ws.send(JSON.stringify({ type: 'toolchain:settings:save:result', payload: { requestId, settings, appliesOnRestart: true } }));
+                        const settingsMsg = JSON.stringify({ type: 'toolchain:settings', payload: { settings } });
+                        for (const client of clients) {
+                            if (client.readyState === 1) client.send(settingsMsg);
+                        }
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'toolchain:settings:save:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'llm:settings:save') {
                     const { requestId, provider, model, baseUrl, apiKey } = msg.payload ?? {};

@@ -55,6 +55,7 @@ const SETTINGS_SCHEMA: readonly ToolchainSchemaLeaf[] = [
     {
         path: `${SYSIDE_PROVIDER_ID}.python`,
         type: 'string',
+        scope: 'user',
         description: 'Python interpreter with SysIDE\'s licensed API, for stage 1 export. Defaults to `python3`.',
     },
 ];

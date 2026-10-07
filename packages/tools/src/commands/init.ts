@@ -14,6 +14,18 @@ import { createLockFile } from '../lock.js';
 import { scaffoldAnalysisSamples } from '../analysis-starters.js';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
+import { userToolchain } from '../model/user-settings.js';
+
+/** The compiler is the user's to choose, not the project's: say how, once, when nothing has chosen it. */
+function remindToChooseCompiler(): void {
+    try {
+        const toolchain = userToolchain();
+        if (toolchain.compiler || (toolchain.validator && toolchain.lowering)) return;
+    } catch {
+        return;
+    }
+    console.log(chalk.yellow('  Choose your compiler (yours, not the project\'s): memo config set compiler syside   or   memo config set compiler opensysml'));
+}
 
 export interface AvailableOntology {
     name: string;
@@ -285,6 +297,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
         cpSync(example.path, target.projectDir, { recursive: true });
         scaffoldAnalysisSamples(target.projectDir);
         console.log(chalk.green(target.inPlace ? '\n✅ Project created in current directory' : `\n✅ Project created at ./${name}`));
+        remindToChooseCompiler();
         return;
     }
 
@@ -369,4 +382,5 @@ export async function initCommand(name: string | undefined, options: InitOptions
         console.log(chalk.yellow(`  ⚠ Could not create lock file: ${error instanceof Error ? error.message : error}`));
     }
     console.log(chalk.green(target.inPlace ? '\n✅ Project created in current directory' : `\n✅ Project created at ./${target.projectName}`));
+    remindToChooseCompiler();
 }

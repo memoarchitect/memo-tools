@@ -37,3 +37,4 @@ export type {
     ProposedRelationshipDelete,
 } from '../llm/chat-engine.js';
 export type { LlmSettingsStatus, LlmSettingsOrigin } from '../llm/llm-settings.js';
+export type { UserToolchainStatus, UserSettingReport } from '../toolchain/user-settings-status.js';

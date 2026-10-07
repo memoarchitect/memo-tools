@@ -59,6 +59,7 @@ import {
     type ElementWriteOptions,
 } from '../commands/element.js';
 import { convertCommand } from '../commands/convert.js';
+import { ConfigSettingError, configGetCommand, configSetCommand, configUnsetCommand } from '../commands/config.js';
 import { configEffectiveCommand, toolchainCheckCommand, toolchainProbeCommand } from '../commands/toolchain.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
@@ -67,6 +68,7 @@ import { defaultRegistry } from '../toolchain/default-registry.js';
 import chalk from 'chalk';
 import { Stage1RejectedError } from '../toolchain/project-model.js';
 import { ToolchainNotConfiguredError } from '../toolchain/effective.js';
+import { ProjectNamesUserSettingError } from '../toolchain/ownership.js';
 import { setCommandLineToolchain } from '../model/config-loader.js';
 import { toolchainOverridesFromCliOptions } from '../toolchain/schema.js';
 
@@ -261,6 +263,25 @@ withToolchainOptions(
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     await configEffectiveCommand(dir, { ...opts, format: opts.format as any });
 });
+
+configCmd
+    .command('set')
+    .description('Set a setting of your own (which compiler, where its tools are) in your user settings, not the project')
+    .argument('<setting>', 'compiler, validator, lowering, or a provider setting such as opensysml.binary or syside.python')
+    .argument('<value>', 'the value')
+    .action((setting: string, value: string) => { configSetCommand(setting, value); });
+
+configCmd
+    .command('get')
+    .description('Show your own settings and which layer decided each: the command line, the environment or your settings')
+    .argument('[setting]', 'One setting; all of yours when omitted')
+    .action((setting: string | undefined) => { configGetCommand(setting); });
+
+configCmd
+    .command('unset')
+    .description('Remove a setting of your own from your user settings')
+    .argument('<setting>', 'the setting')
+    .action((setting: string) => { configUnsetCommand(setting); });
 
 const exportCmd = program
     .command('export')
@@ -794,7 +815,7 @@ program.hook('preAction', (_program, action) => {
 // `memo validate` does. Anything else is still a crash, with its stack.
 program.parseAsync().catch((error: unknown) => {
     // So is a project whose settings name no compiler: MEMO chooses none.
-    if (error instanceof Stage1RejectedError || error instanceof ToolchainNotConfiguredError) {
+    if (error instanceof Stage1RejectedError || error instanceof ToolchainNotConfiguredError || error instanceof ProjectNamesUserSettingError || error instanceof ConfigSettingError) {
         console.error(chalk.red(`\n❌ ${error.message}\n`));
         process.exit(1);
     }

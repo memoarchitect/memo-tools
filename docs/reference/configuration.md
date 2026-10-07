@@ -49,19 +49,48 @@ so they are selected separately:
 | Packaging | "How is this project packed?" | `toolchain.packager` |
 
 ```yaml
+# the project's settings (checked in): how the project is packed, and how a tool reads it
 toolchain:
-  validator: syside
-  lowering: opensysml
   packager: sysand
   syside:
-    executable: syside
     configFile: ./syside.toml
     warningsAsErrors: true
     diagnose: all
   sysand:
-    executable: sysand
     configFile: ./sysand.toml
 ```
+
+```yaml
+# your own settings (~/.config/memo/settings.yaml, not checked in): which compiler, and where its tools are
+toolchain:
+  compiler: syside
+  syside:
+    executable: syside
+    python: ~/.venvs/syside/bin/python
+```
+
+**Whose setting it is.** The compiler (`compiler`, `validator`, `lowering`) and
+where a tool is on this machine (`syside.executable`, `syside.python`,
+`opensysml.binary`, `opensysml.service`, `opensysml.client`, `sysand.executable`)
+belong to the person running MEMO: two people on one project have different
+machines, licences and preferences. A project's checked-in settings file may
+not carry them, and a project that does is refused with the settings named and
+the command that sets each. The packager and how a tool reads the project
+(`syside.diagnose`, `configFile`, `warningsAsErrors`) are the project's. The
+registry marks which settings are the user's, so a provider that adds one gets
+the rule without anyone remembering to.
+
+`memo config set`, `get` and `unset` read and write your own settings:
+
+```bash
+memo config set compiler opensysml
+memo config set opensysml.binary ~/bin/sysml-grpc
+memo config get                      # your settings, and which layer decided each
+memo config unset opensysml.binary
+```
+
+`set` refuses a project's setting and a compiler no provider is registered as;
+it keeps the comments and other keys of a file you already wrote.
 
 Run `memo toolchain probe` to see which providers are registered, which binary
 each resolved to, and its version. Run `memo config effective` to see the whole
@@ -89,6 +118,7 @@ behaviour is part of the project's required evidence.
 together:
 
 ```yaml
+# your own settings, not the project's
 toolchain:
   compiler: syside
   syside:
@@ -114,20 +144,20 @@ packager is named the same way (`toolchain.packager`), and only `memo pack`
 needs it. An explicit `toolchain.validator` or `toolchain.lowering` overrides
 its role.
 
-**The compiler can be set above the project.** The toolchain is read from
-three layers, each beating the one before:
+**The compiler is the user's.** The toolchain is read from three layers, each
+beating the one before:
 
 1. the user's settings: `toolchain.compiler` in `~/.config/memo/settings.yaml`
    (`$XDG_CONFIG_HOME/memo/settings.yaml`, or `$MEMO_CONFIG_DIR/settings.yaml`),
    which `MEMO_TOOLCHAIN_COMPILER` overrides for CI and scripts;
-2. the project's settings file;
+2. the project's settings file, for the settings that are the project's;
 3. the command line's `--toolchain.*` flags.
 
-A project that names no compiler runs under the user's, so switching compilers
-is one setting and edits no project. A layer that names a `compiler` decides
-both roles it fills: it drops the explicit `validator` and `lowering` the
-layers below it set, so `--toolchain.compiler=syside` overrides a project that
-pins both. With every layer silent, nothing is chosen and the command fails. A provider that can't fill a role leaves it unset, and `memo
+Switching compilers is one setting and edits no project. A layer that names a
+`compiler` decides both roles it fills: it drops the explicit `validator` and
+`lowering` the layers below it set, so `--toolchain.compiler=syside` overrides
+a user who set both. With every layer silent, nothing is chosen and the command
+fails, saying to run `memo config set compiler`. A provider that can't fill a role leaves it unset, and `memo
 validate` prints a note saying so.
 
 To try a project against SysIDE without editing its settings:

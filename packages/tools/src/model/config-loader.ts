@@ -61,6 +61,8 @@ export function loadConfig(filePath: string): MEMOConfig {
         relationshipFiles: raw.relationshipFiles as Record<string, string> | undefined,
         canonicalRelationshipFile: raw.canonicalRelationshipFile as string | undefined,
         toolchain: raw.toolchain as MEMOConfig['toolchain'],
+        projectToolchain: raw.toolchain as MEMOConfig['toolchain'],
+        projectSettingsFile: filePath,
     });
 }
 

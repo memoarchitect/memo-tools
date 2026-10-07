@@ -18,6 +18,7 @@ import type { MEMOConfig } from '../../model/config.js';
 import { discoverProjectSources } from '../../model/native-project.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import type { Diagnostic } from '../diagnostic.js';
+import { OPENSYSML_PROVIDER_ID } from './opensysml-names.js';
 import { connectOpenSysML, openSysMLSettingsKey, toDiagnostic, type OpenSysMLConnection } from './opensysml.js';
 
 /** How long an idle service is kept before it is closed. */
@@ -90,7 +91,7 @@ export async function checkWithOpenSysML(
     }
     const diagnostics = parsed.diagnostics.map(d => toDiagnostic(d, version)).filter(d => d.severity === 'error');
     if (parsed.error) {
-        diagnostics.push({ domain: 'sysml', provider: 'opensysml', providerVersion: version, severity: 'error', message: parsed.error });
+        diagnostics.push({ domain: 'sysml', provider: OPENSYSML_PROVIDER_ID, providerVersion: version, severity: 'error', message: parsed.error });
     }
     return diagnostics;
 }

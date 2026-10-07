@@ -17,6 +17,7 @@ import type {
 import type { ChatMessage } from '../llm/llm-provider.js';
 import type { ProposedChange } from '../llm/chat-engine.js';
 import type { LlmSettingsStatus, LLMProviderName } from '../llm/llm-settings.js';
+import type { UserToolchainStatus } from '../toolchain/user-settings-status.js';
 import type { ClauseFact } from '../validator/rule-clauses.js';
 import type { ConditionSpec } from '../server/rule-writer.js';
 
@@ -72,6 +73,8 @@ export type ServerMessage =
     | LlmApplyResultMessage
     | LlmSettingsMessage
     | LlmSettingsSaveResultMessage
+    | ToolchainSettingsMessage
+    | ToolchainSettingsSaveResultMessage
     | LlmGenerateResultMessage
     | LlmDraftResultMessage
     | LlmSuggestResultMessage
@@ -332,6 +335,7 @@ export type ClientMessage =
     | LlmChatMessage
     | LlmApplyMessage
     | LlmSettingsSaveMessage
+    | ToolchainSettingsSaveMessage
     | LlmGenerateMessage
     | LlmDraftMessage
     | LlmSuggestMessage
@@ -993,6 +997,28 @@ export interface LlmSettingsSaveMessage {
 export interface LlmSettingsSaveResultMessage {
     type: 'llm:settings:save:result';
     payload: { requestId: string; settings?: LlmSettingsStatus; error?: string };
+}
+
+/**
+ * Server → Client: the user's own toolchain settings (which compiler, where its
+ * tools are) and the layer that decided each. They live in the user's settings
+ * file, outside the project, so they are never part of the model.
+ */
+export interface ToolchainSettingsMessage {
+    type: 'toolchain:settings';
+    payload: { settings: UserToolchainStatus };
+}
+
+/** Client → Server: set one of the user's settings; an omitted `value` removes it. */
+export interface ToolchainSettingsSaveMessage {
+    type: 'toolchain:settings:save';
+    payload: { requestId: string; path: string; value?: string };
+}
+
+/** Server → Client: the settings after the save, or why it failed. A change applies when Architect restarts. */
+export interface ToolchainSettingsSaveResultMessage {
+    type: 'toolchain:settings:save:result';
+    payload: { requestId: string; settings?: UserToolchainStatus; appliesOnRestart?: boolean; error?: string };
 }
 
 /** Client → Server: generate SysML v2 from a natural language description */
