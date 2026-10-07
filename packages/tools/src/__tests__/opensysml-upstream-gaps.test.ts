@@ -11,8 +11,9 @@ import type { ApiElement } from '../stage2/api-model.js';
 // compiler that exports it as the spec says.
 //
 // These tests are meant to FAIL when OpenSysML fixes the gap. When one does,
-// delete it here and tighten what its message names. The upstream write-ups are
-// in memo-meta's plans/opensysml-upstream-drafts.md.
+// delete it here and tighten what its message names. Each names its upstream
+// issue and the PR that fixes it on OpenSysML's develop; they keep passing until
+// the pinned release carries the fix.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const underOpenSysML = compilerConfigured && process.env.MEMO_TOOLCHAIN_COMPILER !== 'syside';
@@ -28,7 +29,7 @@ const typeOf = (elements: ApiElement[], qualifiedName: string) =>
 const types = (elements: ApiElement[]) => new Set(elements.map(element => element['@type']));
 
 describe.runIf(underOpenSysML)('OpenSysML API JSON gaps that are still open upstream', () => {
-    it('an accept action node is an ActionUsage, not an AcceptActionUsage (issue A)', async () => {
+    it('an accept action node is an ActionUsage, not an AcceptActionUsage (Open-MBEE/OpenSysML#941, fixed by #957)', async () => {
         const elements = await exported(`package Orders {
             item def Order;
             action def Process {
@@ -40,7 +41,7 @@ describe.runIf(underOpenSysML)('OpenSysML API JSON gaps that are still open upst
             + 'compiler in memo-architect maxgraph-scene.test.ts').toBe('ActionUsage');
     });
 
-    it('a named send is an ActionUsage owning an unnamed SendActionUsage (issue B)', async () => {
+    it('a named send is an ActionUsage owning an unnamed SendActionUsage (Open-MBEE/OpenSysML#942, fixed by #958)', async () => {
         const elements = await exported(`package Orders {
             item def Receipt;
             part def Target;
@@ -55,7 +56,7 @@ describe.runIf(underOpenSysML)('OpenSysML API JSON gaps that are still open upst
             + 'glyph under every compiler in memo-architect maxgraph-scene.test.ts').toBe('ActionUsage');
     });
 
-    it('include of a reference states no ReferenceSubsetting (issue C)', async () => {
+    it('include of a reference states no ReferenceSubsetting (Open-MBEE/OpenSysML#943, fixed by #956)', async () => {
         const elements = await exported(`package Inc {
             use case def Pay;
             use case pay : Pay;
@@ -68,7 +69,7 @@ describe.runIf(underOpenSysML)('OpenSysML API JSON gaps that are still open upst
             'OpenSysML now writes the ReferenceSubsetting of `include pay;`: delete this test').toBe(false);
     });
 
-    it("a transition's guard is owned by a plain OwningMembership (fix submitted upstream)", async () => {
+    it("a transition's guard is owned by a plain OwningMembership (fixed by Open-MBEE/OpenSysML#940)", async () => {
         const elements = await exported(`package Flow {
             state def Machine {
                 state idle;
@@ -81,7 +82,7 @@ describe.runIf(underOpenSysML)('OpenSysML API JSON gaps that are still open upst
             + "'[true]' label under every compiler in memo-architect maxgraph-scene.test.ts").toBe(false);
     });
 
-    it('a keyword-less guarded first in an action body is a SuccessionAsUsage (issue E)', async () => {
+    it('a keyword-less guarded first in an action body is a SuccessionAsUsage (Open-MBEE/OpenSysML#944, fixed by #959)', async () => {
         const elements = await exported(`package Flow {
             action def Route {
                 action routeOrder;
@@ -93,7 +94,7 @@ describe.runIf(underOpenSysML)('OpenSysML API JSON gaps that are still open upst
             'OpenSysML now makes `first a if g then b;` a TransitionUsage: delete this test').toBe(false);
     });
 
-    it('a guarded target succession is a SuccessionAsUsage (issue D)', async () => {
+    it('a guarded target succession is a SuccessionAsUsage (Open-MBEE/OpenSysML#945, PR #960 open)', async () => {
         const elements = await exported(`package Flow {
             private import ScalarValues::Integer;
             action def Charge {
