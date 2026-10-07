@@ -20,7 +20,7 @@ import { ApiModel, type ApiElement } from '../stage2/api-model.js';
 import { stage2FromHandoff } from '../stage2/stage2-from-handoff.js';
 import type { CompileModelOptions } from '../toolchain/registry.js';
 import { connectOpenSysML } from '../toolchain/providers/opensysml.js';
-import { compileWithOpenSysML, openSysMLHandoff } from '../toolchain/providers/opensysml-lowering.js';
+import { compileWithOpenSysML, forgetOpenSysMLSession, openSysMLHandoff, openSysMLLastConversion } from '../toolchain/providers/opensysml-lowering.js';
 
 const opensysml = openSysMLUnderTest;
 const example = resolve(__dirname, `../../../../../memo/examples/${process.env.MEMO_INCREMENTAL_EXAMPLE ?? 'temperature-alarm'}`);
@@ -77,10 +77,12 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('OpenSysML stage 1, co
 
     it('equals a whole-model conversion after each edit, and is faster', async () => {
         const times: number[] = [];
+        const reached: string[] = [];
         const timed = async (): Promise<string> => {
             const start = performance.now();
             const model = await compiled();
             times.push(Math.round(performance.now() - start));
+            reached.push(`${openSysMLLastConversion.converted}/${openSysMLLastConversion.of}`);
             return model;
         };
         expect(await timed()).toBe(await fresh());
@@ -92,6 +94,32 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('OpenSysML stage 1, co
         expect((await compileWithOpenSysML({ ...options, force: true })).accepted).toBe(false);
         edit(text => text.replace(/\npackage broken \{[^\n]*\}\n$/, ''));
         expect(await timed()).toBe(await fresh());
-        console.log('documents compile ms (first, value, declaration, repaired):', times.join(', '));
+        // The service reports an edit narrow only once it has seen the documents twice; comments stay narrow.
+        edit(text => `${text}\n// a comment\n`);
+        expect(await timed()).toBe(await fresh());
+        edit(text => `${text}\n// another comment\n`);
+        expect(await timed()).toBe(await fresh());
+        console.log('documents compile ms (first, value, declaration, repaired, comment, comment):', times.join(', '), '| converted:', reached.join(', '));
+        // Only the documents the edit reached are converted; a service without `parse_sources_affected` converts them all.
+        if (openSysMLLastConversion.incremental) expect(reached.slice(1).some(r => r.split('/')[0] !== r.split('/')[1])).toBe(true);
+    }, 300_000);
+
+    it('a new process reads what the last compile stored, document by document', async () => {
+        const first = await compileWithOpenSysML({ ...options, force: true });
+        expect(first.accepted).toBe(true);
+        // A fresh process knows nothing of the service's model: it reads the store.
+        forgetOpenSysMLSession();
+        const again = await compileWithOpenSysML({ ...options });
+        expect(again.cached).toBe(true);
+        expect(JSON.stringify(modelToDTO(again.model!))).toBe(JSON.stringify(modelToDTO(first.model!)));
+        // And its first edit, with no base to compare against, converts everything and is still the fresh model.
+        edit(text => text.replace(/=\s*(\d+)\s*;/, (_, n: string) => `= ${Number(n) + 1};`));
+        expect(await compiled()).toBe(await fresh());
+        expect(openSysMLLastConversion.incremental).toBe(false);
+        // A restart from the store, an edit, then an edit again: the store carries the pieces the second one reuses.
+        edit(text => text.replace(/=\s*(\d+)\s*;/, (_, n: string) => `= ${Number(n) + 1};`));
+        expect(await compiled()).toBe(await fresh());
+        forgetOpenSysMLSession();
+        expect(JSON.stringify(modelToDTO((await compileWithOpenSysML({ ...options })).model!))).toBe(await fresh());
     }, 300_000);
 });

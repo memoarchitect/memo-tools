@@ -316,21 +316,93 @@ interface StoredStage1 {
     providerVersion?: string;
     clean: boolean;
     diagnostics: Diagnostic[];
-    /** `whole`: the conversion is the whole model's; `project`: the project's documents, over the libraries' handoff stored under libraryKey. */
-    converted?: 'whole' | 'project';
+    /**
+     * `whole`: the conversion is the whole model's, in the content file;
+     * `documents`: the project's documents, one file each (`pieces`), over the
+     * libraries' handoff stored under libraryKey.
+     */
+    converted?: 'whole' | 'documents';
     libraryKey?: string;
+    /** The project documents' pieces, by absolute path, in the order the handoff lists them. */
+    pieces?: { path: string; file: string }[];
+}
+
+/**
+ * One project document as the handoff holds it: its elements and the index
+ * entries of them. A compile that converts only the documents an edit reached
+ * replaces those documents' pieces and keeps the rest.
+ */
+interface ProjectPiece {
+    document: NonNullable<Stage1Output['documents']>[number];
+    index: Record<string, ApiIndexEntry>;
+}
+
+/**
+ * What the last compile of a project in this process left: the service's model
+ * it came from, and every project document's piece. The next compile asks the
+ * service which documents an edit reached against that model, and converts
+ * those. A service that has lost the model answers every document.
+ */
+interface ProjectSession {
+    libraryKey: string;
+    modelHash: string;
+    pieces: Map<string, ProjectPiece>;
+    /** The standard library elements the project references, from every conversion so far. */
+    standard: Record<string, ApiIndexEntry>;
+}
+
+const sessions = new Map<string, ProjectSession>();
+
+/** What the last compile that reached the service converted: of the project's documents, how many. */
+export const openSysMLLastConversion: { converted: number; of: number; incremental: boolean } = { converted: 0, of: 0, incremental: false };
+
+const sessionKeyOf = (config: MEMOConfig, projectDir: string): string => `${projectDir}\0${openSysMLSettingsKey(config)}`;
+
+/** Drop what this process remembers of a project's compile (tests, and a service that failed). */
+export function forgetOpenSysMLSession(): void {
+    sessions.clear();
 }
 
 interface Stage1Run {
     handoff: Stage1Output & { diagnostics: Diagnostic[] };
     stored: StoredStage1;
-    /** The service's api-json text the handoff was built from; absent when the model was not clean. */
+    /** The service's api-json text the handoff was built from; absent when the model was not clean or was stored by document. */
     content?: string;
+    /** The pieces a compile converted, to write; the rest are on disk already. */
+    written?: Map<string, ProjectPiece>;
+    /** Every project piece the handoff holds, for the store's manifest. */
+    pieces?: Map<string, ProjectPiece>;
+    standard?: Record<string, ApiIndexEntry>;
 }
 
 const STORED = `${OPENSYSML_PROVIDER_ID}.stage1.json`;
 const CONTENT = `${OPENSYSML_PROVIDER_ID}.api.json`;
 const KEY = `${OPENSYSML_PROVIDER_ID}.json.key`;
+
+/** The directory of the per-document pieces. */
+const PIECES = `${OPENSYSML_PROVIDER_ID}-documents`;
+const STANDARD = '_standard.json';
+
+const pieceFileOf = (path: string): string => `${createHash('sha1').update(path).digest('hex').slice(0, 20)}.json`;
+
+/** Write the pieces a compile converted, drop the files of documents that are gone, and the standard entries when they grew. */
+function storePieces(cacheDir: string, run: Stage1Run): void {
+    const dir = join(cacheDir, PIECES);
+    mkdirSync(dir, { recursive: true });
+    const keep = new Set(run.stored.pieces?.map(piece => piece.file));
+    keep.add(STANDARD);
+    for (const name of readdirSync(dir)) if (!keep.has(name)) rmSync(join(dir, name), { force: true });
+    for (const [path, piece] of run.pieces ?? []) {
+        const file = join(dir, pieceFileOf(path));
+        if (run.written === undefined || run.written.has(path) || !existsSync(file)) writeFileSync(file, JSON.stringify(piece));
+    }
+    const standard = join(dir, STANDARD);
+    // A conversion only adds to the standard entries, so a file with as many is the same.
+    const count = Object.keys(run.standard ?? {}).length;
+    if (run.written === undefined || !existsSync(standard) || (JSON.parse(readFileSync(standard, 'utf8')) as unknown[]).length !== count) {
+        writeFileSync(standard, JSON.stringify(Object.entries(run.standard ?? {})));
+    }
+}
 
 function libraryFileOf(cacheDir: string, libraryKey: string): string {
     return join(cacheDir, `${OPENSYSML_PROVIDER_ID}-library-${libraryKey.slice(0, 16)}.json`);
@@ -347,6 +419,8 @@ function storeStage1(cacheDir: string, key: string, run: Stage1Run): void {
     rmSync(join(cacheDir, KEY), { force: true });
     if (run.content !== undefined) writeFileSync(join(cacheDir, CONTENT), run.content);
     else rmSync(join(cacheDir, CONTENT), { force: true });
+    if (run.pieces) storePieces(cacheDir, run);
+    else if (run.stored.clean) rmSync(join(cacheDir, PIECES), { recursive: true, force: true });
     writeFileSync(join(cacheDir, STORED), JSON.stringify(run.stored));
     // Written last: a key on disk means everything it keys was written.
     writeFileSync(join(cacheDir, KEY), key);
@@ -360,18 +434,37 @@ function readStoredStage1(cacheDir: string, key: string, options: OpenSysMLHando
     if (!stored.clean) {
         return { format: STAGE1_FORMAT, provider: OPENSYSML_PROVIDER_ID, providerVersion: stored.providerVersion, clean: false, diagnostics: stored.diagnostics };
     }
-    if (!existsSync(join(cacheDir, CONTENT))) return undefined;
     let library: Stage1Output | undefined;
-    if (stored.converted === 'project') {
+    if (stored.converted === 'documents') {
         library = stored.libraryKey ? libraryHandoffs.get(stored.libraryKey) : undefined;
         const file = stored.libraryKey ? libraryFileOf(cacheDir, stored.libraryKey) : undefined;
         if (!library && file && existsSync(file)) library = JSON.parse(readFileSync(file, 'utf8')) as Stage1Output;
         if (!library) return undefined;
         libraryHandoffs.set(stored.libraryKey!, library);
+        const dir = join(cacheDir, PIECES);
+        if (!existsSync(join(dir, STANDARD))) return undefined;
+        const pieces = new Map<string, ProjectPiece>();
+        for (const { path, file } of stored.pieces ?? []) {
+            if (!existsSync(join(dir, file))) return undefined;
+            pieces.set(path, JSON.parse(readFileSync(join(dir, file), 'utf8')) as ProjectPiece);
+        }
+        const standard = Object.fromEntries(JSON.parse(readFileSync(join(dir, STANDARD), 'utf8')) as [string, ApiIndexEntry][]);
+        return { ...overLibrary(library, projectOf(pieces, standard, stored.providerVersion)), diagnostics: stored.diagnostics };
     }
+    if (stored.converted !== 'whole' || !existsSync(join(cacheDir, CONTENT))) return undefined;
     const elements = JSON.parse(readFileSync(join(cacheDir, CONTENT), 'utf8')) as ApiElement[];
-    const converted = openSysMLHandoff(elements, { ...options, providerVersion: stored.providerVersion });
-    return { ...(library ? overLibrary(library, converted) : converted), diagnostics: stored.diagnostics };
+    return { ...openSysMLHandoff(elements, { ...options, providerVersion: stored.providerVersion }), diagnostics: stored.diagnostics };
+}
+
+/** The project's handoff from its documents' pieces. */
+function projectOf(pieces: ReadonlyMap<string, ProjectPiece>, standard: Record<string, ApiIndexEntry>, providerVersion?: string): Stage1Output {
+    const index: Record<string, ApiIndexEntry> = { ...standard };
+    const documents: NonNullable<Stage1Output['documents']> = [];
+    for (const piece of pieces.values()) {
+        documents.push(piece.document);
+        Object.assign(index, piece.index);
+    }
+    return { format: STAGE1_FORMAT, provider: OPENSYSML_PROVIDER_ID, ...(providerVersion ? { providerVersion } : {}), clean: true, documents, index };
 }
 
 /** The project's handoff over the libraries': their documents and indexes together. */
@@ -385,6 +478,8 @@ function overLibrary(library: Stage1Output, project: Stage1Output): Stage1Output
 
 /** The capability that limits a conversion to named documents. */
 const CONVERT_DOCUMENTS = 'convert_documents';
+/** The capability that answers which documents an edit reached, against a previous model. */
+const PARSE_SOURCES_AFFECTED = 'parse_sources_affected';
 
 /**
  * The libraries' handoffs of this process, by what they depend on: the
@@ -447,8 +542,17 @@ async function runStage1(
     const connection = await sharedOpenSysMLConnection(config);
     try {
         const version = connection.info?.version;
+        // Converting only what an edit reached needs both capabilities, and the
+        // libraries' handoff being the one the last compile built over.
+        const byDocument = Boolean(connection.info?.has?.(CONVERT_DOCUMENTS)) && libraryFiles.length > 0;
+        const libraryKey = byDocument ? libraryKeyOf(config, libraryFiles) : undefined;
+        const sessionKey = sessionKeyOf(config, projectDir);
+        let session = sessions.get(sessionKey);
+        if (session && (!byDocument || session.libraryKey !== libraryKey || documents.length === 1)) session = undefined;
+        const asking = session !== undefined && Boolean(connection.info?.has?.(PARSE_SOURCES_AFFECTED));
         const parsed = await connection.rpc.parseSources({
             documents: documents.map(file => ({ source: { case: 'filePath', value: file } })),
+            ...(asking ? { baseModelHash: session!.modelHash } : {}),
         });
         const diagnostics = parsed.diagnostics.map(d => toDiagnostic(d, version));
         if (parsed.error) {
@@ -490,11 +594,10 @@ async function runStage1(
         }
 
         // The libraries are converted once per library content; each compile
-        // converts the project's documents, and the libraries' elements they
-        // reference keep the ids those were written under.
-        const libraryKey = libraryKeyOf(config, libraryFiles);
-        let library = libraryHandoffs.get(libraryKey);
-        const stored = cacheDir ? libraryFileOf(cacheDir, libraryKey) : undefined;
+        // converts the project's documents the edit reached, and the libraries'
+        // elements they reference keep the ids those were written under.
+        let library = libraryHandoffs.get(libraryKey!);
+        const stored = cacheDir ? libraryFileOf(cacheDir, libraryKey!) : undefined;
         if (!library && stored && existsSync(stored)) library = JSON.parse(readFileSync(stored, 'utf8')) as Stage1Output;
         if (!library) {
             // The package that carries the libraries may carry their export.
@@ -512,18 +615,47 @@ async function runStage1(
                 writeFileSync(stored, JSON.stringify(library));
             }
         }
-        libraryHandoffs.set(libraryKey, library);
+        libraryHandoffs.set(libraryKey!, library);
         const libraryPaths = new Set(libraryFiles);
         // An empty list would write every document: a project with none of its own converts nothing.
         const own = documents.filter(file => !libraryPaths.has(file));
-        content = '[]';
-        const projectElements = own.length > 0 ? await convert(own) : [];
-        if (!projectElements) return failed();
-        const project = openSysMLHandoff(projectElements, handoffOptions);
+        // The documents the service says the edit reached, and any it holds no piece of.
+        // A library document among them means the libraries' handoff is not the base's.
+        const reached = asking && parsed.affected ? new Set(parsed.affected.map(name => resolve(projectDir, name))) : undefined;
+        if (session && reached && [...reached].some(file => libraryPaths.has(file))) session = undefined;
+        const previous = session && reached ? session : undefined;
+        const toConvert = own.filter(file => !previous || reached!.has(file) || !previous.pieces.has(file));
+        Object.assign(openSysMLLastConversion, { converted: toConvert.length, of: own.length, incremental: previous !== undefined });
+        const pieces = new Map<string, ProjectPiece>();
+        const written = new Map<string, ProjectPiece>();
+        const standard: Record<string, ApiIndexEntry> = { ...(previous?.standard ?? {}) };
+        if (toConvert.length > 0) {
+            const projectElements = await convert(toConvert);
+            if (!projectElements) return failed();
+            const converted = openSysMLHandoff(projectElements, handoffOptions);
+            for (const [id, entry] of Object.entries(converted.index ?? {})) if (entry.role === 'standard') standard[id] = entry;
+            for (const document of converted.documents ?? []) {
+                const index: Record<string, ApiIndexEntry> = {};
+                for (const element of document.elements) {
+                    const entry = converted.index?.[element['@id']];
+                    if (entry) index[element['@id']] = entry;
+                }
+                written.set(resolve(document.root ?? projectDir, document.file), { document, index });
+            }
+        }
+        for (const file of own) {
+            const piece = written.get(file) ?? previous?.pieces.get(file);
+            if (piece) pieces.set(file, piece);
+        }
+        content = undefined;
+        sessions.set(sessionKey, { libraryKey: libraryKey!, modelHash: parsed.modelHash, pieces, standard });
         return {
-            handoff: { ...overLibrary(library, project), diagnostics },
-            stored: { providerVersion: version, clean: true, diagnostics, converted: 'project', libraryKey },
-            content,
+            handoff: { ...overLibrary(library, projectOf(pieces, standard, version)), diagnostics },
+            stored: {
+                providerVersion: version, clean: true, diagnostics, converted: 'documents', libraryKey,
+                pieces: [...pieces.keys()].map(path => ({ path, file: pieceFileOf(path) })),
+            },
+            pieces, written: previous ? written : undefined, standard,
         };
     } catch (error) {
         // A service that failed mid-call is not kept for the next one.
