@@ -8,6 +8,8 @@
 // gives.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { gunzipSync } from 'node:zlib';
+import { parseApiJson } from '../toolchain/providers/opensysml-compact.js';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
@@ -41,16 +43,21 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('the OpenSysML stage 1
     });
     afterAll(() => rmSync(root, { recursive: true, force: true }));
 
+    /** A service that converts by document stores per-document pieces (`opensysml-incremental.test.ts`), not the whole conversion this file is about. */
+    const storesWhole = () => (JSON.parse(readFileSync(join(stage1(), 'opensysml.stage1.json'), 'utf8')) as { converted?: string }).converted === 'whole';
+
     const modelOf = (result: Awaited<ReturnType<typeof compileWithOpenSysML>>) => JSON.stringify(modelToDTO(result.model!));
 
     it('stores the conversion as the service wrote it, not the handoff', async () => {
         const first = await compileWithOpenSysML({ ...options, force: true });
         expect(first.accepted).toBe(true);
         expect(first.cached).toBe(false);
-        expect(existsSync(join(stage1(), 'opensysml.api.json'))).toBe(true);
+        if (!storesWhole()) return;
+        expect(existsSync(join(stage1(), 'opensysml.api.json.gz'))).toBe(true);
         expect(existsSync(join(stage1(), 'opensysml.json'))).toBe(false);
-        // The text is api-json: an array of elements, as Convert returned it.
-        expect(Array.isArray(JSON.parse(readFileSync(join(stage1(), 'opensysml.api.json'), 'utf8')))).toBe(true);
+        // Gzipped, and api-json as Convert returned it: the element array, or the compact document the service writes when it can.
+        const text = gunzipSync(readFileSync(join(stage1(), 'opensysml.api.json.gz'))).toString('utf8');
+        expect(Array.isArray(parseApiJson(text))).toBe(true);
     }, 120_000);
 
     it('reuses it while nothing changed, rebuilding the same model', async () => {
@@ -72,7 +79,8 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('the OpenSysML stage 1
 
     it('compiles again when the stored conversion is gone, rather than serving half a model', async () => {
         await compileWithOpenSysML({ ...options, force: true });
-        rmSync(join(stage1(), 'opensysml.api.json'));
+        if (!storesWhole()) return;
+        rmSync(join(stage1(), 'opensysml.api.json.gz'));
         const again = await compileWithOpenSysML(options);
         expect(again.cached).toBe(false);
         expect(again.accepted).toBe(true);
