@@ -64,3 +64,6 @@ __pycache__/
 site/
 public/
 _site/
+
+# Written and removed by inspect-provenance.test.ts
+packages/tools/src/__tests__/__tmp_inspect__/
