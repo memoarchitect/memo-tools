@@ -14,5 +14,5 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change 
 ### Added
 
 - `memo validate --rules --rules-obligation <required|recommended|bestPractice>`; `rules new --obligation` and `--enforces` write the new forms.
-- Stage 1 converts only the documents an edit reached and stores them compressed. With OpenSysML 0.9.3 or later the compact API JSON format is used where the service offers it.
+- Stage 1 converts only the documents an edit reached and stores them compressed. With OpenSysML 0.10.0 or later the compact API JSON format is used where the service offers it.
 - `memo pack` builds a SysAnd KPAR from the declared sources only, not from examples or the ontology.
