@@ -12,12 +12,13 @@
 // it imports (which are usages, not content) are not bundled.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { findConfigFile } from '../../model/config-loader.js';
 import type { MEMOConfig } from '../../model/config.js';
-import { projectEntrypoint } from '../../model/native-project.js';
+import { discoverLibraryRoots, projectEntrypoint } from '../../model/native-project.js';
+import { readSourceFacts } from '../../model/project-conversion.js';
 import { readManifest, readPackageManifest } from '../../model/package-manifest.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import { compileResolvedProject } from '../operations.js';
@@ -63,8 +64,8 @@ export function sysandProjectIdentity(projectDir: string, config: MEMOConfig): S
 export async function sysandProjectInfo(projectDir: string, config: MEMOConfig): Promise<SysandProjectInfo> {
     const root = resolve(projectDir);
     // A package (it declares `sysmlDir`, and has no entrypoint) is not a project, so there is no
-    // import closure to read its dependencies from: it declares none yet.
-    if (!projectEntrypoint(root)) return { ...sysandProjectIdentity(root, config), usage: [] };
+    // import closure from an entrypoint: its dependencies are the library roots its own sources import.
+    if (!projectEntrypoint(root)) return { ...sysandProjectIdentity(root, config), usage: packageUsages(root) };
     const compiled = await compileResolvedProject({ config, projectDir: root, cacheDir: stage1CacheDir(root) });
     if (!compiled.accepted || !compiled.resolution) {
         const why = compiled.diagnostics.filter(d => d.severity === 'error').map(d => d.message).slice(0, 3).join('; ');
@@ -78,6 +79,42 @@ export async function sysandProjectInfo(projectDir: string, config: MEMOConfig):
             ...(library.packageVersion ? { versionConstraint: `^${library.packageVersion}` } : {}),
         }));
     return { ...sysandProjectIdentity(root, config), usage };
+}
+
+/**
+ * The packages a package depends on: each library root, other than its own, that declares a
+ * package one of its sources imports, as `urn:kpar:<package>` with a `^version` constraint.
+ *
+ * `memo.package.yaml` cannot say it (a `usage` or `extends` there is rejected since the native
+ * flip), so the sources do: an `import` names a package, the library roots the manifest offers
+ * say which root declares it. Only the direct dependencies are listed; a dependency lists its own.
+ * Packages no root declares (the SysML standard library) are not usages of a MEMO package.
+ */
+export function packageUsages(packageDir: string): SysandProjectInfo['usage'] {
+    const root = resolve(packageDir);
+    const { base, files } = declaredSources(root);
+    const own = new Set(files.map(file => resolve(base, file)));
+    const imported = new Set<string>();
+    for (const file of own) for (const name of readSourceFacts(readFileSync(file, 'utf-8')).imports) imported.add(name);
+
+    const declaredBy = new Map<string, ReturnType<typeof discoverLibraryRoots>[number]>();
+    for (const library of discoverLibraryRoots(root)) {
+        if (resolve(library.dir) === root || resolve(library.sysmlDir) === resolve(base)) continue;
+        for (const file of findSysmlFiles(library.sysmlDir)) {
+            if (own.has(resolve(file))) continue;
+            for (const name of readSourceFacts(readFileSync(file, 'utf-8')).topLevelPackages) {
+                if (imported.has(name) && !declaredBy.has(name)) declaredBy.set(name, library);
+            }
+        }
+    }
+    const usages = new Map<string, SysandProjectInfo['usage'][number]>();
+    for (const library of declaredBy.values()) {
+        usages.set(library.packageName, {
+            resource: `urn:kpar:${library.packageName}`,
+            ...(library.packageVersion ? { versionConstraint: `^${library.packageVersion}` } : {}),
+        });
+    }
+    return [...usages.values()].sort((a, b) => a.resource.localeCompare(b.resource));
 }
 
 export interface StagedSysandProject {

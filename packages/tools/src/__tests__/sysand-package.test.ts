@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { findSysmlFiles } from '../model/sysml-files.js';
-import { declaredSources, sysandPackageFileName, sysandProjectIdentity } from '../toolchain/providers/sysand-project.js';
+import { declaredSources, packageUsages, sysandPackageFileName, sysandProjectIdentity } from '../toolchain/providers/sysand-project.js';
 import { runPackager } from '../toolchain/operations.js';
 import { openSysMLUnderTest } from './helpers/compile-source.js';
 
@@ -84,6 +84,47 @@ describe('which SysML is the project\'s own to package', () => {
         write(dir, 'src/a.sysml');
         write(dir, 'examples/b.sysml');
         expect(() => declaredSources(dir)).toThrow(/declares no SysML of its own/);
+    });
+});
+
+describe('what a package depends on', () => {
+    const library = (repo: string, dir: string, name: string, version: string | undefined, source: string) => {
+        mkdirSync(join(repo, dir, 'src'), { recursive: true });
+        writeFileSync(join(repo, dir, 'memo.package.yaml'), `name: "${name}"\n${version ? `version: ${version}\n` : ''}sysmlDir: ./src\n`);
+        writeFileSync(join(repo, dir, 'src/a.sysml'), source);
+    };
+    const repo = () => {
+        const dir = scratch();
+        writeFileSync(join(dir, 'memo.manifest.yaml'), 'manifest: 1\npackages:\n  "@x/base": ./base\n  "@x/other": ./other\nexamples: {}\nextensions:\n  ext: ./ext\ninit:\n  defaultExtends: "@x/base"\n  rootImport: base_core\n  template: ./t\n');
+        library(dir, 'base', '@x/base', '1.2.0', 'package base_core { }\npackage base_more { }\n');
+        library(dir, 'other', '@x/other', '3.0.0', 'package other_p { }\n');
+        return dir;
+    };
+
+    it('is the library root that declares each package its sources import, and not its own root', () => {
+        const dir = repo();
+        library(dir, 'ext', '@x/ext', '0.1.0', [
+            'package ext_p {', '    private import base_more::*;', '    private import ext_q::*;', '    private import ScalarValues::*;', '}', 'package ext_q { }', ''].join('\n'));
+        expect(packageUsages(join(dir, 'ext'))).toEqual([{ resource: 'urn:kpar:@x/base', versionConstraint: '^1.2.0' }]);
+    });
+
+    it('finds a package declared second in a file, and lists a root once however many packages reach it', () => {
+        const dir = repo();
+        library(dir, 'ext', '@x/ext', '0.1.0', 'package e {\n    import base_core::*;\n    import base_more::*;\n    import other_p::*;\n}\n');
+        expect(packageUsages(join(dir, 'ext')).map(u => u.resource)).toEqual(['urn:kpar:@x/base', 'urn:kpar:@x/other']);
+    });
+
+    it('is empty for a package that imports only the SysML standard library', () => {
+        const dir = repo();
+        library(dir, 'ext', '@x/ext', '0.1.0', 'package e {\n    private import ScalarValues::*;\n}\n');
+        expect(packageUsages(join(dir, 'ext'))).toEqual([]);
+    });
+
+    it('carries no constraint for a dependency that states no version', () => {
+        const dir = repo();
+        library(dir, 'base', '@x/base', undefined, 'package base_core { }\n');
+        library(dir, 'ext', '@x/ext', '0.1.0', 'package e {\n    import base_core::*;\n}\n');
+        expect(packageUsages(join(dir, 'ext'))).toEqual([{ resource: 'urn:kpar:@x/base' }]);
     });
 });
 
