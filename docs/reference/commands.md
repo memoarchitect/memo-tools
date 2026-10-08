@@ -44,7 +44,7 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo-architect config set\|get\|unset` | Choose the compiler: for yourself, or with `--project` for everyone on the project. |
 | `memo-architect element …` | Author one element in source and recompile. |
 | `memo-architect convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
-| `memo-architect pack` | Build a Knowledge Package Archive (`.kpar`). |
+| `memo-architect pack` | Package the project with `toolchain.packager`: `internal` writes MEMO's own `.memo-bundle` (not a KPAR); `sysand` runs `sysand build` and needs the project to be a SysAnd interchange project (`.project.json`, `.meta.json`), which MEMO does not generate yet. |
 | `memo-architect export …` | Export JSON, Graphviz DOT, or DHF artifacts. |
 | `memo-architect package …`, `create-package <name>`, `install [source]`, `lock` | Inspect or import KPAR libraries; scaffold, install and lock packages. |
 | `memo-architect ontology …` | Inspect or export the resolved ontology; add a local kind. |
