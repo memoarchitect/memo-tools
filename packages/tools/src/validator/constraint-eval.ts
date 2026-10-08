@@ -68,6 +68,8 @@ export interface NativeConstraint {
     sourceFile?: string;
     /** Why the rule exists: `modelling`, `medicalDevice` or `organisation`. Absent when the rule states none. */
     domain?: RuleDomain;
+    /** `required`, `recommended` or `bestPractice`, as the rule states it. Absent when it states none. */
+    obligation?: RuleObligation;
     /**
      * The qualified names of the standard or guidance clauses the rule enforces,
      * as the compiler resolved them. Empty or absent for a rule that traces to none.
@@ -76,6 +78,9 @@ export interface NativeConstraint {
 }
 
 export type RuleDomain = 'modelling' | 'medicalDevice' | 'organisation';
+
+/** How firmly the rule's source asks for what it checks; a rule that states no severity takes one from it. */
+export type RuleObligation = 'required' | 'recommended' | 'bestPractice';
 
 /** Constraint metadata without the expression body — used by the AST entry point. */
 export type ConstraintMeta = Omit<NativeConstraint, 'expression'>;

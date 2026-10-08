@@ -26,7 +26,7 @@ const RULE_DEFINITIONS = ['ConstraintDefinition', 'RequirementDefinition'];
  * `Kind::member`, MEMO's parse as the bare member, which is what the rule
  * compiler reads.
  */
-const ENUMERATION_VALUED = ['severity', 'tailoring', 'domain'];
+const ENUMERATION_VALUED = ['severity', 'tailoring', 'domain', 'obligation'];
 
 /**
  * Every rule the handoff's definitions state, library and project alike.

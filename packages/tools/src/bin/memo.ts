@@ -102,6 +102,7 @@ withToolchainOptions(
         .option('--no-server', 'Compile here even when `memo dev` is running for the project')
         .option('--rules', 'Instead of validating, list the consistency rules in effect (--format text or json)')
         .option('--rules-domain <domain>', 'With --rules: modelling, medicalDevice, organisation')
+        .option('--rules-obligation <obligation>', 'With --rules: required, recommended, bestPractice')
         .option('--rules-category <category>', 'With --rules: invariant, assurance, methodology')
         .option('--explain-rule <id>', 'Instead of validating, show one rule in detail (e.g. CR-MED-001)')
         .option('--standards', 'Instead of validating, report clause coverage: required, claimed, evidenced')
@@ -116,7 +117,7 @@ withToolchainOptions(
         process.exitCode = 1;
         return;
     }
-    if (opts.rules) return rulesListCommand(dir, { format: reportFormat, category: opts.rulesCategory as string | undefined, domain: opts.rulesDomain as string | undefined });
+    if (opts.rules) return rulesListCommand(dir, { format: reportFormat, category: opts.rulesCategory as string | undefined, domain: opts.rulesDomain as string | undefined, obligation: opts.rulesObligation as string | undefined });
     if (opts.explainRule) return rulesExplainCommand(String(opts.explainRule), dir, { format: reportFormat });
     if (opts.standards) {
         return standardsCheckCommand({

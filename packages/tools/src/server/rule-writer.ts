@@ -32,6 +32,8 @@ export interface NewRuleRequest {
     rationaleText: string;
     /** Default `methodology`: a methodology may tailor a user's rule. */
     tailoring?: 'assurance' | 'methodology';
+    /** How firmly the rule's source asks for it. Optional; a rule that states none keeps the severity it names. */
+    obligation?: 'required' | 'recommended' | 'bestPractice';
     /** Qualified names of the clauses the rule enforces. Optional for a user's rule. */
     enforces?: string[];
     /** Project-relative `.sysml` file the rule is written into. */
@@ -136,6 +138,7 @@ export function renderRule(request: NewRuleRequest, indent = '    '): { imports:
         `${indent}    attribute domain = RuleDomainKind::organisation;`,
         `${indent}    attribute appliesTo = ${JSON.stringify(request.appliesTo)};`,
         `${indent}    attribute severity = RuleSeverityKind::${request.severity};`,
+        ...(request.obligation ? [`${indent}    attribute obligation = RuleObligationKind::${request.obligation};`] : []),
         `${indent}    attribute rationaleText = ${JSON.stringify(request.rationaleText)};`,
         `${indent}    attribute predicateExpression = ${JSON.stringify(request.predicateExpression)};`,
     ];

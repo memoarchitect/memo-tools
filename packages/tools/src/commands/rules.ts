@@ -30,6 +30,7 @@ import { selectedOutlineSource } from '../authoring/outline-source.js';
 import { existsSync, readFileSync } from 'node:fs';
 
 const RULE_DOMAINS = ['modelling', 'medicalDevice', 'organisation'];
+const RULE_OBLIGATIONS = ['required', 'recommended', 'bestPractice'];
 import { resolutionLoads } from '../stage2/project-from-api.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ function originOf(rule: { sourceFile?: string }, projectRoot: string): 'project'
 
 export async function rulesListCommand(
     projectDir?: string,
-    options?: { format?: RulesFormat; category?: string; domain?: string }
+    options?: { format?: RulesFormat; category?: string; domain?: string; obligation?: string }
 ): Promise<void> {
     const format = options?.format || 'text';
     const { effectiveRules, ruleDiagnostics, inactive, clauseFacts } = await loadContext(projectDir);
@@ -155,14 +156,20 @@ export async function rulesListCommand(
         process.exit(1);
     }
 
+    if (options?.obligation && !RULE_OBLIGATIONS.includes(options.obligation)) {
+        console.error(chalk.red(`❌ --rules-obligation expects one of ${RULE_OBLIGATIONS.join(', ')}, got "${options.obligation}".`));
+        process.exit(1);
+    }
+
     // Section 19 asks that the effective rule SET be auditable: identity,
     // disposition, severity, and policy chain. That is what this reports —
     // governance, not evidence that anything was validated (section 10.4).
     const filteredRules = effectiveRules
         .filter(r => !options?.category || r.tailoring === options.category)
-        .filter(r => !options?.domain || r.domain === options.domain);
+        .filter(r => !options?.domain || r.domain === options.domain)
+        .filter(r => !options?.obligation || r.obligation === options.obligation);
     // A domain filter narrows to MEMO's tailorable rules: the built-in ones state no domain.
-    const narrowed = Boolean(options?.category || options?.domain);
+    const narrowed = Boolean(options?.category || options?.domain || options?.obligation);
 
     if (format === 'json') {
         console.log(JSON.stringify({
@@ -207,8 +214,9 @@ export async function rulesListCommand(
             const own = originOf(rule, projectRoot) === 'project' ? chalk.green(' [this project\'s own]') : '';
             const domain = rule.domain === 'medicalDevice'
                 ? chalk.magenta(' [medical device]') : rule.domain === 'organisation' ? chalk.blue(' [organisation]') : '';
+            const obligation = rule.obligation ? chalk.gray(` [${rule.obligation}]`) : '';
             console.log(`    ${icon} ${chalk.white(rule.sourceRuleId)} ${rule.sourceRuleType}`
-                + `${domain}${own}${disposition}${overridden}`);
+                + `${domain}${obligation}${own}${disposition}${overridden}`);
             if (rule.rationaleText) {
                 console.log(`      ${chalk.gray(rule.rationaleText)}`);
             }
@@ -432,6 +440,7 @@ export interface RulesNewOptions {
     enforces?: string[];
     file?: string;
     tailoring?: string;
+    obligation?: string;
     dryRun?: boolean;
 }
 
@@ -439,6 +448,10 @@ export async function rulesNewCommand(projectDir: string | undefined, options: R
     const missing = (['id', 'type', 'appliesTo', 'predicate', 'rationale', 'file'] as const).filter(key => !options[key]);
     if (missing.length > 0) {
         console.error(chalk.red(`❌ Missing: ${missing.map(m => `--${m.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}`).join(', ')}`));
+        process.exit(1);
+    }
+    if (options.obligation && !RULE_OBLIGATIONS.includes(options.obligation)) {
+        console.error(chalk.red(`❌ --obligation expects one of ${RULE_OBLIGATIONS.join(', ')}, got "${options.obligation}".`));
         process.exit(1);
     }
     const { projectRoot, config, constraints, model, ontologyRegistries, clauseFacts } = await loadContext(projectDir);
@@ -454,8 +467,9 @@ export async function rulesNewCommand(projectDir: string | undefined, options: R
     }
     const request: NewRuleRequest = {
         id: options.id!, typeName: options.type!, appliesTo: options.appliesTo!,
-        predicateExpression: options.predicate!, severity: (options.severity ?? 'warning') as NewRuleRequest['severity'],
+        predicateExpression: options.predicate!, severity: (options.severity ?? (options.obligation === 'required' ? 'error' : options.obligation === 'bestPractice' ? 'info' : 'warning')) as NewRuleRequest['severity'],
         rationaleText: options.rationale!, file: options.file!,
+        ...(options.obligation ? { obligation: options.obligation as NewRuleRequest['obligation'] } : {}),
         ...(options.tailoring ? { tailoring: options.tailoring as NewRuleRequest['tailoring'] } : {}),
         ...(enforces.length > 0 ? { enforces } : {}),
     };
