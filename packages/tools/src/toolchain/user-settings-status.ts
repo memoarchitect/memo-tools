@@ -14,6 +14,7 @@ import {
     userFileToolchain,
     userSettingsPath,
 } from '../model/user-settings.js';
+import { setProjectToolchainSetting, unsetProjectToolchainSetting } from '../model/project-settings.js';
 import type { ProviderRegistry, ToolchainSchemaLeaf } from './registry.js';
 
 /** A request the settings commands refuse; reported as a message, not a crash. */
@@ -94,6 +95,31 @@ export function applyUserSetting(path: string, value: string | undefined, regist
         throw new ConfigSettingError(`toolchain.${path} is one of ${leaf.values.join(', ')}, not "${value}".`);
     }
     return { file: setUserToolchainSetting(path, value), changed: true };
+}
+
+/**
+ * Set (or, with `undefined`, remove) one of the project's settings in its own,
+ * checked-in settings file. A tool's place on one machine is refused: it would
+ * be wrong for everyone who clones the project.
+ */
+export function applyProjectSetting(
+    projectRoot: string, path: string, value: string | undefined, registry: ProviderRegistry,
+): { file: string; changed: boolean } {
+    const leaf = registry.schema().find(l => l.path === path);
+    if (!leaf) {
+        throw new ConfigSettingError(`"${path}" is not a toolchain setting.`);
+    }
+    if (leaf.scope === 'user') {
+        throw new ConfigSettingError(
+            `toolchain.${path} says where a tool is on one machine, so it is not set in the project: it would be wrong for everyone else. `
+            + `Set it for yourself: memo-architect config set ${path} <value> (your settings file: ${userSettingsPath()}).`,
+        );
+    }
+    if (value === undefined) return unsetProjectToolchainSetting(projectRoot, path);
+    if (leaf.type === 'enum' && leaf.values && !leaf.values.includes(value)) {
+        throw new ConfigSettingError(`toolchain.${path} is one of ${leaf.values.join(', ')}, not "${value}".`);
+    }
+    return { file: setProjectToolchainSetting(projectRoot, path, value), changed: true };
 }
 
 /** What a browser or a command shows: the user's settings and the choices each may take. */

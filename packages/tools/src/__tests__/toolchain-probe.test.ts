@@ -60,7 +60,7 @@ describe('memo toolchain probe', () => {
         for (const role of probe.roles) {
             expect(role.source).toBe('unset');
             expect(role.availability.available).toBe(false);
-            expect(role.availability.detail).toMatch(/memo config set compiler|Set toolchain\./);
+            expect(role.availability.detail).toMatch(/Compiler control|Set toolchain\./);
         }
     });
 

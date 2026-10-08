@@ -145,7 +145,7 @@ toolchain:
 ```
 
 Anyone who wants another overrides it for themselves, without editing the project:
-`memo config set compiler syside` writes their own settings file. MEMO finds the
+`memo-architect config set compiler syside` (or Architect's Compiler control) writes their own settings file. MEMO finds the
 compiler's tools in the usual places, so nothing else needs saying.
 `compiler` names the validator and lowering together; a role can also be set on
 its own:

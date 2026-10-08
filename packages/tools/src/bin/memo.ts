@@ -59,7 +59,6 @@ import {
     type ElementWriteOptions,
 } from '../commands/element.js';
 import { convertCommand } from '../commands/convert.js';
-import { ConfigSettingError, configGetCommand, configSetCommand, configUnsetCommand } from '../commands/config.js';
 import { configEffectiveCommand, toolchainCheckCommand, toolchainProbeCommand } from '../commands/toolchain.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
@@ -263,26 +262,6 @@ withToolchainOptions(
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     await configEffectiveCommand(dir, { ...opts, format: opts.format as any });
 });
-
-configCmd
-    .command('set')
-    .description('Choose your compiler for yourself (overrides the project\'s) in your user settings, not the project')
-    .argument('<setting>', 'compiler. (Low-level overrides such as opensysml.binary or syside.python exist for unusual installs; MEMO finds tools in the usual places.)')
-    .argument('<value>', 'the value')
-    .action((setting: string, value: string) => { configSetCommand(setting, value); });
-
-configCmd
-    .command('get')
-    .description('Show your own settings and which layer decided each: the command line, the environment or your settings')
-    .argument('[setting]', 'One setting; the compiler when omitted')
-    .option('--all', 'Also list the low-level overrides (where a tool is, the validator and lowering roles)')
-    .action((setting: string | undefined, opts: { all?: boolean }) => { configGetCommand(setting, undefined, undefined, opts.all); });
-
-configCmd
-    .command('unset')
-    .description('Remove a setting of your own from your user settings')
-    .argument('<setting>', 'the setting')
-    .action((setting: string) => { configUnsetCommand(setting); });
 
 const exportCmd = program
     .command('export')
@@ -816,7 +795,7 @@ program.hook('preAction', (_program, action) => {
 // `memo validate` does. Anything else is still a crash, with its stack.
 program.parseAsync().catch((error: unknown) => {
     // So is a project whose settings name no compiler: MEMO chooses none.
-    if (error instanceof Stage1RejectedError || error instanceof ToolchainNotConfiguredError || error instanceof ProjectNamesUserSettingError || error instanceof ConfigSettingError) {
+    if (error instanceof Stage1RejectedError || error instanceof ToolchainNotConfiguredError || error instanceof ProjectNamesUserSettingError) {
         console.error(chalk.red(`\n❌ ${error.message}\n`));
         process.exit(1);
     }

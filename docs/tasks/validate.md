@@ -42,7 +42,7 @@ Use JSON for custom reporting and JUnit for CI test reports.
 ## External validator checks
 
 A project can select SysIDE as the validator in `memo.tools.yaml` (or
-`memo.package.yaml`), or you can for yourself with `memo config set compiler syside`.
+`memo.package.yaml`), or you can for yourself with `memo-architect config set compiler syside` (settings are Architect's, not MEMO Tools').
 `memo validate` runs it before MEMO semantic validation and
 reports its diagnostics as GNU one-liners, carrying SysIDE's own rule codes
 through unchanged.

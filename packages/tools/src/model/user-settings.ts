@@ -52,7 +52,7 @@ export function userToolchain(env: NodeJS.ProcessEnv = process.env): ToolchainCo
 
 // ─── Writing the user's settings ─────────────────────────────────────────────
 //
-// `memo config set` edits the file with the YAML document model, so a user's
+// Architect's Compiler control edits the file with the YAML document model, so a user's
 // comments and other keys stay where they were.
 
 function readDocument(path: string): Document {

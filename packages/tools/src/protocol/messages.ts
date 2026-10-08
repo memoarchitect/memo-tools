@@ -1009,10 +1009,14 @@ export interface ToolchainSettingsMessage {
     payload: { settings: UserToolchainStatus };
 }
 
-/** Client → Server: set one of the user's settings; an omitted `value` removes it. */
+/**
+ * Client → Server: set one toolchain setting; an omitted `value` removes it. The
+ * default scope is the user's own settings file; `project` writes the project's
+ * checked-in settings file instead, and every user of the project then runs it.
+ */
 export interface ToolchainSettingsSaveMessage {
     type: 'toolchain:settings:save';
-    payload: { requestId: string; path: string; value?: string };
+    payload: { requestId: string; path: string; value?: string; scope?: 'user' | 'project' };
 }
 
 /** Server → Client: the settings after the save, or why it failed. A change applies when Architect restarts. */

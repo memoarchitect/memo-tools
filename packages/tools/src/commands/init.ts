@@ -20,7 +20,7 @@ import { OPENSYSML_PROVIDER_ID as RECOMMENDED_COMPILER } from '../toolchain/prov
  * The compiler a new project names: the recommended one. It is the project's
  * choice, written into its own settings file so everyone who clones it runs the
  * same one; a user who wants another overrides it for themselves
- * (`memo config set compiler`) without editing the project. A project that
+ * (Architect's Compiler control) without editing the project. A project that
  * already names a compiler, or both roles, keeps its own.
  */
 const NEW_PROJECT_COMPILER = RECOMMENDED_COMPILER;
@@ -38,7 +38,7 @@ function nameCompilerInProject(projectDir: string): void {
     if (namesACompiler(toolchain)) return;
     document.setIn(['toolchain', 'compiler'], NEW_PROJECT_COMPILER);
     writeFileSync(file, document.toString());
-    console.log(chalk.gray(`  Compiler: ${NEW_PROJECT_COMPILER} (in memo.package.yaml; change it for yourself with: memo config set compiler syside)`));
+    console.log(chalk.gray(`  Compiler: ${NEW_PROJECT_COMPILER} (in memo.package.yaml; change it in Architect: the Compiler control, or memo-architect config set compiler <id>)`));
 }
 
 export interface AvailableOntology {
@@ -361,7 +361,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
     descriptor.entrypoint = entrypointRel;
     if (!namesACompiler(descriptor.toolchain)) {
         descriptor.toolchain = { ...(descriptor.toolchain ?? {}), compiler: NEW_PROJECT_COMPILER };
-        console.log(chalk.gray(`  Compiler: ${NEW_PROJECT_COMPILER} (in memo.package.yaml; change it for yourself with: memo config set compiler syside)`));
+        console.log(chalk.gray(`  Compiler: ${NEW_PROJECT_COMPILER} (in memo.package.yaml; change it in Architect: the Compiler control, or memo-architect config set compiler <id>)`));
     }
 
     if (!existsSync(resolve(target.projectDir, entrypointRel))) {

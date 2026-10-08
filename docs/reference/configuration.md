@@ -64,7 +64,7 @@ toolchain:
 **You choose a compiler; MEMO finds its tools.** The project names the compiler it
 uses, and `memo init` writes `compiler: opensysml` into a new project's settings
 file. A user who wants another overrides it for themselves, without editing the
-project, with `memo config set compiler syside`, which writes their own settings
+project, in Architect (the **Compiler** control, or `memo-architect config set compiler syside`), which writes their own settings
 file (`~/.config/memo/settings.yaml`) and is never checked in. Where the compiler's
 tools are is not something to type: OpenSysML's service comes with its npm package,
 `syside` is taken from `PATH`, and SysIDE's Python is the first of these that can
@@ -74,18 +74,20 @@ then `python3` and `python` on `PATH`. When none of them has it, the error lists
 what was looked at.
 
 ```bash
-memo config set compiler syside      # yours alone; the project keeps opensysml
-memo config get                      # the compiler, and which layer decided it
-memo config unset compiler           # back to the project's
+memo-architect config set compiler syside              # yours alone; the project keeps opensysml
+memo-architect config set compiler syside --project    # the whole project, in its checked-in file
+memo-architect config get                              # the compiler, and which layer decided it
+memo-architect config unset compiler                   # back to the project's
 ```
 
 For an install somewhere unusual there are low-level overrides
 (`toolchain.syside.python`, `syside.executable`, `opensysml.binary`,
-`opensysml.service`, `opensysml.client`, `sysand.executable`; `memo config get
+`opensysml.service`, `opensysml.client`, `sysand.executable`; `memo-architect config get
 --all` lists them). They belong to one machine, so a project's checked-in file may
 not carry them: it would be wrong for everyone else, and a project that does is
 refused with the setting named. Set them in your own settings, with
-`memo config set <setting> <value>`, or with a variable or flag.
+`memo-architect config set <setting> <value>`, or with a variable or flag. MEMO Tools
+has no settings commands: it compiles and validates, and reads what Architect writes.
 
 Run `memo toolchain probe` to see which providers are registered, which binary
 each resolved to, and its version. Run `memo config effective` to see the whole
@@ -113,7 +115,7 @@ behaviour is part of the project's required evidence.
 together:
 
 ```yaml
-# the project's settings (or yours, to override it: memo config set compiler syside)
+# the project's settings (or yours, to override it: memo-architect config set compiler syside)
 toolchain:
   compiler: syside
 ```
