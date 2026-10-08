@@ -1,9 +1,0 @@
-name: p
-entrypoint: model/catalog/project.sysml
-include:
-  - model
-version: 0.1.0
-description: MEMO architecture and assurance model
-toolchain:
-  packager: internal
-  compiler: opensysml
