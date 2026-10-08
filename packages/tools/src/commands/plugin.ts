@@ -2,7 +2,7 @@
 //
 // Plugin management commands:
 //   memo-architect plugin list              — List registered plugins
-//   memo-architect plugin create <name>     — Scaffold a new plugin
+//   memo-architect new plugin <name>     — Scaffold a new plugin
 //   memo-architect plugin run <id>          — Run a generator or analysis plugin
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -67,7 +67,7 @@ export async function pluginListCommand(): Promise<void> {
     console.log('');
 }
 
-// ─── memo-architect plugin create ─────────────────────────────────────────────────────
+// ─── memo-architect new plugin ─────────────────────────────────────────────────────
 
 export async function pluginCreateCommand(
     name: string,

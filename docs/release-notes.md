@@ -7,6 +7,7 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change 
 ### Breaking
 
 - **`memo` and `memo-architect` are split.** `memo` compiles, validates, packs and checks the toolchain; everything else, including `init`, is `memo-architect`. A retired command exits with an error naming its replacement. `memo package` is replaced by `memo pack` (a SysAnd KPAR) and `memo-architect import kpar`.
+- **One verb to create a thing.** `memo-architect new package|requirement|rule|kind|plugin` replaces `create-package`, `req new`, `rules new`, `ontology add-kind` and `plugin create`; the flags are unchanged except `req new --template`, which is `new requirement --pattern`. `memo-architect sysand publish` (a dry run) is `memo publish`. Each old name fails naming its replacement for one release.
 - **The project names its compiler** with `toolchain.compiler`. A person overrides it for themselves in their user settings; tool paths are found automatically and are rejected in a checked-in project file.
 - **One project skeleton; no `--template`.** `memo-architect init` copies the one skeleton the ontology's manifest names (`init.template`), and `--example <id>` starts from a copy of an example. `--template` and the template list in `init --list` are gone.
 - **Rules read the new trace.** The loader reads `#EnforcesClause` dependencies. Ontology 0.13.x and earlier, which use `ref enforces`, no longer show clause traces.

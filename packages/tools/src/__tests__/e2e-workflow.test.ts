@@ -16,7 +16,7 @@ const CLI_PATH = join(__dirname, '../../lib/bin/memo.js');
 // `memo` compiles and validates; the project commands (init, export, pack, …) are memo-architect's,
 // driven here through the same registration (scripts/project-cli.mjs).
 const PROJECT_CLI_PATH = join(__dirname, '../../../../scripts/project-cli.mjs');
-const MEMO_COMMANDS = new Set(['compile', 'validate', 'pack', 'toolchain', 'ship-library']);
+const MEMO_COMMANDS = new Set(['compile', 'validate', 'pack', 'publish', 'toolchain', 'ship-library']);
 const cliFor = (cmd: string): string => (MEMO_COMMANDS.has(cmd.trim().split(/\s+/)[0]) ? CLI_PATH : PROJECT_CLI_PATH);
 const REPO_ROOT = join(__dirname, '../../../..');
 
@@ -683,18 +683,18 @@ describe('DD-3: kpar round-trip (GPCA pump)', () => {
     });
 });
 
-describe('DD-5: sysand publish --dry-run', () => {
-    it('memo sysand publish --dry-run succeeds for ontology', () => {
+describe('DD-5: publish (a dry run)', () => {
+    it('memo publish succeeds for ontology', () => {
         const pkgDir = join(resolveContentPackageRoot(), 'ontology');
-        const output = run('sysand publish --dry-run --package @memoarchitect/ontology', pkgDir);
+        const output = run('publish --package @memoarchitect/ontology --toolchain.packager=sysand', pkgDir);
         expect(output).toContain('PASS');
         expect(output).toContain('.kpar');
         expect(output).toContain('All packages pass dry-run');
     });
 
-    it('memo sysand publish --dry-run fails gracefully outside a project', () => {
+    it('memo publish fails gracefully outside a project', () => {
         const tmpDir = mkdtempSync(join(tmpdir(), 'memo-publish-'));
-        const { exitCode } = runMayFail('sysand publish --dry-run', tmpDir);
+        const { exitCode } = runMayFail('publish', tmpDir);
         rmSync(tmpDir, { recursive: true, force: true });
         expect(exitCode).not.toBe(0);
     });
@@ -811,7 +811,7 @@ memo:Requirement a owl:Class ;
     });
 });
 
-describe('I-1: memo ontology add-kind', () => {
+describe('I-1: memo-architect new kind', () => {
     let tmpDir: string;
 
     beforeAll(() => {
@@ -823,7 +823,7 @@ describe('I-1: memo ontology add-kind', () => {
     });
 
     it('writes a parser-valid .sysml file for a simple layer', () => {
-        run('ontology add-kind MyHazard --layer risk', tmpDir);
+        run('new kind MyHazard --layer risk', tmpDir);
         const outPath = join(tmpDir, 'ontology', 'risk', 'MyHazard.sysml');
         expect(existsSync(outPath)).toBe(true);
         const content = readFileSync(outPath, 'utf-8');
@@ -833,7 +833,7 @@ describe('I-1: memo ontology add-kind', () => {
     });
 
     it('supports nested layer paths', () => {
-        run('ontology add-kind SafetyControl --layer architecture/risk', tmpDir);
+        run('new kind SafetyControl --layer architecture/risk', tmpDir);
         const outPath = join(tmpDir, 'ontology', 'architecture', 'risk', 'SafetyControl.sysml');
         expect(existsSync(outPath)).toBe(true);
         const content = readFileSync(outPath, 'utf-8');
@@ -843,13 +843,13 @@ describe('I-1: memo ontology add-kind', () => {
     });
 
     it('rejects non-PascalCase kind names', () => {
-        const result = runMayFail('ontology add-kind lowercase --layer risk', tmpDir);
+        const result = runMayFail('new kind lowercase --layer risk', tmpDir);
         expect(result.exitCode).not.toBe(0);
     });
 
     it('refuses to overwrite an existing file', () => {
         // MyHazard.sysml already exists from the first test — second call must fail
-        const result = runMayFail('ontology add-kind MyHazard --layer risk', tmpDir);
+        const result = runMayFail('new kind MyHazard --layer risk', tmpDir);
         expect(result.exitCode).not.toBe(0);
     });
 
