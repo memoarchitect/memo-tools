@@ -33,7 +33,7 @@ export async function inspectCommand(
         );
     }
     const configPath = findConfigFile(projectRoot);
-    if (!configPath) throw new Error('No memo-architect package descriptor found beside the project.');
+    if (!configPath) throw new Error('No memo package descriptor found beside the project.');
 
     const config = loadAndResolveConfig(configPath);
     const { model, registries } = await loadProjectModel({ projectRoot, config });

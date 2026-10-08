@@ -66,8 +66,13 @@ export interface RuleClauseCoverage {
     standards: { designation: string; clauses: number; enforced: number }[];
     /** Every clause some enabled rule enforces, with the rules that do. */
     enforcedClauses: (ClauseFact & { rules: string[] })[];
-    /** Medical-device rules that enforce no clause: traced to nothing yet. */
-    untracedMedicalRules: { id: string; typeName: string }[];
+    /**
+     * Rules that name no clause. A rule need not trace to a standard (the ontology's modelling rules
+     * and a user's own rules usually do not), so this is information about the rule set, not a gap.
+     */
+    untracedRules: { id: string; typeName: string; domain?: string }[];
+    /** How many rules name at least one clause, however many. */
+    tracedRules: number;
     /** A rule that enforces a clause the model does not carry, which should not happen. */
     unknownClauses: { ruleId: string; clause: string }[];
     byDomain: Record<string, number>;
@@ -85,14 +90,14 @@ export function computeRuleClauseCoverage(
     const known = new Set(clauses.map(c => c.qualifiedName));
     const unknownClauses: RuleClauseCoverage['unknownClauses'] = [];
     const byDomain: Record<string, number> = {};
-    const untracedMedicalRules: RuleClauseCoverage['untracedMedicalRules'] = [];
+    const untracedRules: RuleClauseCoverage['untracedRules'] = [];
+    let tracedRules = 0;
 
     for (const rule of rules) {
         byDomain[rule.domain ?? 'unstated'] = (byDomain[rule.domain ?? 'unstated'] ?? 0) + 1;
         const enforced = rule.enforces ?? [];
-        if (rule.domain === 'medicalDevice' && enforced.length === 0) {
-            untracedMedicalRules.push({ id: rule.sourceRuleId, typeName: rule.sourceRuleType });
-        }
+        if (enforced.length === 0) untracedRules.push({ id: rule.sourceRuleId, typeName: rule.sourceRuleType, ...(rule.domain ? { domain: rule.domain } : {}) });
+        else tracedRules++;
         for (const clause of enforced) {
             if (!known.has(clause)) {
                 unknownClauses.push({ ruleId: rule.sourceRuleId, clause });
@@ -111,5 +116,5 @@ export function computeRuleClauseCoverage(
         clauses: clauses.filter(c => c.standard === designation).length,
         enforced: enforcedClauses.filter(c => c.standard === designation).length,
     }));
-    return { standards, enforcedClauses, untracedMedicalRules, unknownClauses, byDomain };
+    return { standards, enforcedClauses, untracedRules, tracedRules, unknownClauses, byDomain };
 }

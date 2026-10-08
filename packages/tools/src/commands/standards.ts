@@ -170,11 +170,9 @@ function printRuleCoverage(coverage: RuleClauseCoverage | undefined, standard?: 
             console.log(`      §${clause.clauseNumber.padEnd(8)}${title}${chalk.gray(`  ← ${clause.rules.join(', ')}`)}`);
         }
     }
-    if (coverage.untracedMedicalRules.length > 0) {
-        console.log(chalk.yellow(
-            `\n  ${coverage.untracedMedicalRules.length} medical-device rule(s) trace to no clause yet: `
-            + coverage.untracedMedicalRules.map(r => r.id).join(', ')));
-    }
+    // Not every rule traces to a standard: the ontology's modelling rules and a user's own rules need not.
+    const ruleCount = coverage.tracedRules + coverage.untracedRules.length;
+    console.log(chalk.gray(`\n  ${coverage.tracedRules} of ${ruleCount} rules name at least one clause; the other ${coverage.untracedRules.length} trace to no standard, which a rule need not.`));
     for (const unknown of coverage.unknownClauses) {
         console.log(chalk.red(`  ✖ ${unknown.ruleId} enforces ${unknown.clause}, which the model does not carry.`));
     }

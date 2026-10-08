@@ -13,7 +13,6 @@ import { setCommandLineToolchain } from '../model/config-loader.js';
 import { toolchainOverridesFromCliOptions } from '../toolchain/schema.js';
 import { initCommand } from '../commands/init.js';
 import { retiredCommand } from '../commands/retired.js';
-import { packCommand } from '../commands/pack.js';
 import { exportJsonCommand, exportDotCommand } from '../commands/export.js';
 import {
     exportDhfCommand,
@@ -137,15 +136,6 @@ export function registerProjectCommands(program: Command): void {
     const packageCmd = program.command('package').description('Inspect and import interoperable KPAR libraries');
     packageCmd.command('inspect').argument('<archive>').action((archive: string) => console.log(JSON.stringify(inspectKpar(archive), null, 2)));
     packageCmd.command('import').argument('<archive>').option('-C, --project <dir>', 'Project directory', '.').action((archive: string, options: { project: string }) => console.log(JSON.stringify(importKpar(options.project, archive), null, 2)));
-
-    withToolchainOptions(
-        program
-            .command('pack')
-            .description('Package the model as a MEMO bundle (not an interoperable KPAR)')
-            .option('-o, --output <file>', 'Output .memo-bundle path'),
-    ).action(async (options: Record<string, unknown>) => {
-        await packCommand({ ...options, output: options.output as string | undefined });
-    });
 
     const exportCmd = program
         .command('export')

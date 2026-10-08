@@ -82,7 +82,7 @@ memo-architect export json --output model.json
 memo-architect export dot --output model.dot
 memo-architect import csv elements.csv
 memo-architect ontology export owl --output ontology.ttl
-memo-architect pack --output model.kpar
+memo pack --output model.kpar
 memo-architect sysand publish --dry-run
 
 # Generate assurance artifacts
@@ -141,7 +141,7 @@ them. A project names the compiler it uses, and `memo-architect init` writes
 ```yaml
 toolchain:
   compiler: opensysml    # syside or opensysml
-  packager: internal     # internal or sysand; only `memo-architect pack` needs it
+  packager: internal     # internal or sysand; only `memo pack` needs it
 ```
 
 Anyone who wants another overrides it for themselves, without editing the project:
@@ -164,10 +164,10 @@ toolchain:
     configFile: ./sysand.toml
 ```
 
-`memo validate` and `memo-architect pack` run `syside check --diagnose all
+`memo validate` and `memo pack` run `syside check --diagnose all
 --warnings-as-errors` by default when it is the selected validator, automatically
 including the resolved ontology directories. Set `warningsAsErrors: false` or use
-`diagnose: none` to relax the check. `memo-architect pack` delegates archive creation to
+`diagnose: none` to relax the check. `memo pack` delegates archive creation to
 SysAnd when selected. Relative executable and config paths resolve from the
 project directory; bare executable names resolve through `PATH`. A selected tool
 that is not installed is a clear error, never a silent fallback.

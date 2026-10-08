@@ -7,7 +7,7 @@ Choose an output based on the consumer.
 | Script or data pipeline | `memo-architect export json` | Semantic model JSON |
 | Graph tooling | `memo-architect export dot` | Graphviz DOT |
 | Design-history review | `memo-architect export dhf` | HTML, Markdown, or DOCX documents |
-| SysML package consumer | `memo-architect pack` | KPAR archive |
+| SysML package consumer | `memo pack` | KPAR archive |
 | Ontology consumer | `memo-architect ontology export` | OWL or SysAnd-oriented output |
 
 ## Model exports
@@ -33,7 +33,7 @@ quality process; generation is not approval.
 ## Package the model
 
 ```bash
-memo-architect pack --output build/my-device.kpar
+memo pack --output build/my-device.kpar
 ```
 
 If `toolchain.packager` is `sysand`, packaging delegates to SysAnd. Keep the

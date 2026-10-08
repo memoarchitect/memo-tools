@@ -90,7 +90,9 @@ describe('renderRule and insertRule', () => {
 });
 
 const example = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
+// `rules new` is memo-architect's (driven through its registration); listing is `memo validate --rules`.
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
+const projectCli = resolve(__dirname, '../../../../scripts/project-cli.mjs');
 const python = process.env.MEMO_SYSIDE_PYTHON;
 const opensysml = openSysMLUnderTest;
 
@@ -98,7 +100,12 @@ function integration(name: string, flags: string[]): void {
     describe(`a rule written through ${name}`, () => {
         it('is previewed, written, listed with its clause, and flags the hazard', () => {
             const root = mkdtempSync(join(tmpdir(), 'memo-rule-writer-'));
-            const run = (args: string[]): string => execFileSync(process.execPath, [cli, ...args, ...flags], { cwd: root, encoding: 'utf8', env: process.env });
+            const run = (args: string[]): string => {
+                const argv = args[0] === 'rules' && args[1] === 'list'
+                    ? [cli, 'validate', '--rules', ...args.slice(2).filter(a => a !== '.').map(a => (a === '--domain' ? '--rules-domain' : a))]
+                    : args[0] === 'rules' ? [projectCli, ...args] : [cli, ...args];
+                return execFileSync(process.execPath, [...argv, ...flags], { cwd: root, encoding: 'utf8', env: process.env });
+            };
             try {
                 cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
                 const file = 'model/catalog/temperature_alarm.sysml';

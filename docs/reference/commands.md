@@ -1,6 +1,6 @@
 # Command reference
 
-MEMO has two command-line programs. **`memo`** (MEMO Tools) compiles and validates.
+MEMO has two command-line programs. **`memo`** (MEMO Tools) compiles, validates and packs.
 **`memo-architect`** (MEMO Architect) does everything else a person does with a project:
 create it, author it, package and export it, choose its compiler, and the AI and
 regulatory helpers. Run `memo --help` or `memo-architect --help` for the installed
@@ -20,7 +20,7 @@ is `memo validate --rules`; `memo inspect <id>` is `memo compile --inspect <id>`
 `memo check` and `memo round-trip` are `memo compile`, since the selected compiler is the
 authority on whether SysML is valid; `memo conformance` graded MEMO's own compiler, which is gone).
 
-## `memo`: compile and validate
+## `memo`: compile, validate and pack
 
 | Command | Purpose |
 |---|---|
@@ -32,6 +32,7 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo validate --rules` | List the consistency rules in effect (`--rules-domain`, `--rules-category`; `--format json`). |
 | `memo validate --explain-rule <id>` | Show one rule in detail. |
 | `memo validate --standards` | Report clause coverage: required, claimed, evidenced (`--standard`, `--regime`, `--gaps-only`). |
+| `memo pack` | Package the project or package you are in with `toolchain.packager`. `internal` writes MEMO's own `.memo-bundle` (not a KPAR). `sysand` writes a real KPAR, `<name>-<version>.kpar`: it stages only the SysML the project or package declares as its own (a package's `sysmlDir`, a project's `include` and `entrypoint`), writes `.project.json` from `memo.package.yaml` and the libraries the project imports, has `sysand include` index and checksum the files, and runs `sysand build`. Nothing is written into the project; examples, templates, other packages and the libraries it imports are not bundled. |
 | `memo toolchain check [paths...]` | Run the selected validator over SysML paths, less the project's `validator-exceptions.json`. |
 | `memo ship-library [dir]` | Export a package's compiled library set, for the package to carry. |
 
@@ -44,9 +45,8 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo-architect config set\|get\|unset` | Choose the compiler: for yourself, or with `--project` for everyone on the project. |
 | `memo-architect element …` | Author one element in source and recompile. |
 | `memo-architect convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
-| `memo-architect pack` | Package the project or package you are in with `toolchain.packager`. `internal` writes MEMO's own `.memo-bundle` (not a KPAR). `sysand` writes a real KPAR, `<name>-<version>.kpar`: it stages only the SysML the project or package declares as its own (a package's `sysmlDir`, a project's `include` and `entrypoint`), writes `.project.json` from `memo.package.yaml` and the libraries the project imports, has `sysand include` index and checksum the files, and runs `sysand build`. Nothing is written into the project; examples, templates, other packages and the libraries it imports are not bundled. |
 | `memo-architect export …` | Export JSON, Graphviz DOT, or DHF artifacts. |
-| `memo-architect package …`, `create-package <name>`, `install [source]`, `lock` | Inspect or import KPAR libraries; scaffold, install and lock packages. |
+| `memo package …`, `create-package <name>`, `install [source]`, `lock` | Inspect or import KPAR libraries; scaffold, install and lock packages. |
 | `memo-architect ontology …` | Inspect or export the resolved ontology; add a local kind. |
 | `memo-architect import …` | Import CSV, EA, Cameo, SysAnd, or OWL data. |
 | `memo-architect ask <question>`, `generate <description>`, `mcp [init]` | The AI helpers: a model-grounded question, SysML from natural language, MCP for coding tools. |
@@ -90,7 +90,7 @@ never overwritten.
 | `config` | `effective` |
 
 Every setting under `toolchain` has a generated `--toolchain.<path>` flag on
-`memo compile`, `memo validate`, `memo-architect export json`, `memo-architect pack`, `memo compile --probe`, `memo toolchain check`, `memo compile --effective`,
+`memo compile`, `memo validate`, `memo-architect export json`, `memo pack`, `memo compile --probe`, `memo toolchain check`, `memo compile --effective`,
 and `memo-architect dev`. `memo compile --probe --help` lists them for the
 installed provider set.
 

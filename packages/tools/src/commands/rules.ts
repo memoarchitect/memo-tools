@@ -7,7 +7,7 @@
 // clauses they enforce.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { resolve } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import chalk from 'chalk';
 import {
     findConfigFile, findProjectRoot, loadProjectSettings, RuleRegistry,
@@ -131,12 +131,24 @@ function severityIcon(severity: string): string {
 
 export type RulesFormat = 'text' | 'json';
 
+/**
+ * Where a rule is written: in this project (a rule its users made), or in a library it imports
+ * (the ontology, a methodology). Both kinds are rules; only the first is the project's to edit.
+ */
+function originOf(rule: { sourceFile?: string }, projectRoot: string): 'project' | 'library' {
+    if (!rule.sourceFile) return 'library';
+    const relativePath = relative(projectRoot, resolve(projectRoot, rule.sourceFile));
+    return relativePath.startsWith('..') || isAbsolute(relativePath) || relativePath.split(sep).includes('node_modules')
+        ? 'library' : 'project';
+}
+
 export async function rulesListCommand(
     projectDir?: string,
     options?: { format?: RulesFormat; category?: string; domain?: string }
 ): Promise<void> {
     const format = options?.format || 'text';
     const { effectiveRules, ruleDiagnostics, inactive, clauseFacts } = await loadContext(projectDir);
+    const projectRoot = resolve(projectDir ?? process.cwd());
 
     if (options?.domain && !RULE_DOMAINS.includes(options.domain)) {
         console.error(chalk.red(`❌ --domain expects one of ${RULE_DOMAINS.join(', ')}, got "${options.domain}".`));
@@ -157,6 +169,7 @@ export async function rulesListCommand(
             tailorable: filteredRules.map(rule => ({
                 ...rule,
                 clauses: (rule.enforces ?? []).map(clause => ({ qualifiedName: clause, label: clauseLabel(clauseFacts, clause) })),
+                origin: originOf(rule, projectRoot),
             })),
             builtin: narrowed ? [] : BUILTIN_RULES,
             total: filteredRules.length + (narrowed ? 0 : BUILTIN_RULES.length),
@@ -191,18 +204,16 @@ export async function rulesListCommand(
                 ? '' : chalk.yellow(` [${rule.disposition}]`);
             const overridden = rule.effectiveSeverity !== rule.declaredSeverity
                 ? chalk.gray(` (declared ${rule.declaredSeverity})`) : '';
+            const own = originOf(rule, projectRoot) === 'project' ? chalk.green(' [this project\'s own]') : '';
             const domain = rule.domain === 'medicalDevice'
                 ? chalk.magenta(' [medical device]') : rule.domain === 'organisation' ? chalk.blue(' [organisation]') : '';
             console.log(`    ${icon} ${chalk.white(rule.sourceRuleId)} ${rule.sourceRuleType}`
-                + `${domain}${disposition}${overridden}`);
+                + `${domain}${own}${disposition}${overridden}`);
             if (rule.rationaleText) {
                 console.log(`      ${chalk.gray(rule.rationaleText)}`);
             }
             for (const clause of rule.enforces ?? []) {
                 console.log(`      ${chalk.gray(`enforces ${clauseLabel(clauseFacts, clause)}`)}`);
-            }
-            if (rule.domain === 'medicalDevice' && (rule.enforces ?? []).length === 0) {
-                console.log(`      ${chalk.yellow('traces to no clause yet')}`);
             }
             if (rule.authority) {
                 console.log(`      ${chalk.gray(`authority: ${rule.authority}`)}`);
