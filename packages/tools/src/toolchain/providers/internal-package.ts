@@ -22,6 +22,7 @@ export const internalPackageDescriptor: PackageDescriptor = {
     id: INTERNAL_PROVIDER_ID,
     role: 'package',
     capabilities: ['pack'],
+    defaultOutputName: context => `${(context.config.projectName || 'memo-project').replace(/[^a-zA-Z0-9_-]/g, '-')}.memo-bundle`,
     probe: () => ({ available: true, transport: 'in-process', version: internalVersion() }),
     create(context: ProviderContext) {
         return {
