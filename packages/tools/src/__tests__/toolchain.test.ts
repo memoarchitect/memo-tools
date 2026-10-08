@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -170,9 +170,14 @@ describe('running providers', () => {
     it.skipIf(process.platform === 'win32')('executes a configured external packager', async () => {
         const project = mkdtempSync(join(tmpdir(), 'memo-toolchain-'));
         tempDirs.push(project);
+        // A package that says where its sources are (a project would need a compile to read its libraries).
+        writeFileSync(join(project, 'memo.package.yaml'), 'name: pkg\nsysmlDir: ./src\n');
+        mkdirSync(join(project, 'src'));
+        writeFileSync(join(project, 'src', 'a.sysml'), 'package A;\n');
         const packager = join(project, 'packager');
         const output = join(project, 'model.kpar');
-        writeFileSync(packager, '#!/bin/sh\ntouch "$4"\n');
+        // The packager is asked to `include` the sources and then to `build` the archive.
+        writeFileSync(packager, '#!/bin/sh\n[ "$1" = "--config-file" ] && shift 2\ncase "$1" in build) touch "$2";; esac\n');
         chmodSync(packager, 0o755);
 
         const result = await runPackager({

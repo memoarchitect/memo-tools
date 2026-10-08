@@ -275,7 +275,13 @@ export interface ProviderDescriptor<R extends ProviderRunResult = ProviderRunRes
 
 export type ValidatorDescriptor = ProviderDescriptor<ProviderRunResult>;
 export type LoweringDescriptor = ProviderDescriptor<LoweringRunResult>;
-export type PackageDescriptor = ProviderDescriptor<ProviderRunResult>;
+export type PackageDescriptor = ProviderDescriptor<ProviderRunResult> & {
+    /**
+     * The file name a package gets when nobody names one, for this packager: what
+     * it makes decides what it is called (a KPAR, or MEMO's own bundle).
+     */
+    defaultOutputName?: (context: ProviderContext) => string;
+};
 
 export class MissingToolError extends Error {
     constructor(readonly provider: string, readonly command: string, detail: string) {

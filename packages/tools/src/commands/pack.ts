@@ -5,25 +5,31 @@ import { runPackager } from '../toolchain/operations.js';
 import { formatDiagnosticText } from '../toolchain/diagnostic.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
-import { buildProjectSnapshot } from '../operations/project-snapshot.js';
+import { loadProjectSettings } from '../model/config-loader.js';
+import { resolveToolchain } from '../toolchain/effective.js';
+import type { PackageDescriptor } from '../toolchain/registry.js';
 
 export async function packCommand(
     options: { output?: string } & Record<string, unknown> = {},
 ): Promise<void> {
-    const snapshot = await buildProjectSnapshot();
-    const config = withToolchainOverrides(snapshot.config, options, defaultRegistry);
+    // A package (the ontology, an extension) is packed as well as a project, so this does not
+    // compile first: what a packager needs of the project it reads for itself.
+    const projectRoot = process.cwd();
+    const config = withToolchainOverrides(loadProjectSettings(projectRoot), options, defaultRegistry);
     const projectName = config.projectName || 'memo-project';
-    const outputPath = resolve(snapshot.projectRoot, options.output
-        || `${projectName.replace(/[^a-zA-Z0-9_-]/g, '-')}.memo-bundle`);
+    // The file is named by what the selected packager makes.
+    const packager = defaultRegistry.descriptor('package', resolveToolchain(config, defaultRegistry).packager) as PackageDescriptor;
+    const defaultName = packager.defaultOutputName?.({ config, projectDir: projectRoot })
+        ?? `${projectName.replace(/[^a-zA-Z0-9_-]/g, '-')}.memo-bundle`;
+    const outputPath = resolve(projectRoot, options.output || defaultName);
 
     console.log(chalk.bold('\n📦 MEMO Pack\n'));
     console.log(chalk.gray(`  Project: ${projectName}`));
-    console.log(chalk.gray(`  Validator: ${snapshot.validator}`));
 
     // The packager is resolved and run through the registry like anything else.
     // There is no `if (packager === 'internal')` here any more: MEMO's own KPAR
     // writer is a provider, reached the same way `sysand` is.
-    const result = await runPackager({ config, projectDir: snapshot.projectRoot, outputPath });
+    const result = await runPackager({ config, projectDir: projectRoot, outputPath });
     console.log(chalk.gray(`  Packager: ${result.provider}`));
     for (const diagnostic of result.diagnostics) {
         console.log(chalk.red(`  ${formatDiagnosticText(diagnostic)}`));
