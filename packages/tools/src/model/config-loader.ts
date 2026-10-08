@@ -91,11 +91,13 @@ export function setCommandLineToolchain(overrides: ToolchainConfig): void {
 
 
 /**
- * The toolchain every command sees: the user's settings, the project's on top
- * of them, and the command line's on top of both (`toolchain-merge.ts`).
+ * The toolchain every command sees: the project's settings, the user's on top
+ * of them (the project names a compiler, and a user may use another without
+ * editing the project), and the command line's on top of both
+ * (`toolchain-merge.ts`).
  */
 function withCommandLineToolchain(config: MEMOConfig): MEMOConfig {
-    const toolchain = mergeToolchain(mergeToolchain(userToolchain(), config.toolchain), commandLineToolchain);
+    const toolchain = mergeToolchain(mergeToolchain(config.toolchain, userToolchain()), commandLineToolchain);
     return Object.keys(toolchain).length === 0 ? config : { ...config, toolchain };
 }
 

@@ -1,7 +1,7 @@
 import { basename, join, resolve } from 'node:path';
 import { cpSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { parse as parseYaml, parseDocument, stringify as stringifyYaml } from 'yaml';
 import chalk from 'chalk';
 import {
     findConfigFile,
@@ -14,17 +14,31 @@ import { createLockFile } from '../lock.js';
 import { scaffoldAnalysisSamples } from '../analysis-starters.js';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
-import { userToolchain } from '../model/user-settings.js';
+import { OPENSYSML_PROVIDER_ID as RECOMMENDED_COMPILER } from '../toolchain/providers/opensysml-names.js';
 
-/** The compiler is the user's to choose, not the project's: say how, once, when nothing has chosen it. */
-function remindToChooseCompiler(): void {
-    try {
-        const toolchain = userToolchain();
-        if (toolchain.compiler || (toolchain.validator && toolchain.lowering)) return;
-    } catch {
-        return;
-    }
-    console.log(chalk.yellow('  Choose your compiler (yours, not the project\'s): memo config set compiler syside   or   memo config set compiler opensysml'));
+/**
+ * The compiler a new project names: the recommended one. It is the project's
+ * choice, written into its own settings file so everyone who clones it runs the
+ * same one; a user who wants another overrides it for themselves
+ * (`memo config set compiler`) without editing the project. A project that
+ * already names a compiler, or both roles, keeps its own.
+ */
+const NEW_PROJECT_COMPILER = RECOMMENDED_COMPILER;
+
+function namesACompiler(toolchain: Record<string, unknown> | undefined): boolean {
+    return Boolean(toolchain && (toolchain.compiler || (toolchain.validator && toolchain.lowering)));
+}
+
+/** Add the recommended compiler to the settings file of a project created from an example. */
+function nameCompilerInProject(projectDir: string): void {
+    const file = resolve(projectDir, 'memo.package.yaml');
+    if (!existsSync(file)) return;
+    const document = parseDocument(readFileSync(file, 'utf-8'));
+    const toolchain = (document.toJS() as { toolchain?: Record<string, unknown> } | null)?.toolchain;
+    if (namesACompiler(toolchain)) return;
+    document.setIn(['toolchain', 'compiler'], NEW_PROJECT_COMPILER);
+    writeFileSync(file, document.toString());
+    console.log(chalk.gray(`  Compiler: ${NEW_PROJECT_COMPILER} (in memo.package.yaml; change it for yourself with: memo config set compiler syside)`));
 }
 
 export interface AvailableOntology {
@@ -296,8 +310,8 @@ export async function initCommand(name: string | undefined, options: InitOptions
         console.log(chalk.bold(`\n📦 Creating project from example: ${example.id}\n`));
         cpSync(example.path, target.projectDir, { recursive: true });
         scaffoldAnalysisSamples(target.projectDir);
+        nameCompilerInProject(target.projectDir);
         console.log(chalk.green(target.inPlace ? '\n✅ Project created in current directory' : `\n✅ Project created at ./${name}`));
-        remindToChooseCompiler();
         return;
     }
 
@@ -345,6 +359,10 @@ export async function initCommand(name: string | undefined, options: InitOptions
         ? descriptor.entrypoint.trim()
         : 'model/catalog/project.sysml';
     descriptor.entrypoint = entrypointRel;
+    if (!namesACompiler(descriptor.toolchain)) {
+        descriptor.toolchain = { ...(descriptor.toolchain ?? {}), compiler: NEW_PROJECT_COMPILER };
+        console.log(chalk.gray(`  Compiler: ${NEW_PROJECT_COMPILER} (in memo.package.yaml; change it for yourself with: memo config set compiler syside)`));
+    }
 
     if (!existsSync(resolve(target.projectDir, entrypointRel))) {
         console.error(chalk.red(
@@ -382,5 +400,4 @@ export async function initCommand(name: string | undefined, options: InitOptions
         console.log(chalk.yellow(`  ⚠ Could not create lock file: ${error instanceof Error ? error.message : error}`));
     }
     console.log(chalk.green(target.inPlace ? '\n✅ Project created in current directory' : `\n✅ Project created at ./${target.projectName}`));
-    remindToChooseCompiler();
 }

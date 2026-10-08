@@ -65,7 +65,7 @@ describe('memo config', () => {
         expect(vi.mocked(console.log).mock.calls.at(-1)?.[0]).toContain('was not set');
     });
 
-    it('reports the layer that decided: the command line, then the environment, then the file', () => {
+    it('reports the layer that decided: the command line, the environment, your file, then the project', () => {
         configSetCommand('compiler', 'syside');
         const compiler = () => userSettingReports(defaultRegistry, {}, process.env).find(r => r.path === 'compiler')!;
         expect(compiler()).toMatchObject({ value: 'syside', layer: 'user settings' });
@@ -74,12 +74,25 @@ describe('memo config', () => {
         const withFlag = userSettingReports(defaultRegistry, { compiler: 'syside' }, process.env).find(r => r.path === 'compiler')!;
         expect(withFlag).toMatchObject({ layer: 'command line' });
         expect(withFlag.layers.map(l => l.layer)).toEqual(['command line', 'environment', 'user settings']);
+        // The project's own choice is the lowest layer, which yours override.
+        const withProject = userSettingReports(defaultRegistry, {}, process.env, { compiler: 'opensysml' }).find(r => r.path === 'compiler')!;
+        expect(withProject.layers.map(l => `${l.layer}:${l.value}`)).toEqual(['environment:opensysml', 'user settings:syside', 'project:opensysml']);
     });
 
-    it('lists only the user\'s settings: the registry says which', () => {
+    it('lists the choice of compiler and nothing about where its tools are', () => {
         const paths = userSettingReports(defaultRegistry).map(r => r.path);
+        expect(paths).toEqual(['compiler']);
+    });
+
+    it('lists the low-level overrides only when asked, and the registry says which they are', () => {
+        const paths = userSettingReports(defaultRegistry, {}, process.env, {}, true).map(r => r.path);
         expect(paths).toEqual(expect.arrayContaining(['compiler', 'validator', 'lowering', 'opensysml.binary', 'syside.python']));
         expect(paths).not.toContain('packager');
         expect(paths).not.toContain('syside.diagnose');
+    });
+
+    it('still sets a low-level override, for an unusual install', () => {
+        configSetCommand('syside.python', '/opt/py/bin/python');
+        expect(userToolchain()).toMatchObject({ syside: { python: '/opt/py/bin/python' } });
     });
 });

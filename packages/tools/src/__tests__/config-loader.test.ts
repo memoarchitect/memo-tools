@@ -27,7 +27,10 @@ describe('loadConfig', () => {
         ].join('\n'));
         const config = loadConfig(join(TMP_DIR, 'memo.package.yaml'));
         expect(config.projectName).toBe('my-project');
-        expect(config.toolchain?.compiler).toBe('syside');
+        // What the project's file says, kept as written; the effective compiler is the user's
+        // override when there is one (the suite runs with MEMO_TOOLCHAIN_COMPILER set).
+        expect(config.projectToolchain?.compiler).toBe('syside');
+        expect(config.toolchain?.compiler).toBe(process.env.MEMO_TOOLCHAIN_COMPILER ?? 'syside');
     });
 
     it('does not surface semantic fields even when the file still carries them', () => {

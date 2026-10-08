@@ -755,7 +755,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     async function toolchainSettings() {
         const { userToolchainStatus } = await import('../toolchain/user-settings-status.js');
         const { defaultRegistry } = await import('../toolchain/default-registry.js');
-        return userToolchainStatus(defaultRegistry);
+        const { loadProjectSettings } = await import('../model/config-loader.js');
+        return userToolchainStatus(defaultRegistry, {}, process.env, loadProjectSettings(options.projectRoot).projectToolchain ?? {});
     }
 
     async function llmSettings() {

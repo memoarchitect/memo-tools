@@ -1,12 +1,15 @@
 // ─── Whose setting it is ─────────────────────────────────────────────────────
 //
-// Which compiler runs, and where its binary or interpreter is on this
-// machine, belong to whoever runs the tool: two people on one project have
-// different machines, licences and preferences. A project's settings file is
-// checked in and shared, so it may not carry them. They are set in the user's
-// own settings, the environment or on the command line (`model/user-settings.ts`),
-// and the registry says which settings these are (`scope: 'user'`), so a
-// provider that adds one gets the rule without anyone remembering to.
+// Where a tool is on this machine (its binary, its Python) belongs to whoever
+// runs it: two people on one project have different machines. A project's
+// settings file is checked in and shared, so a path in it is wrong for everyone
+// else, and it may not carry one. It is set in the user's own settings, the
+// environment or on the command line (`model/user-settings.ts`). The registry
+// says which settings these are (`scope: 'user'`), so a provider that adds one
+// gets the rule without anyone remembering to.
+//
+// Which compiler runs is different: the project names it (`scope: 'shared'`),
+// and each user may override it for themselves without editing the project.
 //
 // A rejected setting is rejected, never read as a fallback or compared against
 // the user's: the same rule `model/settings-boundary.ts` holds for semantic fields.
@@ -33,17 +36,16 @@ function valueAt(toolchain: ToolchainConfig, path: string): unknown {
     return value;
 }
 
-/** A project's settings file names a setting that is the user's. */
+/** A project's settings file names a tool's place on one machine. */
 export class ProjectNamesUserSettingError extends Error {
     constructor(readonly file: string | undefined, readonly paths: readonly string[]) {
         const where = file ?? "the project's settings file";
         const names = paths.map(path => `toolchain.${path}`).join(', ');
         super(
-            `${where} sets ${names}. Which compiler runs, and where its tools are on this machine, belong to the person running MEMO, `
-            + `so a project's checked-in settings do not carry them. Remove ${paths.length === 1 ? 'it' : 'them'} from the file `
+            `${where} sets ${names}. Where a tool is on this machine belongs to the person running MEMO, `
+            + `so a project's checked-in settings do not carry it: it would be wrong for everyone else. Remove ${paths.length === 1 ? 'it' : 'them'} from the file `
             + `and set ${paths.length === 1 ? 'it' : 'each'} for yourself: ${paths.map(path => `\`memo config set ${path} <value>\``).join(', ')} `
-            + `(your settings: ${userSettingsPath()}). A script or CI job uses MEMO_TOOLCHAIN_COMPILER `
-            + `or the matching --toolchain.<setting> flag.`,
+            + `(your settings: ${userSettingsPath()}).`,
         );
         this.name = 'ProjectNamesUserSettingError';
     }

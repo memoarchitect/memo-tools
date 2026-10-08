@@ -1,7 +1,7 @@
 // ─── Layering toolchain settings ─────────────────────────────────────────────
 //
-// The toolchain is set from layers: the user's own settings, the project's
-// settings file, and the command line, each beating the one before. A leaf of
+// The toolchain is set from layers: the project's settings file, the user's own
+// settings, and the command line, each beating the one before. A leaf of
 // a higher layer replaces the same leaf below it, and one provider's flag does
 // not discard another leaf of that provider's settings.
 //

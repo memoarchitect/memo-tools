@@ -28,11 +28,11 @@ export class ConfigSettingError extends Error {
 export function userLeaf(path: string, registry: ProviderRegistry): ToolchainSchemaLeaf {
     const leaves = registry.schema();
     const leaf = leaves.find(l => l.path === path);
-    const userPaths = leaves.filter(l => l.scope === 'user').map(l => l.path);
+    const userPaths = leaves.filter(l => l.scope === 'user' || l.scope === 'shared').map(l => l.path);
     if (!leaf) {
         throw new ConfigSettingError(`"${path}" is not a toolchain setting. The settings that are yours to set: ${userPaths.join(', ')}.`);
     }
-    if (leaf.scope !== 'user') {
+    if (leaf.scope !== 'user' && leaf.scope !== 'shared') {
         throw new ConfigSettingError(
             `toolchain.${path} is a project setting: it is checked in with the project, so it is set in the project's settings file, `
             + `not in your own. The settings that are yours to set: ${userPaths.join(', ')}.`,
@@ -54,7 +54,7 @@ function valueAt(toolchain: ToolchainConfig, path: string): unknown {
 export interface UserSettingReport {
     path: string;
     value?: string;
-    /** The layer that decided: `command line`, `environment`, `user settings`, or none. */
+    /** The layer that decided: `command line`, `environment`, `user settings`, `project`, or none. */
     layer?: string;
     layers: { layer: string; value: string }[];
 }
@@ -63,9 +63,14 @@ export function userSettingReports(
     registry: ProviderRegistry,
     commandLine: ToolchainConfig = {},
     env: NodeJS.ProcessEnv = process.env,
+    /** The `toolchain` block of the project's own settings file, when there is one. */
+    project: ToolchainConfig = {},
+    /** Include the low-level overrides (where a tool is, the two roles the compiler fills). */
+    all = false,
 ): UserSettingReport[] {
     const file = userFileToolchain(env);
-    return registry.schema().filter(leaf => leaf.scope === 'user').map(leaf => {
+    // What a user meets is the choice of compiler; where its tools are is found, not asked.
+    return registry.schema().filter(leaf => (leaf.scope === 'user' || leaf.scope === 'shared') && (all || !leaf.advanced)).map(leaf => {
         const layers: { layer: string; value: string }[] = [];
         const add = (layer: string, value: unknown) => {
             if (typeof value === 'string' && value.length > 0) layers.push({ layer, value });
@@ -73,6 +78,7 @@ export function userSettingReports(
         add('command line', valueAt(commandLine, leaf.path));
         if (leaf.path === 'compiler') add('environment', env[USER_COMPILER_ENV]?.trim());
         add('user settings', valueAt(file, leaf.path));
+        add('project', valueAt(project, leaf.path));
         return { path: leaf.path, value: layers[0]?.value, layer: layers[0]?.layer, layers };
     });
 }
@@ -98,11 +104,13 @@ export interface UserToolchainStatus {
     compilerFromEnvironment: boolean;
 }
 
-export function userToolchainStatus(registry: ProviderRegistry, commandLine: ToolchainConfig = {}, env: NodeJS.ProcessEnv = process.env): UserToolchainStatus {
+export function userToolchainStatus(
+    registry: ProviderRegistry, commandLine: ToolchainConfig = {}, env: NodeJS.ProcessEnv = process.env, project: ToolchainConfig = {},
+): UserToolchainStatus {
     const leaves = new Map(registry.schema().map(leaf => [leaf.path, leaf]));
     return {
         file: userSettingsPath(env),
-        settings: userSettingReports(registry, commandLine, env).map(report => {
+        settings: userSettingReports(registry, commandLine, env, project).map(report => {
             const leaf = leaves.get(report.path)!;
             return { ...report, description: leaf.description, type: leaf.type, ...(leaf.values ? { values: leaf.values } : {}) };
         }),
