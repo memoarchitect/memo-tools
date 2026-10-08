@@ -13,6 +13,7 @@ import type { ToolchainConfig } from '../model/config.js';
 import { USER_COMPILER_ENV, userSettingsPath } from '../model/user-settings.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import type { ProviderRegistry } from '../toolchain/registry.js';
+import { loadProjectSettings } from '../model/config-loader.js';
 import { applyUserSetting, ConfigSettingError, userLeaf, userSettingReports } from '../toolchain/user-settings-status.js';
 
 export { ConfigSettingError, userSettingReports };
@@ -32,9 +33,11 @@ export function configUnsetCommand(path: string, registry: ProviderRegistry = de
         : chalk.gray(`toolchain.${path} was not set in ${userSettingsPath()}`));
 }
 
-export function configGetCommand(path: string | undefined, registry: ProviderRegistry = defaultRegistry, commandLine: ToolchainConfig = {}): void {
+export function configGetCommand(path: string | undefined, registry: ProviderRegistry = defaultRegistry, commandLine: ToolchainConfig = {}, all = false): void {
     if (path) userLeaf(path, registry);
-    const reports = userSettingReports(registry, commandLine).filter(r => !path || r.path === path);
+    // The project's own layer, when this is a project: the lowest, which yours override.
+    const project = loadProjectSettings(process.cwd()).projectToolchain ?? {};
+    const reports = userSettingReports(registry, commandLine, process.env, project, all || path !== undefined).filter(r => !path || r.path === path);
     console.log(chalk.gray(`  your settings: ${userSettingsPath()}`));
     for (const report of reports) {
         const left = `toolchain.${report.path}`.padEnd(30);

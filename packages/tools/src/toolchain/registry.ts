@@ -168,12 +168,23 @@ export interface ToolchainSchemaLeaf {
     /** Present on leaves kept only for backwards compatibility. */
     deprecated?: string;
     /**
-     * `user`: the setting belongs to the person running the tool (which
-     * compiler, where its binary or interpreter is on this machine), so a
-     * project's checked-in settings file may not set it. It is set in the
-     * user's settings, the environment or on the command line.
+     * `user`: where a tool is on this machine (its binary, its interpreter). A
+     * project's checked-in settings file may not set it, because it would be
+     * wrong for everyone else; it is set in the user's settings, the
+     * environment or on the command line.
+     *
+     * `shared`: the project's choice, which each user may override for
+     * themselves without editing the project (which compiler runs).
+     *
+     * Absent: the project's alone.
      */
-    scope?: 'user';
+    scope?: 'user' | 'shared';
+    /**
+     * A low-level setting: MEMO finds what it needs without it, and it is an
+     * override for an unusual install. It still works, but the commands and panels
+     * a user meets do not list it. A user chooses a compiler, not where its tools are.
+     */
+    advanced?: boolean;
 }
 
 /** What `compileModel` needs: the project, as its resolution already found it. */
@@ -349,8 +360,10 @@ export class ProviderRegistry {
             type: 'enum' as const,
             values: this.ids(role),
             description: `Provider for the ${role} role.`,
-            // How a project is packed is the project's; which compiler runs is the user's.
-            ...(role === 'package' ? {} : { scope: 'user' as const }),
+            // How a project is packed is the project's; which compiler runs is the project's
+            // choice, and every user may override it for themselves. The two roles it fills
+            // are the compiler setting spelled out, so they are for the unusual case.
+            ...(role === 'package' ? {} : { scope: 'shared' as const, advanced: true }),
         }));
         leaves.push({
             path: COMPILER_SETTING,
@@ -358,7 +371,7 @@ export class ProviderRegistry {
             values: this.ids('validator'),
             description:
                 'The stage 1 SysML compiler: sets toolchain.validator and toolchain.lowering together.',
-            scope: 'user',
+            scope: 'shared',
         });
         const seen = new Set<string>();
         for (const descriptor of this.all()) {

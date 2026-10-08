@@ -50,9 +50,10 @@ export class ToolchainNotConfiguredError extends Error {
             role === 'package'
                 ? `No packager is configured. Set toolchain.${key} (${choices}) in the project's settings file `
                     + `(memo.tools.yaml or memo.package.yaml), or pass --toolchain.${key}.`
-                // The compiler is the user's to choose, not the project's.
-                : `No SysML compiler is configured. Choose one for yourself with \`memo config set ${key} <${choices.replace(/, /g, '|')}>\` `
-                    + `(your settings: ${userSettingsPath()}), or set MEMO_TOOLCHAIN_COMPILER, or pass --toolchain.${key}.`,
+                // The project names it; a user may choose another for themselves.
+                : `No SysML compiler is configured. The project names one with toolchain.${key} (${choices}) in its settings file `
+                    + `(memo.tools.yaml or memo.package.yaml), or you choose one for yourself with \`memo config set ${key} <${choices.replace(/, /g, '|')}>\` `
+                    + `(${userSettingsPath()}), or set MEMO_TOOLCHAIN_COMPILER, or pass --toolchain.${key}.`,
         );
         this.name = 'ToolchainNotConfiguredError';
     }

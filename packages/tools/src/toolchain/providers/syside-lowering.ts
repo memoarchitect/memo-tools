@@ -41,6 +41,7 @@ import type {
     ToolchainSchemaLeaf,
 } from '../registry.js';
 import { SYSIDE_PROVIDER_ID, parseSysideDiagnostics } from './syside.js';
+import { describeSysidePythonSearch, findSysidePython } from './syside-python.js';
 import { discoverProjectSources } from '../../model/native-project.js';
 import {
     findShipped, readShipped, readShippedIds, shippedLibraryKey, writeShipped, writeShippedIds,
@@ -56,16 +57,24 @@ const SETTINGS_SCHEMA: readonly ToolchainSchemaLeaf[] = [
         path: `${SYSIDE_PROVIDER_ID}.python`,
         type: 'string',
         scope: 'user',
-        description: 'Python interpreter with SysIDE\'s licensed API, for stage 1 export. Defaults to `python3`.',
+        advanced: true,
+        description: 'Python interpreter with SysIDE\'s licensed API, for stage 1 export. Found in the usual places when not given: the active virtual environment, the project\'s `.venv`, `~/.venvs/syside`, then `python3` on PATH.',
     },
 ];
 
 /** The stage 1 export script, shipped beside the compiled library. */
 const EXPORT_SCRIPT = fileURLToPath(new URL('../../../python/memo_stage1_syside.py', import.meta.url));
 
-function python(config: MEMOConfig): string {
+/**
+ * The Python the export runs in: the one named (setting, then variable), else
+ * the first in the usual places that can import SysIDE (`syside-python.ts`),
+ * else `python3`, whose failure then names where we looked.
+ */
+function python(config: MEMOConfig, projectDir: string = process.cwd()): string {
     return providerSettings<SysidePythonConfig>(config, SYSIDE_PROVIDER_ID)?.python
-        ?? process.env.MEMO_SYSIDE_PYTHON ?? 'python3';
+        ?? process.env.MEMO_SYSIDE_PYTHON
+        ?? findSysidePython(projectDir)
+        ?? 'python3';
 }
 
 export type SysideCompileResult = CompileModelResult;
@@ -306,7 +315,7 @@ export async function compileWithSyside(options: CompileModelOptions): Promise<C
     const projectDir = resolve(options.projectDir);
     const { libraryDirs, projectFiles, registries, filePackages } = options;
 
-    const interpreter = python(options.config);
+    const interpreter = python(options.config, options.projectDir);
     const libraryKey = sysideLibraryKey(interpreter, libraryDirs);
     const files = [...projectFiles].map(file => resolve(projectDir, file));
     const key = sysideInputKey(interpreter, projectDir, libraryKey, files);
@@ -487,18 +496,23 @@ export const sysideLoweringDescriptor: LoweringDescriptor = {
         return !cli.configFile && (cli.diagnose ?? 'all') === 'all';
     },
     probe(context: ProviderContext): Availability {
-        const interpreter = python(context.config);
+        const interpreter = python(context.config, context.projectDir);
         const check = spawnSync(interpreter, ['-c', 'import syside; print(syside.__version__)'], { encoding: 'utf8' });
         return check.status === 0
             ? { available: true, transport: 'process', executable: interpreter, version: check.stdout.trim() }
-            : { available: false, transport: 'process', detail: `"${interpreter}" cannot import syside.` };
+            : {
+                available: false, transport: 'process',
+                detail: `No Python that can import syside was found (using "${interpreter}"). `
+                    + `${describeSysidePythonSearch(context.projectDir)} Install it where one of those can see it (pip install syside), `
+                    + `or name the interpreter with MEMO_SYSIDE_PYTHON.`,
+            };
     },
     create(context: ProviderContext) {
         return {
             id: SYSIDE_PROVIDER_ID,
             role: 'lowering' as const,
             transport: 'process' as const,
-            invocation: () => ({ command: python(context.config), args: [EXPORT_SCRIPT], provider: SYSIDE_PROVIDER_ID }),
+            invocation: () => ({ command: python(context.config, context.projectDir), args: [EXPORT_SCRIPT], provider: SYSIDE_PROVIDER_ID }),
             async run(): Promise<LoweringRunResult> {
                 // Every library root a locator offers, the project resolved from
                 // what was compiled: what each command compiles, so MEMO parses

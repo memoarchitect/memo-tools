@@ -1,8 +1,9 @@
 // ─── Toolchain settings come from layers ─────────────────────────────────────
 //
-// The user's settings, then the project's, then the command line's flags: each beats the one
-// before, and a `compiler` decides both roles it fills. What is the user's to choose (the
-// compiler, where its tools are) is refused in a project's checked-in file.
+// The project's settings, then the user's, then the command line's flags: each beats the one
+// before, and a `compiler` decides both roles it fills. The project names the compiler; a user
+// overrides it for themselves without editing the project. Where a tool is on one machine is
+// refused in a project's checked-in file.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -60,37 +61,47 @@ describe('the layers a command sees', () => {
         user('toolchain: {}\n');
         expect(() => lowering(project(''))).toThrow(ToolchainNotConfiguredError);
     });
-    it('the variable beats the user\'s file', () => {
+    it('a project names its compiler, and that is what runs when the user says nothing', () => {
+        user('toolchain: {}\n');
+        expect(lowering(project('toolchain:\n  compiler: opensysml\n'))).toBe('opensysml');
+    });
+    it('the user\'s own setting beats the project\'s, without editing the project', () => {
+        user('toolchain:\n  compiler: syside\n');
+        expect(lowering(project('toolchain:\n  compiler: opensysml\n'))).toBe('syside');
+    });
+    it('a user\'s compiler decides both roles over a project that names them one by one', () => {
+        user('toolchain:\n  compiler: syside\n');
+        const dir = project('toolchain:\n  validator: opensysml\n  lowering: opensysml\n');
+        const effective = resolveToolchain(loadProjectSettings(dir), defaultRegistry);
+        expect([effective.validator, effective.lowering]).toEqual(['syside', 'syside']);
+    });
+    it('the variable beats the user\'s file, and both beat the project', () => {
         user('toolchain:\n  compiler: syside\n');
         process.env[USER_COMPILER_ENV] = 'opensysml';
         expect(userToolchain().compiler).toBe('opensysml');
-        expect(lowering(project(''))).toBe('opensysml');
+        expect(lowering(project('toolchain:\n  compiler: syside\n'))).toBe('opensysml');
     });
-    it('a project\'s checked-in file may not name the compiler, its roles or a tool on this machine', () => {
+    it('the command line beats the user and the project', () => {
+        user('toolchain:\n  compiler: syside\n');
+        const dir = project('toolchain:\n  compiler: syside\n');
+        setCommandLineToolchain({ compiler: 'opensysml' });
+        const effective = resolveToolchain(loadProjectSettings(dir), defaultRegistry);
+        expect([effective.validator, effective.lowering]).toEqual(['opensysml', 'opensysml']);
+    });
+    it('a project\'s checked-in file may not say where a tool is on one machine', () => {
         user('toolchain:\n  compiler: syside\n');
         for (const pinned of [
-            'toolchain:\n  compiler: opensysml\n',
-            'toolchain:\n  validator: syside\n  lowering: syside\n',
             'toolchain:\n  opensysml:\n    binary: /usr/local/bin/sysml-grpc\n',
             'toolchain:\n  syside:\n    python: /usr/bin/python3\n',
         ]) {
             expect(() => lowering(project(pinned)), pinned).toThrow(ProjectNamesUserSettingError);
         }
-        // The error says where it is set instead, and is not a fallback: the user's choice is not used.
-        expect(() => lowering(project('toolchain:\n  compiler: opensysml\n'))).toThrow(/memo config set compiler/);
+        expect(() => lowering(project('toolchain:\n  syside:\n    python: /usr/bin/python3\n'))).toThrow(/memo config set syside\.python/);
     });
     it('a project keeps the settings that are the project\'s', () => {
         user('toolchain:\n  compiler: syside\n');
         const dir = project('toolchain:\n  packager: internal\n  syside:\n    diagnose: project\n    configFile: syside.toml\n');
         const effective = resolveToolchain(loadProjectSettings(dir), defaultRegistry);
         expect([effective.lowering, effective.packager]).toEqual(['syside', 'internal']);
-    });
-    it('the command line\'s override beats the user\'s roles', () => {
-        user('toolchain:\n  validator: syside\n  lowering: syside\n');
-        const dir = project('');
-        expect(lowering(dir)).toBe('syside');
-        setCommandLineToolchain({ compiler: 'opensysml' });
-        const effective = resolveToolchain(loadProjectSettings(dir), defaultRegistry);
-        expect([effective.validator, effective.lowering]).toEqual(['opensysml', 'opensysml']);
     });
 });

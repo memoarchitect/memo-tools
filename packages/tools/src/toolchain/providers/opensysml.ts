@@ -47,18 +47,21 @@ const SETTINGS_SCHEMA: readonly ToolchainSchemaLeaf[] = [
         path: `${OPENSYSML_PROVIDER_ID}.client`,
         type: 'string',
         scope: 'user',
+        advanced: true,
         description: `Module the Node client is imported from: a built \`dist/node/index.js\`, or \`${OPENSYSML_NPM_PACKAGE}\` (the default).`,
     },
     {
         path: `${OPENSYSML_PROVIDER_ID}.binary`,
         type: 'string',
         scope: 'user',
+        advanced: true,
         description: `The \`sysml-grpc\` executable the client starts. Defaults to \`$${OPENSYSML_ENV.binary}\`.`,
     },
     {
         path: `${OPENSYSML_PROVIDER_ID}.service`,
         type: 'string',
         scope: 'user',
+        advanced: true,
         description: `Address of a running \`sysml-grpc\` to use instead of starting one. Defaults to \`$${OPENSYSML_ENV.service}\`.`,
     },
 ];

@@ -266,16 +266,17 @@ withToolchainOptions(
 
 configCmd
     .command('set')
-    .description('Set a setting of your own (which compiler, where its tools are) in your user settings, not the project')
-    .argument('<setting>', 'compiler, validator, lowering, or a provider setting such as opensysml.binary or syside.python')
+    .description('Choose your compiler for yourself (overrides the project\'s) in your user settings, not the project')
+    .argument('<setting>', 'compiler. (Low-level overrides such as opensysml.binary or syside.python exist for unusual installs; MEMO finds tools in the usual places.)')
     .argument('<value>', 'the value')
     .action((setting: string, value: string) => { configSetCommand(setting, value); });
 
 configCmd
     .command('get')
     .description('Show your own settings and which layer decided each: the command line, the environment or your settings')
-    .argument('[setting]', 'One setting; all of yours when omitted')
-    .action((setting: string | undefined) => { configGetCommand(setting); });
+    .argument('[setting]', 'One setting; the compiler when omitted')
+    .option('--all', 'Also list the low-level overrides (where a tool is, the validator and lowering roles)')
+    .action((setting: string | undefined, opts: { all?: boolean }) => { configGetCommand(setting, undefined, undefined, opts.all); });
 
 configCmd
     .command('unset')

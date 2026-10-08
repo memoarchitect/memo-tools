@@ -135,18 +135,20 @@ pnpm run docs:build
 Each toolchain role is filled by one provider: the **validator** answers "is
 this valid SysML/KerML?", **lowering** answers "what can MEMO ingest from this
 revision?", and the **packager** builds the archive. MEMO chooses none of
-them. The compiler is yours to choose, not the project's: set it once with
-`memo config set compiler opensysml` (or `syside`), which writes your own
-settings file, so each person on a project uses their own. A project's checked-in
-file names only what is the project's, such as the packager:
+them. A project names the compiler it uses, and `memo init` writes
+`compiler: opensysml` into a new one:
 
 ```yaml
 toolchain:
+  compiler: opensysml    # syside or opensysml
   packager: internal     # internal or sysand; only `memo pack` needs it
 ```
 
+Anyone who wants another overrides it for themselves, without editing the project:
+`memo config set compiler syside` writes their own settings file. MEMO finds the
+compiler's tools in the usual places, so nothing else needs saying.
 `compiler` names the validator and lowering together; a role can also be set on
-its own in your settings:
+its own:
 
 ```yaml
 toolchain:
