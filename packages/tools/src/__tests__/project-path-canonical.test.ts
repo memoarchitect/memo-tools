@@ -36,15 +36,15 @@ describe.runIf(existsSync(example))('a project reached through a symbolic link',
     });
 });
 
-describe('a compile that selects no library root and no kinds', () => {
-    const registryOf = (kindNames: string[], selectedRoots: unknown[]) => new ProviderRegistry().register({
+describe('a compile that imports a package no library supplied and selects no kinds', () => {
+    const registryOf = (kindNames: string[], selectedRoots: unknown[], imports = true) => new ProviderRegistry().register({
         id: 'stub', role: 'lowering', capabilities: [],
         probe: () => ({ available: true, transport: 'in-process' }),
         create: () => { throw new Error('not run'); },
         compileModel: async () => ({
             accepted: true, diagnostics: [],
             registries: { kindRegistry: { kindNames: () => kindNames } },
-            resolution: { projectRoot: '/p', selectedRoots, diagnostics: [] },
+            resolution: { projectRoot: '/p', selectedRoots, diagnostics: imports ? [{ code: 'unresolved-import', message: 'Package "memo_core" is imported by "p" but no resolved source declares it.' }] : [] },
         }) as never,
     });
     const options = (registry: ProviderRegistry) => ({
@@ -55,7 +55,12 @@ describe('a compile that selects no library root and no kinds', () => {
     it('is refused, not accepted as an empty model', async () => {
         const result = await compileModelWithSelected(options(registryOf([], [])));
         expect(result.accepted).toBe(false);
-        expect(result.diagnostics.map(d => d.message).join(' ')).toContain('no library root and no kinds');
+        expect(result.diagnostics.map(d => d.message).join(' ')).toContain('memo_core');
+    });
+
+    it('is accepted when the project imports nothing, a fixture without a library', async () => {
+        const result = await compileModelWithSelected(options(registryOf([], [], false)));
+        expect(result.accepted).toBe(true);
     });
 
     it('is accepted once the project reaches its ontology', async () => {
