@@ -1,19 +1,23 @@
 // ─── memo-architect sysand publish ────────────────────────────────────────────────────
 //
-// Validates and packages ontology/profile packages for SysAnd registry
-// publication. In --dry-run mode (default until a real registry exists),
-// validates metadata, collects SysML files, and reports the publishable
-// .kpar artifact without writing anything.
-//
-// Works on any ontology project — discovers packages from the config chain.
+// A dry run of publishing the package or project you are in to a SysAnd
+// registry: it stages exactly what `memo pack` stages (`stageSysandProject`:
+// the SysML the package declares as its own, and the `.project.json` written
+// from `memo.package.yaml` and its usages), checks that, and reports the
+// artifact `memo pack` would build. Nothing is written into the project or
+// uploaded; the staging copy is removed. Until a registry exists the dry run is
+// the default, and the only mode.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { basename, dirname, join, relative, resolve } from 'node:path';
+import { readFileSync, rmSync, statSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import chalk from 'chalk';
-import { findConfigFile } from '@memoarchitect/tools';
-import { loadConfigChain, type ConfigChainEntry } from '../server/config-resolver.js';
+import { loadProjectSettings } from '../model/config-loader.js';
+import { readPackageManifest } from '../model/package-manifest.js';
+import { defaultRegistry } from '../toolchain/default-registry.js';
+import { sysandPackageFileName, stageSysandProject, type StagedSysandProject } from '../toolchain/providers/sysand-project.js';
+import { withToolchainOverrides } from '../toolchain/schema.js';
 
 export interface PublishOptions {
     dryRun?: boolean;
@@ -23,43 +27,19 @@ export interface PublishOptions {
 interface PackageReport {
     name: string;
     version: string;
-    projectType: string;
-    configPath: string;
-    sysmlFiles: string[];
+    sysmlFiles: number;
     totalBytes: number;
     kparName: string;
     contentHash: string;
+    usages: string[];
     errors: string[];
     warnings: string[];
-    projectJson: Record<string, unknown>;
 }
 
-const FB2_REQUIRED_FIELDS = ['name', 'version'];
-
-function collectSysmlFiles(dir: string): string[] {
-    const out: string[] = [];
-    if (!existsSync(dir)) return out;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        const p = join(dir, entry.name);
-        if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.memo') {
-            out.push(...collectSysmlFiles(p));
-        } else if (entry.name.endsWith('.sysml')) {
-            out.push(p);
-        }
-    }
-    return out;
-}
-
-function computeContentHash(files: string[]): string {
+function contentHash(staged: StagedSysandProject): string {
     const hash = createHash('sha256');
-    for (const f of [...files].sort()) {
-        hash.update(readFileSync(f));
-    }
+    for (const file of [...staged.files].sort()) hash.update(readFileSync(join(staged.dir, file)));
     return hash.digest('hex').slice(0, 12);
-}
-
-function sanitizeName(name: string): string {
-    return name.replace(/^@/, '').replace(/\//g, '-').replace(/[^a-zA-Z0-9_-]/g, '-');
 }
 
 function formatBytes(bytes: number): string {
@@ -68,202 +48,78 @@ function formatBytes(bytes: number): string {
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function resolveSysmlDir(entry: ConfigChainEntry): string {
-    const sourceDir = dirname(entry.configPath);
-
-    // Check memo.package.yaml for sysmlDir
-    const raw = readFileSync(entry.configPath, 'utf-8');
-    const sysmlDirMatch = raw.match(/^sysmlDir:\s*["']?([^"'\n]+)["']?/m);
-    if (sysmlDirMatch) {
-        const resolved = resolve(sourceDir, sysmlDirMatch[1].trim());
-        if (existsSync(resolved)) return resolved;
-    }
-
-    // Default: sysml/ subdirectory
-    const sysmlDir = resolve(sourceDir, 'sysml');
-    if (existsSync(sysmlDir)) return sysmlDir;
-
-    // Fallback: look for .sysml files directly in the source dir
-    const direct = collectSysmlFiles(sourceDir);
-    if (direct.length > 0) return sourceDir;
-
-    return sysmlDir;
-}
-
-function validatePackage(entry: ConfigChainEntry): PackageReport {
-    const config = entry.config;
-    const sourceDir = dirname(entry.configPath);
-    const name = undefined || config.projectName || basename(sourceDir);
-    const version = undefined || '0.0.0';
-
+/** Check what `pack` would stage for the package in `projectDir`. */
+export function reportStagedPackage(staged: StagedSysandProject, projectDir: string): PackageReport {
+    const { info } = staged;
+    const manifest = readPackageManifest(projectDir).manifest;
     const report: PackageReport = {
-        name,
-        version,
-        projectType: undefined || 'unknown',
-        configPath: entry.configPath,
-        sysmlFiles: [],
+        name: info.name,
+        version: info.version,
+        sysmlFiles: staged.files.length,
         totalBytes: 0,
-        kparName: `${sanitizeName(name)}-${version}.kpar`,
-        contentHash: '',
+        kparName: sysandPackageFileName(info),
+        contentHash: contentHash(staged),
+        usages: info.usage.map(u => `${u.resource}${u.versionConstraint ? ` ${u.versionConstraint}` : ''}`),
         errors: [],
         warnings: [],
-        projectJson: {},
     };
-
-    // FB2: validate required metadata
-    if (!undefined && !config.projectName) {
-        report.errors.push('FB2: missing package name (set ontologyMetadata.id or projectName)');
+    if (!manifest.name) report.errors.push('memo.package.yaml states no package name');
+    if (!manifest.version) report.warnings.push(`memo.package.yaml states no version (the package would be ${info.version})`);
+    if (info.publisher === 'untitled') report.warnings.push('memo.package.yaml states no publisher (sysand would write "untitled")');
+    for (const file of staged.files) {
+        const size = statSync(join(staged.dir, file)).size;
+        report.totalBytes += size;
+        if (size === 0) report.warnings.push(`Empty file: ${file}`);
     }
-    if (!undefined) {
-        report.warnings.push('FB2: no explicit version in ontologyMetadata (defaulting to 0.0.0)');
-    }
-
-    // Check .project.json if present
-    const projectJsonPath = resolve(sourceDir, '.project.json');
-    if (existsSync(projectJsonPath)) {
-        try {
-            const data = JSON.parse(readFileSync(projectJsonPath, 'utf-8'));
-            report.projectJson = data;
-            for (const field of FB2_REQUIRED_FIELDS) {
-                if (!data[field]) {
-                    report.errors.push(`FB2: .project.json missing required field "${field}"`);
-                }
-            }
-        } catch (e: any) {
-            report.errors.push(`FB2: .project.json parse error: ${e.message}`);
-        }
-    } else {
-        report.projectJson = {
-            type: 'ontology-package',
-            name,
-            version,
-            license: undefined || 'UNLICENSED',
-            usage: deriveUsage(config),
-        };
-        report.warnings.push('No .project.json found — would be generated from config');
-    }
-
-    // Collect SysML files
-    const sysmlDir = resolveSysmlDir(entry);
-    report.sysmlFiles = collectSysmlFiles(sysmlDir);
-
-    if (report.sysmlFiles.length === 0) {
-        report.errors.push(`No .sysml files found in ${relative(process.cwd(), sysmlDir) || sysmlDir}`);
-        return report;
-    }
-
-    // Validate readability
-    for (const f of report.sysmlFiles) {
-        try {
-            const content = readFileSync(f, 'utf-8');
-            report.totalBytes += Buffer.byteLength(content, 'utf-8');
-            if (content.trim().length === 0) {
-                report.warnings.push(`Empty file: ${relative(sourceDir, f)}`);
-            }
-        } catch (e: any) {
-            report.errors.push(`Cannot read ${relative(sourceDir, f)}: ${e.message}`);
-        }
-    }
-
-    report.contentHash = computeContentHash(report.sysmlFiles);
     return report;
 }
 
-function deriveUsage(config: any): string[] {
-    const usage = new Set<string>();
-    if (undefined === 'ontology') {
-        usage.add('kinds');
-        usage.add('relationships');
-    } else if (undefined === 'profile') {
-        usage.add('rules');
-        usage.add('viewpoints');
-        usage.add('templates');
-    } else if (undefined === 'library') {
-        usage.add('library');
-    }
-    return Array.from(usage).sort();
-}
-
-export async function sysandPublishCommand(options: PublishOptions): Promise<void> {
+export async function sysandPublishCommand(options: PublishOptions & Record<string, unknown>): Promise<void> {
     const cwd = process.cwd();
 
-    console.log(chalk.bold('\n\u{1F4E6} memo-architect sysand publish' + (options.dryRun ? ' --dry-run' : '') + '\n'));
+    console.log(chalk.bold('\n\u{1F4E6} memo-architect sysand publish --dry-run\n'));
 
-    const configPath = findConfigFile(cwd);
-    if (!configPath) {
-        console.error(chalk.red('❌ No memo config found. Run from an ontology or profile package directory.'));
+    const config = withToolchainOverrides(loadProjectSettings(cwd), options, defaultRegistry);
+    let staged: StagedSysandProject;
+    try {
+        // The same staging `memo pack` runs, so the dry run reports what pack would build.
+        staged = await stageSysandProject(cwd, config);
+    } catch (error) {
+        console.error(chalk.red(`❌ ${error instanceof Error ? error.message : error}`));
         process.exit(1);
     }
 
-    const configChain = loadConfigChain(configPath);
-
-    // Every entry in the chain is a candidate. The `type:` field that used to
-    // decide publishability is gone: what a package is comes from the resolved
-    // root it sits under, and this command publishes what it is pointed at.
-    let publishable = configChain;
-
-    // If --package specified, filter to that one
-    if (options.package) {
-        publishable = publishable.filter(entry => {
-            const id = entry.config.projectName || '';
-            return id === options.package || basename(dirname(entry.configPath)) === options.package;
-        });
-        if (publishable.length === 0) {
-            console.error(chalk.red(`❌ Package "${options.package}" not found in config chain.`));
-            process.exit(1);
+    try {
+        if (options.package && ![staged.info.name, config.projectName, basename(resolve(cwd))].includes(options.package)) {
+            console.error(chalk.red(`❌ Package "${options.package}" is not the package here (${staged.info.name}).`));
+            process.exitCode = 1;
+            return;
         }
-    }
-
-    if (publishable.length === 0) {
-        console.error(chalk.red('❌ No publishable packages found. Only ontology/profile/library packages can be published.'));
-        process.exit(1);
-    }
-
-    // Validate each package
-    let hasErrors = false;
-    const reports: PackageReport[] = [];
-
-    for (const entry of publishable) {
-        const report = validatePackage(entry);
-        reports.push(report);
+        const report = reportStagedPackage(staged, cwd);
 
         const status = report.errors.length > 0 ? chalk.red('FAIL') : chalk.green('PASS');
-        console.log(`${status}  ${chalk.cyan(report.name)} ${chalk.gray(`(${report.projectType})`)}`);
-        console.log(chalk.gray(`       ${report.sysmlFiles.length} files, ${formatBytes(report.totalBytes)}`));
+        console.log(`${status}  ${chalk.cyan(report.name)} ${chalk.gray(report.version)}`);
+        console.log(chalk.gray(`       ${report.sysmlFiles} files, ${formatBytes(report.totalBytes)}`));
         console.log(chalk.gray(`       artifact: ${report.kparName}`));
-
-        if (report.contentHash) {
-            console.log(chalk.gray(`       content hash: ${report.contentHash}`));
-        }
-
-        for (const w of report.warnings) {
-            console.log(chalk.yellow(`       ⚠ ${w}`));
-        }
-        for (const e of report.errors) {
-            console.log(chalk.red(`       ✖ ${e}`));
-            hasErrors = true;
-        }
+        console.log(chalk.gray(`       content hash: ${report.contentHash}`));
+        for (const usage of report.usages) console.log(chalk.gray(`       uses: ${usage}`));
+        for (const w of report.warnings) console.log(chalk.yellow(`       ⚠ ${w}`));
+        for (const e of report.errors) console.log(chalk.red(`       ✖ ${e}`));
         console.log('');
-    }
 
-    // Summary
-    console.log(chalk.bold('── Summary ──'));
-    const passed = reports.filter(r => r.errors.length === 0).length;
-    const totalFiles = reports.reduce((sum, r) => sum + r.sysmlFiles.length, 0);
-    const totalBytes = reports.reduce((sum, r) => sum + r.totalBytes, 0);
+        console.log(chalk.bold('── Summary ──'));
+        console.log(`${report.errors.length === 0 ? 1 : 0}/1 packages ready to publish`);
+        console.log(`${report.sysmlFiles} SysML files, ${formatBytes(report.totalBytes)} total`);
 
-    console.log(`${passed}/${reports.length} packages ready to publish`);
-    console.log(`${totalFiles} SysML files, ${formatBytes(totalBytes)} total`);
-
-    if (hasErrors) {
-        console.log(chalk.red('\n✖ Dry-run failed — fix errors above before publishing.\n'));
-        process.exit(1);
-    } else {
-        console.log(chalk.green('\n✔ All packages pass dry-run. Ready for `sysand publish`.\n'));
-        console.log(chalk.gray('Publishable artifacts:'));
-        for (const r of reports) {
-            console.log(chalk.gray(`  ${r.kparName}  (${r.contentHash})`));
+        if (report.errors.length > 0) {
+            console.log(chalk.red('\n✖ Dry-run failed — fix errors above before publishing.\n'));
+            process.exitCode = 1;
+        } else {
+            console.log(chalk.green('\n✔ All packages pass dry-run. Ready for `sysand publish`.\n'));
+            console.log(chalk.gray('Publishable artifacts:'));
+            console.log(chalk.gray(`  ${report.kparName}  (${report.contentHash})\n`));
         }
-        console.log('');
+    } finally {
+        rmSync(staged.dir, { recursive: true, force: true });
     }
 }

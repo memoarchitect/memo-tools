@@ -12,8 +12,9 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { findSysmlFiles } from '../model/sysml-files.js';
-import { declaredSources, packageUsages, sysandPackageFileName, sysandProjectIdentity } from '../toolchain/providers/sysand-project.js';
+import { declaredSources, packageUsages, stageSysandProject, sysandPackageFileName, sysandProjectIdentity } from '../toolchain/providers/sysand-project.js';
 import { runPackager } from '../toolchain/operations.js';
+import { reportStagedPackage } from '../commands/sysand-publish.js';
 import { openSysMLUnderTest } from './helpers/compile-source.js';
 
 const dirs: string[] = [];
@@ -125,6 +126,47 @@ describe('what a package depends on', () => {
         library(dir, 'base', '@x/base', undefined, 'package base_core { }\n');
         library(dir, 'ext', '@x/ext', '0.1.0', 'package e {\n    import base_core::*;\n}\n');
         expect(packageUsages(join(dir, 'ext'))).toEqual([{ resource: 'urn:kpar:@x/base' }]);
+    });
+});
+
+describe('sysand publish reports what pack stages', () => {
+    it('reports the staged files, version, artifact name and usages, and not the examples beside the package', async () => {
+        const repo = scratch();
+        writeFileSync(join(repo, 'memo.manifest.yaml'), 'manifest: 1\npackages:\n  "@x/base": ./base\nexamples: {}\nextensions:\n  ext: ./ext\ninit:\n  defaultExtends: "@x/base"\n  rootImport: base_core\n  template: ./t\n');
+        mkdirSync(join(repo, 'base/src'), { recursive: true });
+        writeFileSync(join(repo, 'base/memo.package.yaml'), 'name: "@x/base"\nversion: 1.2.0\nsysmlDir: ./src\n');
+        writeFileSync(join(repo, 'base/src/a.sysml'), 'package base_core { }\n');
+        mkdirSync(join(repo, 'ext/src'), { recursive: true });
+        writeFileSync(join(repo, 'ext/memo.package.yaml'), 'name: "@x/ext"\nversion: 0.3.0\npublisher: acme\nsysmlDir: ./src\n');
+        writeFileSync(join(repo, 'ext/src/e.sysml'), 'package e {\n    import base_core::*;\n}\n');
+        mkdirSync(join(repo, 'ext/examples'), { recursive: true });
+        writeFileSync(join(repo, 'ext/examples/stray.sysml'), 'package Stray { }\n');
+
+        const staged = await stageSysandProject(join(repo, 'ext'), { projectName: '@x/ext' } as never);
+        try {
+            const report = reportStagedPackage(staged, join(repo, 'ext'));
+            expect(report).toMatchObject({
+                name: '@x/ext', version: '0.3.0', sysmlFiles: 1, kparName: '-x-ext-0.3.0.kpar',
+                usages: ['urn:kpar:@x/base ^1.2.0'], errors: [], warnings: [],
+            });
+        } finally {
+            rmSync(staged.dir, { recursive: true, force: true });
+        }
+    });
+
+    it('warns when the package states no version or publisher, and fails when it states no name', async () => {
+        const dir = scratch();
+        writeFileSync(join(dir, 'memo.package.yaml'), 'sysmlDir: ./src\n');
+        mkdirSync(join(dir, 'src'));
+        writeFileSync(join(dir, 'src/a.sysml'), 'package a { }\n');
+        const staged = await stageSysandProject(dir, { projectName: 'p' } as never);
+        try {
+            const report = reportStagedPackage(staged, dir);
+            expect(report.errors).toEqual(['memo.package.yaml states no package name']);
+            expect(report.warnings.join('\n')).toMatch(/no version[\s\S]*no publisher/);
+        } finally {
+            rmSync(staged.dir, { recursive: true, force: true });
+        }
     });
 });
 
