@@ -17,11 +17,12 @@
 // lookup. It belongs at the point the project is built, not at the point a view
 // is rendered, because the author is who can fix it.
 //
-// NOT covered: a name hardcoded in a consumer's TypeScript. Architect's views
-// filter with string literals of their own, which no model-side check can see —
-// including both defects above. That remainder is the board row "A view selects
-// relations by string literal, so the check cannot see it"; it is tracked there
-// rather than left as a note here, and this paragraph goes when that row does.
+// A name hardcoded in a CONSUMER's TypeScript is the other half, and a model-side
+// check cannot see it: Architect's views select relationships through
+// `relationshipsOfType` (relation-selection.ts), which reports an undeclared
+// name when a view runs, and `architect-relation-literals.test.ts` checks every
+// literal at those call sites against the resolved ontology. Kinds and
+// attributes a consumer names are NOT covered by either.
 //
 // This covers selectors the MODEL authors, which is where the ontology's
 // vocabulary is spelled out by people who are not reading the registry either.
