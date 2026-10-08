@@ -38,7 +38,7 @@ Create a project, add one small connected slice, and validate it before adding
 more. That loop is the centre of this site:
 
 ```bash
-npx memo init my-device
+npx memo-architect init my-device
 cd my-device
 npx memo validate .
 ```

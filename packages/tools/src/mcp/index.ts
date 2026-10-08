@@ -1,7 +1,7 @@
 // ─── MCP Module ──────────────────────────────────────────────────────────────
 //
 // Model Context Protocol server exposing the MEMO model to AI coding tools
-// (Cursor, Claude Code, Windsurf). Served over stdio by `memo mcp`.
+// (Cursor, Claude Code, Windsurf). Served over stdio by `memo-architect mcp`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export * from './server.js';

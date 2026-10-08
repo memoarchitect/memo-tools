@@ -1,4 +1,4 @@
-// ─── memo sysand publish ────────────────────────────────────────────────────
+// ─── memo-architect sysand publish ────────────────────────────────────────────────────
 //
 // Validates and packages ontology/profile packages for SysAnd registry
 // publication. In --dry-run mode (default until a real registry exists),
@@ -187,7 +187,7 @@ function deriveUsage(config: any): string[] {
 export async function sysandPublishCommand(options: PublishOptions): Promise<void> {
     const cwd = process.cwd();
 
-    console.log(chalk.bold('\n\u{1F4E6} memo sysand publish' + (options.dryRun ? ' --dry-run' : '') + '\n'));
+    console.log(chalk.bold('\n\u{1F4E6} memo-architect sysand publish' + (options.dryRun ? ' --dry-run' : '') + '\n'));
 
     const configPath = findConfigFile(cwd);
     if (!configPath) {

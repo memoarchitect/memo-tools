@@ -57,7 +57,7 @@ export interface DhfDocumentGroup {
 export interface DhfManifest {
     /** Named document groups */
     groups: Record<string, DhfDocumentGroup>;
-    /** Default group(s) to include in `memo dhf export` */
+    /** Default group(s) to include in `memo-architect dhf export` */
     default_groups?: string[];
 }
 

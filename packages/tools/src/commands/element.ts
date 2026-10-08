@@ -1,4 +1,4 @@
-// ─── memo element ────────────────────────────────────────────────────────────
+// ─── memo-architect element ────────────────────────────────────────────────────────────
 //
 // The CLI half of authoring write-back.
 //
@@ -9,8 +9,8 @@
 // `operations/authoring.ts` implementation, the same identity addressing, the
 // same lowering provider.
 //
-//   memo element identities  — what to quote when addressing an element
-//   memo element write       — edit one declaration and recompile
+//   memo-architect element identities  — what to quote when addressing an element
+//   memo-architect element write       — edit one declaration and recompile
 //
 // `identities` is not a convenience. An update is addressed by IR identity, and
 // an identity is minted by a lowering — so without a command that prints them,
@@ -243,7 +243,7 @@ export async function elementWriteCommand(dir: string, options: ElementWriteOpti
         console.error(chalk.red(result.error ?? 'The write failed.'));
         // A stale address is not a malformed request, and the remedy differs:
         // re-read the identities and repeat the edit.
-        if (result.stale) console.error(chalk.dim('Run `memo element identities` for the current addresses.'));
+        if (result.stale) console.error(chalk.dim('Run `memo-architect element identities` for the current addresses.'));
         process.exit(1);
         return;
     }

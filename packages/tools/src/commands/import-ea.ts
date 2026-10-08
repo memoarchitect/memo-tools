@@ -1,10 +1,10 @@
-// ─── memo import ea / memo import cameo ──────────────────────────────────────
+// ─── memo-architect import ea / memo-architect import cameo ──────────────────────────────────────
 //
 // Import from Sparx EA or MagicDraw/Cameo into MEMO.
 //
 // Commands:
-//   memo import ea <file>       — Import from EA JSON export (.json)
-//   memo import cameo <file>    — Import from Cameo XMI/XML or JSON (.xml/.json)
+//   memo-architect import ea <file>       — Import from EA JSON export (.json)
+//   memo-architect import cameo <file>    — Import from Cameo XMI/XML or JSON (.xml/.json)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve, basename, extname } from 'node:path';
@@ -20,7 +20,7 @@ import { loadProjectSettings } from '../model/config-loader.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
 
 /**
- * memo import ea <file> — Import from Sparx EA JSON export.
+ * memo-architect import ea <file> — Import from Sparx EA JSON export.
  *
  * EA projects should be exported as JSON first via EA's scripting API
  * or third-party tools. The JSON format is:
@@ -101,7 +101,7 @@ export async function importEaCommand(
 }
 
 /**
- * memo import cameo <file> — Import from MagicDraw/Cameo.
+ * memo-architect import cameo <file> — Import from MagicDraw/Cameo.
  *
  * Accepts:
  * - .xml/.mdxml — XMI export from MagicDraw
@@ -109,7 +109,7 @@ export async function importEaCommand(
  *
  * For .mdzip files, users should first extract the XML:
  *   unzip model.mdzip com.nomagic.magicdraw.uml_model.model -d extracted/
- *   memo import cameo extracted/com.nomagic.magicdraw.uml_model.model
+ *   memo-architect import cameo extracted/com.nomagic.magicdraw.uml_model.model
  */
 export async function importCameoCommand(
     file: string,

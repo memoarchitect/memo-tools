@@ -79,7 +79,7 @@ export async function buildProjectSnapshot(
         throw new Error(
             'No MEMO project found. A project is located by the `entrypoint` in its '
             + '`memo.package.yaml`, which names the SysML file declaring its identity '
-            + 'and method binding — run `memo init` to scaffold one.',
+            + 'and method binding — run `memo-architect init` to scaffold one.',
         );
     }
     const configPath = findConfigFile(cwd);

@@ -1,4 +1,4 @@
-// ─── memo dhf lint ────────────────────────────────────────────────────────────
+// ─── memo-architect dhf lint ────────────────────────────────────────────────────────────
 //
 // Validates the shipped DHF templates against the ontology they query.
 // Runs structurally in any checkout; resolves kinds, layers and columns when an

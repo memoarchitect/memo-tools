@@ -157,7 +157,7 @@ export function isRulePackageInScope(scope: EffectiveScope, declaringPackage: st
  * content the project did not agree to model — which is how the GPCA prototype
  * used to accumulate cybersecurity violations for a discipline it had excluded.
  *
- * This lives here, shared, because `memo validate` and `memo rules list` are
+ * This lives here, shared, because `memo validate` and `memo validate --rules` are
  * two views of one answer. They computed it separately, and inevitably
  * disagreed: `validate` scope-filtered and `rules list` did not, so the same
  * project reported 20 rules and 38 rules depending on which command you asked.
@@ -254,7 +254,7 @@ export function inactiveRules(
 
 /**
  * The project's effective rule set: the rules its methodology activates, with
- * its policies applied. One answer, asked by `memo validate`, `memo rules list`
+ * its policies applied. One answer, asked by `memo validate`, `memo validate --rules`
  * and the Architect's dev server, so they report one rule set.
  */
 export function resolveProjectRules(input: {

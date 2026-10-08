@@ -257,7 +257,7 @@ export function processMemoStandardsBlocks(
             validateStandardsSpec(spec, where);
             if (!ctx.standardsReport) {
                 return '\n> ⚠️ **Standards report not available in this view.** '
-                    + 'Run `memo standards check` or export the DHF from the CLI to render clause coverage.\n';
+                    + 'Run `memo validate --standards` or export the DHF from the CLI to render clause coverage.\n';
             }
             return renderStandardsBlock(spec, ctx.standardsReport, ctx);
         } catch (error) {

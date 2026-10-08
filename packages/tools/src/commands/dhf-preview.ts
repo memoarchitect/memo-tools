@@ -270,7 +270,7 @@ export async function dhfPreviewCommand(options: { port?: number }): Promise<voi
 <h2>Documents</h2>
 <table>
 <thead><tr><th>Document</th><th>Group</th></tr></thead>
-<tbody>${docLinks || '<tr><td colspan="2" style="color:#9CA3AF">No DHF documents found. Run <code>memo dhf init</code> to scaffold.</td></tr>'}</tbody>
+<tbody>${docLinks || '<tr><td colspan="2" style="color:#9CA3AF">No DHF documents found. Run <code>memo-architect dhf init</code> to scaffold.</td></tr>'}</tbody>
 </table>`;
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(wrapHtml(product, body));

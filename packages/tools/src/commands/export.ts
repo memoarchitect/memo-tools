@@ -1,4 +1,4 @@
-// ─── memo export ─────────────────────────────────────────────────────────────
+// ─── memo-architect export ─────────────────────────────────────────────────────────────
 //
 // Export model data in various formats:
 //   - json  → full MemoModelDTO as JSON
@@ -31,7 +31,7 @@ async function resolveForExport(cwd: string, options: Record<string, unknown> = 
     const projectRoot = findProjectRoot(cwd);
     if (!projectRoot) {
         console.error(chalk.red(
-            '❌ No MEMO project found. A project is located by the `entrypoint` in its `memo.package.yaml` — run `memo init` to scaffold one.'));
+            '❌ No MEMO project found. A project is located by the `entrypoint` in its `memo.package.yaml` — run `memo-architect init` to scaffold one.'));
         process.exit(1);
     }
     const config = withToolchainOverrides(loadProjectSettings(projectRoot), options, defaultRegistry);
@@ -55,7 +55,7 @@ async function resolveForExport(cwd: string, options: Record<string, unknown> = 
     return { projectRoot, config, model, viewpoints, architectureLayers };
 }
 
-// ─── memo export json ────────────────────────────────────────────────────────
+// ─── memo-architect export json ────────────────────────────────────────────────────────
 
 export async function exportJsonCommand(options: {
     output?: string;
@@ -89,7 +89,7 @@ export async function exportJsonCommand(options: {
     console.log(chalk.green(`\n✅ Exported to ${outputPath}\n`));
 }
 
-// ─── memo export dot ─────────────────────────────────────────────────────────
+// ─── memo-architect export dot ─────────────────────────────────────────────────────────
 
 export async function exportDotCommand(options: {
     output?: string;

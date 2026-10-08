@@ -311,9 +311,9 @@ export async function dhfInitCommand(options: { projectDir?: string }): Promise<
         console.log(chalk.gray('  memo.dhf.yaml  — DHF configuration (V2)'));
         console.log('');
         console.log(chalk.gray('Next steps:'));
-        console.log(chalk.gray('  memo dhf status          — Check document readiness'));
-        console.log(chalk.gray('  memo dhf export          — Export all documents'));
-        console.log(chalk.gray('  memo dhf preview         — Live preview server'));
+        console.log(chalk.gray('  memo-architect dhf status          — Check document readiness'));
+        console.log(chalk.gray('  memo-architect dhf export          — Export all documents'));
+        console.log(chalk.gray('  memo-architect dhf preview         — Live preview server'));
         console.log('');
 
     } finally {

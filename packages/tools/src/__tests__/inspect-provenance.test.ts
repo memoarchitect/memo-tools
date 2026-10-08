@@ -15,17 +15,22 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
-const cli = resolve(__dirname, '../../lib/bin/memo.js');
+// `init` is memo-architect's command (driven through its registration); inspecting is a flag of `memo compile`.
+const cli = resolve(__dirname, '../../../../scripts/project-cli.mjs');
+const memo = resolve(__dirname, '../../lib/bin/memo.js');
 const TMP = resolve(__dirname, '__tmp_inspect__');
 const project = join(TMP, 'p');
 
 function run(args: string[]): string {
-    return execFileSync('node', [cli, ...args], {
+    // `inspect <id> ...` is `compile --inspect <id> ...`.
+    const [command, id, ...rest] = args;
+    const argv = command === 'inspect' ? [memo, 'compile', '--inspect', id, ...rest] : [memo, ...args];
+    return execFileSync('node', argv, {
         cwd: project, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024,
     });
 }
 
-const available = existsSync(cli);
+const available = existsSync(cli) && existsSync(resolve(__dirname, '../../lib/cli/project-commands.js'));
 
 beforeAll(() => {
     if (!available) return;

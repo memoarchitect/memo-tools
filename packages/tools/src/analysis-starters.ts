@@ -35,7 +35,7 @@ print(f'Loaded {len(SYSML_FILES)} SysML files, compiled by {model.compiler} {mod
 
 const SAMPLES_README = `# MEMO analysis samples
 
-These notebooks are created by \`memo init\` and work with any MEMO textual
+These notebooks are created by \`memo-architect init\` and work with any MEMO textual
 SysML v2 project. Each one reads the model through \`analysis/memo_model.py\`,
 which compiles the project with the compiler its settings select
 (\`toolchain.compiler\`), exactly as \`memo compile\` does. Changing the
@@ -45,7 +45,7 @@ project's compiler changes what every notebook analyses.
 
 - Python 3.12 or newer with JupyterLab.
 - The \`memo\` command on \`PATH\`, or \`MEMO_CLI\` set to the command that runs it.
-- What the selected compiler needs, as \`memo toolchain probe\` reports. A
+- What the selected compiler needs, as \`memo compile --probe\` reports. A
   compiler that builds no SysML v2 model of its own (\`internal\`) cannot serve
   the notebooks; \`memo_model.load()\` says so.
 

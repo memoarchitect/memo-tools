@@ -1,6 +1,6 @@
-// ─── memo dhf draft CLI Command (M74) ────────────────────────────────────────
+// ─── memo-architect dhf draft CLI Command (M74) ────────────────────────────────────────
 //
-// `memo dhf draft --target rmp` — Use LLM to fill gap sections in DHF documents.
+// `memo-architect dhf draft --target rmp` — Use LLM to fill gap sections in DHF documents.
 // Generates boilerplate regulatory text, risk descriptions, verification rationale.
 // Human reviews before export.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ export async function dhfDraftCommand(options: DhfDraftCommandOptions): Promise<
     const cwd = process.cwd();
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
 

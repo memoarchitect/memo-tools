@@ -1,4 +1,4 @@
-// ─── memo lock ────────────────────────────────────────────────────────────────
+// ─── memo-architect lock ────────────────────────────────────────────────────────────────
 //
 // Regenerates memo.lock.yaml from the packages the project's imports resolve to.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -15,7 +15,7 @@ export async function lockCommand(): Promise<void> {
 
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('❌ No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('❌ No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
 

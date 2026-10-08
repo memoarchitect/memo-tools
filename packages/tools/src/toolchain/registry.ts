@@ -154,7 +154,7 @@ export type PackageProvider = Provider<ProviderRunResult>;
  *
  * Adapters contribute their own leaves, so a `--toolchain.<provider>.<leaf>`
  * flag exists because that provider's adapter says so, not because the CLI
- * knows the provider. The CLI and `memo config effective` both read this.
+ * knows the provider. The CLI and `memo compile --effective` both read this.
  */
 export interface ToolchainSchemaLeaf {
     /** Dotted path under `toolchain`, e.g. `validator` or `<provider>.<leaf>`. */

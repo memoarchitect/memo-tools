@@ -144,7 +144,7 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
             }
 
             queue = queue.then(() => handle(request)).catch(e => {
-                console.error('[memo mcp] handler failed:', e);
+                console.error('[memo-architect mcp] handler failed:', e);
                 const id = request.id;
                 if (id !== undefined && id !== null) {
                     respondError(id, INTERNAL_ERROR, e?.message ?? String(e));
@@ -157,7 +157,7 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
         });
 
         console.error(
-            `[memo mcp] serving ${projectRoot} (${allowWrites ? 'read-write' : 'read-only'})`,
+            `[memo-architect mcp] serving ${projectRoot} (${allowWrites ? 'read-write' : 'read-only'})`,
         );
     });
 }

@@ -13,10 +13,15 @@ import { resolveContentPackageRoot } from '@memoarchitect/tools';
 import { parse as parseYaml } from 'yaml';
 
 const CLI_PATH = join(__dirname, '../../lib/bin/memo.js');
+// `memo` compiles and validates; the project commands (init, export, pack, …) are memo-architect's,
+// driven here through the same registration (scripts/project-cli.mjs).
+const PROJECT_CLI_PATH = join(__dirname, '../../../../scripts/project-cli.mjs');
+const MEMO_COMMANDS = new Set(['compile', 'validate', 'toolchain', 'ship-library']);
+const cliFor = (cmd: string): string => (MEMO_COMMANDS.has(cmd.trim().split(/\s+/)[0]) ? CLI_PATH : PROJECT_CLI_PATH);
 const REPO_ROOT = join(__dirname, '../../../..');
 
 function run(cmd: string, cwd: string): string {
-    return execSync(`node ${CLI_PATH} ${cmd}`, {
+    return execSync(`node ${cliFor(cmd)} ${cmd}`, {
         cwd,
         encoding: 'utf-8',
         timeout: 30_000,
@@ -26,7 +31,7 @@ function run(cmd: string, cwd: string): string {
 
 function runMayFail(cmd: string, cwd: string): { stdout: string; exitCode: number } {
     try {
-        const stdout = execSync(`node ${CLI_PATH} ${cmd}`, {
+        const stdout = execSync(`node ${cliFor(cmd)} ${cmd}`, {
             cwd,
             encoding: 'utf-8',
             timeout: 30_000,

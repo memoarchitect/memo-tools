@@ -464,7 +464,7 @@ export interface MemoModelDTO {
      */
     irIdentities?: Record<string, string>;
     /**
-     * Clause coverage report — the same computation `memo standards check`
+     * Clause coverage report — the same computation `memo validate --standards`
      * prints. The dev server computes it once per rebuild and ships it here so
      * the Architect can badge document cards with gap counts without a second
      * request and without a second computation.
@@ -521,7 +521,7 @@ export function modelToDTO(
 /** Reconstruct a MemoModel from a DTO (e.g. received over WebSocket) */
 export function dtoToModel(dto: MemoModelDTO): MemoModel {
     // An ElementIndex, not a bare Map, so a model received over the wire can
-    // still resolve a name a person wrote — `memo inspect nodeLidar`, a key
+    // still resolve a name a person wrote — `memo compile --inspect nodeLidar`, a key
     // read back from a saved layout — against the qualified ids it holds.
     const elements = new ElementIndex();
     for (const el of Object.values(dto.elements)) elements.define(el);

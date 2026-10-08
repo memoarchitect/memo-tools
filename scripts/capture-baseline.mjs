@@ -30,12 +30,15 @@ const toolsRoot = resolve(here, '..');
 const metaRoot = resolve(toolsRoot, '..');
 const memoRoot = resolve(metaRoot, 'memo');
 const cli = resolve(toolsRoot, 'packages/tools/lib/bin/memo.js');
+// `memo` compiles and validates; the other commands are memo-architect's, driven through their registration.
+const projectCli = resolve(toolsRoot, 'scripts/project-cli.mjs');
+const cliFor = command => (['compile', 'validate', 'toolchain', 'ship-library'].includes(command) ? cli : projectCli);
 const outDir = resolve(toolsRoot, 'packages/tools/src/__tests__/fixtures/baseline-s1');
 
 /**
  * The four reference projects named in design section 18.1.
  *
- * `default` is materialized with `memo init` rather than read from
+ * `default` is materialized with `memo-architect init` rather than read from
  * `templates/default`, because the template still carries `{{name}}`
  * placeholders and is not itself a loadable project.
  */
@@ -566,11 +569,11 @@ export const FIXTURES = [
  */
 
 /**
- * Materialize a fresh default project so the baseline covers `memo init` output.
+ * Materialize a fresh default project so the baseline covers `memo-architect init` output.
  *
  * BASELINE RE-FROZEN 2026-08-01 (deliberate, one fixture).
  *
- * The first capture recorded `validation: null` here: `memo init` resolves the
+ * The first capture recorded `validation: null` here: `memo-architect init` resolves the
  * published @memoarchitect/ontology (0.6.4), 16 of whose rules carry
  * predicateExpressions the constraint parser cannot compile, and a single
  * failure threw out of collectNativeConstraints and killed the whole command.
@@ -592,7 +595,7 @@ export function materializeDefault() {
     // The baseline only needs the generated project content. Installing a
     // second dependency tree makes this test network-dependent and prevented
     // the verifier from ever reaching the remaining fixtures.
-    execFileSync('node', [cli, 'init', 'baseline-default', '--no-install'], {
+    execFileSync('node', [projectCli, 'init', 'baseline-default', '--no-install'], {
         cwd: dir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'],
     });
     const projectDir = resolve(dir, 'baseline-default');
@@ -604,7 +607,7 @@ export function materializeDefault() {
 }
 
 function run(args, cwd) {
-    return execFileSync('node', [cli, ...args], {
+    return execFileSync('node', [cliFor(args[0]), ...args], {
         cwd,
         encoding: 'utf-8',
         maxBuffer: 256 * 1024 * 1024,
@@ -668,7 +671,7 @@ function countBy(items, key) {
 
 export function capture(fixture) {
     const result = { id: fixture.id, model: null, validation: null, errors: [] };
-    // `memo export json` only writes to a file, so route it through a scratch
+    // `memo-architect export json` only writes to a file, so route it through a scratch
     // path rather than stdout.
     const scratch = resolve(tmpdir(), `memo-baseline-${fixture.id}.json`);
     try {
@@ -680,7 +683,7 @@ export function capture(fixture) {
             completeness: exported.completeness?.overall ?? null,
         };
     } catch (error) {
-        result.errors.push(`model: ${String(error.message ?? error).slice(0, 400)}`);
+        result.errors.push(`model: ${normalizeError(error)}`);
     } finally {
         if (existsSync(scratch)) rmSync(scratch, { force: true });
     }

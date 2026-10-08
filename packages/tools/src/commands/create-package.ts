@@ -1,13 +1,13 @@
-// ─── memo create-package ─────────────────────────────────────────────────────
+// ─── memo-architect create-package ─────────────────────────────────────────────────────
 //
 // Scaffolds a new MEMO package (ontology, profile, or library).
 // Creates directory structure with memo.package.yaml, .project.json,
 // SysML templates, and package.json.
 //
 // Usage:
-//   memo create-package my-ontology --type ontology
-//   memo create-package my-profile --type profile --extends @memoarchitect/ontology
-//   memo create-package my-library --type library
+//   memo-architect create-package my-ontology --type ontology
+//   memo-architect create-package my-profile --type profile --extends @memoarchitect/ontology
+//   memo-architect create-package my-library --type library
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve, join } from 'node:path';

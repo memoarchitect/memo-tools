@@ -42,8 +42,8 @@ to improve the completeness score.
 ## 3. Export a reviewable graph
 
 ```bash
-npx memo export json --output model.json
-npx memo export dot --output model.dot
+npx memo-architect export json --output model.json
+npx memo-architect export dot --output model.dot
 ```
 
 The JSON export supports downstream analysis; DOT supports graph visualization.

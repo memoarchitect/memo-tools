@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ─── Corpus conversion ────────────────────────────────────────────────────────
 //
-// Runs `memo convert` over every shipped example and template (design section
+// Runs `memo-architect convert` over every shipped example and template (design section
 // 18.4, half A deliverable 2) and proves the conversion changed structure only.
 //
 //   node scripts/convert-corpus.mjs            # report the plan for each project
@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const toolsRoot = resolve(here, '..');
 const memoRoot = resolve(toolsRoot, '../memo');
-const cli = resolve(toolsRoot, 'packages/tools/lib/bin/memo.js');
+const cli = resolve(toolsRoot, 'scripts/project-cli.mjs');   // the project commands: memo-architect's, `memo` only compiles and validates
 
 const write = process.argv.includes('--write');
 

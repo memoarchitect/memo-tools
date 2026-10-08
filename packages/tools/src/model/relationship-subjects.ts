@@ -111,7 +111,7 @@ export function relationshipSubjects(
  * `elementsByKind` only.
  *
  * `elements` is deliberately left alone. It is the parts index — what
- * `memo inspect` resolves, what the census counts, what an export serializes —
+ * `memo compile --inspect` resolves, what the census counts, what an export serializes —
  * and an edge does not belong in it. `elementsByKind` is the SUBJECT SELECTOR,
  * which is a different question: "what does this rule run on?".
  *

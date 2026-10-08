@@ -51,7 +51,7 @@ async function loadModel(): Promise<LoadedModel> {
     const completeness = computeCompleteness(model, validation);
     const dhfConfig = loadDhfConfig(cwd);
     // The standards report rides on the context so a ```memo-standards``` block
-    // in an exported document is the same computation `memo standards check`
+    // in an exported document is the same computation `memo validate --standards`
     // prints. It cannot be derived from the model here: an unclaimed clause is
     // not in the model, which is exactly what makes it worth reporting.
     const standardsReport = buildStandardsReport({ model, registries: ontologyRegistries, projectRoot: cwd });
@@ -82,7 +82,7 @@ function resolveTargets(target?: string, group?: string, dhfConfig?: DhfConfig):
     return getAllDocumentIds().filter(id => isDocumentEnabled(id, dhfConfig));
 }
 
-// ─── memo export dhf ─────────────────────────────────────────────────────────
+// ─── memo-architect export dhf ─────────────────────────────────────────────────────────
 
 export async function exportDhfCommand(options: {
     output?: string;
@@ -214,7 +214,7 @@ export async function exportDhfCommand(options: {
     console.log(chalk.green(`\nExported ${exported} documents to ${outputDir}\n`));
 }
 
-// ─── memo dhf status ─────────────────────────────────────────────────────────
+// ─── memo-architect dhf status ─────────────────────────────────────────────────────────
 
 export async function dhfStatusCommand(options: {
     verbose?: boolean;
@@ -265,7 +265,7 @@ export async function dhfStatusCommand(options: {
     console.log('');
 }
 
-// ─── memo dhf snapshot ───────────────────────────────────────────────────────
+// ─── memo-architect dhf snapshot ───────────────────────────────────────────────────────
 
 export async function dhfSnapshotCommand(options: {
     target?: string;
@@ -288,7 +288,7 @@ export async function dhfSnapshotCommand(options: {
     console.log(chalk.green(`\nSnapshots saved to .memo/dhf-snapshots/\n`));
 }
 
-// ─── memo dhf diff ───────────────────────────────────────────────────────────
+// ─── memo-architect dhf diff ───────────────────────────────────────────────────────────
 
 export async function dhfDiffCommand(options: {
     target: string;
@@ -305,7 +305,7 @@ export async function dhfDiffCommand(options: {
 
     const baseline = loadLatestSnapshot(cwd, options.target);
     if (!baseline) {
-        console.error(chalk.yellow(`No previous snapshot found for ${options.target}. Run 'memo dhf snapshot' first.`));
+        console.error(chalk.yellow(`No previous snapshot found for ${options.target}. Run 'memo-architect dhf snapshot' first.`));
         process.exit(1);
     }
 
@@ -335,7 +335,7 @@ export async function dhfDiffCommand(options: {
     console.log('');
 }
 
-// ─── memo dhf redline ────────────────────────────────────────────────────────
+// ─── memo-architect dhf redline ────────────────────────────────────────────────────────
 
 export async function dhfRedlineCommand(options: {
     target: string;
@@ -354,7 +354,7 @@ export async function dhfRedlineCommand(options: {
 
     const baseline = loadLatestSnapshot(cwd, options.target);
     if (!baseline) {
-        console.error(chalk.yellow(`No previous snapshot found for ${options.target}. Run 'memo dhf snapshot' first.`));
+        console.error(chalk.yellow(`No previous snapshot found for ${options.target}. Run 'memo-architect dhf snapshot' first.`));
         process.exit(1);
     }
 
@@ -377,7 +377,7 @@ export async function dhfRedlineCommand(options: {
     console.log(chalk.green(`Redline document written to ${outputPath}\n`));
 }
 
-// ─── memo dhf review-packet ──────────────────────────────────────────────────
+// ─── memo-architect dhf review-packet ──────────────────────────────────────────────────
 
 export async function dhfReviewPacketCommand(options: {
     format?: string;

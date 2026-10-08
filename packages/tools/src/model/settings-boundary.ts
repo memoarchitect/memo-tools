@@ -73,7 +73,7 @@ const SEMANTIC_FIELDS: Record<string, string> = {
     workflows:
         '`MethodologyWorkflowStep` actions in the methodology',
     firstRun:
-        'the template `memo init` scaffolds',
+        'the template `memo-architect init` scaffolds',
 };
 
 /** `sysmlDir` locates source; it is the one entry above that is still read. */

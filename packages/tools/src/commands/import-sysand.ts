@@ -1,4 +1,4 @@
-// ─── memo import sysand ──────────────────────────────────────────────────────
+// ─── memo-architect import sysand ──────────────────────────────────────────────────────
 //
 // Import a SysAnd project directory into MEMO.
 // Reads .project.json + SysML files, populates registries.
@@ -13,7 +13,7 @@ import { loadProjectSettings } from '../model/config-loader.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
 
 /**
- * memo import sysand <project-dir> — Import a SysAnd project.
+ * memo-architect import sysand <project-dir> — Import a SysAnd project.
  *
  * Reads .project.json + SysML files from a SysAnd project directory.
  * Populates KindRegistry and RelationshipRegistry.

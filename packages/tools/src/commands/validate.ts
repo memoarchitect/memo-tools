@@ -122,7 +122,7 @@ export async function runValidation(
         io.err(chalk.red(
             '❌ No MEMO project found. A project is located by the `entrypoint` in its '
             + '`memo.package.yaml`, which names the SysML file declaring its identity '
-            + 'and method binding — run `memo init` to scaffold one.'));
+            + 'and method binding — run `memo-architect init` to scaffold one.'));
         throw new ValidationExit(1);
     }
     say(chalk.gray(`Project root: ${projectRoot}`));
@@ -347,7 +347,7 @@ export async function runValidation(
         say(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
     }
 
-    // Rule activation is shared with `memo rules list` so the two commands
+    // Rule activation is shared with `memo validate --rules` so the two commands
     // cannot report different rule sets for one project.
     const ruleFileToPackage = resolution?.filePackages ?? new Map<string, string>();
     const kindRegistry = ontologyRegistries?.kindRegistry;

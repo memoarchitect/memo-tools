@@ -24,6 +24,7 @@ export {
     applyUserSetting, applyProjectSetting, userToolchainStatus, userSettingReports, userLeaf, ConfigSettingError,
 } from './toolchain/user-settings-status.js';
 export { ProjectNamesUserSettingError } from './toolchain/ownership.js';
+export { registerProjectCommands } from './cli/project-commands.js';
 export * from './model/semantic.js';
 export * from './model/element-index.js';
 export * from './model/sysml-ir.js';
@@ -92,7 +93,7 @@ export * from './plugin/index.js';
 
 // The MCP server is intentionally NOT re-exported here. It depends on
 // server/persistor, which imports this module by package name — routing it
-// through the public index would close a runtime import cycle. `memo mcp`
+// through the public index would close a runtime import cycle. `memo-architect mcp`
 // imports src/mcp/server.js directly instead.
 
 // ─── Protocol (WebSocket messages) ──────────────────────────────────────────
