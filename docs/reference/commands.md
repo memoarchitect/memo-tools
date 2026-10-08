@@ -54,7 +54,7 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo-architect plugin …` | List, create, or run plugins. |
 | `memo-architect dhf …` | Initialize, preview, assess, snapshot, diff, redline, or draft DHF content. |
 | `memo-architect rules new\|tailor\|tailoring` | Write a rule, switch rules off or re-grade them as a recorded policy, or report every tailoring. |
-| `memo-architect sysand publish` | Validate and package content for SysAnd publication. |
+| `memo-architect sysand publish` | Dry run of publishing the package or project you are in: stages what `memo pack` stages (the same declared sources and `.project.json`) and reports the artifact name, file count, content hash and the packages it uses. Writes and uploads nothing. |
 
 ## Project creation
 
