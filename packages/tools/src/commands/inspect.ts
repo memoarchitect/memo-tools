@@ -1,4 +1,4 @@
-// ─── memo inspect ────────────────────────────────────────────────────────────
+// ─── memo compile --inspect ────────────────────────────────────────────────────────────
 //
 // Authoritative ownership inspection for a model element, relationship, or
 // definition.
@@ -29,11 +29,11 @@ export async function inspectCommand(
     if (!projectRoot) {
         throw new Error(
             'No MEMO project found. A project declares its identity in '
-            + 'model/catalog/project.sysml; run `memo init` to scaffold one.',
+            + 'model/catalog/project.sysml; run `memo-architect init` to scaffold one.',
         );
     }
     const configPath = findConfigFile(projectRoot);
-    if (!configPath) throw new Error('No memo package descriptor found beside the project.');
+    if (!configPath) throw new Error('No memo-architect package descriptor found beside the project.');
 
     const config = loadAndResolveConfig(configPath);
     const { model, registries } = await loadProjectModel({ projectRoot, config });
@@ -51,7 +51,7 @@ export async function inspectCommand(
     }
 
     // A definition is not an element, but section 19 names definitions
-    // explicitly. Reporting only elements meant `memo inspect ProjectAction`
+    // explicitly. Reporting only elements meant `memo compile --inspect ProjectAction`
     // claimed the project's own `action def` did not exist.
     const kind = registries?.kindRegistry?.getKind(id);
     if (kind) {

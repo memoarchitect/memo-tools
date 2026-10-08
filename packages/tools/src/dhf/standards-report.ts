@@ -1,6 +1,6 @@
 // ─── Standards Conformance Report ─────────────────────────────────────────────
 //
-// One computation, three outputs. `memo standards check`, the shipped
+// One computation, three outputs. `memo validate --standards`, the shipped
 // standards-checklist.md template, and the Architect's gap badges all call
 // `computeStandardsReport` and render the same numbers. There is deliberately
 // no second place that decides what a gap is.

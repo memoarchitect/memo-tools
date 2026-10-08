@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const toolsRoot = resolve(here, '..');
-const cli = resolve(toolsRoot, 'packages/tools/lib/bin/memo.js');
+const cli = resolve(toolsRoot, 'scripts/project-cli.mjs');   // the project commands: memo-architect's, `memo` only compiles and validates
 const gpca = resolve(toolsRoot, '../memo/examples/gpca-pump');
 
 const COLD_BOOTSTRAP_BUDGET_MS = 5000;
@@ -42,7 +42,7 @@ if (!existsSync(cli)) {
     process.exit(1);
 }
 
-// A full `memo export json` is the closest CLI proxy for a cold bootstrap: it
+// A full `memo-architect export json` is the closest CLI proxy for a cold bootstrap: it
 // resolves the import closure, parses every ontology and project file, builds
 // the registries, and produces the model — which is exactly what a runtime
 // restart redoes. It includes node startup, so it over-reports slightly; a

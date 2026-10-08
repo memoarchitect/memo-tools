@@ -1,10 +1,10 @@
-// ─── memo ask CLI Command (M72) ──────────────────────────────────────────────
+// ─── memo-architect ask CLI Command (M72) ──────────────────────────────────────────────
 //
-// `memo ask "<question>"` — Query the model using LLM.
+// `memo-architect ask "<question>"` — Query the model using LLM.
 // Examples:
-//   memo ask "What hazards have no risk controls?"
-//   memo ask "Show trace from REQ-001 to verification"
-//   memo ask "Which layers are least complete?"
+//   memo-architect ask "What hazards have no risk controls?"
+//   memo-architect ask "Show trace from REQ-001 to verification"
+//   memo-architect ask "Which layers are least complete?"
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { dirname } from 'node:path';
@@ -39,7 +39,7 @@ export async function askCommand(question: string, options: AskCommandOptions): 
     const cwd = process.cwd();
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
 

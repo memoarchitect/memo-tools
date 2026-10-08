@@ -1,9 +1,9 @@
-// ─── memo plugin CLI Commands (M78) ──────────────────────────────────────────
+// ─── memo-architect plugin CLI Commands (M78) ──────────────────────────────────────────
 //
 // Plugin management commands:
-//   memo plugin list              — List registered plugins
-//   memo plugin create <name>     — Scaffold a new plugin
-//   memo plugin run <id>          — Run a generator or analysis plugin
+//   memo-architect plugin list              — List registered plugins
+//   memo-architect plugin create <name>     — Scaffold a new plugin
+//   memo-architect plugin run <id>          — Run a generator or analysis plugin
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve, join, dirname } from 'node:path';
@@ -18,7 +18,7 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
 
 
-// ─── memo plugin list ───────────────────────────────────────────────────────
+// ─── memo-architect plugin list ───────────────────────────────────────────────────────
 
 export async function pluginListCommand(): Promise<void> {
     const cwd = process.cwd();
@@ -67,7 +67,7 @@ export async function pluginListCommand(): Promise<void> {
     console.log('');
 }
 
-// ─── memo plugin create ─────────────────────────────────────────────────────
+// ─── memo-architect plugin create ─────────────────────────────────────────────────────
 
 export async function pluginCreateCommand(
     name: string,
@@ -109,7 +109,7 @@ export async function pluginCreateCommand(
     console.log('');
 }
 
-// ─── memo plugin run ────────────────────────────────────────────────────────
+// ─── memo-architect plugin run ────────────────────────────────────────────────────────
 
 export async function pluginRunCommand(
     pluginId: string,
@@ -120,7 +120,7 @@ export async function pluginRunCommand(
     // 1. Load model
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
 
@@ -192,7 +192,7 @@ export async function pluginRunCommand(
             break;
         }
         default:
-            console.error(chalk.red(`Plugin type "${plugin.type}" is not runnable via CLI. Use 'memo export dhf' for export plugins.`));
+            console.error(chalk.red(`Plugin type "${plugin.type}" is not runnable via CLI. Use 'memo-architect export dhf' for export plugins.`));
             process.exit(1);
     }
 

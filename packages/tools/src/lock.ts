@@ -2,7 +2,7 @@
 //
 // Creates and checks memo.lock.yaml — locks the ontology identity so that
 // accidental ontology changes are caught early. Lock file is created at
-// `memo init` time and checked on `memo-architect dev` / `memo validate`.
+// `memo-architect init` time and checked on `memo-architect dev` / `memo validate`.
 //
 // No auto-migration: changing ontology is rare and high-risk in regulated
 // medical device development (per platform-strategy.md §8).
@@ -54,7 +54,7 @@ function checksumFile(filePath: string): string {
  */
 function serializeLock(lock: OntologyLock): string {
     let out = `# memo.lock.yaml — Ontology lock file (auto-generated)\n`;
-    out += `# Do not edit manually. Regenerate with: memo lock\n\n`;
+    out += `# Do not edit manually. Regenerate with: memo-architect lock\n\n`;
     out += `ontology: "${lock.ontology}"\n`;
     out += `version: "${lock.version}"\n`;
     out += `lockedAt: "${lock.lockedAt}"\n`;
@@ -243,7 +243,7 @@ export function checkLockFile(
                 + `  Locked:  ${lock.ontology} v${lock.version}\n`
                 + `  Current: ${lock.ontology} v${currentVersion}\n\n`
                 + `  Review the change, then update the lock:\n`
-                + `    memo lock`,
+                + `    memo-architect lock`,
         };
     }
 
@@ -259,7 +259,7 @@ export function checkLockFile(
                 message:
                     `Package "${locked.name}" has changed since the lock was created.\n\n`
                     + `  Review the change, then update the lock:\n`
-                    + `    memo lock`,
+                    + `    memo-architect lock`,
             };
         }
     }

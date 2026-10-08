@@ -253,7 +253,7 @@ export function probeToolchain(options: {
     return { projectDir: options.projectDir, effective, roles };
 }
 
-/** One `role  provider  path  version` line per role, for `memo toolchain probe`. */
+/** One `role  provider  path  version` line per role, for `memo compile --probe`. */
 export function formatProbeLine(probe: RoleProbe): string {
     const { availability } = probe;
     const where = availability.executable ?? `(${availability.transport})`;
@@ -262,7 +262,7 @@ export function formatProbeLine(probe: RoleProbe): string {
     return `${probe.role.padEnd(10)} ${probe.provider.padEnd(12)} ${status}`;
 }
 
-/** The full resolved picture, for `memo config effective`. */
+/** The full resolved picture, for `memo compile --effective`. */
 export interface EffectiveConfigReport {
     projectName: string;
     projectRoot: string;

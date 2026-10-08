@@ -1,4 +1,4 @@
-// ─── memo convert ────────────────────────────────────────────────────────────
+// ─── memo-architect convert ────────────────────────────────────────────────────────────
 //
 // Restructure a project into the native catalog layout (design section 6.2).
 //

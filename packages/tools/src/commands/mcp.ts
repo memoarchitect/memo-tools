@@ -1,8 +1,8 @@
-// ─── memo mcp CLI Command ────────────────────────────────────────────────────
+// ─── memo-architect mcp CLI Command ────────────────────────────────────────────────────
 //
-//   memo mcp              — serve the model over MCP on stdio (read-only)
-//   memo mcp --write      — same, with the model-editing tools enabled
-//   memo mcp init         — wire the server into Cursor / Claude Code
+//   memo-architect mcp              — serve the model over MCP on stdio (read-only)
+//   memo-architect mcp --write      — same, with the model-editing tools enabled
+//   memo-architect mcp init         — wire the server into Cursor / Claude Code
 //
 // The serve path must keep stdout clean for JSON-RPC frames, so it prints
 // nothing there. `init` is an ordinary command and prints normally.
@@ -26,7 +26,7 @@ export async function mcpCommand(options: McpServeOptions): Promise<void> {
     if (!findConfigFile(projectRoot)) {
         // stderr, not stdout — an MCP client is reading stdout as protocol.
         console.error(chalk.red(`No MEMO project found at ${projectRoot}.`));
-        console.error(chalk.dim('Run `memo init` there, or pass --project <path>.'));
+        console.error(chalk.dim('Run `memo-architect init` there, or pass --project <path>.'));
         process.exit(1);
     }
 
@@ -124,7 +124,7 @@ export async function mcpInitCommand(options: McpInitOptions): Promise<void> {
 
     if (!findConfigFile(projectRoot)) {
         console.error(chalk.red(`No MEMO project found at ${projectRoot}.`));
-        console.error(chalk.dim('Run `memo init` first.'));
+        console.error(chalk.dim('Run `memo-architect init` first.'));
         process.exit(1);
     }
 
@@ -152,5 +152,5 @@ export async function mcpInitCommand(options: McpInitOptions): Promise<void> {
         : chalk.dim('The server is read-only. Re-run with --write to let Cursor create elements.'));
     console.log('');
     console.log(chalk.dim('For Claude Code, register the same server with:'));
-    console.log(chalk.dim(`  claude mcp add memo -- npx -y --package=@memoarchitect/tools memo mcp --project ${projectRoot}${write ? ' --write' : ''}`));
+    console.log(chalk.dim(`  claude mcp add memo -- npx -y --package=@memoarchitect/architect memo-architect mcp --project ${projectRoot}${write ? ' --write' : ''}`));
 }

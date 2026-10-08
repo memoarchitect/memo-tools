@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ─── Stage 2 parity ──────────────────────────────────────────────────────────
 //
-// For each example: the MEMO graph MEMO's own compiler builds (`memo export
+// For each example: the MEMO graph MEMO's own compiler builds (`memo-architect export
 // json`) against the graph stage 2 builds from SysIDE's stage 1 handoff
 // (`python/memo_stage1_syside.py`), compared by scripts/diff-memo-graph.mjs.
 // This is milestone 2's acceptance check (plans/memo-compiler-stages-opensysml.md).
@@ -44,8 +44,8 @@ for (const example of examples) {
     const stage1 = join(work, `${example}.stage1.json`);
     const candidate = join(work, `${example}.candidate.json`);
 
-    const exported = spawnSync('node', [join(lib, 'bin/memo.js'), 'export', 'json', '-o', baseline], { cwd: root, encoding: 'utf8' });
-    if (exported.status !== 0) { console.log(`✘ ${example}: memo export json failed\n${exported.stderr}`); failures++; continue; }
+    const exported = spawnSync('node', [join(toolsRoot, 'scripts/project-cli.mjs'), 'export', 'json', '-o', baseline], { cwd: root, encoding: 'utf8' });
+    if (exported.status !== 0) { console.log(`✘ ${example}: memo-architect export json failed\n${exported.stderr}`); failures++; continue; }
 
     const handoff = spawnSync(python, [join(toolsRoot, 'packages/tools/python/memo_stage1_syside.py'),
         '--library', join(memoRoot, 'src'), '--library', join(memoRoot, 'extensions'), '--out', stage1, root], { encoding: 'utf8' });
@@ -61,7 +61,7 @@ for (const example of examples) {
 
     const diff = spawnSync('node', [join(toolsRoot, 'scripts/diff-memo-graph.mjs'), baseline, candidate, '--limit', '8',
         // Findings are compared through `memo validate` below, which runs the
-        // built-in checks `memo export` runs and the ontology's rules too.
+        // built-in checks `memo-architect export` runs and the ontology's rules too.
         '--by-meaning', '--no-findings', ...(elementsOnly ? ['--elements-only'] : [])], { encoding: 'utf8' });
     // Rule findings: `memo validate` on MEMO's own build and on the handoff,
     // compared on every violation, the rule counts and completeness.

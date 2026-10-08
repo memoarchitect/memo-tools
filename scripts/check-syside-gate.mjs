@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 const toolsRoot = resolve(import.meta.dirname, '..');
 const memoRoot = resolve(toolsRoot, '../memo');
 // SCOPE: the ontology, the extensions, AND `memo/examples` — everything MEMO
-// ships. `examples` is shipped to users by `memo init --example` and was
+// ships. `examples` is shipped to users by `memo-architect init --example` and was
 // checked by neither gate until R8-S4, which is how 733 SysIDE errors and two
 // defects introduced by R0 and R1 themselves survived a green build and 1858
 // green tests. Anything checked by neither gate is a place a red build can hide

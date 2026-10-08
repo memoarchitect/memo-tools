@@ -62,7 +62,7 @@ toolchain:
 ```
 
 **You choose a compiler; MEMO finds its tools.** The project names the compiler it
-uses, and `memo init` writes `compiler: opensysml` into a new project's settings
+uses, and `memo-architect init` writes `compiler: opensysml` into a new project's settings
 file. A user who wants another overrides it for themselves, without editing the
 project, in Architect (the **Compiler** control, or `memo-architect config set compiler syside`), which writes their own settings
 file (`~/.config/memo/settings.yaml`) and is never checked in. Where the compiler's
@@ -89,8 +89,8 @@ refused with the setting named. Set them in your own settings, with
 `memo-architect config set <setting> <value>`, or with a variable or flag. MEMO Tools
 has no settings commands: it compiles and validates, and reads what Architect writes.
 
-Run `memo toolchain probe` to see which providers are registered, which binary
-each resolved to, and its version. Run `memo config effective` to see the whole
+Run `memo compile --probe` to see which providers are registered, which binary
+each resolved to, and its version. Run `memo compile --effective` to see the whole
 resolved picture, including which settings came from the file, which from a
 flag, and which from a default.
 
@@ -135,7 +135,7 @@ applies there.
 `compiler: syside` is SysIDE; `compiler: opensysml` is OpenSysML. MEMO has
 no compiler of its own: both produce the API JSON stage 2 builds from. There is no default: some setting must name the compiler, and
 every command fails with an error saying what to set when none does. The
-packager is named the same way (`toolchain.packager`), and only `memo pack`
+packager is named the same way (`toolchain.packager`), and only `memo-architect pack`
 needs it. An explicit `toolchain.validator` or `toolchain.lowering` overrides
 its role.
 

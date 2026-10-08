@@ -1,7 +1,7 @@
 // ─── Plugin Scaffolding ──────────────────────────────────────────────────────
 //
 // Generates starter files for new MEMO plugins.
-// `memo plugin create <name> --type export`
+// `memo-architect plugin create <name> --type export`
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { PluginType } from './plugin-types.js';

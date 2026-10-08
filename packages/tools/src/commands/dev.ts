@@ -302,7 +302,7 @@ export async function devCommand(options: {
             ? stage1.registries
             : kept?.registries;
         // The effective rule set, activated and tailored as `memo validate` and
-        // `memo rules list` do it (`resolveProjectRules`), so Architect reports
+        // `memo validate --rules` do it (`resolveProjectRules`), so Architect reports
         // the rule set they do. Rule resolution must never take the rebuild down:
         // a bad policy is a diagnostic about the methodology, not a reason the
         // model cannot be shown.
@@ -435,7 +435,7 @@ export async function devCommand(options: {
         });
         // Compute the clause coverage report and attach it to the model DTO
         // so the Architect can badge document cards with gap counts without a
-        // second request. Same computation as `memo standards check`.
+        // second request. Same computation as `memo validate --standards`.
         try {
             const library = loadStandardsLibrary(cwd);
             const kindRegistry = stage2Registries?.kindRegistry;
@@ -495,8 +495,8 @@ export async function devCommand(options: {
     if (sysmlCount === 0) {
         console.log(chalk.yellow('  ⚠ No .sysml files found in this directory.'));
         console.log(chalk.gray('  Create model files in a model/ subdirectory, or run:'));
-        console.log(chalk.gray('    memo init <project-name>'));
-        console.log(chalk.gray('    memo import template elements\n'));
+        console.log(chalk.gray('    memo-architect init <project-name>'));
+        console.log(chalk.gray('    memo-architect import template elements\n'));
     }
     console.log(chalk.gray('  Building model...'));
     const initial = await rebuildProject();

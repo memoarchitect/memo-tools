@@ -19,7 +19,7 @@ import {
 export interface RoleSelection {
     role: ProviderRole;
     provider: string;
-    /** Where the value came from — useful in `memo config effective`. */
+    /** Where the value came from — useful in `memo compile --effective`. */
     source: 'settings' | 'compiler';
 }
 

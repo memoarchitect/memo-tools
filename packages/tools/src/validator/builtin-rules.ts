@@ -10,7 +10,7 @@
 //
 // This list is the single source of that truth. `rulesEvaluated` was
 // `6 + nativeConstraints.length` — a literal with no way to stay correct — and
-// `memo rules list` did not know these rules existed at all, so the two
+// `memo validate --rules` did not know these rules existed at all, so the two
 // commands reported different totals for the same project.
 //
 // Built-in rules are NOT tailorable. A `RulePolicy` references a rule by its

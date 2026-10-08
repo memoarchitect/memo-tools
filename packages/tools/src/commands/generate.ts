@@ -1,10 +1,10 @@
-// ─── memo generate CLI Command (M73) ─────────────────────────────────────────
+// ─── memo-architect generate CLI Command (M73) ─────────────────────────────────────────
 //
-// `memo generate "<description>"` — Generate SysML from natural language.
+// `memo-architect generate "<description>"` — Generate SysML from natural language.
 // Examples:
-//   memo generate "Add a pressure sensor component with USB interface"
-//   memo generate "Create a hazard for medication overdose with severity S4"
-//   memo generate "Add user need for real-time monitoring"
+//   memo-architect generate "Add a pressure sensor component with USB interface"
+//   memo-architect generate "Create a hazard for medication overdose with severity S4"
+//   memo-architect generate "Add user need for real-time monitoring"
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { writeFileSync, existsSync } from 'node:fs';
@@ -37,7 +37,7 @@ export async function generateCommand(description: string, options: GenerateComm
     const cwd = process.cwd();
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
 

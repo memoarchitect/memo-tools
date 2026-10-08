@@ -1,9 +1,9 @@
 // ─── memo rules ──────────────────────────────────────────────────────────────
 //
 // CLI subcommands for consistency rule management:
-//   memo rules list     — list all rules with category and severity
-//   memo rules explain  — show detailed info for a specific rule
-// `memo validate` evaluates the rules; `memo standards check` reports which
+//   memo validate --rules     — list all rules with category and severity
+//   memo validate --explain-rule  — show detailed info for a specific rule
+// `memo validate` evaluates the rules; `memo validate --standards` reports which
 // clauses they enforce.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -39,7 +39,7 @@ export async function loadContext(projectDir?: string) {
     const cwd = resolve(projectDir || process.cwd());
 
     // The loader resolves a PROJECT ROOT, not a settings file. Passing the
-    // config path resolved no documents, so `memo rules list` reported "No
+    // config path resolved no documents, so `memo validate --rules` reported "No
     // rules found" on a project `memo validate` was evaluating 61 rules
     // against. The two commands must agree about what the effective rule set
     // is — that is the whole point of section 10.4.
@@ -48,12 +48,12 @@ export async function loadContext(projectDir?: string) {
         console.error(chalk.red(
             '❌ No MEMO project found. A project is located by the `entrypoint` in its '
             + '`memo.package.yaml`, which names the SysML file declaring its identity '
-            + 'and method binding — run `memo init` to scaffold one.'));
+            + 'and method binding — run `memo-architect init` to scaffold one.'));
         process.exit(1);
     }
 
     // A package descriptor is an optional LOCATOR, not a requirement. Demanding
-    // one made `memo rules list` refuse to run on a project `memo validate`
+    // one made `memo validate --rules` refuse to run on a project `memo validate`
     // handles fine — GPCA has no `memo.package.yaml` and does not need one,
     // because the entrypoint and the binding decide what the model contains.
     const configPath = findConfigFile(projectRoot);
@@ -127,7 +127,7 @@ function severityIcon(severity: string): string {
     }
 }
 
-// ─── memo rules list ─────────────────────────────────────────────────────────
+// ─── memo validate --rules ─────────────────────────────────────────────────────────
 
 export type RulesFormat = 'text' | 'json';
 
@@ -247,7 +247,7 @@ export async function rulesListCommand(
     }
 }
 
-// ─── memo rules explain ──────────────────────────────────────────────────────
+// ─── memo validate --explain-rule ──────────────────────────────────────────────────────
 
 export async function rulesExplainCommand(
     ruleId: string,
@@ -314,7 +314,7 @@ export async function rulesExplainCommand(
     }
 }
 
-// ─── memo rules tailoring ────────────────────────────────────────────────────
+// ─── memo-architect rules tailoring ────────────────────────────────────────────────────
 //
 // The record of every rule this project's policies switched off, downgraded or
 // replaced, with who decided and why. A user may tailor any rule; what the
@@ -404,7 +404,7 @@ export async function rulesTailoringCommand(
 }
 
 
-// ─── memo rules new ──────────────────────────────────────────────────────────
+// ─── memo-architect rules new ──────────────────────────────────────────────────────────
 //
 // Write a rule of the project's own. It is checked, its effect on the model as
 // it stands is shown, and it is written through the same compile-before-commit
@@ -496,7 +496,7 @@ export async function rulesNewCommand(projectDir: string | undefined, options: R
 }
 
 
-// ─── memo rules tailor ───────────────────────────────────────────────────────
+// ─── memo-architect rules tailor ───────────────────────────────────────────────────────
 //
 // Switch off, or change the severity of, a rule, every rule that enforces a
 // clause of a standard, or every rule on a layer: one `RulePolicy`, so one

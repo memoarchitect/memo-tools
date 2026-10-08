@@ -1,4 +1,4 @@
-// ─── memo import owl ─────────────────────────────────────────────────────────
+// ─── memo-architect import owl ─────────────────────────────────────────────────────────
 //
 // Import an OWL/Turtle or JSON-LD ontology into MEMO.
 // Maps owl:Class → kinds, owl:ObjectProperty → relationships.
@@ -16,7 +16,7 @@ import {
 } from '@memoarchitect/tools';
 
 /**
- * memo import owl <file> — Import an OWL/Turtle or JSON-LD file.
+ * memo-architect import owl <file> — Import an OWL/Turtle or JSON-LD file.
  *
  * Accepts:
  * - .ttl — OWL/Turtle format

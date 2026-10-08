@@ -1,13 +1,13 @@
-// ─── memo import ─────────────────────────────────────────────────────────────
+// ─── memo-architect import ─────────────────────────────────────────────────────────────
 //
 // Import elements and relationships from CSV files into the project.
 // Generates .sysml files from the CSV data, validated against the ontology.
 //
 // Commands:
-//   memo import csv <file>           — Import elements CSV
-//   memo import csv-rel <file>       — Import relationships CSV
-//   memo import template elements    — Generate element CSV template
-//   memo import template relations   — Generate relationship CSV template
+//   memo-architect import csv <file>           — Import elements CSV
+//   memo-architect import csv-rel <file>       — Import relationships CSV
+//   memo-architect import template elements    — Generate element CSV template
+//   memo-architect import template relations   — Generate relationship CSV template
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolve, basename, dirname } from 'node:path';
@@ -34,7 +34,7 @@ export async function importCsvCommand(
     // Load config
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
     const config = loadAndResolveConfig(configPath);
@@ -99,7 +99,7 @@ export async function importRelCsvCommand(
 
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
     const config = loadAndResolveConfig(configPath);
@@ -165,7 +165,7 @@ export async function importTemplateCommand(
 
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
     const config = loadAndResolveConfig(configPath);
@@ -207,7 +207,7 @@ export async function importDiffCommand(
 
     const configPath = findConfigFile(cwd);
     if (!configPath) {
-        console.error(chalk.red('No memo config found. Run `memo init` first.'));
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
         process.exit(1);
     }
     const config = loadAndResolveConfig(configPath);

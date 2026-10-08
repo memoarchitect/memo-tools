@@ -68,7 +68,7 @@ export async function loadProject(projectRoot: string): Promise<LoadedProject> {
 
     const configPath = findConfigFile(projectRoot);
     if (!configPath) {
-        throw new Error(`No MEMO project found at ${projectRoot}. Run \`memo init\` there first.`);
+        throw new Error(`No MEMO project found at ${projectRoot}. Run \`memo-architect init\` there first.`);
     }
 
     const config = loadAndResolveConfig(configPath);

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ─── MEMO graph diff ─────────────────────────────────────────────────────────
 //
-// Compares two `memo export json` outputs: the acceptance check for re-homing
+// Compares two `memo-architect export json` outputs: the acceptance check for re-homing
 // the builder onto stage 1's API JSON (plans/memo-compiler-stages-opensysml.md,
 // milestone 2). Two graphs are equal when they hold the same elements, the same
 // relationships and the same rule findings.
@@ -44,7 +44,7 @@ if (args.length !== 2) {
     process.exit(2);
 }
 
-/** A `memo export json` file carries the model under `model`; a bare DTO is accepted too. */
+/** A `memo-architect export json` file carries the model under `model`; a bare DTO is accepted too. */
 function load(path) {
     const raw = JSON.parse(readFileSync(path, 'utf8'));
     const model = raw.model ?? raw;

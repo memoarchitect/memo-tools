@@ -157,7 +157,7 @@ export function listTemplatesCommand(fromDir = process.cwd()): void {
     for (const template of templates) {
         console.log(`  ${chalk.cyan(template.id)}${template.isDefault ? chalk.green(' (default)') : ''}`);
     }
-    console.log(chalk.gray('\nCreate one with: memo init <project> --template <id>\n'));
+    console.log(chalk.gray('\nCreate one with: memo-architect init <project> --template <id>\n'));
 }
 
 export function listExamplesCommand(fromDir = process.cwd()): void {
@@ -172,7 +172,7 @@ export function listExamplesCommand(fromDir = process.cwd()): void {
         console.log(`  ${chalk.cyan(example.id)}${aliases.length ? chalk.gray(` (aliases: ${aliases.join(', ')})`) : ''}`);
         if (example.description) console.log(`    ${chalk.gray(example.description)}`);
     }
-    console.log(chalk.gray('\nCreate one with: memo init <project> --example <id-or-alias>\n'));
+    console.log(chalk.gray('\nCreate one with: memo-architect init <project> --example <id-or-alias>\n'));
 }
 
 export interface InitOptions {
@@ -204,7 +204,7 @@ function ensureTarget(name: string | undefined, exampleId?: string): { projectDi
             console.error(chalk.red(existsSync(entrypoint)
                 ? '❌ This directory is already a MEMO project (model/catalog/project.sysml exists).'
                 : '❌ Current directory is not empty.'));
-            if (exampleId) console.log(chalk.gray(`  Run in an empty directory, or pass a name: memo init <name> --example ${exampleId}`));
+            if (exampleId) console.log(chalk.gray(`  Run in an empty directory, or pass a name: memo-architect init <name> --example ${exampleId}`));
             process.exit(1);
         }
     } else if (existsSync(projectDir)) {

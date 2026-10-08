@@ -259,7 +259,7 @@ export async function callTool(
     const entry = registry.find(r => r.tool.name === name);
     if (!entry) throw new Error(`Unknown tool "${name}".`);
     if (entry.write && !allowWrites) {
-        throw new Error(`Tool "${name}" modifies the model and this server is read-only. Restart it with \`memo mcp --write\` to enable edits.`);
+        throw new Error(`Tool "${name}" modifies the model and this server is read-only. Restart it with \`memo-architect mcp --write\` to enable edits.`);
     }
     const { ctx, config, ontology } = await loadProject(projectRoot);
     return entry.handler(input ?? {}, { projectRoot, ctx, config, ontology });

@@ -1,4 +1,4 @@
-// ─── memo standards check ─────────────────────────────────────────────────────
+// ─── memo validate --standards ─────────────────────────────────────────────────────
 //
 // The clause coverage report: what the project's declared regimes require,
 // what it claims, and what it can show evidence for.
@@ -13,7 +13,7 @@
 // entrypoint (model/catalog/project.sysml), never by a settings file. When
 // there is no entrypoint — a bare ontology checkout, someone running this from
 // the repo root — the command falls back to scanning the working directory and
-// says which mode it used, the same graceful pattern `memo dhf lint` uses.
+// says which mode it used, the same graceful pattern `memo-architect dhf lint` uses.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import chalk from 'chalk';
@@ -65,8 +65,8 @@ async function loadProjectModel(cwd: string): Promise<{
 /**
  * Compute the clause coverage report for a loaded project.
  *
- * Shared with `memo dhf export`, so a ```memo-standards``` block in a document
- * and the `memo standards check` table are the same computation. A second
+ * Shared with `memo-architect dhf export`, so a ```memo-standards``` block in a document
+ * and the `memo validate --standards` table are the same computation. A second
  * implementation is how the hand-written matrix and the real coverage drifted
  * apart in the first place.
  */
@@ -97,7 +97,7 @@ export function buildStandardsReport(args: {
     });
 }
 
-// ─── memo standards check ─────────────────────────────────────────────────────
+// ─── memo validate --standards ─────────────────────────────────────────────────────
 
 export async function standardsCheckCommand(options: StandardsCheckOptions = {}): Promise<void> {
     const cwd = process.cwd();

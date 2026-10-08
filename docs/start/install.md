@@ -31,7 +31,7 @@ pnpm run example:validate
 ## Create a model project
 
 ```bash
-npx memo init my-device
+npx memo-architect init my-device
 cd my-device
 ```
 
@@ -59,7 +59,7 @@ whatever that compiler needs. A model loads once the compiler accepts it.
 ## Check the resolved vocabulary
 
 ```bash
-npx memo ontology show
+npx memo-architect ontology show
 ```
 
 This is the quickest way to see the layers, element kinds, relationships, and

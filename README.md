@@ -63,37 +63,37 @@ user's SysML v2 editor rather than a MEMO-specific VS Code extension.
 
 ```bash
 # Create and inspect a project
-memo init --list
-memo init my-device
-memo init my-device --template samd
-memo init gpca --example gpca
-memo ontology show
+memo-architect init --list
+memo-architect init my-device
+memo-architect init my-device --template samd
+memo-architect init gpca --example gpca
+memo-architect ontology show
 
 # Upgrade a pre-native project safely (reports only unless --write is supplied)
-memo convert . --diff
-memo convert . --write
+memo-architect convert . --diff
+memo-architect convert . --write
 
 # Validate locally or in CI
 memo validate .
 memo validate . --format junit --output validation.xml
 
 # Exchange and publish model data
-memo export json --output model.json
-memo export dot --output model.dot
-memo import csv elements.csv
-memo ontology export owl --output ontology.ttl
-memo pack --output model.kpar
-memo sysand publish --dry-run
+memo-architect export json --output model.json
+memo-architect export dot --output model.dot
+memo-architect import csv elements.csv
+memo-architect ontology export owl --output ontology.ttl
+memo-architect pack --output model.kpar
+memo-architect sysand publish --dry-run
 
 # Generate assurance artifacts
-memo dhf status
-memo export dhf --format docx --output dhf-output
-memo standards check
+memo-architect dhf status
+memo-architect export dhf --format docx --output dhf-output
+memo validate --standards
 ```
 
 Run `memo --help` or `memo <command> --help` for the complete command surface.
 
-`memo convert` moves legacy project content beneath `model/catalog/`, rewrites
+`memo-architect convert` moves legacy project content beneath `model/catalog/`, rewrites
 the corresponding packages/imports/artifact URIs, and creates the native project
 binding entrypoint where needed. It plans before touching the filesystem, refuses
 collisions, and is idempotent. Review its default dry-run output (or `--diff`)
@@ -101,7 +101,7 @@ before using `--write`; then run `memo validate` and your external SysML gate.
 
 ### Jupyter analysis samples
 
-Every `memo init` project includes `analysis/Samples/` with seven portable
+Every `memo-architect init` project includes `analysis/Samples/` with seven portable
 Syside notebooks. They cover model overview and quality, architecture hotspots,
 change-impact exploration, semantic charts, an ownership graph, and an HTML/CSV
 inventory table. The notebooks discover either `model/` or `src/` automatically,
@@ -135,13 +135,13 @@ pnpm run docs:build
 Each toolchain role is filled by one provider: the **validator** answers "is
 this valid SysML/KerML?", **lowering** answers "what can MEMO ingest from this
 revision?", and the **packager** builds the archive. MEMO chooses none of
-them. A project names the compiler it uses, and `memo init` writes
+them. A project names the compiler it uses, and `memo-architect init` writes
 `compiler: opensysml` into a new one:
 
 ```yaml
 toolchain:
   compiler: opensysml    # syside or opensysml
-  packager: internal     # internal or sysand; only `memo pack` needs it
+  packager: internal     # internal or sysand; only `memo-architect pack` needs it
 ```
 
 Anyone who wants another overrides it for themselves, without editing the project:
@@ -164,10 +164,10 @@ toolchain:
     configFile: ./sysand.toml
 ```
 
-`memo validate` and `memo pack` run `syside check --diagnose all
+`memo validate` and `memo-architect pack` run `syside check --diagnose all
 --warnings-as-errors` by default when it is the selected validator, automatically
 including the resolved ontology directories. Set `warningsAsErrors: false` or use
-`diagnose: none` to relax the check. `memo pack` delegates archive creation to
+`diagnose: none` to relax the check. `memo-architect pack` delegates archive creation to
 SysAnd when selected. Relative executable and config paths resolve from the
 project directory; bare executable names resolve through `PATH`. A selected tool
 that is not installed is a clear error, never a silent fallback.
@@ -176,8 +176,8 @@ Every leaf under `toolchain` also has a generated flag, so a project can be run
 against a different toolchain without editing its settings:
 
 ```bash
-memo toolchain probe                 # which provider, which binary, which version
-memo config effective                # settings + flags, fully resolved
+memo compile --probe                 # which provider, which binary, which version
+memo compile --effective                # settings + flags, fully resolved
 memo validate --toolchain.validator syside
 ```
 

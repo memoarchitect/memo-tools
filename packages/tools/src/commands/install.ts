@@ -1,10 +1,10 @@
-// ─── memo install ────────────────────────────────────────────────────────────
+// ─── memo-architect install ────────────────────────────────────────────────────────────
 //
 // Installs an ontology package into the current project.
 // Three install modes:
-//   memo install <git-url>       — Clone into memo_packages/ from git
-//   memo install <npm-package>   — Install via npm into node_modules/
-//   memo install <local-path>    — Symlink into memo_packages/
+//   memo-architect install <git-url>       — Clone into memo_packages/ from git
+//   memo-architect install <npm-package>   — Install via npm into node_modules/
+//   memo-architect install <local-path>    — Symlink into memo_packages/
 //
 // Adds the package to memo.package.yaml under `dependencies`.
 // Resolution order (handled by config-resolver):
@@ -111,14 +111,14 @@ export async function installCommand(
     const configPath = findConfigFile(projectDir);
     if (!configPath) {
         console.error(chalk.red('❌ No memo.package.yaml or memo.config.yaml found in this directory.'));
-        console.error(chalk.gray('  Run `memo init <name>` to create a new project first.'));
+        console.error(chalk.gray('  Run `memo-architect init <name>` to create a new project first.'));
         process.exit(1);
     }
 
     if (!source) {
         const lock = readLockFile(projectDir);
         if (!lock) {
-            console.error(chalk.red('❌ No memo.lock.yaml found. Run `memo lock` after resolving the configured ontology.'));
+            console.error(chalk.red('❌ No memo.lock.yaml found. Run `memo-architect lock` after resolving the configured ontology.'));
             process.exit(1);
         }
         const physicalPackage = contentPackageName();

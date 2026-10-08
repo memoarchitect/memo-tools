@@ -4,17 +4,17 @@ Choose an output based on the consumer.
 
 | Consumer | Command | Output |
 |---|---|---|
-| Script or data pipeline | `memo export json` | Semantic model JSON |
-| Graph tooling | `memo export dot` | Graphviz DOT |
-| Design-history review | `memo export dhf` | HTML, Markdown, or DOCX documents |
-| SysML package consumer | `memo pack` | KPAR archive |
-| Ontology consumer | `memo ontology export` | OWL or SysAnd-oriented output |
+| Script or data pipeline | `memo-architect export json` | Semantic model JSON |
+| Graph tooling | `memo-architect export dot` | Graphviz DOT |
+| Design-history review | `memo-architect export dhf` | HTML, Markdown, or DOCX documents |
+| SysML package consumer | `memo-architect pack` | KPAR archive |
+| Ontology consumer | `memo-architect ontology export` | OWL or SysAnd-oriented output |
 
 ## Model exports
 
 ```bash
-memo export json --output build/model.json
-memo export dot --output build/model.dot
+memo-architect export json --output build/model.json
+memo-architect export dot --output build/model.dot
 ```
 
 ## Design History File outputs
@@ -22,9 +22,9 @@ memo export dot --output build/model.dot
 Check readiness before generation:
 
 ```bash
-memo dhf status
-memo export dhf --format html --output build/dhf
-memo export dhf --format docx --output build/dhf-docx
+memo-architect dhf status
+memo-architect export dhf --format html --output build/dhf
+memo-architect export dhf --format docx --output build/dhf-docx
 ```
 
 Generated documents reflect model content. Review and approve them through your
@@ -33,7 +33,7 @@ quality process; generation is not approval.
 ## Package the model
 
 ```bash
-memo pack --output build/my-device.kpar
+memo-architect pack --output build/my-device.kpar
 ```
 
 If `toolchain.packager` is `sysand`, packaging delegates to SysAnd. Keep the

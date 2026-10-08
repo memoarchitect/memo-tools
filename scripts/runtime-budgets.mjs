@@ -12,7 +12,7 @@
 //
 // What is measured, and what that measurement is worth:
 //
-//   coldBootstrap             a real `memo export json` over GPCA. It resolves
+//   coldBootstrap             a real `memo-architect export json` over GPCA. It resolves
 //                             the import closure, parses every ontology and
 //                             project file, builds the registries and the
 //                             model — exactly what a runtime restart redoes.
@@ -35,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const toolsRoot = resolve(here, '..');
-const cli = resolve(toolsRoot, 'packages/tools/lib/bin/memo.js');
+const cli = resolve(toolsRoot, 'scripts/project-cli.mjs');   // the project commands: memo-architect's, `memo` only compiles and validates
 const gpca = resolve(toolsRoot, '../memo/examples/gpca-pump');
 
 const report = process.argv.includes('--report');

@@ -95,7 +95,7 @@ export function parseMemoQuery(blockContent: string): MemoQuerySpec | null {
 // a compliance table that looks authoritative and is not. Everything below
 // exists to turn that class of silence into an error.
 //
-// Validation is deliberately separate from execution so `memo dhf lint` can
+// Validation is deliberately separate from execution so `memo-architect dhf lint` can
 // check a template without loading a model.
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -697,7 +697,7 @@ export interface ProcessQueryOptions {
     source?: string;
     /**
      * How to handle a block the engine cannot execute.
-     * `throw` (default) fails the compile — correct for `memo dhf export`, where
+     * `throw` (default) fails the compile — correct for `memo-architect dhf export`, where
      * a wrong table is worse than no document. `annotate` renders the error into
      * the output instead, for previews where partial output beats none.
      */

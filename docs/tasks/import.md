@@ -6,9 +6,9 @@ Preview the generated SysML before writing files.
 ## 1. Inspect available kinds
 
 ```bash
-memo ontology show
-memo import template elements --output elements-template.csv
-memo import template relationships --output relationships-template.csv
+memo-architect ontology show
+memo-architect import template elements --output elements-template.csv
+memo-architect import template relationships --output relationships-template.csv
 ```
 
 ## 2. Map source columns
@@ -27,7 +27,7 @@ they are stable and unique.
 ## 3. Preview
 
 ```bash
-memo import csv requirements.csv --dry-run
+memo-architect import csv requirements.csv --dry-run
 ```
 
 Review:
@@ -41,7 +41,7 @@ Review:
 ## 4. Generate source
 
 ```bash
-memo import csv requirements.csv \
+memo-architect import csv requirements.csv \
   --output model/requirements/imported.sysml \
   --package imported_requirements
 ```
@@ -54,7 +54,7 @@ NEED-001,REQ-001,DerivesFrom
 ```
 
 ```bash
-memo import csv-rel traceability.csv \
+memo-architect import csv-rel traceability.csv \
   --output model/traceability/imported.sysml \
   --package imported_traceability
 ```
