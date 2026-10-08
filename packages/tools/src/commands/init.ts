@@ -59,12 +59,6 @@ export interface AvailableExample {
     path: string;
 }
 
-export interface AvailableTemplate {
-    id: string;
-    path: string;
-    isDefault: boolean;
-}
-
 function manifests(fromDir: string): LoadedMemoManifest[] {
     return findMemoManifests(fromDir);
 }
@@ -120,18 +114,6 @@ export function discoverExamples(fromDir: string): AvailableExample[] {
     return results;
 }
 
-export function discoverTemplates(fromDir: string): AvailableTemplate[] {
-    const results: AvailableTemplate[] = [];
-    for (const loaded of manifests(fromDir)) {
-        for (const [id, subpath] of Object.entries(loaded.manifest.templates)) {
-            const path = resolveManifestPath(loaded, subpath);
-            if (!existsSync(path) || results.some(result => result.id === id)) continue;
-            results.push({ id, path, isDefault: id === loaded.manifest.init.defaultTemplate });
-        }
-    }
-    return results;
-}
-
 export function listOntologiesCommand(fromDir = process.cwd()): void {
     const available = discoverOntologies(fromDir);
     if (available.length === 0) {
@@ -145,19 +127,6 @@ export function listOntologiesCommand(fromDir = process.cwd()): void {
         if (ontology.description) console.log(`    ${chalk.gray(ontology.description)}`);
         console.log();
     }
-}
-
-export function listTemplatesCommand(fromDir = process.cwd()): void {
-    const templates = discoverTemplates(fromDir);
-    if (templates.length === 0) {
-        console.log(chalk.yellow('No installed project templates found.'));
-        return;
-    }
-    console.log(chalk.bold('\nAvailable templates:\n'));
-    for (const template of templates) {
-        console.log(`  ${chalk.cyan(template.id)}${template.isDefault ? chalk.green(' (default)') : ''}`);
-    }
-    console.log(chalk.gray('\nCreate one with: memo-architect init <project> --template <id>\n'));
 }
 
 export function listExamplesCommand(fromDir = process.cwd()): void {
@@ -176,7 +145,6 @@ export function listExamplesCommand(fromDir = process.cwd()): void {
 }
 
 export interface InitOptions {
-    template?: string;
     ontology?: string;
     list?: boolean;
     example?: string;
@@ -293,7 +261,6 @@ export async function initCommand(name: string | undefined, options: InitOptions
 
     if (options.list) {
         listOntologiesCommand(fromDir);
-        listTemplatesCommand(fromDir);
         listExamplesCommand(fromDir);
         return;
     }
@@ -317,15 +284,9 @@ export async function initCommand(name: string | undefined, options: InitOptions
 
     const target = preparedTarget ?? ensureTarget(name);
     const ontology = options.ontology ?? loaded.manifest.init.defaultExtends;
-    const templateId = options.template ?? loaded.manifest.init.defaultTemplate;
-    const templatePath = loaded.manifest.templates[templateId];
-    if (!templatePath) {
-        console.error(chalk.red(`❌ Unknown template "${templateId}".`));
-        console.log(chalk.gray('Available: ' + Object.keys(loaded.manifest.templates).join(', ')));
-        process.exit(1);
-    }
+    const templatePath = loaded.manifest.init.template;
 
-    console.log(chalk.bold(`\n📦 Creating MEMO project: ${target.projectName} (template: ${templateId})\n`));
+    console.log(chalk.bold(`\n📦 Creating MEMO project: ${target.projectName}\n`));
     const templateDir = resolveManifestPath(loaded, templatePath);
     cpSync(templateDir, target.projectDir, { recursive: true });
     scaffoldAnalysisSamples(target.projectDir);
@@ -366,7 +327,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
 
     if (!existsSync(resolve(target.projectDir, entrypointRel))) {
         console.error(chalk.red(
-            `❌ Template "${templateId}" produced no ${entrypointRel}. `
+            `❌ The project skeleton produced no ${entrypointRel}. `
             + `A MEMO project's identity and method binding are SysML — a template without an `
             + `entrypoint cannot express either.`));
         process.exit(1);

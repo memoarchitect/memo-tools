@@ -62,8 +62,8 @@ comes from the ontology package's `memo.manifest.yaml`:
    `node_modules`, reads its manifest, and maps the imported package to a
    subpath. `memo.package.yaml` may supply `sysmlDir` as a locator; it selects
    nothing.
-3. `memo-architect init --list` reads the manifest's `templates` and `examples` maps;
-   `--template` and `--example` copy the selected ontology-owned directory.
+3. `memo-architect init --list` reads the manifest's `examples` map; `init` copies the manifest's one `init.template`
+   skeleton, or with `--example` the selected example directory.
 4. `memo.lock.yaml` pins the resolved identity and version; `memo validate`
    validates against the locked version.
 5. If content cannot be resolved, commands fail with an actionable error —

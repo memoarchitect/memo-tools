@@ -65,7 +65,6 @@ user's SysML v2 editor rather than a MEMO-specific VS Code extension.
 # Create and inspect a project
 memo-architect init --list
 memo-architect init my-device
-memo-architect init my-device --template samd
 memo-architect init gpca --example gpca
 memo-architect ontology show
 

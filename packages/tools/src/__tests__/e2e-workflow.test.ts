@@ -195,21 +195,10 @@ describe('E2E: memo init → validate → export', () => {
         expect(output).toContain('(default)');
     });
 
-    it('memo init --template samd copies the ontology template', () => {
-        const projectDir = join(tmpDir, 'test-samd');
-        const output = run(`init ${projectDir} --template samd --no-install`, REPO_ROOT);
-
-        expect(output).toContain('template: samd');
-        expect(output).toContain('Project created');
-        expect(readFileSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'), 'utf-8'))
-            .toContain('samdDevice');
-    });
-
-    it('memo init uses the ontology default template', () => {
+    it('memo init copies the one project skeleton', () => {
         const projectDir = join(tmpDir, 'test-default');
         const output = run(`init ${projectDir} --no-install`, REPO_ROOT);
 
-        expect(output).toContain('template: default');
         expect(output).toContain('Project created');
         expect(existsSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model', 'catalog', 'assurance', 'requirements.sysml'))).toBe(true);
@@ -224,21 +213,15 @@ describe('E2E: memo init → validate → export', () => {
             .toContain('ProjectMethodBinding');
     });
 
-    it('memo init --template rejects an unknown template', () => {
-        const projectDir = join(tmpDir, 'test-bad-template');
-        const { exitCode, stdout } = runMayFail(`init ${projectDir} --template nonexistent --no-install`, REPO_ROOT);
-        expect(exitCode).not.toBe(0);
-        expect(stdout).toContain('Unknown template');
+    it('memo init --list shows packages and examples, and no templates', () => {
+        const output = run('init --list', REPO_ROOT);
+        expect(output).toContain('Available examples');
+        expect(output).not.toContain('Available templates');
     });
 
-    it('memo init --list shows templates from the ontology manifest', () => {
-        const output = run('init --list', REPO_ROOT);
-        expect(output).toContain('Available templates');
-        expect(output).toContain('default');
-        expect(output).toContain('samd');
-        expect(output).toContain('connected-device');
-        expect(output).toContain('monitoring-device');
-        expect(output).toContain('infusion-pump');
+    it('memo init has no --template option', () => {
+        const { exitCode } = runMayFail(`init ${join(tmpDir, 'test-no-template')} --template samd --no-install`, REPO_ROOT);
+        expect(exitCode).not.toBe(0);
     });
 
     it('memo init --example gpca-pump copies example project', () => {

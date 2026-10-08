@@ -46,9 +46,7 @@ function library(name: string, packageName: string, body: string): void {
         'init:',
         '  defaultExtends: "@memoarchitect/lib-a"',
         '  rootImport: memo',
-        '  defaultTemplate: default',
-        'templates:',
-        '  default: ./libs/lib-a',
+        '  template: ./libs/lib-a',
         'examples: {}',
         '',
     ].join('\n'));

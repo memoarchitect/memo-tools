@@ -22,9 +22,7 @@ describe('manifest package resolution', () => {
             'init:',
             '  defaultExtends: "@logical/profile"',
             '  rootImport: "logical_library"',
-            '  defaultTemplate: default',
-            'templates:',
-            '  default: ./templates/default',
+            '  template: ./templates/default',
             'examples: {}',
             '',
         ].join('\n'));
@@ -47,9 +45,7 @@ describe('manifest package resolution', () => {
             'init:',
             '  defaultExtends: "@logical/profile"',
             '  rootImport: "logical_library"',
-            '  defaultTemplate: default',
-            'templates:',
-            '  default: ./templates/default',
+            '  template: ./templates/default',
             'examples: {}',
             '',
         ].join('\n'));
@@ -96,9 +92,7 @@ describe('manifest package resolution', () => {
             'init:',
             '  defaultExtends: "@logical/profile"',
             '  rootImport: "logical_library"',
-            '  defaultTemplate: default',
-            'templates:',
-            '  default: ./templates/default',
+            '  template: ./templates/default',
             'examples: {}',
             '',
         ].join('\n'));
