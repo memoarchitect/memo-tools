@@ -16,6 +16,7 @@
 import { Command } from 'commander';
 import { validateCommand } from '../commands/validate.js';
 import { packCommand } from '../commands/pack.js';
+import { sysandPublishCommand } from '../commands/sysand-publish.js';
 import { inspectCommand } from '../commands/inspect.js';
 import { rulesExplainCommand, rulesListCommand } from '../commands/rules.js';
 import { standardsCheckCommand } from '../commands/standards.js';
@@ -90,6 +91,15 @@ withToolchainOptions(
         .option('-o, --output <file>', 'Output file (default: <name>-<version>.kpar for sysand, <name>.memo-bundle otherwise)'),
 ).action(async (options: Record<string, unknown>) => {
     await packCommand({ ...options, output: options.output as string | undefined });
+});
+
+withToolchainOptions(
+    program
+        .command('publish')
+        .description('Dry run of publishing the package or project you are in: stages what `memo pack` stages and reports the artifact; writes and uploads nothing')
+        .option('-p, --package <name>', 'Check that this is the package named (by name or directory)'),
+).action(async (options: Record<string, unknown>) => {
+    await sysandPublishCommand({ ...options, dryRun: true });
 });
 
 withToolchainOptions(
@@ -171,7 +181,7 @@ retiredCommand(program, 'convert', 'memo-architect convert');
 retiredCommand(program, 'package', 'memo-architect import kpar [--inspect] <archive>');
 retiredCommand(program, 'config', 'memo compile --effective (what is in effect); memo-architect config (to change it)');
 retiredCommand(program, 'export', 'memo-architect export');
-retiredCommand(program, 'create-package', 'memo-architect create-package');
+retiredCommand(program, 'create-package', 'memo-architect new package');
 retiredCommand(program, 'install', 'memo-architect install');
 retiredCommand(program, 'lock', 'memo-architect lock');
 retiredCommand(program, 'ontology', 'memo-architect ontology');
@@ -179,12 +189,12 @@ retiredCommand(program, 'import', 'memo-architect import');
 retiredCommand(program, 'ask', 'memo-architect ask');
 retiredCommand(program, 'mcp', 'memo-architect mcp');
 retiredCommand(program, 'generate', 'memo-architect generate');
-retiredCommand(program, 'req', 'memo-architect req');
+retiredCommand(program, 'req', 'memo-architect new requirement --pattern <pattern>');
 retiredCommand(program, 'plugin', 'memo-architect plugin');
 retiredCommand(program, 'dhf', 'memo-architect dhf');
 retiredCommand(program, 'standards', 'memo validate --standards');
-retiredCommand(program, 'sysand', 'memo-architect sysand');
-retiredCommand(program, 'rules', 'memo validate --rules, --explain-rule <id> (to change them: memo-architect rules new|tailor|tailoring)');
+retiredCommand(program, 'sysand', 'memo publish');
+retiredCommand(program, 'rules', 'memo validate --rules, --explain-rule <id> (to change them: memo-architect new rule, rules tailor|tailoring)');
 retiredCommand(program, 'examples', 'memo-architect init --list');
 retiredCommand(program, 'templates', 'memo-architect init --list');
 

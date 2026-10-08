@@ -1,4 +1,4 @@
-// ─── memo-architect sysand publish ────────────────────────────────────────────────────
+// ─── memo publish ────────────────────────────────────────────────────
 //
 // A dry run of publishing the package or project you are in to a SysAnd
 // registry: it stages exactly what `memo pack` stages (`stageSysandProject`:
@@ -77,7 +77,7 @@ export function reportStagedPackage(staged: StagedSysandProject, projectDir: str
 export async function sysandPublishCommand(options: PublishOptions & Record<string, unknown>): Promise<void> {
     const cwd = process.cwd();
 
-    console.log(chalk.bold('\n\u{1F4E6} memo-architect sysand publish --dry-run\n'));
+    console.log(chalk.bold('\n\u{1F4E6} memo publish --dry-run\n'));
 
     const config = withToolchainOverrides(loadProjectSettings(cwd), options, defaultRegistry);
     let staged: StagedSysandProject;

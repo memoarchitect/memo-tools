@@ -33,7 +33,6 @@ import { importEaCommand, importCameoCommand } from '../commands/import-ea.js';
 import { importSysandCommand } from '../commands/import-sysand.js';
 import { importKpar, inspectKpar } from '../commands/package.js';
 import { importOwlCommand } from '../commands/import-owl.js';
-import { sysandPublishCommand } from '../commands/sysand-publish.js';
 import { lockCommand } from '../commands/lock.js';
 import { installCommand } from '../commands/install.js';
 import { createPackageCommand } from '../commands/create-package.js';
@@ -168,20 +167,6 @@ export function registerProjectCommands(program: Command): void {
         });
 
     program
-        .command('create-package')
-        .description('Scaffold a new MEMO package (ontology, profile, or library)')
-        .argument('<name>', 'Package name (e.g., @myorg/cardiac-ontology)')
-        .option('-t, --type <type>', 'Package type: ontology, profile, library, device', 'ontology')
-        .option('-e, --extends <package>', 'Package to extend (auto-set for profiles)')
-        .option('-d, --description <desc>', 'Package description')
-        .option('--author <author>', 'Package author')
-        .option('--license <license>', 'License', 'Apache-2.0')
-        .option('-o, --output <dir>', 'Output base directory', '.')
-        .action(async (name: string, options: any) => {
-            await createPackageCommand(name, options);
-        });
-
-    program
         .command('install')
         .description('Install locked MEMO content, or add a package from git, npm, or a local path')
         .argument('[source]', 'Optional package source: git URL, npm package name, or local path')
@@ -238,15 +223,6 @@ export function registerProjectCommands(program: Command): void {
         .option('-o, --output <dir>', 'Output directory path')
         .action(async (options: { output?: string }) => {
             await ontologyExportSysandCommand(options);
-        });
-
-    ontologyCmd
-        .command('add-kind <name>')
-        .description('Write a new SysML kind definition file into the local ontology folder')
-        .requiredOption('-l, --layer <layer>', 'Ontology layer path (e.g. requirements, architecture/risk)')
-        .option('-o, --output <dir>', 'Override output directory (default: ontology/<layer>)')
-        .action((name: string, options: { layer: string; output?: string }) => {
-            ontologyAddKindCommand(name, options);
         });
 
     // ─── memo import ──────────────────────────────────────────────────────────
@@ -401,28 +377,6 @@ export function registerProjectCommands(program: Command): void {
             await generateCommand(description, options);
         });
 
-    // ─── memo req ────────────────────────────────────────────────────────────────
-
-    const reqCmd = program
-        .command('req')
-        .description('Requirement authoring helpers');
-
-    reqCmd
-        .command('new')
-        .description('Generate a requirement stub from an EARS template')
-        .requiredOption('-t, --template <template>', 'Template: ubi, event, state, opt, unwanted')
-        .option('-o, --output <file>', 'Write stub to file (stdout if omitted)')
-        .option('--id <reqId>', 'Requirement ID', 'REQ-001')
-        .option('--title <title>', 'Requirement title', 'New Requirement')
-        .action(async (options: { template: 'ubi' | 'event' | 'state' | 'opt' | 'unwanted'; output?: string; id?: string; title?: string }) => {
-            await reqNewCommand({
-                template: options.template,
-                output: options.output,
-                id: options.id,
-                title: options.title,
-            });
-        });
-
     // ─── memo plugin ─────────────────────────────────────────────────────────────
 
     const pluginCmd = program
@@ -434,17 +388,6 @@ export function registerProjectCommands(program: Command): void {
         .description('List configured plugins')
         .action(async () => {
             await pluginListCommand();
-        });
-
-    pluginCmd
-        .command('create')
-        .description('Scaffold a new plugin')
-        .argument('<name>', 'Plugin name')
-        .option('-t, --type <type>', 'Plugin type: export, analysis, validation, generator', 'export')
-        .option('-d, --description <desc>', 'Plugin description')
-        .option('-o, --output <dir>', 'Output directory')
-        .action(async (name: string, options: { type?: string; description?: string; output?: string }) => {
-            await pluginCreateCommand(name, options);
         });
 
     pluginCmd
@@ -544,21 +487,6 @@ export function registerProjectCommands(program: Command): void {
             await dhfReviewPacketCommand(options);
         });
 
-    // ─── memo sysand ────────────────────────────────────────────────────────────
-
-    const sysandCmd = program
-        .command('sysand')
-        .description('SysAnd tool interop commands');
-
-    sysandCmd
-        .command('publish')
-        .description('Validate and package ontology for SysAnd registry publication')
-        .option('--dry-run', 'Validate without writing artifacts (default)')
-        .option('-p, --package <name>', 'Publish a specific package from the config chain')
-        .action(async (options: { dryRun?: boolean; package?: string }) => {
-            await sysandPublishCommand({ ...options, dryRun: options.dryRun ?? true });
-        });
-
     // ─── memo rules ────────────────────────────────────────────────────────────
 
     const rulesCmd = program
@@ -593,8 +521,41 @@ export function registerProjectCommands(program: Command): void {
             await rulesTailorCommand(dir, opts as import('../commands/rules.js').RulesTailorOptions);
         });
 
-    rulesCmd
+    // ─── memo-architect new ─────────────────────────────────────────────────────
+    //
+    // One verb to create a thing; the kind is the subcommand.
+
+    const newCmd = program
         .command('new')
+        .description('Create a package, requirement, rule, ontology kind or plugin');
+
+    newCmd
+        .command('package')
+        .description('Scaffold a new MEMO package (ontology, profile, library or device)')
+        .argument('<name>', 'Package name (e.g., @myorg/cardiac-ontology)')
+        .option('-t, --type <type>', 'Package type: ontology, profile, library, device', 'ontology')
+        .option('-e, --extends <package>', 'Package to extend (auto-set for profiles)')
+        .option('-d, --description <desc>', 'Package description')
+        .option('--author <author>', 'Package author')
+        .option('--license <license>', 'License', 'Apache-2.0')
+        .option('-o, --output <dir>', 'Output base directory', '.')
+        .action(async (name: string, options: any) => {
+            await createPackageCommand(name, options);
+        });
+
+    newCmd
+        .command('requirement')
+        .description('Generate a requirement stub from an EARS pattern')
+        .requiredOption('-p, --pattern <pattern>', 'EARS pattern: ubi, event, state, opt, unwanted')
+        .option('-o, --output <file>', 'Write stub to file (stdout if omitted)')
+        .option('--id <reqId>', 'Requirement ID', 'REQ-001')
+        .option('--title <title>', 'Requirement title', 'New Requirement')
+        .action(async (options: { pattern: 'ubi' | 'event' | 'state' | 'opt' | 'unwanted'; output?: string; id?: string; title?: string }) => {
+            await reqNewCommand({ template: options.pattern, output: options.output, id: options.id, title: options.title });
+        });
+
+    newCmd
+        .command('rule')
         .description("Write a rule of this project's own: checked, previewed against the model, then written")
         .argument('[dir]', 'Project directory', '.')
         .requiredOption('--id <id>', 'The rule id, e.g. ORG-001')
@@ -612,6 +573,35 @@ export function registerProjectCommands(program: Command): void {
             await rulesNewCommand(dir, opts as import('../commands/rules.js').RulesNewOptions);
         });
 
+    newCmd
+        .command('kind')
+        .description('Write a new SysML kind definition file into the local ontology folder')
+        .argument('<name>', 'Kind name (PascalCase)')
+        .requiredOption('-l, --layer <layer>', 'Ontology layer path (e.g. requirements, architecture/risk)')
+        .option('-o, --output <dir>', 'Override output directory (default: ontology/<layer>)')
+        .action((name: string, options: { layer: string; output?: string }) => {
+            ontologyAddKindCommand(name, options);
+        });
+
+    newCmd
+        .command('plugin')
+        .description('Scaffold a new plugin')
+        .argument('<name>', 'Plugin name')
+        .option('-t, --type <type>', 'Plugin type: export, analysis, validation, generator', 'export')
+        .option('-d, --description <desc>', 'Plugin description')
+        .option('-o, --output <dir>', 'Output directory')
+        .action(async (name: string, options: { type?: string; description?: string; output?: string }) => {
+            await pluginCreateCommand(name, options);
+        });
+
+    // The old names, for one release.
+    retiredCommand(program, 'create-package', 'memo-architect new package');
+    retiredCommand(program, 'req', 'memo-architect new requirement --pattern <pattern>');
+    retiredCommand(ontologyCmd, 'add-kind', 'memo-architect new kind');
+    retiredCommand(pluginCmd, 'create', 'memo-architect new plugin');
+    retiredCommand(program, 'sysand', 'memo publish');
+
+    retiredCommand(rulesCmd, 'new', 'memo-architect new rule');
     retiredCommand(rulesCmd, 'check', 'memo validate');
     retiredCommand(rulesCmd, 'list', 'memo validate --rules');
     retiredCommand(rulesCmd, 'explain', 'memo validate --explain-rule <id>');

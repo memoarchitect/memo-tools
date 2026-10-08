@@ -423,7 +423,7 @@ export async function rulesTailoringCommand(
 }
 
 
-// ─── memo-architect rules new ──────────────────────────────────────────────────────────
+// ─── memo-architect new rule ──────────────────────────────────────────────────────────
 //
 // Write a rule of the project's own. It is checked, its effect on the model as
 // it stands is shown, and it is written through the same compile-before-commit

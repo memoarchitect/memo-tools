@@ -82,7 +82,7 @@ memo-architect export dot --output model.dot
 memo-architect import csv elements.csv
 memo-architect ontology export owl --output ontology.ttl
 memo pack --output model.kpar
-memo-architect sysand publish --dry-run
+memo publish
 
 # Generate assurance artifacts
 memo-architect dhf status

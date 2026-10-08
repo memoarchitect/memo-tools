@@ -91,7 +91,7 @@ describe('renderRule and insertRule', () => {
 });
 
 const example = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
-// `rules new` is memo-architect's (driven through its registration); listing is `memo validate --rules`.
+// `new rule` is memo-architect's (driven through its registration); listing is `memo validate --rules`.
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
 const projectCli = resolve(__dirname, '../../../../scripts/project-cli.mjs');
 const python = process.env.MEMO_SYSIDE_PYTHON;
@@ -104,13 +104,13 @@ function integration(name: string, flags: string[]): void {
             const run = (args: string[]): string => {
                 const argv = args[0] === 'rules' && args[1] === 'list'
                     ? [cli, 'validate', '--rules', ...args.slice(2).filter(a => a !== '.').map(a => (a === '--domain' ? '--rules-domain' : a))]
-                    : args[0] === 'rules' ? [projectCli, ...args] : [cli, ...args];
+                    : args[0] === 'rules' || args[0] === 'new' ? [projectCli, ...args] : [cli, ...args];
                 return execFileSync(process.execPath, [...argv, ...flags], { cwd: root, encoding: 'utf8', env: process.env });
             };
             try {
                 cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
                 const file = 'model/catalog/temperature_alarm.sysml';
-                const base = ['rules', 'new', '.', '--id', 'ORG-001', '--type', 'TwoControls', '--applies-to', 'Hazard',
+                const base = ['new', 'rule', '.', '--id', 'ORG-001', '--type', 'TwoControls', '--applies-to', 'Hazard',
                     '--predicate', 'mitigates->size() >= 2', '--rationale', 'Our SOP 4.1 wants two independent controls',
                     '--enforces', '14971 §7', '--file', file];
                 const before = readFileSync(join(root, file), 'utf8');

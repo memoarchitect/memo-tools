@@ -20,7 +20,7 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel, loadProjectOntology } from '../toolchain/project-model.js';
 import { apiPackageMetadata } from '../stage2/package-metadata-from-api.js';
 
-// ─── memo-architect ontology add-kind ──────────────────────────────────────────────────
+// ─── memo-architect new kind ──────────────────────────────────────────────────
 
 export function ontologyAddKindCommand(name: string, options: { layer: string; output?: string }): void { // sync — no async needed
     const cwd = process.cwd();

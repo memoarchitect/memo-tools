@@ -46,15 +46,15 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo-architect element …` | Author one element in source and recompile. |
 | `memo-architect convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
 | `memo-architect export …` | Export JSON, Graphviz DOT, or DHF artifacts. |
-| `memo-architect create-package <name>`, `install [source]`, `lock` | Scaffold, install and lock packages. |
-| `memo-architect ontology …` | Inspect or export the resolved ontology; add a local kind. |
+| `memo-architect install [source]`, `lock` | Install and lock packages. |
+| `memo-architect ontology …` | Inspect or export the resolved ontology. |
 | `memo-architect import …` | Import CSV, EA, Cameo, SysAnd or OWL data, or a KPAR archive (`import kpar <archive>`; `--inspect` only reads it, and imports nothing). |
 | `memo-architect ask <question>`, `generate <description>`, `mcp [init]` | The AI helpers: a model-grounded question, SysML from natural language, MCP for coding tools. |
-| `memo-architect req new` | Create an EARS requirement stub. |
-| `memo-architect plugin …` | List, create, or run plugins. |
+| `memo-architect plugin …` | List or run plugins. |
 | `memo-architect dhf …` | Initialize, preview, assess, snapshot, diff, redline, or draft DHF content. |
-| `memo-architect rules new\|tailor\|tailoring` | Write a rule, switch rules off or re-grade them as a recorded policy, or report every tailoring. |
-| `memo-architect sysand publish` | Dry run of publishing the package or project you are in: stages what `memo pack` stages (the same declared sources and `.project.json`) and reports the artifact name, file count, content hash and the packages it uses. Writes and uploads nothing. |
+| `memo-architect rules tailor\|tailoring` | Switch rules off or re-grade them as a recorded policy, or report every tailoring. |
+| `memo-architect new package\|requirement\|rule\|kind\|plugin` | Create one: scaffold a package (`--type ontology\|profile\|library\|device`), an EARS requirement stub (`--pattern`), a project rule (checked, previewed, then written), a local ontology kind (`--layer`), or a plugin. |
+| `memo publish` | Dry run of publishing the package or project you are in: stages what `memo pack` stages (the same declared sources and `.project.json`) and reports the artifact name, file count, content hash and the packages it uses. Writes and uploads nothing. |
 
 ## Project creation
 
@@ -80,9 +80,9 @@ never overwritten.
 | Group | Subcommands |
 |---|---|
 | `export` | `json`, `dhf`, `dot` |
-| `ontology` | `show`, `export owl`, `export xml`, `export sysand`, `add-kind` |
+| `ontology` | `show`, `export owl`, `export xml`, `export sysand` |
 | `import` | `csv`, `csv-rel`, `template`, `diff`, `ea`, `cameo`, `sysand`, `owl` |
-| `plugin` | `list`, `create`, `run` |
+| `plugin` | `list`, `run` |
 | `dhf` | `init`, `preview`, `status`, `snapshot`, `diff`, `redline`, `draft`, `review-packet` |
 | `rules` | `list`, `explain`, `tailoring`, `tailor`, `new` |
 | `toolchain` | `probe`, `check` |
@@ -148,7 +148,7 @@ memo validate --standards                          # clause coverage, then which
 memo-architect rules tailoring --format markdown        # every rule a policy changed, with who and why
 memo-architect rules tailor --standard "ISO 14971" --disable --rationale "not claimed" \
     --authority "QA lead" --approval DHF-12 --file model/catalog/project.sysml --dry-run
-memo-architect rules new --id ORG-001 --type TwoControls --applies-to Hazard \
+memo-architect new rule --id ORG-001 --type TwoControls --applies-to Hazard \
     --predicate "mitigates->size() >= 2" --rationale "SOP 4.1" \
     --enforces "14971 §7" --file model/catalog/project_rules.sysml --dry-run
 ```
@@ -177,7 +177,7 @@ would reach and writes nothing; otherwise it writes into the project binding or
 methodology in `--file` through the compile-before-commit path. Architect's
 Rules view offers the same choice (one rule, a standard, a layer).
 
-`memo-architect rules new` checks a rule (a unique id and name, a kind the project
+`memo-architect new rule` checks a rule (a unique id and name, a kind the project
 has, a condition that parses, a rationale, clauses that exist), shows what it
 would flag in the model as it stands, and writes it through the same
 compile-before-commit path as every authoring write: a rule the compiler
