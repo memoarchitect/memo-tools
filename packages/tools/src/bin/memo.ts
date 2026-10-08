@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // ─── MEMO Tools CLI ────────────────────────────────────────────────────────
 //
-// Two jobs: compile a project with the selected SysML compiler, and validate it.
+// Compile a project with the selected SysML compiler, validate it, and pack it.
 //   memo compile          — is this valid SysML (stage 1)
 //   memo validate         — the model against the rules, and completeness
 //   memo toolchain check  — the validator over files that are not a project
+//   memo pack             — package a project or package (a KPAR, or MEMO's own bundle)
 //   memo ship-library     — a package's compiled library, for the package to carry
 //
 // Creating a project, authoring, packaging, exporting, settings and the rest
@@ -14,6 +15,7 @@
 
 import { Command } from 'commander';
 import { validateCommand } from '../commands/validate.js';
+import { packCommand } from '../commands/pack.js';
 import { inspectCommand } from '../commands/inspect.js';
 import { rulesExplainCommand, rulesListCommand } from '../commands/rules.js';
 import { standardsCheckCommand } from '../commands/standards.js';
@@ -79,6 +81,15 @@ withToolchainOptions(
     if (opts.probe) return toolchainProbeCommand(dir, { ...opts, format: opts.format as any });
     if (opts.effective) return configEffectiveCommand(dir, { ...opts, format: (opts.format as any) ?? 'yaml' });
     await compileCommand(dir, opts);
+});
+
+withToolchainOptions(
+    program
+        .command('pack')
+        .description('Package the project or package you are in, with toolchain.packager: a KPAR (sysand) or MEMO\'s own bundle (internal)')
+        .option('-o, --output <file>', 'Output file (default: <name>-<version>.kpar for sysand, <name>.memo-bundle otherwise)'),
+).action(async (options: Record<string, unknown>) => {
+    await packCommand({ ...options, output: options.output as string | undefined });
 });
 
 withToolchainOptions(
@@ -156,8 +167,7 @@ retiredCommand(program, 'inspect', 'memo compile --inspect <id>');
 retiredCommand(program, 'element', 'memo-architect element');
 retiredCommand(program, 'init', 'memo-architect init');
 retiredCommand(program, 'convert', 'memo-architect convert');
-retiredCommand(program, 'package', 'memo-architect package');
-retiredCommand(program, 'pack', 'memo-architect pack');
+retiredCommand(program, 'package', 'memo package');
 retiredCommand(program, 'config', 'memo compile --effective (what is in effect); memo-architect config (to change it)');
 retiredCommand(program, 'export', 'memo-architect export');
 retiredCommand(program, 'create-package', 'memo-architect create-package');

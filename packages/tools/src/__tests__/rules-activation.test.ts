@@ -17,7 +17,9 @@ import { compileResolvedProject } from '../toolchain/operations.js';
 import type { MEMOConfig } from '../model/config.js';
 
 const example = resolve(__dirname, '../../../../../memo/examples/temperature-alarm');
+// Listing the rules is `memo validate --rules`; writing and tailoring them is memo-architect's, driven through its registration.
 const cli = resolve(__dirname, '../../lib/bin/memo.js');
+const projectCli = resolve(__dirname, '../../../../scripts/project-cli.mjs');
 const python = process.env.MEMO_SYSIDE_PYTHON;
 const opensysml = openSysMLUnderTest;
 
@@ -40,7 +42,12 @@ const OWN_RULE = `package org_rules {
 
 function run(root: string, args: string[], flags: string[]): string {
     try {
-        return execFileSync(process.execPath, [cli, ...args, ...flags], { cwd: root, encoding: 'utf8', env: process.env });
+        // `rules list .` is `validate --rules`; `rules tailor|tailoring|new` are memo-architect's.
+        const [group, command, ...rest] = args;
+        const argv = group === 'rules' && command === 'list'
+            ? [cli, 'validate', '--rules', ...rest.filter(a => a !== '.')]
+            : group === 'rules' ? [projectCli, ...args] : [cli, ...args];
+        return execFileSync(process.execPath, [...argv, ...flags], { cwd: root, encoding: 'utf8', env: process.env });
     } catch (error) {
         // validate exits 1 on this example's other findings; its report is what is read.
         return String((error as { stdout?: string }).stdout ?? '');

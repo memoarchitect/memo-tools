@@ -20,12 +20,20 @@ const FILE = 'model/catalog/temperature_alarm.sysml';
 
 describe.runIf(Boolean(binary) && existsSync(example))('an edit verified by OpenSysML as a content document', () => {
     let root: string;
+    let envBefore: string | undefined;
     beforeAll(() => {
         root = mkdtempSync(join(tmpdir(), 'memo-opensysml-verify-'));
         cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
-        writeFileSync(join(root, 'memo.tools.yaml'), `toolchain:\n  compiler: opensysml\n  opensysml:\n    binary: ${binary}\n`);
+        // The project names its compiler; where the service is on this machine is the user's, so it comes
+        // from the environment, not from a file that would be checked in.
+        writeFileSync(join(root, 'memo.tools.yaml'), 'toolchain:\n  compiler: opensysml\n');
+        envBefore = process.env.OPENSYSML_BINARY;
+        process.env.OPENSYSML_BINARY = binary;
     });
-    afterAll(() => rmSync(root, { recursive: true, force: true }));
+    afterAll(() => {
+        if (envBefore === undefined) delete process.env.OPENSYSML_BINARY; else process.env.OPENSYSML_BINARY = envBefore;
+        rmSync(root, { recursive: true, force: true });
+    });
 
     it('accepts valid text without writing it, and refuses invalid text with the compiler\'s diagnostic', async () => {
         const outlines = selectedOutlineSource(root, loadProjectSettings(root));

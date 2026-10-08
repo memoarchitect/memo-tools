@@ -135,7 +135,7 @@ applies there.
 `compiler: syside` is SysIDE; `compiler: opensysml` is OpenSysML. MEMO has
 no compiler of its own: both produce the API JSON stage 2 builds from. There is no default: some setting must name the compiler, and
 every command fails with an error saying what to set when none does. The
-packager is named the same way (`toolchain.packager`), and only `memo-architect pack`
+packager is named the same way (`toolchain.packager`), and only `memo pack`
 needs it. An explicit `toolchain.validator` or `toolchain.lowering` overrides
 its role.
 

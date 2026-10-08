@@ -32,7 +32,7 @@ const memoRoot = resolve(metaRoot, 'memo');
 const cli = resolve(toolsRoot, 'packages/tools/lib/bin/memo.js');
 // `memo` compiles and validates; the other commands are memo-architect's, driven through their registration.
 const projectCli = resolve(toolsRoot, 'scripts/project-cli.mjs');
-const cliFor = command => (['compile', 'validate', 'toolchain', 'ship-library'].includes(command) ? cli : projectCli);
+const cliFor = command => (['compile', 'validate', 'pack', 'toolchain', 'ship-library'].includes(command) ? cli : projectCli);
 const outDir = resolve(toolsRoot, 'packages/tools/src/__tests__/fixtures/baseline-s1');
 
 /**

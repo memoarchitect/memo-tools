@@ -16,7 +16,7 @@ const CLI_PATH = join(__dirname, '../../lib/bin/memo.js');
 // `memo` compiles and validates; the project commands (init, export, pack, …) are memo-architect's,
 // driven here through the same registration (scripts/project-cli.mjs).
 const PROJECT_CLI_PATH = join(__dirname, '../../../../scripts/project-cli.mjs');
-const MEMO_COMMANDS = new Set(['compile', 'validate', 'toolchain', 'ship-library']);
+const MEMO_COMMANDS = new Set(['compile', 'validate', 'pack', 'toolchain', 'ship-library']);
 const cliFor = (cmd: string): string => (MEMO_COMMANDS.has(cmd.trim().split(/\s+/)[0]) ? CLI_PATH : PROJECT_CLI_PATH);
 const REPO_ROOT = join(__dirname, '../../../..');
 
