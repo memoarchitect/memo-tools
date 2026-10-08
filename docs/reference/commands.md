@@ -46,7 +46,7 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo-architect element …` | Author one element in source and recompile. |
 | `memo-architect convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
 | `memo-architect export …` | Export JSON, Graphviz DOT, or DHF artifacts. |
-| `memo package …`, `create-package <name>`, `install [source]`, `lock` | Inspect or import KPAR libraries; scaffold, install and lock packages. |
+| `memo-architect package …`, `create-package <name>`, `install [source]`, `lock` | Inspect or import KPAR libraries; scaffold, install and lock packages. |
 | `memo-architect ontology …` | Inspect or export the resolved ontology; add a local kind. |
 | `memo-architect import …` | Import CSV, EA, Cameo, SysAnd, or OWL data. |
 | `memo-architect ask <question>`, `generate <description>`, `mcp [init]` | The AI helpers: a model-grounded question, SysML from natural language, MCP for coding tools. |
