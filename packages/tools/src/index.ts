@@ -35,6 +35,7 @@ export * from './model/layer-resolver.js';
 export * from './model/kind-registry.js';
 export * from './model/view-deriver.js';
 export * from './model/selector-vocabulary.js';
+export * from './model/relation-selection.js';
 export * from './model/census.js';
 export * from './model/census-projects.js';
 export * from './model/view-kinds.js';
