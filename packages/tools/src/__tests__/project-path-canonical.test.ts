@@ -49,7 +49,7 @@ describe('a compile that selects no library root and no kinds', () => {
     });
     const options = (registry: ProviderRegistry) => ({
         config: { projectName: 'x', toolchain: { lowering: 'stub' } } as unknown as MEMOConfig,
-        projectDir: '/p', libraryDirs: [], registry,
+        projectDir: '/p', libraryDirs: [], projectFiles: new Set<string>(), registry,
     });
 
     it('is refused, not accepted as an empty model', async () => {
