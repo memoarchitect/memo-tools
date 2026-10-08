@@ -13,7 +13,7 @@
 // as not loaded rather than silently skipped or evaluated as `true`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ApiElement, ApiModel, ApiValue } from '../stage2/api-model.js';
+import type { ApiElement, ApiModel } from '../stage2/api-model.js';
 import { apiDefinitionFacts } from '../stage2/build-from-api.js';
 import { absoluteHandoffFile } from '../stage2/handoff-files.js';
 import type { CompiledConstraint, ConstraintNode } from './constraint-eval.js';
@@ -93,27 +93,40 @@ export function collectApiConstraints(
 }
 
 /**
- * The clauses a rule enforces: the qualified names of what its `enforces`
- * reference is valued with. The compiler resolved the references, so each
- * names a clause that exists (a missing one never reaches here: stage 1 fails
- * first). A path through nested usages (`standard.clause.subclause`) names the
- * last step.
+ * The clauses a rule enforces: the qualified names of the suppliers of every
+ * `#EnforcesClause dependency from <rule> to <clause>, …;` whose client is the
+ * rule. The compiler resolved the references, so each names a clause that
+ * exists (a missing one never reaches here: stage 1 fails first).
  */
 export function enforcedClauses(api: ApiModel, definition: ApiElement): string[] {
-    const feature = api.ownedMembers(definition['@id']).find(member =>
-        (member['@type'] === 'ReferenceUsage' || member['@type'] === 'AttributeUsage')
-        && api.declaredName(member['@id']) === 'enforces');
-    const value = feature ? api.value(feature['@id']) : undefined;
-    return value ? clauseNames(value) : [];
+    const clauses: string[] = [];
+    for (const dependency of api.ofType('Dependency')) {
+        if (!refIds(dependency['client']).includes(definition['@id'])) continue;
+        if (!annotatedBy(api, dependency, ENFORCES_CLAUSE)) continue;
+        for (const supplier of refIds(dependency['supplier'])) {
+            const name = api.qualifiedName(supplier);
+            if (name && !clauses.includes(name)) clauses.push(name);
+        }
+    }
+    return clauses;
 }
 
-function clauseNames(value: ApiValue): string[] {
-    switch (value.kind) {
-        case 'reference': return [value.qualifiedName];
-        case 'chain': return value.steps.length > 0 ? [value.steps[value.steps.length - 1]] : [];
-        case 'sequence': return value.items.flatMap(clauseNames);
-        default: return [];
-    }
+/** The metadata definition that marks a dependency as a rule's trace to a clause. */
+const ENFORCES_CLAUSE = 'EnforcesClause';
+
+function refIds(value: unknown): string[] {
+    return Array.isArray(value) ? value.map(r => (r as { '@id'?: string })['@id']).filter((id): id is string => typeof id === 'string') : [];
+}
+
+/** Whether an element carries a metadata usage typed by the named definition. */
+function annotatedBy(api: ApiModel, element: ApiElement, metadataName: string): boolean {
+    return api.ownedRelationships(element['@id'])
+        .filter(r => r['@type'] === 'Annotation')
+        .flatMap(r => {
+            const owned = api.ownedMembers(r['@id']);
+            return owned.length ? owned : refIds(r.ownedRelatedElement).map(id => api.element(id)).filter((e): e is ApiElement => Boolean(e));
+        })
+        .some(metadata => api.types(metadata['@id']).some(t => api.name(t['@id']) === metadataName));
 }
 
 function withBareEnumerations(attributes: Record<string, string>): Record<string, string> {

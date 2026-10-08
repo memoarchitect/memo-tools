@@ -71,7 +71,8 @@ describe('renderRule and insertRule', () => {
         expect(text).toContain('constraint def TwoControls :> MemoConsistencyRule');
         expect(text).toContain('attribute domain = RuleDomainKind::organisation;');
         expect(text).toContain('attribute tailoring = RuleTailoringKind::methodology;');
-        expect(text).toContain('ref enforces : StandardClause[1..*] = iec62304.iec62304Clause5.iec62304Clause5_2;');
+        expect(text).toContain('#EnforcesClause dependency from');
+        expect(text).toContain('iec62304::iec62304Clause5::iec62304Clause5_2;');
         expect(imports).toContain('memo_artifacts_standards_iec_62304::*');
     });
     it('escapes quotes in the text it writes', () => {

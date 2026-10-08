@@ -1,6 +1,6 @@
 // ─── Which rules enforce which clauses ───────────────────────────────────────
 //
-// A rule names the clauses it enforces (`ref enforces`), and the compiler has
+// A rule names the clauses it enforces (`#EnforcesClause dependency from <rule> to <clause>`), and the compiler has
 // checked that each exists. This reads the clauses a model carries from the
 // stage 1 handoff and answers the two questions an assurance reader asks:
 // what does this rule enforce, and what enforces this clause
