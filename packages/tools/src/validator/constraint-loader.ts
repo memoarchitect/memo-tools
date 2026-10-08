@@ -16,7 +16,7 @@
 //   }
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { CompiledConstraint, ConstraintNode, RuleDomain } from './constraint-eval.js';
+import type { CompiledConstraint, ConstraintNode, RuleDomain, RuleObligation } from './constraint-eval.js';
 import { parseConstraintExpression } from './constraint-eval.js';
 
 /** A rule that could not be loaded, or that conflicts with another rule. */
@@ -32,6 +32,15 @@ export function mapDomain(raw?: string): RuleDomain | undefined {
     const member = raw?.includes('::') ? raw.slice(raw.lastIndexOf('::') + 2) : raw;
     return member === 'modelling' || member === 'medicalDevice' || member === 'organisation' ? member : undefined;
 }
+
+/** The rule's obligation, or undefined when it states none (`Kind::member` or the bare member). */
+export function mapObligation(raw?: string): RuleObligation | undefined {
+    const member = raw?.includes('::') ? raw.slice(raw.lastIndexOf('::') + 2) : raw;
+    return member === 'required' || member === 'recommended' || member === 'bestPractice' ? member : undefined;
+}
+
+/** What a rule that states no severity takes from its obligation. */
+const OBLIGATION_SEVERITY = { required: 'error', recommended: 'warning', bestPractice: 'info' } as const;
 
 function mapTailoring(raw?: string): 'invariant' | 'assurance' | 'methodology' {
     // A rule with no declared class is treated as `assurance`: tailorable with
@@ -112,12 +121,13 @@ export function compileRuleDefinition(parts: RuleDefinitionParts): CompiledConst
         // and it is the last resort rather than an equivalent.
         description: parts.doc || attrs['description'] || attrs['rationaleText'] || id,
         appliesToKind,
-        severity: mapSeverity(attrs['severity']),
+        severity: mapSeverity(attrs['severity'], mapObligation(attrs['obligation'])),
         evaluator: attrs['evaluator'] || undefined,
         typeName: parts.typeName,
         tailoring: mapTailoring(attrs['tailoring']),
         sourceFile: parts.file,
         ...(mapDomain(attrs['domain']) ? { domain: mapDomain(attrs['domain']) } : {}),
+        ...(mapObligation(attrs['obligation']) ? { obligation: mapObligation(attrs['obligation']) } : {}),
         ...(parts.enforces && parts.enforces.length > 0 ? { enforces: parts.enforces } : {}),
         ast,
     };
@@ -129,7 +139,7 @@ function parseScope(scope: string): { kind: string; attribute?: string; value?: 
     return { kind: match[1], attribute: match[2], value: match[3] };
 }
 
-function mapSeverity(severity?: string): 'error' | 'warning' | 'info' {
+function mapSeverity(severity?: string, obligation?: RuleObligation): 'error' | 'warning' | 'info' {
     if (severity === 'error' || severity === 'warning' || severity === 'info') return severity;
-    return 'warning';
+    return obligation ? OBLIGATION_SEVERITY[obligation] : 'warning';
 }

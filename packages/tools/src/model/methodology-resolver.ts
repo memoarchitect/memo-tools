@@ -22,7 +22,7 @@ import type {
     NativeRulePolicy,
     ScopeMode,
 } from './native-project.js';
-import type { CompiledConstraint, RuleDomain } from '../validator/constraint-eval.js';
+import type { CompiledConstraint, RuleDomain, RuleObligation } from '../validator/constraint-eval.js';
 
 /** Severity as the ontology and policies spell it. */
 export type RuleSeverity = 'error' | 'warning' | 'info';
@@ -63,6 +63,8 @@ export interface EffectiveRule {
     sourceFile?: string;
     /** Why the rule exists, as the rule states it. */
     domain?: RuleDomain;
+    /** How firmly the rule's source asks for what it checks. */
+    obligation?: RuleObligation;
     /** The clauses the rule enforces (qualified names). */
     enforces?: readonly string[];
     /** The package that declares the rule's subject kind: its layer, for a policy that selects by category. */
@@ -515,6 +517,7 @@ export function resolveEffectiveRules(
             policyChain: [],
             sourceFile: c.file,
             ...(c.constraint?.domain ? { domain: c.constraint.domain } : {}),
+            ...(c.constraint?.obligation ? { obligation: c.constraint.obligation } : {}),
             ...(c.constraint?.enforces ? { enforces: c.constraint.enforces } : {}),
             ...(c.subjectPackage ? { subjectPackage: c.subjectPackage } : {}),
         });
