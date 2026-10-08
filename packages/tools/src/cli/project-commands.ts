@@ -133,9 +133,6 @@ export function registerProjectCommands(program: Command): void {
             await convertCommand(dir, options);
         });
 
-    const packageCmd = program.command('package').description('Inspect and import interoperable KPAR libraries');
-    packageCmd.command('inspect').argument('<archive>').action((archive: string) => console.log(JSON.stringify(inspectKpar(archive), null, 2)));
-    packageCmd.command('import').argument('<archive>').option('-C, --project <dir>', 'Project directory', '.').action((archive: string, options: { project: string }) => console.log(JSON.stringify(importKpar(options.project, archive), null, 2)));
 
     const exportCmd = program
         .command('export')
@@ -257,7 +254,17 @@ export function registerProjectCommands(program: Command): void {
 
     const importCmd = program
         .command('import')
-        .description('Import models from CSV, Sparx EA, Cameo, SysAnd, or OWL/JSON-LD');
+        .description('Import models from CSV, Sparx EA, Cameo, SysAnd, or OWL/JSON-LD, or a KPAR archive');
+
+    importCmd
+        .command('kpar')
+        .description('Add a KPAR archive (as `memo pack` writes) to the project as a library, under .memo/libraries/kpar; --inspect only reads it')
+        .argument('<archive>', 'KPAR archive path')
+        .option('-C, --project <dir>', 'Project directory', '.')
+        .option('--inspect', 'Print the archive\'s name, version, checksum and files, and import nothing')
+        .action((archive: string, options: { project: string; inspect?: boolean }) => {
+            console.log(JSON.stringify(options.inspect ? inspectKpar(archive) : importKpar(options.project, archive), null, 2));
+        });
 
     importCmd
         .command('csv')

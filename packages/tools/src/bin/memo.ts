@@ -167,7 +167,7 @@ retiredCommand(program, 'inspect', 'memo compile --inspect <id>');
 retiredCommand(program, 'element', 'memo-architect element');
 retiredCommand(program, 'init', 'memo-architect init');
 retiredCommand(program, 'convert', 'memo-architect convert');
-retiredCommand(program, 'package', 'memo-architect package');
+retiredCommand(program, 'package', 'memo-architect import kpar [--inspect] <archive>');
 retiredCommand(program, 'config', 'memo compile --effective (what is in effect); memo-architect config (to change it)');
 retiredCommand(program, 'export', 'memo-architect export');
 retiredCommand(program, 'create-package', 'memo-architect create-package');
