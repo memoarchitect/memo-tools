@@ -90,17 +90,25 @@ export async function compileModelWithSelected(
         projectDir: canonicalPath(options.projectDir),
         libraryDirs: options.libraryDirs.map(canonicalPath),
     });
-    // A compile that accepted the project but found none of its own files
-    // resolved nothing. That is not a valid empty model, it is a failure to say so.
+    // A compile that accepted the project but resolved nothing from it is not a
+    // valid empty model, it is a failure to say so: either none of the project's
+    // own files was compiled, or the project reaches no library root and so has
+    // no kinds, which Architect would show as an empty model with no error.
     const unresolved = result.resolution?.diagnostics.find(d => d.code === 'entrypoint-not-compiled');
-    if (result.accepted && unresolved) {
+    const kinds = result.registries?.kindRegistry?.kindNames().length;
+    const empty = result.resolution && result.resolution.selectedRoots.length === 0 && kinds === 0
+        ? `The compile selected no library root and no kinds from ${result.resolution.projectRoot}, so the model is empty. `
+            + 'The project must import a MEMO ontology package.'
+        : undefined;
+    const message = unresolved?.message ?? empty;
+    if (result.accepted && message) {
         const { model: _model, ...rest } = result;
         return {
             ...rest,
             accepted: false,
             diagnostics: [...result.diagnostics, {
-                domain: 'sysml', provider: effective.lowering, severity: 'error', message: unresolved.message,
-                ...(unresolved.file ? { file: unresolved.file } : {}),
+                domain: 'sysml', provider: effective.lowering, severity: 'error', message,
+                ...(unresolved?.file ? { file: unresolved.file } : {}),
             }],
         };
     }

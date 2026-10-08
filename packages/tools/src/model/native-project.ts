@@ -200,7 +200,9 @@ export interface NativeProjectResolution {
  * `entrypoint` names an existing SysML root file.
  */
 export function findProjectRoot(startDir: string): string | undefined {
-    let dir = resolve(startDir);
+    // A real path, so every caller that names files from the root names them as
+    // a compiler does (see `canonicalPath`).
+    let dir = canonicalPath(startDir);
     while (true) {
         const entrypoint = projectEntrypoint(dir);
         if (entrypoint && existsSync(join(dir, entrypoint))) return dir;
@@ -375,7 +377,7 @@ export interface ProjectSources {
 /** Find a project's sources: no SysML is read. */
 export function discoverProjectSources(projectRoot: string): ProjectSources {
     const diagnostics: NativeDiagnostic[] = [];
-    const root = resolve(projectRoot);
+    const root = canonicalPath(projectRoot);
     const entrypointPath = projectEntrypoint(root);
     const entrypoint = entrypointPath ? resolve(root, entrypointPath) : undefined;
     const includes = readPackageManifest(root).manifest.include ?? [];
