@@ -118,10 +118,10 @@ export function resolveClauseReference(clauses: readonly ClauseFact[], text: str
     return found.length === 1 ? found[0] : undefined;
 }
 
-/** A clause's qualified name as the dotted path a rule writes, and the package it needs imported. */
+/** A clause's qualified name as the path a trace writes, and the package it needs imported. */
 function clausePath(qualifiedName: string): { importPackage: string; path: string } {
     const [importPackage, ...rest] = qualifiedName.split('::');
-    return { importPackage, path: rest.join('.') };
+    return { importPackage, path: rest.join('::') };
 }
 
 /** The `constraint def` for a rule, and the imports it needs. */
@@ -143,13 +143,12 @@ export function renderRule(request: NewRuleRequest, indent = '    '): { imports:
         `${indent}    attribute predicateExpression = ${JSON.stringify(request.predicateExpression)};`,
     ];
     const clauses = (request.enforces ?? []).map(clausePath);
-    if (clauses.length > 0) {
-        imports.push('memo_artifacts_standards_traceability::StandardClause');
-        for (const { importPackage } of clauses) imports.push(`${importPackage}::*`);
-        const value = clauses.length === 1 ? clauses[0].path : `(${clauses.map(c => c.path).join(', ')})`;
-        lines.push(`${indent}    ref enforces : StandardClause[1..*] = ${value};`);
-    }
     lines.push(`${indent}    constraint { true }`, `${indent}}`);
+    if (clauses.length > 0) {
+        imports.push('memo_artifacts_standards_traceability::EnforcesClause');
+        for (const { importPackage } of clauses) imports.push(`${importPackage}::*`);
+        lines.push(`${indent}#EnforcesClause dependency from ${request.typeName} to ${clauses.map(c => c.path).join(', ')};`);
+    }
     return { imports: [...new Set(imports)], text: lines.join('\n') };
 }
 
