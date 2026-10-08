@@ -96,7 +96,7 @@ describe('the layers a command sees', () => {
         ]) {
             expect(() => lowering(project(pinned)), pinned).toThrow(ProjectNamesUserSettingError);
         }
-        expect(() => lowering(project('toolchain:\n  syside:\n    python: /usr/bin/python3\n'))).toThrow(/memo config set syside\.python/);
+        expect(() => lowering(project('toolchain:\n  syside:\n    python: /usr/bin/python3\n'))).toThrow(/your own settings file/);
     });
     it('a project keeps the settings that are the project\'s', () => {
         user('toolchain:\n  compiler: syside\n');

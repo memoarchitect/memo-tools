@@ -20,7 +20,10 @@ export * from './model/settings-boundary.js';
 export * from './model/config-loader.js';
 export { mergeToolchain } from './model/toolchain-merge.js';
 export { userToolchain, userSettingsPath, USER_COMPILER_ENV } from './model/user-settings.js';
-export { applyUserSetting, userToolchainStatus, ConfigSettingError } from './toolchain/user-settings-status.js';
+export {
+    applyUserSetting, applyProjectSetting, userToolchainStatus, userSettingReports, userLeaf, ConfigSettingError,
+} from './toolchain/user-settings-status.js';
+export { ProjectNamesUserSettingError } from './toolchain/ownership.js';
 export * from './model/semantic.js';
 export * from './model/element-index.js';
 export * from './model/sysml-ir.js';

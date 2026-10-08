@@ -38,7 +38,7 @@ describe('role resolution', () => {
         expect(effective.selections).toEqual([]);
         expect(() => effective.lowering).toThrow(ToolchainNotConfiguredError);
         // The compiler is the user's to choose: the message names their command, not the project file.
-        expect(() => effective.validator).toThrow(/memo config set compiler <syside\|opensysml>/);
+        expect(() => effective.validator).toThrow(/in Architect \(the Compiler control/);
         expect(() => effective.packager).toThrow(/Set toolchain\.packager/);
     });
 

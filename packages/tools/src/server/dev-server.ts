@@ -2206,11 +2206,14 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                 } else if (msg.type === 'toolchain:settings:save') {
                     // Not a model mutation: it writes the user's own file, and is how a
                     // user gets out of a compiler that rejects their project.
-                    const { requestId, path, value } = msg.payload ?? {};
+                    const { requestId, path, value, scope } = msg.payload ?? {};
                     try {
-                        const { applyUserSetting } = await import('../toolchain/user-settings-status.js');
+                        const { applyUserSetting, applyProjectSetting } = await import('../toolchain/user-settings-status.js');
                         const { defaultRegistry } = await import('../toolchain/default-registry.js');
-                        applyUserSetting(String(path ?? ''), typeof value === 'string' && value.length > 0 ? value : undefined, defaultRegistry);
+                        const wanted = typeof value === 'string' && value.length > 0 ? value : undefined;
+                        // The project's own file is watched: the change reaches the restart-required flow by itself.
+                        if (scope === 'project') applyProjectSetting(options.projectRoot, String(path ?? ''), wanted, defaultRegistry);
+                        else applyUserSetting(String(path ?? ''), wanted, defaultRegistry);
                         const settings = await toolchainSettings();
                         ws.send(JSON.stringify({ type: 'toolchain:settings:save:result', payload: { requestId, settings, appliesOnRestart: true } }));
                         const settingsMsg = JSON.stringify({ type: 'toolchain:settings', payload: { settings } });

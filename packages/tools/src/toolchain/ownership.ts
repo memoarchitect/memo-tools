@@ -44,8 +44,8 @@ export class ProjectNamesUserSettingError extends Error {
         super(
             `${where} sets ${names}. Where a tool is on this machine belongs to the person running MEMO, `
             + `so a project's checked-in settings do not carry it: it would be wrong for everyone else. Remove ${paths.length === 1 ? 'it' : 'them'} from the file `
-            + `and set ${paths.length === 1 ? 'it' : 'each'} for yourself: ${paths.map(path => `\`memo config set ${path} <value>\``).join(', ')} `
-            + `(your settings: ${userSettingsPath()}).`,
+            + `and set ${paths.length === 1 ? 'it' : 'each'} for yourself in your own settings file, ${userSettingsPath()} `
+            + `(under toolchain: ${paths.join(', ')}; \`memo-architect config set ${paths[0]} <value>\` writes it), or with an environment variable or a --toolchain.<setting> flag.`,
         );
         this.name = 'ProjectNamesUserSettingError';
     }
