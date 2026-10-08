@@ -149,8 +149,10 @@ const VENDORED_REUSABLE_DIRS = new Set(['methodology', 'methodologies', 'extensi
  * real semantics (which viewpoint a view belongs to) is read as a declaration,
  * not evaluated.
  */
-interface SourceFacts {
+export interface SourceFacts {
     packageName?: string;
+    /** Every package declared at the top of the file (column 0), `library` and `standard` ones included. */
+    topLevelPackages: string[];
     /** `view <name> : <Type>` usages declared in the file. */
     viewUsages: string[];
     /** `viewpoint <name>` usages declared in the file. */
@@ -167,6 +169,7 @@ interface SourceFacts {
 }
 
 const PACKAGE_RE = /^\s*package\s+([A-Za-z_][A-Za-z0-9_]*)/m;
+const TOP_LEVEL_PACKAGE_RE = /^(?:standard\s+)?(?:library\s+)?package\s+([A-Za-z_][A-Za-z0-9_]*)/gm;
 const VIEW_RE = /^\s*view\s+([A-Za-z_][A-Za-z0-9_]*)\s*:/gm;
 /**
  * A viewpoint usage, in either spelling.
@@ -183,8 +186,9 @@ const VIEWPOINT_DEF_RE = /viewpointDefinition\s*=\s*([A-Za-z_][A-Za-z0-9_]*)/;
 const IMPORT_RE = /^\s*(?:public|private)?\s*import\s+([A-Za-z_][A-Za-z0-9_]*)/gm;
 
 export function readSourceFacts(text: string): SourceFacts {
-    const facts: SourceFacts = { viewUsages: [], viewpointUsages: [], imports: [], declaresOnlyImports: false };
+    const facts: SourceFacts = { topLevelPackages: [], viewUsages: [], viewpointUsages: [], imports: [], declaresOnlyImports: false };
     facts.packageName = PACKAGE_RE.exec(text)?.[1];
+    for (const m of text.matchAll(TOP_LEVEL_PACKAGE_RE)) facts.topLevelPackages.push(m[1]);
     for (const m of text.matchAll(VIEW_RE)) facts.viewUsages.push(m[1]);
     for (const m of text.matchAll(VIEWPOINT_RE)) facts.viewpointUsages.push(m[1] ?? m[2]);
     facts.viewpointDefinition = VIEWPOINT_DEF_RE.exec(text)?.[1];
