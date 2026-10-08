@@ -342,10 +342,11 @@ class ElementBuilder {
         }
     }
 
-    private action(usage: ApiElement, packageName: string, parentActionId: string | undefined): void {
+    /** An action usage. `ownerId` is a non-action owner (a part that performs it), which names it and is not its `parentAction`. */
+    private action(usage: ApiElement, packageName: string, parentActionId: string | undefined, ownerId?: string): void {
         const shortName = this.api.name(usage['@id']);
         if (!shortName) return;
-        const id = qualifiedId(shortName, packageName, parentActionId);
+        const id = qualifiedId(shortName, packageName, parentActionId ?? ownerId);
         const behaviorKind = usage['@type'] === 'CalculationUsage' ? 'function' : 'action';
         const typeName = this.typeName(usage);
         let kind = behaviorKind === 'function' ? 'FunctionUsage' : 'ActionUsage';
@@ -365,7 +366,7 @@ class ElementBuilder {
         this.define({
             id, shortName, name: displayNameOf(attributes, shortName), kind, construct: 'action', layer,
             file: this.file(usage), package: packageName || undefined, attributes, doc: this.doc(usage),
-            parentAction: parentActionId, parameters: this.parameters(usage),
+            parentAction: parentActionId, owner: ownerId, parameters: this.parameters(usage),
         }, usage);
         this.behaviorBody(usage, packageName, id);
     }
@@ -1057,6 +1058,28 @@ class ElementBuilder {
         this.relationships.push({ id: this.nextId(), type: name, sourceId, sourceEnd: sourceEnd.name, targetId, targetEnd: targetEnd.name, file });
     }
 
+    /**
+     * The action a `perform` declares in place. `perform action n : T;` has no
+     * reference subsetting (SysML-textual-bnf.kebnf:952-955, the second
+     * alternative of PerformActionUsageDeclaration), so the usage is itself the
+     * action performed: the abstract syntax's `performedAction` is the
+     * `ownedReferenceSubsetting`'s feature if there is one and the usage itself
+     * if not. It is an element of the model owned by the performer, and the
+     * performer performs it. An unnamed one has no identity to hold.
+     */
+    private performedHere(node: ApiElement, owner: string | undefined): string | undefined {
+        // The declared name: `perform action :>> clean;` takes its name from what it
+        // redefines and declares none, so it is not a new element.
+        const name = this.api.declaredName(node['@id']);
+        if (!name || !owner) return undefined;
+        const id = qualifiedId(name, this.packageOf(node), owner);
+        if (!this.elements.has(id)) {
+            const ownerIsAction = this.elements.get(owner)?.construct === 'action';
+            this.action(node, this.packageOf(node), ownerIsAction ? owner : undefined, ownerIsAction ? undefined : owner);
+        }
+        return id;
+    }
+
     /** `satisfy`, `verify`, `perform`, subjects, actors, dependencies, variants, constraints. */
     private nativeTraces(project: ApiElement[]): void {
         const endpointOf = (steps: ApiElement[], node: ApiElement) => this.endpoint(steps, { packageName: this.packageOf(node) }).id;
@@ -1092,7 +1115,8 @@ class ElementBuilder {
             } else if (type === 'PerformActionUsage' || type === 'IncludeUseCaseUsage' || type === 'ExhibitStateUsage') {
                 const referenced = this.api.related(node['@id'], ['ReferenceSubsetting'], 'referencedFeature')[0];
                 const owner = this.nearestElement(node);
-                const target = referenced ? endpointOf(this.steps(referenced), node) : undefined;
+                const target = referenced ? endpointOf(this.steps(referenced), node)
+                    : type === 'PerformActionUsage' ? this.performedHere(node, owner) : undefined;
                 const edge = type === 'PerformActionUsage' ? 'performs' : type === 'IncludeUseCaseUsage' ? 'includesStep' : 'exhibitsMode';
                 if (owner && target) this.native(edge, owner, target, file);
             } else if (type === 'FramedConcernMembership') {
