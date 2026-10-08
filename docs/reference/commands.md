@@ -8,7 +8,7 @@ version's authoritative list and `<command> --help` for every option. Example an
 template choices are discovered from the installed ontology content manifest:
 
 ```bash
-memo-architect init --list       # packages, templates, and examples
+memo-architect init --list       # packages and examples
 ```
 
 A command that moved or only repeated another keeps its old name for one release: it
@@ -16,7 +16,7 @@ fails, and names its replacement (`memo init` is `memo-architect init`; `memo ru
 is `memo validate --rules`; `memo inspect <id>` is `memo compile --inspect <id>`;
 `memo toolchain probe` is `memo compile --probe`; `memo config effective` is
 `memo compile --effective`; `memo standards check` is `memo validate --standards`;
-`memo examples` and `memo templates` are `memo-architect init --list`;
+`memo examples` and `memo templates` are `memo-architect init --list` (there is one project skeleton, and examples are copied with `init --example`);
 `memo check` and `memo round-trip` are `memo compile`, since the selected compiler is the
 authority on whether SysML is valid; `memo conformance` graded MEMO's own compiler, which is gone).
 
@@ -59,18 +59,17 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 ## Project creation
 
 ```bash
-memo-architect init [name] [--template <id> | --example <id>]
+memo-architect init [name] [--example <id>]
 ```
 
 | Option | Meaning |
 |---|---|
-| `-t, --template <id>` | Copy a template listed by `memo-architect init --list`. |
-| `--example <id>` | Copy an example listed by `memo-architect init --list`. |
+| `--example <id>` | Start from a copy of an example listed by `memo-architect init --list`. |
 | `--ontology <package>` | Select the logical ontology/profile package. |
-| `--list` | List installed packages, templates, and examples, then exit. |
+| `--list` | List installed packages and examples, then exit. |
 | `--no-install` | Do not run the project dependency installation step. |
 
-Every initialization path, including `--template` and `--example`, creates
+Without `--example`, `init` copies the ontology package's one empty project skeleton. Every initialization path creates
 `analysis/Samples/README.md`, seven model-independent Jupyter notebooks, and
 `analysis/memo_model.py`, through which they read the model as the project's
 selected compiler builds it (`memo compile --out`); existing sample files are
@@ -193,7 +192,7 @@ that traces to no clause yet is listed, not hidden.
 
 ```bash
 memo-architect init --list
-memo-architect init infusion-device --template infusion-pump
+memo-architect init infusion-device --example gpca
 memo validate . --format junit --output validation.xml
 memo-architect export json --output memo-model.json
 memo-architect import csv elements.csv --dry-run

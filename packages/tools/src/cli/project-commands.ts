@@ -112,12 +112,11 @@ export function registerProjectCommands(program: Command): void {
         .command('init')
         .description('Scaffold a new MEMO project')
         .argument('[name]', 'Project directory (omit or "." to initialize the current directory)')
-        .option('-t, --template <id>', 'Create from an ontology template')
         .option('--ontology <package>', 'Logical ontology package to use (defaults from the content manifest)')
         .option('--example <id>', 'Create from an example project (e.g. gpca)')
-        .option('--list', 'List installed ontology templates and examples')
+        .option('--list', 'List installed ontology packages and examples')
         .option('--no-install', 'Create the project without running npm install')
-        .action(async (name: string | undefined, options: { template?: string; ontology?: string; example?: string; list?: boolean; install?: boolean }) => {
+        .action(async (name: string | undefined, options: { ontology?: string; example?: string; list?: boolean; install?: boolean }) => {
             await initCommand(name, options);
         });
 

@@ -11,9 +11,9 @@ export interface MemoManifest {
     init: {
         defaultExtends: string;
         rootImport: string;
-        defaultTemplate: string;
+        /** The one project skeleton `init` copies, relative to the package root. */
+        template: string;
     };
-    templates: Record<string, string>;
     examples: Record<string, string>;
     /**
      * Reusable ontology packages that specialize the base and are selected by a
@@ -42,7 +42,7 @@ export function loadMemoManifest(manifestPath: string): LoadedMemoManifest {
     const path = resolve(manifestPath);
     const parsed = parseYaml(readFileSync(path, 'utf-8')) as Partial<MemoManifest> | undefined;
     if (parsed?.manifest !== 1 || !isStringRecord(parsed.packages)
-        || !isStringRecord(parsed.templates) || !isStringRecord(parsed.examples)) {
+        || !isStringRecord(parsed.examples)) {
         throw new Error(`Unsupported or malformed MEMO manifest: ${path}`);
     }
     if (parsed.extensions !== undefined && !isStringRecord(parsed.extensions)) {
@@ -50,7 +50,7 @@ export function loadMemoManifest(manifestPath: string): LoadedMemoManifest {
     }
     const init = parsed.init;
     if (!init || typeof init.defaultExtends !== 'string' || typeof init.rootImport !== 'string'
-        || typeof init.defaultTemplate !== 'string' || !(init.defaultTemplate in parsed.templates)) {
+        || typeof init.template !== 'string') {
         throw new Error(`MEMO manifest has an invalid init section: ${path}`);
     }
     return { path, rootDir: dirname(path), manifest: parsed as MemoManifest };

@@ -152,52 +152,12 @@
       "kind": "manifest-field"
     },
     {
-      "file": "memo/templates/connected-device/memo.package.yaml",
-      "field": "extends",
-      "kind": "manifest-field"
-    },
-    {
-      "file": "memo/templates/connected-device/memo.package.yaml",
-      "field": "type",
-      "kind": "manifest-field"
-    },
-    {
       "file": "memo/templates/default/memo.package.yaml",
       "field": "extends",
       "kind": "manifest-field"
     },
     {
       "file": "memo/templates/default/memo.package.yaml",
-      "field": "type",
-      "kind": "manifest-field"
-    },
-    {
-      "file": "memo/templates/infusion-pump/memo.package.yaml",
-      "field": "extends",
-      "kind": "manifest-field"
-    },
-    {
-      "file": "memo/templates/infusion-pump/memo.package.yaml",
-      "field": "type",
-      "kind": "manifest-field"
-    },
-    {
-      "file": "memo/templates/monitoring-device/memo.package.yaml",
-      "field": "extends",
-      "kind": "manifest-field"
-    },
-    {
-      "file": "memo/templates/monitoring-device/memo.package.yaml",
-      "field": "type",
-      "kind": "manifest-field"
-    },
-    {
-      "file": "memo/templates/samd/memo.package.yaml",
-      "field": "extends",
-      "kind": "manifest-field"
-    },
-    {
-      "file": "memo/templates/samd/memo.package.yaml",
       "field": "type",
       "kind": "manifest-field"
     }
