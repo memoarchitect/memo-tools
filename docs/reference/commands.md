@@ -44,7 +44,7 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo-architect init [name]` | Create a project from the default, a template, or a worked example. It names `opensysml` as the project's compiler. |
 | `memo-architect config set\|get\|unset` | Choose the compiler: for yourself, or with `--project` for everyone on the project. |
 | `memo-architect element …` | Author one element in source and recompile. |
-| `memo-architect convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion to the native `model/catalog/` layout; refuses collisions. |
+| `memo-architect convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion of an old-layout project to the native `model/catalog/` layout; refuses collisions. Guide: [Convert an Old Project](../tasks/convert.md). |
 | `memo-architect export …` | Export JSON, Graphviz DOT, or DHF artifacts. |
 | `memo-architect install [source]`, `lock` | Install and lock packages. |
 | `memo-architect ontology …` | Inspect or export the resolved ontology. |
