@@ -223,7 +223,9 @@ export interface RuleFormPayload {
     severity: 'error' | 'warning' | 'info';
     rationaleText: string;
     tailoring?: 'assurance' | 'methodology';
-    /** Qualified names of the clauses the rule enforces. */
+    /** The rule's normative strength (a standard's shall, should, may); written as `attribute obligation`. */
+    obligation?: 'required' | 'recommended' | 'bestPractice';
+    /** Qualified names of the clauses the rule enforces; each is written as a typed `#EnforcesClause dependency`. */
     enforces?: string[];
     /** Project-relative file the rule is written into. */
     file: string;

@@ -60,7 +60,7 @@ function service(name: string, toolchain: Record<string, unknown>): void {
                 const clause = context.clauses.find(c => c.standard === 'ISO 14971:2019' && c.clauseNumber === '7')!;
                 const form = (over: Partial<RuleFormRequest> = {}): RuleFormRequest => ({
                     id: 'ORG-001', typeName: 'TwoControls', appliesTo: 'Hazard', condition: { kind: 'atLeast', relation: 'mitigates', count: 2 },
-                    severity: 'warning', rationaleText: 'Our SOP 4.1 wants two independent controls', enforces: [clause.qualifiedName],
+                    severity: 'warning', obligation: 'recommended', rationaleText: 'Our SOP 4.1 wants two independent controls', enforces: [clause.qualifiedName],
                     file: FILE, ...over,
                 });
 
@@ -82,12 +82,15 @@ function service(name: string, toolchain: Record<string, unknown>): void {
                 expect(written, JSON.stringify(written).slice(0, 600)).toMatchObject({ success: true });
                 const after = readFileSync(join(root, FILE), 'utf8');
                 expect(after).toContain('constraint def TwoControls');
+                // The trace is the typed dependency, and the obligation is stated.
+                expect(after).toContain('#EnforcesClause dependency from TwoControls to');
+                expect(after).toContain('RuleObligationKind::recommended');
                 expect(written.success && written.revision).toBe(revisionOf(after));
 
                 // The saved rule is the previewed one: compile again and read it back.
                 const recompiled = await compileResolvedProject({ config, projectDir: root, force: true });
                 const saved = collectApiConstraints(recompiled!.api!).find(c => c.id === 'ORG-001');
-                expect(saved).toMatchObject({ domain: 'organisation', severity: 'warning', enforces: [clause.qualifiedName] });
+                expect(saved).toMatchObject({ domain: 'organisation', severity: 'warning', obligation: 'recommended', enforces: [clause.qualifiedName] });
                 writeFileSync(join(root, FILE), before);
             } finally {
                 rmSync(root, { recursive: true, force: true });
