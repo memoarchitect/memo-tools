@@ -69,6 +69,7 @@ nav:
   - Everyday Tasks:
       - Validate a Model: tasks/validate.md
       - Import Existing Data: tasks/import.md
+      - Convert an Old Project: tasks/convert.md
       - Export and Share: tasks/export.md
       - Run in CI: tasks/ci.md
   - Reference:

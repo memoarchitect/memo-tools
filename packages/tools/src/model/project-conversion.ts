@@ -830,6 +830,28 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
         });
     }
 
+    // 9b. The manifest. A pre-native project is described by `memo.config.yaml`, which this
+    //     conversion removes; without a `memo.package.yaml` naming the entrypoint and the
+    //     source roots the converted project is "no MEMO project" to every command.
+    const hasManifest = ['memo.package.yaml', 'memo.package.yml'].some(name => existsSync(join(root, name)));
+    if (!hasManifest) {
+        const legacy = readLegacyConfig(root);
+        const roots = ['model', ...[...VENDORED_REUSABLE_DIRS].filter(dir =>
+            existsSync(join(root, dir)) && findSysmlFiles(join(root, dir)).length > 0)];
+        newFiles.push({
+            path: 'memo.package.yaml',
+            reason: 'project identity and source roots (the settings file that replaces memo.config.yaml)',
+            content: [
+                `name: '${(legacy.projectName ?? basename(root)).replace(/'/g, "''")}'`,
+                `entrypoint: ${toPosix(PROJECT_ENTRYPOINT)}`,
+                `include: [${roots.join(', ')}]`,
+                'version: 0.1.0',
+                'description: MEMO architecture and assurance model',
+                '',
+            ].join('\n'),
+        });
+    }
+
     // 10. Legacy semantic settings and superseded wrappers are consumed, not
     //     left beside the result.
     const removals: string[] = [...supersededEntrypoints];
@@ -842,7 +864,11 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
             message:
                 `${name} is removed: it carries semantic fields that no longer participate in the ` +
                 'model, and settings-boundary rejects them at load. Its selection is expressed by the ' +
-                'entrypoint binding instead.',
+                'entrypoint binding instead.' +
+                (name === 'memo.config.yaml' && readLegacyConfig(root).methodology
+                    ? ` It pinned the methodology ${readLegacyConfig(root).methodology}; the generated binding selects ` +
+                      'mdDefaultDefinition, so set selectedMethodology in model/catalog/project.sysml to the methodology you meant.'
+                    : ''),
         });
     }
 
@@ -893,6 +919,17 @@ function collectFinalPackages(
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
+
+/** The two fields of a pre-native `memo.config.yaml` the conversion can carry forward or must report. */
+function readLegacyConfig(root: string): { projectName?: string; methodology?: string } {
+    const file = join(root, 'memo.config.yaml');
+    if (!existsSync(file)) return {};
+    const text = readFileSync(file, 'utf-8');
+    const field = (key: string) => text.match(new RegExp(`^${key}:\\s*["']?([^"'\\n#]+?)["']?\\s*(?:#.*)?$`, 'm'))?.[1];
+    return { projectName: field('projectName'), methodology: field('methodology') };
+}
+
+const toPosix = (path: string): string => path.split(sep).join('/');
 
 function renderViewpointBinding(
     prefix: string, group: string, usage: string, declaringPackage: string | undefined,

@@ -97,6 +97,8 @@ the corresponding packages/imports/artifact URIs, and creates the native project
 binding entrypoint where needed. It plans before touching the filesystem, refuses
 collisions, and is idempotent. Review its default dry-run output (or `--diff`)
 before using `--write`; then run `memo validate` and your external SysML gate.
+The full walkthrough, with what it changes and what it leaves to you, is
+[Convert an Old Project](docs/tasks/convert.md).
 
 ### Jupyter analysis samples
 

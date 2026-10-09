@@ -454,6 +454,29 @@ describe('the real pre-conversion GPCA snapshot', () => {
         expect(planConversion(project).removals).toContain('memo.config.yaml');
     });
 
+    it('writes the memo.package.yaml that replaces memo.config.yaml, with the vendored source roots, so the project loads', () => {
+        const plan = planConversion(project);
+        const manifest = plan.newFiles.find(f => f.path === 'memo.package.yaml')!;
+        expect(manifest.content).toContain("name: 'gpca-pump'");
+        expect(manifest.content).toContain('entrypoint: model/catalog/project.sysml');
+        expect(manifest.content).toContain('include: [model, methodology]');
+        expect(manifest.content).not.toMatch(/methodology:|toolchain/);
+    });
+
+    it('says which methodology memo.config.yaml pinned, since the generated binding selects the default', () => {
+        const warning = planConversion(project).warnings.find(w => w.code === 'legacy-settings-file')!;
+        expect(warning.message).toContain('methodology-gpca');
+        expect(warning.message).toContain('selectedMethodology');
+    });
+
+    it('does not overwrite a manifest the project already has', () => {
+        const withManifest = join(TMP, 'has-manifest');
+        mkdirSync(join(withManifest, 'model/catalog'), { recursive: true });
+        writeFileSync(join(withManifest, 'memo.package.yaml'), 'name: kept\n');
+        writeFileSync(join(withManifest, 'model/catalog/a.sysml'), 'package p_a { }');
+        expect(planConversion(withManifest).newFiles.some(f => f.path === 'memo.package.yaml')).toBe(false);
+    });
+
     it('leaves no file under model/ outside the catalog', () => {
         applyConversion(planConversion(project));
         const stray = tree(project)

@@ -16,4 +16,5 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change 
 
 - `memo validate --rules --rules-obligation <required|recommended|bestPractice>`; `rules new --obligation` and `--enforces` write the new forms.
 - Stage 1 converts only the documents an edit reached and stores them compressed. With OpenSysML 0.10.0 or later the compact API JSON format is used where the service offers it.
+- `memo-architect convert` also writes the `memo.package.yaml` a converted project needs to load, and its warning names the methodology the old `memo.config.yaml` pinned. A new guide, [Convert an Old Project](tasks/convert.md), documents what it changes and what it leaves to you.
 - `memo pack` builds a SysAnd KPAR from the declared sources only, not from examples or the ontology. A package's `.project.json` lists the packages its sources import as `urn:kpar:<package>` usages with a `^version` constraint (an extension lists the ontology, and any other extension it imports). `memo-architect sysand publish` (a dry run) stages exactly what `memo pack` stages, so it reports the real version and the same file set; before, it reported every version as 0.0.0.
