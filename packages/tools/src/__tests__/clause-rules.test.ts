@@ -62,8 +62,9 @@ function run(root: string, args: string[], flags: string[]): string {
     }
 }
 
-function clauseRules(name: string, flags: string[]): void {
-    describe(`the clause rules, through ${name}`, () => {
+function clauseRules(name: string, flags: string[], available: boolean): void {
+    // Always registered: without a configured compiler it reports as skipped, not as an empty file.
+    describe.runIf(available)(`the clause rules, through ${name}`, () => {
         it('flag what is missing and not what is there', () => {
             const root = realpathSync(mkdtempSync(join(tmpdir(), 'memo-clause-rules-')));
             try {
@@ -85,7 +86,5 @@ function clauseRules(name: string, flags: string[]): void {
     });
 }
 
-if (python && existsSync(example)) clauseRules('SysIDE', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`]);
-if (opensysml && existsSync(example)) {
-    clauseRules('OpenSysML', openSysMLFlags(opensysml));
-}
+clauseRules('SysIDE', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`], Boolean(python) && existsSync(example));
+clauseRules('OpenSysML', opensysml ? openSysMLFlags(opensysml) : [], Boolean(opensysml) && existsSync(example));

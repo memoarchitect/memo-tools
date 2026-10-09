@@ -21,6 +21,14 @@ where a stage 1 compiler is configured (`OPENSYSML_BINARY` and
 `MEMO_OPENSYSML_CLIENT`, or `MEMO_TOOLCHAIN_COMPILER=syside` with
 `MEMO_SYSIDE_PYTHON`) and are skipped elsewhere.
 
+To run them against the pinned OpenSysML, point `OPENSYSML_BINARY` at the service binary
+that `pnpm install` put beside the pinned client (the example is macOS arm64; the other
+platform packages sit in the same place):
+
+```bash
+export OPENSYSML_BINARY="$PWD/node_modules/.pnpm/@openmbee+opensysml-sysml-grpc-darwin-arm64@<pinned version>/node_modules/@openmbee/opensysml-sysml-grpc-darwin-arm64/bin/sysml-grpc"
+```
+
 ## Maintainer checks
 
 Run the full set before opening a pull request:
