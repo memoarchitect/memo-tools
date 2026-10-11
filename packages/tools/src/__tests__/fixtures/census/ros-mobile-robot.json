@@ -4,7 +4,7 @@
     "files": 4,
     "elements": 29,
     "definitions": 3,
-    "relationships": 22,
+    "relationships": 18,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
@@ -42,12 +42,11 @@
         "SoftwareModule": 3,
         "VelocityCommand": 1
       },
-      "relationships": 22,
+      "relationships": 18,
       "relationshipTypes": {
         "buildsInto": 3,
         "dependency": 3,
         "deploysTo": 2,
-        "flow": 4,
         "interface": 6,
         "providesEnvironment": 1,
         "realizes": 3
