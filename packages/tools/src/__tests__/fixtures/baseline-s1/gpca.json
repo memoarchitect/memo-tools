@@ -1824,16 +1824,16 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::actuatorCommandInterface",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::batteryMonitorLine",
-        "kind": "Interface",
+        "kind": "PhysicalInterface",
         "construct": "interface",
-        "layer": "logical",
+        "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
@@ -2139,21 +2139,21 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::eventLogInterface",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::hwSoftwareBus",
-        "kind": "Interface",
+        "kind": "PhysicalInterface",
         "construct": "interface",
-        "layer": "logical",
+        "layer": "realization",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::operatorEntryInterface",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
@@ -2167,7 +2167,7 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::sensorInputInterface",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
@@ -2181,35 +2181,35 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::siBolusRequest",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::siDataEntry",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::siDrugFlow",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::siNotification",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_interfaces::siPharmacyDb",
-        "kind": "Interface",
+        "kind": "LogicalInterface",
         "construct": "interface",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_interfaces"
@@ -9332,9 +9332,9 @@
       "HazardCause": 22,
       "HazardousSituation": 7,
       "IntendedUse": 1,
-      "Interface": 11,
       "InterfaceItem": 54,
       "LogicalComponent": 5,
+      "LogicalInterface": 9,
       "MarkdownDocumentSource": 4,
       "MemoCybersecurityAssessmentView": 1,
       "MemoCybersecurityThreatModelView": 1,
@@ -9354,6 +9354,7 @@
       "OperativeScenario": 9,
       "OverallResidualRiskEvaluation": 1,
       "PhysicalAssembly": 1,
+      "PhysicalInterface": 2,
       "PhysicalPort": 27,
       "ProcessingNode": 1,
       "ProjectMethodBinding": 1,
@@ -9393,10 +9394,10 @@
       "functional": 65,
       "human-factors": 4,
       "implementation": 27,
-      "logical": 128,
+      "logical": 126,
       "methodology": 1,
       "operational": 44,
-      "realization": 29,
+      "realization": 31,
       "requirements": 146,
       "safety_risk": 105,
       "unknown": 68,
