@@ -711,6 +711,18 @@ export function capture(fixture) {
     return result;
 }
 
+/**
+ * BASELINE RE-FROZEN 2026-10-11 — gpca only, for the interface split (memo).
+ * `Interface` is abstract; each interface is a LogicalInterface, a
+ * SoftwareInterface or a PhysicalInterface. Compared by leaf name: zero
+ * elements added or removed.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | 9 `Interface` → `LogicalInterface` | The LI-* and SI-* interfaces state what is exchanged between components. |
+ * | 2 `Interface` → `PhysicalInterface`, layer `logical` → `realization` | `hwSoftwareBus` and `batteryMonitorLine`; a hardware interface is a realization element. |
+ */
+
 if (import.meta.url === `file://${process.argv[1]}`) {
     if (!existsSync(cli)) {
         console.error(`CLI not built: ${cli}\nRun: pnpm build`);
