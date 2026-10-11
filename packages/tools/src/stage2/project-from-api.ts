@@ -139,9 +139,9 @@ export function apiNativeUsages(api: ApiModel, fileOf: (element: ApiElement) => 
                 scopeMode: asScopeMode(reader.attr(node, 'scopeMode')),
                 includedLayers: reader.attrList(node, 'includedLayer'),
                 includedModules: reader.attrList(node, 'includedModule'),
-                includedStandards: reader.attrList(node, 'includedStandard'),
+                includedStandards: reader.refList(node, 'includedStandard'),
                 includedArtifactKinds: reader.attrList(node, 'includedArtifactKind'),
-                includedViewpoints: reader.attrList(node, 'includedViewpoint'),
+                includedViewpoints: reader.refList(node, 'includedViewpoint'),
                 rulePolicies: reader.policies(node, file),
                 sourceFile: file,
                 packageQualifiedName: pkg,
@@ -201,6 +201,20 @@ class UsageReader {
             for (const item of items) {
                 const text = item.kind === 'reference' ? item.qualifiedName : this.text(item);
                 if (text !== undefined) out.push(text);
+            }
+        }
+        return out;
+    }
+
+    /** The qualified names a list-valued `ref :>> <name> = (a, b);` member is valued with. */
+    refList(owner: ApiElement, name: string): string[] {
+        const out: string[] = [];
+        for (const member of this.members(owner, 'ReferenceUsage', name)) {
+            const value = this.api.value(member['@id']);
+            const items = value?.kind === 'sequence' ? value.items : value ? [value] : [];
+            for (const item of items) {
+                if (item.kind === 'reference') out.push(item.qualifiedName);
+                else if (item.kind === 'chain' && item.steps.length > 0) out.push(item.steps[item.steps.length - 1]);
             }
         }
         return out;
