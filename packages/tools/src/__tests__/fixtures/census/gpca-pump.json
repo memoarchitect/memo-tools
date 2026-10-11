@@ -180,8 +180,9 @@
       "definitions": 2,
       "kinds": {
         "DataInterface": 1,
-        "Interface": 11,
         "InterfaceItem": 43,
+        "LogicalInterface": 9,
+        "PhysicalInterface": 2,
         "SensorPort": 1
       },
       "relationships": 80,

@@ -45,6 +45,7 @@ import { dhfInitCommand } from '../commands/dhf-init.js';
 import { dhfPreviewCommand } from '../commands/dhf-preview.js';
 import { pluginListCommand, pluginCreateCommand, pluginRunCommand } from '../commands/plugin.js';
 import { reqNewCommand } from '../commands/req.js';
+import { interfacesCommand, type InterfacesOptions } from '../commands/interfaces.js';
 import {
     rulesTailoringCommand,
     rulesNewCommand,
@@ -64,6 +65,21 @@ export function registerProjectCommands(program: Command): void {
     const before = new Set(program.commands);
     const withToolchainOptions = (command: Command): Command =>
         applyToolchainCliOptions(command, defaultRegistry);
+
+    // ─── memo-architect interfaces ─────────────────────────────────────────────
+
+    withToolchainOptions(
+        program
+            .command('interfaces')
+            .description('List every interface between two elements, of any kind or layer')
+            .argument('<a>', 'First element (name or qualified id)')
+            .argument('<b>', 'Second element (name or qualified id)')
+            .option('--kind <kind>', 'Only interfaces of this ontology kind or a specialization of it, e.g. RosTopicInterface or SoftwareInterface')
+            .option('--no-nested', 'Do not count ports of parts nested inside either element')
+            .option('--format <format>', 'Output format: text, json', 'text'),
+    ).action(async (a: string, b: string, opts: Record<string, unknown>) => {
+        await interfacesCommand(a, b, opts as InterfacesOptions);
+    });
 
     // ─── memo element ───────────────────────────────────────────────────────────
     //
