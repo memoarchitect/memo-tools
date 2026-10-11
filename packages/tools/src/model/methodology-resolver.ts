@@ -132,6 +132,33 @@ export function isWithinLayerNamespace(layer: string, packageName: string): bool
     return packageName.startsWith(`${layer}_`) || packageName.startsWith(`${layer}::`);
 }
 
+/**
+ * Every package reachable from the seeds' PUBLIC imports, transitively, in the
+ * order first reached. The seeds themselves are not included: a methodology's
+ * package declares the methodology, and what it selects is what it re-exports.
+ *
+ * Only public imports are followed because only they re-export: a package's
+ * private imports are its own business (`memo_extension_ros` privately imports
+ * the architecture packages it specializes), and following them would select
+ * everything a selected package happens to use.
+ */
+export function publicImportClosure(
+    seeds: Iterable<string>,
+    publicImports: ReadonlyMap<string, ReadonlySet<string>>,
+): string[] {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const pending = [...seeds].flatMap(seed => [...(publicImports.get(seed) ?? [])]);
+    while (pending.length > 0) {
+        const name = pending.shift()!;
+        if (seen.has(name)) continue;
+        seen.add(name);
+        out.push(name);
+        for (const next of publicImports.get(name) ?? []) pending.push(next);
+    }
+    return out;
+}
+
 /** The methodology chain plus its merged selection. */
 export interface EffectiveMethodology {
     /** Base first, selected methodology last. */
@@ -143,6 +170,11 @@ export interface EffectiveMethodology {
      */
     extensions: NativeMethodology[];
     scopeMode: ScopeMode;
+    /**
+     * The packages the selection imports: the public-import closure of the
+     * packages declaring the chain's methodologies and the project binding.
+     */
+    selectedPackages: string[];
     includedLayers: string[];
     includedModules: string[];
     includedStandards: string[];
@@ -165,6 +197,7 @@ export function resolveEffectiveMethodology(
     binding: NativeMethodBinding | undefined,
     methodologies: Map<string, NativeMethodology>,
     availablePackages: ReadonlySet<string>,
+    publicImports: ReadonlyMap<string, ReadonlySet<string>> = new Map(),
 ): EffectiveMethodology {
     const diagnostics: MethodologyDiagnostic[] = [];
     const chain: NativeMethodology[] = [];
@@ -319,10 +352,19 @@ export function resolveEffectiveMethodology(
         policyChain.push({ source: binding!.usageName, level: 'project', policy: p });
     }
 
+    // The selection stated the SysML way: what the methodology's package, and
+    // the project's entrypoint package, publicly import.
+    const seeds = [
+        ...chain.map(m => m.packageQualifiedName),
+        binding?.packageQualifiedName,
+    ].filter((name): name is string => Boolean(name));
+    const selectedPackages = publicImportClosure(seeds, publicImports);
+
     return {
         chain,
         extensions,
         scopeMode,
+        selectedPackages,
         includedLayers: merge(m => m.includedLayers),
         includedModules,
         includedStandards: merge(m => m.includedStandards),

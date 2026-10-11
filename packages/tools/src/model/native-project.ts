@@ -194,6 +194,12 @@ export interface NativeProjectResolution {
      * that package is in scope is a separate question with its own answer.
      */
     filePackages: Map<string, string>;
+    /**
+     * Package → the packages it imports publicly, for every parsed package.
+     * The selection a methodology makes is the public imports of the package
+     * that declares it, followed transitively; see `publicImportClosure`.
+     */
+    publicImports: Map<string, ReadonlySet<string>>;
     diagnostics: NativeDiagnostic[];
 }
 
@@ -320,7 +326,17 @@ export function discoverLibraryRoots(projectRoot: string): LibraryRoot[] {
 export interface PackageIndexEntry {
     qualifiedName: string;
     files: Set<string>;
+    /** Every package it imports from, at any visibility: what the closure walks. */
     imports: Set<string>;
+    /**
+     * The packages it imports PUBLICLY, a subset of `imports`. An `Import`
+     * carries a visibility (SysML-textual-bnf.kebnf:149-153, `visibility =
+     * VisibilityIndicator`), and only a public one makes the imported members
+     * visible to whoever imports this package in turn (KerML
+     * `Namespace::visibleMemberships`). It is therefore what a package passes
+     * on: the selection a methodology's or a project's package states.
+     */
+    publicImports: Set<string>;
     root?: LibraryRoot;
 }
 
@@ -454,8 +470,10 @@ export function finishResolution(
     }
 
     const filePackages = new Map<string, string>();
+    const publicImports = new Map<string, ReadonlySet<string>>();
     for (const entry of index.values()) {
         for (const file of entry.files) filePackages.set(file, entry.qualifiedName);
+        publicImports.set(entry.qualifiedName, entry.publicImports);
     }
 
     // The entrypoint, not every source file on disk, starts the closure. This
@@ -588,6 +606,7 @@ export function finishResolution(
         selectedRoots,
         unusedRoots,
         filePackages,
+        publicImports,
         diagnostics,
     };
 }

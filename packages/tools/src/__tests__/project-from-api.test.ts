@@ -90,12 +90,14 @@ attribute(strict, 'includedLayer', { '@type': 'LiteralString', value: 'safety' }
 attribute(strict, 'includedLayer', { '@type': 'LiteralString', value: 'core' }, 'library');
 
 // The project: package `app` importing `lib::*`, `lib::extras::**` and a
-// membership of `lib`, with its method binding.
+// membership of `lib`, with its method binding. The three imports state their
+// visibility the three ways a handoff does: OpenSysML writes `public` and
+// `private`, SysIDE writes `public` and leaves the private default out.
 const appRoot = add({ '@type': 'Namespace' }, 'project');
 const app = add({ '@type': 'Package', '@id': 'app', declaredName: 'app' }, 'project', 'app');
 own(appRoot, app, 'project');
-relate(app, { '@type': 'NamespaceImport', importedNamespace: ref('lib') }, 'project');
-relate(app, { '@type': 'NamespaceImport', importedNamespace: ref('extras'), isRecursive: true }, 'project');
+relate(app, { '@type': 'NamespaceImport', importedNamespace: ref('lib'), visibility: 'public' }, 'project');
+relate(app, { '@type': 'NamespaceImport', importedNamespace: ref('extras'), isRecursive: true, visibility: 'private' }, 'project');
 const libMember = elements.find(e => e['@type'] === 'OwningMembership' && (e.memberElement as { '@id': string })['@id'] === 'more-signal')!;
 relate(app, { '@type': 'MembershipImport', importedMembership: ref(libMember['@id']) }, 'project');
 const binding = typedPart(app, 'appBinding', bindingDef, 'project');
@@ -135,6 +137,11 @@ describe('project resolution read from a stage 1 handoff', () => {
     it('reads each import as the package it reads from: P::*, P::** and P::X', () => {
         expect([...packages.get('app')!.imports].sort()).toEqual(['lib', 'lib::extras', 'more']);
         expect([...packages.get('lib')!.imports]).toEqual(['ScalarValues']);
+    });
+
+    it('keeps the public imports apart: an explicit private one and an omitted default are not public', () => {
+        expect([...packages.get('app')!.publicImports]).toEqual(['lib']);
+        expect([...packages.get('lib')!.publicImports]).toEqual([]);
     });
 
     it('reads the method binding and the methodology it selects', () => {

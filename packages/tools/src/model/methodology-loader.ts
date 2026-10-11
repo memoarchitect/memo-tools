@@ -139,6 +139,7 @@ export async function loadMethodologyDescriptor(
         resolved.binding,
         resolved.methodologies,
         new Set(resolved.filePackages.values()),
+        resolved.publicImports,
     );
     for (const d of effective.diagnostics) errors.push(`${d.code}: ${d.message}`);
 
