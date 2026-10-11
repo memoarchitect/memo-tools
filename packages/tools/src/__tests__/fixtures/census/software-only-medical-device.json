@@ -28,9 +28,10 @@
       "kinds": {
         "Algorithm": 1,
         "CloudService": 1,
+        "OTSSoftwareModule": 1,
         "ProcessingNode": 1,
         "SoftwareDeploymentUnit": 1,
-        "SoftwareModule": 2,
+        "SoftwareModule": 1,
         "SoftwareSystem": 1
       },
       "relationships": 5,
