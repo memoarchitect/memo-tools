@@ -51,9 +51,9 @@ describe.runIf(compilerConfigured && existsSync(ROS_PROJECT))('a project that im
             superType: 'MessagingMessage', layer: 'implementation',
         });
         expect(kinds.getKind('MessagingMessage')).toMatchObject({
-            superType: 'SoftwareItem', layer: 'implementation',
+            superType: 'DataItem', layer: 'implementation',
         });
-        expect(kinds.getKind('SoftwareItem')).toMatchObject({
+        expect(kinds.getKind('DataItem')).toMatchObject({
             superType: 'MemoItem', sysmlConstruct: 'item def',
         });
         expect(kinds.getKind('SoftwareModule')).toMatchObject({

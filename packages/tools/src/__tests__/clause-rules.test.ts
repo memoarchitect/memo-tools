@@ -42,10 +42,19 @@ const MODEL = `package org_lifecycle {
             attribute :>> safetyClass = SafetyClassKind::B;
         }
     }
-    part bareSoup : SoftwareModule {
+    part bareSoup : SOUPSoftwareModule {
         @MemoIdentity { :>> providedId = "T-004"; :>> label = "BareSoup"; }
-        attribute :>> moduleKind = ModuleKind::soup;
-        attribute :>> soupVendor = "vendor";
+        attribute :>> supplier = "vendor";
+    }
+    part bareOts : OTSSoftwareModule {
+        @MemoIdentity { :>> providedId = "T-006"; :>> label = "BareOts"; }
+        attribute :>> supplier = "vendor";
+    }
+    part identifiedSoup : SOUPSoftwareModule {
+        @MemoIdentity { :>> providedId = "T-007"; :>> label = "IdentifiedSoup"; }
+        attribute :>> supplier = "vendor";
+        attribute :>> version = "1.2.3";
+        attribute :>> knownAnomalies = "none affecting the device";
     }
     part unrecordedChange : ChangeRequest {
         @MemoIdentity { :>> providedId = "T-005"; :>> label = "UnrecordedChange"; }
@@ -75,7 +84,13 @@ function clauseRules(name: string, flags: string[], available: boolean): void {
 
                 expect(flagged('CR-MED-018', 'ItemWithoutUnits')).toBe(true);
                 expect(flagged('CR-MED-018', 'ItemWithUnits')).toBe(false);
-                for (const rule of ['CR-MED-015', 'CR-MED-016', 'CR-MED-017']) expect(flagged(rule, 'BareSoup')).toBe(true);
+                // An OTS module is SOUP (IEC 62304 §3.29), so the SOUP rules reach it.
+                for (const rule of ['CR-MED-015', 'CR-MED-016', 'CR-MED-017']) {
+                    expect(flagged(rule, 'BareSoup')).toBe(true);
+                    expect(flagged(rule, 'BareOts')).toBe(true);
+                }
+                expect(flagged('CR-MED-015', 'IdentifiedSoup')).toBe(false);
+                expect(flagged('CR-MED-016', 'IdentifiedSoup')).toBe(false);
                 for (const rule of ['CR-MED-019', 'CR-MED-025', 'CR-MED-026']) expect(flagged(rule, 'UnrecordedChange')).toBe(true);
                 // The temperature-alarm hazard reaches no hazardous situation.
                 expect(report).toMatch(/\[CR-MED-005\] Hazard\/UndetectedTemperatureDeviation/);
