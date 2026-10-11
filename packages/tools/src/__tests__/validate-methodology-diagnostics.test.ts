@@ -27,7 +27,12 @@ describe.runIf(examplesPresent)('a methodology that names a module nothing decla
             expect(validate(root).stdout).not.toContain('Methodology resolution');
 
             const binding = join(root, 'model/catalog/project.sysml');
-            writeFileSync(binding, readFileSync(binding, 'utf-8').replace('"memo_extension_ros"', '"memo_extension_rss"'));
+            // The binding names the ROS extension by reference, which also
+            // has to resolve for the clean run above to be clean. A module
+            // string is what can still name nothing.
+            writeFileSync(binding, readFileSync(binding, 'utf-8').replace(
+                'ref :>> includedExtension = rosExtensionMethod;',
+                'ref :>> includedExtension = rosExtensionMethod;\n        attribute :>> includedModule = "memo_extension_rss";'));
             const broken = validate(root);
             expect(broken.stdout).toContain('Methodology resolution');
             expect(broken.stdout).toContain('unavailable-module');

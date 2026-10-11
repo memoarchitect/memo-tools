@@ -21,7 +21,7 @@ import { buildEffectiveScope, isInScope, isPackageInScope, filterKindsInScope } 
 
 function methodology(over: Partial<NativeMethodology> & { usageName: string }): NativeMethodology {
     return {
-        includedLayers: [], includedModules: [], includedStandards: [],
+        includedLayers: [], includedModules: [], includedExtensions: [], includedStandards: [],
         includedArtifactKinds: [], includedViewpoints: [], rulePolicies: [],
         sourceFile: `${over.usageName}.sysml`,
         ...over,
@@ -30,7 +30,7 @@ function methodology(over: Partial<NativeMethodology> & { usageName: string }): 
 
 function binding(over: Partial<NativeMethodBinding> & { usageName: string }): NativeMethodBinding {
     return {
-        includedModules: [], rulePolicies: [], sourceFile: 'project.sysml',
+        includedModules: [], includedExtensions: [], rulePolicies: [], sourceFile: 'project.sysml',
         ...over,
     };
 }
@@ -115,6 +115,113 @@ describe('resolveEffectiveMethodology', () => {
             ALL,
         );
         expect(effective.includedModules).toEqual(['pkg_a', 'pkg_b']);
+    });
+});
+
+// ─── Extensions ──────────────────────────────────────────────────────────────
+//
+// A project names an extension by its methodology; the extension's methodology
+// lists every package it ships and the extensions it builds on. These mirror
+// memo/extensions: ros includes messaging and container, aadl ships a facade
+// over two content packages.
+
+describe('includedExtension', () => {
+    const defaults = methodology({ usageName: 'mdDefault', scopeMode: 'explicit', includedModules: ['memo_everything'] });
+    const narrow = methodology({ usageName: 'narrow', scopeMode: 'explicit', includedModules: ['pkg_a'] });
+    const messaging = methodology({
+        usageName: 'messagingExtensionMethod', baseMethodologyName: 'mdDefault', scopeMode: 'explicit',
+        includedModules: ['memo_extension_messaging'],
+    });
+    const container = methodology({
+        usageName: 'containerExtensionMethod', baseMethodologyName: 'mdDefault', scopeMode: 'explicit',
+        includedModules: ['memo_extension_container'],
+    });
+    const ros = methodology({
+        usageName: 'rosExtensionMethod', baseMethodologyName: 'mdDefault', scopeMode: 'explicit',
+        includedModules: ['memo_extension_ros'],
+        includedExtensions: ['messagingExtensionMethod', 'containerExtensionMethod'],
+        rulePolicies: [policy({ usageName: 'extensionPolicy', disposition: 'disabled' })],
+    });
+    const all = new Map([defaults, narrow, messaging, container, ros].map(m => [m.usageName, m]));
+    const available = new Set([
+        'memo_everything', 'pkg_a', 'memo_extension_messaging', 'memo_extension_container', 'memo_extension_ros',
+    ]);
+
+    it('selects an extension and, transitively, the extensions it includes', () => {
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedExtensions: ['rosExtensionMethod'] }),
+            all, available,
+        );
+        expect(effective.extensions.map(m => m.usageName))
+            .toEqual(['rosExtensionMethod', 'messagingExtensionMethod', 'containerExtensionMethod']);
+        expect(effective.includedModules).toEqual(
+            ['pkg_a', 'memo_extension_ros', 'memo_extension_messaging', 'memo_extension_container']);
+        expect(effective.diagnostics).toEqual([]);
+    });
+
+    it("does not follow an extension's base chain or apply its policies", () => {
+        // ros's base is the default methodology. Following it would widen the
+        // narrow methodology to everything the default selects.
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedExtensions: ['rosExtensionMethod'] }),
+            all, available,
+        );
+        expect(effective.chain.map(m => m.usageName)).toEqual(['narrow']);
+        expect(effective.includedModules).not.toContain('memo_everything');
+        expect(effective.policyChain).toEqual([]);
+    });
+
+    it('is honoured on a methodology as well as a binding', () => {
+        const child = methodology({
+            usageName: 'child', baseMethodologyName: 'narrow', scopeMode: 'explicit',
+            includedExtensions: ['messagingExtensionMethod'],
+        });
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'child' }),
+            new Map([...all, ['child', child]]), available,
+        );
+        expect(effective.includedModules).toEqual(['pkg_a', 'memo_extension_messaging']);
+    });
+
+    it('reports an extension that names no resolved methodology', () => {
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedExtensions: ['ghostExtensionMethod'] }),
+            all, available,
+        );
+        expect(effective.diagnostics.map(d => d.code)).toEqual(['missing-extension']);
+    });
+
+    it('terminates when extensions include each other', () => {
+        const a = methodology({ usageName: 'a', scopeMode: 'explicit', includedModules: ['pkg_a'], includedExtensions: ['b'] });
+        const b = methodology({ usageName: 'b', scopeMode: 'explicit', includedModules: ['pkg_b'], includedExtensions: ['a'] });
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'bind', selectedMethodologyName: 'narrow', includedExtensions: ['a'] }),
+            new Map([...all, ['a', a], ['b', b]]), ALL,
+        );
+        expect(effective.includedModules).toEqual(['pkg_a', 'pkg_b']);
+        expect(effective.diagnostics).toEqual([]);
+    });
+
+    it('selects every package an extension lists, and only those: matching stays exact', () => {
+        // The aadl facade re-exports its content packages, but a facade entry
+        // does not select them. The extension's methodology has to list them.
+        const facadeOnly = buildEffectiveScope(resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedModules: ['memo_extension_aadl'] }),
+            all, new Set(['pkg_a', 'memo_extension_aadl', 'memo_extension_aadl_runtime']),
+        ));
+        expect(isPackageInScope(facadeOnly, 'memo_extension_aadl_runtime')).toBe(false);
+
+        const aadl = methodology({
+            usageName: 'aadlExtensionMethod', scopeMode: 'explicit',
+            includedModules: ['memo_extension_aadl', 'memo_extension_aadl_runtime'],
+        });
+        const whole = buildEffectiveScope(resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedExtensions: ['aadlExtensionMethod'] }),
+            new Map([...all, ['aadlExtensionMethod', aadl]]),
+            new Set(['pkg_a', 'memo_extension_aadl', 'memo_extension_aadl_runtime']),
+        ));
+        expect(isPackageInScope(whole, 'memo_extension_aadl_runtime')).toBe(true);
+        expect(isPackageInScope(whole, 'memo_extension_aadl_methodology')).toBe(false);
     });
 });
 
