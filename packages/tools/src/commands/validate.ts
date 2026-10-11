@@ -343,8 +343,18 @@ export async function runValidation(
         availablePackages,
     );
     const scope = buildEffectiveScope(effectiveMethodology);
-    for (const d of effectiveMethodology.diagnostics) {
-        say(chalk.yellow(`  ⚠ ${d.code}: ${d.message}`));
+    // A methodology diagnostic is not advisory either. A module, layer or base
+    // the methodology names and the project cannot resolve selects nothing, so
+    // the rule set that ran is not the one the methodology describes, and a
+    // narrower rule set reads exactly like a cleaner model. It fails the run
+    // the way a rule-resolution diagnostic does.
+    if (effectiveMethodology.diagnostics.length > 0) {
+        say(chalk.red.bold(`\nMethodology resolution (${effectiveMethodology.diagnostics.length}):`));
+        for (const d of effectiveMethodology.diagnostics) {
+            say(chalk.red(`  ${d.code}: ${d.message}`));
+        }
+        say();
+        exitCode = 1;
     }
 
     // Rule activation is shared with `memo validate --rules` so the two commands
