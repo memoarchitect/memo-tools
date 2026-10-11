@@ -332,16 +332,10 @@ export async function runValidation(
         say('');
     }
     // 6a. Effective methodology and the deterministic effective rule set.
-    // A module is available when a resolved package supplies it. That is wider
-    // than the import closure on purpose: a package the project resolved is
-    // resolved in full, and whether the methodology selects it is the next
-    // question, not this one.
-    const availablePackages = new Set(resolution?.filePackages.values() ?? []);
     const effectiveMethodology = resolveEffectiveMethodology(
         resolution?.binding,
         resolution?.methodologies ?? new Map(),
-        availablePackages,
-        resolution?.publicImports,
+        resolution?.publicImports ?? new Map(),
     );
     const scope = buildEffectiveScope(effectiveMethodology);
     // A methodology diagnostic is not advisory either. A module, layer or base
@@ -455,7 +449,7 @@ export async function runValidation(
         // ALL 110 `satisfiedBy` edges lost an endpoint — every architecture
         // element went, because `filePackages` maps every file, so the
         // module-scope test was applied to architecture kinds that
-        // `includedLayer` governs instead. XL-002 then reported 89 requirements
+        // the layer selection governs instead. XL-002 then reported 89 requirements
         // as lacking requirements-to-architecture traceability that the source
         // plainly traces.
         //

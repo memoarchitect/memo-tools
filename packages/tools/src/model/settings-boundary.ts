@@ -43,10 +43,10 @@ const SEMANTIC_FIELDS: Record<string, string> = {
     ontologies:
         'a native `private import` of the ontology package in model/catalog/project.sysml',
     modules:
-        '`includedModule` on the methodology, or on the `ProjectMethodBinding` for project-specific additions; '
-        + 'a MEMO extension by `includedExtension`, naming its methodology',
+        'a `public import` of the package in the methodology\'s package, or in the package declaring the '
+        + '`ProjectMethodBinding` for project-specific additions; a MEMO extension by its facade, `memo_extension_<name>`',
     optionalModules:
-        '`includedModule` on the methodology that selects them',
+        'a `public import` of the package in the methodology\'s package',
     type:
         'nothing — a package\'s authority now comes from the resolved root a file sits under, not from a declared kind',
     projectType:

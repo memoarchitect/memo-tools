@@ -95,10 +95,9 @@ export interface RuleResolutionDiagnostic {
 export interface MethodologyDiagnostic {
     code:
         | 'missing-base'
-        | 'missing-extension'
         | 'inheritance-cycle'
-        | 'unavailable-module'
-        | 'unavailable-layer'
+        /** Two methodologies in one package: the package's public imports are the selection, so they would share one. */
+        | 'shared-methodology-package'
         | 'scope-mode-conflict';
     message: string;
     methodology?: string;
@@ -107,25 +106,16 @@ export interface MethodologyDiagnostic {
 /**
  * Does `packageName` sit inside the layer namespace `layer`?
  *
- * A layer entry names a namespace, not a package — `memo_core.sysml` says so:
- * "Layer entries normally name a public MEMO layer namespace; module entries may
- * name any qualified package available to the project." The architecture layers
- * decompose one level down, so `memo_architecture_logical` is a namespace over
- * `memo_architecture_logical_interfaces` and `memo_architecture_logical_structure`
- * and is not itself a package anywhere in the tree.
- *
- * Matching those two by string equality is why every layer entry selected
- * nothing, and why 25 rules whose subject kind lives in an architecture package
- * were dropped from the effective rule set without a word. This is the one place
- * that knows a layer is a prefix, so the scope test and the availability
- * diagnostic cannot drift apart and disagree about what a layer covers.
+ * A layer is a namespace of packages: `memo_architecture_logical` covers
+ * `memo_architecture_logical_interfaces` and `memo_architecture_logical_structure`.
+ * A methodology SELECTS a layer by importing its layer package, so this test is
+ * no longer part of selection; it answers a `RulePolicy`'s `targetCategory`,
+ * which names a layer as a string because a value cannot reference a package,
+ * and places a rule's subject kind in a layer.
  *
  * The separator is part of the test, not decoration: a bare `startsWith` would
- * let `memo_architecture_logical` swallow a sibling named
- * `memo_architecture_logical_extra_thing` only by intent, but also anything
- * merely beginning with those letters. Both spellings are accepted because a
- * module entry may name an externally qualified package, and a layer entry has
- * no reason to be stricter about its own punctuation than the tree it indexes.
+ * also capture any package merely beginning with those letters. Both spellings
+ * are accepted, `_` and `::`.
  */
 export function isWithinLayerNamespace(layer: string, packageName: string): boolean {
     if (packageName === layer) return true;
@@ -163,20 +153,12 @@ export function publicImportClosure(
 export interface EffectiveMethodology {
     /** Base first, selected methodology last. */
     chain: NativeMethodology[];
-    /**
-     * The extensions `includedExtension` reached from the chain and the binding,
-     * transitively, in the order first reached. Each contributes its own
-     * inclusion lists; none contributes its base chain or its policies.
-     */
-    extensions: NativeMethodology[];
     scopeMode: ScopeMode;
     /**
      * The packages the selection imports: the public-import closure of the
      * packages declaring the chain's methodologies and the project binding.
      */
     selectedPackages: string[];
-    includedLayers: string[];
-    includedModules: string[];
     includedStandards: string[];
     includedArtifactKinds: string[];
     includedViewpoints: string[];
@@ -196,8 +178,8 @@ export interface EffectiveMethodology {
 export function resolveEffectiveMethodology(
     binding: NativeMethodBinding | undefined,
     methodologies: Map<string, NativeMethodology>,
-    availablePackages: ReadonlySet<string>,
-    publicImports: ReadonlyMap<string, ReadonlySet<string>> = new Map(),
+    /** Package → the packages it publicly imports (`NativeProjectResolution.publicImports`). */
+    publicImports: ReadonlyMap<string, ReadonlySet<string>>,
 ): EffectiveMethodology {
     const diagnostics: MethodologyDiagnostic[] = [];
     const chain: NativeMethodology[] = [];
@@ -240,102 +222,45 @@ export function resolveEffectiveMethodology(
         ? 'allAvailable'
         : selected?.scopeMode ?? 'explicit';
 
-    // Extensions. An extension is named by its methodology, and what including
-    // one adds is that methodology's OWN selection, plus the extensions it
-    // includes in turn — never its base chain. Following the base would let an
-    // extension whose base is the default methodology widen a narrower selected
-    // methodology to everything the default selects. Its rule policies are not
-    // applied either: tailoring belongs to the selected chain and the project.
-    // A methodology reached twice (or already in the chain) contributes once,
-    // so a cycle of inclusions is a union and needs no special case.
-    const extensions: NativeMethodology[] = [];
-    const reached = new Set(chain.map(m => m.usageName));
-    const pending: { name: string; from: string }[] = [
-        ...chain.flatMap(m => m.includedExtensions.map(name => ({ name, from: m.usageName }))),
-        ...(binding?.includedExtensions ?? []).map(name => ({ name, from: binding!.usageName })),
-    ];
-    while (pending.length > 0) {
-        const { name, from } = pending.shift()!;
-        if (reached.has(name)) continue;
-        reached.add(name);
-        const extension = methodologies.get(name);
-        if (!extension) {
-            diagnostics.push({
-                code: 'missing-extension',
-                message:
-                    `"${from}" includes the extension "${name}", which no resolved package declares as a `
-                    + `MethodologyDefinition. Import the extension's methodology package; an extension that `
-                    + `does not resolve selects nothing.`,
-                methodology: from,
-            });
-            continue;
-        }
-        extensions.push(extension);
-        for (const next of extension.includedExtensions) pending.push({ name: next, from: extension.usageName });
-    }
-
-    const contributors = [...chain, ...extensions];
     const merge = (pick: (m: NativeMethodology) => string[]): string[] => {
         const out: string[] = [];
-        for (const m of contributors) for (const v of pick(m)) if (!out.includes(v)) out.push(v);
+        for (const m of chain) for (const v of pick(m)) if (!out.includes(v)) out.push(v);
         return out;
     };
 
-    const includedModules = merge(m => m.includedModules);
-    for (const extra of binding?.includedModules ?? []) {
-        if (!includedModules.includes(extra)) includedModules.push(extra);
-    }
-
-    // A module the methodology names but the import graph never resolved is a
-    // hard diagnostic: a string naming an unavailable package is not a selection.
-    for (const m of includedModules) {
-        if (!availablePackages.has(m)) {
+    // The selection is what the package declaring each methodology publicly
+    // imports, so two methodologies in one package would select the same
+    // packages whatever either says. The package is the selection; it
+    // declares one methodology.
+    for (const m of chain) {
+        if (!m.packageQualifiedName) continue;
+        const sharing = [...methodologies.values()]
+            .filter(other => other.usageName !== m.usageName && other.packageQualifiedName === m.packageQualifiedName);
+        if (sharing.length > 0) {
             diagnostics.push({
-                code: 'unavailable-module',
+                code: 'shared-methodology-package',
                 message:
-                    `Module "${m}" is selected but is not in the project's import closure. Import the package, `
-                    + `or remove it from the selection — a name alone does not make a module available.`,
-            });
-        }
-    }
-
-    // A layer that covers no resolved package is the same defect as an
-    // unavailable module, and it went unreported for as long as it did only
-    // because the module check above existed and this one did not. It is the
-    // half that matters most: whichever way the matching goes, a selection that
-    // selects nothing has to say so, or the next divergence is silent too. A
-    // narrower rule set reports fewer violations, which reads exactly like a
-    // cleaner model.
-    for (const l of merge(m => m.includedLayers)) {
-        let covers = false;
-        for (const pkg of availablePackages) {
-            if (isWithinLayerNamespace(l, pkg)) { covers = true; break; }
-        }
-        if (!covers) {
-            diagnostics.push({
-                code: 'unavailable-layer',
-                message:
-                    `Layer "${l}" is selected but covers no package in the project's import closure. A layer `
-                    + `entry names a namespace, so it selects every resolved package within it — selecting `
-                    + `none means the name matches nothing, and every rule and kind placed in that layer is `
-                    + `silently out of scope.`,
+                    `Methodology "${m.usageName}" shares its package "${m.packageQualifiedName}" with `
+                    + `${sharing.map(o => `"${o.usageName}"`).join(', ')}. A methodology selects what its package `
+                    + `publicly imports, so methodologies in one package cannot select differently; declare each in `
+                    + `its own package.`,
+                methodology: m.usageName,
             });
         }
     }
 
     for (const m of chain) {
         if (m.scopeMode === 'allAvailable') {
-            const listed = [
-                ...m.includedLayers, ...m.includedModules, ...m.includedStandards,
-                ...m.includedArtifactKinds, ...m.includedViewpoints, ...m.includedExtensions,
-            ];
-            if (listed.length > 0) {
+            const imported = m.packageQualifiedName ? [...(publicImports.get(m.packageQualifiedName) ?? [])] : [];
+            const listed = [...m.includedStandards, ...m.includedArtifactKinds, ...m.includedViewpoints];
+            if (imported.length > 0 || listed.length > 0) {
                 diagnostics.push({
                     code: 'scope-mode-conflict',
                     message:
-                        `Methodology "${m.usageName}" sets scopeMode = allAvailable but also authors inclusion `
-                        + `entries. Under allAvailable the lists must be empty; otherwise the methodology states `
-                        + `its scope twice and the resolver has to pick.`,
+                        `Methodology "${m.usageName}" sets scopeMode = allAvailable but also selects: `
+                        + [...imported.map(p => `public import ${p}`), ...listed].join(', ')
+                        + `. Under allAvailable its package imports nothing publicly and its lists are empty; `
+                        + `otherwise the methodology states its scope twice and the resolver has to pick.`,
                     methodology: m.usageName,
                 });
             }
@@ -352,8 +277,10 @@ export function resolveEffectiveMethodology(
         policyChain.push({ source: binding!.usageName, level: 'project', policy: p });
     }
 
-    // The selection stated the SysML way: what the methodology's package, and
-    // the project's entrypoint package, publicly import.
+    // The selection, stated the SysML way: what the packages declaring the
+    // chain's methodologies, and the package declaring the binding, publicly
+    // import. A misspelled package is an import the compiler rejects, so there
+    // is no name here that can match nothing.
     const seeds = [
         ...chain.map(m => m.packageQualifiedName),
         binding?.packageQualifiedName,
@@ -362,11 +289,8 @@ export function resolveEffectiveMethodology(
 
     return {
         chain,
-        extensions,
         scopeMode,
         selectedPackages,
-        includedLayers: merge(m => m.includedLayers),
-        includedModules,
         includedStandards: merge(m => m.includedStandards),
         includedArtifactKinds: merge(m => m.includedArtifactKinds),
         includedViewpoints: merge(m => m.includedViewpoints),
@@ -444,7 +368,7 @@ export function rulesSelectedBy<T extends Pick<EffectiveRule, 'enforces' | 'subj
     return [];
 }
 
-/** The layer namespaces that have rules: the values `targetCategory` can take, spelled as a methodology's `includedLayer`. */
+/** The layer namespaces that have rules: the values `targetCategory` can take. */
 export function layersWithRules(rules: readonly Pick<EffectiveRule, 'subjectPackage'>[]): string[] {
     const packages = [...new Set(rules.map(rule => rule.subjectPackage).filter((p): p is string => Boolean(p)))].sort();
     // The layer is the namespace the packages share: `memo_assurance_safety_risk`, not a sub-package of it.
@@ -511,7 +435,7 @@ function applyBulkPolicy(
                 + (policy.targetStandard
                     ? `A rule is selected by the clauses it enforces, which only a compiler that builds the model can read; `
                       + `check the standard's name and that its package is in the project.`
-                    : `A category is a layer namespace as a methodology's \`includedLayer\` spells it, and selects the rules `
+                    : `A category is a layer namespace by name (\`memo_assurance_safety_risk\`), and selects the rules `
                       + `whose subject kind is declared in it.`),
             policy: policy.usageName,
             file: policy.sourceFile,
