@@ -37,6 +37,15 @@ describe.runIf(examplesPresent)('a methodology that names a module nothing decla
             expect(broken.stdout).toContain('Methodology resolution');
             expect(broken.stdout).toContain('unavailable-module');
             expect(broken.status).toBe(1);
+
+            // A misspelled extension is a reference the compiler rejects, so
+            // the run fails before an extension could silently select nothing.
+            cpSync(ROS, root, { recursive: true });
+            writeFileSync(binding, readFileSync(binding, 'utf-8').replace(
+                'ref :>> includedExtension = rosExtensionMethod;', 'ref :>> includedExtension = rosExtensionMethodX;'));
+            const misspelled = validate(root);
+            expect(misspelled.stdout + misspelled.stderr).toContain('rosExtensionMethodX');
+            expect(misspelled.status).toBe(1);
         } finally {
             rmSync(root, { recursive: true, force: true });
         }
