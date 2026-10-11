@@ -40,7 +40,7 @@ function rule(id: string, tailoring: CompiledConstraint['tailoring'], appliesToK
 
 /** An explicit scope that selects neither the rules' package nor their subject's. */
 const narrow: EffectiveScope = {
-    mode: 'explicit', packages: new Set(['memo_core_common']), layers: new Set(), modules: new Set(),
+    mode: 'explicit', packages: new Set(['memo_core_common']),
     standards: new Set(), artifactKinds: new Set(), viewpoints: new Set(),
 };
 const filePackages = new Map([

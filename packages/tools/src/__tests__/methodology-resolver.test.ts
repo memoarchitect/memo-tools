@@ -15,14 +15,13 @@ import {
     type PolicyChainEntry,
 } from '../model/methodology-resolver.js';
 import type { NativeMethodBinding, NativeMethodology, NativeRulePolicy } from '../model/native-project.js';
-import { buildEffectiveScope, isInScope, isPackageInScope, filterKindsInScope } from '../model/effective-scope.js';
+import { buildEffectiveScope, isInScope, isPackageInScope } from '../model/effective-scope.js';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 function methodology(over: Partial<NativeMethodology> & { usageName: string }): NativeMethodology {
     return {
-        includedLayers: [], includedModules: [], includedExtensions: [], includedStandards: [],
-        includedArtifactKinds: [], includedViewpoints: [], rulePolicies: [],
+        includedStandards: [], includedArtifactKinds: [], includedViewpoints: [], rulePolicies: [],
         sourceFile: `${over.usageName}.sysml`,
         ...over,
     };
@@ -30,7 +29,7 @@ function methodology(over: Partial<NativeMethodology> & { usageName: string }): 
 
 function binding(over: Partial<NativeMethodBinding> & { usageName: string }): NativeMethodBinding {
     return {
-        includedModules: [], includedExtensions: [], rulePolicies: [], sourceFile: 'project.sysml',
+        rulePolicies: [], sourceFile: 'project.sysml',
         ...over,
     };
 }
@@ -43,24 +42,31 @@ function rule(over: Partial<RuleCandidate> & { id: string; typeName: string }): 
     return { severity: 'error', tailoring: 'assurance', ...over };
 }
 
-const ALL = new Set(['pkg_a', 'pkg_b', 'memo_rules_closure']);
+// What each package publicly imports. A methodology's package is named for it
+// (`<usage>_pkg`), and its public imports are its selection.
+const IMPORTS = new Map<string, ReadonlySet<string>>([
+    ['base_pkg', new Set(['pkg_a'])],
+    ['child_pkg', new Set(['pkg_b'])],
+    ['pkg_a', new Set()],
+    ['pkg_b', new Set()],
+]);
 
 // ─── Methodology chain ───────────────────────────────────────────────────────
 
 describe('resolveEffectiveMethodology', () => {
-    it('walks the inheritance chain base-first', () => {
-        const base = methodology({ usageName: 'base', scopeMode: 'explicit', includedModules: ['pkg_a'] });
+    it('walks the inheritance chain base-first, and selects what each package publicly imports', () => {
+        const base = methodology({ usageName: 'base', scopeMode: 'explicit', packageQualifiedName: 'base_pkg' });
         const child = methodology({
             usageName: 'child', baseMethodologyName: 'base',
-            scopeMode: 'explicit', includedModules: ['pkg_b'],
+            scopeMode: 'explicit', packageQualifiedName: 'child_pkg',
         });
         const effective = resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'child' }),
             new Map([['base', base], ['child', child]]),
-            ALL,
+            IMPORTS,
         );
         expect(effective.chain.map(m => m.usageName)).toEqual(['base', 'child']);
-        expect(effective.includedModules).toEqual(['pkg_a', 'pkg_b']);
+        expect(effective.selectedPackages).toEqual(['pkg_a', 'pkg_b']);
         expect(effective.diagnostics).toEqual([]);
     });
 
@@ -69,7 +75,7 @@ describe('resolveEffectiveMethodology', () => {
         const effective = resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'child' }),
             new Map([['child', child]]),
-            ALL,
+            IMPORTS,
         );
         expect(effective.diagnostics.map(d => d.code)).toEqual(['missing-base']);
     });
@@ -80,148 +86,42 @@ describe('resolveEffectiveMethodology', () => {
         const effective = resolveEffectiveMethodology(
             binding({ usageName: 'bind', selectedMethodologyName: 'a' }),
             new Map([['a', a], ['b', b]]),
-            ALL,
+            IMPORTS,
         );
         expect(effective.diagnostics.map(d => d.code)).toContain('inheritance-cycle');
     });
 
-    it('rejects a module name no resolved package supplies', () => {
-        const m = methodology({ usageName: 'm', scopeMode: 'explicit', includedModules: ['pkg_ghost'] });
+    it('rejects allAvailable on a methodology whose package also publicly imports', () => {
+        const m = methodology({ usageName: 'm', scopeMode: 'allAvailable', packageQualifiedName: 'base_pkg' });
         const effective = resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'm' }),
             new Map([['m', m]]),
-            ALL,
-        );
-        expect(effective.diagnostics.map(d => d.code)).toEqual(['unavailable-module']);
-    });
-
-    it('rejects allAvailable authored alongside inclusion entries', () => {
-        const m = methodology({
-            usageName: 'm', scopeMode: 'allAvailable', includedModules: ['pkg_a'],
-        });
-        const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
-            new Map([['m', m]]),
-            ALL,
+            IMPORTS,
         );
         expect(effective.diagnostics.map(d => d.code)).toContain('scope-mode-conflict');
     });
 
-    it('applies project additions on top of the methodology selection', () => {
-        const m = methodology({ usageName: 'm', scopeMode: 'explicit', includedModules: ['pkg_a'] });
+    it('rejects allAvailable authored alongside typed inclusion entries', () => {
+        const m = methodology({ usageName: 'm', scopeMode: 'allAvailable', includedStandards: ['iso14971'] });
         const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'm', includedModules: ['pkg_b'] }),
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
             new Map([['m', m]]),
-            ALL,
+            IMPORTS,
         );
-        expect(effective.includedModules).toEqual(['pkg_a', 'pkg_b']);
+        expect(effective.diagnostics.map(d => d.code)).toContain('scope-mode-conflict');
     });
-});
 
-// ─── Extensions ──────────────────────────────────────────────────────────────
-//
-// A project names an extension by its methodology; the extension's methodology
-// lists every package it ships and the extensions it builds on. These mirror
-// memo/extensions: ros includes messaging and container, aadl ships a facade
-// over two content packages.
-
-describe('includedExtension', () => {
-    const defaults = methodology({ usageName: 'mdDefault', scopeMode: 'explicit', includedModules: ['memo_everything'] });
-    const narrow = methodology({ usageName: 'narrow', scopeMode: 'explicit', includedModules: ['pkg_a'] });
-    const messaging = methodology({
-        usageName: 'messagingExtensionMethod', baseMethodologyName: 'mdDefault', scopeMode: 'explicit',
-        includedModules: ['memo_extension_messaging'],
-    });
-    const container = methodology({
-        usageName: 'containerExtensionMethod', baseMethodologyName: 'mdDefault', scopeMode: 'explicit',
-        includedModules: ['memo_extension_container'],
-    });
-    const ros = methodology({
-        usageName: 'rosExtensionMethod', baseMethodologyName: 'mdDefault', scopeMode: 'explicit',
-        includedModules: ['memo_extension_ros'],
-        includedExtensions: ['messagingExtensionMethod', 'containerExtensionMethod'],
-        rulePolicies: [policy({ usageName: 'extensionPolicy', disposition: 'disabled' })],
-    });
-    const all = new Map([defaults, narrow, messaging, container, ros].map(m => [m.usageName, m]));
-    const available = new Set([
-        'memo_everything', 'pkg_a', 'memo_extension_messaging', 'memo_extension_container', 'memo_extension_ros',
-    ]);
-
-    it('selects an extension and, transitively, the extensions it includes', () => {
+    // The package is the selection, so two methodologies in one package would
+    // select the same packages whatever either of them says.
+    it('rejects a methodology that shares its package with another', () => {
+        const m = methodology({ usageName: 'm', scopeMode: 'explicit', packageQualifiedName: 'base_pkg' });
+        const other = methodology({ usageName: 'other', scopeMode: 'explicit', packageQualifiedName: 'base_pkg' });
         const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedExtensions: ['rosExtensionMethod'] }),
-            all, available,
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
+            new Map([['m', m], ['other', other]]),
+            IMPORTS,
         );
-        expect(effective.extensions.map(m => m.usageName))
-            .toEqual(['rosExtensionMethod', 'messagingExtensionMethod', 'containerExtensionMethod']);
-        expect(effective.includedModules).toEqual(
-            ['pkg_a', 'memo_extension_ros', 'memo_extension_messaging', 'memo_extension_container']);
-        expect(effective.diagnostics).toEqual([]);
-    });
-
-    it("does not follow an extension's base chain or apply its policies", () => {
-        // ros's base is the default methodology. Following it would widen the
-        // narrow methodology to everything the default selects.
-        const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedExtensions: ['rosExtensionMethod'] }),
-            all, available,
-        );
-        expect(effective.chain.map(m => m.usageName)).toEqual(['narrow']);
-        expect(effective.includedModules).not.toContain('memo_everything');
-        expect(effective.policyChain).toEqual([]);
-    });
-
-    it('is honoured on a methodology as well as a binding', () => {
-        const child = methodology({
-            usageName: 'child', baseMethodologyName: 'narrow', scopeMode: 'explicit',
-            includedExtensions: ['messagingExtensionMethod'],
-        });
-        const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'child' }),
-            new Map([...all, ['child', child]]), available,
-        );
-        expect(effective.includedModules).toEqual(['pkg_a', 'memo_extension_messaging']);
-    });
-
-    it('reports an extension that names no resolved methodology', () => {
-        const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedExtensions: ['ghostExtensionMethod'] }),
-            all, available,
-        );
-        expect(effective.diagnostics.map(d => d.code)).toEqual(['missing-extension']);
-    });
-
-    it('terminates when extensions include each other', () => {
-        const a = methodology({ usageName: 'a', scopeMode: 'explicit', includedModules: ['pkg_a'], includedExtensions: ['b'] });
-        const b = methodology({ usageName: 'b', scopeMode: 'explicit', includedModules: ['pkg_b'], includedExtensions: ['a'] });
-        const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'bind', selectedMethodologyName: 'narrow', includedExtensions: ['a'] }),
-            new Map([...all, ['a', a], ['b', b]]), ALL,
-        );
-        expect(effective.includedModules).toEqual(['pkg_a', 'pkg_b']);
-        expect(effective.diagnostics).toEqual([]);
-    });
-
-    it('selects every package an extension lists, and only those: matching stays exact', () => {
-        // The aadl facade re-exports its content packages, but a facade entry
-        // does not select them. The extension's methodology has to list them.
-        const facadeOnly = buildEffectiveScope(resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedModules: ['memo_extension_aadl'] }),
-            all, new Set(['pkg_a', 'memo_extension_aadl', 'memo_extension_aadl_runtime']),
-        ));
-        expect(isPackageInScope(facadeOnly, 'memo_extension_aadl_runtime')).toBe(false);
-
-        const aadl = methodology({
-            usageName: 'aadlExtensionMethod', scopeMode: 'explicit',
-            includedModules: ['memo_extension_aadl', 'memo_extension_aadl_runtime'],
-        });
-        const whole = buildEffectiveScope(resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'narrow', includedExtensions: ['aadlExtensionMethod'] }),
-            new Map([...all, ['aadlExtensionMethod', aadl]]),
-            new Set(['pkg_a', 'memo_extension_aadl', 'memo_extension_aadl_runtime']),
-        ));
-        expect(isPackageInScope(whole, 'memo_extension_aadl_runtime')).toBe(true);
-        expect(isPackageInScope(whole, 'memo_extension_aadl_methodology')).toBe(false);
+        expect(effective.diagnostics.map(d => d.code)).toEqual(['shared-methodology-package']);
     });
 });
 
@@ -230,7 +130,9 @@ describe('includedExtension', () => {
 // A methodology selects packages the way SysML says one package passes another
 // on: its declaring package imports them publicly. A project adds to that the
 // same way, from its entrypoint package. A private import is a package's own
-// business and selects nothing.
+// business and selects nothing. The shapes mirror memo: a layer package over
+// its packages, an extension facade over its own packages and the extension it
+// builds on.
 describe('selection by public import', () => {
     const imports = new Map<string, ReadonlySet<string>>([
         ['meth_pkg', new Set(['layer_facade', 'pkg_rules'])],
@@ -245,7 +147,7 @@ describe('selection by public import', () => {
 
     it("selects the public-import closure of the methodology's package, not the package itself", () => {
         const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'm' }), new Map([['m', m]]), ALL, imports);
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }), new Map([['m', m]]), imports);
         expect(effective.selectedPackages).toEqual(['layer_facade', 'pkg_rules', 'layer_a', 'layer_b']);
         const scope = buildEffectiveScope(effective);
         expect(isPackageInScope(scope, 'layer_b')).toBe(true);
@@ -256,7 +158,7 @@ describe('selection by public import', () => {
     it("adds what the project's entrypoint package publicly imports, transitively", () => {
         const effective = resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'm', packageQualifiedName: 'project_pkg' }),
-            new Map([['m', m]]), ALL, imports);
+            new Map([['m', m]]), imports);
         const scope = buildEffectiveScope(effective);
         for (const name of ['ext_facade', 'ext_runtime', 'ext_dep', 'layer_a']) {
             expect(isPackageInScope(scope, name)).toBe(true);
@@ -267,16 +169,24 @@ describe('selection by public import', () => {
         const effective = resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'm' }),
             new Map([['m', methodology({ usageName: 'm', scopeMode: 'explicit', packageQualifiedName: 'private_only' })]]),
-            ALL, new Map([['private_only', new Set<string>()]]));
+            new Map([['private_only', new Set<string>()]]));
         expect(effective.selectedPackages).toEqual([]);
         expect(isPackageInScope(buildEffectiveScope(effective), 'pkg_a')).toBe(false);
+    });
+
+    it('matches a selected package by name and nothing beside it', () => {
+        const scope = buildEffectiveScope(resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }), new Map([['m', m]]), imports));
+        expect(isPackageInScope(scope, 'layer_a')).toBe(true);
+        expect(isPackageInScope(scope, 'layer_a_sibling')).toBe(false);
+        expect(isPackageInScope(scope, 'layer')).toBe(false);
     });
 });
 
 // ─── Effective scope ─────────────────────────────────────────────────────────
 
 describe('effective scope', () => {
-    it('selects nothing for an empty list under explicit', () => {
+    it('selects nothing under explicit when the package imports nothing publicly', () => {
         // This is the behaviour the flip exists to change. The old helper read
         // an empty list as "the methodology does not restrict", so a
         // methodology that selected nothing behaved identically to one that
@@ -284,10 +194,10 @@ describe('effective scope', () => {
         const scope = buildEffectiveScope(resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'm' }),
             new Map([['m', methodology({ usageName: 'm', scopeMode: 'explicit' })]]),
-            ALL,
+            IMPORTS,
         ));
         expect(scope.mode).toBe('explicit');
-        expect(isInScope(scope, 'layer', 'anything')).toBe(false);
+        expect(isInScope(scope, 'standard', 'anything')).toBe(false);
         expect(isPackageInScope(scope, 'pkg_a')).toBe(false);
     });
 
@@ -295,10 +205,10 @@ describe('effective scope', () => {
         const scope = buildEffectiveScope(resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'm' }),
             new Map([['m', methodology({ usageName: 'm', scopeMode: 'allAvailable' })]]),
-            ALL,
+            IMPORTS,
         ));
         expect(scope.mode).toBe('allAvailable');
-        expect(isInScope(scope, 'layer', 'anything')).toBe(true);
+        expect(isInScope(scope, 'standard', 'anything')).toBe(true);
         expect(isPackageInScope(scope, 'pkg_ghost')).toBe(true);
     });
 
@@ -306,99 +216,16 @@ describe('effective scope', () => {
         const base = methodology({ usageName: 'base', scopeMode: 'allAvailable' });
         const child = methodology({
             usageName: 'child', baseMethodologyName: 'base',
-            scopeMode: 'explicit', includedLayers: ['pkg_a'],
+            scopeMode: 'explicit', packageQualifiedName: 'base_pkg',
         });
         const scope = buildEffectiveScope(resolveEffectiveMethodology(
             binding({ usageName: 'b', selectedMethodologyName: 'child' }),
             new Map([['base', base], ['child', child]]),
-            ALL,
+            IMPORTS,
         ));
         expect(scope.mode).toBe('explicit');
         expect(isPackageInScope(scope, 'pkg_a')).toBe(true);
         expect(isPackageInScope(scope, 'pkg_b')).toBe(false);
-    });
-
-    // A layer entry names a NAMESPACE, not a package. `memo_core.sysml` says so:
-    // "Layer entries normally name a public MEMO layer namespace; module entries
-    // may name any qualified package available to the project."
-    //
-    // Matching the two alike is what made all five of gpca-pump's layer entries
-    // select nothing, which silently dropped 25 rules — every rule whose subject
-    // kind is declared in an architecture package, CR-ONT-076 among them. The
-    // example reported `0 violations` throughout, because a rule that never runs
-    // cannot fail.
-    it('places a package inside a selected layer namespace', () => {
-        const scope = buildEffectiveScope(resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
-            new Map([['m', methodology({
-                usageName: 'm', scopeMode: 'explicit',
-                includedLayers: ['memo_architecture_logical'],
-            })]]),
-            new Set(['memo_architecture_logical_interfaces']),
-        ));
-        // The namespace itself is not a package anywhere in the tree; the leaves
-        // below it are what the resolver actually has to place.
-        expect(isPackageInScope(scope, 'memo_architecture_logical_interfaces')).toBe(true);
-        expect(isPackageInScope(scope, 'memo_architecture_logical_structure')).toBe(true);
-        expect(isPackageInScope(scope, 'memo_architecture_logical')).toBe(true);
-    });
-
-    it('stops a layer namespace at a separator', () => {
-        const scope = buildEffectiveScope(resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
-            new Map([['m', methodology({
-                usageName: 'm', scopeMode: 'explicit',
-                includedLayers: ['memo_architecture_logical'],
-            })]]),
-            new Set(['memo_architecture_logical_interfaces']),
-        ));
-        // A bare prefix test would capture this: it shares every letter of the
-        // layer name and is a different namespace.
-        expect(isPackageInScope(scope, 'memo_architecture_logicalxx')).toBe(false);
-    });
-
-    it('keeps module matching exact', () => {
-        // A module entry may name a package outside MEMO, where prefix matching
-        // would quietly capture a neighbour that shares an opening segment.
-        const scope = buildEffectiveScope(resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
-            new Map([['m', methodology({
-                usageName: 'm', scopeMode: 'explicit',
-                includedModules: ['vendor_pkg'],
-            })]]),
-            new Set(['vendor_pkg']),
-        ));
-        expect(isPackageInScope(scope, 'vendor_pkg')).toBe(true);
-        expect(isPackageInScope(scope, 'vendor_pkg_internal')).toBe(false);
-    });
-
-    it('reports a layer that covers no resolved package', () => {
-        // The counterpart of `unavailable-module`, which existed while this did
-        // not. That asymmetry is the whole reason the defect was invisible: a
-        // selection matching nothing just narrows the rule set, and a narrower
-        // rule set reports fewer violations, which reads like a cleaner model.
-        const effective = resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
-            new Map([['m', methodology({
-                usageName: 'm', scopeMode: 'explicit',
-                includedLayers: ['memo_architecture_logical', 'context'],
-            })]]),
-            new Set(['memo_architecture_logical_interfaces']),
-        );
-        // The first layer covers a package; `context` — the archetype spelling —
-        // covers none, and is the one that has to be named.
-        expect(effective.diagnostics.map(d => d.code)).toEqual(['unavailable-layer']);
-        expect(effective.diagnostics[0].message).toContain('context');
-    });
-
-    it('filters palette kinds by scope', () => {
-        const scope = buildEffectiveScope(resolveEffectiveMethodology(
-            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
-            new Map([['m', methodology({ usageName: 'm', scopeMode: 'explicit', includedLayers: ['risk'] })]]),
-            new Set(['risk']),
-        ));
-        const kinds = [{ layer: 'risk' }, { layer: 'cybersecurity' }, { layer: undefined }] as Array<{ layer?: string }>;
-        expect(filterKindsInScope(kinds, scope)).toEqual([{ layer: 'risk' }]);
     });
 });
 

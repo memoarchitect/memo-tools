@@ -67,7 +67,6 @@ package lib_a {
         attribute projectName : String;
         ref selectedMethodology : MethodologyDefinition;
         attribute scopeMode : ScopeModeKind;
-        attribute includedModule : String[0..*];
     }
     part def Widget;
     part chosenMethod : MethodologyDefinition {
@@ -223,18 +222,20 @@ package demo_second {
         expect(r.binding?.usageName).toBe('projectBinding');
     });
 
-    it('rejects a binding that declares allAvailable and lists modules', async () => {
+    it('rejects a binding that declares allAvailable and also adds packages by public import', async () => {
         write('model/catalog/project.sysml', `
 package demo_project {
     private import lib_a::*;
+    public import lib_b::*;
     part projectBinding : ProjectMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
         attribute :>> scopeMode = ScopeModeKind::allAvailable;
-        attribute :>> includedModule = ("lib_b");
     }
 }
 `);
         const r = await resolveNativeProject(TMP);
+        // The compiler's handoff says which import is public: lib_b is, lib_a is not.
+        expect([...(r.publicImports.get('demo_project') ?? [])]).toEqual(['lib_b']);
         expect(r.diagnostics.map(d => d.code)).toContain('scope-mode-conflict');
     });
 

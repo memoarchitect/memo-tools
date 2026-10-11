@@ -130,8 +130,6 @@ export function apiNativeUsages(api: ApiModel, fileOf: (element: ApiElement) => 
                 projectName: reader.attr(node, 'projectName'),
                 selectedMethodologyName: reader.refType(node, 'selectedMethodology'),
                 scopeMode: asScopeMode(reader.attr(node, 'scopeMode')),
-                includedModules: reader.attrList(node, 'includedModule'),
-                includedExtensions: reader.refList(node, 'includedExtension').map(usageNameOf),
                 rulePolicies: reader.policies(node, file),
                 sourceFile: file,
                 packageQualifiedName: pkg,
@@ -144,9 +142,6 @@ export function apiNativeUsages(api: ApiModel, fileOf: (element: ApiElement) => 
                 version: reader.attr(node, 'version'),
                 baseMethodologyName: reader.refType(node, 'baseMethodology'),
                 scopeMode: asScopeMode(reader.attr(node, 'scopeMode')),
-                includedLayers: reader.attrList(node, 'includedLayer'),
-                includedModules: reader.attrList(node, 'includedModule'),
-                includedExtensions: reader.refList(node, 'includedExtension').map(usageNameOf),
                 includedStandards: reader.refList(node, 'includedStandard'),
                 includedArtifactKinds: reader.attrList(node, 'includedArtifactKind'),
                 includedViewpoints: reader.refList(node, 'includedViewpoint'),
@@ -166,8 +161,6 @@ function asScopeMode(raw: string | undefined): ScopeMode | undefined {
 }
 
 const lastSegment = (name: string) => name.slice(name.lastIndexOf('::') + 2);
-/** A methodology is keyed by its usage name; a reference may arrive qualified or bare. */
-const usageNameOf = (name: string) => (name.includes('::') ? lastSegment(name) : name);
 
 /** The attribute, list and reference readers `readNativeUsages` uses, over the handoff. */
 class UsageReader {

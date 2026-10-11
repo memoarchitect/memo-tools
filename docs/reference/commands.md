@@ -167,8 +167,8 @@ rule on a layer (`--category`). It disables the selection (`--disable`, with a
 rationale) or changes its severity; a selection of several rules cannot be
 replaced. A bulk policy is still one decision: the record lists it once with the
 rules it reached, and a rule added later that the selection matches is covered by
-it. A *category* is the layer of the rule's subject kind, spelled as a
-methodology's `includedLayer` spells it (`memo_assurance_safety_risk`); that is
+it. A *category* is the layer of the rule's subject kind, named by its namespace
+(`memo_assurance_safety_risk`); that is
 a different thing from the tailoring class `memo validate --rules --category` filters
 by. An invariant in the selection keeps running and the command says so. A
 standard is selected by the clauses its rules enforce, which a stage 1 compiler's handoff

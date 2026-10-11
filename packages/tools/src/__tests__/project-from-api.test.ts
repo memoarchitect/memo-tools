@@ -86,8 +86,8 @@ own(more, signal, 'library');
 relate(lib, { '@type': 'NamespaceImport', importedNamespace: ref('scalar') }, 'library');
 const strict = typedPart(lib, 'strict', methodologyDef, 'library');
 attribute(strict, 'name', { '@type': 'LiteralString', value: 'Strict' }, 'library');
-attribute(strict, 'includedLayer', { '@type': 'LiteralString', value: 'safety' }, 'library');
-attribute(strict, 'includedLayer', { '@type': 'LiteralString', value: 'core' }, 'library');
+attribute(strict, 'includedArtifactKind', { '@type': 'LiteralString', value: 'plan' }, 'library');
+attribute(strict, 'includedArtifactKind', { '@type': 'LiteralString', value: 'report' }, 'library');
 
 // The project: package `app` importing `lib::*`, `lib::extras::**` and a
 // membership of `lib`, with its method binding. The three imports state their
@@ -104,8 +104,6 @@ const binding = typedPart(app, 'appBinding', bindingDef, 'project');
 attribute(binding, 'id', { '@type': 'LiteralString', value: 'B-1' }, 'project');
 attribute(binding, 'scopeMode', reference(scope['@id'], 'project'), 'project');
 narrowed(binding, 'selectedMethodology', strict, 'project');
-const list = add({ '@type': 'OperatorExpression', operator: ',' }, 'project');
-attribute(binding, 'includedModule', { ...list }, 'project');
 const policy = typedPart(binding, 'relax', policyDef, 'project');
 narrowed(policy, 'targetRule', ruleDef, 'project');
 attribute(policy, 'disposition', { '@type': 'LiteralString', value: 'disabled' }, 'project');
@@ -156,7 +154,7 @@ describe('project resolution read from a stage 1 handoff', () => {
             rulePolicies: [expect.objectContaining({ usageName: 'relax', targetRuleType: 'HazardRule', disposition: 'disabled' })],
         })]);
         expect(methodologies).toEqual([expect.objectContaining({
-            usageName: 'strict', displayName: 'Strict', includedLayers: ['safety', 'core'], packageQualifiedName: 'lib',
+            usageName: 'strict', displayName: 'Strict', includedArtifactKinds: ['plan', 'report'], packageQualifiedName: 'lib',
         })]);
     });
 });
@@ -170,8 +168,8 @@ describe('methodology content read from a stage 1 handoff', () => {
         expect(library.partDefs.map(d => d.name)).toEqual(['ProjectMethodBinding', 'MethodologyDefinition', 'RulePolicy']);
         expect(library.parts).toEqual([expect.objectContaining({
             partName: 'strict', partType: 'MethodologyDefinition', namespace: 'lib',
-            attributes: { name: 'Strict', includedLayer: 'core' },
-            multiAttributes: { name: ['Strict'], includedLayer: ['safety', 'core'] },
+            attributes: { name: 'Strict', includedArtifactKind: 'report' },
+            multiAttributes: { name: ['Strict'], includedArtifactKind: ['plan', 'report'] },
         })]);
     });
 

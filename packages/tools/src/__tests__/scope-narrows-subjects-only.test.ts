@@ -16,7 +16,7 @@ import { scopedSubjectIds } from '../model/effective-scope.js';
 // Measured on gpca-pump 2026-08-19: 374 of 723 elements dropped and ALL 110
 // `satisfiedBy` edges lost an endpoint, because `filePackages` maps every file,
 // so the module-scope test was applied to architecture kinds that
-// `includedLayer` governs. XL-002 then reported 89 requirements as lacking
+// the layer selection governs. XL-002 then reported 89 requirements as lacking
 // requirements-to-architecture traceability that the source plainly traces.
 //
 // Narrowing `elementsByKind` instead is no better: `conformsTo` reads it, so

@@ -8,37 +8,24 @@
 // treated an empty inclusion list as "the methodology does not restrict", so a
 // methodology that selected nothing and a methodology that selected everything
 // produced identical results, and nobody could tell which one had been authored.
-// Scope is now explicit: `scopeMode` says which it is, and under `explicit` an
-// empty list selects nothing.
+// Scope is now explicit: `scopeMode` says which it is, and under `explicit` a
+// methodology whose package publicly imports nothing selects nothing.
 //
 // Design reference: sections 9.2 and 18.3 deliverable 3.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { EffectiveMethodology, RuleCandidate } from './methodology-resolver.js';
-import { ruleCandidatesFromConstraints, isWithinLayerNamespace, resolveEffectiveRules } from './methodology-resolver.js';
+import { ruleCandidatesFromConstraints, resolveEffectiveRules } from './methodology-resolver.js';
 import type { CompiledConstraint } from '../validator/constraint-eval.js';
 import type { MemoModel } from './semantic.js';
 
-/**
- * The part of a kind this module needs.
- *
- * `layer` is optional here even though the registry always fills it: a caller
- * may be asking about a kind that did not resolve, and "unplaced" has to be a
- * representable answer rather than a cast.
- */
-export interface ScopedKind {
-    layer?: string;
-}
-
-export type ScopeDimension = 'layer' | 'module' | 'standard' | 'artifactKind' | 'viewpoint';
+export type ScopeDimension = 'standard' | 'artifactKind' | 'viewpoint';
 
 /** The resolved answer to "what is in scope", ready to be asked questions. */
 export interface EffectiveScope {
     mode: 'allAvailable' | 'explicit';
     /** The packages the selection imports (`EffectiveMethodology.selectedPackages`). */
     packages: ReadonlySet<string>;
-    layers: ReadonlySet<string>;
-    modules: ReadonlySet<string>;
     standards: ReadonlySet<string>;
     artifactKinds: ReadonlySet<string>;
     viewpoints: ReadonlySet<string>;
@@ -48,8 +35,6 @@ export function buildEffectiveScope(methodology: EffectiveMethodology): Effectiv
     return {
         mode: methodology.scopeMode,
         packages: new Set(methodology.selectedPackages),
-        layers: new Set(methodology.includedLayers),
-        modules: new Set(methodology.includedModules),
         standards: new Set(methodology.includedStandards),
         artifactKinds: new Set(methodology.includedArtifactKinds),
         viewpoints: new Set(methodology.includedViewpoints),
@@ -60,8 +45,6 @@ export function buildEffectiveScope(methodology: EffectiveMethodology): Effectiv
 export const UNRESTRICTED_SCOPE: EffectiveScope = {
     mode: 'allAvailable',
     packages: new Set(),
-    layers: new Set(),
-    modules: new Set(),
     standards: new Set(),
     artifactKinds: new Set(),
     viewpoints: new Set(),
@@ -69,8 +52,6 @@ export const UNRESTRICTED_SCOPE: EffectiveScope = {
 
 function setFor(scope: EffectiveScope, dimension: ScopeDimension): ReadonlySet<string> {
     switch (dimension) {
-        case 'layer': return scope.layers;
-        case 'module': return scope.modules;
         case 'standard': return scope.standards;
         case 'artifactKind': return scope.artifactKinds;
         case 'viewpoint': return scope.viewpoints;
@@ -91,51 +72,17 @@ export function isInScope(scope: EffectiveScope, dimension: ScopeDimension, valu
 }
 
 /**
- * Is a kind in scope?
- *
- * A kind belongs to exactly one axis position, so it is in scope when its layer
- * is selected. A kind with no layer is only in scope under `allAvailable`: an
- * unplaced kind cannot be shown to satisfy an explicit selection.
- */
-export function isKindInScope(scope: EffectiveScope, kind: ScopedKind): boolean {
-    return isInScope(scope, 'layer', kind.layer);
-}
-
-/** Filter kinds to those in scope. Used by palettes and creation dialogs alike. */
-export function filterKindsInScope<T extends ScopedKind>(
-    kinds: readonly T[],
-    scope: EffectiveScope,
-): T[] {
-    if (scope.mode === 'allAvailable') return [...kinds];
-    return kinds.filter(kind => isKindInScope(scope, kind));
-}
-
-/**
  * Is a package in scope?
  *
- * The two inclusion lists are NOT two spellings of one thing. A module entry
- * names a package; a layer entry names a namespace and selects every package
- * within it. This comment used to say they were split "for readability, not
- * because the resolver treats them differently", and the code matched the
- * comment — which is how five layer entries selected nothing for as long as
- * they did.
+ * Under `explicit`, a package is in scope when the selection imports it: the
+ * methodology's package, or the binding's, publicly imports it, directly or
+ * through packages it publicly imports (`publicImportClosure`). A layer is
+ * selected through its layer package and an extension through its facade, so
+ * there is no second, name-matching test here.
  */
 export function isPackageInScope(scope: EffectiveScope, packageName: string): boolean {
     if (scope.mode === 'allAvailable') return true;
-    // A module entry names a package, so it matches one by name. A layer entry
-    // names a NAMESPACE and selects every package within it — the two are not
-    // the same test, and treating them alike is what made every layer entry
-    // match nothing at all.
-    //
-    // Module matching stays exact on purpose. A module entry may name a package
-    // outside MEMO, where a prefix test would quietly over-capture a neighbour
-    // that merely shares an opening segment.
-    if (scope.packages.has(packageName)) return true;
-    if (scope.modules.has(packageName)) return true;
-    for (const layer of scope.layers) {
-        if (isWithinLayerNamespace(layer, packageName)) return true;
-    }
-    return false;
+    return scope.packages.has(packageName);
 }
 
 /**
@@ -184,7 +131,7 @@ export function activeRuleCandidates(
         // A model-level rule has no single subject kind to place.
         if (!appliesTo || appliesTo === 'Model') return true;
         const kindName = appliesTo.split('[')[0];
-        // A methodology's inclusion lists name packages, so a kind is placed by
+        // A methodology selects packages, so a kind is placed by
         // the package that declares it — not by the `layer` string, which is a
         // display grouping in a different namespace.
         return isRulePackageInScope(scope, packageOf(kindSourceFile(kindName)));
@@ -196,9 +143,9 @@ export function activeRuleCandidates(
     // diagnostic to show for it. An invariant over a kind the project never
     // uses runs on nothing and reports as vacuous, which is the honest answer.
     //
-    // A rule the project wrote itself is not filtered by package: a methodology's
-    // inclusion lists name the ontology's packages, and a project's own rule
-    // belongs to a package no list could name. Its subject kind is still checked.
+    // A rule the project wrote itself is not filtered by package: a methodology
+    // selects the ontology's packages, and a project's own rule belongs to the
+    // project. Its subject kind is still checked.
     return ruleCandidatesFromConstraints(
         constraints.filter(c => c.tailoring === 'invariant'
             || (((c.sourceFile !== undefined && isOwnFile(c.sourceFile))

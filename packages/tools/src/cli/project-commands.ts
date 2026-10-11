@@ -524,7 +524,7 @@ export function registerProjectCommands(program: Command): void {
         .argument('[dir]', 'Project directory', '.')
         .option('--rule <rule>', 'One rule: its id or constraint def name')
         .option('--standard <standard>', 'Every rule that enforces a clause of this standard, e.g. "ISO 14971"')
-        .option('--category <layer>', "Every rule whose subject kind is in this layer (the discipline), as a methodology's includedLayer spells it, e.g. memo_assurance_safety_risk")
+        .option('--category <layer>', "Every rule whose subject kind is in this layer (the discipline), by its namespace, e.g. memo_assurance_safety_risk")
         .option('--disable', 'Switch the selected rules off (needs --rationale)')
         .option('--severity <severity>', 'Change the severity to error, warning or info')
         .option('--replace-with <rule>', 'Replace one rule with another constraint def (--rule only)')

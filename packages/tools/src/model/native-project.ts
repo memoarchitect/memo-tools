@@ -107,11 +107,9 @@ export interface NativeMethodBinding {
     /** Name the `selectedMethodology` reference resolves to. */
     selectedMethodologyName?: string;
     scopeMode?: ScopeMode;
-    includedModules: string[];
-    /** Usage names the `includedExtension` references resolve to: extensions, by their methodologies. */
-    includedExtensions: string[];
     rulePolicies: NativeRulePolicy[];
     sourceFile: string;
+    /** The package declaring the binding: what it publicly imports adds to the selection. */
     packageQualifiedName?: string;
 }
 
@@ -146,15 +144,12 @@ export interface NativeMethodology {
     /** Name the `baseMethodology` reference resolves to, when there is one. */
     baseMethodologyName?: string;
     scopeMode?: ScopeMode;
-    includedLayers: string[];
-    includedModules: string[];
-    /** Usage names the `includedExtension` references resolve to: extensions, by their methodologies. */
-    includedExtensions: string[];
     includedStandards: string[];
     includedArtifactKinds: string[];
     includedViewpoints: string[];
     rulePolicies: NativeRulePolicy[];
     sourceFile: string;
+    /** The package declaring the methodology: what it publicly imports is the selection. */
     packageQualifiedName?: string;
 }
 
@@ -584,14 +579,15 @@ export function finishResolution(
                 file: binding.sourceFile,
             });
         }
-        if (binding.scopeMode === 'allAvailable'
-            && (binding.includedModules.length > 0 || binding.includedExtensions.length > 0)) {
+        const imported = binding.packageQualifiedName
+            ? [...(publicImports.get(binding.packageQualifiedName) ?? [])] : [];
+        if (binding.scopeMode === 'allAvailable' && imported.length > 0) {
             diagnostics.push({
                 code: 'scope-mode-conflict',
                 message:
-                    `${binding.usageName} sets scopeMode = allAvailable and also lists includedModule or `
-                    + `includedExtension entries. `
-                    + `Under allAvailable the lists must be empty, or the binding states its scope twice.`,
+                    `${binding.usageName} sets scopeMode = allAvailable, and its package also publicly imports `
+                    + `${imported.join(', ')} to add to the selection. `
+                    + `Under allAvailable everything resolved is selected, so the binding states its scope twice.`,
                 file: binding.sourceFile,
             });
         }
