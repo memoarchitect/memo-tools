@@ -95,6 +95,7 @@ export interface RuleResolutionDiagnostic {
 export interface MethodologyDiagnostic {
     code:
         | 'missing-base'
+        | 'missing-extension'
         | 'inheritance-cycle'
         | 'unavailable-module'
         | 'unavailable-layer'
@@ -135,6 +136,12 @@ export function isWithinLayerNamespace(layer: string, packageName: string): bool
 export interface EffectiveMethodology {
     /** Base first, selected methodology last. */
     chain: NativeMethodology[];
+    /**
+     * The extensions `includedExtension` reached from the chain and the binding,
+     * transitively, in the order first reached. Each contributes its own
+     * inclusion lists; none contributes its base chain or its policies.
+     */
+    extensions: NativeMethodology[];
     scopeMode: ScopeMode;
     includedLayers: string[];
     includedModules: string[];
@@ -200,9 +207,44 @@ export function resolveEffectiveMethodology(
         ? 'allAvailable'
         : selected?.scopeMode ?? 'explicit';
 
+    // Extensions. An extension is named by its methodology, and what including
+    // one adds is that methodology's OWN selection, plus the extensions it
+    // includes in turn — never its base chain. Following the base would let an
+    // extension whose base is the default methodology widen a narrower selected
+    // methodology to everything the default selects. Its rule policies are not
+    // applied either: tailoring belongs to the selected chain and the project.
+    // A methodology reached twice (or already in the chain) contributes once,
+    // so a cycle of inclusions is a union and needs no special case.
+    const extensions: NativeMethodology[] = [];
+    const reached = new Set(chain.map(m => m.usageName));
+    const pending: { name: string; from: string }[] = [
+        ...chain.flatMap(m => m.includedExtensions.map(name => ({ name, from: m.usageName }))),
+        ...(binding?.includedExtensions ?? []).map(name => ({ name, from: binding!.usageName })),
+    ];
+    while (pending.length > 0) {
+        const { name, from } = pending.shift()!;
+        if (reached.has(name)) continue;
+        reached.add(name);
+        const extension = methodologies.get(name);
+        if (!extension) {
+            diagnostics.push({
+                code: 'missing-extension',
+                message:
+                    `"${from}" includes the extension "${name}", which no resolved package declares as a `
+                    + `MethodologyDefinition. Import the extension's methodology package; an extension that `
+                    + `does not resolve selects nothing.`,
+                methodology: from,
+            });
+            continue;
+        }
+        extensions.push(extension);
+        for (const next of extension.includedExtensions) pending.push({ name: next, from: extension.usageName });
+    }
+
+    const contributors = [...chain, ...extensions];
     const merge = (pick: (m: NativeMethodology) => string[]): string[] => {
         const out: string[] = [];
-        for (const m of chain) for (const v of pick(m)) if (!out.includes(v)) out.push(v);
+        for (const m of contributors) for (const v of pick(m)) if (!out.includes(v)) out.push(v);
         return out;
     };
 
@@ -252,7 +294,7 @@ export function resolveEffectiveMethodology(
         if (m.scopeMode === 'allAvailable') {
             const listed = [
                 ...m.includedLayers, ...m.includedModules, ...m.includedStandards,
-                ...m.includedArtifactKinds, ...m.includedViewpoints,
+                ...m.includedArtifactKinds, ...m.includedViewpoints, ...m.includedExtensions,
             ];
             if (listed.length > 0) {
                 diagnostics.push({
@@ -279,6 +321,7 @@ export function resolveEffectiveMethodology(
 
     return {
         chain,
+        extensions,
         scopeMode,
         includedLayers: merge(m => m.includedLayers),
         includedModules,

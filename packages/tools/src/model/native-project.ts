@@ -108,6 +108,8 @@ export interface NativeMethodBinding {
     selectedMethodologyName?: string;
     scopeMode?: ScopeMode;
     includedModules: string[];
+    /** Usage names the `includedExtension` references resolve to: extensions, by their methodologies. */
+    includedExtensions: string[];
     rulePolicies: NativeRulePolicy[];
     sourceFile: string;
     packageQualifiedName?: string;
@@ -146,6 +148,8 @@ export interface NativeMethodology {
     scopeMode?: ScopeMode;
     includedLayers: string[];
     includedModules: string[];
+    /** Usage names the `includedExtension` references resolve to: extensions, by their methodologies. */
+    includedExtensions: string[];
     includedStandards: string[];
     includedArtifactKinds: string[];
     includedViewpoints: string[];
@@ -562,11 +566,13 @@ export function finishResolution(
                 file: binding.sourceFile,
             });
         }
-        if (binding.scopeMode === 'allAvailable' && binding.includedModules.length > 0) {
+        if (binding.scopeMode === 'allAvailable'
+            && (binding.includedModules.length > 0 || binding.includedExtensions.length > 0)) {
             diagnostics.push({
                 code: 'scope-mode-conflict',
                 message:
-                    `${binding.usageName} sets scopeMode = allAvailable and also lists includedModule entries. `
+                    `${binding.usageName} sets scopeMode = allAvailable and also lists includedModule or `
+                    + `includedExtension entries. `
                     + `Under allAvailable the lists must be empty, or the binding states its scope twice.`,
                 file: binding.sourceFile,
             });
