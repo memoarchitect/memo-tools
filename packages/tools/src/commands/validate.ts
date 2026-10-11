@@ -341,6 +341,7 @@ export async function runValidation(
         resolution?.binding,
         resolution?.methodologies ?? new Map(),
         availablePackages,
+        resolution?.publicImports,
     );
     const scope = buildEffectiveScope(effectiveMethodology);
     // A methodology diagnostic is not advisory either. A module, layer or base

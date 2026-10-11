@@ -35,6 +35,8 @@ export type ScopeDimension = 'layer' | 'module' | 'standard' | 'artifactKind' | 
 /** The resolved answer to "what is in scope", ready to be asked questions. */
 export interface EffectiveScope {
     mode: 'allAvailable' | 'explicit';
+    /** The packages the selection imports (`EffectiveMethodology.selectedPackages`). */
+    packages: ReadonlySet<string>;
     layers: ReadonlySet<string>;
     modules: ReadonlySet<string>;
     standards: ReadonlySet<string>;
@@ -45,6 +47,7 @@ export interface EffectiveScope {
 export function buildEffectiveScope(methodology: EffectiveMethodology): EffectiveScope {
     return {
         mode: methodology.scopeMode,
+        packages: new Set(methodology.selectedPackages),
         layers: new Set(methodology.includedLayers),
         modules: new Set(methodology.includedModules),
         standards: new Set(methodology.includedStandards),
@@ -56,6 +59,7 @@ export function buildEffectiveScope(methodology: EffectiveMethodology): Effectiv
 /** A scope that selects everything — the shape callers get before a binding resolves. */
 export const UNRESTRICTED_SCOPE: EffectiveScope = {
     mode: 'allAvailable',
+    packages: new Set(),
     layers: new Set(),
     modules: new Set(),
     standards: new Set(),
@@ -126,6 +130,7 @@ export function isPackageInScope(scope: EffectiveScope, packageName: string): bo
     // Module matching stays exact on purpose. A module entry may name a package
     // outside MEMO, where a prefix test would quietly over-capture a neighbour
     // that merely shares an opening segment.
+    if (scope.packages.has(packageName)) return true;
     if (scope.modules.has(packageName)) return true;
     for (const layer of scope.layers) {
         if (isWithinLayerNamespace(layer, packageName)) return true;

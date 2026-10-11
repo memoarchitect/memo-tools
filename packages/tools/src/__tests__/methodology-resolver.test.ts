@@ -225,6 +225,54 @@ describe('includedExtension', () => {
     });
 });
 
+// ─── Selection by public import ──────────────────────────────────────────────
+
+// A methodology selects packages the way SysML says one package passes another
+// on: its declaring package imports them publicly. A project adds to that the
+// same way, from its entrypoint package. A private import is a package's own
+// business and selects nothing.
+describe('selection by public import', () => {
+    const imports = new Map<string, ReadonlySet<string>>([
+        ['meth_pkg', new Set(['layer_facade', 'pkg_rules'])],
+        ['layer_facade', new Set(['layer_a', 'layer_b'])],
+        ['layer_a', new Set()],
+        ['project_pkg', new Set(['ext_facade'])],
+        ['ext_facade', new Set(['ext_runtime', 'ext_dep'])],
+        // A cycle of public imports is a union, not a loop.
+        ['ext_dep', new Set(['ext_facade'])],
+    ]);
+    const m = methodology({ usageName: 'm', scopeMode: 'explicit', packageQualifiedName: 'meth_pkg' });
+
+    it("selects the public-import closure of the methodology's package, not the package itself", () => {
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }), new Map([['m', m]]), ALL, imports);
+        expect(effective.selectedPackages).toEqual(['layer_facade', 'pkg_rules', 'layer_a', 'layer_b']);
+        const scope = buildEffectiveScope(effective);
+        expect(isPackageInScope(scope, 'layer_b')).toBe(true);
+        expect(isPackageInScope(scope, 'meth_pkg')).toBe(false);
+        expect(isPackageInScope(scope, 'ext_runtime')).toBe(false);
+    });
+
+    it("adds what the project's entrypoint package publicly imports, transitively", () => {
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'm', packageQualifiedName: 'project_pkg' }),
+            new Map([['m', m]]), ALL, imports);
+        const scope = buildEffectiveScope(effective);
+        for (const name of ['ext_facade', 'ext_runtime', 'ext_dep', 'layer_a']) {
+            expect(isPackageInScope(scope, name)).toBe(true);
+        }
+    });
+
+    it('follows no import that is not public', () => {
+        const effective = resolveEffectiveMethodology(
+            binding({ usageName: 'b', selectedMethodologyName: 'm' }),
+            new Map([['m', methodology({ usageName: 'm', scopeMode: 'explicit', packageQualifiedName: 'private_only' })]]),
+            ALL, new Map([['private_only', new Set<string>()]]));
+        expect(effective.selectedPackages).toEqual([]);
+        expect(isPackageInScope(buildEffectiveScope(effective), 'pkg_a')).toBe(false);
+    });
+});
+
 // ─── Effective scope ─────────────────────────────────────────────────────────
 
 describe('effective scope', () => {

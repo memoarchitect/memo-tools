@@ -65,14 +65,20 @@ export function apiPackageIndex(
         if (!name) return;
         let entry = index.get(name);
         if (!entry) {
-            entry = { qualifiedName: name, files: new Set(), imports: new Set(), root: fileToRoot.get(file) };
+            entry = {
+                qualifiedName: name, files: new Set(), imports: new Set(), publicImports: new Set(), root: fileToRoot.get(file),
+            };
             index.set(name, entry);
         }
         entry.files.add(file);
         if (!entry.root) entry.root = fileToRoot.get(file);
         for (const relationship of api.ownedRelationships(pkg['@id'])) {
             const imported = importedPackage(api, relationship);
-            if (imported) entry.imports.add(imported);
+            if (!imported) continue;
+            entry.imports.add(imported);
+            // An import's visibility defaults to private (KerML, `Import::visibility`),
+            // and a handoff may leave a default out: SysIDE writes only `public`.
+            if (relationship.visibility === 'public') entry.publicImports.add(imported);
         }
         for (const member of api.ownedMembers(pkg['@id'])) {
             if (isPackage(member)) walk(member, file);
