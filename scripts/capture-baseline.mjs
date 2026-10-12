@@ -19,11 +19,13 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, symlinkSync
 import { resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { RECOMMENDED_COMPILER } from '../packages/tools/lib/toolchain/providers/recommended.js';
 
 // The baselines were frozen under a stage 1 compiler, and the projects name no
 // compiler of their own, so the capture says which one it runs under (a caller
-// may still set another and expect a divergence).
-process.env.MEMO_TOOLCHAIN_COMPILER ??= 'opensysml';
+// may still set another and expect a divergence). The recommended compiler is set in one
+// place, packages/tools/src/toolchain/providers/recommended.ts.
+process.env.MEMO_TOOLCHAIN_COMPILER ??= RECOMMENDED_COMPILER;
 
 const here = dirname(fileURLToPath(import.meta.url));
 const toolsRoot = resolve(here, '..');
