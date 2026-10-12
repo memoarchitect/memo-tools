@@ -36,7 +36,7 @@
     "type-check": "tsc -p packages/tools/tsconfig.json --noEmit",
     "clean": "rm -rf packages/tools/lib packages/tools/src/language/generated",
     "memo": "node packages/tools/lib/bin/memo.js",
-    "example:validate": "node scripts/validate-gpca-example.mjs",
+    "example:validate": "node scripts/validate-example.mjs",
     "docs:serve": "python3 -m mkdocs serve",
     "docs:build": "python3 -m mkdocs build --strict",
     "version:sync": "node scripts/sync-version.mjs",

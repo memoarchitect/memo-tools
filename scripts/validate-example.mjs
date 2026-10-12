@@ -8,8 +8,12 @@ import { tmpdir } from 'node:os';
 const require = createRequire(import.meta.url);
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ontologyRoot = dirname(require.resolve('@memoarchitect/ontology/package.json'));
-const installedExample = resolve(ontologyRoot, 'examples/gpca-pump');
-const exampleRoot = mkdtempSync(resolve(tmpdir(), 'memo-gpca-'));
+// `pnpm example:validate [<example>]` — gpca-pump unless another shipped
+// example is named. The example is validated in a scratch copy, so the identity
+// registry a validate writes never lands in the shipped tree.
+const example = process.argv[2] ?? 'gpca-pump';
+const installedExample = resolve(ontologyRoot, 'examples', example);
+const exampleRoot = mkdtempSync(resolve(tmpdir(), `memo-${example}-`));
 cpSync(installedExample, exampleRoot, { recursive: true });
 const memoCli = resolve(repoRoot, 'packages/tools/lib/bin/memo.js');
 

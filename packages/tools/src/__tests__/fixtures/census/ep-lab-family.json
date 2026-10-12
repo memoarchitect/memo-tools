@@ -1,0 +1,154 @@
+{
+  "project": "ep-lab-family",
+  "totals": {
+    "files": 9,
+    "elements": 37,
+    "definitions": 12,
+    "relationships": 22,
+    "packages": 9,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ProjectMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/shared/shared.sysml": {
+      "elements": 8,
+      "definitions": 6,
+      "kinds": {
+        "InterfaceItem": 3,
+        "LogicalComponent": 1,
+        "LogicalPort": 2,
+        "User": 2
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/sos/chains.sysml": {
+      "elements": 5,
+      "definitions": 0,
+      "kinds": {
+        "ActionUsage": 4,
+        "FunctionalFlow": 1
+      },
+      "relationships": 13,
+      "relationshipTypes": {
+        "composes": 4,
+        "flow": 2,
+        "performs": 4,
+        "succession": 3
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/sos/icds.sysml": {
+      "elements": 6,
+      "definitions": 2,
+      "kinds": {
+        "AblationEventPort": 1,
+        "ElectrogramPort": 1,
+        "Interface": 2,
+        "Unknown": 2
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/sos/sos.sysml": {
+      "elements": 2,
+      "definitions": 1,
+      "kinds": {
+        "ElectrophysiologyLab": 1,
+        "SystemOfSystems": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/sos/use_cases.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "UseCase": 1
+      },
+      "relationships": 6,
+      "relationshipTypes": {
+        "hasSubject": 1,
+        "includesStep": 3,
+        "participatesIn": 2
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/systems/ablation/ablation_system.sysml": {
+      "elements": 4,
+      "definitions": 1,
+      "kinds": {
+        "AblationEventPort": 1,
+        "System": 1,
+        "SystemFunction": 1,
+        "UseCase": 1
+      },
+      "relationships": 1,
+      "relationshipTypes": {
+        "participatesIn": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/systems/mapping/mapping_system.sysml": {
+      "elements": 6,
+      "definitions": 1,
+      "kinds": {
+        "System": 1,
+        "SystemFunction": 2,
+        "Unknown": 2,
+        "UseCase": 1
+      },
+      "relationships": 1,
+      "relationshipTypes": {
+        "participatesIn": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/systems/recording/recording_system.sysml": {
+      "elements": 4,
+      "definitions": 1,
+      "kinds": {
+        "ElectrogramPort": 1,
+        "System": 1,
+        "SystemFunction": 1,
+        "UseCase": 1
+      },
+      "relationships": 1,
+      "relationshipTypes": {
+        "participatesIn": 1
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

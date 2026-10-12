@@ -1149,7 +1149,15 @@ class ElementBuilder {
                 const bound = [...valueSteps(this.api.value(subject['@id'])),
                     ...this.api.subsetted(subject['@id']).map(f => this.steps(f)),
                     ...this.api.related(subject['@id'], ['ReferenceSubsetting'], 'referencedFeature').map(f => this.steps(f))];
-                const aboutSubject = ownerNode['@type'] === 'RequirementUsage' || ownerNode['@type'] === 'RequirementDefinition';
+                // A requirement and a use case are ABOUT their subject; a
+                // verification case's subject is what it verifies. A use case
+                // bound to its subject (`subject :>> supportingSystem = lab;`,
+                // or `= lab.mapping` on an `include`) is the system the case is
+                // carried out with, which `verifiedBy` would claim was verified.
+                const aboutSubject = [
+                    'RequirementUsage', 'RequirementDefinition',
+                    'UseCaseUsage', 'UseCaseDefinition', 'IncludeUseCaseUsage',
+                ].includes(ownerNode['@type']);
                 for (const steps of bound) {
                     const boundId = endpointOf(steps, node);
                     if (!boundId) continue;
