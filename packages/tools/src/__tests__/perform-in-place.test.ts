@@ -16,7 +16,6 @@ const SOURCE = `package P {
         perform action n : Clean;
         perform clean;
         perform action m;
-        perform action :>> clean;
     }
     action def Wash {
         perform action rinse : Clean;
