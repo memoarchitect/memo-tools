@@ -23,6 +23,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync,
 import { relative, resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type { DashboardDTO, DashboardScope } from '@memoarchitect/tools';
+import { ensureGitIgnored } from './project-gitignore.js';
 
 export const DASHBOARD_SCOPES: readonly DashboardScope[] = ['shared', 'user'];
 
@@ -86,20 +87,9 @@ function filePath(projectRoot: string, scope: DashboardScope, id: string): strin
     return resolve(dashboardDir(projectRoot, scope), `${id}.md`);
 }
 
-/**
- * Make sure the project's `.gitignore` keeps user dashboards out of git.
- *
- * Appends one line, never rewrites the file. Already covered is judged by an
- * exact line match on the common spellings; anything cleverer is the user's
- * own rule to keep.
- */
+/** Make sure the project's `.gitignore` keeps user dashboards out of git. */
 export function ensureUserDashboardsIgnored(projectRoot: string): void {
-    const path = resolve(projectRoot, '.gitignore');
-    const existing = existsSync(path) ? readFileSync(path, 'utf8') : '';
-    const spellings = new Set([USER_DASHBOARDS_IGNORE, 'dashboards/user', '/dashboards/user/', '/dashboards/user']);
-    if (existing.split(/\r?\n/).some(line => spellings.has(line.trim()))) return;
-    const lead = existing === '' || existing.endsWith('\n') ? '' : '\n';
-    writeFileSync(path, `${existing}${lead}\n# MEMO Architect: personal dashboards\n${USER_DASHBOARDS_IGNORE}\n`, 'utf8');
+    ensureGitIgnored(projectRoot, USER_DASHBOARDS_IGNORE, 'MEMO Architect: personal dashboards');
 }
 
 function ensureDir(projectRoot: string, scope: DashboardScope): string {

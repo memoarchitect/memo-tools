@@ -54,6 +54,7 @@ interface WorkspacePublication {
 // ─── Server → Client ────────────────────────────────────────────────────────
 
 export type ServerMessage =
+    | UserPreferencesMessage
     | ModelUpdateMessage
     | ValidationUpdateMessage
     | CompletenessUpdateMessage
@@ -309,6 +310,7 @@ export interface MethodologySourceResultMessage {
 // ─── Client → Server ────────────────────────────────────────────────────────
 
 export type ClientMessage =
+    | UserPreferencesSaveMessage
     | RequestRefreshMessage
     | ElementUpdateMessage
     | ElementCreateMessage
@@ -1282,6 +1284,29 @@ export interface DashboardMoveMessage {
 export interface DashboardResultMessage {
     type: 'dashboard:result';
     payload: { requestId?: string; ok: boolean; error?: string };
+}
+
+// ─── One person's choices for this model ─────────────────────────────────────
+
+/**
+ * What one person chose in Architect for this model, kept in `memo.user.yaml`
+ * at the model root and ignored by git. `role` is a stakeholder usage name
+ * (`safetyEngineer`) from the viewpoints' `stakeholders`; unset means every role.
+ */
+export interface UserPreferencesDTO {
+    role?: string;
+}
+
+/** Server → Client: the person's choices (on connect and after a save) */
+export interface UserPreferencesMessage {
+    type: 'user-preferences';
+    payload: UserPreferencesDTO;
+}
+
+/** Client → Server: replace the person's choices */
+export interface UserPreferencesSaveMessage {
+    type: 'user-preferences:save';
+    payload: UserPreferencesDTO;
 }
 
 /** Server → Client: CSV import results */

@@ -326,6 +326,13 @@ export interface ViewpointDTO {
      * — so a consumer builds the tree without re-resolving anything.
      */
     parentId?: string;
+    /**
+     * Who the viewpoint is written for: the usage names its `stakeholders`
+     * binds (`safetyEngineer`), from the project's own viewpoint or, for one the
+     * library declares, from the library. Empty when it names none. A role
+     * picks its viewpoints through `viewpointsForRole`.
+     */
+    stakeholders?: string[];
     visibleKinds: string[];
     visibleRelationships: string[];
     visibleLayers: string[];

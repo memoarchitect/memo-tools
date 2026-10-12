@@ -48,6 +48,19 @@ export interface ApiViewDefinition {
 }
 
 /**
+ * A `viewpoint` usage a library declares, and the stakeholders it is written
+ * for (`ref :>> stakeholders = (safetyEngineer)`), by usage name.
+ *
+ * A project's views bind the library's viewpoints by name, and a library usage
+ * is not a project element, so without this the stakeholders the ontology
+ * authored never reach the viewpoint a view conforms to.
+ */
+export interface ApiViewpointUsage {
+    name: string;
+    stakeholders: string[];
+}
+
+/**
  * The top-level packages of the documents of one role: the library's are the
  * ontology the registries describe; a project's own definitions are added to a
  * copy of the registry (`withProjectExtensions`), as with MEMO's parse.
@@ -103,10 +116,11 @@ export function apiKindEntries(
     role: 'library' | 'project' = 'library',
     include?: (namespace: ApiElement) => boolean,
 ): {
-    kinds: KindRegistryEntry[]; views: ApiViewDefinition[];
+    kinds: KindRegistryEntry[]; views: ApiViewDefinition[]; viewpoints: ApiViewpointUsage[];
 } {
     const kinds: KindRegistryEntry[] = [];
     const views: ApiViewDefinition[] = [];
+    const viewpoints: ApiViewpointUsage[] = [];
     const walk = (pkg: ApiElement, path: string[], file: string) => {
         const name = api.name(pkg['@id']);
         const here = name ? [...path, name] : path;
@@ -126,6 +140,13 @@ export function apiKindEntries(
                     if (key && api.value(attribute['@id']) && facts[key] !== undefined) defaults[key] = facts[key];
                 }
                 views.push({ name: memberName, defaults, superType: superTypes(api, member)[0] });
+                continue;
+            }
+            if (type === 'ViewpointUsage') {
+                if (!memberName) continue;
+                const stakeholders = (apiDefinitionFacts(api, member).attributes['stakeholders'] ?? '')
+                    .split(',').map(name => name.trim()).filter(Boolean);
+                viewpoints.push({ name: memberName, stakeholders });
                 continue;
             }
             const construct = KIND_CONSTRUCTS[type];
@@ -156,7 +177,7 @@ export function apiKindEntries(
         }
     };
     for (const pkg of rootPackages(api, role, include)) walk(pkg, [], fileOf(pkg));
-    return { kinds, views };
+    return { kinds, views, viewpoints };
 }
 
 /** Every relationship type the handoff's connection and allocation definitions declare. */

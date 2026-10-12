@@ -51,6 +51,7 @@ import {
     listRepoTemplates, readRepoTemplate, saveRepoTemplate,
 } from './dhf-doc-store.js';
 import { loadDashboards, saveDashboard, deleteDashboard, moveDashboard } from './dashboard-store.js';
+import { loadUserPreferences, saveUserPreferences } from './user-preferences.js';
 import { createDashboardWatcher } from './file-watcher.js';
 import { selectedOutlineSource, type OutlineSource } from '../authoring/outline-source.js';
 
@@ -1325,6 +1326,13 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             ws.send(JSON.stringify({ type: 'diagram:layout', payload: { layouts } }));
         }
 
+        // The person's own choices for this model (memo.user.yaml)
+        try {
+            ws.send(JSON.stringify({ type: 'user-preferences', payload: loadUserPreferences(options.projectRoot) }));
+        } catch (e) {
+            console.error('[Preferences] load failed:', e);
+        }
+
         // Send custom dashboards on connect
         try {
             ws.send(JSON.stringify({ type: 'dashboards', payload: { dashboards: loadDashboards(options.projectRoot) } }));
@@ -2375,6 +2383,15 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         broadcastDashboards();
                     } catch (e: any) {
                         ws.send(JSON.stringify({ type: 'dashboard:result', payload: { requestId: p.requestId, ok: false, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'user-preferences:save') {
+                    // Not model source either: one person's choice, written to a
+                    // git-ignored file, and only that person's clients hear it.
+                    try {
+                        const saved = saveUserPreferences(options.projectRoot, msg.payload ?? {});
+                        ws.send(JSON.stringify({ type: 'user-preferences', payload: saved }));
+                    } catch (e: any) {
+                        console.error('[Preferences] save failed:', e);
                     }
                 } else if (msg.type === 'dhf:docs:load') {
                     const docs = loadDhfDocs(options.projectRoot);
