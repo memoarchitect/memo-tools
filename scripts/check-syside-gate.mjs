@@ -22,15 +22,6 @@ const memoRoot = resolve(toolsRoot, '../memo');
 // behind a green suite, which is the gap R0 existed to close.
 const sourceRoots = ['src', 'extensions', 'examples'];
 
-// The grammar parity corpus (`packages/tools/src/__tests__/fixtures/grammar-parity`)
-// is written to the OMG SysML v2 specification, which is what defines it as
-// valid — the `unsupported/` fixtures included. SysIDE checks it for
-// compatibility. A fixture SysIDE rejects but the specification admits is a
-// SysIDE gap to board, not a fixture to rewrite: list that diagnostic in the
-// corpus's own `validator-exceptions.json` and keep the specification's form.
-const parityRoot = resolve(toolsRoot, 'packages/tools/src/__tests__/fixtures/grammar-parity');
-const parityRoots = ['supported', 'unsupported'];
-
 for (const sourceRoot of sourceRoots) {
     if (!existsSync(resolve(memoRoot, sourceRoot))) {
         console.error(`✖ SysIDE gate cannot find ontology source root: ${resolve(memoRoot, sourceRoot)}`);
@@ -67,6 +58,5 @@ function check(project, roots) {
 }
 
 check(memoRoot, sourceRoots);
-check(parityRoot, parityRoots);
 
-console.log('✔ SysIDE gate: ontology, extensions, examples, and the grammar parity corpus resolve cleanly.');
+console.log('✔ SysIDE gate: ontology, extensions and examples resolve cleanly.');

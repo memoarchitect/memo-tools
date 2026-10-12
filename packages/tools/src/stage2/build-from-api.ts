@@ -933,11 +933,21 @@ class ElementBuilder {
             const steps = this.performedSteps(written);
             if (pseudo(steps, 'start')) return parentActionId ? `${parentActionId}__start` : '__start';
             if (pseudo(steps, 'done')) return parentActionId ? `${parentActionId}__done` : '__done';
+            // An end that references a declared element reaches it by identity,
+            // which an anonymous one (`then terminate;`) needs: it has no name.
+            const direct = steps.length === 1 ? this.idOf.get(steps[0]['@id']) : undefined;
+            if (direct && this.elements.has(direct)) return direct;
             const found = this.endpoint(steps, context);
             return found.id && this.elements.has(found.id) ? found.id : undefined;
         };
-        const sourceId = resolve(this.endSteps(ends[0]));
-        const targetId = resolve(this.endSteps(ends[1]));
+        // `then b;` with no `first`: a compiler may write the implied ends out
+        // (OpenSysML does, with the source end naming nothing), so an end that
+        // refers to nothing takes the occurrence before or after it by position.
+        const [before, after] = parentActionId ? this.neighbours(node) : [undefined, undefined];
+        const sourceSteps = this.endSteps(ends[0]);
+        const targetSteps = this.endSteps(ends[1]);
+        const sourceId = sourceSteps.length === 0 ? before : resolve(sourceSteps);
+        const targetId = targetSteps.length === 0 ? after : resolve(targetSteps);
         if (!sourceId || !targetId) return;
         this.relationships.push({
             id: this.nextId(), type: 'succession', sourceId, sourceEnd: '', targetId, targetEnd: '', file: this.file(node),
