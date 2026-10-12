@@ -579,9 +579,13 @@ async function runStage1(
         const handoffOptions = { ...openSysMLHandoffOptions(projectDir, libraryDirs, documents), providerVersion: version };
         // The conversion's text as the service wrote it, kept for the stage 1 store.
         let content: string | undefined;
-        // The compact document when the service writes one: far fewer bytes to
-        // read, with the derived properties the handoff does not read left out.
-        const compact = Boolean(connection.info?.has?.(CONVERT_COMPACT));
+        // The compact document would be far fewer bytes to read, but OpenSysML
+        // 0.10.0 writes a LiteralString's `value` as `{}` in it for a project
+        // that converts whole (measured 2026-10-11: `attribute a = "x";` in a
+        // one-file project; the same conversion without `compact` is right), so
+        // the binding's name reads "[object Object]". Request it again once a
+        // release writes the value; the reader and the capability check stay.
+        const compact = false && Boolean(connection.info?.has?.(CONVERT_COMPACT));
         const convert = async (named?: string[]): Promise<ApiElement[] | undefined> => {
             const converted = await connection.rpc.convert({
                 source: { case: 'modelHash', value: parsed.modelHash }, toFormat: 'api-json',
