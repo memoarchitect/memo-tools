@@ -130,6 +130,8 @@ export class KindRegistry {
      */
     private readonly viewDefaults = new Map<string, Record<string, string>>();
     private readonly viewSuperTypes = new Map<string, string>();
+    /** Library `viewpoint` usage name → the stakeholders it names (see `ApiViewpointUsage`). */
+    private readonly viewpointStakeholders = new Map<string, string[]>();
     /** short name → the qualified name it currently resolves to. */
     private readonly byQualifiedName = new Map<string, string>();
     /** qualified name → declaring file, for collision diagnostics. */
@@ -215,6 +217,16 @@ export class KindRegistry {
         if (superType) this.viewSuperTypes.set(name, superType);
     }
 
+    /** Record the stakeholders a library `viewpoint` usage is written for. */
+    registerViewpoint(name: string, stakeholders: string[]): void {
+        this.viewpointStakeholders.set(name, stakeholders);
+    }
+
+    /** The stakeholders a library viewpoint names, or undefined for one the library does not declare. */
+    getViewpointStakeholders(name: string): string[] | undefined {
+        return this.viewpointStakeholders.get(name);
+    }
+
     /**
      * Whether a `view def` of this name was declared.
      *
@@ -296,6 +308,9 @@ export class KindRegistry {
         }
         for (const [name, superType] of this.viewSuperTypes) {
             result.viewSuperTypes.set(name, superType);
+        }
+        for (const [name, stakeholders] of this.viewpointStakeholders) {
+            result.viewpointStakeholders.set(name, [...stakeholders]);
         }
 
         let pending = discovered.entries().filter(entry => !result.has(entry.name));
@@ -496,8 +511,9 @@ export class KindRegistry {
         include?: (namespace: ApiElement) => boolean,
         role: 'library' | 'project' = 'library',
     ): void {
-        const { kinds, views } = apiKindEntries(api, fileOf, role, include);
+        const { kinds, views, viewpoints } = apiKindEntries(api, fileOf, role, include);
         for (const view of views) this.registerViewDefinition(view.name, view.defaults, view.superType);
+        for (const viewpoint of viewpoints) this.registerViewpoint(viewpoint.name, viewpoint.stakeholders);
         for (const kind of kinds) this.register(kind);
     }
 

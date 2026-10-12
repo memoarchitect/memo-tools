@@ -335,6 +335,7 @@ interface ResolvedViewpoint {
     explorerLane?: string;
     explorerOrder?: number;
     parentId?: string;
+    stakeholders: string[];
 }
 
 /**
@@ -358,7 +359,24 @@ function viewpointId(authored: MemoElement | undefined, ref: string): string {
  * to a reference that resolves nowhere — and the reference then stands in for
  * every field the element would have carried.
  */
-function readViewpoint(authored: MemoElement | undefined, ref: string, model: MemoModel): ResolvedViewpoint {
+/**
+ * The stakeholders a viewpoint is written for, by usage name
+ * (`safetyEngineer`). A project's own viewpoint states them as an element; a
+ * library viewpoint is not a project element, so its are the registry's.
+ */
+function viewpointStakeholders(
+    authored: MemoElement | undefined, ref: string, kindRegistry?: KindRegistry,
+): string[] {
+    const leaf = (name: string) => name.split(/::|\./).pop() ?? name;
+    const names = authored
+        ? splitList(authored.attributes['stakeholders'])
+        : kindRegistry?.getViewpointStakeholders(leaf(ref)) ?? [];
+    return [...new Set(names.map(leaf))];
+}
+
+function readViewpoint(
+    authored: MemoElement | undefined, ref: string, model: MemoModel, kindRegistry?: KindRegistry,
+): ResolvedViewpoint {
     // Nesting is ownership: `viewpoint vpSoS { viewpoint vpPump; }` puts the
     // system-of-systems viewpoint in the child's `owner`. Only a viewpoint can
     // be a viewpoint's parent — a viewpoint declared inside anything else is
@@ -382,6 +400,7 @@ function readViewpoint(authored: MemoElement | undefined, ref: string, model: Me
             ? Number(authored?.attributes['explorerOrder'])
             : undefined,
         ...(parent ? { parentId: viewpointId(parent, parent.id) } : {}),
+        stakeholders: viewpointStakeholders(authored, ref, kindRegistry),
         ref,
     };
 }
@@ -390,6 +409,7 @@ function readViewpoint(authored: MemoElement | undefined, ref: string, model: Me
 function resolveViewpoints(
     view: MemoElement,
     model: MemoModel,
+    kindRegistry?: KindRegistry,
 ): ResolvedViewpoint[] {
     // `viewpointDefinition` is the canonical property declared by MemoView.
     // Keep the former `viewpoint` spelling as a compatibility fallback for
@@ -401,7 +421,7 @@ function resolveViewpoints(
     // compiler writes a chain, and the element is the one its last step names.
     const resolve = (ref: string) =>
         model.elements.lookup(ref) ?? (ref.includes('.') ? model.elements.lookup(ref.slice(ref.lastIndexOf('.') + 1)) : undefined);
-    return splitList(raw).map(ref => readViewpoint(resolve(ref), ref, model));
+    return splitList(raw).map(ref => readViewpoint(resolve(ref), ref, model, kindRegistry));
 }
 
 /** Scenario links are authored on the view; they are never inferred from content. */
@@ -434,7 +454,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             ? el.package.split('::').some(segment => /(?:^|_)samples(?:_|$)/.test(segment))
             : false;
 
-        const authoredViewpoints = resolveViewpoints(el, model);
+        const authoredViewpoints = resolveViewpoints(el, model, kindRegistry);
         // A renderer sample without a binding remains in Model > Samples, but
         // an authored ISO 42010 binding is always authoritative. In
         // particular, a real project may legitimately contain `samples` in
@@ -451,7 +471,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         const vpId = vpIds[0];
         for (const authoredViewpoint of authoredViewpoints.length > 0
             ? authoredViewpoints
-            : [{ id: '__unassigned', label: 'Unassigned Views', ref: '__unassigned' }]) {
+            : [{ id: '__unassigned', label: 'Unassigned Views', ref: '__unassigned', stakeholders: [] }]) {
             if (!usesRendererSampleFallback && !viewpointsById.has(authoredViewpoint.id)) {
                 viewpointsById.set(authoredViewpoint.id, {
                     id: authoredViewpoint.id,
@@ -460,6 +480,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                     explorerLane: authoredViewpoint.explorerLane,
                     explorerOrder: authoredViewpoint.explorerOrder,
                     ...(authoredViewpoint.parentId ? { parentId: authoredViewpoint.parentId } : {}),
+                    stakeholders: authoredViewpoint.stakeholders,
                     visibleKinds: [],
                     visibleRelationships: [],
                     visibleLayers: [],
@@ -591,6 +612,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                 explorerLane: resolved.explorerLane,
                 explorerOrder: resolved.explorerOrder,
                 ...(resolved.parentId ? { parentId: resolved.parentId } : {}),
+                stakeholders: resolved.stakeholders,
                 visibleKinds: [],
                 visibleRelationships: [],
                 visibleLayers: [],
@@ -600,4 +622,19 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
     }
 
     return { viewpoints: [...viewpointsById.values()], diagrams };
+}
+
+/** Every role some viewpoint is written for, in name order: the stakeholders the viewpoints bind. */
+export function viewpointRoles(viewpoints: readonly ViewpointDTO[]): string[] {
+    return [...new Set(viewpoints.flatMap(viewpoint => viewpoint.stakeholders ?? []))].sort();
+}
+
+/**
+ * The viewpoints written for a role: those whose `stakeholders` name it, and
+ * no others. A viewpoint that names no stakeholder is written for nobody in
+ * particular, so it is not one of a role's; a consumer filtering a list by role
+ * decides for itself whether to keep those visible.
+ */
+export function viewpointsForRole(viewpoints: readonly ViewpointDTO[], role: string): ViewpointDTO[] {
+    return viewpoints.filter(viewpoint => viewpoint.stakeholders?.includes(role));
 }
