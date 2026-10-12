@@ -300,8 +300,7 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
         // See the reason on FULLY_UNTYPED below: both of its ends cross a
         // metaclass boundary, so it appears in both lists.
         'IncludesStep',
-        // A requirement's subject is whatever it is about — a part, an action,
-        // a port — the way `verificationTarget` is. The requirement end is typed.
+        // See FULLY_UNTYPED below.
         'HasSubject',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a
@@ -320,6 +319,11 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
         // well-formedness error — 132 of them in affera, on a construct the
         // design intends.
         'IncludesStep',
+        // `HasSubject`: a subject is whatever the owner is about — a part, an
+        // action, a port — the way `verificationTarget` is; and the owner is a
+        // requirement or a use case, which sit in unrelated families
+        // (MemoRequirementElement, MemoUseCase), the same reason as above.
+        'HasSubject',
     ];
 
     it('keeps the universal relation identifiable among fully untyped relations', async () => {

@@ -266,11 +266,15 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
         keyword: 'subject',
         sysmlName: 'HasSubject',
         layer: 'core',
-        description: 'A requirement is about a subject — for a contract, the component it constrains. '
-            + 'Written natively as `subject <name> = <element>;` inside the requirement. '
+        description: 'A requirement or a use case is about a subject — for a contract, the component it '
+            + 'constrains; for a use case, the system or system of systems it is carried out with. '
+            + 'Written natively as `subject <name> = <element>;` inside the requirement or use case. '
             + 'The same keyword inside a verification case is `verifiedBy`, not this.',
+        // The source is untyped for the reason `includesStep`'s is: a
+        // requirement and a use case sit in unrelated families
+        // (MemoRequirementElement, MemoUseCase) with no root above both.
         ends: [
-            { name: 'requirement', type: 'MemoRequirementElement' },
+            { name: 'subjectOwner' },
             { name: 'subject' },
         ],
     },
