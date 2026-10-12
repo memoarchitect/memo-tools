@@ -2,6 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
+import { RECOMMENDED_COMPILER } from './src/toolchain/providers/recommended.js';
 
 export default defineConfig({
     test: {
@@ -14,7 +15,7 @@ export default defineConfig({
         // Nor does the suite read or write the developer's own settings file
         // (`memo-architect init` puts a compiler there): it gets a directory of its own.
         env: {
-            MEMO_TOOLCHAIN_COMPILER: process.env.MEMO_TEST_COMPILER ?? 'opensysml',
+            MEMO_TOOLCHAIN_COMPILER: process.env.MEMO_TEST_COMPILER ?? RECOMMENDED_COMPILER,
             MEMO_CONFIG_DIR: mkdtempSync(join(tmpdir(), 'memo-test-config-')),
         },
     },

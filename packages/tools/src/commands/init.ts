@@ -14,10 +14,11 @@ import { createLockFile } from '../lock.js';
 import { scaffoldAnalysisSamples } from '../analysis-starters.js';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
-import { OPENSYSML_PROVIDER_ID as RECOMMENDED_COMPILER } from '../toolchain/providers/opensysml-names.js';
+import { RECOMMENDED_COMPILER } from '../toolchain/providers/recommended.js';
 
 /**
- * The compiler a new project names: the recommended one. It is the project's
+ * The compiler a new project names: the recommended one (`toolchain/providers/recommended.ts`,
+ * the single place to change it). It is the project's
  * choice, written into its own settings file so everyone who clones it runs the
  * same one; a user who wants another overrides it for themselves
  * (Architect's Compiler control) without editing the project. A project that
