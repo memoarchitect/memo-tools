@@ -234,7 +234,7 @@ class ElementBuilder {
 
     /** The type a usage names, spelled as MEMO stores it: the type's own name. */
     private typeName(element: ApiElement): string | undefined {
-        const type = this.api.types(element['@id'])[0];
+        const type = this.api.types(element['@id'])[0] ?? this.api.conjugatedOriginal(element['@id']);
         return type ? this.api.name(type['@id']) : undefined;
     }
 

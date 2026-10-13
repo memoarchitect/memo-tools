@@ -2,9 +2,9 @@
   "project": "ep-lab-family",
   "totals": {
     "files": 9,
-    "elements": 37,
+    "elements": 45,
     "definitions": 12,
-    "relationships": 22,
+    "relationships": 39,
     "packages": 9,
     "parseErrors": 0,
     "builderFindings": 0
@@ -59,10 +59,9 @@
       "elements": 6,
       "definitions": 2,
       "kinds": {
-        "AblationEventPort": 1,
-        "ElectrogramPort": 1,
-        "Interface": 2,
-        "Unknown": 2
+        "AblationEventPort": 2,
+        "ElectrogramPort": 2,
+        "Interface": 2
       },
       "relationships": 0,
       "relationshipTypes": {},
@@ -71,14 +70,20 @@
       "builderFindings": 0
     },
     "model/sos/sos.sysml": {
-      "elements": 2,
+      "elements": 5,
       "definitions": 1,
       "kinds": {
+        "AblationGeneratorSystem": 1,
+        "CardiacMappingSystem": 1,
         "ElectrophysiologyLab": 1,
+        "SignalRecordingSystem": 1,
         "SystemOfSystems": 1
       },
-      "relationships": 0,
-      "relationshipTypes": {},
+      "relationships": 5,
+      "relationshipTypes": {
+        "composes": 3,
+        "interface": 2
+      },
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -100,16 +105,20 @@
       "builderFindings": 0
     },
     "model/systems/ablation/ablation_system.sysml": {
-      "elements": 4,
+      "elements": 5,
       "definitions": 1,
       "kinds": {
         "AblationEventPort": 1,
+        "LogicalComponent": 1,
         "System": 1,
         "SystemFunction": 1,
         "UseCase": 1
       },
-      "relationships": 1,
+      "relationships": 4,
       "relationshipTypes": {
+        "allocatedTo": 1,
+        "composes": 1,
+        "hasSubject": 1,
         "participatesIn": 1
       },
       "packages": 1,
@@ -117,16 +126,22 @@
       "builderFindings": 0
     },
     "model/systems/mapping/mapping_system.sysml": {
-      "elements": 6,
+      "elements": 8,
       "definitions": 1,
       "kinds": {
+        "AblationEventPort": 1,
+        "ElectrogramPort": 1,
+        "LogicalComponent": 1,
+        "PatientIsolationModule": 1,
         "System": 1,
         "SystemFunction": 2,
-        "Unknown": 2,
         "UseCase": 1
       },
-      "relationships": 1,
+      "relationships": 6,
       "relationshipTypes": {
+        "allocatedTo": 2,
+        "composes": 2,
+        "hasSubject": 1,
         "participatesIn": 1
       },
       "packages": 1,
@@ -134,16 +149,21 @@
       "builderFindings": 0
     },
     "model/systems/recording/recording_system.sysml": {
-      "elements": 4,
+      "elements": 6,
       "definitions": 1,
       "kinds": {
         "ElectrogramPort": 1,
+        "LogicalComponent": 1,
+        "PatientIsolationModule": 1,
         "System": 1,
         "SystemFunction": 1,
         "UseCase": 1
       },
-      "relationships": 1,
+      "relationships": 5,
       "relationshipTypes": {
+        "allocatedTo": 1,
+        "composes": 2,
+        "hasSubject": 1,
         "participatesIn": 1
       },
       "packages": 1,

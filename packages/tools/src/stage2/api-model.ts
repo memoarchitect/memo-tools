@@ -219,6 +219,23 @@ export class ApiModel {
     /** What a feature is typed by (`FeatureTyping.type`). */
     types(id: string): ApiElement[] { return this.related(id, ['FeatureTyping'], 'type'); }
 
+    /**
+     * The port definition a conjugated port usage conjugates: `port p : ~Sig` is typed by
+     * `ConjugatedPortTyping`, whose `type` is the implicit `~Sig` that Sig owns, and that
+     * definition's `PortConjugation` names Sig (`originalPortDefinition`, a non-derived end).
+     * `types` does not return it, because it reads `FeatureTyping` and a conjugated typing is
+     * a subclass of one.
+     */
+    conjugatedOriginal(id: string): ApiElement | undefined {
+        for (const typing of this.ownedRelationships(id).filter(r => r['@type'] === 'ConjugatedPortTyping')) {
+            for (const conjugated of refs(typing.type).map(r => this.byId.get(r)).filter((e): e is ApiElement => e !== undefined)) {
+                const original = this.related(conjugated['@id'], ['PortConjugation'], 'originalPortDefinition')[0];
+                if (original) return original;
+            }
+        }
+        return undefined;
+    }
+
     /** What a classifier specializes (`Subclassification.superclassifier`). */
     superclassifiers(id: string): ApiElement[] { return this.related(id, ['Subclassification'], 'superclassifier'); }
 
