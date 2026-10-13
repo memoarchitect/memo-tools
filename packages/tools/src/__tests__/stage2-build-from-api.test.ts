@@ -210,15 +210,32 @@ describe('buildElementsFromApi nested parts that subset a feature', () => {
         own(feed, end, 'EndFeatureMembership');
         relate(end, 'ReferenceSubsetting', 'referencedFeature', target['@id']);
     }
+    // `part cfg : Binding { part policy : Component :> slot; }` where Binding is a methodology kind:
+    // the rule-policy writer's `part x : RulePolicy :> rulePolicy` form, configuration and not structure.
+    const binding = add({ '@type': 'PartDefinition', '@id': 'P__Binding', declaredName: 'Binding' }, 'P::Binding');
+    own(pkg, binding);
+    const cfg = add({ '@type': 'PartUsage', '@id': 'P__cfg', declaredName: 'cfg' }, 'P::cfg');
+    own(pkg, cfg, 'FeatureMembership');
+    relate(cfg, 'FeatureTyping', 'type', binding['@id']);
+    const policy = add({ '@type': 'PartUsage', '@id': 'P__cfg__policy', declaredName: 'policy' }, 'P::cfg::policy');
+    own(cfg, policy, 'FeatureMembership');
+    relate(policy, 'FeatureTyping', 'type', component['@id']);
+    relate(policy, 'Subsetting', 'subsettedFeature', slot['@id']);
     const api = new ApiModel({
         format: 'memo-stage1/1', provider: 'test', clean: true, index,
         documents: [{ file: 'model.sysml', role: 'project', elements }],
     });
-    const { elements: built } = buildElementsFromApi(api);
+    const registries = { kindRegistry: { getKind: (name: string) => name === 'Binding' ? { layer: 'methodology' } : undefined } } as never;
+    const { elements: built } = buildElementsFromApi(api, registries);
     const { relationships } = buildFromApi(api);
 
     it('builds the part, owned by its definition', () => {
         expect(built.get('P::System::engine')).toMatchObject({ construct: 'part', owner: 'P::System' });
+    });
+
+    it('keeps a subsetting part under a methodology owner a binding', () => {
+        expect(built.has('P::cfg')).toBe(true);
+        expect(built.has('P::cfg::policy')).toBe(false);
     });
 
     it('gives an interface usage the values its definition binds', () => {
