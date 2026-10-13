@@ -40,6 +40,23 @@ const RELATIONSHIP_CONSTRUCTS: Record<string, string> = {
     AllocationDefinition: 'allocation def',
 };
 
+/**
+ * The ontology's marker for a typed dependency (`memo_core_relationships`): a
+ * `metadata def` that specializes it declares a relation written as
+ * `#Name dependency from <client> to <supplier>;`.
+ */
+export const TYPED_DEPENDENCY_MARKER = 'MemoTypedDependency';
+/** The `sysmlConstruct` of a typed dependency's registry entry. */
+export const TYPED_DEPENDENCY_CONSTRUCT = 'metadata def';
+
+/** Whether a definition specializes `name`, through any chain of supertypes. */
+function specializesByName(api: ApiModel, definition: ApiElement, name: string, seen = new Set<string>()): boolean {
+    if (seen.has(definition['@id'])) return false;
+    seen.add(definition['@id']);
+    return api.superclassifiers(definition['@id']).some(general =>
+        api.name(general['@id']) === name || specializesByName(api, general, name, seen));
+}
+
 /** A view definition the kind registry records the defaults of. */
 export interface ApiViewDefinition {
     name: string;
@@ -195,8 +212,23 @@ export function apiRelationshipEntries(
                 walk(member, layer);
                 continue;
             }
-            const construct = RELATIONSHIP_CONSTRUCTS[type];
             const sysmlName = api.declaredName(member['@id']);
+            if (type === 'MetadataDefinition' && sysmlName && specializesByName(api, member, TYPED_DEPENDENCY_MARKER)) {
+                // A typed dependency has a client and a supplier and nothing else to say about its ends.
+                if (sysmlName !== TYPED_DEPENDENCY_MARKER) entries.push({
+                    sysmlName,
+                    name: pascalToCamelCase(sysmlName),
+                    label: pascalToLabel(sysmlName),
+                    layer,
+                    sysmlConstruct: TYPED_DEPENDENCY_CONSTRUCT,
+                    description: docOf(api, member),
+                    nativeKeyword: 'dependency',
+                    superType: superTypes(api, member)[0] || undefined,
+                    ends: [{ name: 'client' }, { name: 'supplier' }],
+                });
+                continue;
+            }
+            const construct = RELATIONSHIP_CONSTRUCTS[type];
             if (!construct || !sysmlName) continue;
             const ends: RelationshipEnd[] = [];
             const attributes: string[] = [];

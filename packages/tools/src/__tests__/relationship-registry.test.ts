@@ -240,6 +240,19 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
         }
     });
 
+    it('registers a typed dependency from the ontology, and only one that specializes the marker', async () => {
+        const project = await compiledExample();
+        const registry = project.registries!.relationshipRegistry!;
+        const typed = registry.entries().filter(entry => entry.sysmlConstruct === 'metadata def').map(entry => entry.name).sort();
+        // The ontology's typed dependencies; `EnforcesClause` is plain metadata on a dependency and is not one.
+        expect(typed).toEqual(expect.arrayContaining(['alternative', 'realizesFeature', 'selected', 'selectsFeature']));
+        expect(typed).not.toContain('enforcesClause');
+        expect(typed).not.toContain('memoTypedDependency');
+        const realizes = registry.entries().find(entry => entry.name === 'realizesFeature')!;
+        expect(realizes.nativeKeyword).toBe('dependency');
+        expect(realizes.ends.map(end => end.name)).toEqual(['client', 'supplier']);
+    });
+
     it('declares the structural slots on MemoRelationship', async () => {
         const source = readFileSync(
             join(resolveContentPackageRoot(), 'src/core/relationships/memo_relationships.sysml'),
