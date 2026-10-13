@@ -305,3 +305,24 @@ export function handoffRegistries(
 ): BuilderRegistries {
     return { ...base, ...apiOntologyRegistries(api, handoffFileOf(api, filePackages)) };
 }
+
+/** How a relation places elements in a workspace (memo_core_relationships_workspace_membership). */
+export type WorkspaceMembership = 'sourceFollowsTarget' | 'targetFollowsSource' | 'neither';
+
+const WORKSPACE_MEMBERSHIP_VALUES: readonly string[] = ['sourceFollowsTarget', 'targetFollowsSource', 'neither'];
+
+/**
+ * The ontology's workspace-membership table: relation name to direction, from the
+ * `WorkspaceMembershipEntry` usages the handoff holds. An entry whose direction is not one of
+ * the enumeration's literals is left out, so a misspelling shows as a missing row.
+ */
+export function apiWorkspaceMembership(api: ApiModel): Map<string, WorkspaceMembership> {
+    const table = new Map<string, WorkspaceMembership>();
+    for (const usage of api.ofType('PartUsage')) {
+        if (!api.types(usage['@id']).some(type => api.qualifiedName(type['@id'])?.endsWith('::WorkspaceMembershipEntry'))) continue;
+        const { relation, direction } = apiDefinitionFacts(api, usage).attributes;
+        const literal = direction?.split('::').pop();
+        if (relation && literal && WORKSPACE_MEMBERSHIP_VALUES.includes(literal)) table.set(relation, literal as WorkspaceMembership);
+    }
+    return table;
+}

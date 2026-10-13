@@ -28,7 +28,7 @@ export interface RelationshipType {
     color: string;
 }
 import type { ApiElement, ApiModel } from '../stage2/api-model.js';
-import { apiRelationshipEntries } from '../stage2/registries-from-api.js';
+import { apiRelationshipEntries, apiWorkspaceMembership, type WorkspaceMembership } from '../stage2/registries-from-api.js';
 import type {
     MultiplicityDTO,
     RelationshipDefinitionDTO,
@@ -440,6 +440,17 @@ export class RelationshipRegistry {
         return Array.from(this.relTypes.keys());
     }
 
+    /**
+     * The workspace-membership table the ontology declares (relation name to direction).
+     * Covers the registry's relations and the edges the builder synthesizes from SysML keywords,
+     * so it is keyed by edge type, not by registry entry.
+     */
+    workspaceMembership(): ReadonlyMap<string, WorkspaceMembership> {
+        return this.membership;
+    }
+
+    private membership = new Map<string, WorkspaceMembership>();
+
     /** Get all entries */
     entries(): RelationshipRegistryEntry[] {
         return Array.from(this.relTypes.values());
@@ -508,6 +519,7 @@ export class RelationshipRegistry {
     ): void {
         for (const entry of apiRelationshipEntries(api, fileOf, include, role)) this.relTypes.set(entry.name, entry);
         this.registerLanguageNatives();
+        for (const [relation, direction] of apiWorkspaceMembership(api)) this.membership.set(relation, direction);
     }
 
     /**
