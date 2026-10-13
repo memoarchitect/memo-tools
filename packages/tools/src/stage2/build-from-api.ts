@@ -688,7 +688,7 @@ class ElementBuilder {
         const scoped = (types: string[], where: 'package' | 'package-or-action') => project
             .filter(e => types.includes(e['@type']))
             .map(e => ({ node: e, ...this.contextOf(e) }))
-            .filter(c => c.inPackage || (where === 'package-or-action' && c.parentActionId));
+            .filter(c => c.inPackage || c.inStructure || (where === 'package-or-action' && c.parentActionId));
 
         for (const c of scoped(['FlowUsage', 'SuccessionFlowUsage'], 'package-or-action')) this.flow(c.node, c.packageName, c.parentActionId);
         for (const c of scoped(['BindingConnectorAsUsage'], 'package')) this.binding(c.node, c.packageName);
@@ -704,13 +704,16 @@ class ElementBuilder {
     }
 
     /** The enclosing package (qualified) and, when directly in an action body, that action's element id. */
-    private contextOf(node: ApiElement): { packageName: string; parentActionId?: string; inPackage: boolean } {
+    private contextOf(node: ApiElement): { packageName: string; parentActionId?: string; inPackage: boolean; inStructure: boolean } {
         const owner = this.api.owner(node['@id']);
         const packageName = this.packageOf(node);
         const ownerId = owner ? this.api.qualifiedName(owner['@id']) : undefined;
         const isPackage = owner?.['@type'] === 'Package' || owner?.['@type'] === 'LibraryPackage';
         const isAction = ownerId !== undefined && this.elements.get(ownerId)?.construct === 'action';
-        return { packageName, parentActionId: isAction ? ownerId : undefined, inPackage: isPackage };
+        // A part definition or usage owns its connectors and allocations; the endpoints
+        // are features it contains, which the element index names by qualified name.
+        const inStructure = owner?.['@type'] === 'PartDefinition' || owner?.['@type'] === 'PartUsage';
+        return { packageName, parentActionId: isAction ? ownerId : undefined, inPackage: isPackage, inStructure };
     }
 
     private packageOf(node: ApiElement): string {
