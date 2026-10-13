@@ -409,6 +409,55 @@
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
       {
+        "id": "memo_examples_gpca_pump_gpca_architecture::gpcaPump",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcDrugDelivery",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcOperatorInterface",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcPowerSubsystem",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcSafetyMonitoring",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcTherapyControl",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_gpca_pump_gpca_architecture"
+      },
+      {
         "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
         "kind": "SoftwareSystem",
         "construct": "part",
@@ -860,41 +909,6 @@
         "id": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm::portTlmTlmModeOut",
         "kind": "SoftwarePort",
         "construct": "port",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_architecture"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_architecture::lcDrugDelivery",
-        "kind": "LogicalComponent",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_architecture"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_architecture::lcOperatorInterface",
-        "kind": "LogicalComponent",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_architecture"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_architecture::lcPowerSubsystem",
-        "kind": "LogicalComponent",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_architecture"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_architecture::lcSafetyMonitoring",
-        "kind": "LogicalComponent",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_gpca_pump_gpca_architecture"
-      },
-      {
-        "id": "memo_examples_gpca_pump_gpca_architecture::lcTherapyControl",
-        "kind": "LogicalComponent",
-        "construct": "part",
         "layer": "logical",
         "package": "memo_examples_gpca_pump_gpca_architecture"
       },
@@ -5305,6 +5319,31 @@
       },
       {
         "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcDrugDelivery"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcOperatorInterface"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcPowerSubsystem"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcSafetyMonitoring"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcTherapyControl"
+      },
+      {
+        "type": "composes",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm"
       },
@@ -6690,6 +6729,11 @@
       },
       {
         "type": "flow",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcSafetyMonitoring",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcOperatorInterface"
+      },
+      {
+        "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::alarm::portAlarmAlarmOut",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::infusionMgr::portImAlarmIn"
       },
@@ -6972,11 +7016,6 @@
         "type": "flow",
         "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemStatus"
-      },
-      {
-        "type": "flow",
-        "sourceId": "memo_examples_gpca_pump_gpca_architecture::lcSafetyMonitoring",
-        "targetId": "memo_examples_gpca_pump_gpca_architecture::lcOperatorInterface"
       },
       {
         "type": "flow",
@@ -9373,6 +9412,7 @@
       "SoftwarePort": 56,
       "SoftwareSystem": 1,
       "StateMachine": 1,
+      "System": 2,
       "SystemConstant": 22,
       "SystemFunction": 11,
       "Threat": 2,
@@ -9394,7 +9434,7 @@
       "functional": 65,
       "human-factors": 4,
       "implementation": 27,
-      "logical": 126,
+      "logical": 128,
       "methodology": 1,
       "operational": 44,
       "realization": 31,
@@ -9407,6 +9447,21 @@
   },
   "validation": {
     "violations": [
+      {
+        "rule": "AR-IBD-001",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcDrugDelivery"
+      },
+      {
+        "rule": "AR-IBD-001",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcPowerSubsystem"
+      },
+      {
+        "rule": "AR-IBD-001",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcTherapyControl"
+      },
       {
         "rule": "CR-MED-023",
         "severity": "warning",
@@ -9450,12 +9505,12 @@
     ],
     "counts": {
       "error": 4,
-      "warning": 4
+      "warning": 7
     }
   },
   "errors": [],
   "summary": {
-    "elements": 687,
+    "elements": 689,
     "completeness": 100
   }
 }
