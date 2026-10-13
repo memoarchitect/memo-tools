@@ -7,23 +7,27 @@
 
 import type { MemoElement, MemoRelationship, MemoModel } from '../model/semantic.js';
 import type { KindDefinition, OntologyView } from '../model/kind-registry.js';
+import { createHash } from 'node:crypto';
+import { SYSML_RESERVED_KEYWORDS } from '../stage2/sysml-names.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 /**
- * Import provenance — tracks where an element came from.
- * Stored as _import_* attributes in the generated SysML so the trace is
- * visible in the model and survives round-trips through the CLI.
+ * The record in another system an element was made from (`@ExternalSource`).
+ *
+ * `identifier` is the id the source system knows the record by; the element's
+ * own name is MEMO's. `revision` is the source's revision of the record, or a
+ * content hash where the source has none. A re-import matches records by
+ * (`system`, `identifier`), so renaming the element never loses the match.
  */
-export interface ImportProvenance {
-    /** Source file name (e.g. "requirements-v3.xlsx") */
-    sourceFile: string;
-    /** 1-based row number in the source artifact */
-    sourceRow: number;
-    /** ISO-8601 timestamp of the import (e.g. "2026-04-14T18:00:00Z") */
-    importTimestamp: string;
-    /** Stable session ID grouping all elements from a single import run */
-    importSessionId: string;
+export interface ElementSource {
+    system: string;
+    identifier: string;
+    revision: string;
+    /** True when the source system owns the element: a re-import overwrites it. */
+    mastered: boolean;
+    /** True when a re-import found the record gone from the source. */
+    withdrawn?: boolean;
 }
 
 /** Parsed element from CSV (before SysML generation) */
@@ -35,31 +39,8 @@ export interface CsvElement {
     layer?: string;
     doc: string;
     attributes: Record<string, string>;
-    /** Optional provenance metadata written as _import_* attributes in SysML */
-    provenance?: ImportProvenance;
-}
-
-/**
- * Attach provenance to a batch of CsvElements.
- * `sourceRow` is auto-assigned (1-based index into the `elements` array).
- * Call this after `parseElementsCsv()` when you want full traceability.
- *
- * @example
- * const result = parseElementsCsv(csv, config);
- * const withProvenance = attachProvenance(result.items, {
- *   sourceFile: 'requirements-v3.xlsx',
- *   importTimestamp: new Date().toISOString(),
- *   importSessionId: crypto.randomUUID(),
- * });
- */
-export function attachProvenance(
-    elements: CsvElement[],
-    meta: Omit<ImportProvenance, 'sourceRow'>
-): CsvElement[] {
-    return elements.map((el, idx) => ({
-        ...el,
-        provenance: { ...meta, sourceRow: idx + 1 },
-    }));
+    /** Present on an element imported from another system; written as `@ExternalSource`. */
+    source?: ElementSource;
 }
 
 /** Parsed relationship from CSV */
@@ -81,6 +62,8 @@ export interface CsvParseResult<T> {
 // ─── Fixed column names ─────────────────────────────────────────────────────
 
 const ELEMENT_FIXED_COLS = ['id', 'name', 'kind', 'construct', 'doc'] as const;
+/** Columns an import from another system reads besides the fixed ones. */
+const SOURCE_COLS = ['sourceId', 'revision'] as const;
 const RELATIONSHIP_FIXED_COLS = ['sourceId', 'targetId', 'type', 'sourceEnd', 'targetEnd'] as const;
 
 // ─── CSV Parsing Helpers ────────────────────────────────────────────────────
@@ -160,7 +143,8 @@ function parseCsvText(csvText: string): { headers: string[]; rows: string[][] } 
  */
 export function parseElementsCsv(
     csvText: string,
-    ontology: OntologyView
+    ontology: OntologyView,
+    options: ParseElementsOptions = {},
 ): CsvParseResult<CsvElement> {
     const { headers, rows } = parseCsvText(csvText);
     const items: CsvElement[] = [];
@@ -172,15 +156,19 @@ export function parseElementsCsv(
         return { items, errors, warnings };
     }
 
-    // Validate required columns
-    const missing = ['id', 'name', 'kind'].filter((c) => !headers.includes(c));
+    // Validate required columns. An import from another system names the record by
+    // `sourceId` (or `id`, the usual export spelling) and gets a MEMO name of its own.
+    const fromSource = options.sourceSystem !== undefined;
+    const idColumn = fromSource && headers.includes('sourceId') ? 'sourceId' : 'id';
+    const required = [idColumn, 'name', ...(options.defaultKind ? [] : ['kind'])];
+    const missing = required.filter((c) => !headers.includes(c));
     if (missing.length > 0) {
         errors.push(`Missing required columns: ${missing.join(', ')}`);
         return { items, errors, warnings };
     }
 
     // Identify dynamic attribute columns (anything not in fixed set)
-    const fixedSet = new Set<string>(ELEMENT_FIXED_COLS);
+    const fixedSet = new Set<string>([...ELEMENT_FIXED_COLS, ...(fromSource ? SOURCE_COLS : [])]);
     const attrCols = headers.filter((h) => !fixedSet.has(h));
 
     const seenIds = new Set<string>();
@@ -195,26 +183,29 @@ export function parseElementsCsv(
             fields[headers[i]] = row[i] ?? '';
         }
 
-        const id = fields['id'];
+        const rawId = fields[idColumn];
+        const id = fromSource && rawId ? deriveElementName(rawId) : rawId;
         const name = fields['name'];
-        const kind = fields['kind'];
+        const kind = fields['kind'] || options.defaultKind || '';
         const constructOverride = fields['construct'] || '';
         const doc = fields['doc'] || '';
 
         // Validate id
-        if (!id) {
-            errors.push(`Row ${lineNum}: missing required field 'id'`);
+        if (!rawId) {
+            errors.push(`Row ${lineNum}: missing required field '${idColumn}'`);
             continue;
         }
         if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(id)) {
             errors.push(`Row ${lineNum}: invalid id '${id}' — must be a valid SysML identifier (letters, digits, underscore, starting with letter or underscore)`);
             continue;
         }
-        if (seenIds.has(id)) {
-            errors.push(`Row ${lineNum}: duplicate id '${id}'`);
+        // Two source ids can derive one name (`REQ-1`, `REQ_1`); the name is stable per identifier
+        // elsewhere, so here only a repeated source id is an error.
+        if (seenIds.has(fromSource ? rawId : id)) {
+            errors.push(`Row ${lineNum}: duplicate id '${rawId}'`);
             continue;
         }
-        seenIds.add(id);
+        seenIds.add(fromSource ? rawId : id);
 
         // Validate name
         if (!name) {
@@ -266,10 +257,60 @@ export function parseElementsCsv(
             }
         }
 
-        items.push({ id, name, kind, construct, layer, doc, attributes });
+        const element: CsvElement = { id, name, kind, construct, layer, doc, attributes };
+        if (fromSource) {
+            element.source = {
+                system: options.sourceSystem!,
+                identifier: rawId,
+                revision: fields['revision'] || contentRevision(element),
+                mastered: options.mastered ?? true,
+            };
+        }
+        items.push(element);
     }
 
     return { items, errors, warnings };
+}
+
+/** How `parseElementsCsv` reads a source-system export instead of a MEMO-shaped one. */
+export interface ParseElementsOptions {
+    /** The system the export came from; its presence makes the id column a source id. */
+    sourceSystem?: string;
+    /** The kind of a row that names none. */
+    defaultKind?: string;
+    /** Whether the source owns the records (default true). */
+    mastered?: boolean;
+}
+
+/**
+ * The MEMO name for a source id: lowerCamelCase, a basic name (SysML-textual-bnf.kebnf:22),
+ * not a reserved word. `REQ-CS-01` is `reqCs01`.
+ */
+export function deriveElementName(sourceId: string): string {
+    const words = sourceId.split(/[^A-Za-z0-9]+/).filter(Boolean);
+    let name = words
+        .map((w, i) => {
+            const lower = w.toLowerCase();
+            return i === 0 ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
+        })
+        .join('');
+    if (name === '') name = 'imported';
+    if (/^[0-9]/.test(name)) name = `item${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+    if (SYSML_RESERVED_KEYWORDS.has(name)) name = `${name}Record`;
+    return name;
+}
+
+/**
+ * The revision of a record whose source states none: a hash over what the
+ * import reads of it, so the same record always has the same revision and a
+ * changed one has another.
+ */
+export function contentRevision(element: Pick<CsvElement, 'name' | 'kind' | 'doc' | 'attributes'>): string {
+    const fields = JSON.stringify([
+        element.name, element.kind, element.doc,
+        Object.entries(element.attributes).sort(([a], [b]) => a.localeCompare(b)),
+    ]);
+    return `content-${createHash('sha256').update(fields).digest('hex').slice(0, 8)}`;
 }
 
 /**

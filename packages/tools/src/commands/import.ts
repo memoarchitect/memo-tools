@@ -20,6 +20,11 @@ import {
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { ontologyViewFrom } from '@memoarchitect/tools';
 import { loadProjectModel, loadProjectOntology } from '../toolchain/project-model.js';
+import { mkdirSync } from 'node:fs';
+import {
+    SOURCE_FORMATS, planSourceImport, previewSourceImport, readSource, renderSourceImport,
+    type SourceFormat, type SourceImportContext,
+} from '../import/source-import.js';
 
 
 /**
@@ -283,4 +288,78 @@ export async function importDiffCommand(
     if (diff.added.length === 0 && diff.modified.length === 0 && diff.removed.length === 0) {
         console.log(chalk.dim('  No changes — CSV matches current model state.\n'));
     }
+}
+
+/**
+ * Import an export from another system (CSV, ReqIF, a trace matrix) into the one
+ * file that system owns, and show what changed since the last import: new,
+ * changed, deleted, and the links authored against each. A record the export no
+ * longer holds is kept and marked withdrawn, never deleted.
+ */
+export async function importSourceCommand(
+    file: string,
+    options: { system: string; format?: string; kind?: string; relation?: string; dryRun?: boolean }
+): Promise<void> {
+    const cwd = process.cwd();
+    const format = (options.format ?? 'csv') as SourceFormat;
+    if (!SOURCE_FORMATS.includes(format)) {
+        console.error(chalk.red(`Unknown format '${options.format}'. Use ${SOURCE_FORMATS.join(', ')}.`));
+        process.exit(1);
+    }
+    const configPath = findConfigFile(cwd);
+    if (!configPath) {
+        console.error(chalk.red('No memo config found. Run `memo-architect init` first.'));
+        process.exit(1);
+    }
+    const config = loadAndResolveConfig(configPath);
+    const projectRoot = dirname(configPath);
+    const project = await loadProjectModel({ projectRoot, config });
+    const context = project.registries as unknown as SourceImportContext;
+
+    let text: string;
+    try {
+        text = readFileSync(resolve(cwd, file), 'utf-8');
+    } catch {
+        console.error(chalk.red(`Cannot read file: ${resolve(cwd, file)}`));
+        process.exit(1);
+    }
+
+    console.log(chalk.blue(`Reading ${format} export: ${file}`));
+    const records = readSource({ system: options.system, format, text, defaultKind: options.kind, defaultRelation: options.relation }, context);
+    for (const warn of records.warnings) console.log(chalk.yellow(`  Warning: ${warn}`));
+    if (records.errors.length > 0) {
+        for (const err of records.errors) console.error(chalk.red(`  ${err}`));
+        if (records.items.length === 0 && records.links.length === 0) process.exit(1);
+    }
+
+    const plan = planSourceImport(project.model, options.system, records);
+    const preview = previewSourceImport(project.model, plan);
+    console.log(chalk.bold(`\nImport from ${options.system}: +${preview.added.length} new, ~${preview.changed.length} changed, `
+        + `=${preview.unchanged} unchanged, -${preview.deleted.length} deleted`));
+    for (const entry of preview.added) console.log(chalk.green(`  + ${entry.identifier}  ${entry.elementId}  [${entry.kind}]  "${entry.name}"`));
+    for (const entry of preview.changed) {
+        const suspect = entry.suspectLinks.length > 0 ? `  → marks ${entry.suspectLinks.length} link(s) suspect` : '';
+        console.log(chalk.yellow(`  ~ ${entry.identifier}  revision ${entry.from} → ${entry.to}${suspect}`));
+        for (const change of entry.changes) console.log(chalk.dim(`        ${change.field}: "${change.from}" → "${change.to}"`));
+    }
+    for (const entry of preview.deleted) {
+        const flagged = entry.suspectLinks.length > 0 ? `  → flags ${entry.suspectLinks.length} link(s)` : '';
+        console.log(chalk.red(`  - ${entry.identifier}  ${entry.elementId}  no longer in the export; kept, marked withdrawn${flagged}`));
+    }
+
+    const rendered = renderSourceImport(project.model, plan, context, {
+        format, sourceFile: basename(file), now: new Date(),
+    });
+    for (const warn of rendered.warnings) console.log(chalk.yellow(`  Warning: ${warn}`));
+    if (rendered.dropped.length > 0) {
+        console.log(chalk.yellow(`  Not written, the kind declares no such attribute: ${rendered.dropped.join(', ')}`));
+    }
+    if (options.dryRun) {
+        console.log(chalk.dim('\nDry run: nothing written.'));
+        return;
+    }
+    const target = resolve(projectRoot, rendered.file);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, rendered.text, 'utf-8');
+    console.log(chalk.green(`\nWrote ${plan.elements.length + preview.deleted.length} element(s) → ${rendered.file}`));
 }

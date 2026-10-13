@@ -2065,7 +2065,6 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             parseElementsCsv,
                             parseRelationshipsCsv,
                             generateFile,
-                            attachProvenance,
                             loadProjectSettings,
                         } = await import('@memoarchitect/tools');
                         const config = loadProjectSettings(projectRoot);
@@ -2083,13 +2082,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             const result = parseElementsCsv(elementsCsv, ontology);
                             errors.push(...result.errors);
                             warnings.push(...result.warnings);
-                            // Attach provenance
-                            const sessionId = `ws-${Date.now().toString(36)}`;
-                            elements = attachProvenance(result.items, {
-                                sourceFile: targetFile ?? 'web-import',
-                                importTimestamp: new Date().toISOString(),
-                                importSessionId: sessionId,
-                            });
+                            elements = result.items;
                             elementsImported = elements.length;
                         }
 

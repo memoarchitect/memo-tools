@@ -48,7 +48,7 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo-architect export …` | Export JSON, Graphviz DOT, or DHF artifacts. |
 | `memo-architect install [source]`, `lock` | Install and lock packages. |
 | `memo-architect ontology …` | Inspect or export the resolved ontology. |
-| `memo-architect import …` | Import CSV, EA, Cameo, SysAnd or OWL data, or a KPAR archive (`import kpar <archive>`; `--inspect` only reads it, and imports nothing). |
+| `memo-architect import …` | Import CSV, EA, Cameo, SysAnd or OWL data, or an export from another system (`import source <file> --system <name> [--format csv\|reqif\|trace-matrix]`, which diffs against the last import and writes `model/imports/<system>.sysml`), or a KPAR archive (`import kpar <archive>`; `--inspect` only reads it, and imports nothing). |
 | `memo-architect ask <question>`, `generate <description>`, `mcp [init]` | The AI helpers: a model-grounded question, SysML from natural language, MCP for coding tools. |
 | `memo-architect plugin …` | List or run plugins. |
 | `memo-architect dhf …` | Initialize, preview, assess, snapshot, diff, redline, or draft DHF content. |
@@ -81,7 +81,7 @@ never overwritten.
 |---|---|
 | `export` | `json`, `dhf`, `dot` |
 | `ontology` | `show`, `export owl`, `export xml`, `export sysand` |
-| `import` | `csv`, `csv-rel`, `template`, `diff`, `ea`, `cameo`, `sysand`, `owl` |
+| `import` | `csv`, `csv-rel`, `source`, `template`, `diff`, `ea`, `cameo`, `sysand`, `owl` |
 | `plugin` | `list`, `run` |
 | `dhf` | `init`, `preview`, `status`, `snapshot`, `diff`, `redline`, `draft`, `review-packet` |
 | `rules` | `list`, `explain`, `tailoring`, `tailor`, `new` |
