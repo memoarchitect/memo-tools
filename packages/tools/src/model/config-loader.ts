@@ -56,8 +56,10 @@ export function findConfigFile(startDir: string): string | undefined {
 export function loadConfig(filePath: string): MEMOConfig {
     const manifest = readManifest(filePath);
     const raw = manifest.raw;
+    const modelName = manifest.name ?? basename(dirname(resolve(filePath)));
     return withCommandLineToolchain({
-        projectName: manifest.name ?? basename(dirname(resolve(filePath))),
+        modelName,
+        projectName: modelName,   // deprecated alias, deleted in 0.15.0
         relationshipFiles: raw.relationshipFiles as Record<string, string> | undefined,
         canonicalRelationshipFile: raw.canonicalRelationshipFile as string | undefined,
         toolchain: raw.toolchain as MEMOConfig['toolchain'],
@@ -70,8 +72,8 @@ export function loadConfig(filePath: string): MEMOConfig {
  * Settings for a project that has none. They name no compiler, so a command
  * that needs one fails unless the command line names it.
  */
-export function defaultConfig(projectName: string): MEMOConfig {
-    return withCommandLineToolchain({ projectName });
+export function defaultConfig(modelName: string): MEMOConfig {
+    return withCommandLineToolchain({ modelName, projectName: modelName });
 }
 
 // ─── The command line's toolchain flags ──────────────────────────────────────

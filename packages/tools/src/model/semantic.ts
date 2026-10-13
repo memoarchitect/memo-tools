@@ -410,7 +410,9 @@ export interface ArchLayerDTO {
 
 /** Model metadata for version/attribution */
 export interface ModelMetadata {
-    /** Project name from config */
+    /** The model's name, from its settings */
+    modelName?: string;
+    /** @deprecated 0.14.0: the former name of `modelName`, same value. Deleted in 0.15.0. */
     projectName?: string;
     /** Semantic version (from config or auto-incremented) */
     version?: string;

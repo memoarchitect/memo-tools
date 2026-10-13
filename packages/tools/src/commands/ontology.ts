@@ -48,7 +48,7 @@ export function ontologyAddKindCommand(name: string, options: { layer: string; o
     if (configPath) {
         try {
             const cfg = loadAndResolveConfig(configPath);
-            if (cfg?.projectName) namespace = cfg.projectName.replace(/[^A-Za-z0-9_]/g, '_');
+            if (cfg?.modelName) namespace = cfg.modelName.replace(/[^A-Za-z0-9_]/g, '_');
         } catch {
             // ignore — fall back to 'local'
         }
@@ -202,7 +202,7 @@ export async function ontologyExportOwlCommand(options: {
         loadResult.registries.kindRegistry,
         loadResult.registries.relationshipRegistry,
     );
-    const exportInput = { projectName: config.projectName, ...ontology };
+    const exportInput = { modelName: config.modelName, ...ontology };
 
     let content: string;
     let ext: string;
@@ -249,7 +249,7 @@ export async function ontologyExportSysandCommand(options: {
         process.exit(1);
     }
 
-    const bundleName = sanitizeName(currentConfig.projectName || 'memo-ontology');
+    const bundleName = sanitizeName(currentConfig.modelName || 'memo-ontology');
     const outputDir = resolve(cwd, options.output || `${bundleName}_Project`);
     const packagesDir = resolve(outputDir, 'packages');
 
@@ -345,7 +345,7 @@ function exportResolvedPackage(root: LibraryRoot, packagesDir: string): Exported
 }
 
 function renderReadme(currentConfig: MEMOConfig, packages: ExportedPackage[]): string {
-    const title = currentConfig.projectName;
+    const title = currentConfig.modelName;
     const lines = [
         `# ${title}`,
         '',
@@ -373,7 +373,7 @@ function renderProjectJson(
     // package supplies is what its SysML declares, so the export states only
     // the packages it bundled and lets the consumer read them.
     return {
-        name: currentConfig.projectName,
+        name: currentConfig.modelName,
         publisher: 'untitled',
         version: packages[packages.length - 1]?.version || '0.0.1',
         usage: packages.map(p => ({ resource: `urn:kpar:${p.name}` })),
@@ -416,7 +416,7 @@ function renderMetaJson(packages: ExportedPackage[], outputDir: string): Record<
 function renderSysandLock(currentConfig: MEMOConfig, packages: ExportedPackage[]): string {
     const lines = [
         'version = 1',
-        `root_project = ${tomlString(currentConfig.projectName)}`,
+        `root_project = ${tomlString(currentConfig.modelName)}`,
         `generated_by = ${tomlString('memo-architect ontology export sysand')}`,
         '',
     ];

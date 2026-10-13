@@ -607,7 +607,7 @@ export async function rulesTailorCommand(projectDir: string | undefined, options
     const filePath = resolve(projectRoot, relativePath);
     if (!existsSync(filePath)) fail(`${relativePath} does not exist.`);
     const updated = insertRulePolicy(readFileSync(filePath, 'utf8'), renderRulePolicy(request));
-    if (updated === undefined) fail(`${relativePath} declares no ProjectMethodBinding or MethodologyDefinition to attach the policy to; nothing was written.`);
+    if (updated === undefined) fail(`${relativePath} declares no ModelMethodBinding or MethodologyDefinition to attach the policy to; nothing was written.`);
     const committed = await commitSource(filePath, relativePath, updated!, selectedOutlineSource(projectRoot, config));
     if (!committed.success) fail(committed.error ?? 'The compiler rejected the policy; nothing was written.');
     console.log(chalk.green(`✅ Wrote the policy to ${relativePath}`));

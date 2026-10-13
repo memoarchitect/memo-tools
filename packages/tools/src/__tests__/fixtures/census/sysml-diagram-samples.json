@@ -2,7 +2,7 @@
   "project": "sysml-diagram-samples",
   "totals": {
     "files": 18,
-    "elements": 266,
+    "elements": 268,
     "definitions": 32,
     "relationships": 283,
     "packages": 21,
@@ -14,7 +14,7 @@
       "elements": 1,
       "definitions": 0,
       "kinds": {
-        "ProjectMethodBinding": 1
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},
@@ -76,9 +76,10 @@
       "builderFindings": 0
     },
     "model/catalog/viewpoints/unassigned/views/context_view.sysml": {
-      "elements": 6,
+      "elements": 8,
       "definitions": 0,
       "kinds": {
+        "MemoPort": 2,
         "OperationalEntity": 2,
         "UseContext": 1,
         "User": 3

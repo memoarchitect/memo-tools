@@ -29,7 +29,7 @@ import { readdirSync, statSync } from 'node:fs';
 import { relative } from 'node:path';
 import { shortNameOf } from '../model/element-index.js';
 
-const config: MEMOConfig = { projectName: 'packages' } as MEMOConfig;
+const config: MEMOConfig = { modelName: 'packages' } as MEMOConfig;
 
 // What the fixtures use, declared at the root of the model.
 const STUBS = [

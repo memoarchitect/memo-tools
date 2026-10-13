@@ -70,7 +70,7 @@ describe('generated --toolchain.* options', () => {
 
             // And it survives the merge onto loaded settings.
             const merged = withToolchainOverrides(
-                { projectName: 'test' }, options, registry);
+                { modelName: 'test' }, options, registry);
             expect(readPath(merged.toolchain ?? {}, leaf.path)).toBe(expected);
         });
     }
@@ -105,7 +105,7 @@ describe('option value checking', () => {
 describe('merging with settings', () => {
     it('overrides one leaf without discarding its siblings', () => {
         const merged = withToolchainOverrides(
-            { projectName: 'test', toolchain: { syside: { executable: '/bin/syside', diagnose: 'none' } } },
+            { modelName: 'test', toolchain: { syside: { executable: '/bin/syside', diagnose: 'none' } } },
             { 'toolchain.syside.diagnose': 'all' },
             registry,
         );
@@ -113,7 +113,7 @@ describe('merging with settings', () => {
     });
 
     it('leaves settings untouched when no flag was given', () => {
-        const settings = { projectName: 'test', toolchain: { validator: 'syside' } };
+        const settings = { modelName: 'test', toolchain: { validator: 'syside' } };
         expect(withToolchainOverrides(settings, {}, registry)).toBe(settings);
     });
 });

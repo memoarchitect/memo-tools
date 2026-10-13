@@ -23,7 +23,7 @@ function project() {
     cpSync(join(fixtureDir, 'api-model.stage1.json'), join(cacheDir, 'syside.json'));
     writeFileSync(join(cacheDir, 'syside.json.key'), sysideInputKey(NO_PYTHON, dir, sysideLibraryKey(NO_PYTHON, [])));
     const options = {
-        config: { projectName: 'p', toolchain: { syside: { python: NO_PYTHON } } },
+        config: { modelName: 'p', toolchain: { syside: { python: NO_PYTHON } } },
         projectDir: dir, libraryDirs: [], projectFiles: new Set(['model.sysml']), cacheDir,
     };
     return { dir, options };

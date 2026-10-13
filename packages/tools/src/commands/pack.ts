@@ -16,15 +16,15 @@ export async function packCommand(
     // compile first: what a packager needs of the project it reads for itself.
     const projectRoot = process.cwd();
     const config = withToolchainOverrides(loadProjectSettings(projectRoot), options, defaultRegistry);
-    const projectName = config.projectName || 'memo-project';
+    const modelName = config.modelName || 'memo-project';
     // The file is named by what the selected packager makes.
     const packager = defaultRegistry.descriptor('package', resolveToolchain(config, defaultRegistry).packager) as PackageDescriptor;
     const defaultName = packager.defaultOutputName?.({ config, projectDir: projectRoot })
-        ?? `${projectName.replace(/[^a-zA-Z0-9_-]/g, '-')}.memo-bundle`;
+        ?? `${modelName.replace(/[^a-zA-Z0-9_-]/g, '-')}.memo-bundle`;
     const outputPath = resolve(projectRoot, options.output || defaultName);
 
     console.log(chalk.bold('\n📦 MEMO Pack\n'));
-    console.log(chalk.gray(`  Project: ${projectName}`));
+    console.log(chalk.gray(`  Model: ${modelName}`));
 
     // The packager is resolved and run through the registry like anything else.
     // There is no `if (packager === 'internal')` here any more: MEMO's own KPAR

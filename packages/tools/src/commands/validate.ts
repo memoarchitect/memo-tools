@@ -125,7 +125,7 @@ export async function runValidation(
             + 'and method binding — run `memo-architect init` to scaffold one.'));
         throw new ValidationExit(1);
     }
-    say(chalk.gray(`Project root: ${projectRoot}`));
+    say(chalk.gray(`Model root: ${projectRoot}`));
 
     // 2. Reject semantic configuration before anything reads it.
     const rejections = checkSemanticFields(projectRoot);
@@ -187,7 +187,7 @@ export async function runValidation(
 
     if (resolution?.binding) {
         say(chalk.gray(
-            `Binding: ${resolution.binding.projectName ?? resolution.binding.usageName} → `
+            `Binding: ${resolution.binding.modelName ?? resolution.binding.usageName} → `
             + `${resolution.binding.selectedMethodologyName ?? '(none)'}`));
     }
 
@@ -489,7 +489,7 @@ export async function runValidation(
 
     if (format === 'junit') {
         const xml = generateJUnit(
-            result, completeness, config.projectName || 'memo', diagnostics, modelFindings);
+            result, completeness, config.modelName || 'memo', diagnostics, modelFindings);
         if (options?.output) {
             writeFileSync(resolve(cwd, options.output), xml);
             io.out(chalk.green(`JUnit XML written to ${options.output}`));
@@ -502,7 +502,8 @@ export async function runValidation(
 
     if (format === 'json') {
         const jsonOutput = {
-            projectName: config.projectName,
+            modelName: config.modelName,
+            projectName: config.modelName,   // deprecated alias, deleted in 0.15.0
             timestamp: new Date().toISOString(),
             summary: {
                 elements: model.elements.size,
@@ -738,7 +739,7 @@ function reportSelectorDiagnostics(
 function generateJUnit(
     result: ReturnType<typeof validateModel>,
     completeness: ReturnType<typeof computeCompleteness>,
-    projectName: string,
+    modelName: string,
     parseErrors: readonly import('@memoarchitect/tools').ParseError[] = [],
     modelFindings: readonly import('@memoarchitect/tools').ParseError[] = [],
 ): string {
@@ -758,7 +759,7 @@ function generateJUnit(
 
     const lines: string[] = [
         '<?xml version="1.0" encoding="UTF-8"?>',
-        `<testsuites name="${escXml(projectName)}" tests="${allTests}" failures="${failures}" errors="0" skipped="${skipped}" timestamp="${new Date().toISOString()}">`,
+        `<testsuites name="${escXml(modelName)}" tests="${allTests}" failures="${failures}" errors="0" skipped="${skipped}" timestamp="${new Date().toISOString()}">`,
         `  <testsuite name="closure-rules" tests="${allTests}" failures="${failures}" errors="0" skipped="${skipped}">`,
         `    <properties>`,
         `      <property name="completeness" value="${completeness.overall}%" />`,

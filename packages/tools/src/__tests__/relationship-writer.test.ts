@@ -522,7 +522,7 @@ describe('writeRelationship', () => {
 
 describe('relationship persistence round trip', () => {
     const minimalConfig = {
-        projectName: 'test', kinds: {}, relationshipTypes: [], architectureLayers: [], viewpoints: [],
+        modelName: 'test', kinds: {}, relationshipTypes: [], architectureLayers: [], viewpoints: [],
     } as unknown as MEMOConfig;
 
     it('survives a rebuild with a stable named ID', async () => {

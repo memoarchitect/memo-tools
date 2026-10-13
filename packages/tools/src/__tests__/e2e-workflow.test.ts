@@ -59,8 +59,8 @@ describe('E2E: memo init → validate → export', () => {
     it('memo init creates project structure with memo.package.yaml', () => {
         const output = run('init test-device --no-install', tmpDir);
 
-        expect(output).toContain('Creating MEMO project: test-device');
-        expect(output).toContain('Project created');
+        expect(output).toContain('Creating MEMO model: test-device');
+        expect(output).toContain('Model created');
 
         const projectDir = join(tmpDir, 'test-device');
         expect(existsSync(projectDir)).toBe(true);
@@ -103,7 +103,7 @@ describe('E2E: memo init → validate → export', () => {
         const entrypointPath = join(projectDir, 'model', 'catalog', 'project.sysml');
         expect(existsSync(entrypointPath)).toBe(true);
         const entrypoint = readFileSync(entrypointPath, 'utf-8');
-        expect(entrypoint).toContain('ProjectMethodBinding');
+        expect(entrypoint).toContain('ModelMethodBinding');
         expect(entrypoint).toContain('ref :>> selectedMethodology');
         expect(entrypoint).toContain('private import memo_methodology_profiles::*;');
 
@@ -117,8 +117,8 @@ describe('E2E: memo init → validate → export', () => {
         mkdirSync(projectDir);
 
         const output = run('init --no-install', projectDir);
-        expect(output).toContain('Creating MEMO project: inplace-device');
-        expect(output).toContain('Project created in current directory');
+        expect(output).toContain('Creating MEMO model: inplace-device');
+        expect(output).toContain('Model created in current directory');
 
         expect(existsSync(join(projectDir, 'memo.package.yaml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'))).toBe(true);
@@ -142,8 +142,8 @@ describe('E2E: memo init → validate → export', () => {
         // Run from REPO_ROOT so ontology packages are discoverable
         const output = run(`init ${join(tmpDir, 'test-core-device')} --ontology @memoarchitect/ontology --no-install`, REPO_ROOT);
 
-        expect(output).toContain('Creating MEMO project');
-        expect(output).toContain('Project created');
+        expect(output).toContain('Creating MEMO model');
+        expect(output).toContain('Model created');
 
         const projectDir = join(tmpDir, 'test-core-device');
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
@@ -151,7 +151,7 @@ describe('E2E: memo init → validate → export', () => {
         // which methodology it binds is in model/catalog/project.sysml.
         expect(config.extends).toBeUndefined();
         const entrypoint = readFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), 'utf-8');
-        expect(entrypoint).toContain('ProjectMethodBinding');
+        expect(entrypoint).toContain('ModelMethodBinding');
 
         // SysML should import the ontology
         const sysml = readFileSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'), 'utf-8');
@@ -199,7 +199,7 @@ describe('E2E: memo init → validate → export', () => {
         const projectDir = join(tmpDir, 'test-default');
         const output = run(`init ${projectDir} --no-install`, REPO_ROOT);
 
-        expect(output).toContain('Project created');
+        expect(output).toContain('Model created');
         expect(existsSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model', 'catalog', 'assurance', 'requirements.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model', 'catalog', 'artifacts', 'catalog.sysml'))).toBe(true);
@@ -210,7 +210,7 @@ describe('E2E: memo init → validate → export', () => {
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
         expect(config.extends).toBeUndefined();
         expect(readFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), 'utf-8'))
-            .toContain('ProjectMethodBinding');
+            .toContain('ModelMethodBinding');
     });
 
     it('memo init --list shows packages and examples, and no templates', () => {
@@ -230,7 +230,7 @@ describe('E2E: memo init → validate → export', () => {
 
         expect(output).toContain('Creating project from example');
         expect(output).toContain('gpca-pump');
-        expect(output).toContain('Project created');
+        expect(output).toContain('Model created');
 
         expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model'))).toBe(true);
@@ -261,7 +261,7 @@ describe('E2E: memo init → validate → export', () => {
         mkdirSync(projectDir);
 
         const output = run('init --example gpca', projectDir);
-        expect(output).toContain('Project created in current directory');
+        expect(output).toContain('Model created in current directory');
         expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model'))).toBe(true);
 
@@ -305,9 +305,9 @@ package lock_test_project {
     private import memo_core_common::*;
     private import lock_test_model::*;
 
-    part projectBinding : ProjectMethodBinding {
+    part projectBinding : ModelMethodBinding {
         @MemoIdentity { :>> providedId = "PMB-TEST"; :>> label = "lock-testBinding"; }
-        attribute :>> projectName = "lock-test";
+        attribute :>> modelName = "lock-test";
         ref :>> selectedMethodology = mdDefaultDefinition;
         attribute :>> scopeMode = ScopeModeKind::explicit;
     }
@@ -433,9 +433,9 @@ package custom_device_project {
     private import memo_core_common::*;
     private import custom_device_model::*;
 
-    part projectBinding : ProjectMethodBinding {
+    part projectBinding : ModelMethodBinding {
         @MemoIdentity { :>> providedId = "PMB-TEST"; :>> label = "custom-deviceBinding"; }
-        attribute :>> projectName = "custom-device";
+        attribute :>> modelName = "custom-device";
         ref :>> selectedMethodology = mdDefaultDefinition;
         attribute :>> scopeMode = ScopeModeKind::explicit;
     }

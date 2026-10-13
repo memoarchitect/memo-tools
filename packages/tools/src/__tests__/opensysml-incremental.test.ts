@@ -35,7 +35,7 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('OpenSysML stage 1, co
         cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
         const sources = discoverProjectSources(root);
         options = {
-            config: { projectName: 'x', toolchain: { compiler: 'opensysml', opensysml } } as unknown as CompileModelOptions['config'],
+            config: { modelName: 'x', toolchain: { compiler: 'opensysml', opensysml } } as unknown as CompileModelOptions['config'],
             projectDir: root,
             libraryDirs: [...new Set(sources.libraryRoots.map(r => r.sysmlDir))],
             projectFiles: new Set(sources.projectFiles.map(file => relative(root, file))),

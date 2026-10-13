@@ -58,7 +58,7 @@ describe('SysIDE suite gate', () => {
     });
 
     it('asks SysIDE for full diagnostics with warnings as errors by default', () => {
-        const { args } = buildSysideInvocation({ config: { projectName: 'x' } as MEMOConfig, projectDir: '/p', files: ['/p/a.sysml'] });
+        const { args } = buildSysideInvocation({ config: { modelName: 'x' } as MEMOConfig, projectDir: '/p', files: ['/p/a.sysml'] });
         expect(args).toEqual(expect.arrayContaining(['--diagnose', 'all', '--warnings-as-errors']));
     });
 });

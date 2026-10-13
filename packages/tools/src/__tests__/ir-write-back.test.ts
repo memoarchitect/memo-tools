@@ -42,7 +42,7 @@ import type { RelationshipDefinitionDTO } from '../model/relationship-legality.j
 import type { DiagramDTO } from '../model/semantic.js';
 import type { DiagramLayout } from '../protocol/messages.js';
 
-const config: MEMOConfig = { projectName: 'write-back' } as MEMOConfig;
+const config: MEMOConfig = { modelName: 'write-back' } as MEMOConfig;
 
 // What the fixtures use, declared at the root of the model.
 const STUBS = [

@@ -49,7 +49,7 @@ function service(name: string, toolchain: Record<string, unknown>): void {
             const root = realpathSync(mkdtempSync(join(tmpdir(), 'memo-rule-service-')));
             try {
                 cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
-                const config = { projectName: 'x', toolchain } as unknown as MEMOConfig;
+                const config = { modelName: 'x', toolchain } as unknown as MEMOConfig;
                 const compiled = await compileResolvedProject({ config, projectDir: root, force: true });
                 expect(compiled?.accepted).toBe(true);
                 const context: RuleServiceContext = {

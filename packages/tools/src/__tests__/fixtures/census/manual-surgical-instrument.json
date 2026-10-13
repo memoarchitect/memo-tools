@@ -31,7 +31,7 @@
       "elements": 1,
       "definitions": 0,
       "kinds": {
-        "ProjectMethodBinding": 1
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

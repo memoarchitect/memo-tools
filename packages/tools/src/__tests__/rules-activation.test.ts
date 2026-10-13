@@ -86,7 +86,7 @@ describe.runIf(Boolean(python) && existsSync(example))('a project reached throug
         try {
             cpSync(example, join(base, 'real'), { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
             symlinkSync(join(base, 'real'), join(base, 'link'));
-            const config = { projectName: 'x', toolchain: { compiler: 'syside', syside: { python } } } as unknown as MEMOConfig;
+            const config = { modelName: 'x', toolchain: { compiler: 'syside', syside: { python } } } as unknown as MEMOConfig;
             const viaLink = await compileResolvedProject({ config, projectDir: join(base, 'link'), force: true });
             const viaReal = await compileResolvedProject({ config, projectDir: join(base, 'real'), force: true });
             expect(viaLink?.accepted).toBe(true);

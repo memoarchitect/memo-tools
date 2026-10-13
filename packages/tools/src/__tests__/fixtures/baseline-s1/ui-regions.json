@@ -417,7 +417,7 @@
       },
       {
         "id": "memo_examples_ui_screen_regions_project::uiScreenRegionsBinding",
-        "kind": "ProjectMethodBinding",
+        "kind": "ModelMethodBinding",
         "construct": "part",
         "layer": "methodology",
         "package": "memo_examples_ui_screen_regions_project"
@@ -1018,10 +1018,10 @@
       "MemoEvidence": 3,
       "MemoScreenLayoutView": 2,
       "ModelComment": 3,
+      "ModelMethodBinding": 1,
       "ModelNote": 1,
       "ModelRationale": 1,
       "Need": 1,
-      "ProjectMethodBinding": 1,
       "Requirement": 12,
       "RiskControlMeasure": 5,
       "ScreenCapture": 3,

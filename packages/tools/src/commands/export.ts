@@ -71,7 +71,8 @@ export async function exportJsonCommand(options: {
     const dto = modelToDTO(model, { viewpoints, architectureLayers });
 
     const output = {
-        projectName: config.projectName,
+        modelName: config.modelName,
+        projectName: config.modelName,   // deprecated alias, deleted in 0.15.0
         projectType: undefined as string | undefined,
         exportedAt: new Date().toISOString(),
         model: dto,

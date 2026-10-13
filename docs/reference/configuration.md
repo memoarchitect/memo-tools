@@ -8,9 +8,9 @@ decides what your model contains.
 > meant before.
 
 What the model contains is decided in SysML — the import graph starting at
-`model/catalog/project.sysml`, and the `ProjectMethodBinding` there that names
+`model/catalog/project.sysml`, and the `ModelMethodBinding` there that names
 the methodology. That half is documented in the ontology reference:
-[Native project format](https://memoarchitect.com/memo/reference/native-project-format/).
+[Native model format](https://memoarchitect.com/memo/reference/native-model-format/).
 
 `memo.config.yaml` is gone, along with `extends:`, `methodology:`, `ontologies:`
 and `modules:`. They selected model content from a file no conformant SysML v2

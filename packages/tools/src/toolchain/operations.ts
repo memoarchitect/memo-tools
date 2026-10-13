@@ -264,7 +264,7 @@ export function formatProbeLine(probe: RoleProbe): string {
 
 /** The full resolved picture, for `memo compile --effective`. */
 export interface EffectiveConfigReport {
-    projectName: string;
+    modelName: string;
     projectRoot: string;
     settingsFile?: string;
     /** The provider of each role the settings fill; a role they leave unset is absent. */
@@ -292,7 +292,7 @@ export function effectiveConfigReport(options: {
         if (settings !== undefined) providers[id] = settings;
     }
     return {
-        projectName: options.config.projectName,
+        modelName: options.config.modelName,
         projectRoot: options.projectDir,
         settingsFile: options.settingsFile,
         toolchain: {

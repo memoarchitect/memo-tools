@@ -15,6 +15,10 @@
  * Auto-generation handles everything else.
  */
 const KIND_PREFIX_OVERRIDES: Record<string, string> = {
+    // The method binding was ProjectMethodBinding until 0.14.0 and minted PRJ.
+    // Renaming the kind must not re-mint every model's binding (short ids are
+    // never reassigned), so ModelMethodBinding keeps the family it had.
+    ModelMethodBinding: 'PRJ',
     // Risk
     Hazard: 'HZD',
     HazardousEvent: 'HZD-EVT',

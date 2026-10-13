@@ -28,7 +28,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the ontology\'s own selec
         const files = [...findSysmlFiles(resolve(MEMO_ROOT, 'src')), ...findSysmlFiles(resolve(MEMO_ROOT, 'extensions'))];
         expect(files.length).toBeGreaterThan(0);
         const compiled = await compileModelWithSelected({
-            config: { projectName: 'ontology', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never,
+            config: { modelName: 'ontology', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never,
             projectDir: MEMO_ROOT,
             libraryDirs: [],
             projectFiles: new Set(files.map(file => relative(MEMO_ROOT, file))),

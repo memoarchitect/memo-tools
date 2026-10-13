@@ -48,7 +48,7 @@ describe('a compile that imports a package no library supplied and selects no ki
         }) as never,
     });
     const options = (registry: ProviderRegistry) => ({
-        config: { projectName: 'x', toolchain: { lowering: 'stub' } } as unknown as MEMOConfig,
+        config: { modelName: 'x', toolchain: { lowering: 'stub' } } as unknown as MEMOConfig,
         projectDir: '/p', libraryDirs: [], projectFiles: new Set<string>(), registry,
     });
 

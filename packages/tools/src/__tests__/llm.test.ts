@@ -45,7 +45,7 @@ function createMockContext(): QueryContext {
     };
 
     return {
-        projectName: 'TestDevice',
+        modelName: 'TestDevice',
         allElements: () => elements,
         elementsByKind: (kind: string) => byKind[kind] || [],
         elementsByKinds: (kinds: string[]) => kinds.flatMap((k: string) => byKind[k] || []),

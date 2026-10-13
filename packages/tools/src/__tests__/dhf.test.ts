@@ -56,7 +56,7 @@ function makeCompleteness(): CompletenessReport {
 }
 
 function makeConfig(): MEMOConfig {
-    return { projectName: 'Test Project' };
+    return { modelName: 'Test Project' };
 }
 
 // ─── Document Registry Tests ─────────────────────────────────────────────────

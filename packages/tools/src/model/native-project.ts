@@ -9,7 +9,7 @@
 //
 //   1. the project's own `.sysml` import graph, rooted at the entrypoint
 //      `model/catalog/project.sysml`, and
-//   2. the `ProjectMethodBinding` that entrypoint declares, whose
+//   2. the `ModelMethodBinding` that entrypoint declares, whose
 //      `selectedMethodology` is a typed SysML reference.
 //
 // Application settings still say *where* a package's source sits on disk. That
@@ -98,12 +98,31 @@ export interface ResolvedPackage {
 }
 
 /** The project's method binding, read from SysML. */
+/**
+ * The definitions a model's method binding is typed by. `ModelMethodBinding`
+ * is the name; `ProjectMethodBinding` is its deprecated former spelling (a
+ * specialization of it in the ontology), still read so an existing model binds,
+ * and reported by `deprecated-binding-spelling`. Every place that recognizes a
+ * binding asks this list, so the old spelling is named in one place.
+ * Delete `ProjectMethodBinding` in 0.15.0.
+ */
+export const METHOD_BINDING_KINDS = ['ModelMethodBinding', 'ProjectMethodBinding'] as const;
+/** The spellings of a binding that are deprecated: its old type and its old name attribute. */
+export const DEPRECATED_BINDING_SPELLINGS = { kind: 'ProjectMethodBinding', name: 'projectName' } as const;
+
+export function isMethodBindingKind(kind: string | undefined): boolean {
+    return (METHOD_BINDING_KINDS as readonly string[]).includes(kind ?? '');
+}
+
 export interface NativeMethodBinding {
     /** Usage name, e.g. "uiScreenRegionsBinding". */
     usageName: string;
     /** `id` attribute, when authored. */
     bindingId?: string;
-    projectName?: string;
+    /** `modelName`, or the deprecated `projectName` when that is what was written. */
+    modelName?: string;
+    /** The deprecated spellings this binding was written with (`ProjectMethodBinding`, `projectName`). */
+    deprecatedSpellings?: string[];
     /** Name the `selectedMethodology` reference resolves to. */
     selectedMethodologyName?: string;
     scopeMode?: ScopeMode;
@@ -164,9 +183,12 @@ export interface NativeDiagnostic {
         | 'entrypoint-not-compiled'
         | 'scope-mode-conflict'
         | 'settings-graph-mismatch'
-        | 'invalid-kpar';
+        | 'invalid-kpar'
+        | 'deprecated-binding-spelling';
     message: string;
     file?: string;
+    /** `warning` for one that does not stop the model resolving (a deprecated spelling); absent means it may. */
+    severity?: 'warning';
 }
 
 export interface NativeProjectResolution {
@@ -545,8 +567,8 @@ export function finishResolution(
             diagnostics.push({
                 code: 'no-binding',
                 message:
-                    `No ProjectMethodBinding found in ${entrypointPath}. It must declare one; `
-                    + `it is what selects the project's methodology.`,
+                    `No ModelMethodBinding found in ${entrypointPath}. It must declare one; `
+                    + `it is what selects the model's methodology.`,
                 file: entrypoint,
             });
         }
@@ -554,13 +576,24 @@ export function finishResolution(
         diagnostics.push({
             code: 'multiple-bindings',
             message:
-                `${projectBindings.length} ProjectMethodBinding usages found (`
+                `${projectBindings.length} ModelMethodBinding usages found (`
                 + projectBindings.map(b => `${b.usageName} in ${relative(root, b.sourceFile)}`).join(', ')
-                + `). A project binds exactly one methodology; which one applied would otherwise depend on load order.`,
+                + `). A model binds exactly one methodology; which one applied would otherwise depend on load order.`,
         });
         binding = projectBindings[0];
     } else {
         binding = projectBindings[0];
+    }
+
+    if (binding?.deprecatedSpellings?.length) {
+        diagnostics.push({
+            code: 'deprecated-binding-spelling',
+            severity: 'warning',
+            message:
+                `${binding.usageName} is written with ${binding.deprecatedSpellings.map(s => `\`${s}\``).join(' and ')}, `
+                + 'which still work and are deleted in 0.15.0. Write `ModelMethodBinding` and `modelName` instead.',
+            file: binding.sourceFile,
+        });
     }
 
     if (binding) {

@@ -18,7 +18,7 @@
       },
       {
         "id": "project_catalog::projectMethodBinding",
-        "kind": "ProjectMethodBinding",
+        "kind": "ModelMethodBinding",
         "construct": "part",
         "layer": "methodology",
         "package": "project_catalog"
@@ -27,7 +27,7 @@
     "relationships": [],
     "kindCounts": {
       "MemoPart": 1,
-      "ProjectMethodBinding": 1,
+      "ModelMethodBinding": 1,
       "Requirement": 1
     },
     "layerCounts": {

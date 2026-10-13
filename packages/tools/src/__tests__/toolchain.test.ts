@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 function config(toolchain?: MEMOConfig['toolchain']): MEMOConfig {
-    return { projectName: 'test', toolchain };
+    return { modelName: 'test', toolchain };
 }
 
 function context(toolchain: MEMOConfig['toolchain'], extra: Partial<ProviderContext> = {}): ProviderContext {

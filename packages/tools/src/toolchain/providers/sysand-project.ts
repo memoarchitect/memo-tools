@@ -44,7 +44,7 @@ export function sysandProjectIdentity(projectDir: string, config: MEMOConfig): S
     const manifest = readManifest(settingsFile && dirname(resolve(settingsFile)) === root ? settingsFile : '');
     const text = (value: unknown): string | undefined => (typeof value === 'string' && value.trim() ? value.trim() : undefined);
     return {
-        name: config.projectName || manifest.name || 'memo-project',
+        name: config.modelName || manifest.name || 'memo-project',
         // `untitled` is what `sysand init` writes when nobody says.
         publisher: text(manifest.raw.publisher) ?? text(manifest.raw.author) ?? 'untitled',
         version: manifest.version ?? '0.1.0',

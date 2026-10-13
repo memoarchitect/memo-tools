@@ -96,7 +96,7 @@ memo_examples_gpca_pump_model_views_logical_mode_state_view
    the default methodology:
 
    ```sysml
-   part projectBinding : ProjectMethodBinding {
+   part projectBinding : ModelMethodBinding {
        ...
        ref :>> selectedMethodology = mdDefaultDefinition;
    }
@@ -127,7 +127,7 @@ memo_examples_gpca_pump_model_views_logical_mode_state_view
 | Renames packages to mirror location | Prefix, then the directory chain, then the file name (`viewpoint`, `catalog`, `index`, or a name equal to its folder add nothing). The prefix is the longest shared start of your package names. |
 | Rewrites references | Every `import`, `expose` and qualified name that mentions a renamed package, in all project files, comments and doc strings included, longest name first. |
 | Rewrites artifact URIs | `imageUri`, `uri`, `payloadUri`, `sourceUri` strings follow their files, written either from the project root or relative to `model/`. |
-| Creates `model/catalog/project.sysml` | When the project has none: imports the project's packages and a `ProjectMethodBinding` with a placeholder id derived from the name. |
+| Creates `model/catalog/project.sysml` | When the project has none: imports the project's packages and a `ModelMethodBinding` with a placeholder id derived from the name. |
 | Creates `memo.package.yaml` | When the project has none: `name` (from `projectName` in the old file, else the directory), `entrypoint`, `include` (`model` plus any vendored `methodology`, `extensions`, `profile` or `profiles` folder that holds SysML) and `version: 0.1.0`. It sets no compiler or packager: those are settings. |
 | Removes superseded files | `memo.config.yaml`, `memo.rules.yaml`, `memo.viewpoints.yaml`, `memo.rendering.yaml`; and a re-export wrapper directly under `model/` that nothing imports (its job is `project.sysml`'s now). |
 | Removes emptied folders | Old `model/views/` and similar, once empty. |

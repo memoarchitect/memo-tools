@@ -225,7 +225,7 @@ const plugin: GeneratorPlugin = {
         //
         // Example: generate a summary file
         // const fs = await import('node:fs');
-        // const summary = \`Model: \${ctx.config.projectName}\\nElements: \${ctx.query.totalElements()}\`;
+        // const summary = \`Model: \${ctx.config.modelName}\\nElements: \${ctx.query.totalElements()}\`;
         // fs.writeFileSync(path.join(ctx.projectDir, 'model-summary.txt'), summary);
         console.log('Generator ${id} ran successfully.');
     },

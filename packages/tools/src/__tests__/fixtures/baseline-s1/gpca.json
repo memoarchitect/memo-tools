@@ -4624,7 +4624,7 @@
       },
       {
         "id": "memo_examples_gpca_pump_project::gpcaProjectBinding",
-        "kind": "ProjectMethodBinding",
+        "kind": "ModelMethodBinding",
         "construct": "part",
         "layer": "methodology",
         "package": "memo_examples_gpca_pump_project"
@@ -9345,6 +9345,7 @@
       "MemoUsabilityEngineeringView": 1,
       "MinimalCutSet": 2,
       "ModeConfiguration": 5,
+      "ModelMethodBinding": 1,
       "Need": 4,
       "NotificationSpec": 20,
       "OperationalCapability": 2,
@@ -9357,7 +9358,6 @@
       "PhysicalInterface": 2,
       "PhysicalPort": 27,
       "ProcessingNode": 1,
-      "ProjectMethodBinding": 1,
       "ReasonablyForeseeableMisuse": 1,
       "Requirement": 100,
       "ResidualRisk": 7,

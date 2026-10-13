@@ -259,7 +259,7 @@ const emptyCompleteness = { overall: 0, layers: [] } as unknown as CompletenessR
 
 function contextFor(report: StandardsReport) {
     return createQueryContext(
-        sampleProject(), emptyValidation, emptyCompleteness, { projectName: 'test' }, report,
+        sampleProject(), emptyValidation, emptyCompleteness, { modelName: 'test' }, report,
     );
 }
 
@@ -304,7 +304,7 @@ describe('memo-standards blocks', () => {
 
     it('says the report is unavailable rather than rendering an empty table', () => {
         const bare = createQueryContext(
-            sampleProject(), emptyValidation, emptyCompleteness, { projectName: 'test' },
+            sampleProject(), emptyValidation, emptyCompleteness, { modelName: 'test' },
         );
         expect(bare.standardsReport).toBeUndefined();
     });

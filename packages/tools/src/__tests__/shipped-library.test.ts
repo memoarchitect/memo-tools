@@ -92,7 +92,7 @@ async function check(
 describe.runIf(Boolean(python) && existsSync(example))('shipped library export, SysIDE', () => {
     it('a cold compile from the shipped file equals one that exports the libraries', async () => {
         await check('syside', ['--toolchain.compiler=syside', `--toolchain.syside.python=${python}`], shipSysideLibrary,
-            { projectName: 'x', toolchain: { compiler: 'syside', syside: { python } } });
+            { modelName: 'x', toolchain: { compiler: 'syside', syside: { python } } });
     }, 300_000);
 });
 
@@ -100,6 +100,6 @@ describe.runIf(Boolean(opensysml) && existsSync(example))('shipped library expor
     it('a cold compile from the shipped file equals one that exports the libraries', async () => {
         await check('opensysml',
             openSysMLFlags(opensysml!),
-            shipOpenSysMLLibrary, { projectName: 'x', toolchain: { compiler: 'opensysml', opensysml: opensysml! } });
+            shipOpenSysMLLibrary, { modelName: 'x', toolchain: { compiler: 'opensysml', opensysml: opensysml! } });
     }, 300_000);
 });

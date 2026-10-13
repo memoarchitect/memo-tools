@@ -40,6 +40,7 @@ import type {
 } from './standards-library.js';
 import { resolveClause } from './standards-library.js';
 import { loadTemplate, parseFrontmatter } from './template-resolver.js';
+import { METHOD_BINDING_KINDS } from '../model/native-project.js';
 
 // ─── Evidence ─────────────────────────────────────────────────────────────────
 
@@ -432,7 +433,7 @@ export function collectDocumentClauses(
 // ─── Reading the project's declared regimes ───────────────────────────────────
 
 /**
- * The regimes a project declares on its `ProjectMethodBinding`.
+ * The regimes a model declares on its `ModelMethodBinding`.
  *
  * Not application settings: `MEMOConfig` carries how a command runs, never what
  * the model means, and `settings-boundary.ts` rejects semantic fields outright.
@@ -452,7 +453,7 @@ export function readDeclaredRegimes(model: MemoModel | undefined): {
 } {
     const regimes: string[] = [];
     const rejected: string[] = [];
-    for (const el of model?.elementsByKind.get('ProjectMethodBinding') ?? []) {
+    for (const el of METHOD_BINDING_KINDS.flatMap(kind => model?.elementsByKind.get(kind) ?? [])) {
         const raw = el.attributes?.regulatoryRegime;
         if (!raw) continue;
         for (const entry of raw.split(',').map(s => s.trim()).filter(Boolean)) {

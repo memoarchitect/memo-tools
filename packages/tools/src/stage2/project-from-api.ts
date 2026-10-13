@@ -2,7 +2,7 @@
 //
 // `resolveNativeProject` reads three things from MEMO's parse: each package's
 // files and imports (the import closure walks them from the entrypoint), and
-// the `ProjectMethodBinding` and `MethodologyDefinition` usages that select a
+// the `ModelMethodBinding` and `MethodologyDefinition` usages that select a
 // methodology. These readers take the same facts from the API JSON a stage 1
 // compiler wrote over every library root a locator offers, so the closure,
 // the selected roots and the binding come from the compiled model; the rest
@@ -20,7 +20,7 @@ import type {
 } from '../model/native-project.js';
 import { relative, resolve, sep } from 'node:path';
 import type { SourceGraphPackage } from '../model/source-graph.js';
-import { discoverProjectSources, finishResolution } from '../model/native-project.js';
+import { DEPRECATED_BINDING_SPELLINGS, discoverProjectSources, finishResolution, isMethodBindingKind } from '../model/native-project.js';
 import type { ApiElement, ApiModel, ApiValue } from './api-model.js';
 
 /** Resolve a project from a handoff compiled over every library root it offers. */
@@ -123,11 +123,18 @@ export function apiNativeUsages(api: ApiModel, fileOf: (element: ApiElement) => 
         }
         if (node['@type'] !== 'PartUsage') return;
         const type = reader.typeName(node);
-        if (type === 'ProjectMethodBinding') {
+        if (isMethodBindingKind(type)) {
+            const modelName = reader.attr(node, 'modelName');
+            const oldName = reader.attr(node, DEPRECATED_BINDING_SPELLINGS.name);
+            const deprecatedSpellings = [
+                ...(type === DEPRECATED_BINDING_SPELLINGS.kind ? [DEPRECATED_BINDING_SPELLINGS.kind] : []),
+                ...(oldName !== undefined ? [DEPRECATED_BINDING_SPELLINGS.name] : []),
+            ];
             bindings.push({
                 usageName: api.name(node['@id']) ?? '',
                 bindingId: reader.attr(node, 'id'),
-                projectName: reader.attr(node, 'projectName'),
+                modelName: modelName ?? oldName,
+                ...(deprecatedSpellings.length ? { deprecatedSpellings } : {}),
                 selectedMethodologyName: reader.refType(node, 'selectedMethodology'),
                 scopeMode: asScopeMode(reader.attr(node, 'scopeMode')),
                 rulePolicies: reader.policies(node, file),
