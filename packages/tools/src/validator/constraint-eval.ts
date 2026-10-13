@@ -693,6 +693,8 @@ const KNOWN_RELATION_SEGMENTS = new Set([
     // as false in a model with no flows at all, rather than failing to resolve
     // the name — which is what happens when nothing in the model carries it.
     'flow', 'succession', 'bind', 'interface',
+    // A symmetric relation a rule reads as one hop in either direction (`excludesFeature`, CR-ONT-089).
+    'excludesfeature',
 ]);
 
 /** Resolve a feature chain starting from `start`. See navigation semantics in header. */
