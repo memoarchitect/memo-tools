@@ -7708,6 +7708,16 @@
         "targetId": "memo_examples_gpca_pump_gpca_verification::evidenceSafetyAlarmSuite"
       },
       {
+        "type": "realizedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaPump",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaDevice"
+      },
+      {
+        "type": "realizedBy",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::gpcaPump",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware"
+      },
+      {
         "type": "realizedByScenario",
         "sourceId": "memo_examples_gpca_pump_gpca_cybersecurity::unauthorizedConfigChangeThreat",
         "targetId": "memo_examples_gpca_pump_gpca_cybersecurity::tamperedConfigurationScenario"
