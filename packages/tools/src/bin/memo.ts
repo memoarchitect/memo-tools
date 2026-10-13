@@ -110,6 +110,7 @@ withToolchainOptions(
         .option('--format <format>', 'Output format: text, junit, json', 'text')
         .option('-o, --output <file>', 'Write output to file instead of stdout')
         .option('--no-server', 'Compile here even when `memo dev` is running for the model')
+        .option('--workspace <name>', 'Validate one workspace: a System or the SystemOfSystems definition. Rules run on its elements over the whole model')
         .option('--rules', 'Instead of validating, list the consistency rules in effect (--format text or json)')
         .option('--rules-domain <domain>', 'With --rules: modelling, medicalDevice, organisation')
         .option('--rules-obligation <obligation>', 'With --rules: required, recommended, bestPractice')

@@ -1091,10 +1091,15 @@
         "rule": "CR-MED-110",
         "severity": "error",
         "elementId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12"
+      },
+      {
+        "rule": "CR-ONT-084",
+        "severity": "error",
+        "elementId": "__model__"
       }
     ],
     "counts": {
-      "error": 1,
+      "error": 2,
       "warning": 8
     }
   },

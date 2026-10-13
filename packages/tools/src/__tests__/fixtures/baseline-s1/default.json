@@ -38,8 +38,16 @@
     "diagrams": []
   },
   "validation": {
-    "violations": [],
-    "counts": {}
+    "violations": [
+      {
+        "rule": "CR-ONT-084",
+        "severity": "error",
+        "elementId": "__model__"
+      }
+    ],
+    "counts": {
+      "error": 1
+    }
   },
   "errors": [],
   "summary": {

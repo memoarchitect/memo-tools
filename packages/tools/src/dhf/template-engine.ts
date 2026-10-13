@@ -22,12 +22,14 @@ export interface TemplateInput {
     config: MEMOConfig;
     dhfConfig?: DhfConfig;
     documentType: DhfDocumentType;
+    /** One workspace (`--workspace`); see createQueryContext. */
+    workspace?: Pick<import('../model/workspace-membership.js').WorkspaceScope, 'subjects' | 'foreign'>;
 }
 
 /** Compile a DHF document from model data */
 export function compileDocument(input: TemplateInput): DhfDocument {
-    const { model, validation, completeness, config, dhfConfig, documentType } = input;
-    const ctx = createQueryContext(model, validation, completeness, config);
+    const { model, validation, completeness, config, dhfConfig, documentType, workspace } = input;
+    const ctx = createQueryContext(model, validation, completeness, config, undefined, workspace);
 
     const sections = documentType.sections.map(sectionDef => {
         const generator = SECTION_GENERATORS[documentType.id]?.[sectionDef.id]

@@ -4,6 +4,8 @@
 // Replaces the M58 stub with Phase 13 implementation.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { computeWorkspaceMembership, selectWorkspace, type WorkspaceScope } from '../model/workspace-membership.js';
+import { narrowModel } from '../model/narrow-model.js';
 import { resolve, dirname } from 'node:path';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
@@ -35,9 +37,10 @@ interface LoadedModel {
     completeness: CompletenessReport;
     dhfConfig: DhfConfig | undefined;
     queryCtx: ReturnType<typeof createQueryContext>;
+    workspace: WorkspaceScope | undefined;
 }
 
-async function loadModel(): Promise<LoadedModel> {
+async function loadModel(workspaceName?: string): Promise<LoadedModel> {
     const cwd = process.cwd();
     const configPath = findConfigFile(cwd);
     if (!configPath) {
@@ -47,17 +50,34 @@ async function loadModel(): Promise<LoadedModel> {
 
     const config = loadAndResolveConfig(configPath);
     const { model, registries: ontologyRegistries } = await loadProjectModel({ projectRoot: dirname(configPath), config });
-    const validation = validateModel(model);
-    const completeness = computeCompleteness(model, validation);
+    // `--workspace`: the same selection, refusals and scoping as `memo validate --workspace`.
+    let workspace: WorkspaceScope | undefined;
+    if (workspaceName !== undefined) {
+        if (!ontologyRegistries?.kindRegistry || !ontologyRegistries.relationshipRegistry) {
+            console.error(chalk.red('--workspace needs the ontology registries the model was built with.'));
+            process.exit(1);
+        }
+        const selection = selectWorkspace(model, computeWorkspaceMembership(model, ontologyRegistries), workspaceName);
+        if (!selection.ok) {
+            console.error(chalk.red(`--workspace: ${selection.message}`));
+            process.exit(1);
+        }
+        workspace = selection.scope;
+        console.log(chalk.gray(`Workspace: ${workspace.name} (${workspace.scope}), ${workspace.subjects.size} elements`));
+    }
+    const validation = validateModel(model, undefined, undefined, undefined, undefined, workspace);
+    const completeness = computeCompleteness(
+        workspace ? narrowModel(model, new Map([...model.elements].filter(([id]) => workspace!.subjects.has(id)))) : model,
+        validation);
     const dhfConfig = loadDhfConfig(cwd);
     // The standards report rides on the context so a ```memo-standards``` block
     // in an exported document is the same computation `memo validate --standards`
     // prints. It cannot be derived from the model here: an unclaimed clause is
     // not in the model, which is exactly what makes it worth reporting.
     const standardsReport = buildStandardsReport({ model, registries: ontologyRegistries, projectRoot: cwd });
-    const queryCtx = createQueryContext(model, validation, completeness, config, standardsReport);
+    const queryCtx = createQueryContext(model, validation, completeness, config, standardsReport, workspace);
 
-    return { model, config, validation, completeness, dhfConfig, queryCtx };
+    return { model, config, validation, completeness, dhfConfig, queryCtx, workspace };
 }
 
 // ─── Resolve target documents ────────────────────────────────────────────────
@@ -85,6 +105,7 @@ function resolveTargets(target?: string, group?: string, dhfConfig?: DhfConfig):
 // ─── memo-architect export dhf ─────────────────────────────────────────────────────────
 
 export async function exportDhfCommand(options: {
+    workspace?: string;
     output?: string;
     target?: string;
     format?: string;
@@ -93,7 +114,7 @@ export async function exportDhfCommand(options: {
     const cwd = process.cwd();
     console.log(chalk.bold('\nMEMO DHF Export\n'));
 
-    const { model, config, validation, completeness, dhfConfig, queryCtx } = await loadModel();
+    const { model, config, validation, completeness, dhfConfig, queryCtx, workspace } = await loadModel(options.workspace);
 
     // ── V2: markdown-first pipeline (manifest docs + workbench documents) ────
     const dhfConfigV2 = loadDhfConfigV2(cwd);
@@ -199,7 +220,7 @@ export async function exportDhfCommand(options: {
     let exported = 0;
     for (const targetId of targets) {
         const docType = getDocumentType(targetId)!;
-        const doc = compileDocument({ model, validation, completeness, config, dhfConfig, documentType: docType });
+        const doc = compileDocument({ model, validation, completeness, config, dhfConfig, documentType: docType, workspace });
         const result = await plugin.render(doc);
 
         const filename = `${targetId}${result.extension}`;
@@ -217,12 +238,13 @@ export async function exportDhfCommand(options: {
 // ─── memo-architect dhf status ─────────────────────────────────────────────────────────
 
 export async function dhfStatusCommand(options: {
+    workspace?: string;
     verbose?: boolean;
     target?: string;
 }): Promise<void> {
     console.log(chalk.bold('\nMEMO DHF Status\n'));
 
-    const { model, config, validation, completeness, dhfConfig } = await loadModel();
+    const { model, config, validation, completeness, dhfConfig, workspace } = await loadModel(options.workspace);
     const targets = resolveTargets(options.target, undefined, dhfConfig);
 
     const elements = Array.from(model.elements.values());
@@ -239,7 +261,7 @@ export async function dhfStatusCommand(options: {
 
     for (const targetId of targets) {
         const docType = getDocumentType(targetId)!;
-        const doc = compileDocument({ model, validation, completeness, config, dhfConfig, documentType: docType });
+        const doc = compileDocument({ model, validation, completeness, config, dhfConfig, documentType: docType, workspace });
 
         const title = docType.title.padEnd(44);
         const statusStr = doc.status === 'complete'

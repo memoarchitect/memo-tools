@@ -57,6 +57,11 @@ export interface ViolationRuleProvenance {
 export interface ValidationResult {
     /** All violations found */
     violations: Violation[];
+    /**
+     * The same rules run on one workspace's elements, keyed by the workspace's root element id
+     * (`memo validate --workspace`). Present when the model declares a System.
+     */
+    byWorkspace?: Record<string, ValidationResult>;
     /** Total rules evaluated */
     rulesEvaluated: number;
     /** Rules that ran on at least one subject and raised no violation */

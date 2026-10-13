@@ -250,3 +250,62 @@ export function workspaceMembershipToDTO(result: WorkspaceMembership, model: Mem
         missingSystem: result.missingSystem,
     };
 }
+
+/**
+ * A workspace chosen to validate against (`memo validate --workspace`).
+ *
+ * `subjects` are the elements rules run ON. `foreign` are the elements that belong to some other
+ * system's workspace and not to this one: a trace edge that touches one is not evidence for this
+ * workspace. Elements no workspace holds, the system of systems' own and the shared ones are never
+ * foreign, so a gap in the closure cannot turn into a false finding. The graph itself stays whole.
+ */
+export interface WorkspaceScope {
+    root: string;
+    scope: 'system' | 'sos';
+    name: string;
+    subjects: ReadonlySet<string>;
+    foreign: ReadonlySet<string>;
+}
+
+export type WorkspaceSelection = { ok: true; scope: WorkspaceScope } | { ok: false; message: string };
+
+/** Choose a workspace by its root's id, name or short id. An unknown or ambiguous request lists the candidates. */
+export function selectWorkspace(
+    model: MemoModel,
+    membership: WorkspaceMembership,
+    requested: string,
+): WorkspaceSelection {
+    const describe = (root: string) => `${model.elements.get(root)?.name ?? root} (${membership.workspaces.find(w => w.root === root)!.scope})`;
+    const all = membership.workspaces.map(workspace => workspace.root);
+    if (membership.missingSystem) {
+        return { ok: false, message: `this model declares no System, so it has no workspace to validate; declare a part def that specializes System.` };
+    }
+    const names = (root: string): string[] => {
+        const element = model.elements.get(root);
+        return [root, element?.name, element?.shortId].filter((s): s is string => !!s).map(s => s.toLowerCase());
+    };
+    const wanted = requested.toLowerCase();
+    const exact = all.filter(root => names(root).includes(wanted));
+    const hits = exact.length > 0 ? exact : all.filter(root => names(root).some(name => name.split('::').pop() === wanted));
+    if (hits.length !== 1) {
+        const list = (hits.length > 1 ? hits : all).map(describe).join(', ');
+        return { ok: false, message: `${hits.length > 1 ? `"${requested}" names more than one workspace` : `no workspace is named "${requested}"`}; choose one of: ${list}.` };
+    }
+    const workspace = membership.workspaces.find(w => w.root === hits[0])!;
+    const foreign = new Set<string>();
+    if (workspace.scope === 'system') {
+        for (const [id, roots] of membership.systems) {
+            if (!roots.includes(workspace.root) && !membership.sos.has(id)) foreign.add(id);
+        }
+    }
+    return {
+        ok: true,
+        scope: {
+            root: workspace.root,
+            scope: workspace.scope,
+            name: model.elements.get(workspace.root)?.name ?? workspace.root,
+            subjects: workspace.members,
+            foreign,
+        },
+    };
+}

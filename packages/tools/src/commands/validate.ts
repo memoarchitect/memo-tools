@@ -20,7 +20,7 @@ import {
     checkSemanticFields,
 } from '@memoarchitect/tools';
 import type { BuilderRegistries, MemoModel, ParseError } from '@memoarchitect/tools';
-import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, toElementIndex } from '@memoarchitect/tools';
+import { ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE } from '@memoarchitect/tools';
 import {
     validateModel, collectApiConstraints, type ConstraintDiagnostic,
 } from '@memoarchitect/tools';
@@ -33,6 +33,8 @@ import { defaultRegistry } from '../toolchain/default-registry.js';
 import { compileResolvedProject, compileServesValidator } from '../toolchain/operations.js';
 import type { CompileModelResult } from '../toolchain/registry.js';
 import { discoverProjectSources, type NativeProjectResolution } from '../model/native-project.js';
+import { narrowModel } from '../model/narrow-model.js';
+import { computeWorkspaceMembership, selectWorkspace, type WorkspaceScope } from '../model/workspace-membership.js';
 import { resolutionLoads } from '../stage2/project-from-api.js';
 import { stage1CacheDir } from '../toolchain/project-model.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
@@ -401,10 +403,33 @@ export async function runValidation(
     // Scope decides which elements rules RUN ON. It must not touch the model:
     // see narrowToScope below for what happened when it did.
     const inScopeIds = scope.mode === 'allAvailable' ? undefined : scopeElementIds(model);
-    const subjectModel = scope.mode === 'allAvailable' ? model : narrowToScope(model);
+    // `--workspace` is a second, independent narrowing of the subjects (see WorkspaceScope). It is
+    // refused outright when it cannot be honoured: a workspace that is unknown, or empty, would
+    // otherwise print "0 violations", which reads exactly like a clean model.
+    let workspace: WorkspaceScope | undefined;
+    const requestedWorkspace = typeof options?.workspace === 'string' ? options.workspace : undefined;
+    if (requestedWorkspace !== undefined) {
+        const registries = ontologyRegistries;
+        if (!registries?.kindRegistry || !registries.relationshipRegistry) {
+            io.err(chalk.red('\n❌ --workspace needs the ontology registries the model was built with.\n'));
+            throw new ValidationExit(1);
+        }
+        const selection = selectWorkspace(model, computeWorkspaceMembership(model, registries), requestedWorkspace);
+        if (!selection.ok) {
+            io.err(chalk.red(`\n❌ --workspace: ${selection.message}\n`));
+            throw new ValidationExit(1);
+        }
+        workspace = selection.scope;
+        if (workspace.subjects.size === 0) {
+            io.err(chalk.red(`\n❌ --workspace: the workspace "${workspace.name}" holds no elements.\n`));
+            throw new ValidationExit(1);
+        }
+        say(chalk.gray(`Workspace: ${workspace.name} (${workspace.scope}) — ${workspace.subjects.size} elements; rules run on these over the whole model\n`));
+    }
+    const subjectModel = scope.mode === 'allAvailable' && !workspace ? model : narrowToScope(model);
     const result = validateModel(
         model, effectiveRules.activeConstraints, ontologyRegistries?.kindRegistry, effectiveRules.rules,
-        inScopeIds && (element => inScopeIds.has(element.id)));
+        inScopeIds && (element => inScopeIds.has(element.id)), workspace);
     // Completeness reports on what the methodology selected, which is the
     // scoped model — not on content the project deliberately excluded.
     const completeness = computeCompleteness(subjectModel, result);
@@ -423,58 +448,15 @@ export async function runValidation(
     function narrowToScope(full: typeof model): typeof model {
         const kept = new Map<string, typeof model extends { elements: Map<string, infer E> } ? E : never>();
         for (const [id, element] of full.elements) {
+            if (workspace && !workspace.subjects.has(id)) continue;
+            if (scope.mode === 'allAvailable') { kept.set(id, element); continue; }
             const sourceFile = kindRegistry?.getKind(element.kind)?.sourceFile;
             const declaringPackage = sourceFile ? ruleFileToPackage.get(sourceFile) : undefined;
             // A kind the resolved ontology does not declare is project-local
             // content, which is always in its own project's scope.
             if (!declaringPackage || isRulePackageInScope(scope, declaringPackage)) kept.set(id, element);
         }
-        const byKind = new Map<string, any[]>();
-        const byLayer = new Map<string, any[]>();
-        for (const element of kept.values()) {
-            (byKind.get(element.kind) ?? byKind.set(element.kind, []).get(element.kind)!).push(element);
-            (byLayer.get(element.layer) ?? byLayer.set(element.layer, []).get(element.layer)!).push(element);
-        }
-        // Narrow the SUBJECT SET, not the graph.
-        //
-        // This used to drop out-of-scope elements from `elements` and filter
-        // `relationships` to edges with both endpoints kept — while leaving
-        // `outgoing`, `incoming` and `relationshipsByType` pointing at the FULL
-        // model. The result was a model that contradicted itself, and every
-        // rule that NAVIGATES a trace silently saw nothing: `navigate` looks the
-        // far endpoint up in `elements`, so an edge to a dropped element
-        // returned no result.
-        //
-        // Measured on gpca-pump (2026-08-19): 374 of 723 elements dropped, and
-        // ALL 110 `satisfiedBy` edges lost an endpoint — every architecture
-        // element went, because `filePackages` maps every file, so the
-        // module-scope test was applied to architecture kinds that
-        // the layer selection governs instead. XL-002 then reported 89 requirements
-        // as lacking requirements-to-architecture traceability that the source
-        // plainly traces.
-        //
-        // The comment above already said the intent: "only the subject set
-        // narrows". `subjectsForScope` reads `elementsByKind`, so narrowing
-        // that alone is both sufficient and consistent.
-        const relationships = full.relationships.filter(r => kept.has(r.sourceId) && kept.has(r.targetId));
-        const relationshipsByType = new Map<string, typeof relationships>();
-        const outgoing = new Map<string, typeof relationships>();
-        const incoming = new Map<string, typeof relationships>();
-        for (const r of relationships) {
-            (relationshipsByType.get(r.type) ?? relationshipsByType.set(r.type, []).get(r.type)!).push(r);
-            (outgoing.get(r.sourceId) ?? outgoing.set(r.sourceId, []).get(r.sourceId)!).push(r);
-            (incoming.get(r.targetId) ?? incoming.set(r.targetId, []).get(r.targetId)!).push(r);
-        }
-        return {
-            ...full,
-            elements: toElementIndex(kept),
-            elementsByKind: byKind,
-            elementsByLayer: byLayer,
-            relationships,
-            relationshipsByType,
-            outgoing,
-            incoming,
-        };
+        return narrowModel(full, kept);
     }
 
     const errors = result.violations.filter(v => v.severity === 'error');
