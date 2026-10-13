@@ -2,9 +2,9 @@
   "project": "gpca-pump",
   "totals": {
     "files": 55,
-    "elements": 687,
-    "definitions": 13,
-    "relationships": 898,
+    "elements": 689,
+    "definitions": 14,
+    "relationships": 903,
     "packages": 55,
     "parseErrors": 0,
     "builderFindings": 0
@@ -31,8 +31,8 @@
       "builderFindings": 0
     },
     "model/catalog/gpca_architecture.sysml": {
-      "elements": 110,
-      "definitions": 0,
+      "elements": 112,
+      "definitions": 1,
       "kinds": {
         "HardwareAssembly": 17,
         "LogicalComponent": 5,
@@ -40,11 +40,12 @@
         "PhysicalPort": 22,
         "SoftwareModule": 8,
         "SoftwarePort": 56,
-        "SoftwareSystem": 1
+        "SoftwareSystem": 1,
+        "System": 2
       },
-      "relationships": 120,
+      "relationships": 125,
       "relationshipTypes": {
-        "composes": 10,
+        "composes": 15,
         "flow": 1,
         "satisfiedBy": 109
       },

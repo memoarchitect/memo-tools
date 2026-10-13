@@ -503,6 +503,20 @@ export const FIXTURES = [
  */
 
 /**
+ * BASELINE RE-FROZEN 2026-10-13 - gpca only. gpca is a system and now says so:
+ * `part def GpcaPumpSystem specializes System` owns the five logical components and
+ * `part gpcaPump : GpcaPumpSystem` is its usage (a model is required to declare a
+ * System). ui-regions, default and extension-clinical did not move. Compared by leaf
+ * name: no element removed, no relationship removed.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | +2 elements `GpcaPumpSystem`, `gpcaPump` | The System definition and its usage. |
+ * | +5 `composes` GpcaPumpSystem -> lc* | The five logical components are nested in it, so their ids move to `GpcaPumpSystem::lc*`. |
+ * | +3 `AR-IBD-001` (lcDrugDelivery, lcPowerSubsystem, lcTherapyControl) | The rule fires now that the components sit inside a system with no connection; E0 has the same finding. |
+ */
+
+/**
  * BASELINE RE-FROZEN 2026-09-28 (third) — gpca only: 61 risk-analysis usages
  * are items. ui-regions, default and extension-clinical did not move.
  *
