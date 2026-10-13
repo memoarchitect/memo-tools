@@ -251,6 +251,7 @@ class ElementBuilder {
         const superType = this.superTypeName(def);
         const resolved = superType ? this.resolveKind(superType) : undefined;
         const attributes = this.attributes(def);
+        if (def.isVariation === true) attributes.isVariation = 'true';
         this.define({
             id, shortName, name: displayNameOf(attributes, shortName),
             kind: resolved?.kind ?? `${construct.charAt(0).toUpperCase()}${construct.slice(1)}Definition`,
@@ -303,6 +304,8 @@ class ElementBuilder {
         const resolved = typeName ? this.resolveKind(typeName) : undefined;
         const attributes = this.attributes(usage);
         if (typeName) attributes.usageType = typeName;
+        // Read from the handoff's own flag: SysIDE also sets `isAbstract` on a variation and OpenSysML does not.
+        if (usage.isVariation === true) attributes.isVariation = 'true';
         if (construct === 'view') Object.assign(attributes, this.exposes(usage));
         Object.assign(attributes, this.viewMetadata(usage));
 
@@ -1236,6 +1239,20 @@ class ElementBuilder {
                         const targetId = endpointOf([supplier], node);
                         if (!targetId) continue;
                         const applied = this.metadata(node);
+                        // A dependency typed by a metadata def the ontology declares as a relation
+                        // (`#RealizesFeature dependency …`) is that relation, and only that: one
+                        // statement, one edge. Any other dependency stays a plain `dependency`.
+                        const typed = this.typedDependencyOf(node);
+                        if (typed) {
+                            const ends = this.registries?.relationshipRegistry?.getRelType(typed)?.ends ?? [];
+                            this.relationships.push({
+                                id: this.nextId(), type: typed, sourceId, sourceEnd: ends[0]?.name ?? 'client',
+                                targetId, targetEnd: ends[1]?.name ?? 'supplier', file,
+                                ...(Object.keys(applied).length > 0 ? { attributes: applied } : {}),
+                                sourceRange: this.sourceRangeOf(node),
+                            });
+                            continue;
+                        }
                         this.native('dependency', sourceId, targetId, file, applied, node);
                         if (refinement) this.native('realizes', sourceId, targetId, file, applied, node);
                     }
@@ -1244,13 +1261,36 @@ class ElementBuilder {
                 const variant = this.api.element(((node.ownedRelatedElement as { '@id': string }[] | undefined) ?? [])[0]?.['@id'] ?? '');
                 const referenced = variant ? this.api.related(variant['@id'], ['ReferenceSubsetting'], 'referencedFeature')[0] : undefined;
                 const owner = this.nearestElement(node);
-                const target = referenced ? endpointOf(this.steps(referenced), node) : undefined;
+                // `variant part euOut : T;` declares its variant in place and references nothing.
+                const declaredHere = variant ? this.api.qualifiedName(variant['@id']) : undefined;
+                const target = referenced ? endpointOf(this.steps(referenced), node)
+                    : declaredHere && this.elements.has(declaredHere) ? declaredHere : undefined;
                 if (owner && target) this.relationships.push({
                     id: this.nextId(), type: 'variant', sourceId: owner, sourceEnd: 'variationPoint',
                     targetId: target, targetEnd: 'variant', file,
                 });
             }
         }
+    }
+
+    /**
+     * The relation a dependency's prefix metadata names, when the ontology declares that metadata def
+     * as one (`memo_core_relationships::MemoTypedDependency`): `#RealizesFeature dependency …` is
+     * `realizesFeature`. Undefined for a plain dependency or any other prefix (`#refinement`,
+     * `#EnforcesClause`).
+     */
+    private typedDependencyOf(node: ApiElement): string | undefined {
+        const registry = this.registries?.relationshipRegistry;
+        if (!registry) return undefined;
+        for (const annotation of this.api.ownedRelationships(node['@id'])) {
+            if (annotation['@type'] !== 'Annotation') continue;
+            const metadata = this.api.ownedMembers(annotation['@id'])[0]
+                ?? ((annotation.ownedRelatedElement as { '@id': string }[] | undefined) ?? []).map(x => this.api.element(x['@id'])).find(Boolean);
+            const name = metadata ? this.typeName(metadata) : undefined;
+            const relation = name ? registry.getRelType(pascalToCamelCase(name)) : undefined;
+            if (relation?.sysmlConstruct === 'metadata def') return relation.name;
+        }
+        return undefined;
     }
 
     /** `composes` edges from native nesting: parts, items and states by owner; actions by parent action. */
