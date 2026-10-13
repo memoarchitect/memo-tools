@@ -1025,20 +1025,29 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         const { records, preview, rendered } = prepared;
         // An export that read nothing must not look like a source that dropped every record.
         if (records.errors.length > 0 && records.items.length === 0 && !records.partial) return fail(...records.errors);
+        const target = resolve(options.projectRoot, rendered.file);
         const base = {
             requestId, mode, success: true, preview, dropped: rendered.dropped,
             warnings: [...records.warnings, ...rendered.warnings], errors: records.errors,
+            sourceFile: rendered.file,
+            sourceHash: existsSync(target) ? fileRevision(readFileSync(target, 'utf8')) : '',
         };
         if (mode === 'preview') return { type: 'source-import:result', payload: base };
 
-        const target = resolve(options.projectRoot, rendered.file);
+        // The preview named the file this writes and the hash the client saw of it; if the file has
+        // changed since (a second tab, a CLI import, a text edit), what the person reviewed is not
+        // what this would do.
+        if (payload.precondition?.sourceFile !== rendered.file) return fail('The apply is not for the file this import writes; preview it again.');
+        const conflict = checkMutationPrecondition(payload.precondition, requestId, payload);
+        if (conflict) return fail(conflict);
+
         if (!isWritableRelationshipFile(rendered.file, await relationshipWriterOptions())) return fail(`${rendered.file} is not a writable project file`);
         mkdirSync(resolve(target, '..'), { recursive: true });
         writeFileSync(target, rendered.text, 'utf-8');
         recordWriteTransaction(rendered.file, rendered.text);
         console.log(`[Import] ${payload.system}: wrote ${rendered.file}`);
         await recompileAfterWrite();
-        return { type: 'source-import:result', payload: { ...base, sourceFile: rendered.file } };
+        return { type: 'source-import:result', payload: base };
     }
 
     /**

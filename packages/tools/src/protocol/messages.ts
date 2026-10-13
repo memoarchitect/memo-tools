@@ -1347,6 +1347,11 @@ export interface SourceImportPayload {
     kind?: string;
     /** The relationship of a trace row that names none. */
     relation?: string;
+    /**
+     * Required by `import:apply`: the source file the preview named, with the hash the client saw
+     * of it. An apply is refused when the file has changed since, as every semantic write is.
+     */
+    precondition?: ModelMutationPrecondition;
 }
 
 /**
@@ -1389,8 +1394,10 @@ export interface SourceImportResultMessage {
         dropped?: string[];
         warnings?: string[];
         errors?: string[];
-        /** The project-relative file written (apply only). */
+        /** The project-relative file the import writes: named by a preview, written by an apply. */
         sourceFile?: string;
+        /** The hash of that file the preview was computed from ('' when it does not exist yet). */
+        sourceHash?: string;
     };
 }
 
