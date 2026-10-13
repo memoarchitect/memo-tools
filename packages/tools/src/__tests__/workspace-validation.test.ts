@@ -139,4 +139,17 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
             expect(good.stdout + good.stderr).toContain('Workspace: Signal Recording System (system)');
         }, 'ep-lab-family');
     }, 240_000);
+
+    it("judges the elements no workspace holds in the system of systems' workspace", async () => {
+        const orphan = 'package orphans { private import memo_architecture_logical_structure::*; part def StrayModule specializes LogicalComponent; }';
+        await withExample({ 'model/shared/orphan.sysml': orphan }, project => {
+            const membership = computeWorkspaceMembership(project.model, project.registries!);
+            const stray = membership.unassigned[0];
+            const lab = selectWorkspace(project.model, membership, 'ElectrophysiologyLab');
+            const ablation = selectWorkspace(project.model, membership, 'AblationGeneratorSystem');
+            if (!lab.ok || !ablation.ok) throw new Error('workspace not found');
+            expect(lab.scope.subjects.has(stray)).toBe(true);
+            expect(ablation.scope.subjects.has(stray)).toBe(false);
+        }, 'ep-lab-family');
+    }, 180_000);
 });

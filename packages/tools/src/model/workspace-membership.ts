@@ -80,6 +80,8 @@ export interface WorkspaceMembership {
     /** Elements no workspace holds, methodology-layer elements excluded: a diagnostic. */
     unassigned: readonly string[];
     unresolvedTypes: readonly UnresolvedWorkspaceType[];
+    /** A usage's id to the id of the definition it is typed by, as the closure resolved it. */
+    definitionOf: ReadonlyMap<string, string>;
     /** True when no system workspace exists: a model is required to declare at least one System. */
     missingSystem: boolean;
 }
@@ -205,8 +207,16 @@ export function computeWorkspaceMembership(
         for (const id of workspace.members) into.set(id, [...(into.get(id) ?? []), workspace.root]);
     }
 
+    const definitionOf = new Map<string, string>();
+    for (const element of elements.values()) {
+        if (element.isDefinition) continue;
+        const type = typeOf(element);
+        if (type && type !== element.id) definitionOf.set(element.id, type);
+    }
+
     return {
         workspaces,
+        definitionOf,
         systems,
         sos,
         shared: [...systems].filter(([, roots]) => roots.length >= 2).map(([id]) => id),
@@ -230,6 +240,8 @@ export interface WorkspaceMembershipDTO {
     membership: Record<string, string[]>;
     shared: string[];
     unassigned: string[];
+    /** A usage's id to the definition it is typed by, resolved by the closure (never by name in a client). */
+    definitionOf: Record<string, string>;
     missingSystem: boolean;
 }
 
@@ -247,6 +259,7 @@ export function workspaceMembershipToDTO(result: WorkspaceMembership, model: Mem
         membership,
         shared: [...result.shared],
         unassigned: [...result.unassigned],
+        definitionOf: Object.fromEntries(result.definitionOf),
         missingSystem: result.missingSystem,
     };
 }
@@ -304,7 +317,9 @@ export function selectWorkspace(
             root: workspace.root,
             scope: workspace.scope,
             name: model.elements.get(workspace.root)?.name ?? workspace.root,
-            subjects: workspace.members,
+            // The system of systems' workspace is where the whole picture is, so the elements no
+            // workspace holds are judged here: a finding about an orphan must not read as clean.
+            subjects: workspace.scope === 'sos' ? new Set([...workspace.members, ...membership.unassigned]) : workspace.members,
             foreign,
         },
     };
