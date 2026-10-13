@@ -18,6 +18,7 @@ import {
 } from '@memoarchitect/tools';
 import { sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import { buildSourceGraphFromPackages } from '../model/source-graph.js';
+import { computeWorkspaceMembership, workspaceMembershipToDTO } from '../model/workspace-membership.js';
 import type {
     BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, OntologyPackageInfo,
     EffectiveRule, ParseError, MemoModel,
@@ -433,6 +434,9 @@ export async function devCommand(options: {
                 createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),
             ])),
             enumerations,
+            workspaceMembership: stage2Registries?.kindRegistry && stage2Registries.relationshipRegistry
+                ? workspaceMembershipToDTO(computeWorkspaceMembership(model, stage2Registries), model)
+                : undefined,
         });
         // Compute the clause coverage report and attach it to the model DTO
         // so the Architect can badge document cards with gap counts without a

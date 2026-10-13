@@ -31,4 +31,12 @@ describe('one person\'s choices for a model', () => {
         saveUserPreferences(dir, {});
         expect(loadUserPreferences(dir)).toEqual({});
     });
+
+    it('keep the workspace beside the role, and drop each when cleared', () => {
+        const dir = root();
+        saveUserPreferences(dir, { role: 'safetyEngineer', workspace: 'pump::PumpSystem' });
+        expect(loadUserPreferences(dir)).toEqual({ role: 'safetyEngineer', workspace: 'pump::PumpSystem' });
+        saveUserPreferences(dir, { role: 'safetyEngineer' });
+        expect(loadUserPreferences(dir)).toEqual({ role: 'safetyEngineer' });
+    });
 });

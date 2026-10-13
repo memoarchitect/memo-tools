@@ -1,7 +1,8 @@
 // ─── One person's preferences for one model ─────────────────────────────────
 //
 // What a person chose for themselves in Architect while working on this model —
-// today, the role whose viewpoints they want to see. It is not model content
+// the role whose viewpoints they want to see, and the workspace (the system of systems, or one
+// system) they are working in. It is not model content
 // and not something the team shares, so it lives in one visible file at the
 // model root, `memo.user.yaml`, which the model's `.gitignore` keeps out of git
 // (added the first time it is written, as personal dashboards are).
@@ -28,13 +29,22 @@ export function loadUserPreferences(projectRoot: string): UserPreferencesDTO {
     const path = resolve(projectRoot, USER_PREFERENCES_FILE);
     if (!existsSync(path)) return {};
     const parsed = parseYaml(readFileSync(path, 'utf8')) as Record<string, unknown> | null;
-    const role = parsed?.role;
-    return typeof role === 'string' && role.trim() ? { role: role.trim() } : {};
+    return clean({ role: parsed?.role, workspace: parsed?.workspace });
 }
 
-/** Write the person's choices; an unset role removes the key. */
+/** Keep the string choices that are set, trimmed; drop the rest. */
+function clean(raw: Record<string, unknown>): UserPreferencesDTO {
+    const out: UserPreferencesDTO = {};
+    for (const key of ['role', 'workspace'] as const) {
+        const value = raw[key];
+        if (typeof value === 'string' && value.trim()) out[key] = value.trim();
+    }
+    return out;
+}
+
+/** Write the person's choices; an unset choice removes its key. */
 export function saveUserPreferences(projectRoot: string, preferences: UserPreferencesDTO): UserPreferencesDTO {
-    const next: UserPreferencesDTO = preferences.role?.trim() ? { role: preferences.role.trim() } : {};
+    const next = clean({ ...preferences });
     ensureGitIgnored(projectRoot, USER_PREFERENCES_FILE, 'MEMO Architect: your own choices for this model');
     writeFileSync(resolve(projectRoot, USER_PREFERENCES_FILE), HEADER + stringifyYaml(next), 'utf8');
     return next;
