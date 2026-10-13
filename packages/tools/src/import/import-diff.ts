@@ -14,6 +14,7 @@
 
 import type { MemoModel, MemoElement } from '../model/semantic.js';
 import type { CsvElement } from '../serializer/csv-io.js';
+import { baselineOf, type Baseline } from '../analysis/suspect-links.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -30,8 +31,10 @@ export interface AffectedLink {
     relationshipType: string;
     /** The other end. */
     otherId: string;
-    /** True when the link carries a `@TraceBaseline`, so it is suspect once the element moves or goes. */
+    /** True when the link carries a `@TraceBaseline`, so it can be suspect once the element moves or goes. */
     baselined: boolean;
+    /** The baseline, for asking the one suspect predicate what the import would do to this link. */
+    baseline?: Baseline;
 }
 
 /** An element that already exists in the model but has incoming changes */
@@ -112,6 +115,7 @@ export function linksOf(model: MemoModel, elementId: string): AffectedLink[] {
             relationshipType: relationship.type,
             otherId,
             baselined: relationship.attributes?.['sourceRevision'] !== undefined,
+            baseline: baselineOf(relationship.attributes),
         });
     }
     return links;

@@ -29,8 +29,12 @@ import { indexFromIdentityTable, type IrIdentityIndex } from '../model/ir-identi
 import { recompileProject, writeElement, type AuthoringContext } from '../operations/authoring.js';
 import {
     isWritableRelationshipFile, removeRelationship, resolveRelationshipPlacement,
-    updateRelationship, writeRelationship, type RelationshipWriterOptions,
+    reviewTraceBaselines, updateRelationship, writeRelationship, type RelationshipWriterOptions,
 } from './relationship-writer.js';
+import { resolveSuspectReviews } from './suspect-review.js';
+import { prepareSourceImport, type SourceImportContext } from '../import/source-import.js';
+import { dtoToModel } from '../model/semantic.js';
+import type { SourceImportPayload, SourceImportResultMessage, SuspectReviewMessage, SuspectReviewResultMessage } from '../protocol/messages.js';
 import { removeElement } from './element-writer.js';
 import { projectEntrypoint } from '../model/native-project.js';
 import {
@@ -133,7 +137,7 @@ const MODEL_MUTATION_MESSAGES = new Set([
     'package:create', 'package:rename', 'package:delete', 'package:move',
     'relationship:create', 'relationship:delete', 'relationship:update',
     'diagram:create', 'diagram:update', 'diagram:delete', 'diagram:layout:update', 'diagram:source:save',
-    'methodology:source:save', 'csv:import', 'screen-capture:upload',
+    'methodology:source:save', 'csv:import', 'import:apply', 'suspect:review', 'screen-capture:upload',
     'ontology:install', 'ontology:remove', 'ontology:save-selection',
     'dhf:doc:save', 'dhf:doc:delete', 'dhf:settings:save', 'dhf:template:save',
     'llm:chat:apply', 'llm:settings:save',
@@ -998,6 +1002,77 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         };
     }
 
+    /**
+     * Preview or apply an import from another system. A preview writes nothing; an
+     * apply writes the one file the source owns, then recompiles. Both run the
+     * same computation, so the preview is what the apply does.
+     */
+    async function handleSourceImport(mode: 'preview' | 'apply', payload: SourceImportPayload): Promise<SourceImportResultMessage> {
+        const requestId = payload?.requestId ?? '';
+        const fail = (...errors: string[]): SourceImportResultMessage => ({
+            type: 'source-import:result', payload: { requestId, mode, success: false, errors },
+        });
+        const model = currentModel();
+        const registries = options.ontologyRegistries;
+        if (!model) return fail('The model is not loaded yet.');
+        if (!registries?.kindRegistry || !registries.relationshipRegistry) return fail('The ontology is not loaded yet.');
+        if (!payload.system?.trim()) return fail('Name the system the export came from.');
+        const context: SourceImportContext = { kindRegistry: registries.kindRegistry, relationshipRegistry: registries.relationshipRegistry };
+        const prepared = prepareSourceImport(dtoToModel(model), context, {
+            system: payload.system.trim(), format: payload.format, text: payload.text,
+            defaultKind: payload.kind, defaultRelation: payload.relation,
+        }, { sourceFile: payload.fileName });
+        const { records, preview, rendered } = prepared;
+        // An export that read nothing must not look like a source that dropped every record.
+        if (records.errors.length > 0 && records.items.length === 0 && !records.partial) return fail(...records.errors);
+        const base = {
+            requestId, mode, success: true, preview, dropped: rendered.dropped,
+            warnings: [...records.warnings, ...rendered.warnings], errors: records.errors,
+        };
+        if (mode === 'preview') return { type: 'source-import:result', payload: base };
+
+        const target = resolve(options.projectRoot, rendered.file);
+        if (!isWritableRelationshipFile(rendered.file, await relationshipWriterOptions())) return fail(`${rendered.file} is not a writable project file`);
+        mkdirSync(resolve(target, '..'), { recursive: true });
+        writeFileSync(target, rendered.text, 'utf-8');
+        recordWriteTransaction(rendered.file, rendered.text);
+        console.log(`[Import] ${payload.system}: wrote ${rendered.file}`);
+        await recompileAfterWrite();
+        return { type: 'source-import:result', payload: { ...base, sourceFile: rendered.file } };
+    }
+
+    /**
+     * Mark suspect links reviewed: each is rewritten to the current revision of the
+     * record it was suspect about. What is suspect is decided here from the whole
+     * model, never from the request, so a stale or invented link is refused.
+     */
+    async function handleSuspectReview(payload: SuspectReviewMessage['payload']): Promise<SuspectReviewResultMessage> {
+        const requestId = payload?.requestId ?? '';
+        const reject = (error: string): SuspectReviewResultMessage => ({
+            type: 'suspect:review:result', payload: { requestId, success: false, reviewed: [], error },
+        });
+        if (!payload.preconditions?.length) return reject('The review has no source preconditions; reload before saving.');
+        for (const precondition of payload.preconditions) {
+            const conflict = checkMutationPrecondition(precondition, requestId, payload);
+            if (conflict) return reject(conflict);
+        }
+        const model = currentModel();
+        if (!model) return reject('The model is not loaded yet.');
+        const resolved = resolveSuspectReviews(model, payload.reviews ?? []);
+        if ('error' in resolved) return reject(resolved.error);
+        const { reviews } = resolved;
+        const result = await reviewTraceBaselines(reviews, await relationshipWriterOptions());
+        if (!result.success) return reject(result.error ?? 'The review could not be written.');
+        for (const file of result.sourceFiles ?? []) {
+            recordWriteTransaction(file, readFileSync(resolve(options.projectRoot, file), 'utf8'));
+        }
+        await recompileAfterWrite();
+        return {
+            type: 'suspect:review:result',
+            payload: { requestId, success: true, reviewed: reviews.map(r => r.relationship.id), sourceFiles: result.sourceFiles },
+        };
+    }
+
     /** Move relationship endpoints as one source edit, including anonymous flows. */
     async function handleRelationshipUpdate(
         payload: RelationshipUpdateRequest & { precondition?: ModelMutationPrecondition },
@@ -1662,6 +1737,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     ws.send(JSON.stringify(await handleRelationshipDelete(msg.payload)));
                 } else if (msg.type === 'relationship:update') {
                     ws.send(JSON.stringify(await handleRelationshipUpdate(msg.payload)));
+                } else if (msg.type === 'import:preview' || msg.type === 'import:apply') {
+                    ws.send(JSON.stringify(await handleSourceImport(msg.type === 'import:preview' ? 'preview' : 'apply', msg.payload)));
+                } else if (msg.type === 'suspect:review') {
+                    ws.send(JSON.stringify(await handleSuspectReview(msg.payload)));
                 } else if (msg.type === 'element:delete') {
                     ws.send(JSON.stringify(await handleElementDelete(msg.payload)));
                 } else if (msg.type === 'element:remap-kinds') {

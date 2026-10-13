@@ -60,6 +60,8 @@ export type ServerMessage =
     | CompletenessUpdateMessage
     | ErrorMessage
     | ImportResultMessage
+    | SourceImportResultMessage
+    | SuspectReviewResultMessage
     | DiagramParseResultMessage
     | DiagramSourceResultMessage
     | OntologyPackagesMessage
@@ -320,6 +322,8 @@ export type ClientMessage =
     | RelationshipUpdateMessage
     | ScreenCaptureUploadMessage
     | CsvImportMessage
+    | SourceImportMessage
+    | SuspectReviewMessage
     | DiagramCreateMessage
     | DiagramUpdateMessage
     | DiagramDeleteMessage
@@ -1325,5 +1329,92 @@ export interface ImportResultMessage {
         warnings: string[];
         /** Path to generated .sysml file */
         generatedFile?: string;
+    };
+}
+
+// ─── Import from another system, and review of the links it makes suspect ───
+
+/** What a person has chosen to import: the export's text and where it came from. */
+export interface SourceImportPayload {
+    requestId: string;
+    /** The system the export came from; its records are matched by it and their source id. */
+    system: string;
+    format: 'csv' | 'reqif' | 'trace-matrix';
+    text: string;
+    /** The export's file name, recorded as the last import's source. */
+    fileName?: string;
+    /** The kind of a record that names none. */
+    kind?: string;
+    /** The relationship of a trace row that names none. */
+    relation?: string;
+}
+
+/**
+ * Client → Server. `import:preview` computes what an import would do and writes
+ * nothing; `import:apply` computes the same thing and writes the file the source
+ * owns. Both answer with `source-import:result`.
+ */
+export interface SourceImportMessage {
+    type: 'import:preview' | 'import:apply';
+    payload: SourceImportPayload;
+}
+
+/** One record in an import preview (see `SourceImportPreview` in `import/source-import.ts`). */
+export interface SourceImportPreviewEntry {
+    identifier: string;
+    elementId: string;
+    name: string;
+    kind: string;
+    from?: string;
+    to?: string;
+    changes: { field: string; from: string; to: string }[];
+    suspectLinks: string[];
+    linkCount: number;
+}
+
+export interface SourceImportResultMessage {
+    type: 'source-import:result';
+    payload: {
+        requestId: string;
+        mode: 'preview' | 'apply';
+        success: boolean;
+        preview?: {
+            system: string;
+            added: SourceImportPreviewEntry[];
+            changed: SourceImportPreviewEntry[];
+            unchanged: number;
+            deleted: SourceImportPreviewEntry[];
+        };
+        /** Columns left out because the kind declares no such attribute, as `Kind.column`. */
+        dropped?: string[];
+        warnings?: string[];
+        errors?: string[];
+        /** The project-relative file written (apply only). */
+        sourceFile?: string;
+    };
+}
+
+/**
+ * Client → Server: mark suspect links reviewed. Each is rewritten to carry the
+ * current revision of the record it was suspect about, in the file that declares
+ * it; one precondition per file the client saw.
+ */
+export interface SuspectReviewMessage {
+    type: 'suspect:review';
+    payload: {
+        requestId: string;
+        reviews: { relationshipId: string; elementId: string }[];
+        preconditions: ModelMutationPrecondition[];
+    };
+}
+
+export interface SuspectReviewResultMessage {
+    type: 'suspect:review:result';
+    payload: {
+        requestId: string;
+        success: boolean;
+        reviewed: string[];
+        sourceFiles?: string[];
+        error?: string;
     };
 }

@@ -11,7 +11,7 @@
 // `sourceRevision`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MemoModel } from '../model/semantic.js';
+import type { MemoElement, MemoRelationship } from '../model/semantic.js';
 
 export type SuspectReason = 'revision-moved' | 'source-withdrawn';
 
@@ -32,20 +32,71 @@ export interface SuspectLink {
 const REVISION = 'externalReference.revision';
 const IDENTIFIER = 'externalReference.identifier';
 
+/** What a baseline says: the revision a link was made against, and the record it belongs to. */
+export interface Baseline {
+    sourceRevision: string;
+    /** The imported element the revision belongs to; absent, every imported end is compared. */
+    sourceIdentifier?: string;
+}
+
+/** An imported element as the comparison sees it. */
+export interface ImportedRecord {
+    identifier: string;
+    revision: string | undefined;
+    withdrawn: boolean;
+}
+
+/** The baseline a link carries, if it carries one. */
+export function baselineOf(attributes: Record<string, string> | undefined): Baseline | undefined {
+    const sourceRevision = attributes?.['sourceRevision'];
+    if (sourceRevision === undefined) return undefined;
+    const sourceIdentifier = attributes?.['sourceIdentifier'];
+    return sourceIdentifier === undefined ? { sourceRevision } : { sourceRevision, sourceIdentifier };
+}
+
+/** The imported record an element is, if it is one. */
+export function importedRecordOf(element: MemoElement | undefined): ImportedRecord | undefined {
+    const identifier = element?.attributes[IDENTIFIER];
+    if (!element || identifier === undefined) return undefined;
+    return { identifier, revision: element.attributes[REVISION], withdrawn: element.attributes['sourceWithdrawn'] === 'true' };
+}
+
+/**
+ * Whether a baseline is suspect against one imported record. The one predicate:
+ * the queue (`computeSuspectLinks`) and an import's preview both ask it, so what
+ * the preview says it will mark is what the queue then shows.
+ */
+export function suspectReason(baseline: Baseline, record: ImportedRecord): SuspectReason | undefined {
+    if (baseline.sourceIdentifier !== undefined && baseline.sourceIdentifier !== record.identifier) return undefined;
+    if (record.withdrawn) return 'source-withdrawn';
+    return record.revision !== baseline.sourceRevision ? 'revision-moved' : undefined;
+}
+
+/** A model the computation can read: a built one, or the DTO a client holds. */
+export interface SuspectModel {
+    relationships: readonly MemoRelationship[];
+    elements: ReadonlyMap<string, MemoElement> | Readonly<Record<string, MemoElement>>;
+}
+
 /** Every baselined link whose imported end has moved or been withdrawn. */
-export function computeSuspectLinks(model: MemoModel): SuspectLink[] {
+export function computeSuspectLinks(model: SuspectModel): SuspectLink[] {
+    const elementOf = (id: string): MemoElement | undefined =>
+        model.elements instanceof Map ? model.elements.get(id) : (model.elements as Record<string, MemoElement>)[id];
     const suspects: SuspectLink[] = [];
     for (const relationship of model.relationships) {
-        const baseline = relationship.attributes?.['sourceRevision'];
-        if (baseline === undefined) continue;
+        const baseline = baselineOf(relationship.attributes);
+        if (!baseline) continue;
         for (const end of ['source', 'target'] as const) {
             const elementId = end === 'source' ? relationship.sourceId : relationship.targetId;
-            const attributes = model.elements.get(elementId)?.attributes;
-            if (!attributes || attributes[IDENTIFIER] === undefined) continue;
-            const current = attributes[REVISION];
-            const base = { relationshipId: relationship.id, relationshipType: relationship.type, elementId, end, baseline, current };
-            if (attributes['sourceWithdrawn'] === 'true') suspects.push({ ...base, reason: 'source-withdrawn' });
-            else if (current !== baseline) suspects.push({ ...base, reason: 'revision-moved' });
+            const record = importedRecordOf(elementOf(elementId));
+            if (!record) continue;
+            const reason = suspectReason(baseline, record);
+            if (reason) {
+                suspects.push({
+                    relationshipId: relationship.id, relationshipType: relationship.type, elementId, end,
+                    baseline: baseline.sourceRevision, current: record.revision, reason,
+                });
+            }
         }
     }
     return suspects;

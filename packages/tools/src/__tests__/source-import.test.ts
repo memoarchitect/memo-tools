@@ -7,6 +7,11 @@ import { parseTraceMatrix } from '../import/source-import.js';
 import { computeSuspectLinks } from '../analysis/suspect-links.js';
 import { planSourceImport, readSource, renderSourceImport, type SourceImportContext } from '../import/source-import.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
+import { listImportSources } from '../import/import-sources.js';
+import { outlineSourceFor } from '../authoring/outline-source.js';
+import { removeRelationship, reviewTraceBaselines } from '../server/relationship-writer.js';
+import { resolveSuspectReviews } from '../server/suspect-review.js';
+import { modelToDTO } from '../model/semantic.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
 // T6, end to end through the real parse -> plan -> render -> write path. The records are
@@ -266,4 +271,119 @@ describe.runIf(compilerConfigured && examplesPresent)('a ReqIF import', () => {
             expect(trace?.attributes?.['sourceRevision']).toBeUndefined();
         });
     }, 240000);
+});
+
+// ─── The suspect queue: a preview says what the queue will show, and a review clears it ───
+
+const V2_WITH_NEW = `sourceId,revision,name,kind,statement
+REQ-1,C,Single mode,Requirement,The system shall be in exactly one mode.
+REQ-3,A,Battery,Requirement,The device shall run for eight hours.
+REQ-4,A,Display,Requirement,The display shall show the mode.
+`;
+
+const LINKS = `package links {
+    private import ScalarValues::*;
+    private import memo_assurance_requirements::*;
+    private import memo_core_semantics::*;
+    private import memo_core_relationships::*;
+    private import imports_reqtool::*;
+    part def Widget;
+    part widget : Widget;
+    requirement reqOwn : Requirement;
+    // Made against REQ-1 at revision B, four ways: a satisfy, a typed connection, a dependency, and a
+    // trace between two imported records that names the record its revision belongs to.
+    satisfy req1 by widget {
+        @TraceBaseline { :>> sourceRevision = "B"; }
+    }
+    connection ownDerivesReq1 : DerivesFrom connect sourceDriver ::> reqOwn to targetRequirement ::> req1 {
+        @TraceBaseline { :>> sourceRevision = "B"; }
+    }
+    dependency widgetNeedsReq1 from widget to req1 {
+        @TraceBaseline { :>> sourceRevision = "B"; }
+    }
+    connection req3DerivesReq1 : DerivesFrom connect sourceDriver ::> req3 to targetRequirement ::> req1 {
+        @TraceBaseline { :>> sourceRevision = "B"; :>> sourceIdentifier = "REQ-1"; }
+    }
+    // Made against REQ-3, which does not move.
+    connection req1DerivesReq3 : DerivesFrom connect sourceDriver ::> req1 to targetRequirement ::> req3 {
+        @TraceBaseline { :>> sourceRevision = "A"; :>> sourceIdentifier = "REQ-3"; }
+    }
+    // Made against REQ-2, which leaves the export.
+    satisfy req2 by widget {
+        @TraceBaseline { :>> sourceRevision = "A"; }
+    }
+}`;
+
+describe.runIf(compilerConfigured && examplesPresent)('the suspect queue', () => {
+    it('is what the preview said it would be, and review clears what a revision can clear', async () => {
+        await withExample({}, async (_host, root) => {
+            const first = await importInto(root, V1);
+            write(root, first.rendered.file, first.rendered.text);
+            write(root, 'model/catalog/links.sysml', LINKS);
+            const before = await loadProjectModel({ projectRoot: root, config, cache: false });
+            expect(computeSuspectLinks(before.model)).toEqual([]);
+
+            // The preview, from the model as it is now.
+            const second = await importInto(root, V2_WITH_NEW);
+            const preview = second.rendered && (await import('../import/source-import.js')).previewSourceImport(second.project.model, second.plan);
+            expect(preview.added.map(e => e.identifier)).toEqual(['REQ-4']);
+            expect(preview.changed.map(e => e.identifier)).toEqual(['REQ-1']);
+            expect(preview.deleted.map(e => e.identifier)).toEqual(['REQ-2']);
+            // Four links were made against REQ-1 at B; the one made against REQ-3 is not touched by REQ-1 moving.
+            expect(preview.changed[0].linkCount).toBe(5);
+            expect(preview.changed[0].suspectLinks).toHaveLength(4);
+            expect(preview.deleted[0].suspectLinks).toHaveLength(1);
+
+            // Apply, and the queue holds exactly that many.
+            write(root, second.rendered.file, second.rendered.text);
+            const after = await loadProjectModel({ projectRoot: root, config, cache: false });
+            const suspects = computeSuspectLinks(after.model);
+            expect(suspects).toHaveLength(preview.changed[0].suspectLinks.length + preview.deleted[0].suspectLinks.length);
+            expect(suspects.map(s => `${s.relationshipType}:${s.reason}`).sort()).toEqual([
+                'dependency:revision-moved', 'derivesFrom:revision-moved', 'derivesFrom:revision-moved',
+                'satisfiedBy:revision-moved', 'satisfiedBy:source-withdrawn',
+            ]);
+            // The link between two imported records is judged against REQ-1 alone.
+            expect(suspects.some(s => s.elementId === 'imports_reqtool::req3')).toBe(false);
+
+            // A withdrawn record has no revision to review against; a link that is not suspect is not reviewable.
+            const dto = modelToDTO(after.model);
+            const withdrawn = suspects.find(s => s.reason === 'source-withdrawn')!;
+            expect(resolveSuspectReviews(dto, [{ relationshipId: withdrawn.relationshipId, elementId: withdrawn.elementId }]))
+                .toMatchObject({ error: expect.stringContaining('withdrawn') });
+            expect(resolveSuspectReviews(dto, [{ relationshipId: 'links::req1DerivesReq3', elementId: 'imports_reqtool::req3' }]))
+                .toMatchObject({ error: expect.stringContaining('not suspect') });
+
+            // Review the four that moved: the baselines are rewritten in place, and only those.
+            const moved = suspects.filter(s => s.reason === 'revision-moved');
+            const resolved = resolveSuspectReviews(dto, moved.map(s => ({ relationshipId: s.relationshipId, elementId: s.elementId })));
+            expect('reviews' in resolved).toBe(true);
+            const outlines = outlineSourceFor(root, config, after);
+            const written = await reviewTraceBaselines((resolved as { reviews: never[] }).reviews,
+                { projectRoot: root, outlines, irIndex: undefined as never });
+            expect(written).toMatchObject({ success: true, sourceFiles: ['model/catalog/links.sysml'] });
+
+            const reviewed = await loadProjectModel({ projectRoot: root, config, cache: false });
+            expect(computeSuspectLinks(reviewed.model).map(s => s.reason)).toEqual(['source-withdrawn']);
+            const text = (await import('node:fs')).readFileSync(join(root, 'model/catalog/links.sysml'), 'utf8');
+            expect(text).toContain('// Made against REQ-1 at revision B');
+            expect(text).not.toContain('sourceRevision = "B"');
+            expect(text.match(/sourceRevision = "C"; :>> sourceIdentifier = "REQ-1"/g)).toHaveLength(4);
+            // The link to the withdrawn record is an anonymous `satisfy`; it is removed by its recorded range,
+            // and the statement beside it stays.
+            const gone = reviewed.model.relationships.find(r => r.type === 'satisfiedBy' && r.sourceId === 'imports_reqtool::req2')!;
+            expect(gone.named).toBeFalsy();
+            const removed = await removeRelationship(gone, { projectRoot: root, outlines: outlineSourceFor(root, config, reviewed), irIndex: undefined as never });
+            expect(removed).toMatchObject({ success: true, sourceFile: 'model/catalog/links.sysml' });
+            const afterRemoval = await loadProjectModel({ projectRoot: root, config, cache: false });
+            expect(computeSuspectLinks(afterRemoval.model)).toEqual([]);
+            expect((await import('node:fs')).readFileSync(join(root, 'model/catalog/links.sysml'), 'utf8')).toContain('satisfy req1 by widget');
+
+            // The sources the model lists come from the package the import wrote.
+            expect(listImportSources(modelToDTO(afterRemoval.model))).toEqual([expect.objectContaining({
+                system: 'reqtool', format: 'csv', importedAt: NOW.toISOString(),
+                packageName: 'imports_reqtool', records: 4, withdrawn: 1,
+            })]);
+        });
+    }, 300000);
 });

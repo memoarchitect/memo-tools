@@ -17,6 +17,8 @@ export * from '../model/view-deriver.js';
 export * from '../model/view-kinds.js';
 export * from '../analysis/dsm.js';
 export * from '../analysis/impact.js';
+export * from '../analysis/suspect-links.js';
+export * from '../import/import-sources.js';
 export * from '../import/recipes.js';
 export * from '../import/column-mapper.js';
 export type * from '../validator/types.js';

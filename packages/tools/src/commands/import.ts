@@ -22,7 +22,7 @@ import { ontologyViewFrom } from '@memoarchitect/tools';
 import { loadProjectModel, loadProjectOntology } from '../toolchain/project-model.js';
 import { mkdirSync } from 'node:fs';
 import {
-    SOURCE_FORMATS, planSourceImport, previewSourceImport, readSource, renderSourceImport,
+    SOURCE_FORMATS, prepareSourceImport,
     type SourceFormat, type SourceImportContext,
 } from '../import/source-import.js';
 
@@ -325,15 +325,17 @@ export async function importSourceCommand(
     }
 
     console.log(chalk.blue(`Reading ${format} export: ${file}`));
-    const records = readSource({ system: options.system, format, text, defaultKind: options.kind, defaultRelation: options.relation }, context);
+    const { records, plan, preview, rendered } = prepareSourceImport(
+        project.model, context,
+        { system: options.system, format, text, defaultKind: options.kind, defaultRelation: options.relation },
+        { sourceFile: basename(file) },
+    );
     for (const warn of records.warnings) console.log(chalk.yellow(`  Warning: ${warn}`));
     if (records.errors.length > 0) {
         for (const err of records.errors) console.error(chalk.red(`  ${err}`));
         if (records.items.length === 0 && records.links.length === 0) process.exit(1);
     }
 
-    const plan = planSourceImport(project.model, options.system, records);
-    const preview = previewSourceImport(project.model, plan);
     console.log(chalk.bold(`\nImport from ${options.system}: +${preview.added.length} new, ~${preview.changed.length} changed, `
         + `=${preview.unchanged} unchanged, -${preview.deleted.length} deleted`));
     for (const entry of preview.added) console.log(chalk.green(`  + ${entry.identifier}  ${entry.elementId}  [${entry.kind}]  "${entry.name}"`));
@@ -347,9 +349,6 @@ export async function importSourceCommand(
         console.log(chalk.red(`  - ${entry.identifier}  ${entry.elementId}  no longer in the export; kept, marked withdrawn${flagged}`));
     }
 
-    const rendered = renderSourceImport(project.model, plan, context, {
-        format, sourceFile: basename(file), now: new Date(),
-    });
     for (const warn of rendered.warnings) console.log(chalk.yellow(`  Warning: ${warn}`));
     if (rendered.dropped.length > 0) {
         console.log(chalk.yellow(`  Not written, the kind declares no such attribute: ${rendered.dropped.join(', ')}`));

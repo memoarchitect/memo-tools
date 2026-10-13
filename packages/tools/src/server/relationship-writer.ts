@@ -562,6 +562,97 @@ export async function updateRelationship(
     return { success: true, sourceFile: relationship.file, declaration };
 }
 
+// ─── Review a trace baseline ────────────────────────────────────────────────
+
+/** One link whose baseline a person has reviewed, and the record and revision it is now made against. */
+export interface BaselineReview {
+    relationship: MemoRelationship;
+    sourceRevision: string;
+    /** The imported record the revision belongs to. */
+    sourceIdentifier: string;
+}
+
+export interface BaselineReviewResult {
+    success: boolean;
+    sourceFiles?: string[];
+    error?: string;
+}
+
+/**
+ * Rewrite the `@TraceBaseline` inside each link to the revision it was reviewed
+ * against. The edit is inside the statement's own range and nothing else moves,
+ * so a `satisfy`, a `dependency` or a typed connection keeps whatever else it
+ * says; `updateRelationship` regenerates the whole declaration and would drop
+ * the body. Same route as every other write: the statement is located in the
+ * file's outline, the result is compiled, and only then does the file change.
+ * Every file is checked before any is written.
+ *
+ * A baseline always records both fields: with `sourceIdentifier` the link is
+ * judged against that record alone, which is what lets a link between two
+ * imported records be cleared at all.
+ */
+export async function reviewTraceBaselines(
+    reviews: readonly BaselineReview[],
+    options: RelationshipWriterOptions,
+): Promise<BaselineReviewResult> {
+    const byFile = new Map<string, BaselineReview[]>();
+    const seen = new Set<string>();
+    for (const review of reviews) {
+        // One review per link: the same statement cannot be reviewed against two records at once.
+        if (seen.has(review.relationship.id)) continue;
+        seen.add(review.relationship.id);
+        const file = review.relationship.file;
+        if (!file || !isWritableRelationshipFile(file, options)) {
+            return { success: false, error: `${file || 'The source file'} is not a writable project file` };
+        }
+        byFile.set(file, [...(byFile.get(file) ?? []), review]);
+    }
+
+    const pending: { file: string; absolutePath: string; text: string }[] = [];
+    for (const [file, fileReviews] of byFile) {
+        const absolutePath = resolve(options.projectRoot, file);
+        if (!existsSync(absolutePath)) return { success: false, error: `${file} no longer exists` };
+        const source = readFileSync(absolutePath, 'utf8');
+        const relativePath = relativeFile(options.projectRoot, file);
+        let outline: SourceOutline;
+        try {
+            outline = await options.outlines.outline(relativePath, source);
+        } catch (e) {
+            return { success: false, error: `${file} cannot be edited (${message(e)})` };
+        }
+        // A `dependency` that is also a `#refinement` is two links over one statement; edit it once.
+        const edits = new Map<number, { start: number; end: number; review: BaselineReview }>();
+        for (const review of fileReviews) {
+            const located = locateRelationship(outline, review.relationship);
+            if (typeof located === 'string') return { success: false, error: located };
+            edits.set(located.start, { start: located.start, end: located.end, review });
+        }
+        let updated = source;
+        for (const edit of [...edits.values()].sort((a, b) => b.start - a.start)) {
+            const statement = updated.slice(edit.start, edit.end);
+            const baseline = /@TraceBaseline\s*\{[^}]*\}/;
+            if (!baseline.test(statement)) {
+                return { success: false, error: `${edit.review.relationship.id} carries no @TraceBaseline to review` };
+            }
+            const written = `@TraceBaseline { :>> sourceRevision = ${JSON.stringify(edit.review.sourceRevision)}; `
+                + `:>> sourceIdentifier = ${JSON.stringify(edit.review.sourceIdentifier)}; }`;
+            updated = updated.slice(0, edit.start) + statement.replace(baseline, () => written) + updated.slice(edit.end);
+        }
+        const checked = await verified(options.outlines, relativePath, updated);
+        if (typeof checked === 'string') {
+            return { success: false, error: `The reviewed source was not accepted (${checked}); ${file} was left unchanged` };
+        }
+        pending.push({ file, absolutePath, text: updated });
+    }
+
+    try {
+        for (const item of pending) atomicWrite(item.absolutePath, item.text);
+    } catch (e) {
+        return { success: false, error: `Could not write: ${String(e)}` };
+    }
+    return { success: true, sourceFiles: pending.map(item => item.file) };
+}
+
 /**
  * Insert a declaration as the last member of the file's final top-level
  * package, matching the indentation of the members already there. Everything
@@ -614,10 +705,12 @@ function memberIndent(source: string, pkg: OutlineNode, closingBrace: number): s
  * endpoint elements are left completely untouched.
  */
 export async function removeRelationship(
-    relationship: Pick<MemoRelationship, 'id' | 'shortName' | 'file' | 'named'>,
+    relationship: Pick<MemoRelationship, 'id' | 'shortName' | 'file' | 'named' | 'sourceRange'>,
     options: RelationshipWriterOptions,
 ): Promise<RelationshipRemoveResult> {
-    if (!relationship.named) {
+    // An anonymous statement (`satisfy r by x;`) is addressed by the range the compile recorded for it,
+    // as `updateRelationship` already does; one with neither a name nor a range cannot be.
+    if (!relationship.named && !relationship.sourceRange) {
         return {
             success: false,
             error: `Relationship "${relationship.id}" is an anonymous connection and cannot be addressed for deletion. ` +
@@ -643,7 +736,11 @@ export async function removeRelationship(
         return { success: false, error: `${relationship.file} cannot be edited (${message(e)})` };
     }
 
-    const usage = findConnectionUsage(outline, declaredNameOf(relationship));
+    const located = relationship.named
+        ? findConnectionUsage(outline, declaredNameOf(relationship))
+        : locateRelationship(outline, relationship);
+    if (typeof located === 'string') return { success: false, error: located };
+    const usage = located;
     if (!usage) {
         return { success: false, error: `Relationship "${relationship.id}" was not found in ${relationship.file}` };
     }
@@ -669,7 +766,10 @@ export async function removeRelationship(
                 'the file was left unchanged',
         };
     }
-    if (checked && findConnectionUsage(checked, declaredNameOf(relationship))) {
+    const stillThere = checked !== undefined && (relationship.named
+        ? findConnectionUsage(checked, declaredNameOf(relationship)) !== undefined
+        : containsDeclaration(checked, removedDeclaration));
+    if (stillThere) {
         return { success: false, error: 'The relationship was still present after removal; the file was left unchanged' };
     }
 

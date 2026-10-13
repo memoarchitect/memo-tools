@@ -173,6 +173,8 @@ export interface MemoPackageDTO {
     parent?: string;
     /** Project-relative file declaring it. */
     file: string;
+    /** Metadata the package carries, such as `@ImportSource` (absent when it carries none). */
+    attributes?: Record<string, string>;
 }
 
 /** A typed relationship between two elements */
