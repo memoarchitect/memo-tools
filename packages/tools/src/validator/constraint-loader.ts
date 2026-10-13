@@ -91,7 +91,7 @@ export function compileRuleDefinition(parts: RuleDefinitionParts): CompiledConst
     let appliesToKind = attrs['appliesTo'] ?? '';
     if (parts.body) {
         ast = parts.body;
-        if (ast.kind === 'bool' && ast.value && attrs['predicateExpression'] && attrs['evaluator'] !== 'architecture') {
+        if (ast.kind === 'bool' && ast.value && attrs['predicateExpression'] && (!attrs['evaluator'] || attrs['evaluator'] === 'native')) {
             // Portable constraint bodies remain `true` where SysML tools cannot
             // resolve MEMO's semantic-model navigation. The executable predicate
             // is still ontology-owned and is compiled here.

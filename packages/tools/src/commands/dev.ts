@@ -343,13 +343,13 @@ export async function devCommand(options: {
                     : undefined;
                 const runRules = (workspace?: WorkspaceScope) => validateModel(
                     model, resolved.activeConstraints, kindRegistry, resolved.rules,
-                    inScopeIds && (element => inScopeIds.has(element.id)), workspace);
+                    inScopeIds && (element => inScopeIds.has(element.id)), workspace, membership);
                 validation = runRules();
                 validateWorkspaces(runRules);
                 return { rules: resolved.rules, diagnostics: resolved.diagnostics };
             } catch (error) {
                 const runNative = (workspace?: WorkspaceScope) =>
-                    validateModel(model, nativeConstraints, stage2Registries?.kindRegistry, undefined, undefined, workspace);
+                    validateModel(model, nativeConstraints, stage2Registries?.kindRegistry, undefined, undefined, workspace, membership);
                 validation = runNative();
                 validateWorkspaces(runNative);
                 return {

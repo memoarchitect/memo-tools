@@ -14,6 +14,7 @@ import type { CompiledConstraint } from './constraint-eval.js';
 import { evaluateConstraintSubjects } from './constraint-eval.js';
 import { validateBehavior } from './behavior-validator.js';
 import { validateArchitecture } from './architecture-validator.js';
+import { validateWorkspaceBoundaries } from './workspace-boundary-validator.js';
 import { validateViews } from './view-validator.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 import { BUILTIN_RULE_IDS } from './builtin-rules.js';
@@ -39,6 +40,8 @@ export function validateModel(
      * evidence from another system's elements stops counting (see `WorkspaceScope`).
      */
     workspace?: Pick<import('../model/workspace-membership.js').WorkspaceScope, 'subjects' | 'foreign'>,
+    /** What each workspace holds. Without it a rule that judges workspace boundaries has no subject. */
+    membership?: import('../model/workspace-membership.js').WorkspaceMembership,
 ): ValidationResult {
     // Section 10.4: a violation reports the rule's provenance, not just its ID.
     // Keyed by active rule ID, because that is what the violation carries.
@@ -76,6 +79,11 @@ export function validateModel(
     const architectureViolations = validateArchitecture(model, ibdScope, kindRegistry);
     const viewViolations = validateViews(model);
 
+    // The built-in validators take no subject predicate, so a workspace keeps their findings by the
+    // element they are about. A model-wide finding (`__model__`) belongs to no element and stays.
+    const inWorkspace = (violation: Violation) =>
+        !workspace || violation.elementId === '__model__' || workspace.subjects.has(violation.elementId);
+
     const nativeViolations: Violation[] = [];
     let nativePassed = 0;
     let nativeVacuous = 0;
@@ -86,6 +94,14 @@ export function validateModel(
     // meant one rule was evaluated and reported as neither passed nor failed.
     const delegated: string[] = [];
     for (const constraint of nativeConstraints) {
+        if (constraint.evaluator === 'workspace') {
+            // A model with no System has no boundary to judge: the rule ran on nothing, which is not a pass.
+            if (!membership || membership.missingSystem) { nativeVacuous++; continue; }
+            const found = validateWorkspaceBoundaries(model, membership, constraint).filter(inWorkspace);
+            if (found.length === 0) nativePassed++;
+            nativeViolations.push(...found);
+            continue;
+        }
         if (constraint.evaluator && constraint.evaluator !== 'native') {
             delegated.push(constraint.id);
             continue;
@@ -106,10 +122,6 @@ export function validateModel(
         nativeViolations.push(...violations);
     }
 
-    // The built-in validators take no subject predicate, so a workspace keeps their findings by the
-    // element they are about. A model-wide finding (`__model__`) belongs to no element and stays.
-    const inWorkspace = (violation: Violation) =>
-        !workspace || violation.elementId === '__model__' || workspace.subjects.has(violation.elementId);
     const violations = [
         ...[...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations].filter(inWorkspace),
         ...nativeViolations,

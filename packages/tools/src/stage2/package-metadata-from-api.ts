@@ -244,8 +244,11 @@ function applyExplorerClassification(
 
     const domains = new Map<string, OntologyLayerInfo>();
     for (const layer of layers) for (const kind of layer.kinds) {
-        const source = kind.group ?? kind.layer;
-        const placement = placements.get(source);
+        // The most specific classification wins: `layer/group` (a group name is only unique inside its
+        // layer: `artifacts/core` is evidence and `methodology/core` is the method), then the group,
+        // then the layer a group has no classification of its own under.
+        const placement = (kind.group ? placements.get(`${kind.layer}/${kind.group}`) ?? placements.get(kind.group) : undefined)
+            ?? placements.get(kind.layer);
         if (!placement) continue;
         let domain = domains.get(placement.explorerDomain);
         if (!domain) {

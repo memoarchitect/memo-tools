@@ -406,15 +406,18 @@ export async function runValidation(
     // `--workspace` is a second, independent narrowing of the subjects (see WorkspaceScope). It is
     // refused outright when it cannot be honoured: a workspace that is unknown, or empty, would
     // otherwise print "0 violations", which reads exactly like a clean model.
+    // What each workspace holds: also what the system boundary rule (CR-ONT-087) judges.
+    const membership = ontologyRegistries?.kindRegistry && ontologyRegistries.relationshipRegistry
+        ? computeWorkspaceMembership(model, ontologyRegistries)
+        : undefined;
     let workspace: WorkspaceScope | undefined;
     const requestedWorkspace = typeof options?.workspace === 'string' ? options.workspace : undefined;
     if (requestedWorkspace !== undefined) {
-        const registries = ontologyRegistries;
-        if (!registries?.kindRegistry || !registries.relationshipRegistry) {
+        if (!membership) {
             io.err(chalk.red('\n❌ --workspace needs the ontology registries the model was built with.\n'));
             throw new ValidationExit(1);
         }
-        const selection = selectWorkspace(model, computeWorkspaceMembership(model, registries), requestedWorkspace);
+        const selection = selectWorkspace(model, membership, requestedWorkspace);
         if (!selection.ok) {
             io.err(chalk.red(`\n❌ --workspace: ${selection.message}\n`));
             throw new ValidationExit(1);
@@ -429,7 +432,7 @@ export async function runValidation(
     const subjectModel = scope.mode === 'allAvailable' && !workspace ? model : narrowToScope(model);
     const result = validateModel(
         model, effectiveRules.activeConstraints, ontologyRegistries?.kindRegistry, effectiveRules.rules,
-        inScopeIds && (element => inScopeIds.has(element.id)), workspace);
+        inScopeIds && (element => inScopeIds.has(element.id)), workspace, membership);
     // Completeness reports on what the methodology selected, which is the
     // scoped model — not on content the project deliberately excluded.
     const completeness = computeCompleteness(subjectModel, result);

@@ -69,8 +69,27 @@ export interface UnresolvedWorkspaceType {
     candidates: readonly string[];
 }
 
+/** A system's own element that names another system, or the system of systems, from inside it (plan O16). */
+export interface BoundaryReference {
+    /** The system whose workspace holds the referencing element. */
+    workspace: string;
+    /** The element inside that workspace that makes the reference. */
+    elementId: string;
+    /** The System-kind or SystemOfSystems-kind element it names. */
+    target: string;
+    /** `typing`, or the name of the relationship. */
+    via: string;
+}
+
 export interface WorkspaceMembership {
     workspaces: readonly Workspace[];
+    /**
+     * What each system's elements name across the boundary: a type that is another system or the
+     * system of systems, or a relationship FROM a member TO one. Only the source end counts, so the
+     * system of systems' own edges into its systems (an include, an interface) are not references.
+     * The closure refuses to follow these, silently; this is the report of what it refused.
+     */
+    boundaryReferences: readonly BoundaryReference[];
     /** Element id to the ids of the systems whose workspace holds it. */
     systems: ReadonlyMap<string, readonly string[]>;
     /** Element id to the ids of the systems of systems whose workspace holds it. */
@@ -207,6 +226,29 @@ export function computeWorkspaceMembership(
         for (const id of workspace.members) into.set(id, [...(into.get(id) ?? []), workspace.root]);
     }
 
+    // A pass over the finished closure, not a record of what `join` refused: the system of systems'
+    // closure refuses systems too (allowed), and a `neither` relation is never attempted at all.
+    const boundaryReferences: BoundaryReference[] = [];
+    for (const workspace of workspaces) {
+        if (workspace.scope !== 'system') continue;
+        const crosses = (id: string | undefined) => {
+            const target = id ? elements.get(id) : undefined;
+            return target && scopeOf(target) && !workspace.members.has(target.id) ? target.id : undefined;
+        };
+        for (const id of workspace.members) {
+            const element = elements.get(id)!;
+            for (const type of [typeOf(element), ...featureTypesOf(element)]) {
+                const target = crosses(type);
+                if (target) boundaryReferences.push({ workspace: workspace.root, elementId: id, target, via: 'typing' });
+            }
+        }
+        for (const relationship of model.relationships) {
+            if (!workspace.members.has(relationship.sourceId)) continue;
+            const target = crosses(relationship.targetId);
+            if (target) boundaryReferences.push({ workspace: workspace.root, elementId: relationship.sourceId, target, via: relationship.type });
+        }
+    }
+
     const definitionOf = new Map<string, string>();
     for (const element of elements.values()) {
         if (element.isDefinition) continue;
@@ -216,6 +258,7 @@ export function computeWorkspaceMembership(
 
     return {
         workspaces,
+        boundaryReferences,
         definitionOf,
         systems,
         sos,
