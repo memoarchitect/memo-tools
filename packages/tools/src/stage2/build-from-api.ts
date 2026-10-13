@@ -482,8 +482,11 @@ class ElementBuilder {
             // is still a part usage the owner contains: `PartUsage` takes a `UsageDeclaration`, whose
             // `FeatureSpecializationPart` allows typing and subsetting together
             // (SysML-textual-bnf.kebnf:627, :312, :428). Only `viewMetadata` reads a subsetting
-            // part as a binding (`isBinding`).
+            // part as a binding (`isBinding`), and so does a methodology owner, whose
+            // `part x : RulePolicy :> rulePolicy { … }` is configuration the rule-policy writer
+            // appends to the model's `ModelMethodBinding` (measured on a scratch E0, 2026-10-12).
             if (this.api.redefined(member['@id']).length > 0) continue;
+            if (this.isBinding(member) && this.elements.get(ownerId)?.layer === 'methodology') continue;
             this.usage(member, isPart ? 'part' : 'item', packageName, ownerId);
         }
     }
@@ -559,6 +562,25 @@ class ElementBuilder {
         }
         Object.assign(attributes, this.metadata(owner));
         return attributes;
+    }
+
+    /**
+     * A connector's own attributes over the values its type binds. A feature value on a
+     * definition (`attribute :>> direction = DirectionKind::output;` on an `interface def`)
+     * is inherited by every usage, and the usage may not restate it (SysIDE:
+     * feature-value-overriding), so reading only the usage's own members misses it.
+     */
+    private withTypeValues(node: ApiElement): Record<string, string> {
+        const inherited: Record<string, string> = {};
+        const seen = new Set<string>();
+        const visit = (definition: ApiElement) => {
+            if (seen.has(definition['@id'])) return;
+            seen.add(definition['@id']);
+            for (const parent of this.api.superclassifiers(definition['@id'])) visit(parent);
+            if (this.api.source(definition['@id'])?.role === 'project') Object.assign(inherited, this.attributes(definition));
+        };
+        for (const type of this.api.types(node['@id'])) visit(type);
+        return { ...inherited, ...this.attributes(node) };
     }
 
     /** `@Foo { :>> field = value; }` applications, lifted under each field's own name. */
@@ -879,7 +901,7 @@ class ElementBuilder {
             id: qualifiedId(name, packageName || undefined, undefined), shortName: name, type: 'interface',
             sourceId: source.id, sourceEnd: source.end || 'source', targetId: target.id, targetEnd: target.end || 'target',
             file: this.file(node), sourceRange: this.sourceRangeOf(node), named: true,
-            kind: this.typeName(node), attributes: this.attributes(node),
+            kind: this.typeName(node), attributes: this.withTypeValues(node),
         };
         this.tagPorts(relationship);
         this.push(relationship, true, node);

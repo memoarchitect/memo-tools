@@ -193,6 +193,23 @@ describe('buildElementsFromApi nested parts that subset a feature', () => {
         own(allocation, end, 'EndFeatureMembership');
         relate(end, 'ReferenceSubsetting', 'referencedFeature', target['@id']);
     }
+    // `interface def Icd { attribute :>> direction = 'out'; }` and `interface feed : Icd connect fn to engine;`:
+    // the usage inherits the value and may not restate it.
+    const icd = add({ '@type': 'InterfaceDefinition', '@id': 'P__Icd', declaredName: 'Icd' }, 'P::Icd');
+    own(pkg, icd);
+    const directed = add({ '@type': 'AttributeUsage', '@id': 'P__Icd__direction', declaredName: 'direction' });
+    own(icd, directed, 'FeatureMembership');
+    const literal = add({ '@type': 'LiteralString', '@id': 'P__Icd__direction_v', value: 'out' });
+    const featureValue = add({ '@type': 'FeatureValue', '@id': 'P__Icd__direction_fv', ownedRelatedElement: [ref(literal['@id'])] });
+    ((directed.ownedRelationship ??= []) as unknown[]).push(ref(featureValue['@id']));
+    const feed = add({ '@type': 'InterfaceUsage', '@id': 'P__System__feed', declaredName: 'feed' }, 'P::System::feed');
+    own(system, feed, 'FeatureMembership');
+    relate(feed, 'FeatureTyping', 'type', icd['@id']);
+    for (const [slotName, target] of [['e0', fn], ['e1', engine]] as const) {
+        const end = add({ '@type': 'ReferenceUsage', '@id': `P__System__feed__${slotName}`, isEnd: true });
+        own(feed, end, 'EndFeatureMembership');
+        relate(end, 'ReferenceSubsetting', 'referencedFeature', target['@id']);
+    }
     const api = new ApiModel({
         format: 'memo-stage1/1', provider: 'test', clean: true, index,
         documents: [{ file: 'model.sysml', role: 'project', elements }],
@@ -202,6 +219,10 @@ describe('buildElementsFromApi nested parts that subset a feature', () => {
 
     it('builds the part, owned by its definition', () => {
         expect(built.get('P::System::engine')).toMatchObject({ construct: 'part', owner: 'P::System' });
+    });
+
+    it('gives an interface usage the values its definition binds', () => {
+        expect(relationships.find(r => r.type === 'interface')?.attributes).toMatchObject({ direction: 'out' });
     });
 
     it('reads an allocation written inside the definition', () => {
