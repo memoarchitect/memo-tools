@@ -221,6 +221,12 @@ describe('buildElementsFromApi nested parts that subset a feature', () => {
     own(cfg, policy, 'FeatureMembership');
     relate(policy, 'FeatureTyping', 'type', component['@id']);
     relate(policy, 'Subsetting', 'subsettedFeature', slot['@id']);
+    // `use case uc { subject :>> supportingSystem : System; }`: a subject named by type is about that definition.
+    const uc = add({ '@type': 'UseCaseUsage', '@id': 'P__uc', declaredName: 'uc' }, 'P::uc');
+    own(pkg, uc, 'FeatureMembership');
+    const ucSubject = add({ '@type': 'ReferenceUsage', '@id': 'P__uc__subject', declaredName: 'supportingSystem' });
+    own(uc, ucSubject, 'SubjectMembership');
+    relate(ucSubject, 'FeatureTyping', 'type', system['@id']);
     const api = new ApiModel({
         format: 'memo-stage1/1', provider: 'test', clean: true, index,
         documents: [{ file: 'model.sysml', role: 'project', elements }],
@@ -231,6 +237,10 @@ describe('buildElementsFromApi nested parts that subset a feature', () => {
 
     it('builds the part, owned by its definition', () => {
         expect(built.get('P::System::engine')).toMatchObject({ construct: 'part', owner: 'P::System' });
+    });
+
+    it('relates a use case to the definition its subject is typed by', () => {
+        expect(relationships.filter(r => r.type === 'hasSubject').map(r => [r.sourceId, r.targetId])).toEqual([['P::uc', 'P::System']]);
     });
 
     it('keeps a subsetting part under a methodology owner a binding', () => {

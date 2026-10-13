@@ -1188,7 +1188,17 @@ class ElementBuilder {
                     'RequirementUsage', 'RequirementDefinition',
                     'UseCaseUsage', 'UseCaseDefinition', 'IncludeUseCaseUsage',
                 ].includes(ownerNode['@type']);
-                for (const steps of bound) {
+                // A subject declared by TYPE (`subject :>> supportingSystem : CardiacMappingSystem;`)
+                // is about that definition: it is how a system's use case names its system. Only a
+                // definition the project holds counts. A subject bound inside an `include` is not
+                // read: the include is not an element, and its target is owned by the system of
+                // systems, so the edge would pull the system's use case into the lab's workspace.
+                const typed = aboutSubject && ownerNode['@type'] !== 'IncludeUseCaseUsage'
+                    ? this.api.types(subject['@id'])
+                        .filter(type => this.elements.has(this.api.qualifiedName(type['@id']) ?? ''))
+                        .map(type => [type])
+                    : [];
+                for (const steps of [...bound, ...typed]) {
                     const boundId = endpointOf(steps, node);
                     if (!boundId) continue;
                     if (aboutSubject) this.native('hasSubject', ownerId, boundId, file);
