@@ -478,7 +478,12 @@ class ElementBuilder {
             if (member.isEnd === true) continue;
             // Only a TYPED nested usage is containment; an untyped one is view metadata.
             if (!this.api.name(member['@id']) || this.api.types(member['@id']).length === 0) continue;
-            if (this.api.redefined(member['@id']).length > 0 || this.isBinding(member)) continue;
+            // A typed part that subsets a feature (`part mapEngine : LogicalComponent :> component`)
+            // is still a part usage the owner contains: `PartUsage` takes a `UsageDeclaration`, whose
+            // `FeatureSpecializationPart` allows typing and subsetting together
+            // (SysML-textual-bnf.kebnf:627, :312, :428). Only `viewMetadata` reads a subsetting
+            // part as a binding (`isBinding`).
+            if (this.api.redefined(member['@id']).length > 0) continue;
             this.usage(member, isPart ? 'part' : 'item', packageName, ownerId);
         }
     }

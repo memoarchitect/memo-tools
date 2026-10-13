@@ -150,3 +150,46 @@ describe('buildFromApi successions between performed actions', () => {
             .toEqual([['P::a', 'P::b']]);
     });
 });
+
+// `part mapEngine : LogicalComponent :> component;` in a definition is a part the
+// definition contains: typing plus subsetting, neither of which makes it a binding.
+describe('buildElementsFromApi nested parts that subset a feature', () => {
+    const ref = (id: string) => ({ '@id': id });
+    const index: NonNullable<Stage1Output['index']> = {};
+    const elements: ApiElement[] = [];
+    const add = (element: Record<string, unknown> & { '@id': string; '@type': string }, qualifiedName?: string) => {
+        elements.push(element);
+        index[element['@id']] = { file: 'model.sysml', role: 'project', ...(qualifiedName ? { qualifiedName } : {}) };
+        return element;
+    };
+    const own = (owner: Record<string, unknown>, member: { '@id': string }, metaclass = 'OwningMembership') => {
+        const membership = add({ '@type': metaclass, '@id': `${member['@id']}_om`, ownedRelatedElement: [ref(member['@id'])], memberElement: ref(member['@id']) });
+        ((owner.ownedRelationship ??= []) as unknown[]).push(ref(membership['@id']));
+        (member as Record<string, unknown>).owningRelationship = ref(membership['@id']);
+        membership.owningRelatedElement = ref(owner['@id'] as string);
+    };
+    const relate = (feature: Record<string, unknown>, metaclass: string, field: string, target: string) => {
+        const relationship = add({ '@type': metaclass, '@id': `${feature['@id']}_${metaclass}`, [field]: ref(target) });
+        ((feature.ownedRelationship ??= []) as unknown[]).push(ref(relationship['@id']));
+    };
+    const root = add({ '@type': 'Namespace', '@id': 'ns' });
+    const pkg = add({ '@type': 'Package', '@id': 'P', declaredName: 'P' }, 'P');
+    own(root, pkg);
+    const component = add({ '@type': 'PartDefinition', '@id': 'P__Component', declaredName: 'Component' }, 'P::Component');
+    const system = add({ '@type': 'PartDefinition', '@id': 'P__System', declaredName: 'System' }, 'P::System');
+    const slot = add({ '@type': 'PartUsage', '@id': 'P__System__component', declaredName: 'component' }, 'P::System::component');
+    own(pkg, component); own(pkg, system); own(system, slot, 'FeatureMembership');
+    relate(slot, 'FeatureTyping', 'type', component['@id']);
+    const engine = add({ '@type': 'PartUsage', '@id': 'P__System__engine', declaredName: 'engine' }, 'P::System::engine');
+    own(system, engine, 'FeatureMembership');
+    relate(engine, 'FeatureTyping', 'type', component['@id']);
+    relate(engine, 'Subsetting', 'subsettedFeature', slot['@id']);
+    const { elements: built } = buildElementsFromApi(new ApiModel({
+        format: 'memo-stage1/1', provider: 'test', clean: true, index,
+        documents: [{ file: 'model.sysml', role: 'project', elements }],
+    }));
+
+    it('builds the part, owned by its definition', () => {
+        expect(built.get('P::System::engine')).toMatchObject({ construct: 'part', owner: 'P::System' });
+    });
+});
