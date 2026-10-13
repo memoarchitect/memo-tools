@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type { MEMOConfig } from '../model/config.js';
@@ -117,7 +117,7 @@ const NOT_COPIED = new Set(['.memo', '.git', 'node_modules']);
 async function verifyInScratchCopy(
     projectRoot: string, config: MEMOConfig, file: string, text: string, also?: ReadonlyMap<string, string>,
 ): Promise<SourceOutline> {
-    const scratch = mkdtempSync(join(tmpdir(), 'memo-verify-'));
+    const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'memo-verify-')));
     try {
         cpSync(projectRoot, scratch, {
             recursive: true,

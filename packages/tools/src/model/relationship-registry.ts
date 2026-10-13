@@ -86,6 +86,8 @@ export interface RelationshipRegistryEntry {
      * happens to still declare alongside it.
      */
     nativeKeyword?: string;
+    /** Package-qualified name of the definition; set for a typed dependency, whose statement names it. */
+    qualifiedName?: string;
     /** End names from the connection definition */
     ends: RelationshipEnd[];
     /**
@@ -473,6 +475,7 @@ export class RelationshipRegistry {
             isReflexive: this.inherited(entry, 'isReflexive'),
             isUnique: this.inherited(entry, 'isUnique'),
             nativeKeyword: entry.nativeKeyword,
+            ...(entry.sysmlConstruct === 'metadata def' && entry.qualifiedName ? { typedDependency: entry.qualifiedName } : {}),
             sourceEnd: toEndDTO(entry.ends[0], 'source'),
             targetEnd: toEndDTO(entry.ends[1], 'target'),
         }));

@@ -380,7 +380,10 @@ export async function writeRelationship(
         relationshipId, definition,
         // Source text names elements the way the source does: by the feature
         // path, never by the qualified id that addresses them in the model.
-        endpointPath(request.sourceId, model), endpointPath(request.targetId, model),
+        // A dependency takes qualified names (kebnf:58), which resolve from any file; a connection's
+        // ends are feature chains relative to the package that holds it.
+        notation === 'typedDependency' ? request.sourceId : endpointPath(request.sourceId, model),
+        notation === 'typedDependency' ? request.targetId : endpointPath(request.targetId, model),
         request.flowItem, request.guard);
 
     const outlines = options.outlines;
@@ -743,6 +746,17 @@ export async function removeRelationship(
     const usage = located;
     if (!usage) {
         return { success: false, error: `Relationship "${relationship.id}" was not found in ${relationship.file}` };
+    }
+
+    // One `dependency a to b, c;` is several links over one statement. Cutting it for one of them
+    // would delete the others without a word, so it is refused: the source states more than one link.
+    const header = source.slice(usage.start, usage.end).split(/[{;]/, 1)[0];
+    if (/^\s*(?:#[\w:]+\s+)*dependency\b/.test(header) && header.includes(',')) {
+        return {
+            success: false,
+            error: `${relationship.file} declares several links in this one dependency statement; ` +
+                'remove the one you mean in the source, or split the statement first.',
+        };
     }
 
     // Widen the cut to the whole line when the declaration is alone on it, so
