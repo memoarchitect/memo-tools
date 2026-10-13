@@ -24,7 +24,8 @@ import {
 } from '../serializer/csv-io.js';
 import { generateFile } from '../serializer/sysml-generator.js';
 import { renderRelationship } from '../server/sysml-notation.js';
-import { computeImportDiff, importedElements, type ImportDiff } from './import-diff.js';
+import { suspectReason } from '../analysis/suspect-links.js';
+import { computeImportDiff, importedElements, type AffectedLink, type ImportDiff } from './import-diff.js';
 import { parseReqIf } from './reqif.js';
 
 export type SourceFormat = 'csv' | 'reqif' | 'trace-matrix';
@@ -347,6 +348,11 @@ export interface SourceImportPreview {
     deleted: PreviewEntry[];
 }
 
+/** The ids of the links that are suspect once the record is as given. */
+function suspectAfter(links: readonly AffectedLink[] | undefined, record: Parameters<typeof suspectReason>[1]): string[] {
+    return (links ?? []).filter((l) => l.baseline && suspectReason(l.baseline, record)).map((l) => l.relationshipId);
+}
+
 /** What a re-import would do, in the terms a person reviews it: new, changed, deleted. */
 export function previewSourceImport(model: MemoModel, plan: SourceImportPlan): SourceImportPreview {
     const { diff } = plan;
@@ -361,7 +367,10 @@ export function previewSourceImport(model: MemoModel, plan: SourceImportPlan): S
             identifier: entry.incoming.source!.identifier, elementId: entry.current.id, name: entry.current.name, kind: entry.current.kind,
             from: entry.current.attributes['externalReference.revision'], to: entry.incoming.source!.revision,
             changes: entry.changes.map((c) => ({ field: c.field, from: c.currentValue, to: c.incomingValue })),
-            suspectLinks: entry.revisionMoved ? (entry.links ?? []).filter((l) => l.baselined).map((l) => l.relationshipId) : [],
+            // Asked of the one predicate the queue uses, at the revision the import brings.
+            suspectLinks: suspectAfter(entry.links, {
+                identifier: entry.incoming.source!.identifier, revision: entry.incoming.source!.revision, withdrawn: false,
+            }),
             linkCount: entry.links?.length ?? 0,
         })),
         unchanged: diff.unchanged.length,
@@ -369,7 +378,43 @@ export function previewSourceImport(model: MemoModel, plan: SourceImportPlan): S
             identifier: attributes(id)['externalReference.identifier'], elementId: id,
             name: model.elements.get(id)?.name ?? id, kind: model.elements.get(id)?.kind ?? '',
             from: attributes(id)['externalReference.revision'],
-            changes: [], suspectLinks: links.filter((l) => l.baselined).map((l) => l.relationshipId), linkCount: links.length,
+            changes: [], linkCount: links.length,
+            suspectLinks: suspectAfter(links, {
+                identifier: attributes(id)['externalReference.identifier'],
+                revision: attributes(id)['externalReference.revision'], withdrawn: true,
+            }),
         })),
+    };
+}
+
+// ─── The whole step ──────────────────────────────────────────────────────────
+
+export interface PreparedSourceImport {
+    records: SourceRecords;
+    plan: SourceImportPlan;
+    preview: SourceImportPreview;
+    rendered: RenderedImport;
+}
+
+/**
+ * Read an export, compare it with the model, and render the file it would
+ * leave. The CLI and the dev server both call this; neither writes anything
+ * here, so a preview and an apply are the same computation.
+ */
+export function prepareSourceImport(
+    model: MemoModel,
+    context: SourceImportContext,
+    request: SourceImportRequest,
+    options: { sourceFile?: string; now?: Date } = {},
+): PreparedSourceImport {
+    const records = readSource(request, context);
+    const plan = planSourceImport(model, request.system, records);
+    return {
+        records,
+        plan,
+        preview: previewSourceImport(model, plan),
+        rendered: renderSourceImport(model, plan, context, {
+            format: request.format, sourceFile: options.sourceFile, now: options.now ?? new Date(),
+        }),
     };
 }

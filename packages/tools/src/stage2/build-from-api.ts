@@ -816,11 +816,14 @@ class ElementBuilder {
             const qualifiedName = this.api.qualifiedName(element['@id']);
             if (!qualifiedName) continue;
             const separator = qualifiedName.lastIndexOf('::');
+            const attributes = this.metadata(element);
             out.push({
                 qualifiedName,
                 name: separator === -1 ? qualifiedName : qualifiedName.slice(separator + 2),
                 ...(separator === -1 ? {} : { parent: qualifiedName.slice(0, separator) }),
                 file: this.file(element),
+                // `@ImportSource { … }` and any other metadata the package carries.
+                ...(Object.keys(attributes).length > 0 ? { attributes } : {}),
             });
         }
         return out.sort((a, b) => a.qualifiedName.localeCompare(b.qualifiedName));
@@ -1094,12 +1097,15 @@ class ElementBuilder {
     }
 
     private native(name: keyof typeof LANGUAGE_NATIVE_RELATIONS, sourceId: string, targetId: string, file: string,
-        attributes: Record<string, string> = {}): void {
+        attributes: Record<string, string> = {}, declaration?: ApiElement): void {
         const [sourceEnd, targetEnd] = LANGUAGE_NATIVE_RELATIONS[name].ends;
         this.relationships.push({
             id: this.nextId(), type: name, sourceId, sourceEnd: sourceEnd.name, targetId, targetEnd: targetEnd.name, file,
             // Metadata applied to the link (`satisfy r by x { @TraceBaseline { … } }`), as a typed connection carries it.
             ...(Object.keys(attributes).length > 0 ? { attributes } : {}),
+            // Where the statement is, for a writer that edits it in place. Only a statement that is its own
+            // declaration has one; an owner-rooted `verify` or `perform` is a member of something larger.
+            ...(declaration ? { sourceRange: this.sourceRangeOf(declaration) } : {}),
         });
     }
 
@@ -1145,7 +1151,7 @@ class ElementBuilder {
                 const subjectFeature = subject ? this.api.element(((subject.ownedRelatedElement as { '@id': string }[] | undefined) ?? [])[0]?.['@id'] ?? '') : undefined;
                 const by = subjectFeature ? valueSteps(this.api.value(subjectFeature['@id']))[0] : undefined;
                 const satisfying = by ? endpointOf(by, node) : undefined;
-                if (requirement && satisfying) this.native('satisfiedBy', requirement, satisfying, file, this.metadata(node));
+                if (requirement && satisfying) this.native('satisfiedBy', requirement, satisfying, file, this.metadata(node), node);
             } else if (type === 'RequirementVerificationMembership') {
                 const verified = this.api.ownedMembers(node['@id'])[0] ?? this.api.element(((node.ownedRelatedElement as { '@id': string }[] | undefined) ?? [])[0]?.['@id'] ?? '');
                 const requirement = verified ? endpointOf(this.steps(this.api.related(verified['@id'], ['ReferenceSubsetting'], 'referencedFeature')[0]), node) : undefined;
@@ -1230,8 +1236,8 @@ class ElementBuilder {
                         const targetId = endpointOf([supplier], node);
                         if (!targetId) continue;
                         const applied = this.metadata(node);
-                        this.native('dependency', sourceId, targetId, file, applied);
-                        if (refinement) this.native('realizes', sourceId, targetId, file, applied);
+                        this.native('dependency', sourceId, targetId, file, applied, node);
+                        if (refinement) this.native('realizes', sourceId, targetId, file, applied, node);
                     }
                 }
             } else if (type === 'VariantMembership') {

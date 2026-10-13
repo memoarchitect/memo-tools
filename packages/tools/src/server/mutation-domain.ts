@@ -44,6 +44,10 @@ const MUTATION_DOMAINS: Record<string, MutationDomain> = {
     'diagram:source:save': 'semantic',
     'methodology:source:save': 'semantic',
     'csv:import': 'semantic',
+    // A preview writes nothing; the apply and the review each write the source files they name.
+    'import:preview': 'neither',
+    'import:apply': 'semantic',
+    'suspect:review': 'semantic',
     'diagram:layout:update': 'layout',
     // User diagrams are a sidecar too — a saved view is presentation state, and
     // creating one has never written SysML.

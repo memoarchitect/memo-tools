@@ -6,11 +6,12 @@ describe('session conflict mutation lockout', () => {
         for (const type of [
             'element:update', 'element:create', 'relationship:create',
             'diagram:source:save', 'methodology:source:save', 'csv:import',
+            'import:apply', 'suspect:review',
         ]) expect(isModelMutationMessage(type)).toBe(true);
 
         for (const type of [
             'request:refresh', 'diagram:source:request',
-            'methodology:source:request', 'open-file',
+            'methodology:source:request', 'open-file', 'import:preview',
         ]) expect(isModelMutationMessage(type)).toBe(false);
     });
 });
