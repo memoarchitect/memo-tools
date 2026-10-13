@@ -55,6 +55,12 @@ export interface RelationshipDefinitionDTO {
     /** Abstract definitions are not directly instantiable. */
     isAbstract?: boolean;
     /**
+     * Set for a typed dependency (`MemoTypedDependency`): the qualified name of the `metadata def` that
+     * spells the link, `#<this> dependency from <client> to <supplier>;`. Qualified, so the statement
+     * resolves in whichever file it is written to without an import.
+     */
+    typedDependency?: string;
+    /**
      * Whether an element may be related to itself by this relation, from the
      * ontology's `isReflexive` attribute. Undefined means the ontology is
      * silent, and self-links are refused — see SELF_LINK_ALLOWED_BY_DEFAULT.

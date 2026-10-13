@@ -223,6 +223,7 @@ export function apiRelationshipEntries(
                     sysmlConstruct: TYPED_DEPENDENCY_CONSTRUCT,
                     description: docOf(api, member),
                     nativeKeyword: 'dependency',
+                    qualifiedName: api.qualifiedName(member['@id']),
                     superType: superTypes(api, member)[0] || undefined,
                     ends: [{ name: 'client' }, { name: 'supplier' }],
                 });
