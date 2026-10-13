@@ -14,7 +14,8 @@ const COMPOSITION_TYPES = new Set(['composes', 'composedof', 'decomposedby', 'ag
 // These are interface/flow relations. Trace, allocation, deployment, and
 // satisfaction links are meaningful model relations, but do not make a block
 // connected in an internal block diagram.
-const CONNECTOR_TYPES = new Set(['exchangeswith', 'flow', 'logicalexchange', 'logicalconnector', 'connectsto', 'itemflow']);
+// `interface` is a SysML interface usage (`interface x : Icd connect a to b;`), a connector between two parts.
+const CONNECTOR_TYPES = new Set(['exchangeswith', 'flow', 'logicalexchange', 'logicalconnector', 'connectsto', 'itemflow', 'interface']);
 
 /**
  * Warn on a structural part nested in another part when neither it nor a

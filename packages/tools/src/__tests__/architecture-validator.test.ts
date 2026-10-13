@@ -41,4 +41,15 @@ describe('AR-IBD-001 nested-part connectivity', () => {
         ));
         expect(result).toEqual([]);
     });
+
+    it('counts a SysML interface usage as a connector', () => {
+        const result = validateArchitecture(model(
+            [part('lab'), part('mapping'), part('recording')],
+            [
+                rel('composes', 'lab', 'mapping'), rel('composes', 'lab', 'recording'),
+                rel('interface', 'recording', 'mapping'),
+            ],
+        ));
+        expect(result).toEqual([]);
+    });
 });
