@@ -21,6 +21,7 @@ const FILE = 'model/catalog/temperature_alarm.sysml';
 describe.runIf(Boolean(binary) && existsSync(example))('an edit verified by OpenSysML as a content document', () => {
     let root: string;
     let envBefore: string | undefined;
+    let compilerBefore: string | undefined;
     beforeAll(() => {
         root = mkdtempSync(join(tmpdir(), 'memo-opensysml-verify-'));
         cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
@@ -29,9 +30,14 @@ describe.runIf(Boolean(binary) && existsSync(example))('an edit verified by Open
         writeFileSync(join(root, 'memo.tools.yaml'), 'toolchain:\n  compiler: opensysml\n');
         envBefore = process.env.OPENSYSML_BINARY;
         process.env.OPENSYSML_BINARY = binary;
+        // The suite's MEMO_TEST_COMPILER arrives as MEMO_TOOLCHAIN_COMPILER and would override the
+        // project's file; this test is about OpenSysML whichever compiler the rest of the suite uses.
+        compilerBefore = process.env.MEMO_TOOLCHAIN_COMPILER;
+        process.env.MEMO_TOOLCHAIN_COMPILER = 'opensysml';
     });
     afterAll(() => {
         if (envBefore === undefined) delete process.env.OPENSYSML_BINARY; else process.env.OPENSYSML_BINARY = envBefore;
+        if (compilerBefore === undefined) delete process.env.MEMO_TOOLCHAIN_COMPILER; else process.env.MEMO_TOOLCHAIN_COMPILER = compilerBefore;
         rmSync(root, { recursive: true, force: true });
     });
 
