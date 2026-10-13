@@ -28,7 +28,7 @@ import {
     ontologyExportSysandCommand,
     ontologyAddKindCommand,
 } from '../commands/ontology.js';
-import { importCsvCommand, importRelCsvCommand, importTemplateCommand, importDiffCommand } from '../commands/import.js';
+import { importCsvCommand, importRelCsvCommand, importTemplateCommand, importDiffCommand, importSourceCommand } from '../commands/import.js';
 import { importEaCommand, importCameoCommand } from '../commands/import-ea.js';
 import { importSysandCommand } from '../commands/import-sysand.js';
 import { importKpar, inspectKpar } from '../commands/package.js';
@@ -267,6 +267,19 @@ export function registerProjectCommands(program: Command): void {
         .option('--dry-run', 'Preview generated SysML without writing')
         .action(async (file: string, options: { output?: string; package?: string; dryRun?: boolean }) => {
             await importCsvCommand(file, options);
+        });
+
+    importCmd
+        .command('source')
+        .description('Import an export from another system (csv, reqif, trace-matrix) and show what changed since the last import')
+        .argument('<file>', 'Export file path')
+        .requiredOption('--system <name>', 'The system the export came from; records are matched by it and their source id')
+        .option('--format <format>', 'csv, reqif or trace-matrix', 'csv')
+        .option('--kind <kind>', 'The kind of a record that names none (required for reqif)')
+        .option('--relation <type>', 'The relationship of a trace row or ReqIF relation that names none')
+        .option('--dry-run', 'Show the diff without writing')
+        .action(async (file: string, options: { system: string; format?: string; kind?: string; relation?: string; dryRun?: boolean }) => {
+            await importSourceCommand(file, options);
         });
 
     importCmd

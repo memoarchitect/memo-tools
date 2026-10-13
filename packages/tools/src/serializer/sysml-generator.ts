@@ -4,11 +4,11 @@
 // Used by CSV import to produce .sysml files that the parser can roundtrip.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { CsvElement, CsvRelationship } from './csv-io.js';
+import type { CsvElement, CsvRelationship, ElementSource } from './csv-io.js';
 
 // Generate a SysML usage block for a single element.
 // Example: requirement hazard_001 : Hazard { doc /​* text *​/ @MemoIdentity { :>> label = "..."; } }
-export function generateUsage(element: CsvElement): string {
+export function generateUsage(element: CsvElement, options: GenerateOptions = {}): string {
     const lines: string[] = [];
     const indent = '    ';
 
@@ -36,6 +36,12 @@ export function generateUsage(element: CsvElement): string {
     const structuredAttributes = new Map<string, Array<[string, string]>>();
     for (const [key, value] of Object.entries(element.attributes)) {
         if (key === 'name' || key === 'label') continue; // emitted above
+        // `attribute redefines x` resolves only against an attribute the kind declares; any other
+        // column would be a feature nothing declares and the file would not compile.
+        if (options.declaresAttribute && !options.declaresAttribute(element.kind, key.split('.')[0])) {
+            options.onDropped?.(element, key);
+            continue;
+        }
         const dot = key.indexOf('.');
         if (dot < 1 || dot === key.length - 1) {
             scalarAttributes.push([key, value]);
@@ -58,17 +64,44 @@ export function generateUsage(element: CsvElement): string {
         lines.push(`${indent}}`);
     }
 
-    // Provenance attributes (written as _import_* so they don't conflict with model attrs)
-    if (element.provenance) {
-        const p = element.provenance;
-        lines.push(`${indent}attribute redefines _import_source = "${escapeString(p.sourceFile)}";`);
-        lines.push(`${indent}attribute redefines _import_row = "${p.sourceRow}";`);
-        lines.push(`${indent}attribute redefines _import_timestamp = "${escapeString(p.importTimestamp)}";`);
-        lines.push(`${indent}attribute redefines _import_session = "${escapeString(p.importSessionId)}";`);
-    }
+    // The record in another system this element was made from.
+    if (element.source) lines.push(...sourceLines(element.source, indent));
 
     lines.push('}');
     return lines.join('\n');
+}
+
+/**
+ * `@ExternalSource { … }` for an imported element: the metadata body form, because a
+ * prefix `#ExternalSource` cannot carry a value (SysML-textual-bnf.kebnf:1667) and the
+ * nested `externalReference { … }` is a MetadataBodyUsage (kebnf:1694).
+ */
+function sourceLines(source: ElementSource, indent: string): string[] {
+    return [
+        `${indent}@ExternalSource {`,
+        `${indent}${indent}:>> externalReference {`,
+        `${indent}${indent}${indent}:>> sourceSystem = "${escapeString(source.system)}";`,
+        `${indent}${indent}${indent}:>> identifier = "${escapeString(source.identifier)}";`,
+        `${indent}${indent}${indent}:>> revision = "${escapeString(source.revision)}";`,
+        `${indent}${indent}}`,
+        `${indent}${indent}:>> sourceMastered = ${source.mastered};`,
+        ...(source.withdrawn ? [`${indent}${indent}:>> sourceWithdrawn = true;`] : []),
+        `${indent}}`,
+    ];
+}
+
+/** What a generator needs to know of the ontology to write only what compiles. */
+export interface GenerateOptions {
+    /** Whether the kind declares (or inherits) the attribute. Absent: every column is written. */
+    declaresAttribute?: (kind: string, attribute: string) => boolean;
+    /** Called for each column left out because the kind does not declare it. */
+    onDropped?: (element: CsvElement, attribute: string) => void;
+    /** `private import` targets written at the head of the package, such as `memo::*`. */
+    imports?: readonly string[];
+    /** Package-body lines written after the imports, already indented, such as a metadata usage. */
+    header?: readonly string[];
+    /** Relationship declarations, already rendered, written after the elements. */
+    links?: readonly string[];
 }
 
 /** Preserve native scalar/enum/list syntax; quote ordinary text. */
@@ -126,9 +159,12 @@ export function wrapPackage(qualifiedName: string, innerLines: string[], opts?: 
 export function generateFile(
     elements: CsvElement[],
     relationships: CsvRelationship[],
-    packageName: string
+    packageName: string,
+    options: GenerateOptions = {},
 ): string {
     const body: string[] = [];
+    for (const target of options.imports ?? []) body.push(`    private import ${target};`);
+    body.push(...(options.header ?? []));
     body.push('');
 
     // Group elements by kind for readability
@@ -141,7 +177,7 @@ export function generateFile(
     for (const [kind, kindElements] of byKind) {
         body.push(`    // ── ${kind} ──`);
         for (const el of kindElements) {
-            const usageLines = generateUsage(el).split('\n');
+            const usageLines = generateUsage(el, options).split('\n');
             for (const ul of usageLines) {
                 body.push(`    ${ul}`);
             }
@@ -150,11 +186,12 @@ export function generateFile(
     }
 
     // Relationships
-    if (relationships.length > 0) {
+    if (relationships.length > 0 || (options.links?.length ?? 0) > 0) {
         body.push('    // ── Relationships ──');
         for (const rel of relationships) {
             body.push(`    ${generateConnection(rel)}`);
         }
+        for (const link of options.links ?? []) body.push(`    ${link}`);
         body.push('');
     }
 
