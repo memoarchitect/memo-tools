@@ -184,12 +184,29 @@ describe('buildElementsFromApi nested parts that subset a feature', () => {
     own(system, engine, 'FeatureMembership');
     relate(engine, 'FeatureTyping', 'type', component['@id']);
     relate(engine, 'Subsetting', 'subsettedFeature', slot['@id']);
-    const { elements: built } = buildElementsFromApi(new ApiModel({
+    const fn = add({ '@type': 'ActionUsage', '@id': 'P__fn', declaredName: 'fn' }, 'P::fn');
+    own(pkg, fn, 'FeatureMembership');
+    // `allocate fn to engine;` written inside the definition (SysML-textual-bnf.kebnf:802).
+    const allocation = add({ '@type': 'AllocationUsage', '@id': 'P__System__alloc' });
+    own(system, allocation, 'FeatureMembership');
+    for (const [slotName, target] of [['e0', fn], ['e1', engine]] as const) {
+        const end = add({ '@type': 'ReferenceUsage', '@id': `P__System__alloc__${slotName}`, isEnd: true });
+        own(allocation, end, 'EndFeatureMembership');
+        relate(end, 'ReferenceSubsetting', 'referencedFeature', target['@id']);
+    }
+    const api = new ApiModel({
         format: 'memo-stage1/1', provider: 'test', clean: true, index,
         documents: [{ file: 'model.sysml', role: 'project', elements }],
-    }));
+    });
+    const { elements: built } = buildElementsFromApi(api);
+    const { relationships } = buildFromApi(api);
 
     it('builds the part, owned by its definition', () => {
         expect(built.get('P::System::engine')).toMatchObject({ construct: 'part', owner: 'P::System' });
+    });
+
+    it('reads an allocation written inside the definition', () => {
+        expect(relationships.filter(r => r.type === 'allocatedTo').map(r => [r.sourceId, r.targetId]))
+            .toEqual([['P::fn', 'P::System::engine']]);
     });
 });
