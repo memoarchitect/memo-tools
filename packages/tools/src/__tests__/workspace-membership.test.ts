@@ -128,4 +128,22 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
             expect(membership(project).unassigned).toHaveLength(1);
         }, 'ep-lab-family');
     }, 120_000);
+
+    it('resolves each usage to its definition, so a client never matches a type by name', async () => {
+        const project = await compiledExample('ep-lab-family');
+        const result = membership(project);
+        const byLabel = (name: string) => [...project.model.elements.keys()].find(id => label(project, id) === name)!;
+        // Lab -> its constituent slot -> the system definition -> a part of it -> that part's definition.
+        const lab = project.model.elements.get(byLabel('epLab'))!;
+        expect(result.definitionOf.get(lab.id)).toBe(byLabel('ElectrophysiologyLab'));
+        expect(result.definitionOf.get(byLabel('ElectrophysiologyLab::mapping'))).toBe(byLabel('CardiacMappingSystem'));
+        expect(result.definitionOf.get(byLabel('CardiacMappingSystem::isolation'))).toBe(byLabel('PatientIsolationModule'));
+        expect(workspaceMembershipToDTO(result, project.model).definitionOf[byLabel('CardiacMappingSystem::isolation')]).toBe(byLabel('PatientIsolationModule'));
+        // The clinical use case includes each system use case (the use-case grouping reads these edges).
+        const includes = project.model.relationships.filter(r => r.type === 'includesStep')
+            .map(r => `${label(project, r.sourceId)}>${label(project, r.targetId)}`).sort();
+        expect(includes).toEqual([
+            'ucPerformCatheterAblation>ucAcquireMap', 'ucPerformCatheterAblation>ucDeliverEnergy', 'ucPerformCatheterAblation>ucRecordProcedure',
+        ]);
+    }, 120_000);
 });
