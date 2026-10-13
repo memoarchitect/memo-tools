@@ -33,9 +33,9 @@
 // `port def ElectrogramPort`) is not an element, so its type is not read here;
 // the same item definitions are reached through the functions that move them.
 //
-// A model that declares no System or SystemOfSystems definition has no workspace,
-// so everything in it is Unassigned (measured on gpca, which types its parts by
-// ontology kinds and declares none). Whether that is a finding is the caller's.
+// A model is required to declare at least one System, and there is no implicit
+// workspace: with none, `missingSystem` is set and everything is Unassigned
+// (measured on gpca, which types its parts by ontology kinds and declares none).
 //
 // What this module does not do is decide. Direction is the ontology's, kind
 // derivation is the kind registry's, and the two names below are the structural
@@ -80,6 +80,8 @@ export interface WorkspaceMembership {
     /** Elements no workspace holds, methodology-layer elements excluded: a diagnostic. */
     unassigned: readonly string[];
     unresolvedTypes: readonly UnresolvedWorkspaceType[];
+    /** True when no system workspace exists: a model is required to declare at least one System. */
+    missingSystem: boolean;
 }
 
 type Direction = 'sourceFollowsTarget' | 'targetFollowsSource' | 'neither';
@@ -212,5 +214,6 @@ export function computeWorkspaceMembership(
             .filter(element => !systems.has(element.id) && !sos.has(element.id) && element.layer !== METHODOLOGY_LAYER)
             .map(element => element.id),
         unresolvedTypes: [...unresolved.values()],
+        missingSystem: !workspaces.some(workspace => workspace.scope === 'system'),
     };
 }
