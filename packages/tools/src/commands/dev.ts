@@ -18,7 +18,7 @@ import {
 } from '@memoarchitect/tools';
 import { sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import { buildSourceGraphFromPackages } from '../model/source-graph.js';
-import { computeWorkspaceMembership, workspaceMembershipToDTO } from '../model/workspace-membership.js';
+import { computeWorkspaceMembership, selectWorkspace, workspaceMembershipToDTO, type WorkspaceScope } from '../model/workspace-membership.js';
 import type {
     BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, OntologyPackageInfo,
     EffectiveRule, ParseError, MemoModel,
@@ -308,6 +308,20 @@ export async function devCommand(options: {
         // a bad policy is a diagnostic about the methodology, not a reason the
         // model cannot be shown.
         let validation: ReturnType<typeof validateModel>;
+        // Which workspace holds each element; also validated per workspace below, so a client shows a
+        // workspace's problems from the same computation `memo validate --workspace` runs.
+        const membership = stage2Registries?.kindRegistry && stage2Registries.relationshipRegistry
+            ? computeWorkspaceMembership(model, stage2Registries)
+            : undefined;
+        const validateWorkspaces = (run: (workspace?: WorkspaceScope) => ReturnType<typeof validateModel>) => {
+            if (!membership || membership.missingSystem) return;
+            const byWorkspace: Record<string, ReturnType<typeof validateModel>> = {};
+            for (const workspace of membership.workspaces) {
+                const selection = selectWorkspace(model, membership, workspace.root);
+                if (selection.ok) byWorkspace[workspace.root] = run(selection.scope);
+            }
+            validation.byWorkspace = byWorkspace;
+        };
         const effectiveRuleSet = (() => {
             try {
                 const kindRegistry = stage2Registries?.kindRegistry;
@@ -327,11 +341,17 @@ export async function devCommand(options: {
                         return !declaringPackage || isRulePackageInScope(scope, declaringPackage);
                     })
                     : undefined;
-                validation = validateModel(model, resolved.activeConstraints, kindRegistry, resolved.rules,
-                    inScopeIds && (element => inScopeIds.has(element.id)));
+                const runRules = (workspace?: WorkspaceScope) => validateModel(
+                    model, resolved.activeConstraints, kindRegistry, resolved.rules,
+                    inScopeIds && (element => inScopeIds.has(element.id)), workspace);
+                validation = runRules();
+                validateWorkspaces(runRules);
                 return { rules: resolved.rules, diagnostics: resolved.diagnostics };
             } catch (error) {
-                validation = validateModel(model, nativeConstraints, stage2Registries?.kindRegistry);
+                const runNative = (workspace?: WorkspaceScope) =>
+                    validateModel(model, nativeConstraints, stage2Registries?.kindRegistry, undefined, undefined, workspace);
+                validation = runNative();
+                validateWorkspaces(runNative);
                 return {
                     rules: [] as EffectiveRule[],
                     diagnostics: [{
@@ -434,9 +454,7 @@ export async function devCommand(options: {
                 createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),
             ])),
             enumerations,
-            workspaceMembership: stage2Registries?.kindRegistry && stage2Registries.relationshipRegistry
-                ? workspaceMembershipToDTO(computeWorkspaceMembership(model, stage2Registries), model)
-                : undefined,
+            workspaceMembership: membership ? workspaceMembershipToDTO(membership, model) : undefined,
         });
         // Compute the clause coverage report and attach it to the model DTO
         // so the Architect can badge document cards with gap counts without a

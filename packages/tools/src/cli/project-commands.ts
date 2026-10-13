@@ -169,7 +169,8 @@ export function registerProjectCommands(program: Command): void {
         .option('-t, --target <id>', 'Target document ID (e.g., rmp, har, fmea)')
         .option('-f, --format <fmt>', 'Output format: html, md, docx', 'html')
         .option('-g, --group <group>', 'Document group: risk, design, verification, compliance, all')
-        .action(async (options: { output: string; target?: string; format?: string; group?: string }) => {
+        .option('--workspace <name>', 'Document one workspace: a System or the SystemOfSystems definition')
+        .action(async (options: { output: string; target?: string; format?: string; group?: string; workspace?: string }) => {
             await exportDhfCommand(options);
         });
 
@@ -452,7 +453,8 @@ export function registerProjectCommands(program: Command): void {
         .description('Show DHF document readiness status')
         .option('-v, --verbose', 'Show section-level detail')
         .option('-t, --target <id>', 'Target document ID')
-        .action(async (options: { verbose?: boolean; target?: string }) => {
+        .option('--workspace <name>', 'Report one workspace: a System or the SystemOfSystems definition')
+        .action(async (options: { verbose?: boolean; target?: string; workspace?: string }) => {
             await dhfStatusCommand(options);
         });
 

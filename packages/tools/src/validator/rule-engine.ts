@@ -33,6 +33,12 @@ export function validateModel(
     effectiveRules?: EffectiveRule[],
     /** Methodology scope: which elements a rule may be evaluated ON. */
     inScope?: (element: import('../model/semantic.js').MemoElement) => boolean,
+    /**
+     * A workspace chosen with `--workspace`. Unlike methodology scope it is a view, not tailoring, so
+     * it narrows the subjects of EVERY rule, invariants included; the graph stays whole and only the
+     * evidence from another system's elements stops counting (see `WorkspaceScope`).
+     */
+    workspace?: Pick<import('../model/workspace-membership.js').WorkspaceScope, 'subjects' | 'foreign'>,
 ): ValidationResult {
     // Section 10.4: a violation reports the rule's provenance, not just its ID.
     // Keyed by active rule ID, because that is what the violation carries.
@@ -88,15 +94,26 @@ export function validateModel(
         // holds the ontology's own consistency, which a methodology may not
         // tailor — and leaving an element out of the rule's subjects is
         // tailoring it, just without a policy to show for it.
-        const subjectScope = constraint.tailoring === 'invariant' ? undefined : inScope;
+        const methodologyScope = constraint.tailoring === 'invariant' ? undefined : inScope;
+        const subjectScope = workspace
+            ? (element: import('../model/semantic.js').MemoElement) =>
+                workspace.subjects.has(element.id) && (!methodologyScope || methodologyScope(element))
+            : methodologyScope;
         const { violations, subjectCount } = evaluateConstraintSubjects(
-            constraint, constraint.ast, model, kindRegistry, subjectScope);
+            constraint, constraint.ast, model, kindRegistry, subjectScope, workspace?.foreign);
         if (subjectCount === 0) nativeVacuous++;
         else if (violations.length === 0) nativePassed++;
         nativeViolations.push(...violations);
     }
 
-    const violations = [...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations, ...nativeViolations]
+    // The built-in validators take no subject predicate, so a workspace keeps their findings by the
+    // element they are about. A model-wide finding (`__model__`) belongs to no element and stays.
+    const inWorkspace = (violation: Violation) =>
+        !workspace || violation.elementId === '__model__' || workspace.subjects.has(violation.elementId);
+    const violations = [
+        ...[...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations].filter(inWorkspace),
+        ...nativeViolations,
+    ]
         .map(violation => ({
             ...violation,
             provenance: model.elements.get(violation.elementId)?.provenance,
@@ -111,7 +128,7 @@ export function validateModel(
     // two different denominators as though they were one.
     const raisedByBuiltinValidators = new Set([
         ...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations,
-    ].map(violation => violation.ruleId));
+    ].filter(inWorkspace).map(violation => violation.ruleId));
     const builtinPassed = BUILTIN_RULE_IDS.filter(id => !raisedByBuiltinValidators.has(id)).length;
     const delegatedPassed = delegated.filter(id => !raisedByBuiltinValidators.has(id)).length;
 

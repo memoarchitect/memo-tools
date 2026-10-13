@@ -318,7 +318,7 @@ package lock_test_project {
 package lock_test_model {
     private import memo_core_common::*;
     private import memo_architecture_logical_structure::*;
-    part sys : System {
+    part def LockTestSystem specializes System {
         @MemoIdentity { :>> providedId = "SYS-LOCK"; :>> label = "Lock Test"; }
     }
 }

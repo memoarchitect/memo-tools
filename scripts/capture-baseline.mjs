@@ -52,6 +52,17 @@ export const FIXTURES = [
 ];
 
 /**
+ * BASELINE RE-FROZEN 2026-10-13 (second) - `ui-regions` and `default`, by one rule. A model is
+ * required to declare a System, and CR-ONT-084 (`ModelDeclaresSystemRule`, Model-scoped, error,
+ * tailorable) now says so. Neither fixture declares a System definition. gpca and
+ * extension-clinical did not move. Compared by leaf name: nothing else was added or removed.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | +1 violation `CR-ONT-084` on `__model__` (ui-regions, default) | No part def specializes System. |
+ * | rulesEvaluated +1 in every fixture | The rule exists. |
+ */
+/**
  * BASELINE RE-FROZEN 2026-10-12 — `gpca`, `ui-regions`, `default`.
  *
  * The method binding was renamed `ProjectMethodBinding` → `ModelMethodBinding`

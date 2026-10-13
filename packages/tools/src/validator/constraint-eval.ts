@@ -38,7 +38,7 @@
 //   index) names the attribute key.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { MemoModel, MemoElement } from '../model/semantic.js';
+import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import type { Violation } from './types.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 import { withRelationshipSubjects } from '../model/relationship-subjects.js';
@@ -129,6 +129,8 @@ export function evaluateConstraintSubjects(
     model: MemoModel,
     kindRegistry?: KindRegistry,
     inScope?: (element: MemoElement) => boolean,
+    /** Elements whose trace edges are not evidence here (another system's, under `--workspace`). */
+    foreign?: ReadonlySet<string>,
 ): { violations: Violation[]; subjectCount: number } {
     // Two projections, in this order. A named typed flow or interface usage is
     // a rule subject of its declared kind — the read-only facade §9.1 of the
@@ -136,9 +138,10 @@ export function evaluateConstraintSubjects(
     // extents, or a flow typed `FunctionalExchange` would reach a rule scoped
     // to it but not one scoped to a supertype of it.
     const withSubjects = withRelationshipSubjects(model, kindRegistry);
-    const evaluationModel = kindRegistry
+    const extended = kindRegistry
         ? withSpecializationExtents(withSubjects, kindRegistry)
         : withSubjects;
+    const evaluationModel = foreign && foreign.size > 0 ? withoutForeignEvidence(extended, foreign) : extended;
     // Methodology scope restricts which elements a rule is evaluated ON. It must
     // NOT restrict the graph the rule navigates or the type extents it tests:
     // narrowing `elements` made every trace navigation return nothing, and
@@ -163,6 +166,18 @@ export function evaluateConstraintSubjects(
         }
     }
     return { violations, subjectCount: subjects.length };
+}
+
+/**
+ * The same model with every trace edge that touches a foreign element removed from the adjacency
+ * maps a rule navigates. Elements, extents and the edge list stay whole: narrowing those is what
+ * once hid 110 satisfy edges. Only what counts as EVIDENCE for a subject changes.
+ */
+function withoutForeignEvidence(model: MemoModel, foreign: ReadonlySet<string>): MemoModel {
+    const keep = (rel: { sourceId: string; targetId: string }) => !foreign.has(rel.sourceId) && !foreign.has(rel.targetId);
+    const filtered = (index: ReadonlyMap<string, MemoRelationship[]>) =>
+        new Map([...index].map(([id, rels]) => [id, rels.filter(keep)] as const));
+    return { ...model, outgoing: filtered(model.outgoing), incoming: filtered(model.incoming) };
 }
 
 /** Resolve `Kind` or `Kind[attribute=value]` scope declarations. */
@@ -273,7 +288,7 @@ interface Env {
 }
 
 /** Typed fields on MemoElement that a bare feature segment may resolve to. */
-const TYPED_FIELDS = new Set(['kind', 'layer', 'construct', 'allocatedTo', 'name', 'id', 'package', 'shortId']);
+const TYPED_FIELDS = new Set(['kind', 'layer', 'construct', 'allocatedTo', 'name', 'id', 'package', 'shortId', 'isDefinition']);
 
 // ─── Tokenizer ────────────────────────────────────────────────────────────────
 
@@ -703,7 +718,9 @@ function resolveSegments(start: Value, segments: string[], model: MemoModel): Va
             } else if (isRelType(model, seg)) {
                 val = navigate(val, seg.toLowerCase(), model);
             } else if (TYPED_FIELDS.has(seg)) {
-                val = (val as unknown as Record<string, string | undefined>)[seg] ?? '';
+                // `isDefinition` is a boolean on the element; a rule compares it as 'true' or 'false'.
+                const typed = (val as unknown as Record<string, string | boolean | undefined>)[seg];
+                val = typeof typed === 'boolean' ? String(typed) : typed ?? '';
             } else {
                 val = val.attributes[seg] ?? '';
             }

@@ -4,6 +4,7 @@
 // filtering elements, following relationships, computing coverage & gaps.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { WorkspaceScope } from '../model/workspace-membership.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import type { ValidationResult, CompletenessReport, Violation } from '../validator/types.js';
 import type { MEMOConfig } from '../model/config.js';
@@ -81,7 +82,18 @@ export function createQueryContext(
     completeness: CompletenessReport,
     config: MEMOConfig,
     standardsReport?: StandardsReport,
+    /**
+     * One workspace (`--workspace`): the element queries list only its members, and a trace edge that
+     * touches another system's element is not followed. The graph itself stays whole, as in
+     * validation (`WorkspaceScope`); `validation` and `completeness` are the caller's, scoped the same way.
+     */
+    workspace?: Pick<WorkspaceScope, 'subjects' | 'foreign'>,
 ): QueryContext {
+    const member = (e: MemoElement) => !workspace || workspace.subjects.has(e.id);
+    const kept = (rel: MemoRelationship) => !workspace || (!workspace.foreign.has(rel.sourceId) && !workspace.foreign.has(rel.targetId));
+    const extent = (kind: string) => (model.elementsByKind.get(kind) || []).filter(member);
+    const edgesFrom = (id: string) => (model.outgoing.get(id) || []).filter(kept);
+    const edgesTo = (id: string) => (model.incoming.get(id) || []).filter(kept);
     // Pre-index violations by element
     const violationsByElement = new Map<string, Violation[]>();
     for (const v of validation.violations) {
@@ -94,53 +106,47 @@ export function createQueryContext(
 
     return {
         // ─── Element queries ─────────────────────────────────────────────
-        allElements: () => Array.from(model.elements.values()),
-        elementsByKind: (kind: string) => model.elementsByKind.get(kind) || [],
+        allElements: () => Array.from(model.elements.values()).filter(member),
+        elementsByKind: (kind: string) => extent(kind),
         elementsByKinds: (kinds: string[]) => {
             const result: MemoElement[] = [];
             for (const kind of kinds) {
-                const els = model.elementsByKind.get(kind);
-                if (els) result.push(...els);
+                result.push(...extent(kind));
             }
             return result;
         },
-        elementsByLayer: (layer: string) => model.elementsByLayer.get(layer) || [],
+        elementsByLayer: (layer: string) => (model.elementsByLayer.get(layer) || []).filter(member),
         element: (id: string) => model.elements.get(id),
         elementName: (id: string) => model.elements.get(id)?.name || id,
 
         // ─── Relationship queries ────────────────────────────────────────
-        allRelationships: () => model.relationships,
+        allRelationships: () => workspace ? model.relationships.filter(rel => kept(rel) && (workspace.subjects.has(rel.sourceId) || workspace.subjects.has(rel.targetId))) : model.relationships,
         relationshipsByType: (type: string) => model.relationshipsByType.get(type) || [],
         related: (elementId: string, relType: string, direction: 'outgoing' | 'incoming') => {
-            const rels = direction === 'outgoing'
-                ? (model.outgoing.get(elementId) || [])
-                : (model.incoming.get(elementId) || []);
+            const rels = direction === 'outgoing' ? edgesFrom(elementId) : edgesTo(elementId);
             return rels.filter(r => r.type === relType);
         },
-        outgoing: (elementId: string) => model.outgoing.get(elementId) || [],
-        incoming: (elementId: string) => model.incoming.get(elementId) || [],
+        outgoing: (elementId: string) => edgesFrom(elementId),
+        incoming: (elementId: string) => edgesTo(elementId),
 
         // ─── Gap & coverage queries ──────────────────────────────────────
         violationsFor: (elementId: string) => violationsByElement.get(elementId) || [],
         violationsBySeverity: (severity) => validation.violations.filter(v => v.severity === severity),
         unmitigatedCount: () => {
             if (_unmitigatedCount === null) {
-                const hazards = model.elementsByKind.get('Hazard') || [];
+                const hazards = extent('Hazard');
                 _unmitigatedCount = hazards.filter(h => {
-                    const mitigations = (model.incoming.get(h.id) || []).filter(r => r.type === 'mitigates');
+                    const mitigations = edgesTo(h.id).filter(r => r.type === 'mitigates');
                     return mitigations.length === 0;
                 }).length;
             }
             return _unmitigatedCount;
         },
         untracedRequirements: () => {
-            const reqs = [
-                ...(model.elementsByKind.get('Requirement') || []),
-                ...(model.elementsByKind.get('Requirement') || []),
-            ];
+            const reqs = [...extent('Requirement'), ...extent('Requirement')];
             return reqs.filter(r => {
-                const out = model.outgoing.get(r.id) || [];
-                const inc = model.incoming.get(r.id) || [];
+                const out = edgesFrom(r.id);
+                const inc = edgesTo(r.id);
                 const hasTrace = out.some(rel => ['traceTo', 'satisfies'].includes(rel.type))
                     || inc.some(rel => ['satisfies', 'derivedFrom'].includes(rel.type));
                 return !hasTrace;
@@ -151,8 +157,8 @@ export function createQueryContext(
 
         // ─── Summary queries ─────────────────────────────────────────────
         modelName: config.modelName || 'MEMO Project',
-        totalElements: () => model.elements.size,
-        totalRelationships: () => model.relationships.length,
+        totalElements: () => workspace ? workspace.subjects.size : model.elements.size,
+        totalRelationships: () => workspace ? model.relationships.filter(rel => kept(rel) && (workspace.subjects.has(rel.sourceId) || workspace.subjects.has(rel.targetId))).length : model.relationships.length,
         layerCount: () => model.elementsByLayer.size,
         overallCompleteness: () => completeness.overall,
         layerSummary: () => completeness.layers
@@ -174,7 +180,7 @@ export function createQueryContext(
                 if (visited.has(id) || depth >= maxDepth) continue;
                 visited.add(id);
 
-                const rels = model.outgoing.get(id) || [];
+                const rels = edgesFrom(id);
                 for (const rel of rels) {
                     const target = model.elements.get(rel.targetId);
                     if (target && !visited.has(target.id)) {
