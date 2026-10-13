@@ -1093,9 +1093,14 @@ class ElementBuilder {
         });
     }
 
-    private native(name: keyof typeof LANGUAGE_NATIVE_RELATIONS, sourceId: string, targetId: string, file: string): void {
+    private native(name: keyof typeof LANGUAGE_NATIVE_RELATIONS, sourceId: string, targetId: string, file: string,
+        attributes: Record<string, string> = {}): void {
         const [sourceEnd, targetEnd] = LANGUAGE_NATIVE_RELATIONS[name].ends;
-        this.relationships.push({ id: this.nextId(), type: name, sourceId, sourceEnd: sourceEnd.name, targetId, targetEnd: targetEnd.name, file });
+        this.relationships.push({
+            id: this.nextId(), type: name, sourceId, sourceEnd: sourceEnd.name, targetId, targetEnd: targetEnd.name, file,
+            // Metadata applied to the link (`satisfy r by x { @TraceBaseline { … } }`), as a typed connection carries it.
+            ...(Object.keys(attributes).length > 0 ? { attributes } : {}),
+        });
     }
 
     /**
@@ -1140,7 +1145,7 @@ class ElementBuilder {
                 const subjectFeature = subject ? this.api.element(((subject.ownedRelatedElement as { '@id': string }[] | undefined) ?? [])[0]?.['@id'] ?? '') : undefined;
                 const by = subjectFeature ? valueSteps(this.api.value(subjectFeature['@id']))[0] : undefined;
                 const satisfying = by ? endpointOf(by, node) : undefined;
-                if (requirement && satisfying) this.native('satisfiedBy', requirement, satisfying, file);
+                if (requirement && satisfying) this.native('satisfiedBy', requirement, satisfying, file, this.metadata(node));
             } else if (type === 'RequirementVerificationMembership') {
                 const verified = this.api.ownedMembers(node['@id'])[0] ?? this.api.element(((node.ownedRelatedElement as { '@id': string }[] | undefined) ?? [])[0]?.['@id'] ?? '');
                 const requirement = verified ? endpointOf(this.steps(this.api.related(verified['@id'], ['ReferenceSubsetting'], 'referencedFeature')[0]), node) : undefined;
@@ -1224,8 +1229,9 @@ class ElementBuilder {
                     for (const supplier of ids('supplier')) {
                         const targetId = endpointOf([supplier], node);
                         if (!targetId) continue;
-                        this.native('dependency', sourceId, targetId, file);
-                        if (refinement) this.native('realizes', sourceId, targetId, file);
+                        const applied = this.metadata(node);
+                        this.native('dependency', sourceId, targetId, file, applied);
+                        if (refinement) this.native('realizes', sourceId, targetId, file, applied);
                     }
                 }
             } else if (type === 'VariantMembership') {
