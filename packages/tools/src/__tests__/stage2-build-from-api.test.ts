@@ -6,8 +6,7 @@
 // which declarations become elements, their ids and constructs, and how values,
 // metadata and nesting land in the flat attribute map MEMO reads.
 //
-// Parity with MEMO's own builder over the real examples is
-// `scripts/check-stage2-parity.mjs`, which needs SysIDE's Python API.
+// The real examples are held by `pnpm check:baselines`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { readFileSync } from 'node:fs';
