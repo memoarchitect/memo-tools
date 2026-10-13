@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ElementIndex } from '../model/element-index.js';
-import { computeWorkspaceMembership, type WorkspaceMembership } from '../model/workspace-membership.js';
+import { modelToDTO } from '../model/semantic.js';
+import { computeWorkspaceMembership, workspaceMembershipToDTO, type WorkspaceMembership } from '../model/workspace-membership.js';
 import type { ProjectModel } from '../toolchain/project-model.js';
 import { compiledExample, compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
@@ -104,6 +105,20 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
             expect(membersOf(project, result, 'DemoSystem')).toEqual(['DemoSystem', 'DemoSystem::core', 'workstation']);
             expect(result.unassigned).toEqual([]);
         }, 'ep-lab-family');
+    }, 120_000);
+
+    it('ships as plain JSON on the model DTO, enough to filter by a chosen workspace', async () => {
+        const project = await compiledExample('ep-lab-family');
+        const dto = modelToDTO(project.model, { workspaceMembership: workspaceMembershipToDTO(membership(project), project.model) });
+        const shipped = JSON.parse(JSON.stringify(dto.workspaceMembership));
+        expect(shipped.workspaces.map((w: { scope: string }) => w.scope).sort()).toEqual(['sos', 'system', 'system', 'system']);
+        expect(shipped.workspaces.every((w: { name: string; root: string }) => w.name && w.root)).toBe(true);
+        const root = (name: string) => shipped.workspaces.find((w: { root: string }) => w.root.endsWith(`::${name}`)).root;
+        const inWorkspace = (name: string) => Object.keys(shipped.membership).filter(id => shipped.membership[id].includes(root(name))).map(id => label(project, id)).sort();
+        expect(inWorkspace('AblationGeneratorSystem')).toContain('fnDeliverEnergy');
+        expect(inWorkspace('AblationGeneratorSystem')).not.toContain('fnBuildMap');
+        expect(shipped.shared.map((id: string) => label(project, id))).toContain('Electrogram');
+        expect(shipped.missingSystem).toBe(false);
     }, 120_000);
 
     it('lists a seeded orphan as Unassigned and nothing else new', async () => {

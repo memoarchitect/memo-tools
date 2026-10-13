@@ -1295,6 +1295,11 @@ export interface DashboardResultMessage {
  */
 export interface UserPreferencesDTO {
     role?: string;
+    /**
+     * The workspace the person works in: the element id of a system (or system of systems)
+     * definition, as `WorkspaceMembershipDTO.workspaces[].root`. Unset means the whole model.
+     */
+    workspace?: string;
 }
 
 /** Server → Client: the person's choices (on connect and after a save) */

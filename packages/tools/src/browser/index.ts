@@ -3,6 +3,7 @@
 export * from '../model/naming.js';
 export * from '../model/relation-selection.js';
 export * from '../model/semantic.js';
+export type { WorkspaceMembershipDTO } from '../model/workspace-membership.js';
 export * from '../model/source-affinity.js';
 export * from '../model/relationship-legality.js';
 export * from '../model/activity-notation.js';

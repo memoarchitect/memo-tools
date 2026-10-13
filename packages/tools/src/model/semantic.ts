@@ -482,6 +482,12 @@ export interface MemoModelDTO {
      * not compute it (e.g. a static export build that does not need the badges).
      */
     standardsReport?: import('../dhf/standards-report.js').StandardsReport;
+    /**
+     * Which workspace (the system of systems, or one system) holds each element, computed from
+     * the links by `workspace-membership.ts` (plan T2). Absent when the model was built
+     * without the ontology registries.
+     */
+    workspaceMembership?: import('./workspace-membership.js').WorkspaceMembershipDTO;
 }
 
 /** A SysML enum and its literals, preserved for view declarations. */
@@ -503,6 +509,7 @@ export function modelToDTO(
         sourceHashes?: Record<string, string>;
         irIdentities?: Record<string, string>;
         enumerations?: EnumDefinitionDTO[];
+        workspaceMembership?: import('./workspace-membership.js').WorkspaceMembershipDTO;
     }
 ): MemoModelDTO {
     const elements: Record<string, MemoElement> = {};
@@ -524,6 +531,7 @@ export function modelToDTO(
         sourceHashes: options?.sourceHashes,
         sysmlIr: undefined,
         irIdentities: options?.irIdentities,
+        workspaceMembership: options?.workspaceMembership,
     };
 }
 

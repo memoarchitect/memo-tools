@@ -217,3 +217,36 @@ export function computeWorkspaceMembership(
         missingSystem: !workspaces.some(workspace => workspace.scope === 'system'),
     };
 }
+
+/**
+ * The membership as it travels in the model DTO: plain JSON, with no Sets.
+ *
+ * `membership` maps an element id to the roots of the workspaces that hold it, so a client
+ * filters by a chosen workspace (`membership[id]?.includes(root)`) without recomputing the
+ * closure; `shared` and `unassigned` are listed because the client shows them as groups.
+ */
+export interface WorkspaceMembershipDTO {
+    workspaces: { root: string; scope: 'system' | 'sos'; name: string }[];
+    membership: Record<string, string[]>;
+    shared: string[];
+    unassigned: string[];
+    missingSystem: boolean;
+}
+
+export function workspaceMembershipToDTO(result: WorkspaceMembership, model: MemoModel): WorkspaceMembershipDTO {
+    const membership: Record<string, string[]> = {};
+    for (const workspace of result.workspaces) {
+        for (const id of workspace.members) (membership[id] ??= []).push(workspace.root);
+    }
+    return {
+        workspaces: result.workspaces.map(workspace => ({
+            root: workspace.root,
+            scope: workspace.scope,
+            name: model.elements.get(workspace.root)?.name ?? workspace.root,
+        })),
+        membership,
+        shared: [...result.shared],
+        unassigned: [...result.unassigned],
+        missingSystem: result.missingSystem,
+    };
+}
