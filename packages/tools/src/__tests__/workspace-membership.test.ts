@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ElementIndex } from '../model/element-index.js';
 import { computeWorkspaceMembership, type WorkspaceMembership } from '../model/workspace-membership.js';
 import type { ProjectModel } from '../toolchain/project-model.js';
 import { compiledExample, compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
@@ -6,7 +7,7 @@ import { compiledExample, compilerConfigured, examplesPresent, withExample } fro
 // T2: which workspace holds each element, on the E0 test bed (ep-lab-family), whose
 // expected placement is the oracle in plans/memo-model-product-project-structure.md §7.
 // Written from the oracle before the closure was run, then amended where the oracle
-// was silent (the constituent-system slots and the ICD ends) or wrong (the chain).
+// was silent (the constituent-system slots and the ICD ends); E0's chain became a workflow realizing the clinical use case.
 
 const membership = (project: ProjectModel): WorkspaceMembership =>
     computeWorkspaceMembership(project.model, project.registries!);
@@ -43,12 +44,14 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
             'fnAcquireElectrograms', 'labTechnician', 'ucRecordProcedure',
         ].sort());
         // The lab holds its constituent systems as parts but not their definitions, the two ICDs with
-        // their ends, and the use case whose subject is the lab. The chain is not here: see below.
+        // their ends, and the use case whose subject is the lab. The workflow that realizes the lab's use case comes in through
+        // `realizesUseCase`, with its scenario and steps by ownership.
         expect(membersOf(project, result, 'ElectrophysiologyLab')).toEqual([
             'AblationEventPort', 'AblationToMappingIcd', 'AblationToMappingIcd::consumer', 'AblationToMappingIcd::provider',
             'ElectrogramPort', 'ElectrophysiologyLab', 'ElectrophysiologyLab::ablation', 'ElectrophysiologyLab::mapping',
             'ElectrophysiologyLab::recording', 'RecordingToMappingIcd', 'RecordingToMappingIcd::consumer',
             'RecordingToMappingIcd::provider', 'electrophysiologist', 'epLab', 'labTechnician', 'ucPerformCatheterAblation',
+            'wfMapGuidedAblation', 'scMapGuidedAblation', 'stepAcquire', 'stepBuildMap', 'stepDeliver', 'stepTag',
         ].sort());
     }, 120_000);
 
@@ -63,20 +66,29 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
         expect(result.unresolvedTypes).toEqual([]);
     }, 120_000);
 
-    it('leaves a chain nothing links as the one Unassigned finding', async () => {
-        // `performs` places neither end and the steps subset the functions without an edge, so the chain is
-        // tied to no use case and no system. That is what the diagnostic is for; methodology elements are excluded.
+    it('has nothing Unassigned, and requires a system', async () => {
+        const result = membership(await compiledExample('ep-lab-family'));
+        expect(result.unassigned).toEqual([]);
+        expect(result.missingSystem).toBe(false);
+    }, 120_000);
+
+    it('reports a model with no System definition as missing one', async () => {
+        // E0 with its System and SystemOfSystems definitions taken out: no root, so no workspace and no implicit one.
         const project = await compiledExample('ep-lab-family');
-        expect(membership(project).unassigned.map(id => label(project, id)).sort()).toEqual([
-            'fcMapGuidedAblation', 'stepAcquire', 'stepBuildMap', 'stepDeliver', 'stepTag',
-        ]);
+        const elements = new ElementIndex();
+        for (const element of project.model.elements.values()) {
+            if (!(element.isDefinition && ['System', 'SystemOfSystems'].includes(element.kind))) elements.define(element);
+        }
+        const result = membership({ ...project, model: { ...project.model, elements } } as ProjectModel);
+        expect(result.workspaces).toEqual([]);
+        expect(result.missingSystem).toBe(true);
     }, 120_000);
 
     it('lists a seeded orphan as Unassigned and nothing else new', async () => {
         const orphan = 'package orphans { private import memo_architecture_logical_structure::*; part def StrayModule specializes LogicalComponent; }';
         await withExample({ 'model/shared/orphan.sysml': orphan }, project => {
             expect(membership(project).unassigned.map(id => label(project, id))).toContain('StrayModule');
-            expect(membership(project).unassigned).toHaveLength(6);
+            expect(membership(project).unassigned).toHaveLength(1);
         }, 'ep-lab-family');
     }, 120_000);
 });

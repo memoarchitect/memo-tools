@@ -2,9 +2,9 @@
   "project": "ep-lab-family",
   "totals": {
     "files": 9,
-    "elements": 45,
+    "elements": 46,
     "definitions": 12,
-    "relationships": 39,
+    "relationships": 41,
     "packages": 9,
     "parseErrors": 0,
     "builderFindings": 0
@@ -38,17 +38,19 @@
       "builderFindings": 0
     },
     "model/sos/chains.sysml": {
-      "elements": 5,
+      "elements": 6,
       "definitions": 0,
       "kinds": {
         "ActionUsage": 4,
-        "FunctionalFlow": 1
+        "OperationalWorkflow": 1,
+        "OperativeScenario": 1
       },
-      "relationships": 13,
+      "relationships": 15,
       "relationshipTypes": {
-        "composes": 4,
+        "composes": 5,
         "flow": 2,
         "performs": 4,
+        "realizesUseCase": 1,
         "succession": 3
       },
       "packages": 1,
