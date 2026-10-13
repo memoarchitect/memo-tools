@@ -84,6 +84,28 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
         expect(result.missingSystem).toBe(true);
     }, 120_000);
 
+    it('puts the hardware a logical component is allocated to in the same system, nothing nested', async () => {
+        // The logical and the implementation structures stay separate and are joined by a typed allocation
+        // (RealizedBy, the logical component as source). The hardware follows the logical component.
+        const source = `package realized {
+            private import memo_architecture_logical_structure::*;
+            private import memo_architecture_implementation_hardware_structure::*;
+            private import memo_architecture_realization_deployment::*;
+            part workstation : HardwareAssembly;
+            part def DemoSystem specializes System {
+                part core : LogicalComponent;
+                allocation coreOnWorkstation : RealizedBy allocate core to workstation;
+            }
+        }`;
+        await withExample({ 'model/shared/realized.sysml': source }, project => {
+            expect(project.model.relationships.filter(r => r.type === 'realizedBy').map(r => `${label(project, r.sourceId)} -> ${label(project, r.targetId)}`))
+                .toEqual(['DemoSystem::core -> workstation']);
+            const result = membership(project);
+            expect(membersOf(project, result, 'DemoSystem')).toEqual(['DemoSystem', 'DemoSystem::core', 'workstation']);
+            expect(result.unassigned).toEqual([]);
+        }, 'ep-lab-family');
+    }, 120_000);
+
     it('lists a seeded orphan as Unassigned and nothing else new', async () => {
         const orphan = 'package orphans { private import memo_architecture_logical_structure::*; part def StrayModule specializes LogicalComponent; }';
         await withExample({ 'model/shared/orphan.sysml': orphan }, project => {

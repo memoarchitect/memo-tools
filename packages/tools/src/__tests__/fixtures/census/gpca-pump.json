@@ -4,7 +4,7 @@
     "files": 55,
     "elements": 689,
     "definitions": 14,
-    "relationships": 903,
+    "relationships": 905,
     "packages": 55,
     "parseErrors": 0,
     "builderFindings": 0
@@ -43,10 +43,11 @@
         "SoftwareSystem": 1,
         "System": 2
       },
-      "relationships": 125,
+      "relationships": 127,
       "relationshipTypes": {
         "composes": 15,
         "flow": 1,
+        "realizedBy": 2,
         "satisfiedBy": 109
       },
       "packages": 1,

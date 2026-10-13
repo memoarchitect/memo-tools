@@ -514,6 +514,7 @@ export const FIXTURES = [
  * | +2 elements `GpcaPumpSystem`, `gpcaPump` | The System definition and its usage. |
  * | +5 `composes` GpcaPumpSystem -> lc* | The five logical components are nested in it, so their ids move to `GpcaPumpSystem::lc*`. |
  * | +3 `AR-IBD-001` (lcDrugDelivery, lcPowerSubsystem, lcTherapyControl) | The rule fires now that the components sit inside a system with no connection; E0 has the same finding. |
+ * | +2 `realizedBy` gpcaPump -> gpcaDevice, gpcaPump -> gpcaSoftware | The logical System is realized by the device and its software: a typed allocation (`RealizedBy`), nothing nested. |
  */
 
 /**
