@@ -212,12 +212,12 @@ function printReport(report: StandardsReport, ctx: PrintContext): void {
     // Which regimes, and where they came from. A report scoped to a market the
     // reader did not expect is worse than one that says it is scoped to none.
     if (report.regimes.length > 0) {
-        const origin = report.regimeSource === 'flag' ? '--regime' : 'ProjectMethodBinding';
+        const origin = report.regimeSource === 'flag' ? '--regime' : 'ModelMethodBinding';
         console.log(chalk.gray(`Regimes: ${report.regimes.join(', ')} (from ${origin})`));
     } else {
         console.log(chalk.yellow(
             'Regimes: none declared. Every standard with regime standing is reported. '
-            + 'Declare `regulatoryRegime` on the ProjectMethodBinding to scope this to your submission.'));
+            + 'Declare `regulatoryRegime` on the ModelMethodBinding to scope this to your submission.'));
     }
     console.log('');
 

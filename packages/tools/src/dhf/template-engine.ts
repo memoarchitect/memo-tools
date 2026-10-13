@@ -46,7 +46,7 @@ export function compileDocument(input: TemplateInput): DhfDocument {
         version: dhfConfig?.version || '1.0',
         standards: documentType.standards,
         organization: dhfConfig?.organization,
-        project: config.projectName || 'MEMO Project',
+        project: config.modelName || 'MEMO Project',
         phase: dhfConfig?.phase,
         authors: dhfConfig?.authors,
         approvers: dhfConfig?.approvers,
@@ -112,7 +112,7 @@ function rmpScope(sectionDef: any, _docType: any, ctx: QueryContext, dhfConfig?:
     const blocks: DhfBlock[] = [
         heading(3, 'Scope', 'scope'),
         paragraph(text(`This Risk Management Plan covers the risk management activities for `),
-            text(ctx.projectName, { bold: true }),
+            text(ctx.modelName, { bold: true }),
             text(` in accordance with ISO 14971:2019.`)),
     ];
     if (dhfConfig?.organization) {
@@ -320,7 +320,7 @@ function rtmGaps(sectionDef: any, _docType: any, ctx: QueryContext): DhfDocument
 function sadOverview(sectionDef: any, _docType: any, ctx: QueryContext): DhfDocumentSection {
     const blocks: DhfBlock[] = [
         heading(3, 'System Overview', 'system-overview'),
-        paragraph(text(`${ctx.projectName} system architecture contains:`)),
+        paragraph(text(`${ctx.modelName} system architecture contains:`)),
         metricGroup(
             metric('Total Elements', ctx.totalElements()),
             metric('Relationships', ctx.totalRelationships()),

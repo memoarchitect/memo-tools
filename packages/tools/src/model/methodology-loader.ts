@@ -19,6 +19,7 @@ import {
 } from './methodology-resolver.js';
 import type { ApiModel } from '../stage2/api-model.js';
 import { apiMethodologyDocuments } from '../stage2/methodology-from-api.js';
+import { METHOD_BINDING_KINDS } from './native-project.js';
 
 /** Primitive value pulled out of a SysML attribute literal. */
 export type MethodologyAttrValue = string | number | boolean;
@@ -84,10 +85,10 @@ export async function loadMethodologyDescriptor(
         return { folders: [], errors: [`No project resolved under ${projectRoot}, so there is no methodology to describe.`] };
     }
     const resolved = resolution;
-    const errors = resolved.diagnostics.map(d => `${d.code}: ${d.message}`);
+    const errors = resolved.diagnostics.filter(d => d.severity !== 'warning').map(d => `${d.code}: ${d.message}`);
 
     const METHODOLOGY_TYPES = new Set([
-        'MethodologyLibrary', 'MethodologyDefinition', 'ProjectMethodBinding', 'RulePolicy',
+        'MethodologyLibrary', 'MethodologyDefinition', ...METHOD_BINDING_KINDS, 'RulePolicy',
         'ElementUsageRule', 'RelationUsageRule', 'ModelingPattern', 'MethodologyWorkflowStep',
         'QualityGate', 'DhfDocumentBinding', 'Archetype', 'ResolvedMethodology',
     ]);

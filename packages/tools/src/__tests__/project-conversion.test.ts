@@ -197,7 +197,7 @@ describe('dry run', () => {
             '}',
         ].join('\n'));
         write('model/catalog/things.sysml', 'package proj_model_catalog_things { }');
-        write('memo.config.yaml', 'projectName: proj\nmethodology: "@memoarchitect/methodology-default"\n');
+        write('memo.config.yaml', 'modelName: proj\nmethodology: "@memoarchitect/methodology-default"\n');
     });
 
     it('plans a non-trivial conversion without touching the disk', () => {
@@ -227,7 +227,7 @@ describe('dry run', () => {
         const plan = planConversion(TMP);
         const entry = plan.newFiles.find(f => f.path.endsWith('project.sysml'));
         expect(entry).toBeDefined();
-        expect(entry!.content).toContain('ProjectMethodBinding');
+        expect(entry!.content).toContain('ModelMethodBinding');
         expect(entry!.content).toContain('scopeMode');
     });
 });

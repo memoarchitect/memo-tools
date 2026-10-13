@@ -52,7 +52,7 @@ export interface QueryContext {
     warningCount(): number;
 
     // ─── Summary queries ─────────────────────────────────────────────────
-    projectName: string;
+    modelName: string;
     totalElements(): number;
     totalRelationships(): number;
     layerCount(): number;
@@ -150,7 +150,7 @@ export function createQueryContext(
         warningCount: () => validation.violations.filter(v => v.severity === 'warning').length,
 
         // ─── Summary queries ─────────────────────────────────────────────
-        projectName: config.projectName || 'MEMO Project',
+        modelName: config.modelName || 'MEMO Project',
         totalElements: () => model.elements.size,
         totalRelationships: () => model.relationships.length,
         layerCount: () => model.elementsByLayer.size,

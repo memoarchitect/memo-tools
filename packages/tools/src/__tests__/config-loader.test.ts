@@ -26,7 +26,7 @@ describe('loadConfig', () => {
             '  compiler: syside',
         ].join('\n'));
         const config = loadConfig(join(TMP_DIR, 'memo.package.yaml'));
-        expect(config.projectName).toBe('my-project');
+        expect(config.modelName).toBe('my-project');
         // What the project's file says, kept as written; the effective compiler is the user's
         // override when there is one (the suite runs with MEMO_TOOLCHAIN_COMPILER set).
         expect(config.projectToolchain?.compiler).toBe('syside');
@@ -48,7 +48,7 @@ describe('loadConfig', () => {
 
     it('falls back to defaults when a project has no settings file at all', () => {
         const config = loadProjectSettings(TMP_DIR);
-        expect(config.projectName).toBe('__tmp_config_test__');
+        expect(config.modelName).toBe('__tmp_config_test__');
         expect(findConfigFile(TMP_DIR)).toBeUndefined();
     });
 });
@@ -59,7 +59,7 @@ describe('checkSemanticFields', () => {
         const rejections = checkSemanticFields(TMP_DIR);
         expect(rejections).toHaveLength(1);
         expect(rejections[0].field).toBe('methodology');
-        expect(rejections[0].message).toContain('ProjectMethodBinding');
+        expect(rejections[0].message).toContain('ModelMethodBinding');
     });
 
     it('rejects a retired semantic file outright', () => {

@@ -46,7 +46,7 @@ export function serializeModelContext(
     const parts: string[] = [];
 
     // ─── Project overview ───────────────────────────────────────────────
-    parts.push(`# Model: ${ctx.projectName}`);
+    parts.push(`# Model: ${ctx.modelName}`);
     parts.push(`Elements: ${ctx.totalElements()} | Relationships: ${ctx.totalRelationships()} | Completeness: ${ctx.overallCompleteness()}%`);
     parts.push('');
 

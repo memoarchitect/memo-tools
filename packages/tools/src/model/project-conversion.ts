@@ -842,7 +842,7 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
             path: 'memo.package.yaml',
             reason: 'project identity and source roots (the settings file that replaces memo.config.yaml)',
             content: [
-                `name: '${(legacy.projectName ?? basename(root)).replace(/'/g, "''")}'`,
+                `name: '${(legacy.modelName ?? basename(root)).replace(/'/g, "''")}'`,
                 `entrypoint: ${toPosix(PROJECT_ENTRYPOINT)}`,
                 `include: [${roots.join(', ')}]`,
                 'version: 0.1.0',
@@ -921,12 +921,12 @@ function collectFinalPackages(
 // ─── Rendering ────────────────────────────────────────────────────────────────
 
 /** The two fields of a pre-native `memo.config.yaml` the conversion can carry forward or must report. */
-function readLegacyConfig(root: string): { projectName?: string; methodology?: string } {
+function readLegacyConfig(root: string): { modelName?: string; methodology?: string } {
     const file = join(root, 'memo.config.yaml');
     if (!existsSync(file)) return {};
     const text = readFileSync(file, 'utf-8');
     const field = (key: string) => text.match(new RegExp(`^${key}:\\s*["']?([^"'\\n#]+?)["']?\\s*(?:#.*)?$`, 'm'))?.[1];
-    return { projectName: field('projectName'), methodology: field('methodology') };
+    return { modelName: field('projectName'), methodology: field('methodology') };
 }
 
 const toPosix = (path: string): string => path.split(sep).join('/');
@@ -965,13 +965,13 @@ function renderViewpointBinding(
  */
 function renderEntrypoint(prefix: string, root: string, packages: string[]): string {
     const pkg = `${prefix}_project`;
-    const projectName = basename(root)
+    const modelName = basename(root)
         .split(/[-_]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
     const idBase = prefix.split('_').slice(-2).join('-').toUpperCase();
     const own = packages.filter(p => p.startsWith(`${prefix}_`) && p !== pkg);
 
     return [
-        `// ${projectName} — project identity and method binding.`,
+        `// ${modelName} — model identity and method binding.`,
         '//',
         '// The native entrypoint. The imports name what this project contains and the',
         '// binding names the methodology it is governed by. No YAML file participates.',
@@ -989,10 +989,10 @@ function renderEntrypoint(prefix: string, root: string, packages: string[]): str
         '    // closure from a single entrypoint.',
         ...own.map(p => `    private import ${p}::*;`),
         '',
-        `    part projectBinding : ProjectMethodBinding {`,
+        `    part projectBinding : ModelMethodBinding {`,
         `        attribute :>> id = "PMB-${idBase}-001";`,
-        `        @MemoIdentity { :>> label = "${projectName.replace(/\s+/g, '')}ProjectMethodBinding"; }`,
-        `        attribute :>> projectName = "${projectName}";`,
+        `        @MemoIdentity { :>> label = "${modelName.replace(/\s+/g, '')}ModelMethodBinding"; }`,
+        `        attribute :>> modelName = "${modelName}";`,
         '        ref :>> selectedMethodology = mdDefaultDefinition;',
         '        attribute :>> scopeMode = ScopeModeKind::explicit;',
         '    }',

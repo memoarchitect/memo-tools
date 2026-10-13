@@ -4,7 +4,7 @@
     "files": 4,
     "elements": 28,
     "definitions": 0,
-    "relationships": 41,
+    "relationships": 43,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
@@ -14,7 +14,7 @@
       "elements": 1,
       "definitions": 0,
       "kinds": {
-        "ProjectMethodBinding": 1
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},
@@ -35,13 +35,13 @@
         "UseContext": 1,
         "User": 3
       },
-      "relationships": 41,
+      "relationships": 43,
       "relationshipTypes": {
         "composes": 12,
         "dependency": 2,
         "heldBy": 1,
         "motivates": 1,
-        "participatesIn": 1,
+        "participatesIn": 3,
         "performs": 7,
         "realizes": 2,
         "realizesUseCase": 1,

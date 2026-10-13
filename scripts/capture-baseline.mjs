@@ -52,6 +52,15 @@ export const FIXTURES = [
 ];
 
 /**
+ * BASELINE RE-FROZEN 2026-10-12 — `gpca`, `ui-regions`, `default`.
+ *
+ * The method binding was renamed `ProjectMethodBinding` → `ModelMethodBinding`
+ * (product-family plan O1; the old name stays as a deprecated specialization
+ * until 0.15.0), and the examples and the init template were migrated. The
+ * binding element's kind and the two kind counts are all that moved; its short
+ * id keeps the PRJ family. `extension-clinical` is unchanged.
+ */
+/**
  * BASELINE RE-FROZEN 2026-10-04 — one fixture, `ui-regions`.
  *
  * Thirteen rules were written for clauses of ISO 14971 and IEC 62304 that the

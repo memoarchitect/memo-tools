@@ -24,7 +24,7 @@ const relationships: MemoRelationship[] = [
 
 function createContext(): QueryContext {
     return {
-        projectName: 'TestDevice',
+        modelName: 'TestDevice',
         allElements: () => elements,
         elementsByKind: (kind: string) => elements.filter(e => e.kind === kind),
         elementsByKinds: (kinds: string[]) => elements.filter(e => kinds.includes(e.kind)),

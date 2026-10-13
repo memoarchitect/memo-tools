@@ -5,7 +5,7 @@
 // This file used to read `methodology`, `extends`, `ontologies`, `modules`,
 // `type`, and `usage`, and those fields decided what a project's model
 // contained. They do not any more. Selection is native: the project's SysML
-// import graph and its `ProjectMethodBinding` decide what is loaded, and
+// import graph and its `ModelMethodBinding` decide what is loaded, and
 // `settings-boundary.ts` rejects the removed fields with a diagnostic naming
 // their replacement rather than reading them as a fallback.
 //

@@ -62,7 +62,7 @@ function makeCtx(elements: MemoElement[], relationships: MemoRelationship[] = []
         makeModel(elements, relationships),
         validation,
         completeness,
-        { projectName: 'Test Project' },
+        { modelName: 'Test Project' },
     );
 }
 

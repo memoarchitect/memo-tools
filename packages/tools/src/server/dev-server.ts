@@ -731,7 +731,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         const validMsg = initialMessages.find(m => m.type === 'validation:update') as any;
         const compMsg = initialMessages.find(m => m.type === 'completeness:update') as any;
         const configPath = findConfigFile(options.projectRoot);
-        const config = configPath ? loadAndResolveConfig(configPath) : { projectName: 'untitled' } as MEMOConfig;
+        const config = configPath ? loadAndResolveConfig(configPath) : { modelName: 'untitled' } as MEMOConfig;
 
         // Kinds and relationships come from the resolved SysML, not from the
         // settings file the config path points at.
@@ -1813,7 +1813,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         const updated = insertRulePolicy(onDisk, renderRulePolicy(request));
                         if (!updated) {
                             throw new Error(
-                                `${request.sourceFile} declares no ProjectMethodBinding or MethodologyDefinition to attach the policy to.`);
+                                `${request.sourceFile} declares no ModelMethodBinding or MethodologyDefinition to attach the policy to.`);
                         }
                         writeFileSync(path, updated, 'utf8');
                         const transactionId = recordWriteTransaction(String(request.sourceFile), updated);

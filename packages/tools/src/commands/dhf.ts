@@ -229,7 +229,7 @@ export async function dhfStatusCommand(options: {
     const errors = validation.violations.filter(v => v.severity === 'error').length;
     const warnings = validation.violations.filter(v => v.severity === 'warning').length;
 
-    console.log(chalk.gray(`Project: ${config.projectName || 'MEMO Project'}`));
+    console.log(chalk.gray(`Model: ${config.modelName || 'MEMO model'}`));
     console.log(chalk.gray(`Elements: ${elements.length} | Relationships: ${model.relationships.length} | Completeness: ${completeness.overall}%`));
     console.log(chalk.gray(`Errors: ${errors} | Warnings: ${warnings}\n`));
 

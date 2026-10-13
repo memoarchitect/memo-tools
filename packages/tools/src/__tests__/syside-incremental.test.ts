@@ -34,7 +34,7 @@ describe.runIf(Boolean(python) && existsSync(example))('SysIDE stage 1, compiled
         cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
         const sources = discoverProjectSources(root);
         options = {
-            config: { projectName: 'temperature-alarm', toolchain: { syside: { python } } } as CompileModelOptions['config'],
+            config: { modelName: 'temperature-alarm', toolchain: { syside: { python } } } as CompileModelOptions['config'],
             projectDir: root,
             libraryDirs: [...new Set(sources.libraryRoots.map(r => r.sysmlDir))],
             projectFiles: new Set(sources.projectFiles.map(file => relative(root, file))),

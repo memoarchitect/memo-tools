@@ -12,7 +12,7 @@ import { compilerConfigured, withExample } from './helpers/compile-source.js';
 // the checkout. A move into such a package goes through the outline source
 // Architect uses, the selected compiler's.
 
-const config = { projectName: 'temperature-alarm', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as MEMOConfig;
+const config = { modelName: 'temperature-alarm', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as MEMOConfig;
 
 describe.runIf(compilerConfigured)('moving a declaration into a package under a library root in the project', () => {
     it('moves it, and the library file holds the declaration', async () => {

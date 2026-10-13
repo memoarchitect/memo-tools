@@ -18,6 +18,7 @@
 import type { EffectiveRule } from '../model/methodology-resolver.js';
 import { layersWithRules, rulesSelectedBy } from '../model/methodology-resolver.js';
 import type { ClauseFact } from '../validator/rule-clauses.js';
+import { METHOD_BINDING_KINDS } from '../model/native-project.js';
 
 export interface RulePolicyRequest {
     /**
@@ -216,7 +217,7 @@ export function renderRulePolicy(request: RulePolicyRequest, indent = '        '
 /**
  * Insert the rendered policy into a methodology definition's body.
  *
- * Appends inside the `ProjectMethodBinding` or `MethodologyDefinition` usage the file declares, before
+ * Appends inside the `ModelMethodBinding` (or deprecated `ProjectMethodBinding`) or `MethodologyDefinition` usage the file declares, before
  * its closing brace. Returns undefined when no such usage is found, so the
  * caller reports a diagnostic instead of writing a policy into open space where
  * it would parse but never apply.
@@ -232,8 +233,9 @@ export function insertRulePolicy(source: string, policy: string): string | undef
         policy = policy.replace(`part ${name} :`, `part ${name}${n} :`);
     }
     const lines = source.split('\n');
-    // A project states its own decisions in its binding; a reusable methodology states its own.
-    const start = lines.findIndex(line => /part\s+\w+\s*:\s*(MethodologyDefinition|ProjectMethodBinding)\s*\{/.test(line));
+    // A model states its own decisions in its binding; a reusable methodology states its own.
+    const owners = ['MethodologyDefinition', ...METHOD_BINDING_KINDS].join('|');
+    const start = lines.findIndex(line => new RegExp(`part\\s+\\w+\\s*:\\s*(${owners})\\s*\\{`).test(line));
     if (start < 0) return undefined;
 
     let depth = 0;

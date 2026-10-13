@@ -43,7 +43,7 @@ describe('memo toolchain probe', () => {
     it('reports the in-process transport for the bundled packager, and leaves the roles it does not name unset', () => {
         const root = project();
         const probe = probeToolchain({
-            config: { projectName: 'p', toolchain: { packager: 'internal' } }, projectDir: root, registry,
+            config: { modelName: 'p', toolchain: { packager: 'internal' } }, projectDir: root, registry,
         });
 
         expect(probe.roles.map(r => r.role)).toEqual(['validator', 'lowering', 'package']);
@@ -56,7 +56,7 @@ describe('memo toolchain probe', () => {
 
     it('reports a role the settings do not name as not configured, saying what to set', () => {
         const root = project();
-        const probe = probeToolchain({ config: { projectName: 'p' }, projectDir: root, registry });
+        const probe = probeToolchain({ config: { modelName: 'p' }, projectDir: root, registry });
         for (const role of probe.roles) {
             expect(role.source).toBe('unset');
             expect(role.availability.available).toBe(false);
@@ -69,7 +69,7 @@ describe('memo toolchain probe', () => {
             const root = project();
             const executable = fakeTool(root, 'syside', '0.10.2');
             const config: MEMOConfig = {
-                projectName: 'p',
+                modelName: 'p',
                 toolchain: { validator: 'syside', syside: { executable } },
             };
 
@@ -86,7 +86,7 @@ describe('memo toolchain probe', () => {
     it('reports a missing executable as unavailable, naming it', () => {
         const root = project();
         const config: MEMOConfig = {
-            projectName: 'p',
+            modelName: 'p',
             toolchain: { validator: 'syside', syside: { executable: join(root, 'not-here') } },
         };
         const validator = probeToolchain({ config, projectDir: root, registry })
@@ -111,7 +111,7 @@ describe('memo config effective', () => {
     it('reports the resolved provider per role and where each came from', () => {
         const root = project();
         const report = effectiveConfigReport({
-            config: { projectName: 'p', toolchain: { validator: 'syside', syside: { diagnose: 'none' } } },
+            config: { modelName: 'p', toolchain: { validator: 'syside', syside: { diagnose: 'none' } } },
             projectDir: root,
             settingsFile: join(root, 'memo.tools.yaml'),
             registry,
@@ -128,7 +128,7 @@ describe('memo config effective', () => {
 
     it('honours toolchain.compiler for both roles without a deprecation', () => {
         const report = effectiveConfigReport({
-            config: { projectName: 'p', toolchain: { compiler: 'syside' } },
+            config: { modelName: 'p', toolchain: { compiler: 'syside' } },
             projectDir: project(),
             registry,
         });

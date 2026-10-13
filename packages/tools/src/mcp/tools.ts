@@ -54,7 +54,7 @@ define({
     description: 'Overview of the MEMO model: project name, element and relationship counts, per-layer completeness, and validation error/warning totals. Call this first to orient yourself in an unfamiliar project.',
     inputSchema: { type: 'object', properties: {} },
 }, (_input, { ctx }) => ({
-    project: ctx.projectName,
+    project: ctx.modelName,
     elements: ctx.totalElements(),
     relationships: ctx.totalRelationships(),
     completeness: ctx.overallCompleteness(),

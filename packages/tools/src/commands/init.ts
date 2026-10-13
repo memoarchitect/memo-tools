@@ -161,7 +161,7 @@ function matchExample(examples: AvailableExample[], query: string): { example?: 
     return { example: candidates.length === 1 ? candidates[0] : undefined, candidates };
 }
 
-function ensureTarget(name: string | undefined, exampleId?: string): { projectDir: string; projectName: string; inPlace: boolean } {
+function ensureTarget(name: string | undefined, exampleId?: string): { projectDir: string; modelName: string; inPlace: boolean } {
     const inPlace = !name || name === '.';
     const projectDir = inPlace ? process.cwd() : resolve(process.cwd(), name!);
     if (inPlace) {
@@ -180,7 +180,7 @@ function ensureTarget(name: string | undefined, exampleId?: string): { projectDi
         console.error(chalk.red(`❌ Directory "${name}" already exists.`));
         process.exit(1);
     }
-    return { projectDir, projectName: basename(projectDir), inPlace };
+    return { projectDir, modelName: basename(projectDir), inPlace };
 }
 
 function replaceTokens(dir: string, values: Record<string, string>): void {
@@ -199,8 +199,8 @@ function replaceTokens(dir: string, values: Record<string, string>): void {
     }
 }
 
-function npmPackageName(projectName: string): string {
-    const normalized = projectName.toLowerCase()
+function npmPackageName(modelName: string): string {
+    const normalized = modelName.toLowerCase()
         .replace(/[^a-z0-9._-]+/g, '-')
         .replace(/^[._-]+|[._-]+$/g, '');
     return normalized || 'memo-project';
@@ -279,7 +279,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
         cpSync(example.path, target.projectDir, { recursive: true });
         scaffoldAnalysisSamples(target.projectDir);
         nameCompilerInProject(target.projectDir);
-        console.log(chalk.green(target.inPlace ? '\n✅ Project created in current directory' : `\n✅ Project created at ./${name}`));
+        console.log(chalk.green(target.inPlace ? '\n✅ Model created in current directory' : `\n✅ Model created at ./${name}`));
         return;
     }
 
@@ -287,24 +287,24 @@ export async function initCommand(name: string | undefined, options: InitOptions
     const ontology = options.ontology ?? loaded.manifest.init.defaultExtends;
     const templatePath = loaded.manifest.init.template;
 
-    console.log(chalk.bold(`\n📦 Creating MEMO project: ${target.projectName}\n`));
+    console.log(chalk.bold(`\n📦 Creating MEMO model: ${target.modelName}\n`));
     const templateDir = resolveManifestPath(loaded, templatePath);
     cpSync(templateDir, target.projectDir, { recursive: true });
     scaffoldAnalysisSamples(target.projectDir);
     replaceTokens(target.projectDir, {
-        name: target.projectName,
-        npmName: npmPackageName(target.projectName),
+        name: target.modelName,
+        npmName: npmPackageName(target.modelName),
         ontologyVersion: contentVersion(loaded),
         rootImport: loaded.manifest.init.rootImport,
     });
 
     // The descriptor records identity only. What the project selects is in
-    // model/catalog/project.sysml: native imports and a ProjectMethodBinding.
+    // model/catalog/project.sysml: native imports and a ModelMethodBinding.
     // `--ontology` chooses which package the entrypoint imports, and the
     // descriptor never repeats that choice.
     const configPath = resolve(target.projectDir, 'memo.package.yaml');
     const descriptor = parseYaml(readFileSync(configPath, 'utf-8')) ?? {};
-    descriptor.name = target.projectName;
+    descriptor.name = target.modelName;
     for (const semanticField of ['extends', 'type', 'usage', 'methodology', 'ontologies', 'modules']) {
         delete descriptor[semanticField];
     }
@@ -361,5 +361,5 @@ export async function initCommand(name: string | undefined, options: InitOptions
     } catch (error) {
         console.log(chalk.yellow(`  ⚠ Could not create lock file: ${error instanceof Error ? error.message : error}`));
     }
-    console.log(chalk.green(target.inPlace ? '\n✅ Project created in current directory' : `\n✅ Project created at ./${target.projectName}`));
+    console.log(chalk.green(target.inPlace ? '\n✅ Model created in current directory' : `\n✅ Model created at ./${target.modelName}`));
 }

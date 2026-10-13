@@ -19,7 +19,7 @@ const TMP = resolve(__dirname, '__tmp_native_project__');
 /** The project's resolution, from what the selected compiler compiled. */
 async function resolveNativeProject(projectDir: string): Promise<NativeProjectResolution> {
     const result = await compileResolvedProject({
-        config: { projectName: 'demo', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never,
+        config: { modelName: 'demo', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never,
         projectDir, force: true,
     });
     if (!result.accepted) {
@@ -62,11 +62,15 @@ package lib_a {
     private import ScalarValues::*;
     enum def ScopeModeKind { enum allAvailable; enum explicit; }
     part def MethodologyDefinition { attribute id : String; attribute scopeMode : ScopeModeKind; }
-    part def ProjectMethodBinding {
+    part def ModelMethodBinding {
         attribute id : String;
-        attribute projectName : String;
+        attribute modelName : String;
         ref selectedMethodology : MethodologyDefinition;
         attribute scopeMode : ScopeModeKind;
+    }
+    // The deprecated former spelling, as the ontology keeps it until 0.15.0.
+    part def ProjectMethodBinding :> ModelMethodBinding {
+        attribute projectName : String;
     }
     part def Widget;
     part chosenMethod : MethodologyDefinition {
@@ -89,9 +93,9 @@ function writeEntrypoint(extra = ''): void {
 package demo_project {
     private import lib_a::*;
 ${extra}
-    part projectBinding : ProjectMethodBinding {
+    part projectBinding : ModelMethodBinding {
         attribute :>> id = "PMB-1";
-        attribute :>> projectName = "Demo";
+        attribute :>> modelName = "Demo";
         ref :>> selectedMethodology = chosenMethod;
         attribute :>> scopeMode = ScopeModeKind::explicit;
     }
@@ -120,7 +124,7 @@ describe.runIf(compilerConfigured)('the resolution of a compiled project', () =>
         write('src/project.sysml', `
 package demo_project {
     private import lib_a::*;
-    part projectBinding : ProjectMethodBinding {
+    part projectBinding : ModelMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
         attribute :>> scopeMode = ScopeModeKind::explicit;
     }
@@ -141,7 +145,7 @@ package demo_project {
 package demo_project {
     private import lib_a::*;
     private import ots_lib::*;
-    part projectBinding : ProjectMethodBinding {
+    part projectBinding : ModelMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
     }
 }
@@ -160,10 +164,30 @@ package demo_project {
     it('reads the binding and its typed methodology reference from SysML', async () => {
         writeEntrypoint();
         const r = await resolveNativeProject(TMP);
-        expect(r.binding?.projectName).toBe('Demo');
+        expect(r.binding?.modelName).toBe('Demo');
         expect(r.binding?.selectedMethodologyName).toBe('chosenMethod');
         expect(r.binding?.scopeMode).toBe('explicit');
         expect(r.diagnostics).toEqual([]);
+    });
+
+    it('still binds a model written with the deprecated spelling, and warns once naming the new one', async () => {
+        write('model/catalog/project.sysml', `
+package demo_project {
+    private import lib_a::*;
+    part projectBinding : ProjectMethodBinding {
+        attribute :>> id = "PMB-1";
+        attribute :>> projectName = "Demo";
+        ref :>> selectedMethodology = chosenMethod;
+        attribute :>> scopeMode = ScopeModeKind::explicit;
+    }
+}
+`);
+        const r = await resolveNativeProject(TMP);
+        expect(r.binding?.modelName).toBe('Demo');
+        expect(r.binding?.selectedMethodologyName).toBe('chosenMethod');
+        expect(r.diagnostics.map(d => [d.code, d.severity])).toEqual([['deprecated-binding-spelling', 'warning']]);
+        expect(r.diagnostics[0].message).toContain('ModelMethodBinding');
+        expect(r.diagnostics[0].message).toContain('modelName');
     });
 
     it('selects only the packages the import graph reaches', async () => {
@@ -212,7 +236,7 @@ package demo_project {
         write('model/catalog/second.sysml', `
 package demo_second {
     private import lib_a::*;
-    part otherBinding : ProjectMethodBinding {
+    part otherBinding : ModelMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
     }
 }
@@ -227,7 +251,7 @@ package demo_second {
 package demo_project {
     private import lib_a::*;
     public import lib_b::*;
-    part projectBinding : ProjectMethodBinding {
+    part projectBinding : ModelMethodBinding {
         ref :>> selectedMethodology = chosenMethod;
         attribute :>> scopeMode = ScopeModeKind::allAvailable;
     }

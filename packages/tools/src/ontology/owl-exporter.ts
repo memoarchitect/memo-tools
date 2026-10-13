@@ -1,5 +1,5 @@
 export interface OntologyConfig {
-    projectName: string;
+    modelName: string;
     architectureLayers?: { id: string; label: string; color: string }[];
     kinds: Record<string, {
         label: string;
@@ -45,7 +45,7 @@ export function exportToOwlTurtle(
             lines.push(`    dcterms:creator "${escape(ontology.ontologyMetadata.author)}" ;`);
         }
     } else {
-        lines.push(`    dcterms:title "${escape(ontology.projectName)}" ;`);
+        lines.push(`    dcterms:title "${escape(ontology.modelName)}" ;`);
     }
     lines.push('    .');
     lines.push('');

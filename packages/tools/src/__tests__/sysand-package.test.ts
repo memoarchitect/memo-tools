@@ -25,7 +25,7 @@ describe('what a project says about itself in its SysAnd package', () => {
     it('takes name, version, publisher, description and licence from the project\'s settings file', () => {
         const dir = scratch();
         writeFileSync(join(dir, 'memo.package.yaml'), 'name: pump\nversion: 2.1.0\npublisher: acme\ndescription: An infusion pump\nlicense: Apache-2.0\n');
-        expect(sysandProjectIdentity(dir, { projectName: 'pump' })).toEqual({
+        expect(sysandProjectIdentity(dir, { modelName: 'pump' })).toEqual({
             name: 'pump', publisher: 'acme', version: '2.1.0', description: 'An infusion pump', license: 'Apache-2.0',
         });
     });
@@ -33,7 +33,7 @@ describe('what a project says about itself in its SysAnd package', () => {
     it('says what sysand init says when nobody says: untitled, 0.1.0', () => {
         const dir = scratch();
         writeFileSync(join(dir, 'memo.package.yaml'), 'name: pump\n');
-        expect(sysandProjectIdentity(dir, { projectName: 'pump' })).toEqual({ name: 'pump', publisher: 'untitled', version: '0.1.0' });
+        expect(sysandProjectIdentity(dir, { modelName: 'pump' })).toEqual({ name: 'pump', publisher: 'untitled', version: '0.1.0' });
     });
 
     it('never reads a settings file of a directory above the project', () => {
@@ -41,7 +41,7 @@ describe('what a project says about itself in its SysAnd package', () => {
         writeFileSync(join(above, 'memo.package.yaml'), 'name: above\nversion: 9.9.9\n');
         const dir = join(above, 'project');
         mkdirSync(dir);
-        expect(sysandProjectIdentity(dir, { projectName: 'p' }).version).toBe('0.1.0');
+        expect(sysandProjectIdentity(dir, { modelName: 'p' }).version).toBe('0.1.0');
     });
 
     it('names the file <name>-<version>.kpar, as sysand build names its own', () => {
@@ -142,7 +142,7 @@ describe('sysand publish reports what pack stages', () => {
         mkdirSync(join(repo, 'ext/examples'), { recursive: true });
         writeFileSync(join(repo, 'ext/examples/stray.sysml'), 'package Stray { }\n');
 
-        const staged = await stageSysandProject(join(repo, 'ext'), { projectName: '@x/ext' } as never);
+        const staged = await stageSysandProject(join(repo, 'ext'), { modelName: '@x/ext' } as never);
         try {
             const report = reportStagedPackage(staged, join(repo, 'ext'));
             expect(report).toMatchObject({
@@ -159,7 +159,7 @@ describe('sysand publish reports what pack stages', () => {
         writeFileSync(join(dir, 'memo.package.yaml'), 'sysmlDir: ./src\n');
         mkdirSync(join(dir, 'src'));
         writeFileSync(join(dir, 'src/a.sysml'), 'package a { }\n');
-        const staged = await stageSysandProject(dir, { projectName: 'p' } as never);
+        const staged = await stageSysandProject(dir, { modelName: 'p' } as never);
         try {
             const report = reportStagedPackage(staged, dir);
             expect(report.errors).toEqual(['memo.package.yaml states no package name']);
@@ -186,7 +186,7 @@ describe.runIf(sysand && unzip && Boolean(openSysMLUnderTest) && existsSync(exam
         const sources = findSysmlFiles(join(project, 'model')).length;
         const output = join(scratch(), 'out.kpar');
         const result = await runPackager({
-            config: { projectName: 'temperature-alarm', toolchain: { compiler: 'opensysml', packager: 'sysand', opensysml: openSysMLUnderTest } } as never,
+            config: { modelName: 'temperature-alarm', toolchain: { compiler: 'opensysml', packager: 'sysand', opensysml: openSysMLUnderTest } } as never,
             projectDir: project,
             outputPath: output,
         });
@@ -215,7 +215,7 @@ describe.runIf(sysand && unzip && Boolean(openSysMLUnderTest) && existsSync(exam
         const project = scratch();
         writeFileSync(join(project, 'memo.package.yaml'), 'name: empty\n');
         const failure = await runPackager({
-            config: { projectName: 'empty', toolchain: { compiler: 'opensysml', packager: 'sysand', opensysml: openSysMLUnderTest } } as never,
+            config: { modelName: 'empty', toolchain: { compiler: 'opensysml', packager: 'sysand', opensysml: openSysMLUnderTest } } as never,
             projectDir: project,
             outputPath: join(project, 'x.kpar'),
         }).catch(error => error);
@@ -226,7 +226,7 @@ describe.runIf(sysand && unzip && Boolean(openSysMLUnderTest) && existsSync(exam
         const project = scratch();
         cpSync(example, project, { recursive: true, filter: s => !s.includes(`${example}/.memo`) });
         const failure = await runPackager({
-            config: { projectName: 'temperature-alarm', toolchain: { compiler: 'opensysml', packager: 'sysand', opensysml: openSysMLUnderTest, sysand: { executable: 'definitely-not-sysand' } } } as never,
+            config: { modelName: 'temperature-alarm', toolchain: { compiler: 'opensysml', packager: 'sysand', opensysml: openSysMLUnderTest, sysand: { executable: 'definitely-not-sysand' } } } as never,
             projectDir: project,
             outputPath: join(scratch(), 'x.kpar'),
         }).catch(error => error);

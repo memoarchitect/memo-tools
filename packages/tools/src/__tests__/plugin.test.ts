@@ -38,7 +38,7 @@ function createMockContext(): PluginContext {
     } as MemoModel;
 
     const config: MEMOConfig = {
-        projectName: 'Test',
+        modelName: 'Test',
     };
 
     const validation: ValidationResult = {
@@ -58,7 +58,7 @@ function createMockContext(): PluginContext {
     };
 
     const query: QueryContext = {
-        projectName: 'Test',
+        modelName: 'Test',
         allElements: () => elements,
         elementsByKind: () => [],
         elementsByKinds: () => [],

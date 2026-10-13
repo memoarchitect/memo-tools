@@ -90,7 +90,7 @@ export async function sysandPublishCommand(options: PublishOptions & Record<stri
     }
 
     try {
-        if (options.package && ![staged.info.name, config.projectName, basename(resolve(cwd))].includes(options.package)) {
+        if (options.package && ![staged.info.name, config.modelName, basename(resolve(cwd))].includes(options.package)) {
             console.error(chalk.red(`❌ Package "${options.package}" is not the package here (${staged.info.name}).`));
             process.exitCode = 1;
             return;

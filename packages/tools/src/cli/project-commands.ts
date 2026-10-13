@@ -88,13 +88,13 @@ export function registerProjectCommands(program: Command): void {
 
     const elementCmd = program
         .command('element')
-        .description('Author project source through the toolchain');
+        .description('Author model source through the toolchain');
 
     withToolchainOptions(
         elementCmd
             .command('identities')
             .description('Print the IR identity to quote when writing to each element')
-            .argument('[dir]', 'Project directory', '.')
+            .argument('[dir]', 'Model directory', '.')
             .option('--id <id>', 'Restrict output to one element')
             .option('--format <format>', 'Output format: text, json', 'text'),
     ).action(async (dir: string, opts: Record<string, unknown>) => {
@@ -105,7 +105,7 @@ export function registerProjectCommands(program: Command): void {
         elementCmd
             .command('write')
             .description('Write one element back to source and recompile')
-            .argument('[dir]', 'Project directory', '.')
+            .argument('[dir]', 'Model directory', '.')
             .option('--id <id>', 'Element ID to create or update')
             .option('--name <name>', 'Display name')
             .option('--kind <kind>', 'Ontology kind')
@@ -113,7 +113,7 @@ export function registerProjectCommands(program: Command): void {
             .option('--layer <layer>', 'MEMO layer')
             .option('--doc <text>', 'Documentation body')
             .option('--attribute <key=value...>', 'Attribute assignment, repeatable')
-            .option('--file <path>', 'Project-relative source file to write into')
+            .option('--file <path>', 'Model-relative source file to write into')
             .option('--ir-identity <identity>', 'IR identity of the declaration being updated')
             .option('--renamed-from <id>', 'Previous element ID, when this write renames the declaration')
             .option('--by-id', 'Resolve the identity from --id instead of quoting one (cannot detect a stale view)')
@@ -125,20 +125,20 @@ export function registerProjectCommands(program: Command): void {
 
     program
         .command('init')
-        .description('Scaffold a new MEMO project')
-        .argument('[name]', 'Project directory (omit or "." to initialize the current directory)')
+        .description('Scaffold a new MEMO model')
+        .argument('[name]', 'Model directory (omit or "." to initialize the current directory)')
         .option('--ontology <package>', 'Logical ontology package to use (defaults from the content manifest)')
-        .option('--example <id>', 'Create from an example project (e.g. gpca)')
+        .option('--example <id>', 'Create from an example model (e.g. gpca)')
         .option('--list', 'List installed ontology packages and examples')
-        .option('--no-install', 'Create the project without running npm install')
+        .option('--no-install', 'Create the model without running npm install')
         .action(async (name: string | undefined, options: { ontology?: string; example?: string; list?: boolean; install?: boolean }) => {
             await initCommand(name, options);
         });
 
     program
         .command('convert')
-        .description('Restructure a project into the native catalog layout (dry run unless --write)')
-        .argument('[dir]', 'Project directory', '.')
+        .description('Restructure a model into the native catalog layout (dry run unless --write)')
+        .argument('[dir]', 'Model directory', '.')
         .option('--write', 'Apply the plan. Without it the command only reports what would change.')
         .option('--diff', 'Include per-file content hunks in the report')
         .option('--json', 'Emit the plan as JSON')
@@ -251,7 +251,7 @@ export function registerProjectCommands(program: Command): void {
         .command('kpar')
         .description('Add a KPAR archive (as `memo pack` writes) to the project as a library, under .memo/libraries/kpar; --inspect only reads it')
         .argument('<archive>', 'KPAR archive path')
-        .option('-C, --project <dir>', 'Project directory', '.')
+        .option('-C, --project <dir>', 'Model directory', '.')
         .option('--inspect', 'Print the archive\'s name, version, checksum and files, and import nothing')
         .action((archive: string, options: { project: string; inspect?: boolean }) => {
             console.log(JSON.stringify(options.inspect ? inspectKpar(archive) : importKpar(options.project, archive), null, 2));
@@ -361,7 +361,7 @@ export function registerProjectCommands(program: Command): void {
         .command('mcp')
         .description('Serve the model to AI coding tools over the Model Context Protocol')
         .argument('[action]', 'Omit to serve; "init" to register the server with Cursor')
-        .option('--project <dir>', 'Project directory (defaults to the current one)')
+        .option('--project <dir>', 'Model directory (defaults to the current one)')
         .option('--write', 'Enable the model-editing tools (read-only by default)')
         .option('--no-rules', 'With "init", skip writing .cursor/rules/memo.mdc')
         .action(async (action: string | undefined, options: { project?: string; write?: boolean; rules?: boolean }) => {
@@ -423,8 +423,8 @@ export function registerProjectCommands(program: Command): void {
 
     dhfCmd
         .command('init')
-        .description('Scaffold DHF document set for your medical device project (interactive wizard)')
-        .option('-d, --dir <path>', 'Project directory', '.')
+        .description('Scaffold DHF document set for your medical device model (interactive wizard)')
+        .option('-d, --dir <path>', 'Model directory', '.')
         .action(async (options: { dir?: string }) => {
             await dhfInitCommand({ projectDir: options.dir });
         });
@@ -512,7 +512,7 @@ export function registerProjectCommands(program: Command): void {
     rulesCmd
         .command('tailoring')
         .description('The record of every rule switched off, downgraded or replaced, with who decided and why')
-        .argument('[dir]', 'Project directory', '.')
+        .argument('[dir]', 'Model directory', '.')
         .option('--format <format>', 'Output format: text, json, markdown', 'text')
         .action(async (dir: string, opts: { format?: string }) => {
             await rulesTailoringCommand(dir, { format: opts.format as 'text' | 'json' | 'markdown' });
@@ -521,7 +521,7 @@ export function registerProjectCommands(program: Command): void {
     rulesCmd
         .command('tailor')
         .description('Switch off or re-grade one rule, every rule of a standard, or every rule on a layer, as one recorded policy')
-        .argument('[dir]', 'Project directory', '.')
+        .argument('[dir]', 'Model directory', '.')
         .option('--rule <rule>', 'One rule: its id or constraint def name')
         .option('--standard <standard>', 'Every rule that enforces a clause of this standard, e.g. "ISO 14971"')
         .option('--category <layer>', "Every rule whose subject kind is in this layer (the discipline), by its namespace, e.g. memo_assurance_safety_risk")
@@ -531,7 +531,7 @@ export function registerProjectCommands(program: Command): void {
         .option('--rationale <text>', 'Why: required to disable or replace')
         .option('--authority <text>', 'Who decided')
         .option('--approval <reference>', 'The approval reference')
-        .option('--file <path>', 'Project-relative .sysml file with the project binding or methodology to write the policy into')
+        .option('--file <path>', 'Model-relative .sysml file with the model binding or methodology to write the policy into')
         .option('--dry-run', 'Show the rules the policy would reach and write nothing')
         .action(async (dir: string, opts: Record<string, unknown>) => {
             await rulesTailorCommand(dir, opts as import('../commands/rules.js').RulesTailorOptions);
@@ -572,14 +572,14 @@ export function registerProjectCommands(program: Command): void {
 
     newCmd
         .command('rule')
-        .description("Write a rule of this project's own: checked, previewed against the model, then written")
-        .argument('[dir]', 'Project directory', '.')
+        .description("Write a rule of this model's own: checked, previewed against the model, then written")
+        .argument('[dir]', 'Model directory', '.')
         .requiredOption('--id <id>', 'The rule id, e.g. ORG-001')
         .requiredOption('--type <name>', 'The constraint def name, e.g. EveryUserHasALabel')
         .requiredOption('--applies-to <kind>', 'The kind the rule is checked on, e.g. Hazard')
         .requiredOption('--predicate <expression>', 'The condition; true means the element is fine')
         .requiredOption('--rationale <text>', 'Why the rule exists')
-        .requiredOption('--file <path>', 'Project-relative .sysml file to write it into')
+        .requiredOption('--file <path>', 'Model-relative .sysml file to write it into')
         .option('--severity <severity>', 'error, warning or info (default: from --obligation, else warning)')
         .option('--obligation <obligation>', 'required, recommended or bestPractice')
         .option('--tailoring <class>', 'assurance or methodology (default methodology)')

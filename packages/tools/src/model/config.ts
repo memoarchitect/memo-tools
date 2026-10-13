@@ -79,11 +79,18 @@ export interface MEMOConfig {
     /**
      * Display name for CLI output.
      *
-     * The project's real name is `projectName` on its `ProjectMethodBinding`.
-     * This is a convenience copy for log lines, resolved from the binding when
-     * one is available and falling back to the directory name when it is not.
+     * The model's real name is `modelName` on its `ModelMethodBinding`.
+     * This is a convenience copy for log lines, taken from the package
+     * manifest's `name` and falling back to the directory name.
      */
-    projectName: string;
+    modelName: string;
+
+    /**
+     * @deprecated 0.14.0: the former name of `modelName`, set to the same
+     * value so a plugin reading `ctx.config.projectName` keeps working.
+     * Deleted in 0.15.0.
+     */
+    projectName?: string;
 
     /**
      * Where authored relationships are written, per model package.

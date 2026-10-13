@@ -57,7 +57,7 @@ export interface CompiledSource {
 
 /** The suite's compiler, as a project's own settings would name it. */
 const baseConfig = (config?: Partial<MEMOConfig>): MEMOConfig => ({
-    projectName: 'test',
+    modelName: 'test',
     toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER },
     ...config,
 }) as MEMOConfig;

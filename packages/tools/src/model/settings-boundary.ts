@@ -37,14 +37,14 @@ export interface SemanticFieldRejection {
  */
 const SEMANTIC_FIELDS: Record<string, string> = {
     methodology:
-        'the `ProjectMethodBinding` in model/catalog/project.sysml, whose `selectedMethodology` is a typed SysML reference',
+        'the `ModelMethodBinding` in model/catalog/project.sysml, whose `selectedMethodology` is a typed SysML reference',
     extends:
         'a native `private import` of the package in model/catalog/project.sysml',
     ontologies:
         'a native `private import` of the ontology package in model/catalog/project.sysml',
     modules:
         'a `public import` of the package in the methodology\'s package, or in the package declaring the '
-        + '`ProjectMethodBinding` for project-specific additions; a MEMO extension by its facade, `memo_extension_<name>`',
+        + '`ModelMethodBinding` for model-specific additions; a MEMO extension by its facade, `memo_extension_<name>`',
     optionalModules:
         'a `public import` of the package in the methodology\'s package',
     type:
@@ -88,8 +88,8 @@ const RETIRED_FILES: Record<string, string> = {
     'memo.viewpoints.yml': 'native viewpoint/view packages under model/catalog/viewpoints/',
     'memo.rendering.yaml': '`LayerRendering` and `ExplorerClassification` usages in the ontology',
     'memo.rendering.yml': '`LayerRendering` and `ExplorerClassification` usages in the ontology',
-    'memo.config.yaml': 'model/catalog/project.sysml — native imports and a `ProjectMethodBinding`',
-    'memo.config.yml': 'model/catalog/project.sysml — native imports and a `ProjectMethodBinding`',
+    'memo.config.yaml': 'model/catalog/project.sysml — native imports and a `ModelMethodBinding`',
+    'memo.config.yml': 'model/catalog/project.sysml — native imports and a `ModelMethodBinding`',
 };
 
 /** YAML files that may exist as application settings and are checked field by field. */

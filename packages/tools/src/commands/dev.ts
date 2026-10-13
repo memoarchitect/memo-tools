@@ -141,7 +141,7 @@ export async function devCommand(options: {
     const toolchain = resolveToolchain(config, defaultRegistry);
     const gitInfo = getGitInfo(cwd);
     let buildCount = 0;
-    console.log(chalk.gray(`Project: ${config.projectName}`));
+    console.log(chalk.gray(`Model: ${config.modelName}`));
     console.log(chalk.gray(
         `Toolchain: ${toolchain.selections.map(s => `${s.role === 'package' ? 'packager' : s.role}=${s.provider}`).join(' ')}`));
     for (const note of toolchain.deprecations) console.log(chalk.yellow(`  ⚠ ${note}`));
@@ -377,7 +377,8 @@ export async function devCommand(options: {
 
         const baseVersion = nativeResolution.selectedRoots[0]?.packageVersion || '0.1.0';
         const metadata: ModelMetadata = {
-            projectName: config.projectName,
+            modelName: config.modelName,
+            projectName: config.modelName,   // deprecated alias, deleted in 0.15.0
             version: `${baseVersion}-dev.${buildCount}`,
             ...gitInfo,
         };

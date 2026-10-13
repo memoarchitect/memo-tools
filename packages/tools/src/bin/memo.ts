@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // ─── MEMO Tools CLI ────────────────────────────────────────────────────────
 //
-// Compile a project with the selected SysML compiler, validate it, and pack it.
+// Compile a model with the selected SysML compiler, validate it, and pack it.
 //   memo compile          — is this valid SysML (stage 1)
 //   memo validate         — the model against the rules, and completeness
-//   memo toolchain check  — the validator over files that are not a project
-//   memo pack             — package a project or package (a KPAR, or MEMO's own bundle)
+//   memo toolchain check  — the validator over files that are not a model
+//   memo pack             — package a model or package (a KPAR, or MEMO's own bundle)
 //   memo ship-library     — a package's compiled library, for the package to carry
 //
-// Creating a project, authoring, packaging, exporting, settings and the rest
+// Creating a model, authoring, packaging, exporting, settings and the rest
 // are memo-architect's commands. The old names here fail loudly for one
 // release and name where each went.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,8 +67,8 @@ withToolchainOptions(
 withToolchainOptions(
     program
         .command('compile')
-        .description('Check the project is valid SysML with the selected compiler (stage 1); no MEMO rules')
-        .argument('[dir]', 'Project directory', '.')
+        .description('Check the model is valid SysML with the selected compiler (stage 1); no MEMO rules')
+        .argument('[dir]', 'Model directory', '.')
         .option('--force', 'Compile even when the stage 1 output in .memo/stage1 is fresh')
         .option('--out <file>', 'Write the compiled SysML v2 model (API JSON, diagnostics, element index) to this file')
         .option('--inspect <id>', 'Instead of compiling, show a model element or relationship')
@@ -87,7 +87,7 @@ withToolchainOptions(
 withToolchainOptions(
     program
         .command('pack')
-        .description('Package the project or package you are in, with toolchain.packager: a KPAR (sysand) or MEMO\'s own bundle (internal)')
+        .description('Package the model or package you are in, with toolchain.packager: a KPAR (sysand) or MEMO\'s own bundle (internal)')
         .option('-o, --output <file>', 'Output file (default: <name>-<version>.kpar for sysand, <name>.memo-bundle otherwise)'),
 ).action(async (options: Record<string, unknown>) => {
     await packCommand({ ...options, output: options.output as string | undefined });
@@ -96,7 +96,7 @@ withToolchainOptions(
 withToolchainOptions(
     program
         .command('publish')
-        .description('Dry run of publishing the package or project you are in: stages what `memo pack` stages and reports the artifact; writes and uploads nothing')
+        .description('Dry run of publishing the package or model you are in: stages what `memo pack` stages and reports the artifact; writes and uploads nothing')
         .option('-p, --package <name>', 'Check that this is the package named (by name or directory)'),
 ).action(async (options: Record<string, unknown>) => {
     await sysandPublishCommand({ ...options, dryRun: true });
@@ -106,10 +106,10 @@ withToolchainOptions(
     program
         .command('validate')
         .description('Validate the model against closure rules and show completeness')
-        .argument('[dir]', 'Project directory', '.')
+        .argument('[dir]', 'Model directory', '.')
         .option('--format <format>', 'Output format: text, junit, json', 'text')
         .option('-o, --output <file>', 'Write output to file instead of stdout')
-        .option('--no-server', 'Compile here even when `memo dev` is running for the project')
+        .option('--no-server', 'Compile here even when `memo dev` is running for the model')
         .option('--rules', 'Instead of validating, list the consistency rules in effect (--format text or json)')
         .option('--rules-domain <domain>', 'With --rules: modelling, medicalDevice, organisation')
         .option('--rules-obligation <obligation>', 'With --rules: required, recommended, bestPractice')
@@ -117,7 +117,7 @@ withToolchainOptions(
         .option('--explain-rule <id>', 'Instead of validating, show one rule in detail (e.g. CR-MED-001)')
         .option('--standards', 'Instead of validating, report clause coverage: required, claimed, evidenced')
         .option('--standard <designation>', 'With --standards: only this standard (substring of the designation)')
-        .option('--regime <regime...>', 'With --standards: scope to these regimes, overriding the project declaration')
+        .option('--regime <regime...>', 'With --standards: scope to these regimes, overriding what the model declares')
         .option('--gaps-only', 'With --standards: only clauses nothing claims'),
 ).action(async (dir: string, opts: Record<string, unknown>) => {
     // The read-only reports are flags of compile and validate, not commands of their own.
@@ -149,9 +149,9 @@ withToolchainOptions(
     toolchainCmd
         .command('check')
         .description('Run the selected validator over these SysML paths, less the listed exceptions')
-        .argument('[paths...]', 'Files or directories, relative to the project directory', [])
-        .option('-p, --project <dir>', 'Project directory: settings, exceptions and relative paths', '.')
-        .option('--exceptions <file>', 'Exceptions register, relative to the project (default validator-exceptions.json)'),
+        .argument('[paths...]', 'Files or directories, relative to the model directory', [])
+        .option('-p, --project <dir>', 'Model directory: settings, exceptions and relative paths', '.')
+        .option('--exceptions <file>', 'Exceptions register, relative to the model (default validator-exceptions.json)'),
 ).action(async (paths: string[], opts: Record<string, unknown>) => {
     await toolchainCheckCommand(paths, opts);
 });
