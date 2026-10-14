@@ -132,6 +132,11 @@ export interface PinnedInfo {
      * system, as T2's closure draws it, and not the whole model of the commit.
      */
     workspace?: string;
+    /**
+     * Packages whose version in this commit's lock differs from the one this server resolves: the model is built with
+     * today's ontology, not the one the commit was made with, so rules and kinds may differ from then.
+     */
+    ontologyDrift?: { name: string; locked: string; used: string }[];
 }
 
 export interface PinnedInfoMessage {
