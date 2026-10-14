@@ -35,6 +35,68 @@ export interface ImpactResult {
 
 export type ImpactDirection = 'downstream' | 'upstream' | 'both';
 
+/** The part of a model the traversal reads: elements by id, and the links between them. */
+export interface ImpactGraph {
+    element(id: string): { name: string; kind: string; layer: string } | undefined;
+    links: Iterable<{ id: string; type: string; sourceId: string; targetId: string }>;
+}
+
+export interface TraverseOptions {
+    direction?: ImpactDirection;
+    maxDepth?: number;
+    /** Relation types never followed (`composes`: containment is not a dependency). */
+    skipTypes?: ReadonlySet<string>;
+    /** Elements reached and listed, but not expanded: the traversal does not pass through them. */
+    stopAt?: ReadonlySet<string>;
+}
+
+/**
+ * BFS from one or several roots over a graph. The roots are not in the result's nodes. One traversal
+ * serves an element's neighbourhood (`computeImpact`) and the reach of a whole change (`model/impact.ts`).
+ */
+export function traverseImpact(
+    graph: ImpactGraph, roots: readonly string[], options: TraverseOptions = {},
+): { nodes: ImpactNode[]; edges: ImpactEdge[] } {
+    const { direction = 'both', maxDepth = 10, skipTypes, stopAt } = options;
+    const outgoing = new Map<string, { id: string; type: string; sourceId: string; targetId: string }[]>();
+    const incoming = new Map<string, { id: string; type: string; sourceId: string; targetId: string }[]>();
+    for (const rel of graph.links) {
+        if (skipTypes?.has(rel.type)) continue;
+        (outgoing.get(rel.sourceId) ?? outgoing.set(rel.sourceId, []).get(rel.sourceId)!).push(rel);
+        (incoming.get(rel.targetId) ?? incoming.set(rel.targetId, []).get(rel.targetId)!).push(rel);
+    }
+    const visited = new Set<string>(roots);
+    const nodes: ImpactNode[] = [];
+    const edges: ImpactEdge[] = [];
+    const queue: [string, number][] = roots.map(id => [id, 0]);
+    const reach = (id: string, from: string, rel: { id: string; type: string }, depth: number, way: 'downstream' | 'upstream') => {
+        if (visited.has(id)) return;
+        visited.add(id);
+        const element = graph.element(id);
+        if (!element) return;
+        nodes.push({ elementId: id, name: element.name, kind: element.kind, layer: element.layer, depth, viaRelType: rel.type, direction: way });
+        if (!stopAt?.has(id)) queue.push([id, depth]);
+    };
+    for (let next = 0; next < queue.length; next++) {
+        const [currentId, depth] = queue[next];
+        if (depth >= maxDepth) continue;
+        if (direction === 'downstream' || direction === 'both') {
+            for (const rel of outgoing.get(currentId) ?? []) {
+                edges.push({ fromId: currentId, toId: rel.targetId, relType: rel.type, relId: rel.id });
+                reach(rel.targetId, currentId, rel, depth + 1, 'downstream');
+            }
+        }
+        if (direction === 'upstream' || direction === 'both') {
+            for (const rel of incoming.get(currentId) ?? []) {
+                edges.push({ fromId: rel.sourceId, toId: currentId, relType: rel.type, relId: rel.id });
+                reach(rel.sourceId, currentId, rel, depth + 1, 'upstream');
+            }
+        }
+    }
+    nodes.sort((x, y) => x.depth - y.depth || x.name.localeCompare(y.name));
+    return { nodes, edges };
+}
+
 /**
  * Compute impact analysis via BFS from a root element.
  *
@@ -52,91 +114,6 @@ export function computeImpact(
     if (!root) {
         return { rootId: elementId, rootName: '(unknown)', rootKind: '', nodes: [], edges: [] };
     }
-
-    // Build adjacency indexes from relationships
-    const outgoing = new Map<string, MemoRelationship[]>();
-    const incoming = new Map<string, MemoRelationship[]>();
-    for (const rel of model.relationships) {
-        if (!outgoing.has(rel.sourceId)) outgoing.set(rel.sourceId, []);
-        outgoing.get(rel.sourceId)!.push(rel);
-        if (!incoming.has(rel.targetId)) incoming.set(rel.targetId, []);
-        incoming.get(rel.targetId)!.push(rel);
-    }
-
-    const visited = new Set<string>();
-    visited.add(elementId);
-
-    const nodes: ImpactNode[] = [];
-    const edges: ImpactEdge[] = [];
-
-    // BFS queue: [elementId, depth]
-    const queue: [string, number][] = [[elementId, 0]];
-
-    while (queue.length > 0) {
-        const [currentId, depth] = queue.shift()!;
-        if (depth >= maxDepth) continue;
-
-        const nextDepth = depth + 1;
-
-        // Downstream: follow outgoing relationships
-        if (direction === 'downstream' || direction === 'both') {
-            for (const rel of outgoing.get(currentId) || []) {
-                const targetId = rel.targetId;
-                edges.push({ fromId: currentId, toId: targetId, relType: rel.type, relId: rel.id });
-
-                if (!visited.has(targetId)) {
-                    visited.add(targetId);
-                    const target = model.elements[targetId];
-                    if (target) {
-                        nodes.push({
-                            elementId: targetId,
-                            name: target.name,
-                            kind: target.kind,
-                            layer: target.layer,
-                            depth: nextDepth,
-                            viaRelType: rel.type,
-                            direction: 'downstream',
-                        });
-                        queue.push([targetId, nextDepth]);
-                    }
-                }
-            }
-        }
-
-        // Upstream: follow incoming relationships
-        if (direction === 'upstream' || direction === 'both') {
-            for (const rel of incoming.get(currentId) || []) {
-                const sourceId = rel.sourceId;
-                edges.push({ fromId: sourceId, toId: currentId, relType: rel.type, relId: rel.id });
-
-                if (!visited.has(sourceId)) {
-                    visited.add(sourceId);
-                    const source = model.elements[sourceId];
-                    if (source) {
-                        nodes.push({
-                            elementId: sourceId,
-                            name: source.name,
-                            kind: source.kind,
-                            layer: source.layer,
-                            depth: nextDepth,
-                            viaRelType: rel.type,
-                            direction: 'upstream',
-                        });
-                        queue.push([sourceId, nextDepth]);
-                    }
-                }
-            }
-        }
-    }
-
-    // Sort by depth, then name
-    nodes.sort((a, b) => a.depth - b.depth || a.name.localeCompare(b.name));
-
-    return {
-        rootId: elementId,
-        rootName: root.name,
-        rootKind: root.kind,
-        nodes,
-        edges,
-    };
+    const { nodes, edges } = traverseImpact({ element: id => model.elements[id], links: model.relationships }, [elementId], { direction, maxDepth });
+    return { rootId: elementId, rootName: root.name, rootKind: root.kind, nodes, edges };
 }

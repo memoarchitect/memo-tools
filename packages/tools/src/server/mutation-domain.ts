@@ -49,6 +49,8 @@ const MUTATION_DOMAINS: Record<string, MutationDomain> = {
     // Writes the generated documents of one device under dhf-output/, which is output and not model source.
     'dhf:device:generate': 'neither',
     'guide:evaluate': 'neither',
+    // Reads the working tree against the commit it branched from and writes nothing. Not a read a pinned view can answer.
+    'impact:compute': 'neither',
     'import:apply': 'semantic',
     'suspect:review': 'semantic',
     // A release record and every statement that links it, written together.

@@ -86,6 +86,24 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
         });
     }, 120_000);
 
+    it('builds a project that feeds two releases and the variant it introduced (O7), and places the project with what it feeds', async () => {
+        await withReleases(project => {
+            const m = project.model;
+            const name = (id: string) => m.elements.get(id)?.shortName;
+            const edges = (type: string) => [...m.relationships.values()].filter(r => r.type === type).map(r => `${name(r.sourceId)} -> ${name(r.targetId)}`).sort();
+            expect(edges('feeds')).toEqual(['prjOutputStages -> relEu', 'prjOutputStages -> relUs']);
+            expect(edges('introducedBy')).toEqual(['usOutput -> prjOutputStages']);
+            const tracker = [...m.elements.values()].find(e => e.shortName === 'prjOutputStages')!.attributes.trackerLink;
+            expect(tracker).toBe('https://tracker.example/PRJ-12');
+            // A project follows the releases it feeds (and they follow their item); one that feeds none is Unassigned.
+            const membership = computeWorkspaceMembership(m, project.registries!);
+            const id = (n: string) => [...m.elements.values()].find(e => e.shortName === n)!.id;
+            expect(membership.systems.get(id('prjOutputStages'))).toEqual(membership.systems.get(id('OutputStageSystem')));
+            expect(membership.unassigned).toContain(id('prjNothing'));
+            expect(membership.unassigned).not.toContain(id('prjOutputStages'));
+        });
+    }, 120_000);
+
     it('computes what a selection leaves out the same way for a graph that holds no record (devices)', async () => {
         await withReleases(project => {
             for (const record of [...project.model.elements.values()].filter(e => e.kind === 'ReleaseRecord')) {
