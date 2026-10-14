@@ -1405,6 +1405,8 @@ export interface UserPreferencesDTO {
      * definition, as `WorkspaceMembershipDTO.workspaces[].root`. Unset means the whole model.
      */
     workspace?: string;
+    /** The attribute the Model Explorer splits its folders by; unset means it does not. */
+    explorerSplit?: string;
 }
 
 /** Server → Client: the person's choices (on connect and after a save) */

@@ -21,7 +21,7 @@
 // connection usage.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { assertWritable } from './write-guard.js';
+import { assertWritable, readOnlyRootOf } from './write-guard.js';
 import {
     existsSync, mkdirSync, readdirSync, readFileSync,
     realpathSync, renameSync, unlinkSync, writeFileSync,
@@ -98,6 +98,7 @@ export type PlacementReason =
     | 'designated-package-file'
     | 'common-package-file'
     | 'source-element-file'
+    | 'target-element-file'
     | 'canonical-file'
     | 'canonical-file-created';
 
@@ -176,9 +177,11 @@ export function isWritableRelationshipFile(
     const rel = relative(projectRoot, real);
     if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return false;
 
-    // Installed ontology and library content is read-only.
+    // Installed ontology and library content is read-only, and so is a package this project depends on:
+    // a link whose source is one of its elements is written in the project, never in the package's file.
     const segments = rel.split(sep);
     if (segments.includes('node_modules')) return false;
+    if (readOnlyRootOf(requested) || readOnlyRootOf(real)) return false;
     for (const root of options.ontologyRoots ?? []) {
         const ontologyReal = existsSync(root) ? realpathSync(root) : resolve(root);
         const fromOntology = relative(ontologyReal, real);
@@ -242,6 +245,11 @@ export function resolveRelationshipPlacement(
         if (withinDirectory(source.file, commonDir) && accept(source.file) && exists(source.file)) {
             return { file: source.file, reason: 'source-element-file', willCreate: false };
         }
+    }
+
+    // 3b — the source is not writable here (a dependency's element) but the target is this project's own: its file.
+    if (target?.file && accept(target.file) && exists(target.file)) {
+        return { file: target.file, reason: 'target-element-file', willCreate: false };
     }
 
     // 4/5 — the canonical file, created only as a last resort.

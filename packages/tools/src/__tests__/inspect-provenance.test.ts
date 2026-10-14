@@ -55,7 +55,7 @@ beforeAll(() => {
     // A project-local definition — the section 19 ownership case.
     const file = join(project, 'model/catalog/architecture/system.sysml');
     const source = readFileSync(file, 'utf-8').trimEnd();
-    writeFileSync(file, `${source.slice(0, -1)}\n    action def ProjectAction;\n}\n`);
+    writeFileSync(file, `${source.slice(0, -1)}\n    action def ProjectAction;\n    // a project usage classified by an ontology definition: the declaration/classifier split\n    part system : System;\n}\n`);
 }, 120_000);
 
 afterAll(() => rmSync(TMP, { recursive: true, force: true }));

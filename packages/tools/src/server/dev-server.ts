@@ -50,7 +50,7 @@ import { createRule, previewRule } from './rule-service.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import { layoutBlindRevision } from '../model/view-layout-block.js';
 import { assertWritable } from './write-guard.js';
-import { updateViewExpose, writeViewDeclaration } from './view-writer.js';
+import { updateViewDisplay, updateViewExpose, writeViewDeclaration } from './view-writer.js';
 import { usageKeyword } from '../model/semantic.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
@@ -162,7 +162,7 @@ const MODEL_MUTATION_MESSAGES = new Set([
     'element:update', 'element:create', 'element:delete', 'element:remap-kinds', 'element:move-package',
     'package:create', 'package:rename', 'package:delete', 'package:move',
     'relationship:create', 'relationship:delete', 'relationship:update', 'release:create',
-    'diagram:create', 'diagram:update', 'diagram:delete', 'diagram:layout:update', 'diagram:source:save',
+    'diagram:create', 'diagram:update', 'diagram:display:update', 'diagram:delete', 'diagram:layout:update', 'diagram:source:save',
     'methodology:source:save', 'csv:import', 'import:apply', 'suspect:review', 'screen-capture:upload',
     'ontology:install', 'ontology:remove', 'ontology:save-selection',
     'dhf:doc:save', 'dhf:doc:delete', 'dhf:settings:save', 'dhf:template:save',
@@ -1793,6 +1793,22 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         const error = `The view "${declared?.name ?? (msg.payload as any)?.id}" was not changed: ${result.reason}.`;
                         console.error(`[Diagram] REFUSED: ${error}`);
                         ws.send(JSON.stringify({ type: 'app:error', payload: { requestId: (msg.payload as any)?.requestId, error } }));
+                    }
+                } else if (msg.type === 'diagram:display:update') {
+                    const { projectRoot } = options;
+                    const declared = currentDiagrams().find(d => d.id === (msg.payload as any)?.diagramId);
+                    const result = declared
+                        ? await updateViewDisplay(
+                            projectRoot, currentModel() ?? ({ elements: {} } as any), declared,
+                            (msg.payload as any)?.display ?? {}, (await authoringContext()).outlines)
+                        : { success: false, reason: `no view "${(msg.payload as any)?.diagramId}" is declared` } as const;
+                    if (result.success) {
+                        await recompileAfterWrite();
+                    } else {
+                        ws.send(JSON.stringify({ type: 'app:error', payload: {
+                            requestId: (msg.payload as any)?.requestId,
+                            error: `How "${declared?.name ?? (msg.payload as any)?.diagramId}" is shown was not saved: ${result.reason}.`,
+                        } }));
                     }
                 } else if (msg.type === 'diagram:delete') {
                     // Deleting a view means deleting its declaration, which is

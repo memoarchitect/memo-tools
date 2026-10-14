@@ -310,3 +310,48 @@ export async function updateViewExpose(
     if (!committed.success) return { success: false, reason: committed.error };
     return { success: true, filePath: view.file, exposed: packages };
 }
+
+/**
+ * State how a view shows itself, in the view's own declaration.
+ *
+ * `display` maps an attribute the view declares (`portDisplay`, `connectionDisplay`, `flowAnimation`,
+ * `showPortText`, `showConnectionText`) to the SysML value to write. Each is one `attribute :>> name = value;`
+ * statement in the view's body, replaced when the view already says it and added when it does not. Only
+ * those statements are touched: a view carries `expose` members, a selection query, identity and layout,
+ * none of which a regenerated declaration would keep.
+ */
+export async function updateViewDisplay(
+    projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO, display: Record<string, string>,
+    outlines: OutlineSource,
+): Promise<ViewWriteResult> {
+    const view = model.elements[diagram?.elementId ?? ''];
+    if (!view?.file) return { success: false, reason: 'the view has no source file to edit' };
+    const absolute = resolve(projectRoot, view.file);
+    if (!existsSync(absolute)) return { success: false, reason: `${view.file} does not exist` };
+    const source = readFileSync(absolute, 'utf8');
+    const file = (isAbsolute(view.file) ? relative(projectRoot, view.file) : view.file).replaceAll('\\', '/');
+    let outline;
+    try {
+        outline = await outlines.outline(file, source);
+    } catch (e) {
+        return { success: false, reason: `${view.file} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
+    }
+    const node = [...outlineNodes(outline)].find(candidate => candidate.key === view.id);
+    if (!node) return { success: false, reason: `${view.id} was not found in ${view.file}` };
+
+    let declaration = source.slice(node.start, node.end);
+    const brace = declaration.indexOf('{');
+    if (brace < 0) return { success: false, reason: `${view.id} has no body to state this in` };
+    const indent = ' '.repeat((node.start - (source.lastIndexOf('\n', node.start - 1) + 1)) + 4);
+    const names = Object.keys(display).filter(name => /^\w+$/.test(name));
+    for (const name of names) {
+        declaration = declaration.replace(new RegExp(`^[ \\t]*attribute\\s+:>>\\s*${name}\\s*=\\s*[^;]+;[ \\t]*\\r?\\n`, 'm'), '');
+    }
+    const at = declaration.indexOf('{') + 1;
+    const statements = names.map(name => `${indent}attribute :>> ${name} = ${display[name]};`).join('\n');
+    declaration = `${declaration.slice(0, at)}\n${statements}${declaration.slice(at)}`;
+    const updated = source.slice(0, node.start) + declaration + source.slice(node.end);
+    const committed = await commitSource(absolute, view.file, updated, outlines);
+    if (!committed.success) return { success: false, reason: committed.error };
+    return { success: true, filePath: view.file };
+}
