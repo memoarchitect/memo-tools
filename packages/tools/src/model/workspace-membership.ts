@@ -108,7 +108,7 @@ export interface WorkspaceMembership {
 type Direction = 'sourceFollowsTarget' | 'targetFollowsSource' | 'neither';
 
 /** Whether `kind` is `root` or specializes it, through the kind registry's chain (every supertype). */
-function derivesFrom(kinds: KindRegistry, kind: string, root: string): boolean {
+export function derivesFrom(kinds: KindRegistry, kind: string, root: string): boolean {
     const seen = new Set<string>();
     const queue = [kind];
     for (let next = queue.pop(); next !== undefined; next = queue.pop()) {

@@ -41,6 +41,7 @@ import { sourceFingerprint } from '../toolchain/source-fingerprint.js';
 import { newToken, removeDevServerRecord, writeDevServerRecord } from '../server/dev-validate.js';
 import { createVersionServers } from '../server/version-servers.js';
 import { compileDeviceDhf } from '../dhf/device-dhf.js';
+import { evaluateWorkspaceGuide } from '../methodology/guide-service.js';
 import { runValidation, validationExitCode, type ValidateOptions, type ValidationIO } from './validate.js';
 import { compileResolvedProject } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
@@ -258,6 +259,8 @@ export async function devCommand(options: {
         model: MemoModel; irIdentities: Record<string, string>;
         constraints: ReturnType<typeof collectApiConstraints>; registries?: BuilderRegistries;
         sourceGraph: ReturnType<typeof buildSourceGraphFromPackages>; enumerations: EnumDefinitionDTO[];
+        /** The handoff the model was built from, which the Guide reads the method's steps from. */
+        api?: import('../stage2/api-model.js').ApiModel;
     } | undefined;
     // The newest compile, with the fingerprint of the sources it read (taken
     // before it ran): what `memo validate` is answered from while the
@@ -455,7 +458,7 @@ export async function devCommand(options: {
             : kept!.sourceGraph;
         const enumerations = accepted ? apiEnumerations(stage1.api!) : kept!.enumerations;
         if (accepted) {
-            lastAccepted = { model, irIdentities, constraints: nativeConstraints, registries: stage2Registries, sourceGraph, enumerations };
+            lastAccepted = { model, irIdentities, constraints: nativeConstraints, registries: stage2Registries, sourceGraph, enumerations, api: stage1.api };
         }
         for (const diagram of diagrams) {
             diagram.sourceFiles = viewSourceFiles(diagram, model.elements, sourceGraph);
@@ -607,7 +610,19 @@ export async function devCommand(options: {
             });
         },
     };
+    // Where the model stands against its method, for one workspace. Read-only: it writes nothing.
+    const guide = {
+        evaluate: (workspace?: string) => {
+            if (!lastAccepted?.api || !lastAccepted.registries) throw new Error('the working model is not built yet');
+            const packages = (methodologyDescriptor.effective?.chain ?? []).map(m => m.packageQualifiedName).filter((p): p is string => !!p);
+            return evaluateWorkspaceGuide({
+                api: lastAccepted.api, model: lastAccepted.model, registries: lastAccepted.registries,
+                constraints: lastAccepted.constraints, packages, workspace,
+            });
+        },
+    };
     const server = await createDevServer({
+        guide,
         devices,
         versions,
         readOnly: options.readOnly,

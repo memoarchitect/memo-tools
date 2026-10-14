@@ -326,6 +326,12 @@ function viewpointLabel(ref: string): string {
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+/** The name a viewpoint reference ends in: `vpSoS.vpPump` and `pkg::vpPump` are both `vpPump`. */
+const nameOfRef = (ref: string): string => {
+    const tail = ref.slice(ref.lastIndexOf('.') + 1);
+    return tail.includes('::') ? tail.slice(tail.lastIndexOf('::') + 2) : tail;
+};
+
 /** One authored viewpoint, resolved from the element that declares it. */
 interface ResolvedViewpoint {
     id: string;
@@ -475,6 +481,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             if (!usesRendererSampleFallback && !viewpointsById.has(authoredViewpoint.id)) {
                 viewpointsById.set(authoredViewpoint.id, {
                     id: authoredViewpoint.id,
+                    name: nameOfRef(authoredViewpoint.ref),
                     label: authoredViewpoint.label,
                     group: authoredViewpoint.group,
                     explorerLane: authoredViewpoint.explorerLane,
@@ -607,6 +614,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             const resolved = readViewpoint(element, element.id, model);
             viewpointsById.set(resolved.id, {
                 id: resolved.id,
+                name: nameOfRef(resolved.ref),
                 label: resolved.label,
                 group: resolved.group,
                 explorerLane: resolved.explorerLane,
@@ -635,6 +643,22 @@ export function viewpointRoles(viewpoints: readonly ViewpointDTO[]): string[] {
  * particular, so it is not one of a role's; a consumer filtering a list by role
  * decides for itself whether to keep those visible.
  */
-export function viewpointsForRole(viewpoints: readonly ViewpointDTO[], role: string): ViewpointDTO[] {
+export function viewpointsForRole(
+    viewpoints: readonly ViewpointDTO[], role: string,
+    /** A method's role views (plan O12): for a role one names, they are what it sees instead. */
+    roleViews: readonly RoleViewDTO[] = [],
+): ViewpointDTO[] {
+    const override = roleViews.filter(view => view.stakeholder === role);
+    if (override.length > 0) {
+        // A later role view for the same stakeholder replaces an earlier one: the last one wins.
+        const named = new Set(override[override.length - 1].viewpoints);
+        return viewpoints.filter(viewpoint => (viewpoint.name !== undefined && named.has(viewpoint.name)) || named.has(viewpoint.id));
+    }
     return viewpoints.filter(viewpoint => viewpoint.stakeholders?.includes(role));
+}
+
+/** What a methodology says a role works with: a stakeholder usage name and the viewpoints it names. */
+export interface RoleViewDTO {
+    stakeholder: string;
+    viewpoints: string[];
 }

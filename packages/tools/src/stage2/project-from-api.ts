@@ -170,7 +170,7 @@ function asScopeMode(raw: string | undefined): ScopeMode | undefined {
 const lastSegment = (name: string) => name.slice(name.lastIndexOf('::') + 2);
 
 /** The attribute, list and reference readers `readNativeUsages` uses, over the handoff. */
-class UsageReader {
+export class UsageReader {
     constructor(private readonly api: ApiModel) {}
 
     typeName(usage: ApiElement): string | undefined {

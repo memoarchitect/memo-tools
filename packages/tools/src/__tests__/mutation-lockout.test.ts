@@ -13,7 +13,7 @@ describe('session conflict mutation lockout', () => {
             'request:refresh', 'diagram:source:request',
             'methodology:source:request', 'open-file', 'import:preview',
             // Choosing, opening and comparing versions write nothing.
-            'versions:list', 'version:open', 'release:diff',
+            'versions:list', 'version:open', 'release:diff', 'guide:evaluate',
         ]) expect(isModelMutationMessage(type)).toBe(false);
     });
 });

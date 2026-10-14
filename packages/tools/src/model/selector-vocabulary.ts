@@ -82,6 +82,10 @@ const SELECTORS: readonly SelectorSpec[] = [
     { attribute: 'attributeName', vocabulary: 'attribute' },
     // An `enum def` is registered as a kind, so the kind registry answers this.
     { attribute: 'enumerationName', vocabulary: 'kind' },
+    // A method step names the kinds it takes and produces (`MethodologyWorkflowStep`): a kind the ontology
+    // never declared is a step that can never be done, and nothing else would say so.
+    { attribute: 'inputKinds', vocabulary: 'kind' },
+    { attribute: 'outputKinds', vocabulary: 'kind' },
 ];
 
 /** A selector naming something no registry declares. */

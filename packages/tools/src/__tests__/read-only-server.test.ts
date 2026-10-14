@@ -83,7 +83,7 @@ describe.runIf(compilerConfigured && examplesPresent && existsSync(join(__dirnam
         for (const type of READ_ONLY_MESSAGES) {
             expect(['request:refresh', 'dhf:docs:load', 'dhf:templates:list', 'dhf:template:read', 'diagram:source:request',
                 'methodology:source:request', 'diagram:parse', 'import:preview', 'rule:preview', 'open-file',
-                'versions:list', 'version:open', 'release:diff']).toContain(type);
+                'versions:list', 'version:open', 'release:diff', 'guide:evaluate']).toContain(type);
         }
     });
 });

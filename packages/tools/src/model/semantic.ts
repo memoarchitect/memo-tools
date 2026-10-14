@@ -317,6 +317,8 @@ export interface MemoModel {
 /** Viewpoint definition (serializable subset of config) */
 export interface ViewpointDTO {
     id: string;
+    /** The name the viewpoint is written with in source (`vpRiskChain`), which a method's role view names it by. */
+    name?: string;
     label: string;
     /** Optional ontology-authored grouping used by Memo Architect. */
     group?: string;
