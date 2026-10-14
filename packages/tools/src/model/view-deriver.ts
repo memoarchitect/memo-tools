@@ -550,7 +550,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         diagrams.push({
             id: isRendererSample
                 // The view's SHORT name: this id is user-facing — it routes,
-                // it keys a saved `.viewlayout` — and the qualified path would
+                // it keys a saved layout — and the qualified path would
                 // put the whole package chain in a URL.
                 ? `diag-sample-${el.shortName ?? el.id}`
                 // Same reason as the sample branch above: a diagram id routes

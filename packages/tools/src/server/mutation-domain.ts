@@ -5,15 +5,18 @@
 //
 //   semantic — what the model says. Lives in `.sysml`, reviewed, diffed,
 //              versioned, and read by every tool that reads SysML.
-//   layout   — where a symbol sits on a canvas. Lives in a `.viewlayout`
-//              sidecar, and says nothing about the model.
+//   layout   — where a symbol sits on a canvas. Lives in the `@MemoLayout…`
+//              statements of the `view` that owns it (`model/view-layout-block.ts`),
+//              and says nothing about the model.
 //
 // The rule this module enforces is that **no single action writes both**.
-// Moving a symbol must produce no `.sysml` diff, and editing a declaration must
-// leave the sidecar alone. The reason is reviewability: once a drag can change
-// source, a semantic diff can no longer be read as a semantic change, and once
-// a semantic edit can move symbols, a layout diff stops being noise you can
-// safely ignore.
+// Moving a symbol writes only those statements, and editing a declaration
+// leaves them alone. The reason is reviewability: once a drag can change a
+// declaration, a semantic diff can no longer be read as a semantic change, and
+// once a semantic edit can move symbols, a layout diff stops being noise you can
+// safely ignore. Both live in one file, so the line between them is the
+// statement: `layoutBlindRevision` hashes a file without them, and a change that
+// leaves that hash alone is a layout change.
 //
 // Keeping it as a check rather than a convention means a new handler cannot
 // quietly reintroduce the mixture: an unclassified mutation is a failure, not a
@@ -72,7 +75,7 @@ export class MixedMutationDomainError extends Error {
     constructor(readonly messageType: string, readonly offendingFields: readonly string[]) {
         super(
             `"${messageType}" is a ${mutationDomain(messageType)} mutation but carries layout data `
-            + `(${offendingFields.join(', ')}). Layout changes go to the view sidecar and semantic `
+            + `(${offendingFields.join(', ')}). Layout changes go to the view's layout statements and semantic `
             + 'changes go to SysML source; one action never writes both.',
         );
         this.name = 'MixedMutationDomainError';

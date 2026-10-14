@@ -4,21 +4,20 @@
 //
 // A view IS model content, and MEMO says so everywhere else: `view … :
 // MemoDiagramView { … }` is an ontology construct, `view-deriver.ts` turns one
-// into a diagram, and `viewLayoutPath()` keeps a view's layout in a
-// `.viewlayout` companion BESIDE the .sysml file that declares it — falling
-// back to the hidden `.memo/views/` directory only for a diagram with no
-// `sourceFile`, which is to say only for a diagram that was never declared.
+// into a diagram, and `saveViewLayout()` keeps a view's layout in the
+// `@MemoLayout…` statements of the view itself — and keeps none for a diagram
+// with no `sourceFile`, which is to say one that was never declared.
 //
 // `diagram:create` was the one path that produced such a diagram. It appended a
 // row to `.memo/user-diagrams.json`, so a view authored in the app was invisible
 // to `memo validate` and to the selected compiler, absent from review, untracked by git
-// wherever `.memo/` is ignored, and — having no source file — dragged its layout
-// into the hidden store as well. Two mechanisms for one concept, and the
+// wherever `.memo/` is ignored, and — having no source file — had nowhere to
+// keep its layout either. Two mechanisms for one concept, and the
 // authored half was the one the toolchain could not see.
 //
 // So creation writes the declaration, and everything downstream follows on its
 // own: the file watcher recompiles, `view-deriver` produces the diagram with
-// `sourceFile` set, and the layout companion lands next to the source.
+// `sourceFile` set, and its layout is kept in the view's own statements.
 //
 // WHERE the declaration goes is not configured, it is learned. A project that
 // already declares views of this kind has answered the question — same file,
