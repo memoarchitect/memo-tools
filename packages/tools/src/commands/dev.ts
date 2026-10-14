@@ -655,6 +655,13 @@ export async function devCommand(options: {
         },
     };
     const server = await createDevServer({
+        memoModel: () => lastAccepted?.model,
+        workspaceScope: root => {
+            if (!lastAccepted?.registries?.kindRegistry || !lastAccepted.registries.relationshipRegistry) return undefined;
+            const membership = computeWorkspaceMembership(lastAccepted.model, lastAccepted.registries);
+            const selection = selectWorkspace(lastAccepted.model, membership, root);
+            return selection.ok ? selection.scope : undefined;
+        },
         impact,
         guide,
         devices,
