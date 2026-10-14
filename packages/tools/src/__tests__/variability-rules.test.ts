@@ -33,10 +33,18 @@ async function flagged(seed: ((files: Record<string, string>) => void)[] = []): 
     }, 'ep-lab-family');
 }
 
-/** CR-ONT-090 and `selectRelease` are one definition of "selected": they agree on every record. */
+/**
+ * CR-ONT-090 and `selectRelease` are one definition of "selected": they agree on every record.
+ * A record is flagged when any point has two selected variants, or, when it is approved or released,
+ * when it leaves a point of its item unresolved.
+ */
 function checkAgainstSelectRelease(project: ProjectModel, flaggedByRule: string[]) {
     const records = [...project.model.elements.values()].filter(e => e.kind === 'ReleaseRecord');
-    const byCode = records.filter(r => selectRelease(project.model, r.id).points.some(p => p.selected.length > 1)).map(r => r.shortName).sort();
+    const judged = (status: string | undefined) => status === 'ElementStatusKind::approved' || status === 'ElementStatusKind::released';
+    const byCode = records.filter(r => {
+        const selection = selectRelease(project.model, r.id);
+        return selection.points.some(p => p.selected.length > 1) || (judged(r.attributes?.status as string | undefined) && selection.unresolved.length > 0);
+    }).map(r => r.shortName).sort();
     expect(flaggedByRule).toEqual(byCode);
 }
 
@@ -70,5 +78,67 @@ describe.runIf(compilerConfigured && examplesPresent)('release rules (O14)', () 
             edit(OPTIONS, 'attribute :>> status = ElementStatusKind::proposed;', 'attribute :>> status = ElementStatusKind::approved;'),
             edit(RELEASES, '#SelectsFeature dependency from relEu to featEuMarket;', '#SelectsFeature dependency from relEu to featEuMarket, featUsMarket;'),
         ])).toEqual({ ...silent, 'CR-ONT-090': ['relEu'] });
+    }, 120_000);
+
+    // The exactly-one half: the item's variation points are resolved by an approved or released record.
+    // `relEu` is released and a release of OutputStageSystem, whose one point has an EU and a US variant.
+    const SELECTS_NOTHING = [
+        edit(FEATURES, 'connection irrigatedTipNeedsUs', 'part featSterile : ProductFeature;\n    connection irrigatedTipNeedsUs'),
+        edit(RELEASES, '#SelectsFeature dependency from relEu to featEuMarket;', '#SelectsFeature dependency from relEu to featSterile;'),
+    ];
+    // A second point inside a variant, whose variants realize features of their own.
+    const nested = (owner: 'euOutput' | 'usOutput') => [
+        edit(FEATURES, 'connection irrigatedTipNeedsUs', 'part featFilterA : ProductFeature;\n    part featFilterB : ProductFeature;\n    connection irrigatedTipNeedsUs'),
+        edit(OPTIONS, `variant part ${owner} : LogicalComponent {`, `variant part ${owner} : LogicalComponent {
+                variation part stageFilter : LogicalComponent {
+                    variant part filterA : LogicalComponent;
+                    variant part filterB : LogicalComponent;
+                }`),
+        edit(OPTIONS, '    }\n}\n', `    }
+}
+package ep_lab_family_ablation_filter_features {
+    private import memo_architecture_variability::*;
+    private import ep_lab_family_features::*;
+    private import ep_lab_family_ablation_options::*;
+    #RealizesFeature dependency from OutputStageSystem::outputStage::${owner}::stageFilter::filterA to featFilterA;
+    #RealizesFeature dependency from OutputStageSystem::outputStage::${owner}::stageFilter::filterB to featFilterB;
+}
+`),
+    ];
+
+    it('CR-ONT-090: a released record that selects none of its item\'s variants leaves the point unresolved', async () => {
+        expect(await flagged(SELECTS_NOTHING)).toEqual({ ...silent, 'CR-ONT-090': ['relEu'] });
+    }, 120_000);
+
+    it('CR-ONT-090: a draft record may leave a point unresolved', async () => {
+        expect(await flagged([
+            ...SELECTS_NOTHING,
+            edit(RELEASES, 'attribute :>> status = ElementStatusKind::released;', 'attribute :>> status = ElementStatusKind::draft;'),
+        ])).toEqual(silent);
+    }, 120_000);
+
+    it('CR-ONT-090: a point whose variants realize no feature is not the record\'s to resolve', async () => {
+        expect(await flagged([
+            edit(OPTIONS, '        #RealizesFeature dependency from outputStage::euOutput', `        variation part cableStage : LogicalComponent {
+            variant part shortCable : LogicalComponent;
+            variant part longCable : LogicalComponent;
+        }
+        #RealizesFeature dependency from outputStage::euOutput`),
+        ])).toEqual(silent);
+    }, 120_000);
+
+    it('CR-ONT-090: a point inside a variant the record does not select is not in its product', async () => {
+        expect(await flagged(nested('usOutput'))).toEqual(silent);
+    }, 120_000);
+
+    it('CR-ONT-090: a point inside a selected variant is judged', async () => {
+        expect(await flagged(nested('euOutput'))).toEqual({ ...silent, 'CR-ONT-090': ['relEu'] });
+    }, 120_000);
+
+    it('CR-ONT-090: a record with no item is judged only for two variants of one point', async () => {
+        expect(await flagged([
+            ...SELECTS_NOTHING,
+            edit(RELEASES, '    #ReleaseOf dependency from relEu to OutputStageSystem;\n', ''),
+        ])).toEqual(silent);
     }, 120_000);
 });

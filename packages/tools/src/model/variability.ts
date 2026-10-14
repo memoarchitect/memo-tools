@@ -34,6 +34,14 @@ export interface ReleaseSelection {
     points: VariationPointSelection[];
     /** Variants the release does not select, and everything they own: the 100% view leaves these out. */
     excluded: Set<string>;
+    /**
+     * The variation points of the item the record is a release of (`releaseOf`) that it leaves
+     * unresolved: the point owns at least one variant that realizes a feature, is not itself in an
+     * excluded variant, and the record selects zero or several of its variants rather than one.
+     * Empty for a record with no `releaseOf`: there is no item to judge. CR-ONT-090's exactly-one
+     * half is this list, for an approved or released record.
+     */
+    unresolved: string[];
 }
 
 /** The variation points of a model with their variants and the features the variants realize. */
@@ -94,7 +102,27 @@ export function selectRelease(graph: VariabilityGraph, recordId: string): Releas
     }
     // A variant another point also selects stays; only a variant nothing selects is left out.
     for (const point of points) for (const variant of point.selected) dropped.delete(variant);
-    return { record: recordId, features, points, excluded: closeOverOwnership(graph, dropped) };
+    const excluded = closeOverOwnership(graph, dropped);
+    return { record: recordId, features, points, excluded, unresolved: unresolvedPoints(graph, recordId, points, excluded) };
+}
+
+/** The item a record is a release of, and the variation points that item owns. */
+function unresolvedPoints(graph: VariabilityGraph, recordId: string, points: VariationPointSelection[], excluded: Set<string>): string[] {
+    const items = new Set(graph.relationships.filter(r => r.type === 'releaseOf' && r.sourceId === recordId).map(r => r.targetId));
+    if (items.size === 0) return [];
+    const realized = realizedFeatures(graph);
+    return points
+        .filter(p => p.selected.length !== 1)
+        .filter(p => p.variants.some(v => (realized.get(v) ?? []).length > 0))
+        .filter(p => !excluded.has(p.variationPoint))
+        .filter(p => ownedBy(graph, p.variationPoint, items))
+        .map(p => p.variationPoint);
+}
+
+/** Whether `id` is owned, at any depth, by one of `owners` (not the owner itself). */
+function ownedBy(graph: VariabilityGraph, id: string, owners: Set<string>): boolean {
+    const own = graph.elements.get(id)?.owner;
+    return own !== undefined && within(graph, own, owners);
 }
 
 function closeOverOwnership(graph: VariabilityGraph, roots: Set<string>): Set<string> {
