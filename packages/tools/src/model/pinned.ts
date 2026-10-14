@@ -16,7 +16,8 @@
 //
 // What a pinned build uses from today, not from the commit: the compiler and the ontology the
 // locator resolves. The worktree sits under the project, so the locator reaches the project's
-// installed ontology, not the one at that commit. `PinnedBuild` names both so a reader can see.
+// installed ontology, not the one at that commit. `ontologyDrift` says where the commit's lock names another
+// version, and a pinned run reports it.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { execFile } from 'node:child_process';
@@ -26,6 +27,8 @@ import { basename, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import type { MEMOConfig } from './config.js';
 import { loadProjectSettings } from './config-loader.js';
+import { readLockFile } from '../lock.js';
+import { discoverLibraryRoots } from './native-project.js';
 import { readManifest } from './package-manifest.js';
 import type { MemoModel } from './semantic.js';
 import { computeWorkspaceMembership } from './workspace-membership.js';
@@ -435,15 +438,40 @@ export async function worktreeIsClean(pin: Pin): Promise<boolean> {
 
 /** What a read-only server shows about an SoS version: the record and the commits it was built from. */
 export function releaseInfo(build: ReleaseBuild): PinnedInfo {
+    const drift = ontologyDrift(build.assembly.dir);
     return {
         kind: 'release', label: build.releasePins.record,
         commits: [{ name: 'version', commit: build.releasePins.commit }, ...build.releasePins.systems.map(s => ({ name: s.system, commit: s.commit }))],
+        ...(drift.length ? { ontologyDrift: drift } : {}),
     };
 }
 
 /** What a read-only server shows about an unreleased ref: a tag or a branch is not a release. */
 export function refInfo(ref: string, pin: Pin): PinnedInfo {
-    return { kind: 'ref', label: ref, commits: [{ name: 'model', commit: pin.sha }], notARelease: true };
+    const drift = ontologyDrift(pin.projectDir);
+    return { kind: 'ref', label: ref, commits: [{ name: 'model', commit: pin.sha }], notARelease: true, ...(drift.length ? { ontologyDrift: drift } : {}) };
+}
+
+/**
+ * The packages a commit locked at a version this installation does not resolve.
+ *
+ * A pinned build is made with the ontology and compiler installed today: the locator reaches the installation,
+ * not the commit's copy. The commit's `memo.lock.yaml` says which version of each package it was made with, so
+ * the difference is knowable even though the build cannot yet use the old one; saying it is what stops a release
+ * rebuilt long after being read as the model as it was.
+ */
+export function ontologyDrift(pinnedProjectDir: string): { name: string; locked: string; used: string }[] {
+    const lock = readLockFile(pinnedProjectDir);
+    if (!lock) return [];
+    const installed = discoverLibraryRoots(pinnedProjectDir);
+    const drift: { name: string; locked: string; used: string }[] = [];
+    for (const entry of lock.packages) {
+        const root = installed.find(candidate => candidate.packageName === entry.name);
+        if (root?.packageVersion && entry.version && root.packageVersion !== entry.version) {
+            drift.push({ name: entry.name, locked: entry.version, used: root.packageVersion });
+        }
+    }
+    return drift;
 }
 
 // ─── A release record, built; its previous release ───────────────────────────

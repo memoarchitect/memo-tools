@@ -11,7 +11,7 @@ import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { findProjectRoot } from '../model/native-project.js';
-import { buildRelease, pinWorktree, refInfo, releaseInfo } from '../model/pinned.js';
+import { buildRelease, ontologyDrift, pinWorktree, refInfo, releaseInfo } from '../model/pinned.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import type { PinnedInfo } from '../protocol/messages.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
@@ -41,6 +41,9 @@ export async function pinnedTarget(projectDir: string | undefined, options: Reco
     try {
         if (at) {
             const pin = await pinWorktree(root, at);
+            for (const drift of ontologyDrift(pin.projectDir)) {
+                console.error(chalk.yellow(`⚠ ${at} was made with ${drift.name} ${drift.locked}; this run uses ${drift.used}. Rules and kinds may differ from then.`));
+            }
             return {
                 dir: pin.projectDir, label: `the model at ${at} (${pin.sha.slice(0, 7)}), in ${pin.dir}`,
                 info: refInfo(at, pin),
