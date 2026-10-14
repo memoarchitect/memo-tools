@@ -33,7 +33,6 @@ const SEMANTIC_ROOTS = [
     'model/native-project.ts',
     'model/methodology-resolver.ts',
     'model/effective-scope.ts',
-    'model/builder.ts',
     'model/kind-registry.ts',
     'model/relationship-registry.ts',
     'validator/constraint-loader.ts',

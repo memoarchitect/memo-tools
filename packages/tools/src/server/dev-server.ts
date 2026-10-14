@@ -307,8 +307,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     // three state payloads from a rebuild share one revision so the browser
     // cannot combine a model from one build with validation from another.
     const workspaceSessionId = randomUUID();
-    /** The layout saves in flight, in order. */
-    let layoutSaves: Promise<void> = Promise.resolve();
+    /** The model writes in flight, in order. */
+    let mutationQueue: Promise<void> = Promise.resolve();
+    /** The newest layout message seen for each diagram. */
+    const latestLayoutMessage = new Map<string, number>();
     const writeTransactions = new Map<string, {
         id: string; hash: string; createdAt: number; unmatchedWrites: number;
     }>();
@@ -1393,8 +1395,18 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      * granularity is too coarse to trust for conflict detection.
      */
     function fileRevision(contents: string): string {
-        // Layout-blind: a box moved on a canvas is not an edit of the file.
+        // Layout-blind: a box moved on a canvas is not an edit of the file. For a
+        // targeted edit, which is computed again from the file as it is.
         return layoutBlindRevision(contents);
+    }
+
+    /**
+     * The revision of a whole file's text, layout included. A save that replaces
+     * the file with text an editor loaded earlier must not pass when a layout was
+     * written into the file since: it would put the old statements back.
+     */
+    function textRevision(contents: string): string {
+        return createHash('sha256').update(contents).digest('hex').slice(0, 16);
     }
 
     /**
@@ -1519,7 +1531,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             options.onClientCountChanged?.(clients.size);
         });
 
-        ws.on('message', async (data: any) => {
+        const handleMessage = async (data: any) => {
             try {
                 const msg = JSON.parse(data.toString());
                 if (options.readOnly && !isReadOnlyMessage(msg.type)) {
@@ -1797,16 +1809,17 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // The layout is written into the `view` that declares the
                     // diagram, and nowhere else. A diagram that is not a declared
                     // view keeps its layout for the session only.
-                    // One at a time: each save reads the file, has the compiler check the
-                    // result, and writes it, so two saves of views in one file would
-                    // otherwise each start from the text before the other.
-                    const saving = layoutSaves.then(async () => diagram
+                    const saved = diagram
                         ? await saveViewLayout(options.projectRoot, diagram, layout, (await authoringContext()).outlines)
-                        : { success: false, reason: `no view "${diagramId}" is declared` } as const);
-                    layoutSaves = saving.then(() => undefined, () => undefined);
-                    const saved = await saving;
+                        : { success: false, reason: `no view "${diagramId}" is declared` } as const;
                     if (!saved.success) {
                         console.log(`[Diagram] Layout of ${diagramId} not saved: ${saved.reason}`);
+                        // Said to the sender, who is showing a layout the file does not hold.
+                        ws.send(JSON.stringify({ type: 'app:error', payload: {
+                            requestId: (msg.payload as any)?.requestId,
+                            error: `The layout of "${diagram?.name ?? diagramId}" was not saved: ${saved.reason}.`,
+                        } }));
+                        return;
                     } else if ('changed' in saved && saved.changed && saved.filePath) {
                         console.log(`[Diagram] Saved layout: ${saved.filePath}`);
                         // The file watcher sees this write, finds it layout-only and
@@ -1914,7 +1927,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             throw new Error('The requested file is not in the resolved methodology source set.');
                         }
                         const onDisk = readFileSync(path, 'utf8');
-                        const revision = fileRevision(onDisk);
+                        const revision = textRevision(onDisk);
                         if (operation === 'load') {
                             reply({ success: true, text: onDisk, revision });
                             return;
@@ -1940,7 +1953,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         }
                         writeFileSync(path, text, 'utf8');
                         const transactionId = recordWriteTransaction(String(sourceFile), text);
-                        reply({ success: true, revision: fileRevision(text), transactionId });
+                        reply({ success: true, revision: textRevision(text), transactionId });
                     } catch (error) {
                         reply({ success: false, error: error instanceof Error ? error.message : String(error) });
                     }
@@ -1974,7 +1987,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         }
 
                         const onDisk = readFileSync(path, 'utf8');
-                        const revision = fileRevision(onDisk);
+                        const revision = textRevision(onDisk);
                         if (request.baseRevision !== revision) {
                             reply({ success: false, conflict: true, revision,
                                 error: `${request.sourceFile} changed on disk; no write was made.` });
@@ -1988,7 +2001,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         }
                         writeFileSync(path, updated, 'utf8');
                         const transactionId = recordWriteTransaction(String(request.sourceFile), updated);
-                        reply({ success: true, revision: fileRevision(updated), transactionId });
+                        reply({ success: true, revision: textRevision(updated), transactionId });
                     } catch (error) {
                         reply({ success: false, error: error instanceof Error ? error.message : String(error) });
                     }
@@ -2029,7 +2042,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             type: 'diagram:source:result',
                             payload: {
                                 requestId, diagramId, operation: 'load', success: true,
-                                sourceFile: source.sourceFile, text, revision: fileRevision(text),
+                                sourceFile: source.sourceFile, text, revision: textRevision(text),
                             },
                         }));
                     } catch (e: any) {
@@ -2049,7 +2062,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         // began. The client gets the current file back so it can
                         // show the conflict instead of losing one of the two.
                         const onDisk = readFileSync(source.path, 'utf8');
-                        const currentRevision = fileRevision(onDisk);
+                        const currentRevision = textRevision(onDisk);
                         if (baseRevision !== currentRevision) {
                             console.warn(`[Diagram] Refused stale save of ${source.sourceFile} ` +
                                 `(based on ${baseRevision}, disk is ${currentRevision})`);
@@ -2080,7 +2093,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             type: 'diagram:source:result',
                             payload: {
                                 requestId, diagramId, operation: 'save', success: true,
-                                sourceFile: source.sourceFile, revision: fileRevision(text),
+                                sourceFile: source.sourceFile, revision: textRevision(text),
                                 transactionId,
                                 parseErrors: await sysmlParseErrors(source.sourceFile, text),
                             },
@@ -2687,6 +2700,27 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
             } catch (e) {
                 console.error('WebSocket Error:', e);
             }
+        };
+        // Every write is made from a read of the file it writes, with the compiler
+        // between the two, so two writes in flight would each start from the text
+        // before the other and one would be lost. They run one at a time, in the
+        // order they arrived. A layout message names the whole layout of its
+        // diagram, so one that a newer message for the same diagram has overtaken
+        // is dropped rather than written.
+        ws.on('message', (data: any) => {
+            let type: string | undefined;
+            let layoutOf: string | undefined;
+            try {
+                const parsed = JSON.parse(data.toString());
+                type = parsed?.type;
+                if (type === 'diagram:layout:update') layoutOf = String(parsed?.payload?.diagramId);
+            } catch { /* the handler reports a message that does not parse */ }
+            if (!type || !isModelMutationMessage(type)) { void handleMessage(data); return; }
+            const seq = layoutOf === undefined ? 0 : (latestLayoutMessage.get(layoutOf) ?? 0) + 1;
+            if (layoutOf !== undefined) latestLayoutMessage.set(layoutOf, seq);
+            const run = mutationQueue.then(() =>
+                layoutOf !== undefined && latestLayoutMessage.get(layoutOf) !== seq ? undefined : handleMessage(data));
+            mutationQueue = run.then(() => undefined, () => undefined);
         });
     });
 

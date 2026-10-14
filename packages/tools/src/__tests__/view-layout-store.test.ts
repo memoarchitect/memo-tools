@@ -119,4 +119,31 @@ describe('a view\'s layout lives in the view', () => {
         const loaded = loadViewLayouts(root, [diagram()], id => id === 'heater' ? 'coffee::heater' : undefined);
         expect(Object.keys(loaded['view-thermal'].nodes)).toEqual(['coffee::heater']);
     });
+
+    it('has the compiler check the write that adds the import, and no later one', async () => {
+        const root = project();
+        let compiles = 0;
+        const counting: OutlineSource = { outline: accepting.outline, verify: async () => { compiles++; return undefined; } };
+        await saveViewLayout(root, diagram(), layout, counting);
+        expect(compiles).toBe(1);
+        await saveViewLayout(root, diagram(), { ...layout, nodes: { heater: { x: 5, y: 6 } } }, counting);
+        await saveViewLayout(root, diagram('service'), { nodes: { boiler: { x: 1, y: 2 } }, edges: {} }, counting);
+        expect(compiles).toBe(1);
+    });
+
+    it('writes nothing it could not state as SysML, whatever the client sent', async () => {
+        const root = project();
+        const hostile = {
+            nodes: {
+                ok: { x: 1, y: 2, textAlign: 'diagonal', ports: { p: { x: Number.NaN, y: 1 } } },
+                bad: { x: Number.POSITIVE_INFINITY, y: 0 },
+            },
+            edges: { e: { points: [{ x: 1, y: Number.NaN }], sourceSide: 'sideways', style: 'wavy' } },
+            canvas: { portWalls: { q: 'up' } },
+        } as unknown as DiagramLayout;
+        await saveViewLayout(root, diagram(), hostile, accepting);
+        const text = readFileSync(join(root, FILE), 'utf8');
+        expect(text).not.toMatch(/NaN|Infinity|diagonal|sideways|wavy|::up/);
+        expect(loadViewLayouts(root, [diagram()])['view-thermal'].nodes).toEqual({ ok: { x: 1, y: 2, ports: {} } });
+    });
 });

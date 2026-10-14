@@ -332,18 +332,34 @@ const round = (n: number) => {
     return Object.is(r, -0) ? 0 : r;
 };
 const q = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n')}"`;
-const sideLiteral = (v: string) => `MemoLayoutSide::${v}`;
 
 type Field = [name: string, value: string | undefined];
+
+/** A hand-drawn route as x, y, x, y, …; absent unless every point is a finite pair. */
+function routeLiteral(points: ReadonlyArray<{ x: number; y: number }> | undefined): string | undefined {
+    if (!Array.isArray(points) || points.length === 0) return undefined;
+    const flat = points.flatMap(p => [p?.x, p?.y]);
+    return flat.every(v => typeof v === 'number' && Number.isFinite(v)) ? `(${flat.map(v => round(v as number)).join(', ')})` : undefined;
+}
 
 function statement(definition: string, fields: Field[], indent: string): string {
     const body = fields.filter(([, v]) => v !== undefined).map(([k, v]) => `:>> ${k} = ${v};`).join(' ');
     return `${indent}@${definition} { ${body} }`;
 }
 
-const n = (v: number | undefined) => v === undefined ? undefined : String(round(v));
-const s = (v: string | undefined) => v === undefined ? undefined : q(v);
-const b = (v: boolean | undefined) => v === undefined ? undefined : String(v);
+// The layout comes from a client, so nothing in it is trusted to be SysML: a number
+// that is not finite would be written as text no compiler reads, and an enum literal
+// outside its set would not resolve. Such a value is left out, not repaired.
+const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? String(round(v)) : undefined;
+const s = (v: unknown) => typeof v === 'string' ? q(v) : undefined;
+const b = (v: unknown) => typeof v === 'boolean' ? String(v) : undefined;
+const SIDES = new Set(['top', 'bottom', 'left', 'right']);
+const LINE_STYLES = new Set(['solid', 'dashed', 'dotted']);
+const ALIGNS = new Set(['left', 'center', 'right']);
+const VERTICAL_ALIGNS = new Set(['top', 'middle', 'bottom']);
+const literal = (type: string, allowed: Set<string>, v: unknown) =>
+    typeof v === 'string' && allowed.has(v) ? `${type}::${v}` : undefined;
+const side = (v: unknown) => literal('MemoLayoutSide', SIDES, v);
 
 /**
  * The statements that state this layout, one per line, in a fixed order (so a
@@ -372,41 +388,43 @@ export function layoutToStatements(layout: DiagramLayout, indent: string): strin
 
     for (const id of Object.keys(layout.nodes ?? {}).sort()) {
         const node = layout.nodes[id];
+        if (n(node?.x) === undefined || n(node?.y) === undefined) continue;
         lines.push(statement('MemoLayoutNode', [
             ['element', q(id)],
-            ['parentElement', node.parent === undefined ? undefined : q(node.parent ?? '')],
+            ['parentElement', node.parent === undefined ? undefined : q(typeof node.parent === 'string' ? node.parent : '')],
             ['x', n(node.x)], ['y', n(node.y)],
             ['width', n(node.width)], ['height', n(node.height)],
             ['fillColor', s(node.color)], ['borderColor', s(node.borderColor)], ['textColor', s(node.textColor)],
             ['fontSize', n(node.fontSize)], ['fontWeight', n(node.fontWeight)],
-            ['textAlign', node.textAlign ? `MemoLayoutAlign::${node.textAlign}` : undefined],
-            ['verticalAlign', node.verticalAlign ? `MemoLayoutVerticalAlign::${node.verticalAlign}` : undefined],
+            ['textAlign', literal('MemoLayoutAlign', ALIGNS, node.textAlign)],
+            ['verticalAlign', literal('MemoLayoutVerticalAlign', VERTICAL_ALIGNS, node.verticalAlign)],
             ['opacity', n(node.opacity)],
         ], indent));
         for (const name of Object.keys(node.ports ?? {}).sort()) {
             const port = node.ports![name];
+            if (n(port?.x) === undefined || n(port?.y) === undefined) continue;
             lines.push(statement('MemoLayoutPort', [
                 ['element', q(id)], ['portName', q(name)], ['x', n(port.x)], ['y', n(port.y)],
-                ['side', port.side ? sideLiteral(port.side) : undefined], ['size', n(port.size)],
+                ['side', side(port.side)], ['size', n(port.size)],
             ], indent));
         }
     }
     for (const id of Object.keys(canvas?.portWalls ?? {}).sort()) {
         lines.push(statement('MemoLayoutPortWall', [
-            ['portId', q(id)], ['wall', sideLiteral(canvas!.portWalls![id])],
+            ['portId', q(id)], ['wall', side(canvas!.portWalls![id])],
         ], indent));
     }
     for (const id of Object.keys(layout.edges ?? {}).sort()) {
         const edge = layout.edges[id];
         const fields: Field[] = [
             ['color', s(edge.color)], ['strokeWidth', n(edge.strokeWidth)], ['labelVisible', b(edge.labelVisible)],
-            ['lineStyle', edge.style ? `MemoLayoutLineStyle::${edge.style}` : undefined],
-            ['route', edge.points?.length ? `(${edge.points.flatMap(p => [round(p.x), round(p.y)]).join(', ')})` : undefined],
+            ['lineStyle', literal('MemoLayoutLineStyle', LINE_STYLES, edge.style)],
+            ['route', routeLiteral(edge.points)],
             ['sourceElement', s(edge.source)], ['targetElement', s(edge.target)],
             ['sourcePortId', s(edge.sourcePortId)], ['targetPortId', s(edge.targetPortId)],
             ['manualLanding', b(edge.manualLanding)],
-            ['sourceSide', edge.sourceSide ? sideLiteral(edge.sourceSide) : undefined], ['sourceT', n(edge.sourceT)],
-            ['targetSide', edge.targetSide ? sideLiteral(edge.targetSide) : undefined], ['targetT', n(edge.targetT)],
+            ['sourceSide', side(edge.sourceSide)], ['sourceT', n(edge.sourceT)],
+            ['targetSide', side(edge.targetSide)], ['targetT', n(edge.targetT)],
         ];
         // An edge entry that overrides nothing says nothing.
         if (fields.every(([, v]) => v === undefined)) continue;
@@ -414,6 +432,7 @@ export function layoutToStatements(layout: DiagramLayout, indent: string): strin
     }
     for (const id of Object.keys(layout.annotations ?? {}).sort()) {
         const note = layout.annotations![id];
+        if (typeof note?.kind !== 'string' || n(note.x) === undefined || n(note.y) === undefined) continue;
         lines.push(statement('MemoLayoutNote', [
             ['noteId', q(id)], ['noteKind', q(note.kind)], ['x', n(note.x)], ['y', n(note.y)],
             ['width', n(note.width)], ['height', n(note.height)], ['text', q(note.text)], ['fillColor', s(note.color)],
@@ -504,8 +523,13 @@ const LAYOUT_PACKAGE = 'memo_viewpoints_definitions_layout';
  * outermost package, where every view in the file can see it; never removed,
  * because other views in the file may use it and an unused import is harmless.
  */
+/** Whether the file already imports the package the statements are typed by. */
+export function importsLayoutPackage(text: string): boolean {
+    return new RegExp(`\\bimport\\s+${LAYOUT_PACKAGE}::`).test(text);
+}
+
 function withLayoutImport(text: string): string {
-    if (new RegExp(`\\bimport\\s+${LAYOUT_PACKAGE}::`).test(text)) return text;
+    if (importsLayoutPackage(text)) return text;
     const { rootBodyStart } = scan(text);
     if (rootBodyStart === undefined) return text;
     const lineStart = text.lastIndexOf('\n', rootBodyStart - 1) + 1;
