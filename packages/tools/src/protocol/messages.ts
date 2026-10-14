@@ -108,7 +108,8 @@ export type ServerMessage =
     | VersionReadyMessage
     | VersionErrorMessage
     | ReleaseDiffResultMessage
-    | ReleaseCreateResultMessage;
+    | ReleaseCreateResultMessage
+    | DeviceDhfResultMessage;
 
 /**
  * What a read-only server says about itself when a client connects: a pinned release or ref, or a
@@ -146,6 +147,21 @@ export interface VersionsUpdateMessage {
 export interface ReleaseCreateResultMessage {
     type: 'release:create:result';
     payload: { requestId?: string; success: boolean; filePath?: string; name?: string; modelCommit?: string; error?: string };
+}
+
+/** The design history of one regulated device was generated, or why not. */
+export interface DeviceDhfResultMessage {
+    type: 'dhf:device:result';
+    payload: {
+        requestId?: string;
+        success: boolean;
+        error?: string;
+        outputDir?: string;
+        device?: { name: string; jurisdiction: string; submissionId?: string };
+        releases?: { record: string; commit: string; workspace?: string; excludedVariants: string[]; documents: { id: string; title: string; group: string; path: string; warnings: number }[] }[];
+        riskDocuments?: number;
+        notes?: string[];
+    };
 }
 
 /** What changed between two releases, as `release:diff` answers it. */

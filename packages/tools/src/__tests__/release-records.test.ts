@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeWorkspaceMembership } from '../model/workspace-membership.js';
-import { selectRelease } from '../model/variability.js';
+import { excludedFor, selectRelease, selectedFeatures } from '../model/variability.js';
 import { collectApiConstraints } from '../validator/constraint-loader-api.js';
 import { validateModel } from '../validator/rule-engine.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
@@ -82,6 +82,16 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
             expect(result.violations.filter(v => ['CR-ONT-088', 'CR-ONT-089', 'CR-ONT-090'].includes(v.ruleId))).toEqual([]);
             for (const record of [...project.model.elements.values()].filter(e => e.kind === 'ReleaseRecord')) {
                 expect(selectRelease(project.model, record.id).unresolved, record.shortName).toEqual([]);
+            }
+        });
+    }, 120_000);
+
+    it('computes what a selection leaves out the same way for a graph that holds no record (devices)', async () => {
+        await withReleases(project => {
+            for (const record of [...project.model.elements.values()].filter(e => e.kind === 'ReleaseRecord')) {
+                const graph = { elements: project.model.elements, relationships: project.model.relationships };
+                expect([...excludedFor(graph, selectedFeatures(graph, record.id))].sort(), record.shortName)
+                    .toEqual([...selectRelease(graph, record.id).excluded].sort());
             }
         });
     }, 120_000);

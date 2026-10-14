@@ -67,6 +67,8 @@ export interface DevServerOptions {
      * A pinned build runs this way, so no write path is reachable from it.
      */
     readOnly?: boolean;
+    /** Generating the design history of a regulated device from the releases it covers. */
+    devices?: { generate(device: string): Promise<import('../dhf/device-dhf.js').DeviceDhfResult> };
     /** Opening another version: the refs on offer, and a read-only server for a chosen one. */
     versions?: import('./version-servers.js').VersionServers;
     /** What a read-only server tells each client about itself. */
@@ -2506,6 +2508,15 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         ws.send(JSON.stringify({ type: 'version:ready', payload: { requestId, ...opened } }));
                     } catch (e: any) {
                         ws.send(JSON.stringify({ type: 'version:error', payload: { requestId, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'dhf:device:generate') {
+                    const requestId = msg.payload?.requestId;
+                    try {
+                        if (!options.devices) throw new Error('Documents are generated from the working version.');
+                        const result = await options.devices.generate(String(msg.payload?.device ?? ''));
+                        ws.send(JSON.stringify({ type: 'dhf:device:result', payload: { requestId, success: true, ...result } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'dhf:device:result', payload: { requestId, success: false, error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'release:diff') {
                     const requestId = msg.payload?.requestId;

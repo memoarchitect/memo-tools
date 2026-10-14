@@ -78,7 +78,7 @@ export function buildStandardsReport(args: {
     regimeOverride?: string[];
 }): StandardsReport {
     const library = loadStandardsLibrary(args.projectRoot);
-    const declared = readDeclaredRegimes(args.model);
+    const declared = readDeclaredRegimes(args.model, args.registries?.kindRegistry);
     const flagged = (args.regimeOverride ?? []).filter(Boolean);
     const regimes = flagged.length > 0 ? flagged : declared.regimes;
 
@@ -103,7 +103,12 @@ export async function standardsCheckCommand(options: StandardsCheckOptions = {})
     const cwd = process.cwd();
     const { model, registries, projectRoot, native } = await loadProjectModel(cwd);
 
-    const declared = readDeclaredRegimes(model);
+    const declared = readDeclaredRegimes(model, registries?.kindRegistry);
+    if (declared.ignoredBinding.length > 0) {
+        console.error(chalk.yellow(`⚠ The model declares regulated devices, so its regulatoryRegime (${declared.ignoredBinding.join(', ')}) is ignored: each device states its own jurisdiction.`));
+    } else if (declared.source === 'binding') {
+        console.error(chalk.yellow('⚠ regulatoryRegime on the method binding is deprecated: declare a RegulatedDevice with a jurisdiction for each approval.'));
+    }
     const flagged = (options.regime ?? []).filter(Boolean);
 
     const full = buildStandardsReport({ model, registries, projectRoot, regimeOverride: flagged });

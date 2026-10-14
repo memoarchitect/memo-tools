@@ -100,6 +100,47 @@ export function createFamilyRepo(): FamilyRepo {
     const mergeRecord = record('relFirmwareMerge', 'EnergyControllerFirmware', c7, 509);
     const withMerge = readFileSync(join(root, 'model/sos/release_records.sysml'), 'utf8');
     writeFileSync(join(root, 'model/sos/release_records.sysml'), withMerge.replace(/\}\s*$/, `${sideRecord}\n${mergeRecord}\n}\n`));
-    const c8 = commit('c8 records at the merge');
+    // Two releases of one system that differ by the variant they build, and the two approvals that cover them.
+    writeFileSync(join(root, 'model/sos/devices.sysml'), `package ep_lab_family_devices {
+    private import memo_core_common::*;
+    private import memo_core_dimensions::*;
+    private import memo_core_enumerations::*;
+    private import memo_artifacts_configuration_management::*;
+    private import memo_architecture_variability::*;
+    private import ep_lab_family_features::*;
+    private import ep_lab_family_ablation_options::*;
+
+    part relOutputEu : ReleaseRecord {
+        @MemoIdentity { :>> label = "Output stage EU"; }
+        attribute :>> status = ElementStatusKind::draft;
+        attribute :>> partNumber = "PN-3101";
+        attribute :>> revision = "A";
+        attribute :>> modelCommit = "${c3}";
+    }
+    part relOutputUs : ReleaseRecord {
+        @MemoIdentity { :>> label = "Output stage US"; }
+        attribute :>> status = ElementStatusKind::draft;
+        attribute :>> partNumber = "PN-3102";
+        attribute :>> revision = "A";
+        attribute :>> modelCommit = "${c3}";
+    }
+    #ReleaseOf dependency from relOutputEu to OutputStageSystem;
+    #ReleaseOf dependency from relOutputUs to OutputStageSystem;
+    #SelectsFeature dependency from relOutputEu to featEuMarket;
+    #SelectsFeature dependency from relOutputUs to featUsMarket;
+
+    part devEu : RegulatedDevice {
+        attribute :>> jurisdiction = RegulatoryRegimeKind::MDR;
+        attribute :>> submissionId = "EU-0001";
+    }
+    part devFda : RegulatedDevice {
+        attribute :>> jurisdiction = RegulatoryRegimeKind::FDA_510k;
+        attribute :>> submissionId = "K000001";
+    }
+    #Covers dependency from devEu to relOutputEu;
+    #Covers dependency from devFda to relOutputUs;
+}
+`);
+    const c8 = commit('c8 records at the merge, two regulated devices');
     return { root, c1, c2, c3, c4, c5, c6, cSide, c7, c8, remove: () => { git(root, 'worktree', 'prune'); rmSync(root, { recursive: true, force: true }); } };
 }
