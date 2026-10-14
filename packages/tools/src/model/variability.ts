@@ -84,7 +84,21 @@ function within(graph: VariabilityGraph, id: string, ancestor: Set<string>): boo
 
 /** The release's view of the model's design options: which variants it selects and which it leaves out. */
 export function selectRelease(graph: VariabilityGraph, recordId: string): ReleaseSelection {
-    const features = selectedFeatures(graph, recordId);
+    return selectForFeatures(graph, recordId, selectedFeatures(graph, recordId));
+}
+
+/**
+ * The elements a selection of features leaves out of the model: the variants nothing selects, and
+ * everything they own. For a graph that does not hold the record: a device's documents are built from
+ * the model at a release's commit, which has no record in it, and the features come from the working
+ * model. Equal to `selectRelease(...).excluded` by construction, and a test holds them equal.
+ */
+export function excludedFor(graph: VariabilityGraph, features: readonly string[]): Set<string> {
+    return selectForFeatures(graph, '', features).excluded;
+}
+
+function selectForFeatures(graph: VariabilityGraph, recordId: string, selected: readonly string[]): ReleaseSelection {
+    const features = [...selected];
     const chosen = new Set(features);
     const realized = realizedFeatures(graph);
     const points: VariationPointSelection[] = [];

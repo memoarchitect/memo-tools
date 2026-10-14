@@ -6,6 +6,7 @@
 
 import { computeWorkspaceMembership, selectWorkspace, type WorkspaceScope } from '../model/workspace-membership.js';
 import { narrowModel } from '../model/narrow-model.js';
+import { compileDeviceDhf } from '../dhf/device-dhf.js';
 import { resolve, dirname } from 'node:path';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
@@ -106,6 +107,8 @@ function resolveTargets(target?: string, group?: string, dhfConfig?: DhfConfig):
 
 export async function exportDhfCommand(options: {
     workspace?: string;
+    /** One regulated device: its documents are built from the releases it covers (T14). */
+    device?: string;
     output?: string;
     target?: string;
     format?: string;
@@ -113,6 +116,42 @@ export async function exportDhfCommand(options: {
 }): Promise<void> {
     const cwd = process.cwd();
     console.log(chalk.bold('\nMEMO DHF Export\n'));
+
+    if (options.device !== undefined) {
+        // A device is a scope of its own: it covers releases, each built at its commit, so it is neither the
+        // working model nor a workspace of it.
+        if (options.workspace !== undefined) {
+            console.error(chalk.red('--device and --workspace are two ways to scope the documents; give one.'));
+            process.exit(1);
+        }
+        if (options.format && options.format !== 'md' && options.format !== 'html') {
+            console.error(chalk.red('--device writes Markdown.'));
+            process.exit(1);
+        }
+        const configPath = findConfigFile(cwd);
+        if (!configPath) {
+            console.error(chalk.red('No memo config found.'));
+            process.exit(1);
+        }
+        const projectRoot = dirname(configPath);
+        try {
+            const config = loadAndResolveConfig(configPath);
+            const working = await loadProjectModel({ projectRoot, config });
+            const result = await compileDeviceDhf({
+                projectRoot, working, device: options.device, outputDir: resolve(cwd, options.output || 'dhf-output'),
+                config: { toolchain: config.toolchain },
+            });
+            for (const release of result.releases) {
+                console.log(chalk.cyan(`  ${result.device.name} / ${release.record} (${release.commit.slice(0, 7)}): ${release.documents.length} documents`));
+            }
+            for (const note of result.notes) console.log(chalk.yellow(`  ${note}`));
+            console.log(chalk.green(`\nExported the design history of ${result.device.name} (${result.device.jurisdiction}) to ${result.outputDir}\n`));
+        } catch (error) {
+            console.error(chalk.red(`❌ ${error instanceof Error ? error.message : String(error)}`));
+            process.exit(1);
+        }
+        return;
+    }
 
     const { model, config, validation, completeness, dhfConfig, queryCtx, workspace } = await loadModel(options.workspace);
 

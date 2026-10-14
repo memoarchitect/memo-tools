@@ -40,6 +40,7 @@ import type { CompileModelResult } from '../toolchain/registry.js';
 import { sourceFingerprint } from '../toolchain/source-fingerprint.js';
 import { newToken, removeDevServerRecord, writeDevServerRecord } from '../server/dev-validate.js';
 import { createVersionServers } from '../server/version-servers.js';
+import { compileDeviceDhf } from '../dhf/device-dhf.js';
 import { runValidation, validationExitCode, type ValidateOptions, type ValidationIO } from './validate.js';
 import { compileResolvedProject } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
@@ -478,7 +479,7 @@ export async function devCommand(options: {
         try {
             const library = loadStandardsLibrary(cwd);
             const kindRegistry = stage2Registries?.kindRegistry;
-            const declared = readDeclaredRegimes(model);
+            const declared = readDeclaredRegimes(model, kindRegistry);
             dto.standardsReport = computeStandardsReport({
                 library,
                 model,
@@ -597,7 +598,17 @@ export async function devCommand(options: {
         })
         : undefined;
     let workingPort = port;
+    const devices = options.readOnly ? undefined : {
+        generate: (device: string) => {
+            if (!lastAccepted) throw new Error('the working model is not built yet');
+            return compileDeviceDhf({
+                projectRoot: cwd, working: { model: lastAccepted.model, registries: lastAccepted.registries },
+                device, outputDir: resolve(cwd, 'dhf-output'), config: { toolchain: config.toolchain },
+            });
+        },
+    };
     const server = await createDevServer({
+        devices,
         versions,
         readOnly: options.readOnly,
         pinned: options.pinned,

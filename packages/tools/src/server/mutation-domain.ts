@@ -46,6 +46,8 @@ const MUTATION_DOMAINS: Record<string, MutationDomain> = {
     'csv:import': 'semantic',
     // A preview writes nothing; the apply and the review each write the source files they name.
     'import:preview': 'neither',
+    // Writes the generated documents of one device under dhf-output/, which is output and not model source.
+    'dhf:device:generate': 'neither',
     'import:apply': 'semantic',
     'suspect:review': 'semantic',
     // A release record and every statement that links it, written together.

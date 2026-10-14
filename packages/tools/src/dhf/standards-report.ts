@@ -446,26 +446,57 @@ export function collectDocumentClauses(
  * spelling only: an unqualified member is not a synonym, it is skipped and
  * reported, the same rule the enum carries everywhere else in MEMO.
  */
-export function readDeclaredRegimes(model: MemoModel | undefined): {
+export function readDeclaredRegimes(
+    model: MemoModel | undefined,
+    /** With the kind registry a specialization of `RegulatedDevice` counts; without it, only the kind itself. */
+    kinds?: KindRegistry,
+): {
     regimes: string[];
     /** Entries that were not qualified members, verbatim. */
     rejected: string[];
+    /** Where the regimes came from: the devices' jurisdictions, the (deprecated) binding, or nowhere. */
+    source: 'devices' | 'binding' | 'none';
+    /** Regimes the binding states and that are ignored because the model declares devices. */
+    ignoredBinding: string[];
 } {
-    const regimes: string[] = [];
     const rejected: string[] = [];
-    for (const el of METHOD_BINDING_KINDS.flatMap(kind => model?.elementsByKind.get(kind) ?? [])) {
-        const raw = el.attributes?.regulatoryRegime;
-        if (!raw) continue;
-        for (const entry of raw.split(',').map(s => s.trim()).filter(Boolean)) {
+    const members = (raw: string | undefined): string[] => {
+        const out: string[] = [];
+        for (const entry of (raw ?? '').split(',').map(s => s.trim()).filter(Boolean)) {
             const parts = entry.split('::');
             if (parts.length === 2 && parts[0] === 'RegulatoryRegimeKind') {
-                if (!regimes.includes(parts[1])) regimes.push(parts[1]);
+                if (!out.includes(parts[1])) out.push(parts[1]);
             } else {
                 rejected.push(entry);
             }
         }
+        return out;
+    };
+    // One approval per jurisdiction (plan O6): a device states its own regime. Devices win.
+    const devices = [...(model?.elements.values() ?? [])].filter(el => isRegulatedDevice(el.kind, kinds));
+    const fromDevices = [...new Set(devices.flatMap(device => members(device.attributes?.jurisdiction)))];
+    const binding = [...new Set(METHOD_BINDING_KINDS.flatMap(kind => model?.elementsByKind.get(kind) ?? [])
+        .flatMap(el => members(el.attributes?.regulatoryRegime)))];
+    if (devices.length > 0) return { regimes: fromDevices, rejected, source: 'devices', ignoredBinding: binding };
+    return { regimes: binding, rejected, source: binding.length > 0 ? 'binding' : 'none', ignoredBinding: [] };
+}
+
+/** The kind a device is declared with. */
+export const REGULATED_DEVICE_KIND = 'RegulatedDevice';
+
+function isRegulatedDevice(kind: string, kinds?: KindRegistry): boolean {
+    if (kind === REGULATED_DEVICE_KIND) return true;
+    if (!kinds) return false;
+    const seen = new Set<string>();
+    for (const queue = [kind]; queue.length > 0;) {
+        const next = queue.pop()!;
+        if (next === REGULATED_DEVICE_KIND) return true;
+        if (seen.has(next)) continue;
+        seen.add(next);
+        const entry = kinds.getKind(next);
+        for (const up of [entry?.superType, ...(entry?.additionalSuperTypes ?? [])]) if (up) queue.push(up.split('::').pop()!);
     }
-    return { regimes, rejected };
+    return false;
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────

@@ -170,7 +170,8 @@ export function registerProjectCommands(program: Command): void {
         .option('-f, --format <fmt>', 'Output format: html, md, docx', 'html')
         .option('-g, --group <group>', 'Document group: risk, design, verification, compliance, all')
         .option('--workspace <name>', 'Document one workspace: a System or the SystemOfSystems definition')
-        .action(async (options: { output: string; target?: string; format?: string; group?: string; workspace?: string }) => {
+        .option('--device <name>', 'Document one regulated device: its covered releases, built at their commits, with the standards and documents its jurisdiction requires (Markdown, one folder per device)')
+        .action(async (options: { output: string; target?: string; format?: string; group?: string; workspace?: string; device?: string }) => {
             await exportDhfCommand(options);
         });
 
