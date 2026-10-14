@@ -66,6 +66,8 @@ export interface DevServerOptions {
      * A pinned build runs this way, so no write path is reachable from it.
      */
     readOnly?: boolean;
+    /** Opening another version: the refs on offer, and a read-only server for a chosen one. */
+    versions?: import('./version-servers.js').VersionServers;
     /** What a read-only server tells each client about itself. */
     pinned?: import('../protocol/messages.js').PinnedInfo;
     /** Where the person's role and workspace are read from: the working project, for a pinned one. */
@@ -2465,6 +2467,19 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                     } catch (e: any) {
                         console.error('[LLM] suggest failed:', e);
                         ws.send(JSON.stringify({ type: 'llm:suggest:result', payload: { requestId, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'versions:list') {
+                    // The unreleased refs; the releases are read from the model the client already has.
+                    const refs = options.versions ? await options.versions.refs() : [];
+                    ws.send(JSON.stringify({ type: 'versions:update', payload: { refs } }));
+                } else if (msg.type === 'version:open') {
+                    const requestId = msg.payload?.requestId;
+                    try {
+                        if (!options.versions) throw new Error('A pinned view is opened from the working version; open that one first.');
+                        const opened = await options.versions.open({ release: msg.payload?.release, ref: msg.payload?.ref });
+                        ws.send(JSON.stringify({ type: 'version:ready', payload: { requestId, ...opened } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'version:error', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'dashboard:save' || msg.type === 'dashboard:delete' || msg.type === 'dashboard:move') {
                     // Dashboards are presentation, not model source: they are

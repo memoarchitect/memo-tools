@@ -39,6 +39,7 @@ import { format } from 'node:util';
 import type { CompileModelResult } from '../toolchain/registry.js';
 import { sourceFingerprint } from '../toolchain/source-fingerprint.js';
 import { newToken, removeDevServerRecord, writeDevServerRecord } from '../server/dev-validate.js';
+import { createVersionServers } from '../server/version-servers.js';
 import { runValidation, validationExitCode, type ValidateOptions, type ValidationIO } from './validate.js';
 import { compileResolvedProject } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
@@ -137,6 +138,11 @@ export async function devCommand(options: {
     pinned?: import('../protocol/messages.js').PinnedInfo;
     /** Where the person's role and workspace are read from, when not from this directory. */
     preferencesRoot?: string;
+    /**
+     * How a pinned view is started: the entry that runs `dev` and the flags that make the child look
+     * the same (toolchain, experimental). Absent, the version selector offers no pinned view.
+     */
+    versionChild?: { entry: string; args: string[] };
 }): Promise<void> {
     const bootstrapStartedAt = performance.now();
     const cwd = process.cwd();
@@ -546,6 +552,7 @@ export async function devCommand(options: {
         console.log(chalk.gray(`\n  ${reason}`));
         projectWatcher?.close();
         ontologyWatcher?.close();
+        versions?.close();
         removeDevServerRecord(cwd);
         server.close();
         process.exit(0);
@@ -582,7 +589,16 @@ export async function devCommand(options: {
     });
 
     // Start dev server
+    const versions = options.versionChild && !options.readOnly
+        ? createVersionServers({
+            projectRoot: cwd, entry: options.versionChild.entry, args: options.versionChild.args,
+            workingModel: () => lastAccepted?.model, workingUrl: () => `http://${host}:${workingPort}`,
+            toolchain: config.toolchain,
+        })
+        : undefined;
+    let workingPort = port;
     const server = await createDevServer({
+        versions,
         readOnly: options.readOnly,
         pinned: options.pinned,
         preferencesRoot: options.preferencesRoot,
@@ -649,6 +665,7 @@ export async function devCommand(options: {
     console.log(chalk.gray(`  ${budgetPath}: ${runtimeBudget.elapsedMs.toFixed(0)}ms / ${runtimeBudget.budgetMs}ms`));
 
     const boundPort = options.readOnly ? server.port : port;
+    workingPort = boundPort;
     console.log(chalk.green(`\n  ➜ http://${host}:${boundPort}\n`));
     // A pinned server is a child of the server that opened it: it tells that parent where it is, and
     // goes when the parent does.

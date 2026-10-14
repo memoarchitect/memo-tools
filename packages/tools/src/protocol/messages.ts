@@ -103,7 +103,10 @@ export type ServerMessage =
     | ScreenCaptureUploadResultMessage
     | SourceCoherenceMessage
     | SourceChangedMessage
-    | PinnedInfoMessage;
+    | PinnedInfoMessage
+    | VersionsUpdateMessage
+    | VersionReadyMessage
+    | VersionErrorMessage;
 
 /**
  * What a read-only server says about itself when a client connects: a pinned release or ref, or a
@@ -124,6 +127,24 @@ export interface PinnedInfo {
 export interface PinnedInfoMessage {
     type: 'pinned:info';
     payload: PinnedInfo;
+}
+
+/** The unreleased refs a Version selector offers; the releases come from the model itself. */
+export interface VersionsUpdateMessage {
+    type: 'versions:update';
+    payload: { refs: { name: string; kind: 'tag' | 'branch'; commit: string; label: string }[] };
+}
+
+/** A pinned view is running at this address; the client goes there. */
+export interface VersionReadyMessage {
+    type: 'version:ready';
+    payload: { requestId?: string; url: string; info: PinnedInfo };
+}
+
+/** A version could not be opened, with the reason (an ordering error, an unpinned folder, drift). */
+export interface VersionErrorMessage {
+    type: 'version:error';
+    payload: { requestId?: string; error: string };
 }
 
 export interface ModelUpdateMessage extends WorkspacePublication {

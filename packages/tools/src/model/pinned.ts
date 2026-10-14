@@ -32,6 +32,7 @@ import { computeWorkspaceMembership } from './workspace-membership.js';
 import type { BuilderRegistries } from './complete-model.js';
 import { loadProjectModel, Stage1RejectedError, type ProjectModel } from '../toolchain/project-model.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
+import type { PinnedInfo } from '../protocol/messages.js';
 
 const git = promisify(execFile);
 
@@ -393,7 +394,7 @@ export interface ReleaseBuild extends PinnedBuild {
  * checkout the record lives in), ordering checked at every level, assembled, built, and checked for
  * references across system folders. Diagnostics of a rejected build name the system and commit.
  */
-export async function buildRelease(projectRoot: string, working: ProjectModel, recordId: string, options: BuildOptions = {}): Promise<ReleaseBuild> {
+export async function buildRelease(projectRoot: string, working: Pick<ProjectModel, 'model'>, recordId: string, options: BuildOptions = {}): Promise<ReleaseBuild> {
     const pins = releasePins(working.model, recordId);
     if (pins.systems.length === 0) {
         const first = pins.notPinned[0];
@@ -430,4 +431,17 @@ export async function buildRelease(projectRoot: string, working: ProjectModel, r
 /** The unmodified read of a file at a commit, for tests that check a worktree stayed clean. */
 export async function worktreeIsClean(pin: Pin): Promise<boolean> {
     return clean(pin.dir, pin.sha);
+}
+
+/** What a read-only server shows about an SoS version: the record and the commits it was built from. */
+export function releaseInfo(build: ReleaseBuild): PinnedInfo {
+    return {
+        kind: 'release', label: build.releasePins.record,
+        commits: [{ name: 'version', commit: build.releasePins.commit }, ...build.releasePins.systems.map(s => ({ name: s.system, commit: s.commit }))],
+    };
+}
+
+/** What a read-only server shows about an unreleased ref: a tag or a branch is not a release. */
+export function refInfo(ref: string, pin: Pin): PinnedInfo {
+    return { kind: 'ref', label: ref, commits: [{ name: 'model', commit: pin.sha }], notARelease: true };
 }

@@ -11,7 +11,7 @@ import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { findProjectRoot } from '../model/native-project.js';
-import { buildRelease, pinWorktree } from '../model/pinned.js';
+import { buildRelease, pinWorktree, refInfo, releaseInfo } from '../model/pinned.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import type { PinnedInfo } from '../protocol/messages.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
@@ -43,7 +43,7 @@ export async function pinnedTarget(projectDir: string | undefined, options: Reco
             const pin = await pinWorktree(root, at);
             return {
                 dir: pin.projectDir, label: `the model at ${at} (${pin.sha.slice(0, 7)}), in ${pin.dir}`,
-                info: { kind: 'ref', label: at, commits: [{ name: 'model', commit: pin.sha }], notARelease: true },
+                info: refInfo(at, pin),
             };
         }
         const config = withToolchainOverrides(loadProjectSettings(root), options, defaultRegistry);
@@ -59,10 +59,7 @@ export async function pinnedTarget(projectDir: string | undefined, options: Reco
         const pins = build.releasePins.systems.map(s => `${s.system}@${s.commit.slice(0, 7)}`).join(', ');
         return {
             dir: build.assembly.dir, label: `${build.releasePins.record}: ${build.releasePins.commit.slice(0, 7)} with ${pins}`,
-            info: {
-                kind: 'release', label: build.releasePins.record,
-                commits: [{ name: 'version', commit: build.releasePins.commit }, ...build.releasePins.systems.map(s => ({ name: s.system, commit: s.commit }))],
-            },
+            info: releaseInfo(build),
         };
     } catch (error) {
         return fail(error instanceof Error ? error.message : String(error));
