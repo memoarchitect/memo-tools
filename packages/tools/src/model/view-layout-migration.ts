@@ -55,12 +55,19 @@ function* hiddenLayouts(memoDirectory: string): Generator<string> {
 }
 
 /** Every layout entry in every legacy sidecar under `projectRoot`. */
-export function readLegacyLayouts(projectRoot: string): LegacyLayoutEntry[] {
+export function readLegacyLayouts(
+    projectRoot: string, onUnreadable?: (sidecar: string, reason: string) => void,
+): LegacyLayoutEntry[] {
     const entries: LegacyLayoutEntry[] = [];
     for (const path of walk(resolve(projectRoot))) {
         const sidecar = relative(projectRoot, path).replaceAll('\\', '/');
         let parsed: Record<string, unknown> | null;
-        try { parsed = parse(readFileSync(path, 'utf8')) as Record<string, unknown> | null; } catch { continue; }
+        try {
+            parsed = parse(readFileSync(path, 'utf8')) as Record<string, unknown> | null;
+        } catch (error) {
+            onUnreadable?.(sidecar, (error as Error).message.split('\n')[0]);
+            continue;
+        }
         if (!parsed || typeof parsed !== 'object') continue;
         const format = parsed.format as string | undefined;
         if (format === 'memo.viewlayout/v2' || format === 'memo.viewlayout/v1' || format === 'memo.sysmlview/v2') {
@@ -91,25 +98,55 @@ export interface MigrationPlan {
     removable: string[];
 }
 
+const lastSegment = (id: string): string => id.split('::').pop() ?? id;
+
+/**
+ * The views that hold every element a legacy layout positions, tightest first
+ * (fewest elements beyond the ones it places). An old sidecar keyed its diagram
+ * by an id the view has since lost (a renamed view), but its node keys are the
+ * elements' own names, which a rename of the view does not touch. Suggested,
+ * never applied: the caller decides.
+ */
+export function suggestViewsByContent(
+    diagrams: readonly DiagramDTO[], layout: DiagramLayout,
+): { diagram: DiagramDTO; size: number }[] {
+    const keys = Object.keys(layout.nodes ?? {});
+    if (keys.length === 0) return [];
+    return diagrams.filter(d => d.sourceFile && d.elementId).flatMap(diagram => {
+        const names = new Set((diagram.elementIds ?? []).map(lastSegment));
+        return keys.every(k => names.has(lastSegment(k))) ? [{ diagram, size: names.size }] : [];
+    }).sort((x, y) => x.size - y.size);
+}
+
 /**
  * Where each legacy entry goes. An entry whose diagram is not a declared view
  * has no home and is reported, not invented one; an entry whose view already
- * carries layout statements is not overwritten.
+ * carries layout statements is not overwritten. `idMap` names the view for a
+ * legacy diagram id the model no longer has (`old id -> view id`).
  */
 export function planLayoutMigration(
     projectRoot: string, diagrams: readonly DiagramDTO[], entries: readonly LegacyLayoutEntry[],
+    idMap: Readonly<Record<string, string>> = {},
 ): MigrationPlan {
     const outcomes: MigrationOutcome[] = [];
     const rewrites = new Map<string, string>();
     const textOf = (file: string) => rewrites.get(file) ?? readFileSync(resolve(projectRoot, file), 'utf8');
 
     for (const entry of entries) {
-        const diagram = diagrams.find(d => d.id === entry.diagramId);
+        const mapped = idMap[entry.diagramId];
+        const diagram = diagrams.find(d => d.id === (mapped ?? entry.diagramId));
         if (!diagram?.sourceFile || !diagram.elementId) {
-            outcomes.push({
-                kind: 'no-view', entry,
-                reason: diagram ? `"${diagram.name}" is not a declared view` : `no view has the id ${entry.diagramId}`,
-            });
+            let reason = diagram ? `"${diagram.name}" is not a declared view`
+                : mapped ? `--map names ${mapped}, which is not a view`
+                    : `no view has the id ${entry.diagramId}`;
+            if (!diagram) {
+                const guesses = suggestViewsByContent(diagrams, entry.layout);
+                if (guesses.length > 0) {
+                    reason += `; holding all ${Object.keys(entry.layout.nodes).length} of its elements: ${guesses.slice(0, 4).map(g => g.diagram.id).join(', ')}`
+                        + ` (rerun with --map ${entry.diagramId}=<view id>)`;
+                }
+            }
+            outcomes.push({ kind: 'no-view', entry, reason });
             continue;
         }
         if (isDefaultViewLayout(entry.layout)) { outcomes.push({ kind: 'nothing-to-keep', entry }); continue; }

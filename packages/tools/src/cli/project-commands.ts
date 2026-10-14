@@ -103,7 +103,8 @@ export function registerProjectCommands(program: Command): void {
             .command('migrate-layout')
             .description('Move every diagram layout from its .viewlayout companion into the view that declares it')
             .argument('[dir]', 'Model directory', '.')
-            .option('--dry-run', 'Say where each layout would go and write nothing'),
+            .option('--dry-run', 'Say where each layout would go and write nothing')
+            .option('--map <old=new...>', 'Send the layout of a diagram id the model no longer has to the view with this id'),
     ).action(async (dir: string, opts: Record<string, unknown>) => {
         await migrateLayoutCommand(dir, opts);
     });

@@ -19,16 +19,21 @@ import { compileResolvedProject } from '../toolchain/operations.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 
 export async function migrateLayoutCommand(
-    projectDir: string | undefined, options: Record<string, unknown> & { dryRun?: boolean } = {},
+    projectDir: string | undefined, options: Record<string, unknown> & { dryRun?: boolean; map?: string[] } = {},
 ): Promise<void> {
     const root = findProjectRoot(resolve(projectDir || process.cwd()));
     if (!root) {
         console.error(chalk.red('❌ No MEMO project found (no memo.package.yaml entrypoint).'));
         process.exit(1);
     }
-    const entries = readLegacyLayouts(root);
+    let unreadable = 0;
+    const entries = readLegacyLayouts(root, (sidecar, reason) => {
+        unreadable += 1;
+        console.log(chalk.yellow(`  ! ${sidecar}  is not valid YAML (${reason}); skipped, left in place`));
+    });
     if (entries.length === 0) {
-        console.log(chalk.green('✅ No .viewlayout sidecars to migrate.'));
+        console.log(unreadable > 0 ? chalk.yellow(`${unreadable} sidecar(s) could not be read and need fixing by hand.`)
+            : chalk.green('✅ No .viewlayout sidecars to migrate.'));
         return;
     }
     const config = withToolchainOverrides(loadProjectSettings(root), options, defaultRegistry);
@@ -39,7 +44,13 @@ export async function migrateLayoutCommand(
         process.exit(1);
     }
     const { diagrams } = deriveModelViews(before.model, before.registries?.kindRegistry);
-    const plan = planLayoutMigration(root, diagrams, entries);
+    const idMap: Record<string, string> = {};
+    for (const pair of options.map ?? []) {
+        const at = pair.indexOf('=');
+        if (at < 1 || at === pair.length - 1) { console.error(chalk.red(`❌ --map wants old-id=view-id, got "${pair}".`)); process.exit(1); }
+        idMap[pair.slice(0, at)] = pair.slice(at + 1);
+    }
+    const plan = planLayoutMigration(root, diagrams, entries, idMap);
 
     for (const outcome of plan.outcomes) {
         const where = `${outcome.entry.sidecar} · ${outcome.entry.diagramId}`;
