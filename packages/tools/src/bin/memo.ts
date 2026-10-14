@@ -28,6 +28,7 @@ import {
 } from '../commands/toolchain.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
+import { pinnedTarget } from '../commands/pinned-target.js';
 import { shipLibraryCommand } from '../commands/ship-library.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import chalk from 'chalk';
@@ -69,6 +70,8 @@ withToolchainOptions(
         .command('compile')
         .description('Check the model is valid SysML with the selected compiler (stage 1); no MEMO rules')
         .argument('[dir]', 'Model directory', '.')
+        .option('--at <ref>', 'Compile the model as it was at this commit, tag or branch (a cached worktree under .memo/pinned)')
+        .option('--release <record>', 'Compile the SoS version a release record names: the version\'s commit with each system from its own release\'s commit')
         .option('--force', 'Compile even when the stage 1 output in .memo/stage1 is fresh')
         .option('--out <file>', 'Write the compiled SysML v2 model (API JSON, diagnostics, element index) to this file')
         .option('--inspect <id>', 'Instead of compiling, show a model element or relationship')
@@ -81,7 +84,9 @@ withToolchainOptions(
     if (opts.inspect) return inspectCommand(String(opts.inspect), { provenance: opts.provenance === true, dir });
     if (opts.probe) return toolchainProbeCommand(dir, { ...opts, format: opts.format as any });
     if (opts.effective) return configEffectiveCommand(dir, { ...opts, format: (opts.format as any) ?? 'yaml' });
-    await compileCommand(dir, opts);
+    const pinned = await pinnedTarget(dir, opts);
+    if (pinned) console.error(chalk.gray(`(${pinned.label})`));
+    await compileCommand(pinned ? pinned.dir : dir, pinned ? { ...opts, at: undefined, release: undefined } : opts);
 });
 
 withToolchainOptions(
@@ -110,6 +115,8 @@ withToolchainOptions(
         .option('--format <format>', 'Output format: text, junit, json', 'text')
         .option('-o, --output <file>', 'Write output to file instead of stdout')
         .option('--no-server', 'Compile here even when `memo dev` is running for the model')
+        .option('--at <ref>', 'Validate the model as it was at this commit, tag or branch; writes nothing into the project')
+        .option('--release <record>', 'Validate the SoS version a release record names; writes nothing into the project')
         .option('--workspace <name>', 'Validate one workspace: a System or the SystemOfSystems definition. Rules run on its elements over the whole model')
         .option('--rules', 'Instead of validating, list the consistency rules in effect (--format text or json)')
         .option('--rules-domain <domain>', 'With --rules: modelling, medicalDevice, organisation')
@@ -136,7 +143,12 @@ withToolchainOptions(
             gapsOnly: opts.gapsOnly === true, json: reportFormat === 'json',
         });
     }
-    await validateCommand(dir, { ...opts, format: opts.format as any, output: opts.output as string });
+    const pinned = await pinnedTarget(dir, opts);
+    if (pinned) console.error(chalk.gray(`(${pinned.label})`));
+    await validateCommand(pinned ? pinned.dir : dir, {
+        ...opts, at: undefined, release: undefined, readOnly: pinned ? true : undefined,
+        format: opts.format as any, output: opts.output as string,
+    });
 });
 
 // ─── memo toolchain ─────────────────────────────────────────────────────────
