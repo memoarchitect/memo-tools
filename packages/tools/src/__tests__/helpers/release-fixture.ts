@@ -35,9 +35,14 @@ export const FIRMWARE = `package ep_lab_family_ablation_firmware {
 export const SYSTEM_TEST = `package ep_lab_family_lab_tests {
     private import memo_core_common::*;
     private import memo_assurance_verification_validation::*;
+    private import memo_core_enumerations::*;
+    private import ep_lab_family_sos::*;
 
     verification vcLabIntegration : VerificationCase {
         @MemoIdentity { :>> providedId = "EPF-SOS-VC-001"; :>> label = "Lab Integration Test"; }
+        attribute :>> methodKind = MemoVerificationMethodKind::test;
+        attribute :>> acceptanceCriteria = "The three systems run one procedure end to end.";
+        subject verified : Base::Anything[*] = (epLab);
     }
 }
 `;

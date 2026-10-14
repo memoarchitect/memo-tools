@@ -44,7 +44,12 @@ import { servable, validateWithDevServer } from './validate-client.js';
 
 export type ValidateFormat = 'text' | 'junit' | 'json';
 
-export type ValidateOptions = { format?: ValidateFormat; output?: string } & Record<string, unknown>;
+/**
+ * `readOnly`: write nothing into the project. A pinned build (`--at`, `--release`) is run in a
+ * worktree of a commit, which a validate must leave as it found it; the identities it would record
+ * belong to the working checkout.
+ */
+export type ValidateOptions = { format?: ValidateFormat; output?: string; readOnly?: boolean } & Record<string, unknown>;
 
 /**
  * Where a validation run writes: progress and the text report (`out`), what
@@ -299,7 +304,7 @@ export async function runValidation(
     // runs most, so it is where a project first acquires memo.identity.yaml;
     // without this the registry would only appear on a pack or an Architect
     // build, and every validate in between would re-mint identities.
-    try {
+    if (!options?.readOnly) try {
         const assigned: IdentityRegistry = {};
         for (const el of model.elements.values()) {
             if (!el.shortId && !el.uuid) continue;
