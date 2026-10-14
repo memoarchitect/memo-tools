@@ -67,6 +67,8 @@ export interface DevServerOptions {
      * A pinned build runs this way, so no write path is reachable from it.
      */
     readOnly?: boolean;
+    /** What the working tree's change reaches, measured from the commit it branched from. */
+    impact?: { compute(target?: string): Promise<import('../model/impact.js').ImpactReport> };
     /** Where the model stands against its method, for one workspace. */
     guide?: { evaluate(workspace?: string): import('../methodology/guide-service.js').GuideResult };
     /** Generating the design history of a regulated device from the releases it covers. */
@@ -2510,6 +2512,14 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         ws.send(JSON.stringify({ type: 'version:ready', payload: { requestId, ...opened } }));
                     } catch (e: any) {
                         ws.send(JSON.stringify({ type: 'version:error', payload: { requestId, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'impact:compute') {
+                    const requestId = msg.payload?.requestId;
+                    try {
+                        if (!options.impact) throw new Error('Impact is computed from the working version.');
+                        ws.send(JSON.stringify({ type: 'impact:result', payload: { requestId, report: await options.impact.compute(msg.payload?.target || undefined) } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'impact:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'guide:evaluate') {
                     const requestId = msg.payload?.requestId;

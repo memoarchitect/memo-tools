@@ -133,10 +133,30 @@ export const RELEASE_RECORDS = `package ep_lab_family_release_records {
 }
 `;
 
+/** A project that feeds the two generator releases and introduced the US output stage (plan O7). */
+export const PROJECTS = `package ep_lab_family_projects {
+    private import memo_core_common::*;
+    private import memo_artifacts_configuration_management::*;
+    private import ep_lab_family_releases::*;
+    private import ep_lab_family_ablation_options::*;
+
+    part prjOutputStages : Project {
+        @MemoIdentity { :>> providedId = "EPF-PRJ-001"; :>> label = "Output Stages"; }
+        attribute :>> trackerLink = "https://tracker.example/PRJ-12";
+    }
+    part prjNothing : Project {
+        @MemoIdentity { :>> providedId = "EPF-PRJ-002"; :>> label = "Not Yet Released"; }
+    }
+    #Feeds dependency from prjOutputStages to relEu, relUs;
+    #IntroducedBy dependency from OutputStageSystem::outputStage::usOutput to prjOutputStages;
+}
+`;
+
 /** The files a test passes to `withExample(…, 'ep-lab-family')`: the variability fixture plus the release records. */
 export const releaseFiles = (): Record<string, string> => ({
     ...variabilityFiles(),
     'model/systems/ablation/firmware.sysml': FIRMWARE,
     'model/sos/lab_tests.sysml': SYSTEM_TEST,
     'model/sos/release_records.sysml': RELEASE_RECORDS,
+    'model/sos/projects.sysml': PROJECTS,
 });

@@ -42,6 +42,7 @@ import { newToken, removeDevServerRecord, writeDevServerRecord } from '../server
 import { createVersionServers } from '../server/version-servers.js';
 import { compileDeviceDhf } from '../dhf/device-dhf.js';
 import { evaluateWorkspaceGuide } from '../methodology/guide-service.js';
+import { computeChangeImpact } from '../model/impact.js';
 import { runValidation, validationExitCode, type ValidateOptions, type ValidationIO } from './validate.js';
 import { compileResolvedProject } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
@@ -621,7 +622,20 @@ export async function devCommand(options: {
             });
         },
     };
+    // What the working tree's change reaches, measured from the commit it branched from (T11).
+    const impact = options.readOnly ? undefined : {
+        compute: (target?: string) => {
+            if (!lastAccepted?.api || !lastAccepted.registries) throw new Error('the working model is not built yet');
+            const packages = (methodologyDescriptor.effective?.chain ?? []).map(m => m.packageQualifiedName).filter((p): p is string => !!p);
+            return computeChangeImpact({
+                projectRoot: cwd, target,
+                head: { model: lastAccepted.model, registries: lastAccepted.registries, api: lastAccepted.api, constraints: lastAccepted.constraints, packages },
+                build: { config: { toolchain: config.toolchain } },
+            });
+        },
+    };
     const server = await createDevServer({
+        impact,
         guide,
         devices,
         versions,

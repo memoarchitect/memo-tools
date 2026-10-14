@@ -49,6 +49,30 @@ export function createFamilyRepo(): FamilyRepo {
         mkdirSync(dirname(join(root, path)), { recursive: true });
         writeFileSync(join(root, path), text);
     }
+    // The ablation generator's energy function has a requirement it satisfies and a test that verifies it, so a
+    // change to the function reaches both (impact, T11).
+    writeFileSync(join(root, 'model/systems/ablation/trace.sysml'), `package ep_lab_family_ablation_trace {
+    private import memo_core_common::*;
+    private import memo_core_enumerations::*;
+    private import memo_assurance_requirements::*;
+    private import memo_assurance_verification_validation::*;
+    private import ep_lab_family_ablation::*;
+
+    requirement reqEnergyLimits : Requirement {
+        attribute :>> requirementType = RequirementTypeKind::system;
+        @MemoIdentity { :>> providedId = "EPF-ABL-REQ-001"; :>> label = "EnergyWithinLimits"; }
+        attribute :>> statement = "The generator shall deliver energy within the set power and duration limits.";
+    }
+    satisfy reqEnergyLimits by fnDeliverEnergy;
+    verification vcEnergyLimits : VerificationCase {
+        @MemoIdentity { :>> providedId = "EPF-ABL-VC-001"; :>> label = "Verify Energy Limits"; }
+        attribute :>> methodKind = MemoVerificationMethodKind::test;
+        attribute :>> acceptanceCriteria = "delivered energy stays within the limits";
+        subject verified : Base::Anything[*] = (fnDeliverEnergy);
+        objective { verify reqEnergyLimits; }
+    }
+}
+`);
     // No .gitignore: a family's own may not name `.memo`, and the pinned caches must not depend on it.
     git(root, 'init', '-q');
     git(root, 'config', 'user.email', 'test@example.com');

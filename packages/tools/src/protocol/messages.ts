@@ -110,7 +110,8 @@ export type ServerMessage =
     | ReleaseDiffResultMessage
     | ReleaseCreateResultMessage
     | DeviceDhfResultMessage
-    | GuideResultMessage;
+    | GuideResultMessage
+    | ImpactResultMessage;
 
 /**
  * What a read-only server says about itself when a client connects: a pinned release or ref, or a
@@ -154,6 +155,12 @@ export interface ReleaseCreateResultMessage {
 export interface GuideResultMessage {
     type: 'guide:result';
     payload: import('../methodology/guide-service.js').GuideResult & { requestId?: string };
+}
+
+/** What the working tree's change reaches (`impact:compute`), or why it could not be computed. */
+export interface ImpactResultMessage {
+    type: 'impact:result';
+    payload: { requestId?: string; error?: string; report?: import('../model/impact.js').ImpactReport };
 }
 
 /** The design history of one regulated device was generated, or why not. */
