@@ -127,10 +127,20 @@ export async function devCommand(options: {
      * that exists only in one of them is a defect.
      */
     toolchainOptions?: Record<string, unknown>;
+    /**
+     * Serve this directory read-only (a pinned release or ref): the server refuses every message
+     * that is not a read, runs no project or ontology watcher, and leaves no dev-server record.
+     * The port may be 0; the bound one is reported to the parent over IPC, if there is one.
+     */
+    readOnly?: boolean;
+    /** What a read-only server says about itself to each client. */
+    pinned?: import('../protocol/messages.js').PinnedInfo;
+    /** Where the person's role and workspace are read from, when not from this directory. */
+    preferencesRoot?: string;
 }): Promise<void> {
     const bootstrapStartedAt = performance.now();
     const cwd = process.cwd();
-    const port = options.port || 3000;
+    const port = options.readOnly ? (options.port ?? 0) : (options.port || 3000);
     const host = '127.0.0.1';
 
     console.log(chalk.bold('\n🚀 MEMO Dev Server\n'));
@@ -573,6 +583,9 @@ export async function devCommand(options: {
 
     // Start dev server
     const server = await createDevServer({
+        readOnly: options.readOnly,
+        pinned: options.pinned,
+        preferencesRoot: options.preferencesRoot,
         validate: validateHere,
         validateToken,
         port,
@@ -607,7 +620,7 @@ export async function devCommand(options: {
     // toolchain of its own: a plain `memo validate` would then be answered by
     // another compiler than the settings select.
     const ownToolchain = Object.values(options.toolchainOptions ?? {}).some(value => value !== undefined);
-    if (!ownToolchain) {
+    if (!ownToolchain && !options.readOnly) {
         writeDevServerRecord({ pid: process.pid, url: `http://${host}:${port}`, token: validateToken, projectRoot: cwd });
         process.once('exit', () => removeDevServerRecord(cwd));
     }
@@ -635,7 +648,14 @@ export async function devCommand(options: {
     const runtimeBudget = enforceRuntimeBudget(budgetPath, elapsed);
     console.log(chalk.gray(`  ${budgetPath}: ${runtimeBudget.elapsedMs.toFixed(0)}ms / ${runtimeBudget.budgetMs}ms`));
 
-    console.log(chalk.green(`\n  ➜ http://${host}:${port}\n`));
+    const boundPort = options.readOnly ? server.port : port;
+    console.log(chalk.green(`\n  ➜ http://${host}:${boundPort}\n`));
+    // A pinned server is a child of the server that opened it: it tells that parent where it is, and
+    // goes when the parent does.
+    if (options.readOnly && process.send) {
+        process.send({ type: 'memo:read-only-ready', url: `http://${host}:${boundPort}` });
+        process.once('disconnect', () => process.exit(0));
+    }
 
     // ── notifyRestartRequired: ontology watcher callback ───────────────────────
     // Declared after server so it can reference server directly.
@@ -672,7 +692,8 @@ export async function devCommand(options: {
         }
     }
 
-    // Project watcher — hot reload.
+    // Project watcher — hot reload. Not in a read-only server: the directory is a pinned commit and
+    // does not change under it.
     //
     // The rebuild is broadcast together with the list of files that caused it,
     // so open editors and views can tell whether the change was theirs instead
@@ -723,7 +744,7 @@ export async function devCommand(options: {
             },
         }]);
     };
-    projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
+    if (!options.readOnly) projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
         for (const file of changedFiles) pendingRebuildFiles.add(file);
         if (rebuildInFlight) return;
         rebuildInFlight = true;
@@ -739,7 +760,7 @@ export async function devCommand(options: {
     }, 300, false, { ontologyRoots, provenance });
 
     // Ontology watcher — restart notification only, no registry reload
-    ontologyWatcher = createOntologyWatcher(
+    if (!options.readOnly) ontologyWatcher = createOntologyWatcher(
         cwd,
         ontologyRoots,
         (changedFile) => notifyRestartRequired('ontology-source-changed', changedFile),

@@ -102,7 +102,29 @@ export type ServerMessage =
     | RuleCreateResultMessage
     | ScreenCaptureUploadResultMessage
     | SourceCoherenceMessage
-    | SourceChangedMessage;
+    | SourceChangedMessage
+    | PinnedInfoMessage;
+
+/**
+ * What a read-only server says about itself when a client connects: a pinned release or ref, or a
+ * plain read-only view. Sent to each client, never recorded as state.
+ */
+export interface PinnedInfo {
+    kind: 'release' | 'ref' | 'read-only';
+    /** What the person chose: the record, or the ref. */
+    label: string;
+    /** The commits the model was built from, the version's first. */
+    commits?: { name: string; commit: string }[];
+    /** True for an unreleased ref (a tag, a branch): content can change with every commit. */
+    notARelease?: boolean;
+    /** Where the working model is served, for the way back. */
+    workingUrl?: string;
+}
+
+export interface PinnedInfoMessage {
+    type: 'pinned:info';
+    payload: PinnedInfo;
+}
 
 export interface ModelUpdateMessage extends WorkspacePublication {
     type: 'model:update';
