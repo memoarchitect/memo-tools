@@ -100,6 +100,12 @@ export interface MigrationPlan {
 
 const lastSegment = (id: string): string => id.split('::').pop() ?? id;
 
+/** A view by its id, else by its name or short id (`--map` takes either). */
+function viewNamed(diagrams: readonly DiagramDTO[], key: string): DiagramDTO | undefined {
+    return diagrams.find(d => d.id === key)
+        ?? diagrams.find(d => d.name === key || d.shortId === key || d.id === `diag-sample-${key}`);
+}
+
 /**
  * The views that hold every element a legacy layout positions, tightest first
  * (fewest elements beyond the ones it places). An old sidecar keyed its diagram
@@ -134,13 +140,15 @@ export function planLayoutMigration(
 
     for (const entry of entries) {
         const mapped = idMap[entry.diagramId];
-        const diagram = diagrams.find(d => d.id === (mapped ?? entry.diagramId));
+        const diagram = mapped !== undefined ? viewNamed(diagrams, mapped) : diagrams.find(d => d.id === entry.diagramId);
         if (!diagram?.sourceFile || !diagram.elementId) {
             let reason = diagram ? `"${diagram.name}" is not a declared view`
                 : mapped ? `--map names ${mapped}, which is not a view`
                     : `no view has the id ${entry.diagramId}`;
             if (!diagram) {
-                const guesses = suggestViewsByContent(diagrams, entry.layout);
+                const byName = mapped === undefined ? viewNamed(diagrams, entry.diagramId.replace(/^diag-sample-/, '')) : undefined;
+                if (byName) reason += `; a view is named "${byName.name}" (rerun with --map ${entry.diagramId}=${byName.id})`;
+                const guesses = suggestViewsByContent(diagrams, entry.layout).filter(g => g.diagram !== byName);
                 if (guesses.length > 0) {
                     reason += `; holding all ${Object.keys(entry.layout.nodes).length} of its elements: ${guesses.slice(0, 4).map(g => g.diagram.id).join(', ')}`
                         + ` (rerun with --map ${entry.diagramId}=<view id>)`;
