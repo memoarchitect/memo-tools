@@ -56,15 +56,24 @@ export const RELEASES = `package ep_lab_family_releases {
     private import memo_artifacts_configuration_management::*;
     private import memo_architecture_variability::*;
     private import ep_lab_family_features::*;
+    private import ep_lab_family_ablation_options::*;
 
     part relEu : ReleaseRecord {
         @MemoIdentity { :>> providedId = "EPF-REL-001"; :>> label = "Generator EU"; }
         attribute :>> status = ElementStatusKind::released;
+        attribute :>> partNumber = "PN-3001";
+        attribute :>> revision = "A";
+        attribute :>> modelCommit = "0000000000000000000000000000000000000001";
     }
     part relUs : ReleaseRecord {
         @MemoIdentity { :>> providedId = "EPF-REL-002"; :>> label = "Generator US"; }
         attribute :>> status = ElementStatusKind::draft;
+        attribute :>> partNumber = "PN-3002";
+        attribute :>> revision = "A";
+        attribute :>> modelCommit = "0000000000000000000000000000000000000002";
     }
+    #ReleaseOf dependency from relEu to OutputStageSystem;
+    #ReleaseOf dependency from relUs to OutputStageSystem;
     #SelectsFeature dependency from relEu to featEuMarket;
     #SelectsFeature dependency from relUs to featUsMarket, featIrrigatedTip;
 }
