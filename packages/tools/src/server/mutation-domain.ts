@@ -63,6 +63,8 @@ const MUTATION_DOMAINS: Record<string, MutationDomain> = {
     // creating one has never written SysML.
     'diagram:create': 'layout',
     'diagram:update': 'layout',
+    // How a view shows itself is part of what the view says: its declaration, not its layout.
+    'diagram:display:update': 'semantic',
     'diagram:delete': 'layout',
 };
 

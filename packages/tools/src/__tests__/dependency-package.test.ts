@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { satisfiesRange } from '../model/version-range.js';
 import { assertWritable, setReadOnlyRoots } from '../server/write-guard.js';
+import { resolveRelationshipPlacement } from '../server/relationship-writer.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
@@ -25,6 +26,43 @@ describe('version ranges', () => {
         expect(satisfiesRange('9.9.9', '*')).toBe(true);
         expect(satisfiesRange(undefined, '^1.0.0')).toBe(false);
         expect(satisfiesRange('1.0.0', 'banana')).toBe(false);
+    });
+});
+
+describe('the write guard, with no roots told to it', () => {
+    it('finds a dependency from the project that lists it', () => {
+        const root = mkdtempSync(join(tmpdir(), 'memo-guard-'));
+        try {
+            mkdirSync(join(root, 'memo_packages/ep-platform/model'), { recursive: true });
+            writeFileSync(join(root, 'memo.package.yaml'), 'name: family\ndependencies:\n  ep-platform: "^1.0.0"\n');
+            writeFileSync(join(root, 'memo_packages/ep-platform/memo.package.yaml'), 'name: ep-platform\nversion: 1.0.0\n');
+            expect(() => assertWritable(join(root, 'memo_packages/ep-platform/model/platform.sysml'))).toThrow(/depends on/);
+            expect(() => assertWritable(join(root, 'model/own.sysml'))).not.toThrow();
+            // a package the project does not list is not a dependency of it
+            writeFileSync(join(root, 'memo.package.yaml'), 'name: family\n');
+            expect(() => assertWritable(join(root, 'memo_packages/ep-platform/model/platform.sysml'))).not.toThrow();
+        } finally { rmSync(root, { recursive: true, force: true }); }
+    });
+});
+
+describe('where a link to a dependency element is written', () => {
+    it('is the project, not the package, whichever end the dependency is', () => {
+        const root = mkdtempSync(join(tmpdir(), 'memo-place-'));
+        try {
+            mkdirSync(join(root, 'memo_packages/ep-platform/model'), { recursive: true });
+            mkdirSync(join(root, 'model'), { recursive: true });
+            writeFileSync(join(root, 'memo.package.yaml'), 'name: family\ndependencies:\n  ep-platform: "^1.0.0"\n');
+            writeFileSync(join(root, 'memo_packages/ep-platform/memo.package.yaml'), 'name: ep-platform\nversion: 1.0.0\n');
+            writeFileSync(join(root, 'memo_packages/ep-platform/model/platform.sysml'), 'package ep_platform { part def P; }\n');
+            writeFileSync(join(root, 'model/own.sysml'), 'package own { part q; }\n');
+            const model = { elements: {
+                'ep_platform::P': { file: 'memo_packages/ep-platform/model/platform.sysml', package: 'ep_platform' },
+                'own::q': { file: 'model/own.sysml', package: 'own' },
+            } } as never;
+            const options = { projectRoot: root } as never;
+            expect(resolveRelationshipPlacement({ sourceId: 'ep_platform::P', targetId: 'own::q' }, model, options)).toMatchObject({ file: 'model/own.sysml', reason: 'target-element-file' });
+            expect(resolveRelationshipPlacement({ sourceId: 'own::q', targetId: 'ep_platform::P' }, model, options).file).toBe('model/own.sysml');
+        } finally { rmSync(root, { recursive: true, force: true }); }
     });
 });
 
