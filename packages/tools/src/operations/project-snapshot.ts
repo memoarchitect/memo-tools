@@ -151,6 +151,7 @@ export async function buildProjectSnapshot(
             const assigned: IdentityRegistry = {};
             for (const el of semanticModel.elements.values()) {
                 if (!el.shortId && !el.uuid) continue;
+                if (el.provenance?.declaration.origin === 'dependency') continue;
                 assigned[identityKey(el)] = { shortId: el.shortId, uuid: el.uuid };
             }
             writeIdentityRegistry(cwd, assigned, config.priorIdentities ?? {});

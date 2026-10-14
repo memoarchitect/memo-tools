@@ -22,9 +22,10 @@
 // Design reference: sections 5.1, 5.3, 6.2, 9.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, readdirSync, realpathSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, realpathSync, lstatSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { readPackageManifest } from './package-manifest.js';
+import { satisfiesRange } from './version-range.js';
 import { discoverMemoManifests, findMemoManifests, resolveManifestPath } from './manifest.js';
 import { importKpar } from '../commands/package.js';
 import type { SemanticOrigin } from './source-provenance.js';
@@ -184,6 +185,8 @@ export interface NativeDiagnostic {
         | 'scope-mode-conflict'
         | 'settings-graph-mismatch'
         | 'invalid-kpar'
+        | 'dependency-missing'
+        | 'dependency-version'
         | 'deprecated-binding-spelling';
     message: string;
     file?: string;
@@ -203,6 +206,8 @@ export interface NativeProjectResolution {
     selectedRoots: LibraryRoot[];
     /** Roots a locator offered that no import reached. */
     unusedRoots: LibraryRoot[];
+    /** The packages the project's manifest lists under `dependencies`. */
+    dependencies: ResolvedDependency[];
     /**
      * File → the SysML package it declares, for every parsed file.
      *
@@ -245,6 +250,10 @@ export function findProjectRoot(startDir: string): string | undefined {
  * `/tmp` and `/var`, a linked home) would otherwise never match them, and
  * resolve to nothing.
  */
+function isSymlink(path: string): boolean {
+    try { return lstatSync(path).isSymbolicLink(); } catch { return false; }
+}
+
 export function canonicalPath(path: string): string {
     try {
         return realpathSync.native(resolve(path));
@@ -266,7 +275,10 @@ export function discoverLibraryRoots(projectRoot: string): LibraryRoot[] {
     const roots = new Map<string, LibraryRoot>();
 
     const add = (dir: string) => {
-        const abs = resolve(dir);
+        // The real path: a package installed by symlink (`memo install <path>`) is
+        // reported by the compiler at the directory the link points to, and the
+        // root must be known by that name for its files to be matched to it.
+        const abs = isSymlink(dir) ? canonicalPath(dir) : resolve(dir);
         if (roots.has(abs)) return;
         const { path, manifest } = readPackageManifest(abs);
         if (!path) return;
@@ -380,10 +392,56 @@ function collectSysmlFiles(dir: string, out: string[] = []): string[] {
  * Before the flip this read `type:` out of the package manifest; that field is
  * gone, so a reusable root is classified by whether it supplies a methodology.
  */
-function originFor(root: LibraryRoot | undefined, suppliesMethodology: boolean): SemanticOrigin {
+function originFor(
+    root: LibraryRoot | undefined, suppliesMethodology: boolean, dependencyDirs: ReadonlySet<string> = new Set(),
+): SemanticOrigin {
     if (!root) return 'project';
     if (suppliesMethodology) return 'methodology';
+    // A root the project's `dependencies` name is a model it builds on, not the
+    // ontology: the consumer says which packages are models, and the import
+    // closure still decides which of their packages are used.
+    if (dependencyDirs.has(root.dir)) return 'dependency';
     return 'ontology';
+}
+
+/** A package the project's manifest lists under `dependencies`, and what it was found as. */
+export interface ResolvedDependency {
+    name: string;
+    /** The range the project accepts. */
+    range: string;
+    /** The root it was found at; absent when nothing offered it. */
+    root?: LibraryRoot;
+}
+
+/**
+ * Match each `dependencies` entry to a library root by name (a scoped name also
+ * matches its bare form, the way `memo install` stores a directory), and say
+ * which are missing or at a version the range does not accept.
+ */
+export function resolveDependencies(
+    projectRoot: string, libraryRoots: readonly LibraryRoot[], diagnostics: NativeDiagnostic[],
+): ResolvedDependency[] {
+    const declared = readPackageManifest(projectRoot).manifest.dependencies ?? {};
+    const bare = (name: string) => name.replace(/^@[^/]+\//, '');
+    const out: ResolvedDependency[] = [];
+    for (const [name, range] of Object.entries(declared)) {
+        const root = libraryRoots.find(r => r.packageName === name)
+            ?? libraryRoots.find(r => bare(r.packageName) === bare(name));
+        out.push({ name, range, root });
+        if (!root) {
+            diagnostics.push({
+                code: 'dependency-missing',
+                message: `The dependency "${name}" (${range}) is listed in memo.package.yaml but no package of that name was found. `
+                    + 'Install it with `memo-architect install`, or place it under memo_packages/.',
+            });
+        } else if (!satisfiesRange(root.packageVersion, range)) {
+            diagnostics.push({
+                code: 'dependency-version',
+                message: `The dependency "${name}" asks for ${range} and ${root.dir} is ${root.packageVersion ?? 'unversioned'}.`,
+            });
+        }
+    }
+    return out;
 }
 
 // ─── Resolution ───────────────────────────────────────────────────────────────
@@ -513,6 +571,9 @@ export function finishResolution(
         });
     }
 
+    const dependencies = resolveDependencies(root, libraryRoots, diagnostics);
+    const dependencyDirs = new Set(dependencies.flatMap(d => d.root ? [d.root.dir] : []));
+
     const methodologyPackages = new Set<string>();
     const methodologies = new Map<string, NativeMethodology>();
     for (const meth of methodologyList) {
@@ -544,7 +605,7 @@ export function finishResolution(
             qualifiedName: name,
             files: [...entry.files],
             root: entry.root,
-            origin: originFor(entry.root, methodologyPackages.has(name)),
+            origin: originFor(entry.root, methodologyPackages.has(name), dependencyDirs),
             importDepth: depth,
             importedBy: via ? [via] : [],
         });
@@ -634,6 +695,7 @@ export function finishResolution(
         closure,
         selectedRoots,
         unusedRoots,
+        dependencies,
         filePackages,
         publicImports,
         diagnostics,

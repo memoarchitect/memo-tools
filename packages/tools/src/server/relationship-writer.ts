@@ -21,6 +21,7 @@
 // connection usage.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { assertWritable } from './write-guard.js';
 import {
     existsSync, mkdirSync, readdirSync, readFileSync,
     realpathSync, renameSync, unlinkSync, writeFileSync,
@@ -883,6 +884,7 @@ function relativeFile(projectRoot: string, file: string): string {
  * half-written model file.
  */
 function atomicWrite(absolutePath: string, contents: string): void {
+    assertWritable(absolutePath);
     const dir = dirname(absolutePath);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     const tempPath = `${absolutePath}.${process.pid}.tmp`;

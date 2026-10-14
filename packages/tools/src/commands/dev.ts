@@ -32,6 +32,7 @@ import type {
 import { createDevServer } from '../server/dev-server.js';
 import { createProjectWatcher, createOntologyWatcher } from '../server/file-watcher.js';
 import { layoutBlindRevision } from '../model/view-layout-block.js';
+import { setReadOnlyRoots } from '../server/write-guard.js';
 import { readLegacyLayouts } from '../model/view-layout-migration.js';
 import { checkLockFile } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
@@ -320,6 +321,10 @@ export async function devCommand(options: {
         const ruleFileLoaded = resolutionOf
             ? (file: string) => resolutionLoads(resolutionOf)(file) || isProjectSource(resolutionOf)(file)
             : undefined;
+        // No write may land in a package the model depends on: it is shown, linked to, and changed elsewhere.
+        setReadOnlyRoots([...(resolutionOf?.closure.values() ?? [])]
+            .filter(pkg => pkg.origin === 'dependency' && pkg.root)
+            .flatMap(pkg => [pkg.root!.dir, pkg.root!.sysmlDir]));
         const nativeConstraints = accepted
             ? collectApiConstraints(stage1.api!, undefined, stage1.resolution?.filePackages, ruleFileLoaded)
             : kept!.constraints;

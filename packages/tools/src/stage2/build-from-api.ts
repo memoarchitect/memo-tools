@@ -162,7 +162,7 @@ class ElementBuilder {
         const roots: ApiElement[] = [];
         for (const element of this.api.projectElements()) {
             if (element['@type'] !== 'Namespace') continue; // a document's root namespace
-            if (this.projectFiles && !this.projectFiles.has(this.file(element))) continue;
+            if (this.projectFiles && !this.projectFiles.has(this.file(element)) && !this.api.isDependency(element['@id'])) continue;
             for (const member of this.api.ownedMembers(element['@id'])) {
                 if (member['@type'] === 'Package' || member['@type'] === 'LibraryPackage') roots.push(member);
             }
@@ -171,7 +171,8 @@ class ElementBuilder {
     }
 
     private file(element: ApiElement): string {
-        return this.api.source(element['@id'])?.file ?? '';
+        return (this.api.isDependency(element['@id']) ? this.api.dependencyFile(element['@id']) : undefined)
+            ?? this.api.source(element['@id'])?.file ?? '';
     }
 
     private visitPackage(pkg: ApiElement, parent: string, folder: string | undefined): void {

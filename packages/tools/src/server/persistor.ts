@@ -22,6 +22,7 @@
 // that follows the write mints the identity for the next edit.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { assertWritable } from './write-guard.js';
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { generateUsage } from '../serializer/sysml-generator.js';
@@ -447,6 +448,7 @@ export function appendToLastPackage(source: string, usage: string): string {
 
 /** Write via a sibling temp file so a crash cannot leave a half-written model. */
 export function atomicWrite(absolutePath: string, contents: string): void {
+    assertWritable(absolutePath);
     const tempPath = `${absolutePath}.${process.pid}.tmp`;
     try {
         writeFileSync(tempPath, contents, 'utf8');
