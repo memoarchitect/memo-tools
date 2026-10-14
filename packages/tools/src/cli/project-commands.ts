@@ -59,6 +59,7 @@ import {
 } from '../commands/element.js';
 import { convertCommand } from '../commands/convert.js';
 import { migrateLayoutCommand } from '../commands/migrate-layout.js';
+import { idsRebaseCommand } from '../commands/ids-rebase.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 
@@ -81,6 +82,19 @@ export function registerProjectCommands(program: Command): void {
     ).action(async (a: string, b: string, opts: Record<string, unknown>) => {
         await interfacesCommand(a, b, opts as InterfacesOptions);
     });
+
+    // ─── memo ids ──────────────────────────────────────────────────────────────
+
+    const idsCmd = program.command('ids').description('Work with the ids a model hands out');
+    idsCmd
+        .command('rebase')
+        .description('Renumber this branch\'s ids that clash with the ones the branch it will land on handed out')
+        .argument('[dir]', 'Model directory', '.')
+        .requiredOption('--onto <ref>', 'The ref this branch will land on')
+        .option('--dry-run', 'Say what would be renumbered and write nothing')
+        .action(async (dir: string, opts: { onto?: string; dryRun?: boolean }) => {
+            await idsRebaseCommand(dir, opts);
+        });
 
     // ─── memo migrate-layout ───────────────────────────────────────────────────
 
