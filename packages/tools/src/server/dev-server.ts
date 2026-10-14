@@ -48,6 +48,7 @@ import type { SemanticOrigin } from '../model/source-provenance.js';
 import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-policy-writer.js';
 import { createRule, previewRule } from './rule-service.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
+import { layoutBlindRevision } from '../model/view-layout-block.js';
 import { updateViewExpose, writeViewDeclaration } from './view-writer.js';
 import { usageKeyword } from '../model/semantic.js';
 import {
@@ -136,6 +137,12 @@ export interface DevServer {
         matched: Record<string, string>;
         escalationFile?: string;
     };
+    /**
+     * Send every client the saved layouts of the views declared in these source
+     * files, after a layout changed that this server did not write (a `git pull`,
+     * an editor).
+     */
+    refreshLayouts(files: readonly string[]): void;
     /** Reject every model mutation until a clean runtime is relaunched. */
     lockMutations(message: RestartRequiredMessage): void;
     /**
@@ -300,6 +307,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     // three state payloads from a rebuild share one revision so the browser
     // cannot combine a model from one build with validation from another.
     const workspaceSessionId = randomUUID();
+    /** The layout saves in flight, in order. */
+    let layoutSaves: Promise<void> = Promise.resolve();
     const writeTransactions = new Map<string, {
         id: string; hash: string; createdAt: number; unmatchedWrites: number;
     }>();
@@ -348,7 +357,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     function recordWriteTransaction(sourceFile: string, text: string): string {
         const id = randomUUID();
         writeTransactions.set(sourceFile.replaceAll('\\', '/'), {
-            id, hash: createHash('sha256').update(text).digest('hex').slice(0, 16),
+            // The same revision the watcher's match is made with, which ignores layout.
+            id, hash: fileRevision(text),
             createdAt: Date.now(), unmatchedWrites: 0,
         });
         return id;
@@ -1383,7 +1393,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      * granularity is too coarse to trust for conflict detection.
      */
     function fileRevision(contents: string): string {
-        return createHash('sha256').update(contents).digest('hex').slice(0, 16);
+        // Layout-blind: a box moved on a canvas is not an edit of the file.
+        return layoutBlindRevision(contents);
     }
 
     /**
@@ -1729,8 +1740,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // A view is model content, so it is DECLARED, not recorded in
                     // a sidecar. Writing the SysML puts it where `memo validate`,
                     // the selected compiler, review and git can all see it, and — the
-                    // derived diagram then carrying a `sourceFile` — takes its
-                    // `.viewlayout` companion out of the hidden store too.
+                    // derived diagram then carrying a `sourceFile` — has a place to keep
+                    // its layout.
                     const declared = await writeViewDeclaration(
                         projectRoot, currentModel() ?? ({ elements: {}, diagrams: [] } as any), diagram, (await authoringContext()).outlines);
                     if (!declared.success) {
@@ -1782,12 +1793,29 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     ws.send(JSON.stringify({ type: 'app:error', payload: { requestId: (msg.payload as any)?.requestId, error } }));
                 } else if (msg.type === 'diagram:layout:update') {
                     const { diagramId, layout } = msg.payload;
-                    const diagram = currentDiagrams().find(d => d.id === diagramId)
-                        ?? { id: diagramId, name: diagramId, diagramType: 'bdd', viewpointId: '__model', auto: false };
-                    const savedPath = saveViewLayout(options.projectRoot, diagram, layout);
-                    console.log(savedPath
-                        ? `[Diagram] Saved layout: ${savedPath}`
-                        : `[Diagram] No overrides to save for ${diagramId}`);
+                    const diagram = currentDiagrams().find(d => d.id === diagramId);
+                    // The layout is written into the `view` that declares the
+                    // diagram, and nowhere else. A diagram that is not a declared
+                    // view keeps its layout for the session only.
+                    // One at a time: each save reads the file, has the compiler check the
+                    // result, and writes it, so two saves of views in one file would
+                    // otherwise each start from the text before the other.
+                    const saving = layoutSaves.then(async () => diagram
+                        ? await saveViewLayout(options.projectRoot, diagram, layout, (await authoringContext()).outlines)
+                        : { success: false, reason: `no view "${diagramId}" is declared` } as const);
+                    layoutSaves = saving.then(() => undefined, () => undefined);
+                    const saved = await saving;
+                    if (!saved.success) {
+                        console.log(`[Diagram] Layout of ${diagramId} not saved: ${saved.reason}`);
+                    } else if ('changed' in saved && saved.changed && saved.filePath) {
+                        console.log(`[Diagram] Saved layout: ${saved.filePath}`);
+                        // The file watcher sees this write, finds it layout-only and
+                        // does not rebuild; the write is matched here so it is not
+                        // mistaken for an outside edit.
+                        recordWriteTransaction(saved.filePath, readFileSync(resolve(options.projectRoot, saved.filePath), 'utf8'));
+                    } else {
+                        console.log(`[Diagram] No change to the layout of ${diagramId}`);
+                    }
                     // Broadcast to other clients (not the sender)
                     const layoutMsg = JSON.stringify({ type: 'diagram:layout', payload: { layouts: { [diagramId]: layout } } });
                     for (const client of clients) {
@@ -2695,6 +2723,17 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                     for (const msg of messages) client.send(JSON.stringify(msg));
                 }
             }
+        },
+        refreshLayouts(files: readonly string[]) {
+            const wanted = new Set(files.map(file => file.replaceAll('\\', '/')));
+            const diagrams = currentDiagrams().filter(d => d.sourceFile && wanted.has(d.sourceFile.replaceAll('\\', '/')));
+            const layouts = loadViewLayouts(options.projectRoot, diagrams);
+            // A diagram whose statements are all gone is sent as an empty layout,
+            // or the clients would keep the one they had.
+            for (const diagram of diagrams) layouts[diagram.id] ??= { nodes: {}, edges: {} };
+            if (Object.keys(layouts).length === 0) return;
+            const message = JSON.stringify({ type: 'diagram:layout', payload: { layouts } });
+            for (const client of clients) if (client.readyState === 1) client.send(message);
         },
         consumeWriteTransactions(files: readonly string[]) {
             const matched: Record<string, string> = {};

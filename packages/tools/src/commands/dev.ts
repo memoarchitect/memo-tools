@@ -31,6 +31,8 @@ import type {
 } from '@memoarchitect/tools';
 import { createDevServer } from '../server/dev-server.js';
 import { createProjectWatcher, createOntologyWatcher } from '../server/file-watcher.js';
+import { layoutBlindRevision } from '../model/view-layout-block.js';
+import { readLegacyLayouts } from '../model/view-layout-migration.js';
 import { checkLockFile } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { enforceRuntimeBudget } from '../server/runtime-budget.js';
@@ -267,6 +269,8 @@ export async function devCommand(options: {
     // before it ran): what `memo validate` is answered from while the
     // fingerprint still matches the files on disk.
     let latestCompile: { fingerprint: string; stage1: CompileModelResult } | undefined;
+    /** The layout-blind revision of every source file as of the last rebuild. */
+    let lastSourceHashes: Record<string, string> = {};
     async function rebuildProject(changedFiles?: readonly string[]): Promise<{
         messages: ServerMessage[]; revision: number; coherent: boolean; firstErrorFile?: string;
         errors: readonly ParseError[];
@@ -465,15 +469,16 @@ export async function devCommand(options: {
             diagram.sourceFiles = viewSourceFiles(diagram, model.elements, sourceGraph);
         }
 
+        lastSourceHashes = Object.fromEntries(sysmlFiles.map(file => [
+            relative(cwd, file).replaceAll('\\', '/'),
+            layoutBlindRevision(readFileSync(file, 'utf8')),
+        ]));
         const dto = modelToDTO(model, {
             viewpoints, architectureLayers, diagrams, registries: registriesDTO,
             revision: buildCount,
             sourceGraph: sourceGraphToDTO(sourceGraph),
             irIdentities,
-            sourceHashes: Object.fromEntries(sysmlFiles.map(file => [
-                relative(cwd, file).replaceAll('\\', '/'),
-                createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16),
-            ])),
+            sourceHashes: lastSourceHashes,
             enumerations,
             workspaceMembership: membership ? workspaceMembershipToDTO(membership, model) : undefined,
         });
@@ -544,6 +549,15 @@ export async function devCommand(options: {
     }
     console.log(chalk.gray('  Building model...'));
     const initial = await rebuildProject();
+    // Layouts moved into their views; a sidecar left behind is no longer read.
+    try {
+        const leftover = readLegacyLayouts(cwd);
+        if (leftover.length > 0) {
+            console.log(chalk.yellow(
+                `  ⚠ ${leftover.length} diagram layout(s) in .viewlayout files are no longer read. `
+                + 'Run `memo migrate-layout` to move them into their views.'));
+        }
+    } catch { /* a warning, never a reason not to serve */ }
 
     let shuttingDown = false;
     let idleShutdownTimer: ReturnType<typeof setTimeout> | undefined;
@@ -555,6 +569,7 @@ export async function devCommand(options: {
         shuttingDown = true;
         if (idleShutdownTimer) clearTimeout(idleShutdownTimer);
         console.log(chalk.gray(`\n  ${reason}`));
+        if (layoutSettleTimer) clearTimeout(layoutSettleTimer);
         projectWatcher?.close();
         ontologyWatcher?.close();
         versions?.close();
@@ -801,8 +816,17 @@ export async function devCommand(options: {
             },
         }]);
     };
-    if (!options.readOnly) projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
-        for (const file of changedFiles) pendingRebuildFiles.add(file);
+    // A layout is saved at the end of a drag, into the view that declares it. Such a
+    // write changes no model fact, so it does not rebuild at once: the clients that
+    // did not make it are given the new layout, and one rebuild follows when the
+    // saves stop. That rebuild is not for the model's sake but for the source
+    // ranges the compile recorded, which a block of statements shifts for every
+    // declaration after it in the file.
+    const LAYOUT_SETTLE_MS = 2500;
+    let layoutSettleTimer: ReturnType<typeof setTimeout> | undefined;
+    const settlingLayoutFiles = new Set<string>();
+    const runRebuilds = async (files: readonly string[]) => {
+        for (const file of files) pendingRebuildFiles.add(file);
         if (rebuildInFlight) return;
         rebuildInFlight = true;
         try {
@@ -814,6 +838,32 @@ export async function devCommand(options: {
         } finally {
             rebuildInFlight = false;
         }
+    };
+    if (!options.readOnly) projectWatcher = createProjectWatcher(cwd, async (changedFiles) => {
+        const layoutOnly = changedFiles.filter(file => {
+            const known = lastSourceHashes[file.replaceAll('\\', '/')];
+            const path = resolve(cwd, file);
+            return known !== undefined && existsSync(path) && layoutBlindRevision(readFileSync(path, 'utf8')) === known;
+        });
+        const rest = changedFiles.filter(file => !layoutOnly.includes(file));
+        if (layoutOnly.length > 0) {
+            const mine = server.consumeWriteTransactions(layoutOnly).matched;
+            const outside = layoutOnly.filter(file => !(file.replaceAll('\\', '/') in mine));
+            if (outside.length > 0) server.refreshLayouts(outside);
+            // Whatever else changed in the same burst rebuilds anyway, and that
+            // rebuild covers these files; otherwise settle first.
+            if (rest.length === 0) {
+                for (const file of layoutOnly) settlingLayoutFiles.add(file);
+                if (layoutSettleTimer) clearTimeout(layoutSettleTimer);
+                layoutSettleTimer = setTimeout(() => {
+                    const files = [...settlingLayoutFiles];
+                    settlingLayoutFiles.clear();
+                    void runRebuilds(files);
+                }, LAYOUT_SETTLE_MS);
+                return;
+            }
+        }
+        await runRebuilds(rest.length > 0 ? changedFiles : []);
     }, 300, false, { ontologyRoots, provenance });
 
     // Ontology watcher — restart notification only, no registry reload

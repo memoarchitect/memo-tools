@@ -38,6 +38,7 @@ import {
     mutationDomain,
 } from '../server/mutation-domain.js';
 import { saveViewLayout } from '../server/view-layout-store.js';
+import { stripLayout } from '../model/view-layout-block.js';
 import type { RelationshipDefinitionDTO } from '../model/relationship-legality.js';
 import type { DiagramDTO } from '../model/semantic.js';
 import type { DiagramLayout } from '../protocol/messages.js';
@@ -524,24 +525,30 @@ describe('one action, one store', () => {
             .not.toThrow();
     });
 
-    it('moving a symbol produces no .sysml diff', () => {
+    it('moving a symbol changes the view\'s layout statements and nothing the model says', async () => {
         writeProjectFile('model/flow.sysml', `package Flow {
     action routeOrder;
     action processOrder;
+    view flowView : MemoDiagramView {
+        expose Flow::*;
+    }
 }
 `);
         const before = readProjectFile('model/flow.sysml');
         const diagram: DiagramDTO = {
-            id: 'diag-1', name: 'Flow', diagramType: 'bdd',
-            viewpointId: '__model', auto: false, sourceFile: 'model/flow.sysml',
+            id: 'diag-1', name: 'Flow', diagramType: 'bdd', viewpointId: '__model', auto: false,
+            sourceFile: 'model/flow.sysml', elementId: 'Flow::flowView',
         } as DiagramDTO;
         const layout: DiagramLayout = { nodes: { routeOrder: { x: 120, y: 40 } }, edges: {} };
+        const accepting = { outline: async () => { throw new Error('unused'); }, verify: async () => undefined };
 
-        const saved = saveViewLayout(projectRoot, diagram, layout);
+        const saved = await saveViewLayout(projectRoot, diagram, layout, accepting);
 
-        expect(saved).toBeTruthy();
-        expect(saved!.endsWith('.sysml')).toBe(false);
-        expect(readProjectFile('model/flow.sysml')).toBe(before);
+        expect(saved.success).toBe(true);
+        const after = readProjectFile('model/flow.sysml');
+        expect(after).not.toBe(before);
+        // the statements, and the import they need; nothing else
+        expect(stripLayout(after).replace(/^\s*private import memo_viewpoints_definitions_layout::\*;\n/m, '')).toBe(before);
     });
 });
 

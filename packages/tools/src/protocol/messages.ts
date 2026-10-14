@@ -871,7 +871,7 @@ export interface DiagramSourceResultMessage {
 
 // ─── Sidecar Layout ─────────────────────────────────────────────────────────
 
-/** Per-node visual override stored in the view's .viewlayout companion. */
+/** Per-node visual override stored in the view's `@MemoLayoutNode` statements. */
 export interface DiagramNodeLayout {
     /**
      * Position, in the coordinate frame named by `parent`.
@@ -957,7 +957,7 @@ export interface DiagramAnnotation {
     color?: string;
 }
 
-/** Full layout for one diagram, deserialized from its .viewlayout companion. */
+/** Full layout for one diagram, read from the layout statements of its view. */
 export interface DiagramLayout {
     nodes: Record<string, DiagramNodeLayout>;
     edges: Record<string, DiagramEdgeLayout>;
