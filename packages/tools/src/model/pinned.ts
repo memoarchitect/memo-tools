@@ -445,3 +445,61 @@ export function releaseInfo(build: ReleaseBuild): PinnedInfo {
 export function refInfo(ref: string, pin: Pin): PinnedInfo {
     return { kind: 'ref', label: ref, commits: [{ name: 'model', commit: pin.sha }], notARelease: true };
 }
+
+// ─── A release record, built; its previous release ───────────────────────────
+
+/** A release record built from its own commit or assembled from its pins. */
+export interface RecordBuild {
+    build: PinnedBuild;
+    info: PinnedInfo;
+    /** The directory the model was built in, which a read-only server can serve. */
+    dir: string;
+    /** The record's commit. */
+    commit: string;
+}
+
+/**
+ * The model of one release record. A record that contains releases of systems is an SoS version and
+ * is assembled (`buildRelease`); any other is the model at its own `modelCommit`, opened on the one
+ * item it releases (a system release shows that system, as T2 draws it).
+ */
+export async function buildForRecord(projectRoot: string, working: Pick<ProjectModel, 'model'>, recordId: string, options: BuildOptions = {}): Promise<RecordBuild> {
+    const pins = releasePins(working.model, recordId);
+    if (pins.systems.length > 0) {
+        const build = await buildRelease(projectRoot, working, recordId, options);
+        return { build, info: releaseInfo(build), dir: build.assembly.dir, commit: pins.commit };
+    }
+    const item = [...working.model.relationships.values()].find(r => r.type === 'releaseOf' && r.sourceId === recordId)?.targetId;
+    const build = await buildAt(projectRoot, pins.commit, options);
+    const info: PinnedInfo = { kind: 'release', label: pins.record, commits: [{ name: 'release', commit: pins.commit }], ...(item ? { workspace: item } : {}) };
+    return { build, info, dir: build.projectDir, commit: pins.commit };
+}
+
+/**
+ * The release before this one: the nearest record of the same item whose commit is an ancestor of
+ * this one's. Nothing is guessed: with no such record, or with two that are not ordered against each
+ * other (a branch), there is no previous release.
+ */
+export async function previousRelease(projectRoot: string, model: MemoModel, recordId: string): Promise<string | undefined> {
+    const links = [...model.relationships.values()].filter(r => r.type === 'releaseOf');
+    const item = links.find(r => r.sourceId === recordId)?.targetId;
+    const commit = attr(model, recordId, 'modelCommit');
+    if (!item || !commit) return undefined;
+    const earlier: { id: string; commit: string }[] = [];
+    for (const link of links) {
+        if (link.targetId !== item || link.sourceId === recordId) continue;
+        const other = attr(model, link.sourceId, 'modelCommit');
+        if (!other || other === commit) continue;
+        if (await isAncestor(projectRoot, other, commit)) earlier.push({ id: link.sourceId, commit: other });
+    }
+    const nearest: typeof earlier = [];
+    for (const candidate of earlier) {
+        let superseded = false;
+        for (const other of earlier) {
+            if (other !== candidate && other.commit !== candidate.commit && await isAncestor(projectRoot, candidate.commit, other.commit)) superseded = true;
+        }
+        if (!superseded) nearest.push(candidate);
+    }
+    const commits = new Set(nearest.map(n => n.commit));
+    return commits.size === 1 ? nearest[0].id : undefined;
+}

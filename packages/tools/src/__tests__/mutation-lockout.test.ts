@@ -6,7 +6,7 @@ describe('session conflict mutation lockout', () => {
         for (const type of [
             'element:update', 'element:create', 'relationship:create',
             'diagram:source:save', 'methodology:source:save', 'csv:import',
-            'import:apply', 'suspect:review',
+            'import:apply', 'suspect:review', 'release:create',
         ]) expect(isModelMutationMessage(type)).toBe(true);
 
         for (const type of [

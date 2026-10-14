@@ -19,6 +19,8 @@ export * from '../analysis/dsm.js';
 export * from '../analysis/impact.js';
 export * from '../analysis/suspect-links.js';
 export * from '../model/variability.js';
+export * from '../model/model-diff.js';
+export { defaultReleaseFile, isInSystemFolder } from '../model/release-target.js';
 export { READ_ONLY_MESSAGES, isReadOnlyMessage } from '../server/mutation-domain.js';
 export * from '../import/import-sources.js';
 export * from '../import/recipes.js';

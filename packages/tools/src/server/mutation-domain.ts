@@ -48,6 +48,8 @@ const MUTATION_DOMAINS: Record<string, MutationDomain> = {
     'import:preview': 'neither',
     'import:apply': 'semantic',
     'suspect:review': 'semantic',
+    // A release record and every statement that links it, written together.
+    'release:create': 'semantic',
     'diagram:layout:update': 'layout',
     // User diagrams are a sidecar too — a saved view is presentation state, and
     // creating one has never written SysML.

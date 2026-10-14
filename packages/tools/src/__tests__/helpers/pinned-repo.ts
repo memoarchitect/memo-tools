@@ -10,6 +10,8 @@
 //       ablation@c3 and recording@c1
 //   c5  `CatheterLocation` renamed in shared/ and in mapping (the working tree stays valid)
 //   c6  further records, each a case the build must refuse or map back
+//   c7  a side branch off c1 (a note in the recording folder) merged in; c8 adds a record at the merge,
+//       whose two earlier releases of one item are not ordered against each other
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { execFileSync } from 'node:child_process';
@@ -21,6 +23,8 @@ import { RELEASE_RECORDS, releaseFiles } from './release-fixture.js';
 export interface FamilyRepo {
     root: string;
     c1: string; c2: string; c3: string; c4: string; c5: string; c6: string;
+    /** A commit on a side branch off c1, merged at c7. */
+    cSide: string; c7: string; c8: string;
     remove(): void;
 }
 
@@ -85,5 +89,17 @@ export function createFamilyRepo(): FamilyRepo {
     const text = readFileSync(join(root, 'model/sos/release_records.sysml'), 'utf8');
     writeFileSync(join(root, 'model/sos/release_records.sysml'), text.replace(/\}\s*$/, `${extra}\n}\n`));
     const c6 = commit('c6 more records');
-    return { root, c1, c2, c3, c4, c5, c6, remove: () => { git(root, 'worktree', 'prune'); rmSync(root, { recursive: true, force: true }); } };
+    const branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD');
+    git(root, 'checkout', '-q', '-b', 'side', c1);
+    writeFileSync(join(root, 'model/systems/recording/side_note.sysml'), 'package ep_lab_family_recording_side_note {\n}\n');
+    const cSide = commit('side note');
+    git(root, 'checkout', '-q', branch);
+    git(root, 'merge', '-q', '--no-ff', '-m', 'c7 merge side', 'side');
+    const c7 = git(root, 'rev-parse', 'HEAD');
+    const sideRecord = record('relFirmwareSide', 'EnergyControllerFirmware', cSide, 508);
+    const mergeRecord = record('relFirmwareMerge', 'EnergyControllerFirmware', c7, 509);
+    const withMerge = readFileSync(join(root, 'model/sos/release_records.sysml'), 'utf8');
+    writeFileSync(join(root, 'model/sos/release_records.sysml'), withMerge.replace(/\}\s*$/, `${sideRecord}\n${mergeRecord}\n}\n`));
+    const c8 = commit('c8 records at the merge');
+    return { root, c1, c2, c3, c4, c5, c6, cSide, c7, c8, remove: () => { git(root, 'worktree', 'prune'); rmSync(root, { recursive: true, force: true }); } };
 }

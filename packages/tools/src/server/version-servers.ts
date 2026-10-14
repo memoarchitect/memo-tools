@@ -12,7 +12,8 @@ import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { MemoModel } from '../model/semantic.js';
 import type { MEMOConfig } from '../model/config.js';
-import { buildRelease, pinWorktree, refInfo, releaseInfo } from '../model/pinned.js';
+import { buildForRecord, pinWorktree, previousRelease, refInfo } from '../model/pinned.js';
+import { computeModelDiff, diffInputOf, summarizeDiff, type ModelDiffSummary } from '../model/model-diff.js';
 import type { PinnedInfo } from '../protocol/messages.js';
 
 const git = promisify(execFile);
@@ -68,8 +69,22 @@ export interface VersionServersOptions {
     toolchain?: MEMOConfig['toolchain'];
 }
 
+/** Two releases compared: the older side, the newer, and what changed. */
+export interface ReleaseDiff {
+    before: { label: string; commit: string };
+    after: { label: string; commit: string };
+    /** True when the older side is the previous release, found by ancestry. */
+    previous: boolean;
+    diff: ModelDiffSummary;
+}
+
 export interface VersionServers {
     refs(): Promise<VersionRef[]>;
+    /**
+     * What changed in `release` since `against`: another record's id, or 'previous' for the nearest
+     * earlier record of the same item. Built in this process from the cached pinned builds.
+     */
+    diff(release: string, against: string): Promise<ReleaseDiff>;
     open(selection: VersionSelection): Promise<{ url: string; info: PinnedInfo }>;
     close(): void;
 }
@@ -110,10 +125,26 @@ export function createVersionServers(options: VersionServersOptions): VersionSer
             if (selection.release) {
                 const model = options.workingModel();
                 if (!model) throw new Error('the working model is not built yet');
-                const build = await buildRelease(options.projectRoot, { model }, selection.release, { config: { toolchain: options.toolchain } });
-                return serve(build.assembly.dir, releaseInfo(build));
+                const built = await buildForRecord(options.projectRoot, { model }, selection.release, { config: { toolchain: options.toolchain } });
+                return serve(built.dir, built.info);
             }
             throw new Error('say which version to open: a release record or a ref');
+        },
+        async diff(release, against) {
+            const model = options.workingModel();
+            if (!model) throw new Error('the working model is not built yet');
+            const config = { config: { toolchain: options.toolchain } };
+            const olderId = against === 'previous' ? await previousRelease(options.projectRoot, model, release) : against;
+            if (!olderId) throw new Error('This release has no previous release: no earlier record of the same item is an ancestor of it.');
+            const label = (id: string) => model.elements.get(id)?.shortName ?? id;
+            const newer = await buildForRecord(options.projectRoot, { model }, release, config);
+            const older = await buildForRecord(options.projectRoot, { model }, olderId, config);
+            const before = diffInputOf(older.build.project.model);
+            const after = diffInputOf(newer.build.project.model);
+            return {
+                before: { label: label(olderId), commit: older.commit }, after: { label: label(release), commit: newer.commit },
+                previous: against === 'previous', diff: summarizeDiff(computeModelDiff(before, after), before, after),
+            };
         },
         close() {
             for (const { child } of children.values()) child.kill('SIGTERM');
