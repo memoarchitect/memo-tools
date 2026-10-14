@@ -100,7 +100,7 @@ describe('E2E: memo init → validate → export', () => {
         expect(readFileSync(architecturePath, 'utf-8')).toContain('private import memo_architecture_logical_structure::*');
 
         // The native entrypoint carries the imports and the binding.
-        const entrypointPath = join(projectDir, 'model', 'catalog', 'project.sysml');
+        const entrypointPath = join(projectDir, 'model', 'methodology', 'project.sysml');
         expect(existsSync(entrypointPath)).toBe(true);
         const entrypoint = readFileSync(entrypointPath, 'utf-8');
         expect(entrypoint).toContain('ModelMethodBinding');
@@ -148,9 +148,9 @@ describe('E2E: memo init → validate → export', () => {
         const projectDir = join(tmpDir, 'test-core-device');
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
         // The descriptor records identity only. What the project imports and
-        // which methodology it binds is in model/catalog/project.sysml.
+        // which methodology it binds is in model/methodology/project.sysml.
         expect(config.extends).toBeUndefined();
-        const entrypoint = readFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), 'utf-8');
+        const entrypoint = readFileSync(join(projectDir, 'model', 'methodology', 'project.sysml'), 'utf-8');
         expect(entrypoint).toContain('ModelMethodBinding');
 
         // SysML should import the ontology
@@ -209,7 +209,7 @@ describe('E2E: memo init → validate → export', () => {
         expect(npmPackage.dependencies['@memoarchitect/ontology']).toMatch(/^\d+\.\d+\.\d+$/);
         const config = parseYaml(readFileSync(join(projectDir, 'memo.package.yaml'), 'utf-8'));
         expect(config.extends).toBeUndefined();
-        expect(readFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), 'utf-8'))
+        expect(readFileSync(join(projectDir, 'model', 'methodology', 'project.sysml'), 'utf-8'))
             .toContain('ModelMethodBinding');
     });
 
@@ -232,7 +232,7 @@ describe('E2E: memo init → validate → export', () => {
         expect(output).toContain('gpca-pump');
         expect(output).toContain('Model created');
 
-        expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'methodology', 'project.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model'))).toBe(true);
 
         // One catalog root, and nothing beside it. `model/views/` and
@@ -240,7 +240,7 @@ describe('E2E: memo init → validate → export', () => {
         // conversion moved views beneath the viewpoints that govern them, so
         // their absence here is the assertion, not an omission.
         const modelDir = join(projectDir, 'model');
-        expect(readdirSync(modelDir)).toEqual(['catalog']);
+        expect(readdirSync(modelDir)).toEqual(['catalog', 'methodology']);
 
         const catalogFiles = readdirSync(join(modelDir, 'catalog'));
         expect(catalogFiles.some(f => f.endsWith('.sysml'))).toBe(true);
@@ -253,7 +253,7 @@ describe('E2E: memo init → validate → export', () => {
 
         expect(output).toContain('Creating project from example');
         expect(output).toContain('gpca-pump');
-        expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'methodology', 'project.sysml'))).toBe(true);
     });
 
     it('memo init --example with no name copies into the current (empty) directory', () => {
@@ -262,7 +262,7 @@ describe('E2E: memo init → validate → export', () => {
 
         const output = run('init --example gpca', projectDir);
         expect(output).toContain('Model created in current directory');
-        expect(existsSync(join(projectDir, 'model', 'catalog', 'project.sysml'))).toBe(true);
+        expect(existsSync(join(projectDir, 'model', 'methodology', 'project.sysml'))).toBe(true);
         expect(existsSync(join(projectDir, 'model'))).toBe(true);
 
         // Refuses to copy into a non-empty directory
@@ -295,9 +295,10 @@ describe('E2E: ontology lock + change detection', () => {
         mkdirSync(projectDir, { recursive: true });
         mkdirSync(join(projectDir, 'model'), { recursive: true });
 
-        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: lock-test\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n`);
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: lock-test\nentrypoint: model/methodology/project.sysml\ninclude: [model]\n`);
         mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
-        writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
+        mkdirSync(join(projectDir, 'model', 'methodology'), { recursive: true });
+        writeFileSync(join(projectDir, 'model', 'methodology', 'project.sysml'), `
 package lock_test_project {
     private import memo_core_enumerations::*;
     private import memo_methodology_core::*;
@@ -423,9 +424,10 @@ describe('E2E: custom model validation', () => {
         mkdirSync(projectDir, { recursive: true });
         mkdirSync(join(projectDir, 'model'), { recursive: true });
 
-        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: custom-device\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n`);
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: custom-device\nentrypoint: model/methodology/project.sysml\ninclude: [model]\n`);
         mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
-        writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
+        mkdirSync(join(projectDir, 'model', 'methodology'), { recursive: true });
+        writeFileSync(join(projectDir, 'model', 'methodology', 'project.sysml'), `
 package custom_device_project {
     private import memo_core_enumerations::*;
     private import memo_methodology_core::*;
@@ -677,8 +679,8 @@ describe('DD-3: kpar round-trip (GPCA pump)', () => {
     });
 
     it('config file survives round-trip', () => {
-        const srcConfig = readFileSync(join(GPCA_DIR, 'model', 'catalog', 'project.sysml'), 'utf-8');
-        const extConfig = readFileSync(join(extractDir, 'model', 'catalog', 'project.sysml'), 'utf-8');
+        const srcConfig = readFileSync(join(GPCA_DIR, 'model', 'methodology', 'project.sysml'), 'utf-8');
+        const extConfig = readFileSync(join(extractDir, 'model', 'methodology', 'project.sysml'), 'utf-8');
         expect(extConfig).toBe(srcConfig);
     });
 });
@@ -867,8 +869,9 @@ describe('E2E: a model the compiler rejects', () => {
         projectDir = join(REPO_ROOT, '.test-rejected-' + process.pid);
         rmSync(projectDir, { recursive: true, force: true });
         mkdirSync(join(projectDir, 'model', 'catalog'), { recursive: true });
-        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: rejected\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n`);
-        writeFileSync(join(projectDir, 'model', 'catalog', 'project.sysml'), `
+        mkdirSync(join(projectDir, 'model', 'methodology'), { recursive: true });
+        writeFileSync(join(projectDir, 'memo.package.yaml'), `name: rejected\nentrypoint: model/methodology/project.sysml\ninclude: [model]\n`);
+        writeFileSync(join(projectDir, 'model', 'methodology', 'project.sysml'), `
 package rejected_project {
     part broken : NoSuchDefinition;
 }

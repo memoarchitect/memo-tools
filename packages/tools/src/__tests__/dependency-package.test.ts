@@ -107,7 +107,7 @@ async function withPlatform<T>(range: string, use: (root: string) => Promise<T>)
             mkdirSync(dirname(join(root, path)), { recursive: true });
             writeFileSync(join(root, path), text);
         }
-        const project = join(root, 'model/catalog/project.sysml');
+        const project = join(root, 'model/methodology/project.sysml');
         writeFileSync(project, readFileSync(project, 'utf8').replace(/package (\w+) \{/, 'package $1 {\n    private import tmp_uses_platform::*;'));
         return use(root);
     });

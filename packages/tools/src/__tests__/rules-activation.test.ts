@@ -109,7 +109,7 @@ function tailorStandard(name: string, flags: string[]): void {
                 cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
                 const before = JSON.parse(run(root, ['rules', 'list', '.', '--format', 'json'], flags)) as { tailorable: unknown[] };
                 const written = run(root, ['rules', 'tailor', '.', '--standard', 'ISO 14971', '--disable',
-                    '--rationale', 'test', '--authority', 'QA', '--approval', 'T-1', '--file', 'model/catalog/project.sysml'], flags);
+                    '--rationale', 'test', '--authority', 'QA', '--approval', 'T-1', '--file', 'model/methodology/project.sysml'], flags);
                 expect(written).toContain('Wrote the policy');
 
                 const record = JSON.parse(run(root, ['rules', 'tailoring', '.', '--format', 'json'], flags)) as {

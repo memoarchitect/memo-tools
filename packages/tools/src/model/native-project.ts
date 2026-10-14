@@ -8,7 +8,7 @@
 // if a project still carries them. Selection now comes from two native facts:
 //
 //   1. the project's own `.sysml` import graph, rooted at the entrypoint
-//      `model/catalog/project.sysml`, and
+//      `model/methodology/project.sysml`, and
 //   2. the `ModelMethodBinding` that entrypoint declares, whose
 //      `selectedMethodology` is a typed SysML reference.
 //
@@ -49,7 +49,7 @@ const STANDARD_LIBRARY_PACKAGES = new Set([
 ]);
 
 /** Conventional template value for the required project root descriptor. */
-export const PROJECT_ENTRYPOINT = join('model', 'catalog', 'project.sysml');
+export const PROJECT_ENTRYPOINT = join('model', 'methodology', 'project.sysml');
 
 /**
  * Resolve the project's required native entrypoint. `entrypoint` is a project locator:
@@ -58,7 +58,7 @@ export const PROJECT_ENTRYPOINT = join('model', 'catalog', 'project.sysml');
  *
  * There is NO conventional fallback. A project without an `entrypoint` in its
  * `memo.package.yaml` is not a project, even if a file happens to sit at
- * `model/catalog/project.sysml` — that path is a scaffolding default, not a
+ * `model/methodology/project.sysml` — that path is a scaffolding default, not a
  * location the resolver assumes. Callers must report the missing locator
  * rather than a missing file, because the file is usually there.
  */

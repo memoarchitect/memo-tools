@@ -147,7 +147,7 @@ export function createLockFile(
     if (roots.length === 0) {
         throw new Error(
             'This project resolves no reusable packages, so there is nothing to lock. '
-            + 'Add an import to model/catalog/project.sysml first.',
+            + 'Add an import to model/methodology/project.sysml first.',
         );
     }
 

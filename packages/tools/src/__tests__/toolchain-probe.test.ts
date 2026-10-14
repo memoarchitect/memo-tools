@@ -23,7 +23,7 @@ afterEach(() => {
 function project(): string {
     const root = mkdtempSync(join(tmpdir(), 'memo-probe-'));
     tempDirs.push(root);
-    const entry = join(root, 'model/catalog/project.sysml');
+    const entry = join(root, 'model/methodology/project.sysml');
     mkdirSync(dirname(entry), { recursive: true });
     writeFileSync(entry, 'package ProjectCatalog {\n}\n');
     return root;

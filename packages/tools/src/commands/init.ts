@@ -169,9 +169,9 @@ function ensureTarget(name: string | undefined, exampleId?: string): { projectDi
         if (entries.length > 0) {
             // A directory is already a MEMO project when it has the native
             // entrypoint, not when it has a YAML file beside it.
-            const entrypoint = join(projectDir, 'model', 'catalog', 'project.sysml');
+            const entrypoint = join(projectDir, 'model', 'methodology', 'project.sysml');
             console.error(chalk.red(existsSync(entrypoint)
-                ? '❌ This directory is already a MEMO project (model/catalog/project.sysml exists).'
+                ? '❌ This directory is already a MEMO project (model/methodology/project.sysml exists).'
                 : '❌ Current directory is not empty.'));
             if (exampleId) console.log(chalk.gray(`  Run in an empty directory, or pass a name: memo-architect init <name> --example ${exampleId}`));
             process.exit(1);
@@ -299,7 +299,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
     });
 
     // The descriptor records identity only. What the project selects is in
-    // model/catalog/project.sysml: native imports and a ModelMethodBinding.
+    // model/methodology/project.sysml: native imports and a ModelMethodBinding.
     // `--ontology` chooses which package the entrypoint imports, and the
     // descriptor never repeats that choice.
     const configPath = resolve(target.projectDir, 'memo.package.yaml');
@@ -319,7 +319,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
     // default is filled in.
     const entrypointRel = typeof descriptor.entrypoint === 'string' && descriptor.entrypoint.trim()
         ? descriptor.entrypoint.trim()
-        : 'model/catalog/project.sysml';
+        : 'model/methodology/project.sysml';
     descriptor.entrypoint = entrypointRel;
     if (!namesACompiler(descriptor.toolchain)) {
         descriptor.toolchain = { ...(descriptor.toolchain ?? {}), compiler: NEW_PROJECT_COMPILER };

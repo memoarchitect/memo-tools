@@ -2,7 +2,7 @@
 //
 // An authoring write names its target by an identity: the file, the
 // declaration's key in it and its metaclass —
-// `model/catalog/project.sysml#Plant::pump:PartUsage`
+// `model/methodology/project.sysml#Plant::pump:PartUsage`
 // (plans/memo-write-back-from-handoff.md). It is minted from a source outline,
 // so it reads the same whether a stage 1 handoff or MEMO's parse built the
 // outline, and it survives an insertion elsewhere in the file. A rename or a

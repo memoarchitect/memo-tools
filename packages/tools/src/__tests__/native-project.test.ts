@@ -55,7 +55,7 @@ function library(name: string, packageName: string, body: string): void {
 beforeEach(() => {
     rmSync(TMP, { recursive: true, force: true });
     mkdirSync(TMP, { recursive: true });
-    write('memo.package.yaml', 'name: demo\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n');
+    write('memo.package.yaml', 'name: demo\nentrypoint: model/methodology/project.sysml\ninclude: [model]\n');
 
     library('lib-a', 'lib_a', `
 package lib_a {
@@ -89,7 +89,7 @@ package lib_b {
 afterEach(() => { rmSync(TMP, { recursive: true, force: true }); });
 
 function writeEntrypoint(extra = ''): void {
-    write('model/catalog/project.sysml', `
+    write('model/methodology/project.sysml', `
 package demo_project {
     private import lib_a::*;
 ${extra}
@@ -171,7 +171,7 @@ package demo_project {
     });
 
     it('still binds a model written with the deprecated spelling, and warns once naming the new one', async () => {
-        write('model/catalog/project.sysml', `
+        write('model/methodology/project.sysml', `
 package demo_project {
     private import lib_a::*;
     part projectBinding : ProjectMethodBinding {
@@ -247,7 +247,7 @@ package demo_second {
     });
 
     it('rejects a binding that declares allAvailable and also adds packages by public import', async () => {
-        write('model/catalog/project.sysml', `
+        write('model/methodology/project.sysml', `
 package demo_project {
     private import lib_a::*;
     public import lib_b::*;
@@ -268,7 +268,7 @@ package demo_project {
         // A settings file naming lib-b as a dependency must not pull it in.
         // Before the flip this field was the dependency graph.
         writeFileSync(join(TMP, 'memo.package.yaml'),
-            'name: demo\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n'
+            'name: demo\nentrypoint: model/methodology/project.sysml\ninclude: [model]\n'
             + 'extends: "@memoarchitect/lib-b"\nmethodology: "@memoarchitect/lib-b"\n');
         const r = await resolveNativeProject(TMP);
         expect(r.closure.has('lib_b')).toBe(false);

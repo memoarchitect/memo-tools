@@ -39,7 +39,7 @@ import { insertIntoBody, locatePackages } from './package-source.js';
 import { shortNameOf } from '../model/element-index.js';
 
 /** Default home for an element the request does not place. */
-export const DEFAULT_ELEMENT_FILE = 'model/catalog/project.sysml';
+export const DEFAULT_ELEMENT_FILE = 'model/methodology/project.sysml';
 
 export interface ElementWriteRequest {
     /**

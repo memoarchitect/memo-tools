@@ -10,7 +10,7 @@
 // its model, and it exits 0 unless asked otherwise.
 //
 // Model loading follows `memo validate`: a project is found by its native
-// entrypoint (model/catalog/project.sysml), never by a settings file. When
+// entrypoint (model/methodology/project.sysml), never by a settings file. When
 // there is no entrypoint — a bare ontology checkout, someone running this from
 // the repo root — the command falls back to scanning the working directory and
 // says which mode it used, the same graceful pattern `memo-architect dhf lint` uses.
@@ -208,7 +208,7 @@ function printReport(report: StandardsReport, ctx: PrintContext): void {
     }
 
     console.log(chalk.gray(
-        `Project: ${ctx.projectRoot}${ctx.native ? '' : ' (no model/catalog/project.sysml — scanned the working directory)'}`));
+        `Project: ${ctx.projectRoot}${ctx.native ? '' : ' (no model/methodology/project.sysml — scanned the working directory)'}`));
     if (!ctx.modelPresent) {
         console.log(chalk.yellow(
             'No .sysml files found: nothing claims anything, so every clause below is a gap.'));

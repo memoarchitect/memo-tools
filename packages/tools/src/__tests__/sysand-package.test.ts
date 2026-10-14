@@ -69,14 +69,14 @@ describe('which SysML is the project\'s own to package', () => {
 
     it('a project packs its include roots and entrypoint, not what else sits in its directory', () => {
         const dir = scratch();
-        writeFileSync(join(dir, 'memo.package.yaml'), 'name: pump\nentrypoint: model/catalog/project.sysml\ninclude: [model]\n');
-        write(dir, 'model/catalog/project.sysml');
+        writeFileSync(join(dir, 'memo.package.yaml'), 'name: pump\nentrypoint: model/methodology/project.sysml\ninclude: [model]\n');
+        write(dir, 'model/methodology/project.sysml');
         write(dir, 'model/catalog/parts.sysml');
         write(dir, 'examples/other/model/x.sysml');
         write(dir, 'node_modules/@memoarchitect/ontology/src/o.sysml');
         const { base, files } = declaredSources(dir);
         expect(base).toBe(dir);
-        expect(files).toEqual(['model/catalog/parts.sysml', 'model/catalog/project.sysml']);
+        expect(files).toEqual(['model/catalog/parts.sysml', 'model/methodology/project.sysml']);
     });
 
     it('refuses a directory that declares no sources of its own, instead of guessing from what is there', () => {

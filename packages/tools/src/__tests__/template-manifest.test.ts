@@ -11,7 +11,7 @@ describe('ontology template manifest', () => {
         expect(existsSync(`${root}/memo.package.yaml`)).toBe(true);
         // The native entrypoint is what makes the scaffold a project: it
         // carries the imports and the ProjectMethodBinding.
-        expect(existsSync(`${root}/model/catalog/project.sysml`)).toBe(true);
+        expect(existsSync(`${root}/model/methodology/project.sysml`)).toBe(true);
         expect(existsSync(`${root}/model/catalog/architecture/system.sysml`)).toBe(true);
         expect(existsSync(`${root}/model/catalog/assurance/requirements.sysml`)).toBe(true);
         expect(existsSync(`${root}/model/catalog/artifacts/catalog.sysml`)).toBe(true);
