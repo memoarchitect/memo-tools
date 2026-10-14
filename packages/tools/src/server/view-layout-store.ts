@@ -2,8 +2,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { DiagramDTO, DiagramLayout } from '@memoarchitect/tools';
 import type { OutlineSource } from '../authoring/outline-source.js';
-import { readFileLayouts, replaceViewLayout, type Canvas } from '../model/view-layout-block.js';
-import { commitSource } from './persistor.js';
+import {
+    importsLayoutPackage, layoutToStatements, readFileLayouts, replaceViewLayout, scanViewLayouts, stripLayout, type Canvas,
+} from '../model/view-layout-block.js';
+import { atomicWrite, commitSource } from './persistor.js';
 
 // ─── Where a view's layout lives ─────────────────────────────────────────────
 //
@@ -98,9 +100,32 @@ export async function saveViewLayout(
         return { success: false, reason: `${diagram.elementId} was not found in ${diagram.sourceFile}` };
     }
     if (updated === text) return { success: true, changed: false };
-    const committed = await commitSource(absolute, diagram.sourceFile, updated, outlines);
-    if (!committed.success) return { success: false, reason: committed.error };
+    // The compiler checks a write that adds something it must resolve: the import.
+    // A write that only replaces layout statements in a file that already has it
+    // is checked here instead, because the statements come from a closed
+    // generator over sanitised values and a whole-project compile on every drag
+    // is not a price worth paying for a check this narrow can make: nothing but
+    // the view's own statements changed, and they read back as written.
+    if (!importsLayoutPackage(text) || !onlyThisViewChanged(text, updated, diagram.elementId, layout)) {
+        const committed = await commitSource(absolute, diagram.sourceFile, updated, outlines);
+        if (!committed.success) return { success: false, reason: committed.error };
+        return { success: true, filePath: diagram.sourceFile, changed: true };
+    }
+    try {
+        atomicWrite(absolute, updated);
+    } catch (e) {
+        return { success: false, reason: `Could not write ${diagram.sourceFile}: ${String(e)}` };
+    }
     return { success: true, filePath: diagram.sourceFile, changed: true };
+}
+
+/** Whether `updated` differs from `text` only in the layout statements of `viewId`, and states what `layout` says. */
+function onlyThisViewChanged(text: string, updated: string, viewId: string, layout: DiagramLayout): boolean {
+    if (stripLayout(updated) !== stripLayout(text)) return false;
+    const view = scanViewLayouts(updated).find(candidate => candidate.id === viewId);
+    if (!view) return false;
+    const wanted = isDefaultViewLayout(layout) ? 0 : layoutToStatements(layout, '').length;
+    return view.statements.length === wanted;
 }
 
 /** A copy of `layout` whose node keys are the ids the current model uses. */

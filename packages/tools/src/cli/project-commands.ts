@@ -58,6 +58,7 @@ import {
     type ElementWriteOptions,
 } from '../commands/element.js';
 import { convertCommand } from '../commands/convert.js';
+import { migrateLayoutCommand } from '../commands/migrate-layout.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 
@@ -79,6 +80,18 @@ export function registerProjectCommands(program: Command): void {
             .option('--format <format>', 'Output format: text, json', 'text'),
     ).action(async (a: string, b: string, opts: Record<string, unknown>) => {
         await interfacesCommand(a, b, opts as InterfacesOptions);
+    });
+
+    // ─── memo migrate-layout ───────────────────────────────────────────────────
+
+    withToolchainOptions(
+        program
+            .command('migrate-layout')
+            .description('Move every diagram layout from its .viewlayout companion into the view that declares it')
+            .argument('[dir]', 'Model directory', '.')
+            .option('--dry-run', 'Say where each layout would go and write nothing'),
+    ).action(async (dir: string, opts: Record<string, unknown>) => {
+        await migrateLayoutCommand(dir, opts);
     });
 
     // ─── memo element ───────────────────────────────────────────────────────────

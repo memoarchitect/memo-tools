@@ -28,7 +28,6 @@ import {
 } from '../commands/toolchain.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
-import { migrateLayoutCommand } from '../commands/migrate-layout.js';
 import { pinnedTarget } from '../commands/pinned-target.js';
 import { shipLibraryCommand } from '../commands/ship-library.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
@@ -150,16 +149,6 @@ withToolchainOptions(
         ...opts, at: undefined, release: undefined, readOnly: pinned ? true : undefined,
         format: opts.format as any, output: opts.output as string,
     });
-});
-
-withToolchainOptions(
-    program
-        .command('migrate-layout')
-        .description('Move every diagram layout from its .viewlayout companion into the view that declares it')
-        .argument('[dir]', 'Model directory', '.')
-        .option('--dry-run', 'Say where each layout would go and write nothing'),
-).action(async (dir: string, opts: Record<string, unknown>) => {
-    await migrateLayoutCommand(dir, opts);
 });
 
 // ─── memo toolchain ─────────────────────────────────────────────────────────

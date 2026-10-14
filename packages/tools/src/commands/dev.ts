@@ -555,7 +555,7 @@ export async function devCommand(options: {
         if (leftover.length > 0) {
             console.log(chalk.yellow(
                 `  ⚠ ${leftover.length} diagram layout(s) in .viewlayout files are no longer read. `
-                + 'Run `memo migrate-layout` to move them into their views.'));
+                + 'Run `memo-architect migrate-layout` to move them into their views.'));
         }
     } catch { /* a warning, never a reason not to serve */ }
 

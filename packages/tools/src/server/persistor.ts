@@ -446,7 +446,7 @@ export function appendToLastPackage(source: string, usage: string): string {
 }
 
 /** Write via a sibling temp file so a crash cannot leave a half-written model. */
-function atomicWrite(absolutePath: string, contents: string): void {
+export function atomicWrite(absolutePath: string, contents: string): void {
     const tempPath = `${absolutePath}.${process.pid}.tmp`;
     try {
         writeFileSync(tempPath, contents, 'utf8');
