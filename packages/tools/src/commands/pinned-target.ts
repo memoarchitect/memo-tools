@@ -41,8 +41,12 @@ export async function pinnedTarget(projectDir: string | undefined, options: Reco
     try {
         if (at) {
             const pin = await pinWorktree(root, at);
-            for (const drift of ontologyDrift(pin.projectDir)) {
+            const drifted = ontologyDrift(pin.projectDir);
+            for (const drift of drifted) {
                 console.error(chalk.yellow(`⚠ ${at} was made with ${drift.name} ${drift.locked}; this run uses ${drift.used}. Rules and kinds may differ from then.`));
+            }
+            if (drifted.length > 0 && options.strictOntology === true) {
+                fail(`${at} was made with another ontology version (${drifted.map(d => `${d.name} ${d.locked}, not ${d.used}`).join('; ')}); --strict-ontology refuses to read it as the model as it was.`);
             }
             return {
                 dir: pin.projectDir, label: `the model at ${at} (${pin.sha.slice(0, 7)}), in ${pin.dir}`,
@@ -59,6 +63,13 @@ export async function pinnedTarget(projectDir: string | undefined, options: Reco
                 : `"${release}" names ${matches.length} release records; use a qualified id.`);
         }
         const build = await buildRelease(root, working, matches[0].id, { config: { toolchain: config.toolchain } });
+        const drifted = ontologyDrift(build.assembly.dir);
+        for (const drift of drifted) {
+            console.error(chalk.yellow(`⚠ ${release} was made with ${drift.name} ${drift.locked}; this run uses ${drift.used}. Rules and kinds may differ from then.`));
+        }
+        if (drifted.length > 0 && options.strictOntology === true) {
+            fail(`${release} was made with another ontology version (${drifted.map(d => `${d.name} ${d.locked}, not ${d.used}`).join('; ')}); --strict-ontology refuses to read it as the model as it was.`);
+        }
         const pins = build.releasePins.systems.map(s => `${s.system}@${s.commit.slice(0, 7)}`).join(', ');
         return {
             dir: build.assembly.dir, label: `${build.releasePins.record}: ${build.releasePins.commit.slice(0, 7)} with ${pins}`,
