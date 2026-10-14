@@ -54,6 +54,15 @@ describe('migrating a sidecar whose diagram id the model has lost', () => {
         expect(plan.removable).toEqual(['old.viewlayout']);
     });
 
+    it('takes a view name for --map and suggests a view of the old name', () => {
+        const named = { ...diagram('machineView', ['p::machine', 'p::machine::tank']), name: 'Machine' };
+        const byName = planLayoutMigration(project(), [named], [entry], { 'diag-old-name': 'Machine' });
+        expect(byName.outcomes[0].kind).toBe('migrated');
+        const renamed = { sidecar: 'old.viewlayout', diagramId: 'diag-sample-Machine', layout };
+        const suggested = planLayoutMigration(project(), [named], [renamed]).outcomes[0];
+        expect(suggested.kind === 'no-view' && suggested.reason).toContain('a view is named "Machine"');
+    });
+
     it('refuses a mapping to something that is not a view', () => {
         const plan = planLayoutMigration(project(), [tight], [entry], { 'diag-old-name': 'nothing' });
         const outcome = plan.outcomes[0];
