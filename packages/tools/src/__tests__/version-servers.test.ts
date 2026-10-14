@@ -44,7 +44,7 @@ process.on('disconnect', () => process.exit(0)); setInterval(() => {}, 1000);
     it('offers the tip of the current branch and the latest tag, both marked as not releases', async () => {
         const refs = await listRefs(repo.root);
         expect(refs.map(r => `${r.kind}:${r.label}`)).toEqual([expect.stringMatching(/^branch:Latest commit on /), 'tag:Latest tag rc-mapping']);
-        expect(refs[0].commit).toBe(repo.c6);
+        expect(refs[0].commit).toBe(repo.c8);
         expect(refs[1].commit).toBe(repo.c2);
     });
 

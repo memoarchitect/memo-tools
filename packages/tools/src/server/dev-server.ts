@@ -41,6 +41,7 @@ import {
     createPackage, deletePackage, moveElementToPackage, moveIntoGroupingPackage, movePackage, renamePackage,
     type PackageWriteResult,
 } from './package-writer.js';
+import { writeRelease, type ReleaseCreateRequest } from './release-writer.js';
 import { assertSingleDomainMutation, isReadOnlyMessage, MixedMutationDomainError } from './mutation-domain.js';
 import { classifyConflict } from './conflict-policy.js';
 import type { SemanticOrigin } from '../model/source-provenance.js';
@@ -146,7 +147,7 @@ export interface DevServer {
 const MODEL_MUTATION_MESSAGES = new Set([
     'element:update', 'element:create', 'element:delete', 'element:remap-kinds', 'element:move-package',
     'package:create', 'package:rename', 'package:delete', 'package:move',
-    'relationship:create', 'relationship:delete', 'relationship:update',
+    'relationship:create', 'relationship:delete', 'relationship:update', 'release:create',
     'diagram:create', 'diagram:update', 'diagram:delete', 'diagram:layout:update', 'diagram:source:save',
     'methodology:source:save', 'csv:import', 'import:apply', 'suspect:review', 'screen-capture:upload',
     'ontology:install', 'ontology:remove', 'ontology:save-selection',
@@ -966,6 +967,29 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         };
     }
 
+    /** Create one release record with all its statements, or none. */
+    async function handleReleaseCreate(
+        payload: ReleaseCreateRequest & { precondition?: ModelMutationPrecondition },
+    ): Promise<import('../protocol/messages.js').ReleaseCreateResultMessage> {
+        const requestId = payload?.requestId ?? '';
+        const reject = (error: string) => ({ type: 'release:create:result' as const, payload: { requestId, success: false, error } });
+        const conflict = checkMutationPrecondition(payload.precondition, requestId, payload);
+        if (conflict) return reject(conflict);
+        const model = currentModel();
+        if (!model) return reject('The model is not loaded yet.');
+        const result = await writeRelease(payload, {
+            projectRoot: options.projectRoot,
+            outlines: (await authoringContext()).outlines,
+            fileOf: id => model.elements[id]?.file,
+            commitOf: id => model.elements[id]?.attributes?.modelCommit,
+        });
+        if (!result.success) return reject(result.error ?? 'The release could not be written.');
+        console.log(`[Persisted] release ${result.name} (${result.modelCommit?.slice(0, 7)}) to ${result.filePath}`);
+        recordWriteTransaction(result.filePath!, readFileSync(resolve(options.projectRoot, result.filePath!), 'utf8'));
+        await recompileAfterWrite();
+        return { type: 'release:create:result', payload: { requestId, ...result } };
+    }
+
     /** Delete one relationship usage, leaving both endpoint elements in place. */
     async function handleRelationshipDelete(
         payload: RelationshipDeleteRequest & { precondition?: ModelMutationPrecondition },
@@ -1765,6 +1789,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     }
                 } else if (msg.type === 'relationship:create') {
                     ws.send(JSON.stringify(await handleRelationshipCreate(msg.payload)));
+                } else if (msg.type === 'release:create') {
+                    ws.send(JSON.stringify(await handleReleaseCreate(msg.payload)));
                 } else if (msg.type === 'relationship:delete') {
                     ws.send(JSON.stringify(await handleRelationshipDelete(msg.payload)));
                 } else if (msg.type === 'relationship:update') {
@@ -2480,6 +2506,15 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         ws.send(JSON.stringify({ type: 'version:ready', payload: { requestId, ...opened } }));
                     } catch (e: any) {
                         ws.send(JSON.stringify({ type: 'version:error', payload: { requestId, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'release:diff') {
+                    const requestId = msg.payload?.requestId;
+                    try {
+                        if (!options.versions) throw new Error('Releases are compared from the working version.');
+                        const result = await options.versions.diff(String(msg.payload?.release ?? ''), String(msg.payload?.against ?? 'previous'));
+                        ws.send(JSON.stringify({ type: 'release:diff:result', payload: { requestId, ...result } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'release:diff:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'dashboard:save' || msg.type === 'dashboard:delete' || msg.type === 'dashboard:move') {
                     // Dashboards are presentation, not model source: they are

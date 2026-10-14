@@ -106,7 +106,9 @@ export type ServerMessage =
     | PinnedInfoMessage
     | VersionsUpdateMessage
     | VersionReadyMessage
-    | VersionErrorMessage;
+    | VersionErrorMessage
+    | ReleaseDiffResultMessage
+    | ReleaseCreateResultMessage;
 
 /**
  * What a read-only server says about itself when a client connects: a pinned release or ref, or a
@@ -122,6 +124,11 @@ export interface PinnedInfo {
     notARelease?: boolean;
     /** Where the working model is served, for the way back. */
     workingUrl?: string;
+    /**
+     * The workspace to open on (a system definition's element id): a release of one system shows that
+     * system, as T2's closure draws it, and not the whole model of the commit.
+     */
+    workspace?: string;
 }
 
 export interface PinnedInfoMessage {
@@ -133,6 +140,27 @@ export interface PinnedInfoMessage {
 export interface VersionsUpdateMessage {
     type: 'versions:update';
     payload: { refs: { name: string; kind: 'tag' | 'branch'; commit: string; label: string }[] };
+}
+
+/** The answer to `release:create`: the file written and the commit the record pins, or why not. */
+export interface ReleaseCreateResultMessage {
+    type: 'release:create:result';
+    payload: { requestId?: string; success: boolean; filePath?: string; name?: string; modelCommit?: string; error?: string };
+}
+
+/** What changed between two releases, as `release:diff` answers it. */
+export interface ReleaseDiffResultMessage {
+    type: 'release:diff:result';
+    payload: {
+        requestId?: string;
+        error?: string;
+        /** The older side and the newer side: the record, its item, and the commit. */
+        before?: { label: string; commit: string };
+        after?: { label: string; commit: string };
+        /** True when `before` was found as the previous release of `after`, not named. */
+        previous?: boolean;
+        diff?: import('../model/model-diff.js').ModelDiffSummary;
+    };
 }
 
 /** A pinned view is running at this address; the client goes there. */
