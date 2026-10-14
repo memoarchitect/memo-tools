@@ -97,7 +97,7 @@ describe('E2E: memo init → validate → export', () => {
         expect(config).toMatchObject({ name: 'test-device' });
         expect(config.type).toBeUndefined();
         expect(config.extends).toBeUndefined();
-        expect(readFileSync(architecturePath, 'utf-8')).toContain('private import memo::*');
+        expect(readFileSync(architecturePath, 'utf-8')).toContain('private import memo_architecture_logical_structure::*');
 
         // The native entrypoint carries the imports and the binding.
         const entrypointPath = join(projectDir, 'model', 'catalog', 'project.sysml');
@@ -155,7 +155,7 @@ describe('E2E: memo init → validate → export', () => {
 
         // SysML should import the ontology
         const sysml = readFileSync(join(projectDir, 'model', 'catalog', 'architecture', 'system.sysml'), 'utf-8');
-        expect(sysml).toContain('private import memo::*');
+        expect(sysml).toContain('private import memo_architecture_logical_structure::*');
 
         expect(existsSync(join(projectDir, 'memo.lock.yaml'))).toBe(true);
         expect(readFileSync(join(projectDir, 'memo.lock.yaml'), 'utf-8')).not.toContain('test-core-device');
