@@ -29,7 +29,7 @@ export async function inspectCommand(
     if (!projectRoot) {
         throw new Error(
             'No MEMO project found. A project declares its identity in '
-            + 'model/catalog/project.sysml; run `memo-architect init` to scaffold one.',
+            + 'model/methodology/project.sysml; run `memo-architect init` to scaffold one.',
         );
     }
     const configPath = findConfigFile(projectRoot);

@@ -245,7 +245,7 @@ export async function ontologyExportSysandCommand(options: {
 
     if (exportRoots.length === 0) {
         console.error(chalk.red(
-            '\u274C The project resolves no reusable packages. Add an import to model/catalog/project.sysml.'));
+            '\u274C The project resolves no reusable packages. Add an import to model/methodology/project.sysml.'));
         process.exit(1);
     }
 

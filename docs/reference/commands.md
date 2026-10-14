@@ -150,7 +150,7 @@ memo validate --rules --domain medicalDevice        # each rule with the clauses
 memo validate --standards                          # clause coverage, then which clauses rules enforce
 memo-architect rules tailoring --format markdown        # every rule a policy changed, with who and why
 memo-architect rules tailor --standard "ISO 14971" --disable --rationale "not claimed" \
-    --authority "QA lead" --approval DHF-12 --file model/catalog/project.sysml --dry-run
+    --authority "QA lead" --approval DHF-12 --file model/methodology/project.sysml --dry-run
 memo-architect new rule --id ORG-001 --type TwoControls --applies-to Hazard \
     --predicate "mitigates->size() >= 2" --rationale "SOP 4.1" \
     --enforces "14971 §7" --file model/catalog/project_rules.sysml --dry-run

@@ -24,7 +24,7 @@ import { parse as parseYaml } from 'yaml';
  * Descriptor filenames, in search order.
  *
  * `memo.config.yaml` is gone: it existed to carry project semantics, and every
- * field it carried now lives in `model/catalog/project.sysml`. A project that
+ * field it carried now lives in `model/methodology/project.sysml`. A project that
  * still has one is told so by `checkSemanticFields`.
  */
 export const CONFIG_SEARCH_ORDER = [

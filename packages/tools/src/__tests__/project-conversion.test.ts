@@ -458,7 +458,7 @@ describe('the real pre-conversion GPCA snapshot', () => {
         const plan = planConversion(project);
         const manifest = plan.newFiles.find(f => f.path === 'memo.package.yaml')!;
         expect(manifest.content).toContain("name: 'gpca-pump'");
-        expect(manifest.content).toContain('entrypoint: model/catalog/project.sysml');
+        expect(manifest.content).toContain('entrypoint: model/methodology/project.sysml');
         expect(manifest.content).toContain('include: [model, methodology]');
         expect(manifest.content).not.toMatch(/methodology:|toolchain/);
     });
@@ -477,10 +477,10 @@ describe('the real pre-conversion GPCA snapshot', () => {
         expect(planConversion(withManifest).newFiles.some(f => f.path === 'memo.package.yaml')).toBe(false);
     });
 
-    it('leaves no file under model/ outside the catalog', () => {
+    it('leaves no file under model/ outside the catalog and the entrypoint', () => {
         applyConversion(planConversion(project));
         const stray = tree(project)
-            .filter(f => f.startsWith('model/') && !f.startsWith('model/catalog/'));
+            .filter(f => f.startsWith('model/') && !f.startsWith('model/catalog/') && f !== 'model/methodology/project.sysml');
         expect(stray).toEqual([]);
     });
 

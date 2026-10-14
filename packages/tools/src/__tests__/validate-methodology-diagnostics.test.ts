@@ -44,7 +44,7 @@ describe.runIf(examplesPresent)('a selection that names a package nothing declar
         withCopy('ros-mobile-robot', root => {
             expect(validate(root).stdout).not.toContain('Methodology resolution');
 
-            edit(join(root, 'model/catalog/project.sysml'),
+            edit(join(root, 'model/methodology/project.sysml'),
                 'public import memo_extension_ros::*;', 'public import memo_extension_rss::*;');
             const misspelled = validate(root);
             // The example has rule violations of its own, so exit 1 alone proves
@@ -60,7 +60,7 @@ describe.runIf(examplesPresent)('a selection that names a package nothing declar
     // from the library root, not from the copy.)
     it('fails the run when a project imports a misspelled layer', () => {
         withCopy('ros-mobile-robot', root => {
-            edit(join(root, 'model/catalog/project.sysml'),
+            edit(join(root, 'model/methodology/project.sysml'),
                 'public import memo_extension_ros::*;',
                 'public import memo_extension_ros::*;\n    public import memo_architecture_logicl::*;');
             const misspelled = validate(root);

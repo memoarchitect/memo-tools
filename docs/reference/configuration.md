@@ -8,7 +8,7 @@ decides what your model contains.
 > meant before.
 
 What the model contains is decided in SysML — the import graph starting at
-`model/catalog/project.sysml`, and the `ModelMethodBinding` there that names
+`model/methodology/project.sysml`, and the `ModelMethodBinding` there that names
 the methodology. That half is documented in the ontology reference:
 [Native model format](https://memoarchitect.com/memo/reference/native-model-format/).
 
@@ -19,7 +19,7 @@ construct that replaced the field — it is never read as a fallback:
 
 ```text
 memo.package.yaml: `extends` is not read.
-  Write a native `private import` of the package in model/catalog/project.sysml.
+  Write a native `private import` of the package in model/methodology/project.sysml.
 ```
 
 ## The files MEMO reads

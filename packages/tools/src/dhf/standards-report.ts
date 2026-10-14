@@ -438,7 +438,7 @@ export function collectDocumentClauses(
  * Not application settings: `MEMOConfig` carries how a command runs, never what
  * the model means, and `settings-boundary.ts` rejects semantic fields outright.
  * A submission target selects which clauses a project is answerable for, which
- * is squarely semantic, so it is declared in `model/catalog/project.sysml` like
+ * is squarely semantic, so it is declared in `model/methodology/project.sysml` like
  * the methodology selection beside it.
  *
  * The attribute arrives from the builder as the qualified members joined by

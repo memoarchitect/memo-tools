@@ -340,8 +340,13 @@ export function classifyFile(
 ): { role: FileRole; to: string } {
     const norm = relPath.split(sep).join('/');
 
-    if (norm === CATALOG_ROOT.split(sep).join('/') + '/project.sysml') {
+    if (norm === PROJECT_ENTRYPOINT.split(sep).join('/')) {
         return { role: 'entrypoint', to: relPath };
+    }
+    // Where the entrypoint lived before project config moved out of the catalog: it is moved, not left
+    // behind as a second entrypoint inside it.
+    if (norm === CATALOG_ROOT.split(sep).join('/') + '/project.sysml') {
+        return { role: 'entrypoint', to: PROJECT_ENTRYPOINT };
     }
 
     const top = norm.split('/')[0];
@@ -613,7 +618,7 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
                 collisions.push({
                     code: 'referenced-superseded-entrypoint',
                     message:
-                        `${relPath} is a re-export wrapper superseded by model/catalog/project.sysml, ` +
+                        `${relPath} is a re-export wrapper superseded by model/methodology/project.sysml, ` +
                         `but ${referrers.length} file(s) import ${f.packageName}. Repoint them at the ` +
                         'packages they actually need, then convert.',
                     files: [relPath, ...referrers],
@@ -626,7 +631,7 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
                 file: relPath,
                 message:
                     `${relPath} is removed: it is a re-export wrapper that gave the project one public ` +
-                    'package to import, which is model/catalog/project.sysml\'s job now. Nothing imports it.',
+                    'package to import, which is model/methodology/project.sysml\'s job now. Nothing imports it.',
             });
             continue;
         }
@@ -867,7 +872,7 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
                 'entrypoint binding instead.' +
                 (name === 'memo.config.yaml' && readLegacyConfig(root).methodology
                     ? ` It pinned the methodology ${readLegacyConfig(root).methodology}; the generated binding selects ` +
-                      'mdDefaultDefinition, so set selectedMethodology in model/catalog/project.sysml to the methodology you meant.'
+                      'mdDefaultDefinition, so set selectedMethodology in model/methodology/project.sysml to the methodology you meant.'
                     : ''),
         });
     }

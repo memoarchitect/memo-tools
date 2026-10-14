@@ -91,7 +91,7 @@ describe('project file watcher', () => {
 
     it('watches a native package sysmlDir without assuming a sysml/ child', async () => {
         const root = project({
-            'model/catalog/project.sysml': 'package Project {}\n',
+            'model/methodology/project.sysml': 'package Project {}\n',
             'reusable-src/kinds.sysml': 'package Kinds {}\n',
         });
         const sourceRoot = join(root, 'reusable-src');
