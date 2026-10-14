@@ -109,7 +109,8 @@ export type ServerMessage =
     | VersionErrorMessage
     | ReleaseDiffResultMessage
     | ReleaseCreateResultMessage
-    | DeviceDhfResultMessage;
+    | DeviceDhfResultMessage
+    | GuideResultMessage;
 
 /**
  * What a read-only server says about itself when a client connects: a pinned release or ref, or a
@@ -147,6 +148,12 @@ export interface VersionsUpdateMessage {
 export interface ReleaseCreateResultMessage {
     type: 'release:create:result';
     payload: { requestId?: string; success: boolean; filePath?: string; name?: string; modelCommit?: string; error?: string };
+}
+
+/** Where the model stands against its method (`guide:evaluate`): each step done, open or blocked, and the next. */
+export interface GuideResultMessage {
+    type: 'guide:result';
+    payload: import('../methodology/guide-service.js').GuideResult & { requestId?: string };
 }
 
 /** The design history of one regulated device was generated, or why not. */

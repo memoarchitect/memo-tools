@@ -29,7 +29,6 @@ const KNOWN_UNDECLARED: Record<string, string[]> = {
     // selects nothing in every model. On the board: "Architect views select
     // relationship types the ontology does not declare".
     'views/ComplianceWizard.tsx': ['verify', 'traceTo'],
-    'views/WorkflowWizard.tsx': ['satisfies', 'refines', 'traces', 'verifies'],
     'views/templates/geometry-view.ts': ['navigatesTo'],
     'views/templates/sequence-view.ts': ['realizesScenario'],
 };

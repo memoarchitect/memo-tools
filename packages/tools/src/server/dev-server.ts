@@ -67,6 +67,8 @@ export interface DevServerOptions {
      * A pinned build runs this way, so no write path is reachable from it.
      */
     readOnly?: boolean;
+    /** Where the model stands against its method, for one workspace. */
+    guide?: { evaluate(workspace?: string): import('../methodology/guide-service.js').GuideResult };
     /** Generating the design history of a regulated device from the releases it covers. */
     devices?: { generate(device: string): Promise<import('../dhf/device-dhf.js').DeviceDhfResult> };
     /** Opening another version: the refs on offer, and a read-only server for a chosen one. */
@@ -2508,6 +2510,14 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         ws.send(JSON.stringify({ type: 'version:ready', payload: { requestId, ...opened } }));
                     } catch (e: any) {
                         ws.send(JSON.stringify({ type: 'version:error', payload: { requestId, error: e?.message ?? String(e) } }));
+                    }
+                } else if (msg.type === 'guide:evaluate') {
+                    const requestId = msg.payload?.requestId;
+                    try {
+                        if (!options.guide) throw new Error('The Guide is not available here.');
+                        ws.send(JSON.stringify({ type: 'guide:result', payload: { requestId, ...options.guide.evaluate(msg.payload?.workspace || undefined) } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'guide:result', payload: { requestId, steps: [], methodologies: [], roleViews: [], error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'dhf:device:generate') {
                     const requestId = msg.payload?.requestId;

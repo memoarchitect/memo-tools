@@ -48,6 +48,7 @@ const MUTATION_DOMAINS: Record<string, MutationDomain> = {
     'import:preview': 'neither',
     // Writes the generated documents of one device under dhf-output/, which is output and not model source.
     'dhf:device:generate': 'neither',
+    'guide:evaluate': 'neither',
     'import:apply': 'semantic',
     'suspect:review': 'semantic',
     // A release record and every statement that links it, written together.
@@ -110,6 +111,8 @@ export const READ_ONLY_MESSAGES: ReadonlySet<string> = new Set([
     'import:preview', 'rule:preview', 'open-file',
     // Choosing another version, and comparing two, write nothing.
     'versions:list', 'version:open', 'release:diff',
+    // Evaluating the method against the model reads it and writes nothing.
+    'guide:evaluate',
 ]);
 
 /** Whether a read-only server may answer this message. */

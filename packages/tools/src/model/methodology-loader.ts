@@ -19,6 +19,8 @@ import {
 } from './methodology-resolver.js';
 import type { ApiModel } from '../stage2/api-model.js';
 import { apiMethodologyDocuments } from '../stage2/methodology-from-api.js';
+import { readGuideSources } from '../stage2/guide-from-api.js';
+import type { RoleViewDTO } from './view-deriver.js';
 import { METHOD_BINDING_KINDS } from './native-project.js';
 
 /** Primitive value pulled out of a SysML attribute literal. */
@@ -60,6 +62,11 @@ export interface MethodologyDescriptor {
     errors: string[];
     /** The resolved chain, merged selection, and policy chain. */
     effective?: EffectiveMethodology;
+    /**
+     * What the chain says each role works with (plan O12), base first: a later one for the same stakeholder
+     * replaces the earlier. Viewpoints are named as written (`vpRiskChain`), as `ViewpointDTO.name` is.
+     */
+    roleViews?: RoleViewDTO[];
     /** Methodologies visible in the closure, by usage name. */
     available?: NativeMethodology[];
 }
@@ -143,10 +150,14 @@ export async function loadMethodologyDescriptor(
     );
     for (const d of effective.diagnostics) errors.push(`${d.code}: ${d.message}`);
 
+    const chainPackages = effective.chain.map(m => m.packageQualifiedName).filter((p): p is string => !!p);
+    const roleViews = readGuideSources(api, chainPackages).roleViews.map(v => ({ stakeholder: v.stakeholder, viewpoints: v.viewpoints }));
+
     return {
         folders: [...byRoot.values()],
         errors,
         effective,
+        roleViews,
         available: [...resolved.methodologies.values()],
     };
 }
