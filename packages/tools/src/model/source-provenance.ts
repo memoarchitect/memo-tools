@@ -28,6 +28,10 @@ import { isAbsolute, resolve, sep } from 'node:path';
  * until it is separately resolvable — inferring it from the `memo::core::`
  * package prefix would be exactly the path/name heuristic this module exists to
  * avoid. The variant stays in the union so that the split needs no DTO change.
+ *
+ * `dependency` is a model package the project's `dependencies` name: its
+ * elements are part of the model, but they belong to another package, which
+ * owns their ids and is the only place they can be edited.
  */
 export type SemanticOrigin =
     | 'standard-library'
@@ -35,6 +39,7 @@ export type SemanticOrigin =
     | 'ontology'
     | 'extension'
     | 'methodology'
+    | 'dependency'
     | 'project';
 
 /** Provenance of one source file. */

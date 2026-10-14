@@ -104,9 +104,12 @@ export function completeModel(input: CompleteModelInput): MemoModel {
         if (legacy?.shortId) priorShortIdsByElement.set(el.id, legacy.shortId);
     }
     for (const [prefix, prefixElements] of elementsByPrefix) {
+        // A dependency's elements keep the identity their own package gives them
+        // (its `providedId`), and take no display number here: it would be minted
+        // in this model's sequence, and be wrong the moment the dependency moved.
         const idToShortId = assignSequentialShortIds(
             prefix,
-            prefixElements.map(e => e.id),
+            prefixElements.filter(e => e.provenance?.declaration.origin !== 'dependency').map(e => e.id),
             priorShortIdsByElement,
         );
         for (const el of prefixElements) {

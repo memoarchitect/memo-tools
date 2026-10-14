@@ -1,15 +1,27 @@
 {
   "project": "ep-lab-family",
   "totals": {
-    "files": 9,
+    "files": 10,
     "elements": 46,
     "definitions": 12,
     "relationships": 41,
-    "packages": 9,
+    "packages": 10,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
+    "../ep-platform/model/platform.sysml": {
+      "elements": 1,
+      "definitions": 1,
+      "kinds": {
+        "LogicalComponent": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
     "model/catalog/project.sysml": {
       "elements": 1,
       "definitions": 0,
@@ -23,11 +35,10 @@
       "builderFindings": 0
     },
     "model/shared/shared.sysml": {
-      "elements": 8,
-      "definitions": 6,
+      "elements": 7,
+      "definitions": 5,
       "kinds": {
         "InterfaceItem": 3,
-        "LogicalComponent": 1,
         "LogicalPort": 2,
         "User": 2
       },

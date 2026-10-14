@@ -103,7 +103,10 @@ export async function compileModelWithSelected(
     const empty = result.resolution && missingImport && result.resolution.selectedRoots.length === 0 && kinds === 0
         ? `The compile selected no library root and no kinds from ${result.resolution.projectRoot}, so the model is empty. ${missingImport.message}`
         : undefined;
-    const message = unresolved?.message ?? empty;
+    // A dependency the project lists and cannot use is an error: its elements would
+    // be missing or the wrong ones, and a reference into it would not resolve.
+    const dependency = result.resolution?.diagnostics.find(d => d.code === 'dependency-missing' || d.code === 'dependency-version');
+    const message = unresolved?.message ?? empty ?? dependency?.message;
     if (result.accepted && message) {
         const { model: _model, ...rest } = result;
         return {

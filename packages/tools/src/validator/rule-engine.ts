@@ -81,8 +81,12 @@ export function validateModel(
 
     // The built-in validators take no subject predicate, so a workspace keeps their findings by the
     // element they are about. A model-wide finding (`__model__`) belongs to no element and stays.
+    // A dependency's elements are another package's: the rules judge this model's own
+    // content, and that package is validated where it is developed.
+    const isDependency = (id: string) => model.elements.get(id)?.provenance?.declaration.origin === 'dependency';
     const inWorkspace = (violation: Violation) =>
-        !workspace || violation.elementId === '__model__' || workspace.subjects.has(violation.elementId);
+        !isDependency(violation.elementId)
+        && (!workspace || violation.elementId === '__model__' || workspace.subjects.has(violation.elementId));
 
     const nativeViolations: Violation[] = [];
     let nativePassed = 0;
@@ -111,10 +115,12 @@ export function validateModel(
         // tailor — and leaving an element out of the rule's subjects is
         // tailoring it, just without a policy to show for it.
         const methodologyScope = constraint.tailoring === 'invariant' ? undefined : inScope;
+        const own = (element: import('../model/semantic.js').MemoElement) =>
+            element.provenance?.declaration.origin !== 'dependency';
         const subjectScope = workspace
             ? (element: import('../model/semantic.js').MemoElement) =>
-                workspace.subjects.has(element.id) && (!methodologyScope || methodologyScope(element))
-            : methodologyScope;
+                own(element) && workspace.subjects.has(element.id) && (!methodologyScope || methodologyScope(element))
+            : (element: import('../model/semantic.js').MemoElement) => own(element) && (!methodologyScope || methodologyScope(element));
         const { violations, subjectCount } = evaluateConstraintSubjects(
             constraint, constraint.ast, model, kindRegistry, subjectScope, workspace?.foreign);
         if (subjectCount === 0) nativeVacuous++;

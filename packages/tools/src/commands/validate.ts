@@ -308,6 +308,8 @@ export async function runValidation(
         const assigned: IdentityRegistry = {};
         for (const el of model.elements.values()) {
             if (!el.shortId && !el.uuid) continue;
+            // Another package owns a dependency's identities; this model's registry does not hold them.
+            if (el.provenance?.declaration.origin === 'dependency') continue;
             assigned[identityKey(el)] = { shortId: el.shortId, uuid: el.uuid };
         }
         writeIdentityRegistry(projectRoot, assigned, config.priorIdentities ?? {});

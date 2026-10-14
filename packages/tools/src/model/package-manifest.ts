@@ -45,6 +45,12 @@ export interface MemoManifest {
     entrypoint?: string;
     /** Project-relative SysML source roots (`include`). */
     include?: string[];
+    /**
+     * Model packages this one builds on, by name, with the version range it accepts
+     * (`memo install` writes it). A locator like the rest: it says which package a
+     * name means and which versions will do, not whether anything is imported.
+     */
+    dependencies?: Record<string, string>;
     /** Everything as parsed, for the boundary check to inspect. */
     raw: Record<string, unknown>;
 }
@@ -71,6 +77,7 @@ export function readManifest(filePath: string): MemoManifest {
         sysmlDir: str(doc.sysmlDir),
         entrypoint: str(doc.entrypoint),
         include: strList(doc.include),
+        dependencies: strMap(doc.dependencies),
         raw: doc,
     };
 }
@@ -107,6 +114,16 @@ function str(value: unknown): string | undefined {
     if (typeof value === 'string') return value.trim() || undefined;
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);
     return undefined;
+}
+
+function strMap(value: unknown): Record<string, string> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    const out: Record<string, string> = {};
+    for (const [name, range] of Object.entries(value as Record<string, unknown>)) {
+        const text = str(range);
+        if (text) out[name] = text;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function strList(value: unknown): string[] | undefined {

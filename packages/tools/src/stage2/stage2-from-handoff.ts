@@ -46,6 +46,9 @@ export function stage2FromHandoff(api: ApiModel, options: Stage2Options): Stage2
         return { model: buildMemoModelFromApi(api, options.config, registries, options.projectFiles), registries };
     }
     const resolution = resolveNativeProjectFromApi(options.projectDir, api);
+    api.useDependencyFiles(
+        [...resolution.closure.values()].filter(pkg => pkg.origin === 'dependency').flatMap(pkg => pkg.files),
+        resolution.projectRoot);
     const loads = resolutionLoads(resolution);
     const fileOf = handoffFileOf(api, resolution.filePackages);
     const registries: BuilderRegistries = {

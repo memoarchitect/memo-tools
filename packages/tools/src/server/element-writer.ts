@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { assertWritable } from './write-guard.js';
 import { dirname, relative, resolve, sep } from 'node:path';
 import type { MemoElement, MemoModelDTO } from '../model/semantic.js';
 import type { OutlineSource } from '../authoring/outline-source.js';
@@ -56,6 +57,7 @@ function applyCuts(source: string, cuts: Cut[]): string {
 
 function atomicWrite(path: string, text: string): void {
     const temporary = resolve(dirname(path), `.${path.split(sep).pop()}.delete-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    assertWritable(path);
     writeFileSync(temporary, text, 'utf8');
     renameSync(temporary, path);
 }

@@ -20,7 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** A reference in API JSON: `{ "@id": … }`. */
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 export interface ApiRef { '@id': string }
 
@@ -173,9 +173,45 @@ export class ApiModel {
         return this.rootNamespacesByFile().get(absoluteFile) ?? [];
     }
 
-    /** Elements the project declares, not the library. */
+    private dependencyFiles = new Set<string>();
+
+    /**
+     * The files (absolute) of the dependency packages the project's imports reach.
+     * Their elements are built with the project's, though another package owns them.
+     * Files and not roots: an import selects a package, and a dependency's other
+     * packages stay out of the model until something imports them.
+     */
+    useDependencyFiles(files: Iterable<string>, projectRoot: string): void {
+        this.dependencyFiles = new Set(files);
+        this.projectRoot = projectRoot;
+    }
+
+    private projectRoot?: string;
+
+    /**
+     * A dependency element's file as the project would name it: relative to the
+     * project, through the directory the dependency was found in (so it reads as
+     * `memo_packages/ep-platform/model/platform.sysml`). Its own file is relative
+     * to the dependency's root, which says nothing to a reader of the model.
+     */
+    dependencyFile(id: string): string | undefined {
+        const absolute = this.absoluteFile(id);
+        return absolute && this.projectRoot ? relative(this.projectRoot, absolute).replaceAll('\\', '/') : undefined;
+    }
+
+    /** Whether an element is declared in a dependency package the project imports. */
+    isDependency(id: string): boolean {
+        const entry = this.index[id];
+        if (entry?.role !== 'library') return false;
+        const file = this.absoluteFile(id);
+        return file !== undefined && this.dependencyFiles.has(file);
+    }
+
+    /** Elements the project declares and those of the dependencies it builds on, not the library. */
     *projectElements(): Iterable<ApiElement> {
-        for (const [id, element] of this.byId) if (this.index[id]?.role === 'project') yield element;
+        for (const [id, element] of this.byId) {
+            if (this.index[id]?.role === 'project' || this.isDependency(id)) yield element;
+        }
     }
 
     /** The namespace (or relationship) that owns an element. */

@@ -49,6 +49,7 @@ import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-poli
 import { createRule, previewRule } from './rule-service.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import { layoutBlindRevision } from '../model/view-layout-block.js';
+import { assertWritable } from './write-guard.js';
 import { updateViewExpose, writeViewDeclaration } from './view-writer.js';
 import { usageKeyword } from '../model/semantic.js';
 import {
@@ -1096,6 +1097,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
 
         if (!isWritableRelationshipFile(rendered.file, await relationshipWriterOptions())) return fail(`${rendered.file} is not a writable project file`);
         mkdirSync(resolve(target, '..'), { recursive: true });
+        assertWritable(target);
         writeFileSync(target, rendered.text, 'utf-8');
         recordWriteTransaction(rendered.file, rendered.text);
         console.log(`[Import] ${payload.system}: wrote ${rendered.file}`);
@@ -2087,6 +2089,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             return;
                         }
 
+                        assertWritable(source.path);
                         writeFileSync(source.path, text, 'utf8');
                         const transactionId = recordWriteTransaction(source.sourceFile, text);
                         ws.send(JSON.stringify({

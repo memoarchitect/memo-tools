@@ -264,7 +264,9 @@ export function computeWorkspaceMembership(
         sos,
         shared: [...systems].filter(([, roots]) => roots.length >= 2).map(([id]) => id),
         unassigned: [...elements.values()]
-            .filter(element => !systems.has(element.id) && !sos.has(element.id) && element.layer !== METHODOLOGY_LAYER)
+            // A dependency's element belongs to its own package, not to a system of this model.
+            .filter(element => !systems.has(element.id) && !sos.has(element.id) && element.layer !== METHODOLOGY_LAYER
+                && element.provenance?.declaration.origin !== 'dependency')
             .map(element => element.id),
         unresolvedTypes: [...unresolved.values()],
         missingSystem: !workspaces.some(workspace => workspace.scope === 'system'),
