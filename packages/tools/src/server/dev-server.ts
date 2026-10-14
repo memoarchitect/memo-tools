@@ -79,6 +79,10 @@ export interface DevServerOptions {
     versions?: import('./version-servers.js').VersionServers;
     /** What a read-only server tells each client about itself. */
     pinned?: import('../protocol/messages.js').PinnedInfo;
+    /** The model the last accepted build made, which the query engines read. */
+    memoModel?: () => import('../model/semantic.js').MemoModel | undefined;
+    /** The scope of one workspace (a system or the system of systems), or undefined when it is not one. */
+    workspaceScope?: (root: string) => Pick<import('../model/workspace-membership.js').WorkspaceScope, 'subjects' | 'foreign'> | undefined;
     /** Where the person's role and workspace are read from: the working project, for a pinned one. */
     preferencesRoot?: string;
     projectRoot: string;
@@ -753,12 +757,32 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     }
 
     /**
+     * What the query engines read: the model the last build made (not the DTO clients are sent, which has no
+     * indexes to query), the validation and completeness the server holds, and, when the person is working in
+     * one workspace, its scope, so a question about one system is answered from that system.
+     */
+    async function scopedQueryContext(config: MEMOConfig, workspaceRoot?: string): Promise<QueryContext> {
+        const { createQueryContext } = await import('../dhf/query-engine.js');
+        const model = options.memoModel?.();
+        if (!model) throw new Error('The model is not built yet.');
+        const validMsg = initialMessages.find(m => m.type === 'validation:update') as any;
+        const compMsg = initialMessages.find(m => m.type === 'completeness:update') as any;
+        const scope = workspaceRoot ? options.workspaceScope?.(workspaceRoot) : undefined;
+        return createQueryContext(
+            model,
+            validMsg?.payload ?? { violations: [] },
+            compMsg?.payload ?? { overall: 0, layers: [] },
+            config, undefined, scope,
+        );
+    }
+
+    /**
      * Build the query context the LLM engines read from, against whatever the
      * server currently holds. Every LLM handler needs the same four pieces, so
      * they share this rather than each re-deriving them.
      */
-    async function llmQueryContext(): Promise<{ ctx: QueryContext; config: MEMOConfig; ontology: OntologyView }> {
-        const { createQueryContext, findConfigFile, loadProjectOntology, ontologyViewFrom, EMPTY_ONTOLOGY_VIEW } =
+    async function llmQueryContext(workspaceRoot?: string): Promise<{ ctx: QueryContext; config: MEMOConfig; ontology: OntologyView }> {
+        const { findConfigFile, loadProjectOntology, ontologyViewFrom, EMPTY_ONTOLOGY_VIEW } =
             await import('@memoarchitect/tools');
         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
@@ -778,12 +802,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             // A project whose ontology does not resolve still has a model to query.
         }
 
-        const ctx = createQueryContext(
-            modelMsg?.payload ?? {},
-            validMsg?.payload ?? { violations: [] },
-            compMsg?.payload ?? { overall: 0, layers: [] },
-            config,
-        );
+        const ctx = await scopedQueryContext(config, workspaceRoot);
         return { ctx, config, ontology };
     }
 
@@ -2332,7 +2351,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     const { requestId, question } = msg.payload ?? {};
                     try {
                         const { resolveLLMConfig, createProvider } = await import('@memoarchitect/tools');
-                        const { createQueryContext, findConfigFile } = await import('@memoarchitect/tools');
+                        const { findConfigFile } = await import('@memoarchitect/tools');
                         const { askModel } = await import('@memoarchitect/tools');
                         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
@@ -2345,7 +2364,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             const compMsg = initialMessages.find((m: any) => m.type === 'completeness:update') as any;
                             const configPath = findConfigFile(options.projectRoot);
                             const config = configPath ? await loadAndResolveConfig(configPath) : {} as any;
-                            const ctx = createQueryContext(modelMsg?.payload ?? {}, validMsg?.payload ?? { violations: [] }, compMsg?.payload ?? { overall: 0, layers: [] }, config);
+                            const ctx = await scopedQueryContext(config, msg.payload?.workspace);
                             const provider = createProvider(llmConfig);
                             const result = await askModel(question, ctx, provider);
                             ws.send(JSON.stringify({ type: 'llm:ask:result', payload: { requestId, answer: result.answer } }));
@@ -2364,7 +2383,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         if (!llmConfig) {
                             ws.send(JSON.stringify({ type: 'llm:chat:result', payload: { requestId, error: 'No LLM provider configured. Add an API key in Settings, set ANTHROPIC_API_KEY or OPENAI_API_KEY, or put one in a project .env file.' } }));
                         } else {
-                            const { ctx, ontology } = await llmQueryContext();
+                            const { ctx, ontology } = await llmQueryContext(msg.payload?.workspace);
                             const provider = createProvider(llmConfig);
                             const result = await runChatTurn({
                                 question, history, ctx, provider, ontology,
@@ -2477,7 +2496,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // Draft DHF document sections via LLM (#55)
                     const { requestId, documentTypeId, targetSections } = msg.payload ?? {};
                     try {
-                        const { resolveLLMConfig, createProvider, createQueryContext, findConfigFile, getDocumentType } = await import('@memoarchitect/tools');
+                        const { resolveLLMConfig, createProvider, findConfigFile, getDocumentType } = await import('@memoarchitect/tools');
                         const { draftDocument } = await import('@memoarchitect/tools');
                         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
@@ -2490,7 +2509,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             const compMsg = initialMessages.find((m: any) => m.type === 'completeness:update') as any;
                             const configPath = findConfigFile(options.projectRoot);
                             const config = configPath ? await loadAndResolveConfig(configPath) : {} as any;
-                            const ctx = createQueryContext(modelMsg?.payload ?? {}, validMsg?.payload ?? { violations: [] }, compMsg?.payload ?? { overall: 0, layers: [] }, config);
+                            const ctx = await scopedQueryContext(config, msg.payload?.workspace);
                             const docType = getDocumentType(documentTypeId);
                             if (!docType) {
                                 ws.send(JSON.stringify({ type: 'llm:draft:result', payload: { requestId, error: `Unknown document type: ${documentTypeId}` } }));
@@ -2517,7 +2536,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // Completeness suggestions via LLM (#53)
                     const { requestId } = msg.payload ?? {};
                     try {
-                        const { resolveLLMConfig, createProvider, createQueryContext, findConfigFile, serializeModelContext } = await import('@memoarchitect/tools');
+                        const { resolveLLMConfig, createProvider, findConfigFile, serializeModelContext } = await import('@memoarchitect/tools');
                         const { loadAndResolveConfig } = await import('./config-resolver.js');
 
                         const llmConfig = resolveLLMConfig();
@@ -2529,7 +2548,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             const compMsg = initialMessages.find((m: any) => m.type === 'completeness:update') as any;
                             const configPath = findConfigFile(options.projectRoot);
                             const config = configPath ? await loadAndResolveConfig(configPath) : {} as any;
-                            const ctx = createQueryContext(modelMsg?.payload ?? {}, validMsg?.payload ?? { violations: [] }, compMsg?.payload ?? { overall: 0, layers: [] }, config);
+                            const ctx = await scopedQueryContext(config, msg.payload?.workspace);
                             const modelContext = serializeModelContext(ctx, { includeGaps: true, maxElements: 200 });
                             const provider = createProvider(llmConfig);
                             const result = await provider.complete({
