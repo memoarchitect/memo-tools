@@ -103,4 +103,30 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
         files['model/sos/release_records.sysml'] = files['model/sos/release_records.sysml'].replace('#Contains dependency from relLabV1', '#Contain dependency from relLabV1');
         await expect(withReleases(() => 'compiled', files)).rejects.toThrow(/Contain\b/);
     }, 120_000);
+
+    // A family may write its items as usages typed directly by a MEMO type and declare no definitions
+    // (the Affera model rules, MR-01). A dependency's supplier is any element, so a record of a usage
+    // builds the same edge, and the rules judge it without error.
+    it('links a record to a usage as well as to a definition', async () => {
+        const files = releaseFiles();
+        files['model/sos/release_records.sysml'] = files['model/sos/release_records.sysml'].replace(/\}\n$/, `
+    part relLabUsage : ReleaseRecord {
+        @MemoIdentity { :>> providedId = "EPF-REL-402"; :>> label = "Lab usage release"; }
+        attribute :>> status = ElementStatusKind::released;
+        attribute :>> partNumber = "LAB-0002";
+        attribute :>> revision = "1";
+        attribute :>> modelCommit = "8888888888888888888888888888888888888888";
+    }
+    #ReleaseOf dependency from relLabUsage to epLab;
+}
+`);
+        await withReleases(project => {
+            const m = project.model;
+            const record = [...m.elements.values()].find(e => e.shortName === 'relLabUsage')!;
+            const item = [...m.relationships.values()].find(r => r.type === 'releaseOf' && r.sourceId === record.id);
+            expect(m.elements.get(item!.targetId)?.shortName).toBe('epLab');
+            const result = validateModel(m, collectApiConstraints(project.api), project.registries!.kindRegistry);
+            expect(result.violations.filter(v => v.ruleId === 'CR-ONT-090')).toEqual([]);
+        }, files);
+    }, 120_000);
 });
