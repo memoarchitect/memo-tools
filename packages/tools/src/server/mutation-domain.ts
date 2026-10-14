@@ -91,3 +91,24 @@ export function assertSingleDomainMutation(messageType: string, payload: unknown
     // payload fields are presentation.
     if (offending.length > 0) throw new MixedMutationDomainError(messageType, offending);
 }
+
+/**
+ * The messages a read-only server answers. An allowlist, not a second denylist: the mutation set
+ * (`MODEL_MUTATION_MESSAGES`) does not cover every write (dashboards, user preferences, the
+ * DHF stores, the toolchain settings), and a pinned view must change nothing it was not asked to.
+ * A message type that is not here is refused, so a handler added later is refused until someone
+ * decides it reads only.
+ */
+export const READ_ONLY_MESSAGES: ReadonlySet<string> = new Set([
+    'request:refresh',
+    'dhf:docs:load', 'dhf:templates:list', 'dhf:template:read',
+    'diagram:source:request', 'methodology:source:request', 'diagram:parse',
+    'import:preview', 'rule:preview', 'open-file',
+    // Choosing another version, and comparing two, write nothing.
+    'versions:list', 'version:open', 'release:diff',
+]);
+
+/** Whether a read-only server may answer this message. */
+export function isReadOnlyMessage(messageType: string): boolean {
+    return READ_ONLY_MESSAGES.has(messageType);
+}

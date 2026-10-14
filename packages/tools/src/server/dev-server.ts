@@ -41,7 +41,7 @@ import {
     createPackage, deletePackage, moveElementToPackage, moveIntoGroupingPackage, movePackage, renamePackage,
     type PackageWriteResult,
 } from './package-writer.js';
-import { assertSingleDomainMutation, MixedMutationDomainError } from './mutation-domain.js';
+import { assertSingleDomainMutation, isReadOnlyMessage, MixedMutationDomainError } from './mutation-domain.js';
 import { classifyConflict } from './conflict-policy.js';
 import type { SemanticOrigin } from '../model/source-provenance.js';
 import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-policy-writer.js';
@@ -61,6 +61,15 @@ import { selectedOutlineSource, type OutlineSource } from '../authoring/outline-
 
 export interface DevServerOptions {
     port: number;
+    /**
+     * Serve the model read-only: every client message outside `READ_ONLY_MESSAGES` is refused.
+     * A pinned build runs this way, so no write path is reachable from it.
+     */
+    readOnly?: boolean;
+    /** What a read-only server tells each client about itself. */
+    pinned?: import('../protocol/messages.js').PinnedInfo;
+    /** Where the person's role and workspace are read from: the working project, for a pinned one. */
+    preferencesRoot?: string;
     projectRoot: string;
     /** Client application root supplied by the caller (for example Architect). */
     webPackagePath: string;
@@ -1412,7 +1421,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
 
         // The person's own choices for this model (memo.user.yaml)
         try {
-            ws.send(JSON.stringify({ type: 'user-preferences', payload: loadUserPreferences(options.projectRoot) }));
+            ws.send(JSON.stringify({ type: 'user-preferences', payload: loadUserPreferences(options.preferencesRoot ?? options.projectRoot) }));
+            if (options.readOnly) ws.send(JSON.stringify({ type: 'pinned:info', payload: options.pinned ?? { kind: 'read-only', label: 'read-only' } }));
         } catch (e) {
             console.error('[Preferences] load failed:', e);
         }
@@ -1469,6 +1479,17 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         ws.on('message', async (data: any) => {
             try {
                 const msg = JSON.parse(data.toString());
+                if (options.readOnly && !isReadOnlyMessage(msg.type)) {
+                    // Refused by name, not by what it would have written: see READ_ONLY_MESSAGES.
+                    ws.send(JSON.stringify({
+                        type: 'app:error',
+                        payload: {
+                            requestId: msg.payload?.requestId,
+                            error: 'This is a pinned, read-only view; nothing can be changed in it. Open the working version to edit.',
+                        },
+                    }));
+                    return;
+                }
                 if (mutationLockout && isModelMutationMessage(msg.type)) {
                     // A section 13.5 escalation is a hard server boundary;
                     // stale and hand-authored clients cannot write through it.

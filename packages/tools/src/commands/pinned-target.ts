@@ -13,6 +13,7 @@ import { loadProjectSettings } from '../model/config-loader.js';
 import { findProjectRoot } from '../model/native-project.js';
 import { buildRelease, pinWorktree } from '../model/pinned.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
+import type { PinnedInfo } from '../protocol/messages.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 
@@ -21,6 +22,8 @@ export interface PinnedTarget {
     dir: string;
     /** One line saying what is being run, for stderr. */
     label: string;
+    /** What a read-only server shows about it. */
+    info: PinnedInfo;
 }
 
 /** The directory `--at` or `--release` names, or undefined when neither is given. Exits 1 on a refusal. */
@@ -38,7 +41,10 @@ export async function pinnedTarget(projectDir: string | undefined, options: Reco
     try {
         if (at) {
             const pin = await pinWorktree(root, at);
-            return { dir: pin.projectDir, label: `the model at ${at} (${pin.sha.slice(0, 7)}), in ${pin.dir}` };
+            return {
+                dir: pin.projectDir, label: `the model at ${at} (${pin.sha.slice(0, 7)}), in ${pin.dir}`,
+                info: { kind: 'ref', label: at, commits: [{ name: 'model', commit: pin.sha }], notARelease: true },
+            };
         }
         const config = withToolchainOverrides(loadProjectSettings(root), options, defaultRegistry);
         const working = await loadProjectModel({ projectRoot: root, config });
@@ -51,7 +57,13 @@ export async function pinnedTarget(projectDir: string | undefined, options: Reco
         }
         const build = await buildRelease(root, working, matches[0].id, { config: { toolchain: config.toolchain } });
         const pins = build.releasePins.systems.map(s => `${s.system}@${s.commit.slice(0, 7)}`).join(', ');
-        return { dir: build.assembly.dir, label: `${build.releasePins.record}: ${build.releasePins.commit.slice(0, 7)} with ${pins}` };
+        return {
+            dir: build.assembly.dir, label: `${build.releasePins.record}: ${build.releasePins.commit.slice(0, 7)} with ${pins}`,
+            info: {
+                kind: 'release', label: build.releasePins.record,
+                commits: [{ name: 'version', commit: build.releasePins.commit }, ...build.releasePins.systems.map(s => ({ name: s.system, commit: s.commit }))],
+            },
+        };
     } catch (error) {
         return fail(error instanceof Error ? error.message : String(error));
     }

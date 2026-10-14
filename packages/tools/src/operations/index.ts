@@ -7,3 +7,5 @@ export { compileMarkdownDocument as generateDocument } from '../dhf/document-com
 export { buildProjectSnapshot, serializeForInlineScript } from './project-snapshot.js';
 export { devCommand as startProjectServer } from '../commands/dev.js';
 export { generateValidatedSysml, validateGeneratedSysml, MAX_SYSML_GENERATION_ATTEMPTS } from './ai-authoring.js';
+export { pinnedTarget, type PinnedTarget } from '../commands/pinned-target.js';
+export type { PinnedInfo } from '../protocol/messages.js';
