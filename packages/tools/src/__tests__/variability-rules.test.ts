@@ -17,7 +17,7 @@ const edit = (file: string, from: string, to: string) => (files: Record<string, 
 };
 const RELEASES = 'model/sos/releases.sysml';
 const FEATURES = 'model/shared/features.sysml';
-const OPTIONS = 'model/systems/ablation/output_options.sysml';
+const OPTIONS = 'model/systems/manipulation/output_options.sysml';
 
 /** The records each release rule flags, in a seeded copy of the fixture. */
 async function flagged(seed: ((files: Record<string, string>) => void)[] = []): Promise<Record<string, string[]>> {
@@ -30,7 +30,7 @@ async function flagged(seed: ((files: Record<string, string>) => void)[] = []): 
             .map(v => project.model.elements.get(v.elementId)?.shortName ?? v.elementId).sort();
         checkAgainstSelectRelease(project, out['CR-ONT-090']);
         return out;
-    }, 'ep-lab-family');
+    }, 'robot-cell-family');
 }
 
 /**
@@ -96,10 +96,10 @@ describe.runIf(compilerConfigured && examplesPresent)('release rules (O14)', () 
                 }`),
         edit(OPTIONS, '    }\n}\n', `    }
 }
-package ep_lab_family_ablation_filter_features {
+package robot_cell_family_manipulation_filter_features {
     private import memo_architecture_variability::*;
-    private import ep_lab_family_features::*;
-    private import ep_lab_family_ablation_options::*;
+    private import robot_cell_family_features::*;
+    private import robot_cell_family_manipulation_options::*;
     #RealizesFeature dependency from OutputStageSystem::outputStage::${owner}::stageFilter::filterA to featFilterA;
     #RealizesFeature dependency from OutputStageSystem::outputStage::${owner}::stageFilter::filterB to featFilterB;
 }

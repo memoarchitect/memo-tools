@@ -5,7 +5,7 @@ import { computeWorkspaceMembership, workspaceMembershipToDTO, type WorkspaceMem
 import type { ProjectModel } from '../toolchain/project-model.js';
 import { compiledExample, compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
-// T2: which workspace holds each element, on the E0 test bed (ep-lab-family), whose
+// T2: which workspace holds each element, on the E0 test bed (robot-cell-family), whose
 // expected placement is the oracle in plans/memo-model-product-project-structure.md §7.
 // Written from the oracle before the closure was run, then amended where the oracle
 // was silent (the constituent-system slots and the ICD ends); E0's chain became a workflow realizing the clinical use case.
@@ -26,56 +26,56 @@ const membersOf = (project: ProjectModel, result: WorkspaceMembership, rootName:
 
 describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E0', () => {
     it('places every element as the oracle expects', async () => {
-        const project = await compiledExample('ep-lab-family');
+        const project = await compiledExample('robot-cell-family');
         const result = membership(project);
 
-        expect(membersOf(project, result, 'CardiacMappingSystem')).toEqual([
-            'AblationEvent', 'AblationEventPort', 'CardiacMappingSystem', 'CardiacMappingSystem::isolation',
-            'CardiacMappingSystem::mapEngine', 'CardiacMappingSystem::pAblationEventIn', 'CardiacMappingSystem::pElectrogramIn',
-            'CatheterLocation', 'Electrogram', 'ElectrogramPort', 'PatientIsolationModule', 'electrophysiologist',
-            'fnBuildMap', 'fnTagLesion', 'ucAcquireMap',
+        expect(membersOf(project, result, 'NavigationSystem')).toEqual([
+            'GraspEvent', 'GraspEventPort', 'NavigationSystem', 'NavigationSystem::safetyRelay',
+            'NavigationSystem::mapEngine', 'NavigationSystem::pGraspEventIn', 'NavigationSystem::pPointCloudIn',
+            'RobotPose', 'PointCloud', 'PointCloudPort', 'SafetyRelayModule', 'cellOperator',
+            'fnBuildMap', 'fnTagGrasp', 'ucAcquireMap',
         ].sort());
-        expect(membersOf(project, result, 'AblationGeneratorSystem')).toEqual([
-            'AblationEvent', 'AblationEventPort', 'AblationGeneratorSystem', 'AblationGeneratorSystem::energyController',
-            'AblationGeneratorSystem::pAblationEventOut', 'electrophysiologist', 'fnDeliverEnergy', 'ucDeliverEnergy',
+        expect(membersOf(project, result, 'ManipulatorSystem')).toEqual([
+            'GraspEvent', 'GraspEventPort', 'ManipulatorSystem', 'ManipulatorSystem::motionController',
+            'ManipulatorSystem::pGraspEventOut', 'cellOperator', 'fnExecuteGrasp', 'ucExecuteGrasp',
         ].sort());
-        expect(membersOf(project, result, 'SignalRecordingSystem')).toEqual([
-            'Electrogram', 'ElectrogramPort', 'PatientIsolationModule', 'SignalRecordingSystem',
-            'SignalRecordingSystem::acquisitionUnit', 'SignalRecordingSystem::isolation', 'SignalRecordingSystem::pElectrogramOut',
-            'fnAcquireElectrograms', 'labTechnician', 'ucRecordProcedure',
+        expect(membersOf(project, result, 'PerceptionSystem')).toEqual([
+            'PointCloud', 'PointCloudPort', 'SafetyRelayModule', 'PerceptionSystem',
+            'PerceptionSystem::sensorHub', 'PerceptionSystem::safetyRelay', 'PerceptionSystem::pPointCloudOut',
+            'fnAcquirePointClouds', 'cellTechnician', 'ucRecordRun',
         ].sort());
         // The lab holds its constituent systems as parts but not their definitions, the two ICDs with
         // their ends, and the use case whose subject is the lab. The workflow that realizes the lab's use case comes in through
         // `realizesUseCase`, with its scenario and steps by ownership.
-        expect(membersOf(project, result, 'ElectrophysiologyLab')).toEqual([
-            'AblationEventPort', 'AblationToMappingIcd', 'AblationToMappingIcd::consumer', 'AblationToMappingIcd::provider',
-            'ElectrogramPort', 'ElectrophysiologyLab', 'ElectrophysiologyLab::ablation', 'ElectrophysiologyLab::mapping',
-            'ElectrophysiologyLab::recording', 'RecordingToMappingIcd', 'RecordingToMappingIcd::consumer',
-            'RecordingToMappingIcd::provider', 'electrophysiologist', 'epLab', 'labTechnician', 'ucPerformCatheterAblation',
-            'wfMapGuidedAblation', 'scMapGuidedAblation', 'stepAcquire', 'stepBuildMap', 'stepDeliver', 'stepTag',
+        expect(membersOf(project, result, 'RoboticCell')).toEqual([
+            'GraspEventPort', 'ManipulationToNavigationIcd', 'ManipulationToNavigationIcd::consumer', 'ManipulationToNavigationIcd::provider',
+            'PointCloudPort', 'RoboticCell', 'RoboticCell::manipulation', 'RoboticCell::navigation',
+            'RoboticCell::perception', 'PerceptionToNavigationIcd', 'PerceptionToNavigationIcd::consumer',
+            'PerceptionToNavigationIcd::provider', 'cellOperator', 'robotCell', 'cellTechnician', 'ucPerformPickAndPlace',
+            'wfMapGuidedPick', 'scMapGuidedPick', 'stepAcquire', 'stepBuildMap', 'stepDeliver', 'stepTag',
         ].sort());
     }, 120_000);
 
     it('counts shared over systems only', async () => {
-        const project = await compiledExample('ep-lab-family');
+        const project = await compiledExample('robot-cell-family');
         const result = membership(project);
         expect(result.shared.map(id => label(project, id)).sort()).toEqual([
-            'AblationEvent', 'AblationEventPort', 'Electrogram', 'ElectrogramPort', 'PatientIsolationModule', 'electrophysiologist',
+            'GraspEvent', 'GraspEventPort', 'PointCloud', 'PointCloudPort', 'SafetyRelayModule', 'cellOperator',
         ]);
-        // The lab reaches labTechnician and the clinical use case's participants, and neither makes it shared.
-        expect(result.shared.map(id => label(project, id))).not.toContain('labTechnician');
+        // The lab reaches cellTechnician and the clinical use case's participants, and neither makes it shared.
+        expect(result.shared.map(id => label(project, id))).not.toContain('cellTechnician');
         expect(result.unresolvedTypes).toEqual([]);
     }, 120_000);
 
     it('has nothing Unassigned, and requires a system', async () => {
-        const result = membership(await compiledExample('ep-lab-family'));
+        const result = membership(await compiledExample('robot-cell-family'));
         expect(result.unassigned).toEqual([]);
         expect(result.missingSystem).toBe(false);
     }, 120_000);
 
     it('reports a model with no System definition as missing one', async () => {
         // E0 with its System and SystemOfSystems definitions taken out: no root, so no workspace and no implicit one.
-        const project = await compiledExample('ep-lab-family');
+        const project = await compiledExample('robot-cell-family');
         const elements = new ElementIndex();
         for (const element of project.model.elements.values()) {
             if (!(element.isDefinition && ['System', 'SystemOfSystems'].includes(element.kind))) elements.define(element);
@@ -104,20 +104,20 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
             const result = membership(project);
             expect(membersOf(project, result, 'DemoSystem')).toEqual(['DemoSystem', 'DemoSystem::core', 'workstation']);
             expect(result.unassigned).toEqual([]);
-        }, 'ep-lab-family');
+        }, 'robot-cell-family');
     }, 120_000);
 
     it('ships as plain JSON on the model DTO, enough to filter by a chosen workspace', async () => {
-        const project = await compiledExample('ep-lab-family');
+        const project = await compiledExample('robot-cell-family');
         const dto = modelToDTO(project.model, { workspaceMembership: workspaceMembershipToDTO(membership(project), project.model) });
         const shipped = JSON.parse(JSON.stringify(dto.workspaceMembership));
         expect(shipped.workspaces.map((w: { scope: string }) => w.scope).sort()).toEqual(['sos', 'system', 'system', 'system']);
         expect(shipped.workspaces.every((w: { name: string; root: string }) => w.name && w.root)).toBe(true);
         const root = (name: string) => shipped.workspaces.find((w: { root: string }) => w.root.endsWith(`::${name}`)).root;
         const inWorkspace = (name: string) => Object.keys(shipped.membership).filter(id => shipped.membership[id].includes(root(name))).map(id => label(project, id)).sort();
-        expect(inWorkspace('AblationGeneratorSystem')).toContain('fnDeliverEnergy');
-        expect(inWorkspace('AblationGeneratorSystem')).not.toContain('fnBuildMap');
-        expect(shipped.shared.map((id: string) => label(project, id))).toContain('Electrogram');
+        expect(inWorkspace('ManipulatorSystem')).toContain('fnExecuteGrasp');
+        expect(inWorkspace('ManipulatorSystem')).not.toContain('fnBuildMap');
+        expect(shipped.shared.map((id: string) => label(project, id))).toContain('PointCloud');
         expect(shipped.missingSystem).toBe(false);
     }, 120_000);
 
@@ -126,24 +126,24 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
         await withExample({ 'model/shared/orphan.sysml': orphan }, project => {
             expect(membership(project).unassigned.map(id => label(project, id))).toContain('StrayModule');
             expect(membership(project).unassigned).toHaveLength(1);
-        }, 'ep-lab-family');
+        }, 'robot-cell-family');
     }, 120_000);
 
     it('resolves each usage to its definition, so a client never matches a type by name', async () => {
-        const project = await compiledExample('ep-lab-family');
+        const project = await compiledExample('robot-cell-family');
         const result = membership(project);
         const byLabel = (name: string) => [...project.model.elements.keys()].find(id => label(project, id) === name)!;
         // Lab -> its constituent slot -> the system definition -> a part of it -> that part's definition.
-        const lab = project.model.elements.get(byLabel('epLab'))!;
-        expect(result.definitionOf.get(lab.id)).toBe(byLabel('ElectrophysiologyLab'));
-        expect(result.definitionOf.get(byLabel('ElectrophysiologyLab::mapping'))).toBe(byLabel('CardiacMappingSystem'));
-        expect(result.definitionOf.get(byLabel('CardiacMappingSystem::isolation'))).toBe(byLabel('PatientIsolationModule'));
-        expect(workspaceMembershipToDTO(result, project.model).definitionOf[byLabel('CardiacMappingSystem::isolation')]).toBe(byLabel('PatientIsolationModule'));
+        const lab = project.model.elements.get(byLabel('robotCell'))!;
+        expect(result.definitionOf.get(lab.id)).toBe(byLabel('RoboticCell'));
+        expect(result.definitionOf.get(byLabel('RoboticCell::navigation'))).toBe(byLabel('NavigationSystem'));
+        expect(result.definitionOf.get(byLabel('NavigationSystem::safetyRelay'))).toBe(byLabel('SafetyRelayModule'));
+        expect(workspaceMembershipToDTO(result, project.model).definitionOf[byLabel('NavigationSystem::safetyRelay')]).toBe(byLabel('SafetyRelayModule'));
         // The clinical use case includes each system use case (the use-case grouping reads these edges).
         const includes = project.model.relationships.filter(r => r.type === 'includesStep')
             .map(r => `${label(project, r.sourceId)}>${label(project, r.targetId)}`).sort();
         expect(includes).toEqual([
-            'ucPerformCatheterAblation>ucAcquireMap', 'ucPerformCatheterAblation>ucDeliverEnergy', 'ucPerformCatheterAblation>ucRecordProcedure',
+            'ucPerformPickAndPlace>ucAcquireMap', 'ucPerformPickAndPlace>ucExecuteGrasp', 'ucPerformPickAndPlace>ucRecordRun',
         ]);
     }, 120_000);
 });

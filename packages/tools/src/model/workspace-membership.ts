@@ -5,7 +5,7 @@
 // (plans/memo-model-product-project-structure.md, T2).
 //
 // Roots are DEFINITIONS of a System-kind or SystemOfSystems-kind, and a root's
-// top-level usage joins it (`part epLab : ElectrophysiologyLab`). From each root,
+// top-level usage joins it (`part robotCell : RoboticCell`). From each root,
 // to a fixpoint:
 //
 //   ownership   a member's owned elements join it (which places ports, steps and
@@ -18,8 +18,8 @@
 //               (`registry.workspaceMembership()`): `sourceFollowsTarget` puts
 //               the source in whenever the target is in, `targetFollowsSource`
 //               the reverse, `neither` places nothing
-//   typed link  a link typed by a definition (`interface electrogramFeed :
-//               RecordingToMappingIcd connect a to b`) places that definition
+//   typed link  a link typed by a definition (`interface pointCloudFeed :
+//               PerceptionToNavigationIcd connect a to b`) places that definition
 //               when BOTH ends are in the workspace, which is how an interface
 //               control document lands in the system of systems and in no system
 //
@@ -29,8 +29,8 @@
 // ownership and the seeded top-level usage may bring a System-kind or
 // SystemOfSystems-kind element in.
 //
-// A feature a port DEFINITION owns (`out item electrogram : Electrogram` in
-// `port def ElectrogramPort`) is not an element, so its type is not read here;
+// A feature a port DEFINITION owns (`out item pointCloud : PointCloud` in
+// `port def PointCloudPort`) is not an element, so its type is not read here;
 // the same item definitions are reached through the functions that move them.
 //
 // A model is required to declare at least one System, and there is no implicit

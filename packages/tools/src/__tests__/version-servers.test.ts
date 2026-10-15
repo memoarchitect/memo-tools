@@ -43,7 +43,7 @@ process.on('disconnect', () => process.exit(0)); setInterval(() => {}, 1000);
 
     it('offers the tip of the current branch and the latest tag, both marked as not releases', async () => {
         const refs = await listRefs(repo.root);
-        expect(refs.map(r => `${r.kind}:${r.label}`)).toEqual([expect.stringMatching(/^branch:Latest commit on /), 'tag:Latest tag rc-mapping']);
+        expect(refs.map(r => `${r.kind}:${r.label}`)).toEqual([expect.stringMatching(/^branch:Latest commit on /), 'tag:Latest tag rc-navigation']);
         expect(refs[0].commit).toBe(repo.c8);
         expect(refs[1].commit).toBe(repo.c2);
     });
@@ -52,7 +52,7 @@ process.on('disconnect', () => process.exit(0)); setInterval(() => {}, 1000);
         const opened = await servers.open({ release: idOf('relLabV1') });
         expect(opened.url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
         expect(opened.info).toMatchObject({ kind: 'release', label: 'relLabV1', workingUrl: 'http://127.0.0.1:3000' });
-        expect(opened.info.commits?.map(c => c.name).sort()).toEqual(['ablation', 'mapping', 'recording', 'version']);
+        expect(opened.info.commits?.map(c => c.name).sort()).toEqual(['manipulation', 'navigation', 'perception', 'version']);
         const started = JSON.parse(readFileSync(join(scratch, 'child.json'), 'utf8'));
         expect(started.argv).toEqual(['dev', '--pinned-dir', started.cwd, '--port', '0', '--no-open', '--toolchain.compiler=syside']);
         expect(started.cwd).toContain(join(repo.root, '.memo', 'assembled'));
@@ -64,8 +64,8 @@ process.on('disconnect', () => process.exit(0)); setInterval(() => {}, 1000);
         const first = await servers.open({ release: idOf('relLabV1') });
         const again = await servers.open({ release: idOf('relLabV1') });
         expect(again.url).toBe(first.url);
-        const tag = await servers.open({ ref: 'rc-mapping' });
-        expect(tag.info).toMatchObject({ kind: 'ref', label: 'rc-mapping', notARelease: true });
+        const tag = await servers.open({ ref: 'rc-navigation' });
+        expect(tag.info).toMatchObject({ kind: 'ref', label: 'rc-navigation', notARelease: true });
         expect(tag.url).not.toBe(first.url);
     }, 180_000);
 

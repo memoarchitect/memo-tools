@@ -8,7 +8,7 @@ import { variabilityFiles } from './helpers/variability-fixture.js';
 // builder makes of them is `variability-builder.test.ts`.
 
 const withVariability = <T>(use: Parameters<typeof withExample<T>>[1], files: Record<string, string> = variabilityFiles()) =>
-    withExample(files, use, 'ep-lab-family');
+    withExample(files, use, 'robot-cell-family');
 
 describe.runIf(compilerConfigured && examplesPresent)('features and design options (O5, O15)', () => {
     it('compiles features, a variation point with variants, a release and a decision', async () => {

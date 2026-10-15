@@ -11,31 +11,31 @@ import { compiledExample, compilerConfigured, examplesPresent, withExample } fro
 
 // T3: `memo validate --workspace`. Rules run on a workspace's elements over the WHOLE model.
 // E0 has no safety-critical function and no verification case, so the cases are seeded here:
-// the recording system verifies its own critical function and the ablation generator's critical
-// function has no test. The recording system's test must not stand in for the generator's.
+// the perception system verifies its own critical function and the manipulation generator's critical
+// function has no test. The perception system's test must not stand in for the generator's.
 
-const E0 = resolve(__dirname, '../../../../../memo/examples/ep-lab-family');
+const E0 = resolve(__dirname, '../../../../../memo/examples/robot-cell-family');
 const CLI_PATH = join(__dirname, '../../lib/bin/memo.js');
 const RULE = 'CR-ONT-040';
 
 const seeded = (): Record<string, string> => {
-    const recording = readFileSync(join(E0, 'model/systems/recording/recording_system.sysml'), 'utf8')
+    const perception = readFileSync(join(E0, 'model/systems/perception/perception_system.sysml'), 'utf8')
         .replace('private import memo_architecture_operational_use_cases::*;',
             'private import memo_architecture_operational_use_cases::*;\n    private import memo_assurance_verification_validation::*;')
-        .replace('attribute :>> outputSummary = "Filtered, timestamped intracardiac electrograms";',
-            `attribute :>> outputSummary = "Filtered, timestamped intracardiac electrograms";
+        .replace('attribute :>> outputSummary = "Filtered, timestamped point clouds";',
+            `attribute :>> outputSummary = "Filtered, timestamped point clouds";
         attribute :>> criticality = CriticalityKind::high;
     }
-    verification vcElectrogramFidelity : VerificationCase {
-        @MemoIdentity { :>> providedId = "EPF-REC-VC-001"; :>> label = "Verify Electrogram Fidelity"; }
+    verification vcPointCloudFidelity : VerificationCase {
+        @MemoIdentity { :>> providedId = "RCF-REC-VC-001"; :>> label = "Verify PointCloud Fidelity"; }
         attribute :>> methodKind = MemoVerificationMethodKind::test;
         attribute :>> acceptanceCriteria = "matches the injected reference signal";
-        subject verified : Base::Anything[*] = (fnAcquireElectrograms);`);
-    const ablation = readFileSync(join(E0, 'model/systems/ablation/ablation_system.sysml'), 'utf8')
+        subject verified : Base::Anything[*] = (fnAcquirePointClouds);`);
+    const manipulation = readFileSync(join(E0, 'model/systems/manipulation/manipulation_system.sysml'), 'utf8')
         .replace('and the event that records it";', 'and the event that records it";\n        attribute :>> criticality = CriticalityKind::high;');
     return {
-        'model/systems/recording/recording_system.sysml': recording,
-        'model/systems/ablation/ablation_system.sysml': ablation,
+        'model/systems/perception/perception_system.sysml': perception,
+        'model/systems/manipulation/manipulation_system.sysml': manipulation,
     };
 };
 
@@ -58,41 +58,41 @@ function flagged(project: ProjectModel, workspace?: string, override?: { foreign
 describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace (T3)', () => {
     it("runs rules on one workspace's elements over the whole model", async () => {
         await withExample(seeded(), project => {
-            expect(flagged(project)).toEqual(['fnDeliverEnergy']);
-            expect(flagged(project, 'AblationGeneratorSystem')).toEqual(['fnDeliverEnergy']);
-            // The recording system's own critical function is verified, and the generator's gap is not its finding.
-            expect(flagged(project, 'SignalRecordingSystem')).toEqual([]);
-            expect(flagged(project, 'CardiacMappingSystem')).toEqual([]);
-        }, 'ep-lab-family');
+            expect(flagged(project)).toEqual(['fnExecuteGrasp']);
+            expect(flagged(project, 'ManipulatorSystem')).toEqual(['fnExecuteGrasp']);
+            // The perception system's own critical function is verified, and the generator's gap is not its finding.
+            expect(flagged(project, 'PerceptionSystem')).toEqual([]);
+            expect(flagged(project, 'NavigationSystem')).toEqual([]);
+        }, 'robot-cell-family');
     }, 180_000);
 
     it("does not count another system's test as evidence", async () => {
         await withExample(seeded(), project => {
-            // The test is the recording system's, and it also verifies the generator's function here.
+            // The test is the perception system's, and it also verifies the generator's function here.
             // Closure puts a test into every workspace of what it verifies, so it is shared and counts:
-            const sharedTest = [...project.model.elements.values()].find(e => e.shortName === 'vcElectrogramFidelity')!;
+            const sharedTest = [...project.model.elements.values()].find(e => e.shortName === 'vcPointCloudFidelity')!;
             expect(sharedTest).toBeDefined();
             // Deleting nothing and adding the edge by hand would test the closure, not the filter. The
             // filter is tested on its own: with the test marked foreign, no edge to it is evidence.
             const withEdge = { ...project.model };
-            const rel = { sourceId: [...project.model.elements.values()].find(e => e.shortName === 'fnDeliverEnergy')!.id,
+            const rel = { sourceId: [...project.model.elements.values()].find(e => e.shortName === 'fnExecuteGrasp')!.id,
                 targetId: sharedTest.id, type: 'verifiedBy' } as any;
             withEdge.outgoing = new Map(project.model.outgoing).set(rel.sourceId, [...(project.model.outgoing.get(rel.sourceId) ?? []), rel]);
             withEdge.incoming = new Map(project.model.incoming).set(rel.targetId, [...(project.model.incoming.get(rel.targetId) ?? []), rel]);
             const withEdgeProject = { ...project, model: withEdge };
             // Whole model, and a workspace that does not treat the test as foreign: the edge satisfies the rule.
-            expect(flagged(withEdgeProject, 'AblationGeneratorSystem', { foreign: new Set() })).toEqual([]);
+            expect(flagged(withEdgeProject, 'ManipulatorSystem', { foreign: new Set() })).toEqual([]);
             // The same workspace with the test foreign: the edge is not evidence, so the gap is found.
-            expect(flagged(withEdgeProject, 'AblationGeneratorSystem', { foreign: new Set([sharedTest.id]) })).toEqual(['fnDeliverEnergy']);
-        }, 'ep-lab-family');
+            expect(flagged(withEdgeProject, 'ManipulatorSystem', { foreign: new Set([sharedTest.id]) })).toEqual(['fnExecuteGrasp']);
+        }, 'robot-cell-family');
     }, 180_000);
 
     it('names the choices for an unknown workspace, and refuses a model without a System', async () => {
-        const e0 = await compiledExample('ep-lab-family');
+        const e0 = await compiledExample('robot-cell-family');
         const membership = computeWorkspaceMembership(e0.model, e0.registries!);
         const unknown = selectWorkspace(e0.model, membership, 'nope');
         expect(unknown).toMatchObject({ ok: false });
-        expect((unknown as { message: string }).message).toMatch(/Ablation Generator System \(system\)/);
+        expect((unknown as { message: string }).message).toMatch(/Manipulator System \(system\)/);
         const dsm = await compiledExample('nested-architecture-dsm');
         const none = selectWorkspace(dsm.model, computeWorkspaceMembership(dsm.model, dsm.registries!), 'anything');
         expect(none).toMatchObject({ ok: false });
@@ -105,14 +105,14 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
             const result = validateModel(project.model, collectApiConstraints(project.api), project.registries!.kindRegistry);
             return result.violations.some(v => v.ruleId === 'CR-ONT-084');
         };
-        expect(await fires('ep-lab-family')).toBe(false);
+        expect(await fires('robot-cell-family')).toBe(false);
         expect(await fires('nested-architecture-dsm')).toBe(true);
     }, 180_000);
 
     it('scopes the DHF query context to the workspace', async () => {
-        const project = await compiledExample('ep-lab-family');
+        const project = await compiledExample('robot-cell-family');
         const membership = computeWorkspaceMembership(project.model, project.registries!);
-        const selection = selectWorkspace(project.model, membership, 'SignalRecordingSystem');
+        const selection = selectWorkspace(project.model, membership, 'PerceptionSystem');
         if (!selection.ok) throw new Error(selection.message);
         const validation = { violations: [], rulesEvaluated: 0, rulesPassed: 0, rulesVacuous: 0, timestamp: 0 };
         const completeness = { overall: 0, completeElements: 0, totalElements: 0, layers: [] } as any;
@@ -123,8 +123,8 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
         expect(scoped.allElements().map(e => e.id).sort()).toEqual([...selection.scope.subjects].sort());
         expect(scoped.totalElements()).toBe(selection.scope.subjects.size);
         // A function of another system is not listed, though the model holds it.
-        expect(scoped.allElements().some(e => e.shortName === 'fnDeliverEnergy')).toBe(false);
-        expect(scoped.element([...project.model.elements.values()].find(e => e.shortName === 'fnDeliverEnergy')!.id)).toBeDefined();
+        expect(scoped.allElements().some(e => e.shortName === 'fnExecuteGrasp')).toBe(false);
+        expect(scoped.element([...project.model.elements.values()].find(e => e.shortName === 'fnExecuteGrasp')!.id)).toBeDefined();
     }, 180_000);
 
     it('the CLI exits 1 on an unknown workspace and reports the workspace it ran', async () => {
@@ -135,9 +135,9 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
             const bad = run('--workspace', 'nope');
             expect(bad.status).toBe(1);
             expect(bad.stderr).toContain('no workspace is named "nope"');
-            const good = run('--workspace', 'SignalRecordingSystem');
-            expect(good.stdout + good.stderr).toContain('Workspace: Signal Recording System (system)');
-        }, 'ep-lab-family');
+            const good = run('--workspace', 'PerceptionSystem');
+            expect(good.stdout + good.stderr).toContain('Workspace: Perception System (system)');
+        }, 'robot-cell-family');
     }, 240_000);
 
     it("judges the elements no workspace holds in the system of systems' workspace", async () => {
@@ -145,11 +145,11 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
         await withExample({ 'model/shared/orphan.sysml': orphan }, project => {
             const membership = computeWorkspaceMembership(project.model, project.registries!);
             const stray = membership.unassigned[0];
-            const lab = selectWorkspace(project.model, membership, 'ElectrophysiologyLab');
-            const ablation = selectWorkspace(project.model, membership, 'AblationGeneratorSystem');
-            if (!lab.ok || !ablation.ok) throw new Error('workspace not found');
+            const lab = selectWorkspace(project.model, membership, 'RoboticCell');
+            const manipulation = selectWorkspace(project.model, membership, 'ManipulatorSystem');
+            if (!lab.ok || !manipulation.ok) throw new Error('workspace not found');
             expect(lab.scope.subjects.has(stray)).toBe(true);
-            expect(ablation.scope.subjects.has(stray)).toBe(false);
-        }, 'ep-lab-family');
+            expect(manipulation.scope.subjects.has(stray)).toBe(false);
+        }, 'robot-cell-family');
     }, 180_000);
 });

@@ -12,7 +12,7 @@ import { releaseFiles } from './helpers/release-fixture.js';
 // systems and an interface at the lower levels, the system of systems on top.
 
 const withReleases = <T>(use: Parameters<typeof withExample<T>>[1], files: Record<string, string> = releaseFiles()) =>
-    withExample(files, use, 'ep-lab-family');
+    withExample(files, use, 'robot-cell-family');
 
 describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, O4)', () => {
     it('links each record to the definition it releases, not to a usage', async () => {
@@ -22,14 +22,14 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
             const edges = (type: string) => [...m.relationships.values()].filter(r => r.type === type)
                 .map(r => `${m.elements.get(r.sourceId)?.shortName} -> ${name(r.targetId)}`).sort();
             expect(edges('releaseOf')).toEqual([
-                'relAblation -> AblationGeneratorSystem:System',
-                'relAblationIcd -> AblationToMappingIcd:Interface',
                 'relEu -> OutputStageSystem:System',
-                'relFirmwareA -> EnergyControllerFirmware:SoftwareSystem',
-                'relFirmwareB -> EnergyControllerFirmware:SoftwareSystem',
-                'relLabV1 -> ElectrophysiologyLab:SystemOfSystems',
-                'relMapping -> CardiacMappingSystem:System',
-                'relRecording -> SignalRecordingSystem:System',
+                'relFirmwareA -> MotionControllerFirmware:SoftwareSystem',
+                'relFirmwareB -> MotionControllerFirmware:SoftwareSystem',
+                'relLabV1 -> RoboticCell:SystemOfSystems',
+                'relManipulation -> ManipulatorSystem:System',
+                'relManipulationIcd -> ManipulationToNavigationIcd:Interface',
+                'relNavigation -> NavigationSystem:System',
+                'relPerception -> PerceptionSystem:System',
                 'relUs -> OutputStageSystem:System',
             ]);
         });
@@ -38,7 +38,7 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
     it('holds two releases of one definition with different part numbers and revisions (O2)', async () => {
         await withReleases(project => {
             const m = project.model;
-            const records = [...m.relationships.values()].filter(r => r.type === 'releaseOf' && m.elements.get(r.targetId)?.shortName === 'EnergyControllerFirmware')
+            const records = [...m.relationships.values()].filter(r => r.type === 'releaseOf' && m.elements.get(r.targetId)?.shortName === 'MotionControllerFirmware')
                 .map(r => m.elements.get(r.sourceId)!.attributes);
             expect(records.map(a => [a.partNumber, a.revision, a.softwareVersion, a.codeTag])).toEqual([
                 ['PN-5001', 'A', '1.0.0', 'fw-1.0.0'],
@@ -53,13 +53,13 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
             const lab = [...m.elements.values()].find(e => e.shortName === 'relLabV1')!;
             const from = (type: string) => [...m.relationships.values()].filter(r => r.type === type && r.sourceId === lab.id)
                 .map(r => m.elements.get(r.targetId)?.shortName).sort();
-            expect(from('contains')).toEqual(['relAblation', 'relMapping', 'relRecording']);
+            expect(from('contains')).toEqual(['relManipulation', 'relNavigation', 'relPerception']);
             expect(from('verifiedByCase')).toEqual(['vcLabIntegration']);
-            const ablation = [...m.elements.values()].find(e => e.shortName === 'relAblation')!;
-            const ofAblation = (type: string) => [...m.relationships.values()].filter(r => r.type === type && r.sourceId === ablation.id)
+            const manipulation = [...m.elements.values()].find(e => e.shortName === 'relManipulation')!;
+            const ofManipulation = (type: string) => [...m.relationships.values()].filter(r => r.type === type && r.sourceId === manipulation.id)
                 .map(r => m.elements.get(r.targetId)?.shortName).sort();
-            expect(ofAblation('contains')).toEqual(['relFirmwareB']);
-            expect(ofAblation('implements')).toEqual(['relAblationIcd']);
+            expect(ofManipulation('contains')).toEqual(['relFirmwareB']);
+            expect(ofManipulation('implements')).toEqual(['relManipulationIcd']);
         });
     }, 120_000);
 
@@ -68,8 +68,8 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
             const membership = computeWorkspaceMembership(project.model, project.registries!);
             const named = (shortName: string) => [...project.model.elements.values()].find(e => e.shortName === shortName)!.id;
             const holders = (shortName: string) => (membership.systems.get(named(shortName)) ?? []).slice().sort();
-            expect(holders('relMapping').length).toBeGreaterThan(0);
-            expect(holders('relMapping')).toEqual(holders('mapEngine'));
+            expect(holders('relNavigation').length).toBeGreaterThan(0);
+            expect(holders('relNavigation')).toEqual(holders('mapEngine'));
             expect(membership.sos.get(named('relLabV1'))?.length).toBeGreaterThan(0);
             const unassigned = membership.unassigned.map(id => project.model.elements.get(id)?.shortName);
             expect(unassigned.filter(n => n?.startsWith('rel'))).toEqual([]);
@@ -117,7 +117,7 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
     it('has no version or baseline on a configuration item, and no baseline string on a change request (§8)', async () => {
         for (const [attribute, owner] of [['version', 'ConfigurationItem'], ['baseline', 'ConfigurationItem'], ['affectedBaseline', 'ChangeRequest']]) {
             const files = releaseFiles();
-            files['model/sos/stale.sysml'] = `package ep_lab_family_stale {
+            files['model/sos/stale.sysml'] = `package robot_cell_family_stale {
     private import memo_artifacts_configuration_management::*;
     part stale : ${owner} { attribute :>> ${attribute} = "x"; }
 }
@@ -139,20 +139,20 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
         const files = releaseFiles();
         files['model/sos/release_records.sysml'] = files['model/sos/release_records.sysml'].replace(/\}\n$/, `
     part relLabUsage : ReleaseRecord {
-        @MemoIdentity { :>> providedId = "EPF-REL-402"; :>> label = "Lab usage release"; }
+        @MemoIdentity { :>> providedId = "RCF-REL-402"; :>> label = "Lab usage release"; }
         attribute :>> status = ElementStatusKind::released;
         attribute :>> partNumber = "LAB-0002";
         attribute :>> revision = "1";
         attribute :>> modelCommit = "8888888888888888888888888888888888888888";
     }
-    #ReleaseOf dependency from relLabUsage to epLab;
+    #ReleaseOf dependency from relLabUsage to robotCell;
 }
 `);
         await withReleases(project => {
             const m = project.model;
             const record = [...m.elements.values()].find(e => e.shortName === 'relLabUsage')!;
             const item = [...m.relationships.values()].find(r => r.type === 'releaseOf' && r.sourceId === record.id);
-            expect(m.elements.get(item!.targetId)?.shortName).toBe('epLab');
+            expect(m.elements.get(item!.targetId)?.shortName).toBe('robotCell');
             const result = validateModel(m, collectApiConstraints(project.api), project.registries!.kindRegistry);
             expect(result.violations.filter(v => v.ruleId === 'CR-ONT-090')).toEqual([]);
         }, files);

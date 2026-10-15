@@ -8,16 +8,16 @@ import type { ProjectModel } from '../toolchain/project-model.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
 // O16: a system does not reference another system or the system of systems from inside itself
-// (CR-ONT-087). Seeded inside the mapping system's definition, so membership comes from ownership.
+// (CR-ONT-087). Seeded inside the navigation system's definition, so membership comes from ownership.
 // E0's own system of systems references its systems everywhere and must stay silent.
 
-const MAPPING = join(resolve(__dirname, '../../../../../memo/examples/ep-lab-family'), 'model/systems/mapping/mapping_system.sysml');
+const NAVIGATION = join(resolve(__dirname, '../../../../../memo/examples/robot-cell-family'), 'model/systems/navigation/navigation_system.sysml');
 const RULE = 'CR-ONT-087';
 
-/** The mapping system's file with `lines` added inside its definition and `imports` added to the package. */
-const mapping = (imports: string, lines: string): Record<string, string> => ({
-    'model/systems/mapping/mapping_system.sysml': readFileSync(MAPPING, 'utf8')
-        .replace('private import ep_lab_family_shared::*;', `private import ep_lab_family_shared::*;\n    ${imports}`)
+/** The navigation system's file with `lines` added inside its definition and `imports` added to the package. */
+const navigation = (imports: string, lines: string): Record<string, string> => ({
+    'model/systems/navigation/navigation_system.sysml': readFileSync(NAVIGATION, 'utf8')
+        .replace('private import robot_cell_family_shared::*;', `private import robot_cell_family_shared::*;\n    ${imports}`)
         .replace('allocate fnBuildMap to mapEngine;', `allocate fnBuildMap to mapEngine;\n        ${lines}`),
 });
 
@@ -30,25 +30,25 @@ function findings(project: ProjectModel, withMembership = true): string[] {
 
 describe.runIf(compilerConfigured && examplesPresent)('system boundary rule (O16)', () => {
     it('is in the rule set', async () => {
-        await withExample({}, project => expect(collectApiConstraints(project.api).map(c => c.id)).toContain(RULE), 'ep-lab-family');
+        await withExample({}, project => expect(collectApiConstraints(project.api).map(c => c.id)).toContain(RULE), 'robot-cell-family');
     }, 180_000);
 
     it('finds nothing in E0, whose system of systems references each of its systems', async () => {
-        await withExample({}, project => expect(findings(project)).toEqual([]), 'ep-lab-family');
+        await withExample({}, project => expect(findings(project)).toEqual([]), 'robot-cell-family');
     }, 180_000);
 
     it('flags a part typed by another system', async () => {
-        await withExample(mapping('private import ep_lab_family_ablation::*;', 'part generator : AblationGeneratorSystem;'),
-            project => expect(findings(project)).toEqual(['generator']), 'ep-lab-family');
+        await withExample(navigation('private import robot_cell_family_manipulation::*;', 'part generator : ManipulatorSystem;'),
+            project => expect(findings(project)).toEqual(['generator']), 'robot-cell-family');
     }, 180_000);
 
     it('flags a relationship from inside the system to the system of systems', async () => {
-        await withExample(mapping('private import ep_lab_family_sos::*;', 'allocate fnBuildMap to epLab;'),
-            project => expect(findings(project)).toEqual(['Build Activation Map']), 'ep-lab-family');
+        await withExample(navigation('private import robot_cell_family_sos::*;', 'allocate fnBuildMap to robotCell;'),
+            project => expect(findings(project)).toEqual(['Build Occupancy Map']), 'robot-cell-family');
     }, 180_000);
 
     it('judges nothing without a membership, and says so rather than passing', async () => {
-        await withExample(mapping('private import ep_lab_family_ablation::*;', 'part generator : AblationGeneratorSystem;'),
-            project => expect(findings(project, false)).toEqual([]), 'ep-lab-family');
+        await withExample(navigation('private import robot_cell_family_manipulation::*;', 'part generator : ManipulatorSystem;'),
+            project => expect(findings(project, false)).toEqual([]), 'robot-cell-family');
     }, 180_000);
 });
