@@ -4,8 +4,9 @@
 // out (see model/id-rebase.ts). Run it on the branch, after the merge or rebase has brought both
 // registries together, naming the target: it keeps the target's ids, renumbers the branch's clashing
 // ones, rewrites `memo.identity.yaml` and the authored `providedId` literals, and prints old to new.
-// It does not touch text that merely mentions an id, because it cannot tell a mention of the branch's
-// element from a mention of the target's; it lists the files that mention a renumbered id instead.
+// Which authored literals are the branch's comes from a diff against the target. It does not touch
+// text that merely mentions an id, because the target kept the old number: the mention may be of
+// either element, and only its author can say. It lists the files that mention a renumbered id.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { execFileSync } from 'node:child_process';
@@ -19,6 +20,31 @@ import { findSysmlFiles } from '../model/sysml-files.js';
 
 const git = (cwd: string, args: string[]): string =>
     execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+
+/** The lines of each file the working tree added or changed against the target commit. */
+function addedLines(root: string, sha: string, files: string[]): Map<string, Set<number>> {
+    const prefix = git(root, ['rev-parse', '--show-prefix']).trim();
+    const added = new Map<string, Set<number>>();
+    for (const file of files) {
+        const inTarget = (() => { try { git(root, ['cat-file', '-e', `${sha}:${prefix}${file}`]); return true; } catch { return false; } })();
+        let diff: string;
+        try {
+            // A file the target lacks is all the branch's; `--no-index` exits 1 when it differs.
+            diff = git(root, inTarget
+                ? ['diff', '--unified=0', '--no-color', sha, '--', file]
+                : ['diff', '--no-index', '--unified=0', '--no-color', '--', '/dev/null', file]);
+        } catch (error) {
+            diff = (error as { stdout?: string }).stdout ?? '';
+        }
+        const lines = new Set<number>();
+        for (const hunk of diff.matchAll(/^@@ -\S+ \+(\d+)(?:,(\d+))? @@/gm)) {
+            const start = Number(hunk[1]); const count = hunk[2] === undefined ? 1 : Number(hunk[2]);
+            for (let i = 0; i < count; i++) lines.add(start + i);
+        }
+        added.set(file, lines);
+    }
+    return added;
+}
 
 export interface IdsRebaseResult {
     changes: IdChange[];
@@ -55,7 +81,7 @@ export async function idsRebase(projectDir: string, onto: string, options: { dry
         const text = atTarget(local);
         if (text !== undefined) targetTexts.set(local, text);
     }
-    const provided = rebaseProvidedIds(targetTexts, branchTexts);
+    const provided = rebaseProvidedIds(targetTexts, branchTexts, addedLines(root, sha, branchFiles));
 
     const changes = [...registry.changes, ...provided.changes];
     const renamed = new Set(changes.map(change => change.from));

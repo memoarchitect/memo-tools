@@ -6,7 +6,7 @@
 import { dirname } from 'node:path';
 import chalk from 'chalk';
 import { findConfigFile } from '@memoarchitect/tools';
-import { createLockFile } from '../lock.js';
+import { createLockFile, lockableDependencies } from '../lock.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
 import { loadProjectSettings } from '../model/config-loader.js';
 
@@ -25,12 +25,15 @@ export async function lockCommand(): Promise<void> {
         if (!resolution) throw new Error('the project did not resolve');
         const { lockPath, lock } = createLockFile(dirname(configPath), resolution.selectedRoots.map(root => ({
             ...root, origin: 'ontology', importDepth: 1,
-        })));
+        })), lockableDependencies(resolution.dependencies));
         console.log(chalk.green(`✅ Lock file written: ${lockPath}`));
         console.log(chalk.gray(`   Ontology: ${lock.ontology} v${lock.version}`));
         console.log(chalk.gray(`   Packages: ${lock.packages.length}`));
         for (const pkg of lock.packages) {
             console.log(chalk.gray(`     - ${pkg.name} v${pkg.version} (${pkg.type})`));
+        }
+        for (const dep of lock.dependencies ?? []) {
+            console.log(chalk.gray(`   Dependency: ${dep.name} v${dep.version} (accepts ${dep.range})`));
         }
     } catch (e) {
         console.error(chalk.red(`❌ Failed to create lock file: ${e instanceof Error ? e.message : e}`));

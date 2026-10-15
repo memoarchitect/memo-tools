@@ -14,9 +14,13 @@
 //   * a number above the mark is left alone. It collides with nothing in the target, and renumbering
 //     it would repoint a reference for no reason.
 //
+//   * two new elements that took the same number above the mark (two sibling branches merged into
+//     this one) are told apart by key order: the first keeps the number, the others are renumbered.
+//
 // The same is done for ids an author wrote in a `providedId` literal, which are text in a source
-// file: a literal that appears more often than at the target, and whose surplus occurrences
-// are the branch's own.
+// file: a literal that appears more often than at the target. Which occurrences are the branch's own
+// comes from the lines the branch added or changed when the caller has them (`added`, from a diff
+// against the target); without that, the last occurrences in a file are taken to be the branch's.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { parseShortId } from './short-id.js';
@@ -53,11 +57,18 @@ export function rebaseRegistry(target: IdentityRegistry, branch: IdentityRegistr
     });
     for (const [key, entry] of Object.entries(branch)) if (key in target) registry[key] = target[key] ?? entry;
     // Keep the branch's own ids that do not collide, so the new numbers stay clear of them.
+    // Two new elements with one number above the target's mark are two sibling branches' work merged
+    // into this one: nothing in the target says which came first, so the first in key order keeps it.
     const colliding = new Set<string>();
+    const kept = new Set<string>();
     for (const key of fresh) {
-        const parsed = branch[key].shortId ? parseShortId(branch[key].shortId!) : null;
-        if (parsed && parsed.seq <= (targetHigh.get(parsed.prefix) ?? 0)) colliding.add(key);
-        else take(branch[key].shortId);
+        const shortId = branch[key].shortId;
+        const parsed = shortId ? parseShortId(shortId) : null;
+        if (parsed && (parsed.seq <= (targetHigh.get(parsed.prefix) ?? 0) || kept.has(shortId!))) colliding.add(key);
+        else {
+            take(shortId);
+            if (shortId) kept.add(shortId);
+        }
     }
     for (const key of fresh) {
         const entry = branch[key];
@@ -97,6 +108,8 @@ export interface ProvidedIdRebase {
  */
 export function rebaseProvidedIds(
     targetTexts: ReadonlyMap<string, string>, branchTexts: ReadonlyMap<string, string>,
+    /** Per file, the 1-based lines the branch added or changed against the target. */
+    added?: ReadonlyMap<string, ReadonlySet<number>>,
 ): ProvidedIdRebase {
     const count = (texts: ReadonlyMap<string, string>) => {
         const total = new Map<string, number>();
@@ -124,19 +137,32 @@ export function rebaseProvidedIds(
     const changes: IdChange[] = [];
     for (const [id, total] of branch.total) {
         const wasThere = target.total.get(id) ?? 0;
-        // More copies than the target had, and more than one in all: the extra ones are new, and clash.
-        if (wasThere === 0 || total <= 1 || total <= wasThere) continue;
         const parsed = parseShortId(id);
-        if (!parsed) continue;
+        if (!parsed || total <= 1) continue;
+        // With the diff, the branch's occurrences are the ones on lines it added. One the target never
+        // had may stay once (the first), since it clashes only with a sibling's copy of it.
+        const ownOf = (file: string, text: string) => providedIdLiterals(text)
+            .filter(literal => literal.id === id && added?.get(file)?.has(literal.line));
+        let spare = wasThere === 0 ? 1 : 0;
         for (const [file, text] of branchTexts) {
             const hereNow = branch.perFile.get(file)?.get(id) ?? 0;
             const hadHere = target.perFile.get(file)?.get(id) ?? 0;
-            if (hereNow <= hadHere) continue;
-            // The surplus occurrences in this file are the last ones: the target's copies come first in the
-            // file the branch only added to.
-            const occurrences = providedIdLiterals(text).filter(literal => literal.id === id);
+            let surplus: ReturnType<typeof providedIdLiterals>;
+            if (added) {
+                const own = ownOf(file, text);
+                const skip = Math.min(spare, own.length);
+                spare -= skip;
+                surplus = own.slice(skip);
+            } else {
+                // More copies than the target had: the extra ones are new, and clash.
+                if (wasThere === 0 || total <= wasThere || hereNow <= hadHere) continue;
+                // The surplus occurrences in this file are the last ones: the target's copies come first in
+                // the file the branch only added to.
+                surplus = providedIdLiterals(text).filter(literal => literal.id === id).slice(hadHere);
+            }
+            if (surplus.length === 0) continue;
             let edited = files.get(file) ?? text;
-            for (const literal of occurrences.slice(hadHere).reverse()) {
+            for (const literal of surplus.reverse()) {
                 const next = (highWater.get(parsed.prefix) ?? 0) + 1;
                 highWater.set(parsed.prefix, next);
                 const to = `${parsed.prefix}-${next}`;

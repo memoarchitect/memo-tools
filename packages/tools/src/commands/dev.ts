@@ -34,7 +34,7 @@ import { createProjectWatcher, createOntologyWatcher } from '../server/file-watc
 import { layoutBlindRevision } from '../model/view-layout-block.js';
 import { setReadOnlyRoots } from '../server/write-guard.js';
 import { readLegacyLayouts } from '../model/view-layout-migration.js';
-import { checkLockFile } from '../lock.js';
+import { checkLockFile, lockableDependencies } from '../lock.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { enforceRuntimeBudget } from '../server/runtime-budget.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
@@ -189,7 +189,7 @@ export async function devCommand(options: {
     }
     const lockCheck = checkLockFile(cwd, nativeResolution.selectedRoots.map(root => ({
         ...root, origin: 'ontology', importDepth: 1,
-    })));
+    })), lockableDependencies(nativeResolution.dependencies));
     if (!lockCheck.ok) {
         console.error(chalk.red(`\n❌ ${lockCheck.message}\n`));
         process.exit(1);

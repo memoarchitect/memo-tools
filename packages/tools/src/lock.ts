@@ -21,12 +21,32 @@ export interface LockPackageEntry {
     checksum: string;
 }
 
+/** A dependency as a build used it: the range the project accepts, and the version that was found. */
+export interface LockDependencyEntry {
+    name: string;
+    range: string;
+    version: string;
+    checksum: string;
+}
+
 /** The full lock file structure */
 export interface OntologyLock {
     ontology: string;
     version: string;
     lockedAt: string;
     packages: LockPackageEntry[];
+    /**
+     * The project's `dependencies` as resolved when the lock was written. Absent in a lock that
+     * predates dependency locking, which is then not checked for them; `memo lock` adds the section.
+     */
+    dependencies?: LockDependencyEntry[];
+}
+
+/** A `dependencies` entry of the manifest and the package it was found as (none: it was not found). */
+export interface LockableDependency {
+    name: string;
+    range: string;
+    root?: LockableRoot;
 }
 
 /** Result of lock check */
@@ -65,6 +85,15 @@ function serializeLock(lock: OntologyLock): string {
         out += `    type: "${pkg.type}"\n`;
         out += `    checksum: "${pkg.checksum}"\n`;
     }
+    if (lock.dependencies) {
+        out += lock.dependencies.length === 0 ? `dependencies: []\n` : `dependencies:\n`;
+        for (const dep of lock.dependencies) {
+            out += `  - dependency: "${dep.name}"\n`;
+            out += `    range: "${dep.range}"\n`;
+            out += `    version: "${dep.version}"\n`;
+            out += `    checksum: "${dep.checksum}"\n`;
+        }
+    }
     return out;
 }
 
@@ -77,9 +106,14 @@ function parseLock(content: string): OntologyLock {
         return m ? m[1].trim() : '';
     };
 
+    // The dependencies section follows the packages and has its own entry key, so the two are read apart.
+    const split = content.search(/^dependencies:/m);
+    const packagesText = split === -1 ? content : content.slice(0, split);
+    const dependenciesText = split === -1 ? undefined : content.slice(split);
+
     const packages: LockPackageEntry[] = [];
     // Split on "  - name:" to get each package block
-    const blocks = content.split(/\n\s+-\s+name:/);
+    const blocks = packagesText.split(/\n\s+-\s+name:/);
     for (let i = 1; i < blocks.length; i++) {
         const block = 'name:' + blocks[i];
         const name = block.match(/name:\s*"?([^"\n]+)"?/)?.[1]?.trim() ?? '';
@@ -89,11 +123,22 @@ function parseLock(content: string): OntologyLock {
         if (name) packages.push({ name, version, type, checksum });
     }
 
+    let dependencies: LockDependencyEntry[] | undefined;
+    if (dependenciesText !== undefined) {
+        dependencies = [];
+        for (const block of dependenciesText.split(/\n\s+-\s+dependency:/).slice(1)) {
+            const field = (key: string) => (key === 'dependency' ? block.match(/^\s*"?([^"\n]+)"?/) : block.match(new RegExp(`${key}:\\s*"?([^"\\n]+)"?`)))?.[1]?.trim() ?? '';
+            const name = field('dependency');
+            if (name) dependencies.push({ name, range: field('range'), version: field('version'), checksum: field('checksum') });
+        }
+    }
+
     return {
         ontology: getString('ontology'),
         version: getString('version'),
         lockedAt: getString('lockedAt'),
         packages,
+        ...(dependencies ? { dependencies } : {}),
     };
 }
 
@@ -119,8 +164,13 @@ function compareVersions(a: string | undefined, b: string | undefined): number {
 
 export function createLockFile(
     projectRoot: string,
-    selectedRoots: readonly LockableRoot[],
+    allRoots: readonly LockableRoot[],
+    dependencies: readonly LockableDependency[] = [],
 ): { lockPath: string; lock: OntologyLock } {
+    // A dependency is a model the project builds on, not the ontology: it has its own section, with the
+    // range beside the version, and is never the lock's primary package.
+    const dependencyDirs = new Set(dependencies.flatMap(d => d.root ? [d.root.dir] : []));
+    const selectedRoots = allRoots.filter(root => !dependencyDirs.has(root.dir));
     // One entry per package NAME, not per resolved directory.
     //
     // A workspace can offer the same package from two roots — an installed
@@ -167,11 +217,28 @@ export function createLockFile(
             type: root.origin,
             checksum: checksumRoot(root),
         })),
+        dependencies: dependencies.flatMap(dep => dep.root ? [{
+            name: dep.name,
+            range: dep.range,
+            version: dep.root.packageVersion ?? '0.0.0',
+            checksum: checksumRoot(dep.root),
+        }] : []).sort((a, b) => a.name.localeCompare(b.name)),
     };
 
     const lockPath = join(resolve(projectRoot), LOCK_FILENAME);
     writeFileSync(lockPath, serializeLock(lock));
     return { lockPath, lock };
+}
+
+/** The lock's view of the `dependencies` a resolution found (origin and depth do not matter to it). */
+export function lockableDependencies(
+    resolved: readonly { name: string; range: string; root?: { dir: string; sysmlDir: string; packageName: string; packageVersion?: string } }[],
+): LockableDependency[] {
+    return resolved.map(dep => ({
+        name: dep.name,
+        range: dep.range,
+        root: dep.root ? { ...dep.root, origin: 'dependency', importDepth: 1 } : undefined,
+    }));
 }
 
 /** What the lock needs to know about a resolved package. */
@@ -208,6 +275,7 @@ function checksumRoot(root: LockableRoot): string {
 export function checkLockFile(
     projectRoot: string,
     selectedRoots: readonly LockableRoot[],
+    dependencies: readonly LockableDependency[] = [],
 ): LockCheckResult {
     const lockPath = join(resolve(projectRoot), LOCK_FILENAME);
     if (!existsSync(lockPath)) return { ok: true, lockPath, message: undefined };
@@ -264,7 +332,36 @@ export function checkLockFile(
         }
     }
 
+    const dependencyProblem = checkDependencies(lock, dependencies);
+    if (dependencyProblem) return { ok: false, lockPath, locked: lock, current, message: dependencyProblem };
+
     return { ok: true, lockPath, locked: lock, current };
+}
+
+/**
+ * Compare the dependencies a build resolves with the ones the lock recorded. A dependency that was not
+ * found is the resolver's `dependency-missing`, not this check's. A lock with no dependencies section
+ * predates dependency locking and says nothing about them.
+ */
+function checkDependencies(lock: OntologyLock, dependencies: readonly LockableDependency[]): string | undefined {
+    if (!lock.dependencies) return undefined;
+    const locked = new Map(lock.dependencies.map(d => [d.name, d]));
+    for (const dep of dependencies) {
+        if (!dep.root) continue;
+        const entry = locked.get(dep.name);
+        const found = dep.root.packageVersion ?? '0.0.0';
+        const update = `\n\n  Review the change, then update the lock:\n    memo-architect lock`;
+        if (!entry) {
+            return `Dependency "${dep.name}" (${dep.range}) is not in the lock.\n\n  Found: v${found}${update}`;
+        }
+        if (entry.version !== found) {
+            return `Dependency "${dep.name}" changed version!\n\n  Locked: v${entry.version}\n  Found:  v${found} (the project accepts ${dep.range})${update}`;
+        }
+        if (entry.checksum !== checksumRoot(dep.root)) {
+            return `Dependency "${dep.name}" v${found} has changed since the lock was created.${update}`;
+        }
+    }
+    return undefined;
 }
 
 /**
