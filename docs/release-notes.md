@@ -2,7 +2,9 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
-## 0.14.0 (not yet published)
+## 0.14.0 (experimental release)
+
+This release adds support for the OpenSysML compiler alongside SysIDE. The OpenSysML path is new and has had less use. The next version will be more stable.
 
 ### Breaking
 
@@ -19,3 +21,14 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change 
 - Stage 1 converts only the documents an edit reached and stores them compressed. With OpenSysML 0.10.0 or later the compact API JSON format is used where the service offers it.
 - `memo-architect convert` also writes the `memo.package.yaml` a converted project needs to load, and its warning names the methodology the old `memo.config.yaml` pinned. A new guide, [Convert an Old Project](tasks/convert.md), documents what it changes and what it leaves to you.
 - `memo pack` builds a SysAnd KPAR from the declared sources only, not from examples or the ontology. A package's `.project.json` lists the packages its sources import as `urn:kpar:<package>` usages with a `^version` constraint (an extension lists the ontology, and any other extension it imports). `memo-architect sysand publish` (a dry run) stages exactly what `memo pack` stages, so it reports the real version and the same file set; before, it reported every version as 0.0.0.
+
+- `memo prune` removes the cached pinned worktrees (`.memo/pinned/`) and assemblies (`.memo/assembled/`) not used lately: `--keep <n>` (default 5 of each) and `--dry-run`.
+- `memo.lock.yaml` records the dependencies a build used: the range, the version found and a checksum of the package. `memo lock` writes the section; `memo validate`, `memo dev` and `memo compile` (including `--at`, against that commit's own lock) refuse a build that resolves another version, a changed package or a dependency the lock never saw. A lock without the section is not checked for dependencies.
+- `memo-architect ids rebase` renumbers two sibling branches' duplicate short ids, tells an authored `providedId` the branch added from the target's by a diff, and follows a mention of a renumbered id in a new file that declares the element.
+
+### Fixed
+
+- `memo --version` reports the installed version (it printed 0.6.7).
+- A view's display statements are written beside its other `attribute :>>` statements, not at the top of the body.
+- `allocate`, `satisfy` and `verify` through a usage typed by a definition (`allocate fn to pump.motor`) end on the nested part the definition owns, not on `pump`. Connector ends are unchanged.
+- Each dev server takes its own HMR port. A second server found 24678 taken, logged a port error, and its page kept failing to connect.
