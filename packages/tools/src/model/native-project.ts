@@ -187,7 +187,8 @@ export interface NativeDiagnostic {
         | 'invalid-kpar'
         | 'dependency-missing'
         | 'dependency-version'
-        | 'deprecated-binding-spelling';
+        | 'deprecated-binding-spelling'
+        | 'library-root-shadowed';
     message: string;
     file?: string;
     /** `warning` for one that does not stop the model resolving (a deprecated spelling); absent means it may. */
@@ -271,7 +272,10 @@ export function canonicalPath(path: string): string {
  * closure decides what is *selected*. A root listed here and never imported
  * contributes nothing to the model.
  */
-export function discoverLibraryRoots(projectRoot: string): LibraryRoot[] {
+export function discoverLibraryRoots(
+    projectRoot: string,
+    onShadowed?: (kept: LibraryRoot, ignored: LibraryRoot) => void,
+): LibraryRoot[] {
     const roots = new Map<string, LibraryRoot>();
 
     const add = (dir: string) => {
@@ -284,12 +288,18 @@ export function discoverLibraryRoots(projectRoot: string): LibraryRoot[] {
         if (!path) return;
         const sysmlDir = manifest.sysmlDir ? resolve(abs, manifest.sysmlDir) : abs;
         if (!existsSync(sysmlDir)) return;
-        roots.set(abs, {
+        const root: LibraryRoot = {
             dir: abs,
             sysmlDir,
             packageName: manifest.name ?? abs.split(sep).pop() ?? abs,
             packageVersion: manifest.version,
-        });
+        };
+        // A package name resolves to one root. Two copies of one package declare every package in it twice,
+        // so the first found keeps the name: an explicit override, then the nearest repository, then the
+        // installation. The ones passed over are reported, never merged.
+        const kept = [...roots.values()].find(candidate => candidate.packageName === root.packageName);
+        if (kept) { onShadowed?.(kept, root); return; }
+        roots.set(abs, root);
     };
 
     // Distribution manifests map a package name to a directory. They are an
@@ -496,7 +506,18 @@ export function discoverProjectSources(projectRoot: string): ProjectSources {
         }
     }
 
-    const libraryRoots = discoverLibraryRoots(root);
+    const shadowed: { kept: LibraryRoot; ignored: LibraryRoot }[] = [];
+    const libraryRoots = discoverLibraryRoots(root, (kept, ignored) => shadowed.push({ kept, ignored }));
+    if (shadowed.length > 0) {
+        const names = shadowed.map(s => s.ignored.packageName);
+        diagnostics.push({
+            code: 'library-root-shadowed',
+            severity: 'warning',
+            message: `${names.length} package(s) were found in two places and the first is used: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ', …' : ''}. `
+                + `Using ${dirname(shadowed[0].kept.dir)}, not ${dirname(shadowed[0].ignored.dir)}. The order is MEMO_ONTOLOGY_PATH, then the nearest repository, then the installation; `
+                + 'two copies would declare every package twice.',
+        });
+    }
     const fileToRoot = new Map<string, LibraryRoot | undefined>();
 
     // Match the `include` source-root contract exactly: only explicitly included

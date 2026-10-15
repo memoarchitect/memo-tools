@@ -111,6 +111,8 @@ export function discoverMemoManifests(searchRoots: string[]): LoadedMemoManifest
 /** Discover content manifests available to a project or this development workspace. */
 export function findMemoManifests(fromDir: string): LoadedMemoManifest[] {
     const roots: string[] = [];
+    // An explicit override is the first root, so it is the one a package name keeps.
+    if (process.env.MEMO_ONTOLOGY_PATH) roots.push(resolve(process.env.MEMO_ONTOLOGY_PATH));
     let dir = resolve(fromDir);
     while (true) {
         roots.push(dir);
@@ -119,7 +121,6 @@ export function findMemoManifests(fromDir: string): LoadedMemoManifest[] {
         if (parent === dir) break;
         dir = parent;
     }
-    if (process.env.MEMO_ONTOLOGY_PATH) roots.push(resolve(process.env.MEMO_ONTOLOGY_PATH));
     try {
         const require = createRequire(import.meta.url);
         roots.push(dirname(require.resolve('@memoarchitect/ontology/package.json')));
