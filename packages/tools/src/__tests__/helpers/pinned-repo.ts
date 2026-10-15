@@ -49,7 +49,7 @@ export function createFamilyRepo(): FamilyRepo {
         mkdirSync(dirname(join(root, path)), { recursive: true });
         writeFileSync(join(root, path), text);
     }
-    // The manipulation generator's energy function has a requirement it satisfies and a test that verifies it, so a
+    // The manipulator's grasp function has a requirement it satisfies and a test that verifies it, so a
     // change to the function reaches both (impact, T11).
     writeFileSync(join(root, 'model/systems/manipulation/trace.sysml'), `package robot_cell_family_manipulation_trace {
     private import memo_core_common::*;
@@ -60,12 +60,12 @@ export function createFamilyRepo(): FamilyRepo {
 
     requirement reqMotionLimits : Requirement {
         attribute :>> requirementType = RequirementTypeKind::system;
-        @MemoIdentity { :>> providedId = "RCF-ABL-REQ-001"; :>> label = "MotionWithinLimits"; }
-        attribute :>> statement = "The generator shall deliver energy within the set power and duration limits.";
+        @MemoIdentity { :>> providedId = "RCF-MAN-REQ-001"; :>> label = "MotionWithinLimits"; }
+        attribute :>> statement = "The manipulator shall grasp within the set force and time limits.";
     }
     satisfy reqMotionLimits by fnExecuteGrasp;
     verification vcMotionLimits : VerificationCase {
-        @MemoIdentity { :>> providedId = "RCF-ABL-VC-001"; :>> label = "Verify Energy Limits"; }
+        @MemoIdentity { :>> providedId = "RCF-MAN-VC-001"; :>> label = "Verify Energy Limits"; }
         attribute :>> methodKind = MemoVerificationMethodKind::test;
         attribute :>> acceptanceCriteria = "delivered energy stays within the limits";
         subject verified : Base::Anything[*] = (fnExecuteGrasp);

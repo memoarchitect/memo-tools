@@ -1,7 +1,7 @@
 // ─── E0 with release records at three levels ─────────────────────────────────
 //
 // Seeded beside E0's files (nothing of E0's replaced), on top of the variability fixture, whose
-// two generator releases now say what they are releases of. The shape is the one a family writes:
+// two manipulator releases now say what they are releases of. The shape is the one a family writes:
 //
 //   component   MotionControllerFirmware (software, realizes the manipulation energy controller)
 //                 two records of the one definition, with different part numbers and versions
@@ -24,7 +24,7 @@ export const FIRMWARE = `package robot_cell_family_manipulation_firmware {
     private import robot_cell_family_manipulation::*;
 
     part def MotionControllerFirmware specializes SoftwareSystem {
-        @MemoIdentity { :>> providedId = "RCF-ABL-SW-001"; :>> label = "Motion Controller Firmware"; }
+        @MemoIdentity { :>> providedId = "RCF-MAN-SW-001"; :>> label = "Motion Controller Firmware"; }
     }
     part manipulationFirmware : MotionControllerFirmware;
     part manipulationSystem : ManipulatorSystem;
@@ -133,7 +133,7 @@ export const RELEASE_RECORDS = `package robot_cell_family_release_records {
 }
 `;
 
-/** A project that feeds the two generator releases and introduced the US output stage (plan O7). */
+/** A project that feeds the two manipulator releases and introduced the US output stage (plan O7). */
 export const PROJECTS = `package robot_cell_family_projects {
     private import memo_core_common::*;
     private import memo_artifacts_configuration_management::*;

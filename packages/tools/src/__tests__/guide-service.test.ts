@@ -44,7 +44,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
             expect(navigation.scope).toBe('system');
             expect(navigation.steps.every(s => s.level === 'system')).toBe(true);
             expect(states(navigation)).toMatchObject({ SysOperational: 'done', SysFunctional: 'done', SysLogical: 'done' });
-            // The generator has no software of its own in E0, so its software step is open with nothing there.
+            // The manipulator has no software of its own in E0, so its software step is open with nothing there.
             expect(states(evaluate(project, 'ManipulatorSystem')).SysSoftware).toBe('open');
         }, 'robot-cell-family');
     }, 180_000);
@@ -64,7 +64,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
         attribute :>> criticality = CriticalityKind::high;
     }
     verification vcPointCloudFidelity : VerificationCase {
-        @MemoIdentity { :>> providedId = "RCF-REC-VC-001"; :>> label = "Verify PointCloud Fidelity"; }
+        @MemoIdentity { :>> providedId = "RCF-PER-VC-001"; :>> label = "Verify PointCloud Fidelity"; }
         attribute :>> methodKind = MemoVerificationMethodKind::test;
         attribute :>> acceptanceCriteria = "matches the injected reference signal";
         subject verified : Base::Anything[*] = (fnAcquirePointClouds);`);
@@ -79,9 +79,9 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
         }, project => {
             const packages = ['memo_methodology_profiles', 'robot_cell_family_method'];
             const review = (workspace: string) => evaluate(project, workspace, packages).steps.find(s => s.name === 'stepFamilyReview')!;
-            // The perception system verifies its own critical function; the generator's has no test.
+            // The perception system verifies its own critical function; the manipulator's has no test.
             expect(review('PerceptionSystem')).toMatchObject({ state: 'done', methodology: 'robot_cell_family_method' });
-            // The generator's is not done, and it follows the base method's last step, which is not done either.
+            // The manipulator's is not done, and it follows the base method's last step, which is not done either.
             expect(review('ManipulatorSystem')).toMatchObject({
                 state: 'blocked', reasons: ['SafetyCriticalFunctionVerifiedRule: 1 finding(s)'],
                 predecessors: ['memo_methodology_profiles::stepSysRelease'], blockedBy: ['memo_methodology_profiles::stepSysRelease'],

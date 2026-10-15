@@ -11,8 +11,8 @@ import { compiledExample, compilerConfigured, examplesPresent, withExample } fro
 
 // T3: `memo validate --workspace`. Rules run on a workspace's elements over the WHOLE model.
 // E0 has no safety-critical function and no verification case, so the cases are seeded here:
-// the perception system verifies its own critical function and the manipulation generator's critical
-// function has no test. The perception system's test must not stand in for the generator's.
+// the perception system verifies its own critical function and the manipulator's critical
+// function has no test. The perception system's test must not stand in for the manipulator's.
 
 const E0 = resolve(__dirname, '../../../../../memo/examples/robot-cell-family');
 const CLI_PATH = join(__dirname, '../../lib/bin/memo.js');
@@ -27,7 +27,7 @@ const seeded = (): Record<string, string> => {
         attribute :>> criticality = CriticalityKind::high;
     }
     verification vcPointCloudFidelity : VerificationCase {
-        @MemoIdentity { :>> providedId = "RCF-REC-VC-001"; :>> label = "Verify PointCloud Fidelity"; }
+        @MemoIdentity { :>> providedId = "RCF-PER-VC-001"; :>> label = "Verify PointCloud Fidelity"; }
         attribute :>> methodKind = MemoVerificationMethodKind::test;
         attribute :>> acceptanceCriteria = "matches the injected reference signal";
         subject verified : Base::Anything[*] = (fnAcquirePointClouds);`);
@@ -60,7 +60,7 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
         await withExample(seeded(), project => {
             expect(flagged(project)).toEqual(['fnExecuteGrasp']);
             expect(flagged(project, 'ManipulatorSystem')).toEqual(['fnExecuteGrasp']);
-            // The perception system's own critical function is verified, and the generator's gap is not its finding.
+            // The perception system's own critical function is verified, and the manipulator's gap is not its finding.
             expect(flagged(project, 'PerceptionSystem')).toEqual([]);
             expect(flagged(project, 'NavigationSystem')).toEqual([]);
         }, 'robot-cell-family');
@@ -68,7 +68,7 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
 
     it("does not count another system's test as evidence", async () => {
         await withExample(seeded(), project => {
-            // The test is the perception system's, and it also verifies the generator's function here.
+            // The test is the perception system's, and it also verifies the manipulator's function here.
             // Closure puts a test into every workspace of what it verifies, so it is shared and counts:
             const sharedTest = [...project.model.elements.values()].find(e => e.shortName === 'vcPointCloudFidelity')!;
             expect(sharedTest).toBeDefined();
