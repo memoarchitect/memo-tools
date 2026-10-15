@@ -312,6 +312,19 @@ export async function updateViewExpose(
 }
 
 /**
+ * Put display statements beside the view's other `attribute :>>` statements, as
+ * an authored view reads; with none, at the end of the body.
+ */
+export function placeDisplayStatements(declaration: string, statements: string, indent: string): string {
+    let at = -1;
+    for (const other of declaration.matchAll(/^[ \t]*attribute\s+:>>[^;]*;[ \t]*\r?\n/gm)) at = other.index + other[0].length;
+    if (at >= 0) return `${declaration.slice(0, at)}${statements}\n${declaration.slice(at)}`;
+    const close = declaration.lastIndexOf('}');
+    const before = declaration.slice(0, close).replace(/[ \t]*$/, '');
+    return `${before}${before.endsWith('\n') ? '' : '\n'}${statements}\n${indent.slice(4)}${declaration.slice(close)}`;
+}
+
+/**
  * State how a view shows itself, in the view's own declaration.
  *
  * `display` maps an attribute the view declares (`portDisplay`, `connectionDisplay`, `flowAnimation`,
@@ -347,9 +360,8 @@ export async function updateViewDisplay(
     for (const name of names) {
         declaration = declaration.replace(new RegExp(`^[ \\t]*attribute\\s+:>>\\s*${name}\\s*=\\s*[^;]+;[ \\t]*\\r?\\n`, 'm'), '');
     }
-    const at = declaration.indexOf('{') + 1;
     const statements = names.map(name => `${indent}attribute :>> ${name} = ${display[name]};`).join('\n');
-    declaration = `${declaration.slice(0, at)}\n${statements}${declaration.slice(at)}`;
+    declaration = placeDisplayStatements(declaration, statements, indent);
     const updated = source.slice(0, node.start) + declaration + source.slice(node.end);
     const committed = await commitSource(absolute, view.file, updated, outlines);
     if (!committed.success) return { success: false, reason: committed.error };

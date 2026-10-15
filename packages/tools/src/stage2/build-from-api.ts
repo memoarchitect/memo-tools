@@ -772,13 +772,15 @@ class ElementBuilder {
      * qualified name, which `resolvePath` matches exactly; one that is not an
      * element (an inherited feature) falls back to its name in context.
      */
-    private endpoint(steps: ApiElement[], context: { packageName: string; ownerId?: string }): { id?: string; end: string } {
+    private endpoint(
+        steps: ApiElement[], context: { packageName: string; ownerId?: string }, options: { throughTypes?: boolean } = {},
+    ): { id?: string; end: string } {
         if (steps.length === 0) return { end: '' };
         const names = steps.map(step => this.api.name(step['@id']) ?? '');
         const head = this.api.qualifiedName(steps[0]['@id']);
         const reference = head && this.elements.has(head) ? [head, ...names.slice(1)].join('.') : names.join('.');
         const walked = this.elements.resolvePath(reference, context);
-        if (walked.element) return { id: walked.id, end: walked.end };
+        if (walked.element) return options.throughTypes ? this.throughTypes(walked) : { id: walked.id, end: walked.end };
         if (walked.ambiguous) return { end: '' };
         // A named flow or connection is an identity too.
         const asRelationship = this.elements.lookupRelationship(head ?? names.join('.'), context)
@@ -787,6 +789,30 @@ class ElementBuilder {
         // An element the project does not hold (a clause instance in the
         // ontology) is kept by its name, as the Langium builder keeps it.
         return { id: names.at(-1) || undefined, end: '' };
+    }
+
+    /**
+     * Carry a walked path on into the definitions that type it. A nested part is
+     * owned by the definition (`P::Pump::motor`), not by the usage that is typed
+     * by it, so `pump.motor` stops on `pump` until the walk follows the typing.
+     *
+     * Only for relations that name an element (`allocate`, `satisfy`, `verify`):
+     * a connector end on a slot means the slot, and is walked without this.
+     */
+    private throughTypes(walked: { id: string; end: string }): { id: string; end: string } {
+        let id = walked.id;
+        let rest = walked.end ? walked.end.split('.') : [];
+        while (rest.length > 0) {
+            const usage = this.api.resolve(id);
+            const next = usage && this.api.types(usage['@id'])
+                .map(type => this.api.qualifiedName(type['@id']))
+                .map(type => type && this.elements.get(`${type}::${rest[0]}`))
+                .find(Boolean);
+            if (!next) break;
+            id = next.id;
+            rest = rest.slice(1);
+        }
+        return { id, end: rest.join('.') };
     }
 
     /** The feature a connector end references, as steps. */
@@ -1080,8 +1106,8 @@ class ElementBuilder {
         const ends = this.connectorEnds(node);
         if (ends.length < 2) return;
         const context = { packageName };
-        const source = this.endpoint(this.endSteps(ends[0]), context);
-        const target = this.endpoint(this.endSteps(ends[1]), context);
+        const source = this.endpoint(this.endSteps(ends[0]), context, { throughTypes: true });
+        const target = this.endpoint(this.endSteps(ends[1]), context, { throughTypes: true });
         if (!source.id || !target.id) return;
         const sourceElement = this.elements.get(source.id);
         if (sourceElement) sourceElement.allocatedTo = target.id;
@@ -1137,7 +1163,7 @@ class ElementBuilder {
 
     /** `satisfy`, `verify`, `perform`, subjects, actors, dependencies, variants, constraints. */
     private nativeTraces(project: ApiElement[]): void {
-        const endpointOf = (steps: ApiElement[], node: ApiElement) => this.endpoint(steps, { packageName: this.packageOf(node) }).id;
+        const endpointOf = (steps: ApiElement[], node: ApiElement) => this.endpoint(steps, { packageName: this.packageOf(node) }, { throughTypes: true }).id;
         const valueSteps = (value: ApiValue | undefined): ApiElement[][] => {
             if (!value) return [];
             if (value.kind === 'reference') return [[this.api.resolve(value.qualifiedName)].filter(Boolean) as ApiElement[]];
