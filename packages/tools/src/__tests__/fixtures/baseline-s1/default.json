@@ -3,10 +3,10 @@
   "model": {
     "elements": [
       {
-        "id": "project_architecture::system",
-        "kind": "MemoPart",
+        "id": "project_architecture::ProductSystem",
+        "kind": "System",
         "construct": "part",
-        "layer": "core",
+        "layer": "logical",
         "package": "project_architecture"
       },
       {
@@ -26,28 +26,20 @@
     ],
     "relationships": [],
     "kindCounts": {
-      "MemoPart": 1,
       "ModelMethodBinding": 1,
-      "Requirement": 1
+      "Requirement": 1,
+      "System": 1
     },
     "layerCounts": {
-      "core": 1,
+      "logical": 1,
       "methodology": 1,
       "requirements": 1
     },
     "diagrams": []
   },
   "validation": {
-    "violations": [
-      {
-        "rule": "CR-ONT-084",
-        "severity": "error",
-        "elementId": "__model__"
-      }
-    ],
-    "counts": {
-      "error": 1
-    }
+    "violations": [],
+    "counts": {}
   },
   "errors": [],
   "summary": {
