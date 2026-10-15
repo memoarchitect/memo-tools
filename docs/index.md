@@ -11,8 +11,8 @@ MEMO Tools does not define the medical-device vocabulary—that belongs to the
 review application—that is [MEMO Architect documentation](https://memoarchitect.com/memo-architect/)
 and its [GitHub repository](https://github.com/memoarchitect/memo-architect).
 
-!!! warning "0.14.0 is an experimental release"
-    0.14.0 adds support for the OpenSysML compiler alongside SysIDE. The OpenSysML
+!!! warning "0.15.0 is an experimental release"
+    0.15.0 adds support for the OpenSysML compiler alongside SysIDE. The OpenSysML
     path is new and has had less use, and some of what it enables (such as the
     compact transport form) is not switched on yet. The next version will be more
     stable. Pin an exact version.
