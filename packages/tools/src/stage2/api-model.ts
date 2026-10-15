@@ -191,7 +191,7 @@ export class ApiModel {
     /**
      * A dependency element's file as the project would name it: relative to the
      * project, through the directory the dependency was found in (so it reads as
-     * `memo_packages/ep-platform/model/platform.sysml`). Its own file is relative
+     * `memo_packages/robot-platform/model/platform.sysml`). Its own file is relative
      * to the dependency's root, which says nothing to a reader of the model.
      */
     dependencyFile(id: string): string | undefined {

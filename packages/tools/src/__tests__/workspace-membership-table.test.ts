@@ -12,7 +12,7 @@ const BUILDER_EDGES = ['bind', 'flow', 'interface', 'succession', 'variant'];
 
 describe.runIf(compilerConfigured && examplesPresent)('the workspace-membership table', () => {
     it('has a row for every relation and no row for anything else', async () => {
-        const project = await compiledExample('ep-lab-family');
+        const project = await compiledExample('robot-cell-family');
         const registry = project.registries!.relationshipRegistry!;
         const table = registry.workspaceMembership();
         const relations = [...registry.entries().filter(entry => !entry.isAbstract).map(entry => entry.name), ...BUILDER_EDGES];
@@ -22,12 +22,12 @@ describe.runIf(compilerConfigured && examplesPresent)('the workspace-membership 
     }, 120_000);
 
     it('keeps include, interface, flow and performs from placing anything', async () => {
-        const table = (await compiledExample('ep-lab-family')).registries!.relationshipRegistry!.workspaceMembership();
+        const table = (await compiledExample('robot-cell-family')).registries!.relationshipRegistry!.workspaceMembership();
         for (const relation of ['includesStep', 'interface', 'flow', 'performs']) expect(table.get(relation), relation).toBe('neither');
     }, 120_000);
 
     it('places a function with what it is allocated to, and a case with what it verifies', async () => {
-        const table = (await compiledExample('ep-lab-family')).registries!.relationshipRegistry!.workspaceMembership();
+        const table = (await compiledExample('robot-cell-family')).registries!.relationshipRegistry!.workspaceMembership();
         expect(table.get('allocatedTo')).toBe('sourceFollowsTarget');
         expect(table.get('satisfiedBy')).toBe('sourceFollowsTarget');
         expect(table.get('verifiedBy')).toBe('targetFollowsSource');

@@ -15,8 +15,8 @@ import { createFamilyRepo, type FamilyRepo } from './helpers/pinned-repo.js';
 // branched, and the edits here are not committed.
 
 const config = { toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never;
-const ABLATION = 'model/systems/ablation/ablation_system.sysml';
-const TRACE = 'model/systems/ablation/trace.sysml';
+const ABLATION = 'model/systems/manipulation/manipulation_system.sysml';
+const TRACE = 'model/systems/manipulation/trace.sysml';
 
 describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T11)', () => {
     let repo: FamilyRepo;
@@ -41,8 +41,8 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
         repo = createFamilyRepo();
         // The branch point is c8. `main` then moves on with an unrelated change, and the work is on `feature`.
         git('branch', 'feature');
-        edit('model/systems/mapping/mapping_system.sysml', 'Mapping workstation', 'Mapping workstation, moved on');
-        git('commit', '-q', '-am', 'main moves on: mapping');
+        edit('model/systems/navigation/navigation_system.sysml', 'Navigation workstation', 'Navigation workstation, moved on');
+        git('commit', '-q', '-am', 'main moves on: navigation');
         git('checkout', '-q', 'feature');
     }, 240_000);
     afterAll(() => repo?.remove());
@@ -51,16 +51,16 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
         edit(ABLATION, 'and the event that records it', 'and the event that records it, with the delivered energy');
         try {
             const report = await compute('main');
-            expect(report.changed.elements.map(e => `${e.via}: ${e.name}`)).toEqual(['changed: fnDeliverEnergy']);
-            expect(names(report)).toEqual(expect.arrayContaining(['reqEnergyLimits', 'vcEnergyLimits', 'energyController']));
+            expect(report.changed.elements.map(e => `${e.via}: ${e.name}`)).toEqual(['changed: fnExecuteGrasp']);
+            expect(names(report)).toEqual(expect.arrayContaining(['reqMotionLimits', 'vcMotionLimits', 'motionController']));
             // Requirements and tests are separate groups, from the ontology's layers and not from a list of kinds.
             const layerOf = (name: string) => Object.entries(report.reached).find(([, items]) => items.some(i => i.name === name))![0];
-            expect(layerOf('reqEnergyLimits')).not.toBe(layerOf('vcEnergyLimits'));
-            // The function is performed by the lab's scenario, which also performs the mapping and recording functions:
+            expect(layerOf('reqMotionLimits')).not.toBe(layerOf('vcMotionLimits'));
+            // The function is performed by the lab's scenario, which also performs the navigation and perception functions:
             // a change here reaches the systems it works with, and each system's releases.
-            expect(report.systems.map(s => s.name)).toEqual(['AblationGeneratorSystem', 'CardiacMappingSystem', 'ElectrophysiologyLab', 'SignalRecordingSystem']);
-            expect(report.releases.map(r => r.name)).toEqual(expect.arrayContaining(['relAblation', 'relMapping', 'relRecording', 'relLabV1']));
-            expect(report.releases.find(r => r.name === 'relAblation')).toMatchObject({ status: 'released', needsNewRelease: true });
+            expect(report.systems.map(s => s.name)).toEqual(['ManipulatorSystem', 'NavigationSystem', 'PerceptionSystem', 'RoboticCell']);
+            expect(report.releases.map(r => r.name)).toEqual(expect.arrayContaining(['relManipulation', 'relNavigation', 'relPerception', 'relLabV1']));
+            expect(report.releases.find(r => r.name === 'relManipulation')).toMatchObject({ status: 'released', needsNewRelease: true });
             // A release of something nothing reaches is not listed.
             expect(report.releases.map(r => r.name)).not.toContain('relOutputEu');
             expect(report.reopened).toEqual([]);
@@ -74,12 +74,12 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
             const rep = await compute('main');
             const reached = names(rep);
             // The scenario performs this function and the other systems' functions: two steps.
-            expect(reached).toEqual(expect.arrayContaining(['scMapGuidedAblation', 'fnBuildMap', 'fnTagLesion', 'fnAcquireElectrograms']));
+            expect(reached).toEqual(expect.arrayContaining(['scMapGuidedPick', 'fnBuildMap', 'fnTagGrasp', 'fnAcquirePointClouds']));
             expect(Object.values(rep.reached).flat().find(i => i.name === 'fnBuildMap')).toMatchObject({ via: 'performs', depth: 2 });
             // Three steps out, and containment, are not followed: no component of another system, no port of this one.
-            for (const absent of ['mapEngine', 'acquisitionUnit', 'pAblationEventOut', 'isolation']) expect(reached, absent).not.toContain(absent);
+            for (const absent of ['mapEngine', 'sensorHub', 'pGraspEventOut', 'safetyRelay']) expect(reached, absent).not.toContain(absent);
             // The system holds the function by containment: it is where the change is, not something it reaches.
-            expect(reached).not.toContain('AblationGeneratorSystem');
+            expect(reached).not.toContain('ManipulatorSystem');
         } finally { reset(); }
     }, 240_000);
 
@@ -88,8 +88,8 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
         try {
             const report = await compute('main');
             expect(report.base.commit).toBe(repo.c8);
-            // `main` changed the mapping system after the branch point: against its tip that would read as reverted here.
-            expect(report.changed.elements.map(e => e.name)).toEqual(['fnDeliverEnergy']);
+            // `main` changed the navigation system after the branch point: against its tip that would read as reverted here.
+            expect(report.changed.elements.map(e => e.name)).toEqual(['fnExecuteGrasp']);
         } finally { reset(); }
     }, 240_000);
 
@@ -99,7 +99,7 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
             const report = await compute();
             expect(report.target).toBe('HEAD');
             expect(report.base.commit).toBe(repo.c8);
-            expect(report.changed.elements.map(e => `${e.via}: ${e.name}`)).toEqual(['changed: fnDeliverEnergy']);
+            expect(report.changed.elements.map(e => `${e.via}: ${e.name}`)).toEqual(['changed: fnExecuteGrasp']);
         } finally { reset(); }
         // Nothing edited, nothing changed.
         const clean = await compute();
@@ -109,11 +109,11 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
 
     it('reopens a step the change leaves not done: a done verification step loses its test', async () => {
         const text = readFileSync(join(repo.root, TRACE), 'utf8');
-        writeFileSync(join(repo.root, TRACE), text.slice(0, text.indexOf('    verification vcEnergyLimits')) + '}\n');
+        writeFileSync(join(repo.root, TRACE), text.slice(0, text.indexOf('    verification vcMotionLimits')) + '}\n');
         try {
             const report = await compute('main');
-            expect(report.changed.elements.map(e => `${e.via}: ${e.name}`)).toContain('removed: vcEnergyLimits');
-            expect(report.reopened.map(r => `${r.workspace}: ${r.label}`)).toContain('AblationGeneratorSystem: Sys Verification');
+            expect(report.changed.elements.map(e => `${e.via}: ${e.name}`)).toContain('removed: vcMotionLimits');
+            expect(report.reopened.map(r => `${r.workspace}: ${r.label}`)).toContain('ManipulatorSystem: Sys Verification');
         } finally { reset(); }
     }, 240_000);
 

@@ -41,10 +41,10 @@ describe.runIf(compilerConfigured && examplesPresent && existsSync(join(__dirnam
     afterAll(() => repo?.remove());
 
     it('refuses every message it handles that is not a read, and leaves the pinned directory as it was', async () => {
-        const pinned = await buildAt(repo.root, 'rc-mapping', { config: { toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never });
+        const pinned = await buildAt(repo.root, 'rc-navigation', { config: { toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never });
         const before = digest(pinned.projectDir);
         const start = `import(${JSON.stringify(OPERATIONS)}).then(m => m.startProjectServer({ port: 0, open: false, exitWhenIdle: false, readOnly: true, `
-            + `pinned: { kind: 'ref', label: 'rc-mapping', notARelease: true }, preferencesRoot: ${JSON.stringify(repo.root)}, clientRoot: ${JSON.stringify(join(pinned.projectDir, 'no-client'))} }))`;
+            + `pinned: { kind: 'ref', label: 'rc-navigation', notARelease: true }, preferencesRoot: ${JSON.stringify(repo.root)}, clientRoot: ${JSON.stringify(join(pinned.projectDir, 'no-client'))} }))`;
         const server = spawn('node', ['-e', start], { cwd: pinned.projectDir, env: { ...process.env, NO_COLOR: '1' }, stdio: ['ignore', 'ignore', 'inherit', 'ipc'] });
         try {
             const url = await new Promise<string>((done, fail) => {

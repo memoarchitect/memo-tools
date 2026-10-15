@@ -1,5 +1,5 @@
 {
-  "project": "ep-lab-family",
+  "project": "robot-cell-family",
   "totals": {
     "files": 10,
     "elements": 46,
@@ -10,7 +10,7 @@
     "builderFindings": 0
   },
   "files": {
-    "../ep-platform/model/platform.sysml": {
+    "../robot-platform/model/platform.sysml": {
       "elements": 1,
       "definitions": 1,
       "kinds": {
@@ -72,8 +72,8 @@
       "elements": 6,
       "definitions": 2,
       "kinds": {
-        "AblationEventPort": 2,
-        "ElectrogramPort": 2,
+        "GraspEventPort": 2,
+        "PointCloudPort": 2,
         "Interface": 2
       },
       "relationships": 0,
@@ -86,10 +86,10 @@
       "elements": 5,
       "definitions": 1,
       "kinds": {
-        "AblationGeneratorSystem": 1,
-        "CardiacMappingSystem": 1,
-        "ElectrophysiologyLab": 1,
-        "SignalRecordingSystem": 1,
+        "ManipulatorSystem": 1,
+        "NavigationSystem": 1,
+        "RoboticCell": 1,
+        "PerceptionSystem": 1,
         "SystemOfSystems": 1
       },
       "relationships": 5,
@@ -117,11 +117,11 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/systems/ablation/ablation_system.sysml": {
+    "model/systems/manipulation/manipulation_system.sysml": {
       "elements": 5,
       "definitions": 1,
       "kinds": {
-        "AblationEventPort": 1,
+        "GraspEventPort": 1,
         "LogicalComponent": 1,
         "System": 1,
         "SystemFunction": 1,
@@ -138,14 +138,14 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/systems/mapping/mapping_system.sysml": {
+    "model/systems/navigation/navigation_system.sysml": {
       "elements": 8,
       "definitions": 1,
       "kinds": {
-        "AblationEventPort": 1,
-        "ElectrogramPort": 1,
+        "GraspEventPort": 1,
+        "PointCloudPort": 1,
         "LogicalComponent": 1,
-        "PatientIsolationModule": 1,
+        "SafetyRelayModule": 1,
         "System": 1,
         "SystemFunction": 2,
         "UseCase": 1
@@ -161,13 +161,13 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/systems/recording/recording_system.sysml": {
+    "model/systems/perception/perception_system.sysml": {
       "elements": 6,
       "definitions": 1,
       "kinds": {
-        "ElectrogramPort": 1,
+        "PointCloudPort": 1,
         "LogicalComponent": 1,
-        "PatientIsolationModule": 1,
+        "SafetyRelayModule": 1,
         "System": 1,
         "SystemFunction": 1,
         "UseCase": 1

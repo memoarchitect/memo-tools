@@ -37,13 +37,13 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
 
     it('reads each system from the commit its own release names', async () => {
         const build = await buildRelease(repo.root, working, idOf('relLabV1'), options);
-        // The SoS commit (c3) holds mapping at rev C and recording with rev X; the release pins them earlier.
-        expect(boundary(build.project, 'CardiacMappingSystem')).toMatch(/rev B/);       // c2
-        expect(boundary(build.project, 'CardiacMappingSystem')).not.toMatch(/rev C/);
-        expect(boundary(build.project, 'AblationGeneratorSystem')).toMatch(/rev B/);    // c3
-        expect(boundary(build.project, 'SignalRecordingSystem')).not.toMatch(/rev X/);  // c1
+        // The SoS commit (c3) holds navigation at rev C and perception with rev X; the release pins them earlier.
+        expect(boundary(build.project, 'NavigationSystem')).toMatch(/rev B/);       // c2
+        expect(boundary(build.project, 'NavigationSystem')).not.toMatch(/rev C/);
+        expect(boundary(build.project, 'ManipulatorSystem')).toMatch(/rev B/);    // c3
+        expect(boundary(build.project, 'PerceptionSystem')).not.toMatch(/rev X/);  // c1
         expect(build.releasePins.systems.map(s => `${s.system}@${s.commit.slice(0, 7)}`).sort()).toEqual([
-            `ablation@${repo.c3.slice(0, 7)}`, `mapping@${repo.c2.slice(0, 7)}`, `recording@${repo.c1.slice(0, 7)}`,
+            `manipulation@${repo.c3.slice(0, 7)}`, `navigation@${repo.c2.slice(0, 7)}`, `perception@${repo.c1.slice(0, 7)}`,
         ]);
         // The project's own checkout is untouched, and the pinned trees are clean.
         for (const { pin } of build.pins) expect(await worktreeIsClean(pin), pin.dir).toBe(true);
@@ -53,29 +53,29 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
     it('fails when shared/ at the SoS commit lost what a pinned system still uses, naming the system and commit', async () => {
         const failure = await buildRelease(repo.root, working, idOf('relLabV2'), options).catch(e => e);
         expect(failure).toBeInstanceOf(PinnedBuildError);
-        expect((failure as Error).message).toMatch(new RegExp(`systems/mapping@${repo.c2.slice(0, 7)}/.*mapping_system\\.sysml`));
+        expect((failure as Error).message).toMatch(new RegExp(`systems/navigation@${repo.c2.slice(0, 7)}/.*navigation_system\\.sysml`));
         expect((failure as Error).message).not.toMatch(/assembled\//);
     }, 180_000);
 
     it('refuses a release earlier than what it contains, at the SoS level and one level down', async () => {
         const sos = await orderingViolations(repo.root, working.model, idOf('relLabOld'));
-        expect(sos.map(v => `${v.container}>${v.contained}`).sort()).toEqual(['relLabOld>relAblation', 'relLabOld>relMapping']);
+        expect(sos.map(v => `${v.container}>${v.contained}`).sort()).toEqual(['relLabOld>relManipulation', 'relLabOld>relNavigation']);
         const nested = await orderingViolations(repo.root, working.model, idOf('relLabLevel'));
-        expect(nested.map(v => `${v.container}>${v.contained}`)).toEqual(['relAblationLate>relFirmwareLate']);
+        expect(nested.map(v => `${v.container}>${v.contained}`)).toEqual(['relManipulationLate>relFirmwareLate']);
         await expect(buildRelease(repo.root, working, idOf('relLabOld'), options)).rejects.toThrow(/at or after what it contains/);
-        await expect(buildRelease(repo.root, working, idOf('relLabLevel'), options)).rejects.toThrow(/relAblationLate .* contains relFirmwareLate/);
+        await expect(buildRelease(repo.root, working, idOf('relLabLevel'), options)).rejects.toThrow(/relManipulationLate .* contains relFirmwareLate/);
         expect(await orderingViolations(repo.root, working.model, idOf('relLabV1'))).toEqual([]);
     }, 180_000);
 
     it('refuses a system folder the SoS commit holds and no contained release pins', async () => {
-        await expect(buildRelease(repo.root, working, idOf('relLabPartial'), options)).rejects.toThrow(/no contained release pins: model\/systems\/recording/);
+        await expect(buildRelease(repo.root, working, idOf('relLabPartial'), options)).rejects.toThrow(/no contained release pins: model\/systems\/perception/);
     }, 180_000);
 
     it('names the item and file of a release that pins nothing under systems/', async () => {
         const pins = releasePins(working.model, idOf('relLabIcdOnly'));
         expect(pins.systems).toEqual([]);
-        expect(pins.notPinned.map(n => n.item)).toEqual(['AblationToMappingIcd']);
-        await expect(buildRelease(repo.root, working, idOf('relLabIcdOnly'), options)).rejects.toThrow(/relAblationIcd is a release of AblationToMappingIcd, declared in model\/sos\/icds\.sysml/);
+        expect(pins.notPinned.map(n => n.item)).toEqual(['ManipulationToNavigationIcd']);
+        await expect(buildRelease(repo.root, working, idOf('relLabIcdOnly'), options)).rejects.toThrow(/relManipulationIcd is a release of ManipulationToNavigationIcd, declared in model\/sos\/icds\.sysml/);
     }, 180_000);
 
     it('reuses a worktree and an assembly on the second call, and adds no second worktree', async () => {
@@ -91,7 +91,7 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
 
     it('moves a modified worktree back to its commit instead of building on it', async () => {
         const pin = await pinWorktree(repo.root, repo.c2);
-        const file = join(pin.projectDir, 'model/systems/mapping/mapping_system.sysml');
+        const file = join(pin.projectDir, 'model/systems/navigation/navigation_system.sysml');
         writeFileSync(file, readFileSync(file, 'utf8') + '\n// edited\n');
         expect(await worktreeIsClean(pin)).toBe(false);
         const again = await pinWorktree(repo.root, repo.c2);
@@ -100,10 +100,10 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
     }, 60_000);
 
     it('builds an unreleased ref the same way: a tag, and the model at HEAD', async () => {
-        const tagged = await buildAt(repo.root, 'rc-mapping', options);
+        const tagged = await buildAt(repo.root, 'rc-navigation', options);
         expect(tagged.pins[0].pin.sha).toBe(repo.c2);
-        expect(boundary(tagged.project, 'CardiacMappingSystem')).toMatch(/rev B/);
-        expect(boundary(tagged.project, 'AblationGeneratorSystem')).not.toMatch(/rev B/);
+        expect(boundary(tagged.project, 'NavigationSystem')).toMatch(/rev B/);
+        expect(boundary(tagged.project, 'ManipulatorSystem')).not.toMatch(/rev B/);
         expect(existsSync(join(tagged.projectDir, 'model/sos/release_records.sysml'))).toBe(false);
         expect(await worktreeIsClean(tagged.pins[0].pin)).toBe(true);
         expect(tagged.compiler).toBe(process.env.MEMO_TOOLCHAIN_COMPILER);
@@ -116,11 +116,11 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
     };
 
     it('memo compile --at and memo validate --release run in the pinned directory and write nothing into it', async () => {
-        const at = memo(['compile', '.', '--at', 'rc-mapping']);
+        const at = memo(['compile', '.', '--at', 'rc-navigation']);
         expect(at.code, at.out).toBe(0);
         expect(at.out).toContain(repo.c2.slice(0, 7));
         const release = memo(['validate', '.', '--release', 'relLabV1', '--no-server']);
-        expect(release.out).toMatch(/relLabV1: .* with .*mapping@/);
+        expect(release.out).toMatch(/relLabV1: .* with .*navigation@/);
         expect(release.out).not.toMatch(/Parse errors: [1-9]/);
         // The identity file a validate would have rewritten is the SoS commit's own, and nothing else moved.
         const assembled = join(repo.root, '.memo/assembled');
@@ -129,7 +129,7 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
         }
         expect(status()).toBe('');
         expect(memo(['compile', '.', '--at', 'no-such-ref']).code).toBe(1);
-        expect(memo(['compile', '.', '--at', 'rc-mapping', '--release', 'relLabV1']).out).toMatch(/give one/);
+        expect(memo(['compile', '.', '--at', 'rc-navigation', '--release', 'relLabV1']).out).toMatch(/give one/);
     }, 240_000);
 
     it('is never answered by a running memo dev, which holds the working model', () => {
@@ -147,22 +147,22 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
 describe.runIf(compilerConfigured && examplesPresent)('system folders are self-contained (spike decision 3)', () => {
     it('reports a system that types by, or links to, an element declared in another system folder', async () => {
         await withExample({
-            'model/systems/recording/reach.sysml': `package ep_lab_family_recording_reach {
-    private import ep_lab_family_mapping::*;
-    part reachIntoMapping : CardiacMappingSystem;
+            'model/systems/perception/reach.sysml': `package robot_cell_family_perception_reach {
+    private import robot_cell_family_navigation::*;
+    part reachIntoMapping : NavigationSystem;
 }
 `,
         }, project => {
             const found = crossSystemReferences(project.model, project.registries!);
             expect(found.map(f => `${f.from}:${f.fromSystem}->${f.to}:${f.toSystem} by ${f.how}`)).toEqual([
-                'reachIntoMapping:model/systems/recording->CardiacMappingSystem:model/systems/mapping by typing',
+                'reachIntoMapping:model/systems/perception->NavigationSystem:model/systems/navigation by typing',
             ]);
-        }, 'ep-lab-family');
+        }, 'robot-cell-family');
     }, 120_000);
 
     it('finds none in the family as it is', async () => {
         await withExample({}, project => {
             expect(crossSystemReferences(project.model, project.registries!)).toEqual([]);
-        }, 'ep-lab-family');
+        }, 'robot-cell-family');
     }, 120_000);
 });

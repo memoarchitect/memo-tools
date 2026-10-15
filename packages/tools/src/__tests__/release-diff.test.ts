@@ -31,14 +31,14 @@ describe.runIf(compilerConfigured && examplesPresent)('releases compared (A11, A
     afterAll(() => { servers?.close(); repo?.remove(); rmSync(scratch, { recursive: true, force: true }); });
 
     it('builds a system release at its own commit, opened on that system, and an SoS version assembled', async () => {
-        const system = await buildForRecord(repo.root, working, id('relMapping'), { config: { toolchain } });
+        const system = await buildForRecord(repo.root, working, id('relNavigation'), { config: { toolchain } });
         expect(system.commit).toBe(repo.c2);
-        expect(system.info).toMatchObject({ kind: 'release', label: 'relMapping', workspace: id('CardiacMappingSystem') });
+        expect(system.info).toMatchObject({ kind: 'release', label: 'relNavigation', workspace: id('NavigationSystem') });
         expect(system.info.commits).toEqual([{ name: 'release', commit: repo.c2 }]);
         const sos = await buildForRecord(repo.root, working, id('relLabV1'), { config: { toolchain } });
         expect(sos.info.kind).toBe('release');
         expect(sos.info.workspace).toBeUndefined();
-        expect(sos.info.commits?.map(c => c.name).sort()).toEqual(['ablation', 'mapping', 'recording', 'version']);
+        expect(sos.info.commits?.map(c => c.name).sort()).toEqual(['manipulation', 'navigation', 'perception', 'version']);
     }, 240_000);
 
     it('finds the previous release as the nearest earlier record of the same item, and guesses nothing', async () => {
@@ -51,7 +51,7 @@ describe.runIf(compilerConfigured && examplesPresent)('releases compared (A11, A
         expect(await previous('relFirmwareLate')).toBe('relFirmwareB');
         expect(await previous('relFirmwareA')).toBeUndefined();
         // The only record of its item.
-        expect(await previous('relMapping')).toBeUndefined();
+        expect(await previous('relNavigation')).toBeUndefined();
         // The side branch and the main line are both ancestors of the merge and unordered: no previous.
         expect(await previous('relFirmwareMerge')).toBeUndefined();
     }, 240_000);
@@ -62,13 +62,13 @@ describe.runIf(compilerConfigured && examplesPresent)('releases compared (A11, A
         expect([result.before.label, result.after.label]).toEqual(['relFirmwareA', 'relFirmwareB']);
         expect([result.before.commit, result.after.commit]).toEqual([repo.c1, repo.c2]);
         // c2 changed one system's description and nothing else.
-        expect(result.diff.changed.map(c => `${c.name}: ${c.changes.join(',')}`)).toEqual(['CardiacMappingSystem: attributes changed']);
+        expect(result.diff.changed.map(c => `${c.name}: ${c.changes.join(',')}`)).toEqual(['NavigationSystem: attributes changed']);
         expect(result.diff.summary).toEqual({ added: 0, removed: 0, changed: 1, addedRels: 0, removedRels: 0 });
 
         const wide = await servers.diff(id('relFirmwareLate'), 'previous');
         expect([wide.before.label, wide.after.label]).toEqual(['relFirmwareB', 'relFirmwareLate']);
         // c2 to c4 changed the other two systems, and added the release records themselves (and their links).
-        expect(wide.diff.changed.map(c => c.name).sort()).toEqual(['AblationGeneratorSystem', 'CardiacMappingSystem', 'SignalRecordingSystem']);
+        expect(wide.diff.changed.map(c => c.name).sort()).toEqual(['ManipulatorSystem', 'NavigationSystem', 'PerceptionSystem']);
         expect(wide.diff.added.map(a => a.name)).toContain('relLabV1');
         expect(wide.diff.removed).toEqual([]);
         expect(wide.diff.removedRels).toEqual([]);
@@ -79,7 +79,7 @@ describe.runIf(compilerConfigured && examplesPresent)('releases compared (A11, A
         const named = await servers.diff(id('relFirmwareB'), id('relFirmwareA'));
         expect(named.previous).toBe(false);
         expect(named.diff.summary.changed).toBe(1);
-        await expect(servers.diff(id('relMapping'), 'previous')).rejects.toThrow(/no previous release/);
+        await expect(servers.diff(id('relNavigation'), 'previous')).rejects.toThrow(/no previous release/);
         await expect(servers.diff(id('relFirmwareMerge'), 'previous')).rejects.toThrow(/no previous release/);
     }, 240_000);
 });

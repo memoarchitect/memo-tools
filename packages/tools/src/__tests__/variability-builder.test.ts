@@ -16,7 +16,7 @@ const edges = (project: ProjectModel, ...types: string[]) => {
     return project.model.relationships.filter(r => types.includes(r.type)).map(r => `${r.type}: ${name(r.sourceId)} -> ${name(r.targetId)}`).sort();
 };
 const idOf = (project: ProjectModel, shortName: string) => [...project.model.elements.values()].find(e => e.shortName === shortName)!.id;
-const withVariability = <T>(use: (project: ProjectModel) => T | Promise<T>) => withExample(variabilityFiles(), use, 'ep-lab-family');
+const withVariability = <T>(use: (project: ProjectModel) => T | Promise<T>) => withExample(variabilityFiles(), use, 'robot-cell-family');
 
 describe.runIf(compilerConfigured && examplesPresent)('variation and variants in the builder (T4)', () => {
     it('marks a variation point, and only it, from the handoff flag', async () => {
@@ -24,7 +24,7 @@ describe.runIf(compilerConfigured && examplesPresent)('variation and variants in
             const flag = (name: string) => project.model.elements.get(idOf(project, name))!.attributes.isVariation;
             expect(flag('outputStage')).toBe('true');
             expect(flag('euOutput')).toBeUndefined();
-            expect(flag('energyController')).toBeUndefined();
+            expect(flag('motionController')).toBeUndefined();
         });
     }, 120_000);
 

@@ -9,8 +9,8 @@ import { compiledExample, compilerConfigured, examplesPresent } from './helpers/
 
 describe.runIf(compilerConfigured && examplesPresent)('explorer placement of the method definitions', () => {
     it('places the model binding in the methodology domain, not in assurance evidence', async () => {
-        const project = await compiledExample('ep-lab-family');
-        const root = resolve(__dirname, '../../../../../memo/examples/ep-lab-family');
+        const project = await compiledExample('robot-cell-family');
+        const root = resolve(__dirname, '../../../../../memo/examples/robot-cell-family');
         const packages = apiPackageMetadata(project.api, root);
         const placed = new Map<string, { domain: string; group?: string }>();
         for (const pkg of packages) for (const layer of pkg.layers) for (const kind of layer.kinds) placed.set(kind.name, { domain: layer.id, group: kind.group });

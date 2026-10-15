@@ -33,14 +33,14 @@ describe('the write guard, with no roots told to it', () => {
     it('finds a dependency from the project that lists it', () => {
         const root = mkdtempSync(join(tmpdir(), 'memo-guard-'));
         try {
-            mkdirSync(join(root, 'memo_packages/ep-platform/model'), { recursive: true });
-            writeFileSync(join(root, 'memo.package.yaml'), 'name: family\ndependencies:\n  ep-platform: "^1.0.0"\n');
-            writeFileSync(join(root, 'memo_packages/ep-platform/memo.package.yaml'), 'name: ep-platform\nversion: 1.0.0\n');
-            expect(() => assertWritable(join(root, 'memo_packages/ep-platform/model/platform.sysml'))).toThrow(/depends on/);
+            mkdirSync(join(root, 'memo_packages/robot-platform/model'), { recursive: true });
+            writeFileSync(join(root, 'memo.package.yaml'), 'name: family\ndependencies:\n  robot-platform: "^1.0.0"\n');
+            writeFileSync(join(root, 'memo_packages/robot-platform/memo.package.yaml'), 'name: robot-platform\nversion: 1.0.0\n');
+            expect(() => assertWritable(join(root, 'memo_packages/robot-platform/model/platform.sysml'))).toThrow(/depends on/);
             expect(() => assertWritable(join(root, 'model/own.sysml'))).not.toThrow();
             // a package the project does not list is not a dependency of it
             writeFileSync(join(root, 'memo.package.yaml'), 'name: family\n');
-            expect(() => assertWritable(join(root, 'memo_packages/ep-platform/model/platform.sysml'))).not.toThrow();
+            expect(() => assertWritable(join(root, 'memo_packages/robot-platform/model/platform.sysml'))).not.toThrow();
         } finally { rmSync(root, { recursive: true, force: true }); }
     });
 });
@@ -49,19 +49,19 @@ describe('where a link to a dependency element is written', () => {
     it('is the project, not the package, whichever end the dependency is', () => {
         const root = mkdtempSync(join(tmpdir(), 'memo-place-'));
         try {
-            mkdirSync(join(root, 'memo_packages/ep-platform/model'), { recursive: true });
+            mkdirSync(join(root, 'memo_packages/robot-platform/model'), { recursive: true });
             mkdirSync(join(root, 'model'), { recursive: true });
-            writeFileSync(join(root, 'memo.package.yaml'), 'name: family\ndependencies:\n  ep-platform: "^1.0.0"\n');
-            writeFileSync(join(root, 'memo_packages/ep-platform/memo.package.yaml'), 'name: ep-platform\nversion: 1.0.0\n');
-            writeFileSync(join(root, 'memo_packages/ep-platform/model/platform.sysml'), 'package ep_platform { part def P; }\n');
+            writeFileSync(join(root, 'memo.package.yaml'), 'name: family\ndependencies:\n  robot-platform: "^1.0.0"\n');
+            writeFileSync(join(root, 'memo_packages/robot-platform/memo.package.yaml'), 'name: robot-platform\nversion: 1.0.0\n');
+            writeFileSync(join(root, 'memo_packages/robot-platform/model/platform.sysml'), 'package robot_platform { part def P; }\n');
             writeFileSync(join(root, 'model/own.sysml'), 'package own { part q; }\n');
             const model = { elements: {
-                'ep_platform::P': { file: 'memo_packages/ep-platform/model/platform.sysml', package: 'ep_platform' },
+                'robot_platform::P': { file: 'memo_packages/robot-platform/model/platform.sysml', package: 'robot_platform' },
                 'own::q': { file: 'model/own.sysml', package: 'own' },
             } } as never;
             const options = { projectRoot: root } as never;
-            expect(resolveRelationshipPlacement({ sourceId: 'ep_platform::P', targetId: 'own::q' }, model, options)).toMatchObject({ file: 'model/own.sysml', reason: 'target-element-file' });
-            expect(resolveRelationshipPlacement({ sourceId: 'own::q', targetId: 'ep_platform::P' }, model, options).file).toBe('model/own.sysml');
+            expect(resolveRelationshipPlacement({ sourceId: 'robot_platform::P', targetId: 'own::q' }, model, options)).toMatchObject({ file: 'model/own.sysml', reason: 'target-element-file' });
+            expect(resolveRelationshipPlacement({ sourceId: 'own::q', targetId: 'robot_platform::P' }, model, options).file).toBe('model/own.sysml');
         } finally { rmSync(root, { recursive: true, force: true }); }
     });
 });
@@ -69,24 +69,24 @@ describe('where a link to a dependency element is written', () => {
 describe('the write guard', () => {
     afterEach(() => setReadOnlyRoots([]));
     it('refuses a file under a read-only root, and only that', () => {
-        setReadOnlyRoots(['/m/memo_packages/ep-platform']);
-        expect(() => assertWritable('/m/memo_packages/ep-platform/model/platform.sysml')).toThrow(/depends on/);
-        expect(() => assertWritable('/m/memo_packages/ep-platform-other/x.sysml')).not.toThrow();
+        setReadOnlyRoots(['/m/memo_packages/robot-platform']);
+        expect(() => assertWritable('/m/memo_packages/robot-platform/model/platform.sysml')).toThrow(/depends on/);
+        expect(() => assertWritable('/m/memo_packages/robot-platform-other/x.sysml')).not.toThrow();
         expect(() => assertWritable('/m/model/own.sysml')).not.toThrow();
     });
 });
 
-const PLATFORM = `package ep_platform {
+const PLATFORM = `package robot_platform {
     private import memo_architecture_logical_structure::*;
-    part def PatientIsolationModule :> LogicalComponent;
+    part def SafetyRelayModule :> LogicalComponent;
     part def PowerSupply :> LogicalComponent;
 }
 `;
-const EXTRA = 'package ep_platform_extra { part def NeverImported; }\n';
+const EXTRA = 'package robot_platform_extra { part def NeverImported; }\n';
 const USER = `package tmp_uses_platform {
-    private import ep_platform::*;
+    private import robot_platform::*;
     private import memo_architecture_logical_structure::*;
-    part def Host :> LogicalComponent { part isolation : PatientIsolationModule; }
+    part def Host :> LogicalComponent { part safetyRelay : SafetyRelayModule; }
     part host : Host;
     dependency from host to PowerSupply;
 }
@@ -97,10 +97,10 @@ async function withPlatform<T>(range: string, use: (root: string) => Promise<T>)
     return withExample({}, async (_host, root) => {
         const manifest = readFileSync(join(source, 'memo.package.yaml'), 'utf8');
         const files: Record<string, string> = {
-            'memo.package.yaml': `${manifest}dependencies:\n  ep-platform: "${range}"\n`,
-            'memo_packages/ep-platform/memo.package.yaml': 'name: ep-platform\nversion: 1.2.0\nsysmlDir: model\n',
-            'memo_packages/ep-platform/model/platform.sysml': PLATFORM,
-            'memo_packages/ep-platform/model/extra.sysml': EXTRA,
+            'memo.package.yaml': `${manifest}dependencies:\n  robot-platform: "${range}"\n`,
+            'memo_packages/robot-platform/memo.package.yaml': 'name: robot-platform\nversion: 1.2.0\nsysmlDir: model\n',
+            'memo_packages/robot-platform/model/platform.sysml': PLATFORM,
+            'memo_packages/robot-platform/model/extra.sysml': EXTRA,
             'model/catalog/uses_platform.sysml': USER,
         };
         for (const [path, text] of Object.entries(files)) {
@@ -119,16 +119,16 @@ describe.runIf(compilerConfigured && examplesPresent)('a model that depends on a
     it('builds the elements it imports, owned by that package and read-only, and resolves a link into them', async () => {
         await withPlatform('^1.2.0', async root => {
             const { model } = await loadProjectModel({ projectRoot: root, config, cache: false });
-            const power = model.elements.get('ep_platform::PowerSupply');
+            const power = model.elements.get('robot_platform::PowerSupply');
             expect(power?.provenance?.declaration).toMatchObject({
-                origin: 'dependency', packageName: 'ep-platform', packageVersion: '1.2.0', writable: false,
+                origin: 'dependency', packageName: 'robot-platform', packageVersion: '1.2.0', writable: false,
             });
-            expect(power?.file).toBe('memo_packages/ep-platform/model/platform.sysml');
-            expect(model.elements.get('tmp_uses_platform::Host::isolation')).toBeDefined();
+            expect(power?.file).toBe('memo_packages/robot-platform/model/platform.sysml');
+            expect(model.elements.get('tmp_uses_platform::Host::safetyRelay')).toBeDefined();
             const link = model.relationships.find(r => r.type === 'dependency' && r.sourceId === 'tmp_uses_platform::host');
-            expect(link?.targetId).toBe('ep_platform::PowerSupply');
+            expect(link?.targetId).toBe('robot_platform::PowerSupply');
             // Imports decide scope: a package of the dependency nothing imports adds nothing.
-            expect(model.elements.has('ep_platform_extra::NeverImported')).toBe(false);
+            expect(model.elements.has('robot_platform_extra::NeverImported')).toBe(false);
             // Its identity is its own package's: no display number minted in this model.
             expect(power?.shortId).toBeUndefined();
         });

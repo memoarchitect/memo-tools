@@ -1197,13 +1197,13 @@ class ElementBuilder {
                 // A requirement and a use case are ABOUT their subject; a
                 // verification case's subject is what it verifies. A use case
                 // bound to its subject (`subject :>> supportingSystem = lab;`,
-                // or `= lab.mapping` on an `include`) is the system the case is
+                // or `= lab.navigation` on an `include`) is the system the case is
                 // carried out with, which `verifiedBy` would claim was verified.
                 const aboutSubject = [
                     'RequirementUsage', 'RequirementDefinition',
                     'UseCaseUsage', 'UseCaseDefinition', 'IncludeUseCaseUsage',
                 ].includes(ownerNode['@type']);
-                // A subject declared by TYPE (`subject :>> supportingSystem : CardiacMappingSystem;`)
+                // A subject declared by TYPE (`subject :>> supportingSystem : NavigationSystem;`)
                 // is about that definition: it is how a system's use case names its system. Only a
                 // definition the project holds counts. A subject bound inside an `include` is not
                 // read: the include is not an element, and its target is owned by the system of

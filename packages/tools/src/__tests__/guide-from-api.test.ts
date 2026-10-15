@@ -5,7 +5,7 @@ import { compilerConfigured, examplesPresent, withExample } from './helpers/comp
 // The steps of a method are read from the handoff, not from the built model: the default method is library
 // content, which is never built, and a family's own method is read by the same reader.
 
-export const FAMILY_METHOD = `package ep_lab_family_method {
+export const FAMILY_METHOD = `package robot_cell_family_method {
     private import memo_methodology_workflow::*;
     private import memo_methodology_core::*;
     private import memo_methodology_profiles::*;
@@ -40,7 +40,7 @@ export const FAMILY_METHOD = `package ep_lab_family_method {
 describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, from the handoff', () => {
     it('reads the default method\'s steps, their order, roles, viewpoints and done-rules, and a family step that follows one', async () => {
         await withExample({ 'model/sos/family_method.sysml': FAMILY_METHOD }, project => {
-            const { steps, roleViews } = readGuideSources(project.api, ['memo_methodology_profiles', 'ep_lab_family_method']);
+            const { steps, roleViews } = readGuideSources(project.api, ['memo_methodology_profiles', 'robot_cell_family_method']);
             const byName = new Map(steps.map(s => [s.name, s]));
             expect(steps.map(s => s.name)).toEqual([
                 'stepSosContext', 'stepSosOperational', 'stepSosFunctions', 'stepSosArchitecture', 'stepSosHazards',
@@ -60,16 +60,16 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
             // A family step added by `first <base step> then <family step>`.
             expect(byName.get('stepFamilyReview')).toMatchObject({
                 level: 'system', role: 'regulatoryEngineer', guideViewpoint: 'vpModelContent', outputKinds: ['ReleaseRecord'],
-                doneWhen: ['NestedPartConnectedRule'], predecessors: ['memo_methodology_profiles::stepSysRelease'], methodology: 'ep_lab_family_method',
+                doneWhen: ['NestedPartConnectedRule'], predecessors: ['memo_methodology_profiles::stepSysRelease'], methodology: 'robot_cell_family_method',
             });
-            expect(roleViews).toEqual([{ stakeholder: 'safetyEngineer', viewpoints: ['vpRiskChain', 'vpEvidenceTraceability'], methodology: 'ep_lab_family_method' }]);
-        }, 'ep-lab-family');
+            expect(roleViews).toEqual([{ stakeholder: 'safetyEngineer', viewpoints: ['vpRiskChain', 'vpEvidenceTraceability'], methodology: 'robot_cell_family_method' }]);
+        }, 'robot-cell-family');
     }, 120_000);
 
     it('reads only the packages it is given', async () => {
         await withExample({ 'model/sos/family_method.sysml': FAMILY_METHOD }, project => {
-            expect(readGuideSources(project.api, ['ep_lab_family_method']).steps.map(s => s.name)).toEqual(['stepFamilyReview']);
+            expect(readGuideSources(project.api, ['robot_cell_family_method']).steps.map(s => s.name)).toEqual(['stepFamilyReview']);
             expect(readGuideSources(project.api, ['no_such_package'])).toEqual({ steps: [], roleViews: [] });
-        }, 'ep-lab-family');
+        }, 'robot-cell-family');
     }, 120_000);
 });

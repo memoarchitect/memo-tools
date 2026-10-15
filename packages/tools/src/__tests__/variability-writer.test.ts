@@ -46,7 +46,7 @@ describe.runIf(compilerConfigured && examplesPresent)('typed dependencies throug
             expect(removed.success).toBe(true);
             const finalModel = await loadProjectModel({ projectRoot: root, config, cache: false });
             expect(finalModel.model.relationships.some(r => r.type === 'selectsFeature' && r.targetId === targetId)).toBe(false);
-        }, 'ep-lab-family');
+        }, 'robot-cell-family');
     }, 180_000);
 
     it('refuses to cut one link out of a statement that declares several', async () => {
@@ -58,6 +58,6 @@ describe.runIf(compilerConfigured && examplesPresent)('typed dependencies throug
             expect(removed.success).toBe(false);
             expect(removed.error).toContain('several links');
             expect(readFileSync(file, 'utf8')).toBe(before);
-        }, 'ep-lab-family');
+        }, 'robot-cell-family');
     }, 180_000);
 });
