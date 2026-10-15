@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkLockFile, createLockFile, readLockFile, type LockableDependency, type LockableRoot } from '../lock.js';
+import { checkDependencyLock, checkLockFile, createLockFile, readLockFile, type LockableDependency, type LockableRoot } from '../lock.js';
 
 const dirs: string[] = [];
 afterEach(() => { while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
@@ -70,5 +70,15 @@ describe('the lock records the dependencies a build used', () => {
         writeFileSync(lockPath, readFileSync(lockPath, 'utf8').replace(/^dependencies: \[\]\n/m, ''));
         expect(readLockFile(base)?.dependencies).toBeUndefined();
         expect(checkLockFile(base, [ontology(base), platform], [dependency(platform)]).ok).toBe(true);
+    });
+
+    it('checks the dependencies alone for a pinned build, whatever ontology it uses', () => {
+        const base = project();
+        const platform = pkg(base, 'robot-platform', '1.2.0');
+        createLockFile(base, [ontology(base), platform], [dependency(platform)]);
+        expect(checkDependencyLock(base, [dependency(platform)]).ok).toBe(true);
+        const bumped = pkg(base, 'robot-platform', '1.3.0');
+        expect(checkDependencyLock(base, [dependency(bumped)]).message).toMatch(/changed version/);
+        expect(checkDependencyLock(project(), [dependency(bumped)]).ok).toBe(true);
     });
 });

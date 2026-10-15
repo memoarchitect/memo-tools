@@ -173,5 +173,34 @@ export function rebaseProvidedIds(
             files.set(file, edited);
         }
     }
+    followMentions(files, changes, targetTexts);
     return { files, changes };
+}
+
+/**
+ * A file the target does not have, in which a literal was renumbered, is about the element that literal
+ * declares: the target's element of the old number lives in some other file. A mention of the old
+ * number in that file follows the renumber. Anywhere else the target kept the old number and a mention
+ * may be of either element, so it is left for its author (the command lists it).
+ */
+function followMentions(files: Map<string, string>, changes: IdChange[], targetTexts: ReadonlyMap<string, string>): void {
+    for (const [file, text] of [...files]) {
+        if (targetTexts.has(file)) continue;
+        const renamed = new Map<string, Set<string>>();
+        for (const change of changes) if (change.where.startsWith(`${file}:`)) {
+            renamed.set(change.from, (renamed.get(change.from) ?? new Set()).add(change.to));
+        }
+        let edited = text;
+        for (const [from, targets] of renamed) {
+            if (targets.size !== 1) continue; // two different new numbers for one old one: which is meant is not known
+            const to = [...targets][0];
+            const pattern = new RegExp(`(?<![\\w-])${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`, 'g');
+            for (const match of [...edited.matchAll(pattern)].reverse()) {
+                const line = edited.slice(0, match.index).split('\n').length;
+                edited = edited.slice(0, match.index) + to + edited.slice(match.index! + from.length);
+                changes.push({ where: `${file}:${line}`, from, to });
+            }
+        }
+        files.set(file, edited);
+    }
 }

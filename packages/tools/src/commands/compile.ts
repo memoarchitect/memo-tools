@@ -17,6 +17,7 @@ import { dirname, resolve } from 'node:path';
 import chalk from 'chalk';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { findProjectRoot } from '../model/native-project.js';
+import { checkDependencyLock, lockableDependencies } from '../lock.js';
 import { stage1CacheDir } from '../toolchain/project-model.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
@@ -129,6 +130,12 @@ export async function compileCommand(
     const origin = `${compiler}${result.providerVersion ? ` ${result.providerVersion}` : ''}${result.cached ? ', reused' : ''}, ${seconds}s`;
     if (!result.accepted || !result.model) {
         console.log(chalk.red(`❌ ${result.diagnostics.filter(d => d.severity === 'error').length} error(s) (${origin})`));
+        process.exit(1);
+    }
+    // The dependencies are the ones the lock recorded (at a commit, that commit's own lock).
+    const lock = checkDependencyLock(root, lockableDependencies(result.resolution?.dependencies ?? []));
+    if (!lock.ok) {
+        console.log(chalk.red(`❌ ${lock.message}`));
         process.exit(1);
     }
     console.log(chalk.green(

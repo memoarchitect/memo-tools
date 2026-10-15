@@ -4,9 +4,10 @@
 // out (see model/id-rebase.ts). Run it on the branch, after the merge or rebase has brought both
 // registries together, naming the target: it keeps the target's ids, renumbers the branch's clashing
 // ones, rewrites `memo.identity.yaml` and the authored `providedId` literals, and prints old to new.
-// Which authored literals are the branch's comes from a diff against the target. It does not touch
-// text that merely mentions an id, because the target kept the old number: the mention may be of
-// either element, and only its author can say. It lists the files that mention a renumbered id.
+// Which authored literals are the branch's comes from a diff against the target. A mention of a
+// renumbered id follows it only in a file the target lacks that declares the renumbered element.
+// Elsewhere the target kept the old number, so the mention may be of either element and only its
+// author can say; those files are listed.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { execFileSync } from 'node:child_process';

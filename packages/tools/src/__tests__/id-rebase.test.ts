@@ -85,3 +85,26 @@ describe('authored ids told apart by the lines the branch added', () => {
         expect(changes).toEqual([{ where: 'b.sysml:1', from: 'REQ-9', to: 'REQ-10' }]);
     });
 });
+
+describe('mentions of a renumbered authored id', () => {
+    const decl = (id: string) => `part p { @MemoIdentity { :>> providedId = "${id}"; } }`;
+
+    it('follow the renumber in a file the target does not have, which declares the new element', () => {
+        const target = new Map([['a.sysml', `${decl('REQ-5')}\n`]]);
+        const branch = new Map([
+            ['a.sysml', `${decl('REQ-5')}\n`],
+            ['b.sysml', `${decl('REQ-5')}\ndoc /* REQ-5 is the new one */\n`],
+        ]);
+        const { files, changes } = rebaseProvidedIds(target, branch);
+        expect(files.get('b.sysml')).toContain('"REQ-6"');
+        expect(files.get('b.sysml')).toContain('/* REQ-6 is the new one */');
+        expect(changes.map(c => c.where)).toEqual(['b.sysml:1', 'b.sysml:2']);
+    });
+
+    it('are left alone in a file the target has, where either element may be meant', () => {
+        const target = new Map([['a.sysml', `${decl('REQ-5')}\n`]]);
+        const branch = new Map([['a.sysml', `${decl('REQ-5')}\ndoc /* see REQ-5 */\n${decl('REQ-5')}\n`]]);
+        const { files } = rebaseProvidedIds(target, branch);
+        expect(files.get('a.sysml')).toContain('/* see REQ-5 */');
+    });
+});
