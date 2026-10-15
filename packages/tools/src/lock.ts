@@ -339,6 +339,19 @@ export function checkLockFile(
 }
 
 /**
+ * Check only the dependencies against the lock. A pinned build resolves them from the commit's own
+ * `memo_packages/`, so a mismatch is the commit disagreeing with its own lock; the ontology is not
+ * compared here because a pinned build uses today's (`ontologyDrift` reports that).
+ */
+export function checkDependencyLock(projectRoot: string, dependencies: readonly LockableDependency[]): LockCheckResult {
+    const lockPath = join(resolve(projectRoot), LOCK_FILENAME);
+    if (!existsSync(lockPath)) return { ok: true, lockPath };
+    const locked = parseLock(readFileSync(lockPath, 'utf-8'));
+    const message = checkDependencies(locked, dependencies);
+    return message ? { ok: false, lockPath, locked, message } : { ok: true, lockPath, locked };
+}
+
+/**
  * Compare the dependencies a build resolves with the ones the lock recorded. A dependency that was not
  * found is the resolver's `dependency-missing`, not this check's. A lock with no dependencies section
  * predates dependency locking and says nothing about them.
