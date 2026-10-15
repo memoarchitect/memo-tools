@@ -52,6 +52,17 @@ export const FIXTURES = [
 ];
 
 /**
+ * BASELINE RE-FROZEN 2026-10-14 - `default` only. The starter is a `ProductSystem`, a System,
+ * where it was a bare `MemoPart` named `system` (memo dbcaed6): a new project declares the System
+ * CR-ONT-084 asks for, and files under Architecture rather than evidence. gpca, ui-regions and
+ * extension-clinical did not move. Compared by leaf name: one element replaced by one.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | element `system` (`MemoPart`, layer core) -> `ProductSystem` (`System`, layer logical) | The starter's own declaration. |
+ * | -1 violation `CR-ONT-084` on `__model__` | The model declares a System now, so a new project starts clean. |
+ */
+/**
  * BASELINE RE-FROZEN 2026-10-13 (second) - `ui-regions` and `default`, by one rule. A model is
  * required to declare a System, and CR-ONT-084 (`ModelDeclaresSystemRule`, Model-scoped, error,
  * tailorable) now says so. Neither fixture declares a System definition. gpca and
