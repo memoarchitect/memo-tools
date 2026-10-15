@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Command } from 'commander';
+import { memoVersion } from '../version.js';
 import { validateCommand } from '../commands/validate.js';
 import { packCommand } from '../commands/pack.js';
 import { sysandPublishCommand } from '../commands/sysand-publish.js';
@@ -29,6 +30,7 @@ import {
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
 import { pinnedTarget } from '../commands/pinned-target.js';
+import { pruneCommand } from '../commands/prune.js';
 import { shipLibraryCommand } from '../commands/ship-library.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import chalk from 'chalk';
@@ -53,7 +55,7 @@ const withToolchainOptions = (command: Command): Command =>
 program
     .name('memo')
     .description('MEMO — Model-Based Systems Engineering for Medical Devices')
-    .version('0.6.7');
+    .version(memoVersion());
 
 withToolchainOptions(
     program
@@ -198,6 +200,16 @@ retiredCommand(program, 'config', 'memo compile --effective (what is in effect);
 retiredCommand(program, 'export', 'memo-architect export');
 retiredCommand(program, 'create-package', 'memo-architect new package');
 retiredCommand(program, 'install', 'memo-architect install');
+program
+    .command('prune')
+    .description('Remove the pinned worktrees (.memo/pinned) and assemblies (.memo/assembled) not used lately; both are rebuilt on demand')
+    .argument('[dir]', 'Model directory', '.')
+    .option('--keep <n>', 'How many of each to keep, most recently used first', '5')
+    .option('--dry-run', 'List what would be removed and remove nothing')
+    .action(async (dir: string, opts: { keep?: string; dryRun?: boolean }) => {
+        await pruneCommand(dir, opts);
+    });
+
 retiredCommand(program, 'lock', 'memo-architect lock');
 retiredCommand(program, 'ontology', 'memo-architect ontology');
 retiredCommand(program, 'import', 'memo-architect import');

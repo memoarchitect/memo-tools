@@ -7,6 +7,7 @@
 
 import { serveValidate } from './dev-validate.js';
 import { createServer as createHttpServer, type Server } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
 import { createHash, randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync, createReadStream, statSync } from 'node:fs';
@@ -481,6 +482,11 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             server: {
                 middlewareMode: true,
                 host,
+                // Vite's HMR socket defaults to 24678, one per machine. A second
+                // dev server (or a stale one) finds it taken, logs a port error,
+                // and its page's HMR client keeps failing to connect to a socket
+                // that belongs to somebody else's server. Each server takes its own.
+                hmr: { port: await freePort(host) },
                 watch: { ignored: isModelOwnedWatchPath },
             },
             appType: 'spa',
@@ -2854,4 +2860,16 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
             server.close();
         },
     };
+}
+
+/** A port nothing is listening on, for a socket that must not collide with another server's. */
+function freePort(host?: string | boolean): Promise<number> {
+    return new Promise((resolvePort, reject) => {
+        const probe = createNetServer();
+        probe.once('error', reject);
+        probe.listen(0, typeof host === 'string' ? host : undefined, () => {
+            const { port } = probe.address() as { port: number };
+            probe.close(() => resolvePort(port));
+        });
+    });
 }

@@ -22,7 +22,7 @@
 
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, cpSync, utimesSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import type { MEMOConfig } from './config.js';
@@ -127,7 +127,10 @@ export async function pinWorktree(projectRoot: string, ref: string): Promise<Pin
     const dir = join(root, '.memo', 'pinned', sha.slice(0, 12));
     let reused = false;
     if (existsSync(dir)) {
-        if (await clean(dir, sha)) reused = true;
+        if (await clean(dir, sha)) {
+            reused = true;
+            touch(dir);
+        }
         else {
             // Moved or modified: it is a cache, never authored content, so it is rebuilt.
             await run(top, ['worktree', 'remove', '--force', dir]).catch(() => rmSync(dir, { recursive: true, force: true }));
@@ -314,7 +317,10 @@ export async function assemble(projectRoot: string, sosCommit: string, pins: Rel
     const unpinned = present.filter(p => !pins.some(pin => pin.path === p));
     if (unpinned.length > 0) throw new Error(`the SoS commit ${sos.sha.slice(0, 7)} holds system folders no contained release pins: ${unpinned.join(', ')}`);
 
-    if (existsSync(marker)) return { dir, key, sos, systems: worktrees, reused: true };
+    if (existsSync(marker)) {
+        touch(dir);
+        return { dir, key, sos, systems: worktrees, reused: true };
+    }
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(dir, { recursive: true });
     const systemsRoots = roots.map(r => join(sos.projectDir, r, SYSTEMS_DIR));
@@ -530,4 +536,58 @@ export async function previousRelease(projectRoot: string, model: MemoModel, rec
     }
     const commits = new Set(nearest.map(n => n.commit));
     return commits.size === 1 ? nearest[0].id : undefined;
+}
+
+/** Mark a cache as used now: `prune` keeps the most recently used. */
+function touch(dir: string): void {
+    const now = new Date();
+    try { utimesSync(dir, now, now); } catch { /* a cache that cannot be marked is pruned a little early, no worse */ }
+}
+
+/** One cached pinned worktree or assembly. */
+export interface CachedBuild {
+    kind: 'pinned' | 'assembled';
+    dir: string;
+    /** When it was last built or reused. */
+    used: Date;
+}
+
+/** What `prune` removed (or, on a dry run, would remove). */
+export interface PruneResult {
+    removed: CachedBuild[];
+    kept: CachedBuild[];
+}
+
+/**
+ * Remove all but the `keep` most recently used pinned worktrees and, separately, assemblies of a
+ * project. Each is a cache: a pinned worktree is a full checkout of the repository and an assembly
+ * a copy of a project, and either is rebuilt on demand, so removing one costs a rebuild and nothing
+ * else. A worktree is removed through git so the repository does not keep a stale entry.
+ */
+export async function pruneBuilds(projectRoot: string, options: { keep: number; dryRun?: boolean }): Promise<PruneResult> {
+    const root = realpathSync(resolve(projectRoot));
+    const result: PruneResult = { removed: [], kept: [] };
+    let top: string | undefined;
+    for (const kind of ['pinned', 'assembled'] as const) {
+        const base = join(root, '.memo', kind);
+        if (!existsSync(base)) continue;
+        const entries = readdirSync(base)
+            .map(name => join(base, name))
+            .filter(dir => statSync(dir).isDirectory())
+            .map((dir): CachedBuild => ({ kind, dir, used: statSync(dir).mtime }))
+            .sort((a, b) => b.used.getTime() - a.used.getTime());
+        result.kept.push(...entries.slice(0, options.keep));
+        for (const entry of entries.slice(options.keep)) {
+            result.removed.push(entry);
+            if (options.dryRun) continue;
+            if (kind === 'pinned') {
+                top ??= (await findRepository(root)).top;
+                await run(top, ['worktree', 'remove', '--force', entry.dir]).catch(() => rmSync(entry.dir, { recursive: true, force: true }));
+            } else {
+                rmSync(entry.dir, { recursive: true, force: true });
+            }
+        }
+    }
+    if (top && !options.dryRun) await run(top, ['worktree', 'prune']);
+    return result;
 }
