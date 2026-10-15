@@ -54,3 +54,34 @@ describe('authored ids that two branches both wrote', () => {
         expect(rebaseProvidedIds(new Map(), new Map([['a.sysml', sysml('X-1')]])).changes).toEqual([]);
     });
 });
+
+describe('two sibling branches that took the same number above the mark', () => {
+    it('keeps it for the first element and renumbers the others', () => {
+        const target = reg({ 'p::a': 'REQ-10' });
+        const branch = reg({ 'p::a': 'REQ-10', 'p::x': 'REQ-11', 'p::y': 'REQ-11' });
+        const { registry, changes } = rebaseRegistry(target, branch);
+        expect(registry['p::x'].shortId).toBe('REQ-11');
+        expect(registry['p::y'].shortId).toBe('REQ-12');
+        expect(changes).toEqual([{ where: 'p::y', from: 'REQ-11', to: 'REQ-12' }]);
+    });
+});
+
+describe('authored ids told apart by the lines the branch added', () => {
+    const line = (id: string) => `part p { @MemoIdentity { :>> providedId = "${id}"; } }`;
+
+    it('renumbers the added copy even when it comes first in the file', () => {
+        const target = new Map([['a.sysml', `${line('REQ-5')}\n`]]);
+        const branch = new Map([['a.sysml', `${line('REQ-5')}\n${line('REQ-5')}\n`]]);
+        const first = rebaseProvidedIds(target, branch, new Map([['a.sysml', new Set([1])]]));
+        expect(first.changes).toEqual([{ where: 'a.sysml:1', from: 'REQ-5', to: 'REQ-6' }]);
+        expect(first.files.get('a.sysml')!.split('\n')[0]).toContain('"REQ-6"');
+    });
+
+    it('lets one sibling keep an id the target never had and renumbers the other', () => {
+        const target = new Map<string, string>();
+        const branch = new Map([['a.sysml', `${line('REQ-9')}\n`], ['b.sysml', `${line('REQ-9')}\n`]]);
+        const added = new Map([['a.sysml', new Set([1])], ['b.sysml', new Set([1])]]);
+        const { changes } = rebaseProvidedIds(target, branch, added);
+        expect(changes).toEqual([{ where: 'b.sysml:1', from: 'REQ-9', to: 'REQ-10' }]);
+    });
+});

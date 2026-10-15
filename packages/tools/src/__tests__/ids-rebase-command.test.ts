@@ -29,6 +29,16 @@ function repo() {
 }
 
 describe('memo ids rebase', () => {
+    it('renumbers the branch\'s copy of an authored id even when it sits before the target\'s', async () => {
+        const root = repo();
+        // a new element in p.sysml, written above the target's own REQ-124
+        writeFileSync(join(root, 'model/p.sysml'), `package p {\n${part('early', 'REQ-124')}${part('a', 'REQ-1')}${part('b', 'REQ-124')}}\n`);
+        await idsRebase(root, 'main');
+        const lines = readFileSync(join(root, 'model/p.sysml'), 'utf8').split('\n');
+        expect(lines[1]).toContain('"REQ-125"');
+        expect(lines[3]).toContain('"REQ-124"');
+    });
+
     it('keeps the target\'s ids, renumbers the branch\'s clashing ones, and leaves the rest', async () => {
         const root = repo();
         const result = await idsRebase(root, 'main');

@@ -26,7 +26,7 @@ import {
 } from '@memoarchitect/tools';
 import { checkSelectorVocabulary, type SelectorVocabularyDiagnostic } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
-import { checkLockFile } from '../lock.js';
+import { checkLockFile, lockableDependencies } from '../lock.js';
 import { runValidator } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
@@ -221,7 +221,7 @@ export async function runValidation(
         ...root,
         origin: 'ontology',
         importDepth: 1,
-    })));
+    })), lockableDependencies(resolution?.dependencies ?? []));
     if (!lockCheck.ok) {
         io.err(chalk.red(`\n❌ ${lockCheck.message}\n`));
         throw new ValidationExit(1);

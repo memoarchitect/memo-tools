@@ -171,6 +171,9 @@ export async function installCommand(
     if (configFilename.startsWith('memo.package.')) {
         addDependency(configPath, packageName, packageVersion ?? '*');
         console.log(chalk.gray(`  Added ${packageName}@${packageVersion ?? '*'} to memo.package.yaml dependencies`));
+        if (readLockFile(projectDir)?.dependencies) {
+            console.log(chalk.yellow('  memo.lock.yaml does not list it yet: run `memo-architect lock` to record the version a build uses'));
+        }
     }
 
     console.log(chalk.green(`\n✅ Installed ${packageName}${packageVersion ? ` v${packageVersion}` : ''}`));
