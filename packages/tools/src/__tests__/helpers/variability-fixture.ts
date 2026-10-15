@@ -34,13 +34,13 @@ export const OUTPUT_OPTIONS = `package robot_cell_family_manipulation_options {
 
     part def OutputStageSystem specializes System {
         variation part outputStage : LogicalComponent {
-            @MemoIdentity { :>> providedId = "RCF-ABL-VP-001"; :>> label = "Output Stage"; }
+            @MemoIdentity { :>> providedId = "RCF-MAN-VP-001"; :>> label = "Output Stage"; }
             variant part euOutput : LogicalComponent {
-                @MemoIdentity { :>> providedId = "RCF-ABL-LC-010"; :>> label = "EU Output Stage"; }
+                @MemoIdentity { :>> providedId = "RCF-MAN-LC-010"; :>> label = "EU Output Stage"; }
                 attribute :>> status = ElementStatusKind::approved;
             }
             variant part usOutput : LogicalComponent {
-                @MemoIdentity { :>> providedId = "RCF-ABL-LC-011"; :>> label = "US Output Stage"; }
+                @MemoIdentity { :>> providedId = "RCF-MAN-LC-011"; :>> label = "US Output Stage"; }
                 attribute :>> status = ElementStatusKind::proposed;
             }
         }
@@ -59,14 +59,14 @@ export const RELEASES = `package robot_cell_family_releases {
     private import robot_cell_family_manipulation_options::*;
 
     part relEu : ReleaseRecord {
-        @MemoIdentity { :>> providedId = "RCF-REL-001"; :>> label = "Generator EU"; }
+        @MemoIdentity { :>> providedId = "RCF-REL-001"; :>> label = "Manipulator EU"; }
         attribute :>> status = ElementStatusKind::released;
         attribute :>> partNumber = "PN-3001";
         attribute :>> revision = "A";
         attribute :>> modelCommit = "0000000000000000000000000000000000000001";
     }
     part relUs : ReleaseRecord {
-        @MemoIdentity { :>> providedId = "RCF-REL-002"; :>> label = "Generator US"; }
+        @MemoIdentity { :>> providedId = "RCF-REL-002"; :>> label = "Manipulator US"; }
         attribute :>> status = ElementStatusKind::draft;
         attribute :>> partNumber = "PN-3002";
         attribute :>> revision = "A";

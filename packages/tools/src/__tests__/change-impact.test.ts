@@ -15,7 +15,7 @@ import { createFamilyRepo, type FamilyRepo } from './helpers/pinned-repo.js';
 // branched, and the edits here are not committed.
 
 const config = { toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never;
-const ABLATION = 'model/systems/manipulation/manipulation_system.sysml';
+const MANIPULATION = 'model/systems/manipulation/manipulation_system.sysml';
 const TRACE = 'model/systems/manipulation/trace.sysml';
 
 describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T11)', () => {
@@ -48,7 +48,7 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
     afterAll(() => repo?.remove());
 
     it('lists the requirement, the test, the system, the releases and the SoS version a changed function reaches', async () => {
-        edit(ABLATION, 'and the event that records it', 'and the event that records it, with the delivered energy');
+        edit(MANIPULATION, 'and the event that records it', 'and the event that records it, with the applied force');
         try {
             const report = await compute('main');
             expect(report.changed.elements.map(e => `${e.via}: ${e.name}`)).toEqual(['changed: fnExecuteGrasp']);
@@ -69,7 +69,7 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
     }, 240_000);
 
     it('reaches the other functions a scenario performs with it, and does not walk up into the system or across its containment', async () => {
-        edit(ABLATION, 'and the event that records it', 'and the event that records it, again');
+        edit(MANIPULATION, 'and the event that records it', 'and the event that records it, again');
         try {
             const rep = await compute('main');
             const reached = names(rep);
@@ -84,7 +84,7 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
     }, 240_000);
 
     it('measures from where the branch left main, not from main\'s tip', async () => {
-        edit(ABLATION, 'and the event that records it', 'and the event that records it, a third time');
+        edit(MANIPULATION, 'and the event that records it', 'and the event that records it, a third time');
         try {
             const report = await compute('main');
             expect(report.base.commit).toBe(repo.c8);
@@ -94,7 +94,7 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
     }, 240_000);
 
     it('shows an uncommitted edit against HEAD itself, which is the default', async () => {
-        edit(ABLATION, 'and the event that records it', 'and the event that records it, uncommitted');
+        edit(MANIPULATION, 'and the event that records it', 'and the event that records it, uncommitted');
         try {
             const report = await compute();
             expect(report.target).toBe('HEAD');

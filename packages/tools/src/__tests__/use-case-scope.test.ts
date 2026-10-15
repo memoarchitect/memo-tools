@@ -22,7 +22,7 @@ const IMPORTS = `
 
 const systemUseCase = (extra = '') => `package seeded_system_use_case {${IMPORTS}
     use case ucCalibrate : UseCase {
-        @MemoIdentity { :>> providedId = "RCF-ABL-UC-099"; :>> label = "Calibrate Generator"; }
+        @MemoIdentity { :>> providedId = "RCF-MAN-UC-099"; :>> label = "Calibrate Manipulator"; }
         attribute :>> useCaseKind = UseCaseKind::service;
         subject :>> supportingSystem : ManipulatorSystem;${extra}
     }
@@ -56,7 +56,7 @@ describe.runIf(compilerConfigured && examplesPresent)('use case scope rules (O8)
 
     it('flag a system use case no procedure includes', async () => {
         await withExample({ 'model/systems/manipulation/seeded.sysml': systemUseCase() },
-            project => expect(findings(project)).toEqual(['CR-ONT-086:Calibrate Generator']), 'robot-cell-family');
+            project => expect(findings(project)).toEqual(['CR-ONT-086:Calibrate Manipulator']), 'robot-cell-family');
     }, 180_000);
 
     it('accept it when it says it stands alone', async () => {

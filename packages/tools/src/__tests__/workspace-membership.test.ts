@@ -52,7 +52,7 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
             'PointCloudPort', 'RoboticCell', 'RoboticCell::manipulation', 'RoboticCell::navigation',
             'RoboticCell::perception', 'PerceptionToNavigationIcd', 'PerceptionToNavigationIcd::consumer',
             'PerceptionToNavigationIcd::provider', 'cellOperator', 'robotCell', 'cellTechnician', 'ucPerformPickAndPlace',
-            'wfMapGuidedPick', 'scMapGuidedPick', 'stepAcquire', 'stepBuildMap', 'stepDeliver', 'stepTag',
+            'wfMapGuidedPick', 'scMapGuidedPick', 'stepAcquire', 'stepBuildMap', 'stepGrasp', 'stepTag',
         ].sort());
     }, 120_000);
 
