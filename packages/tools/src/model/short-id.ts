@@ -111,6 +111,12 @@ export function kindToPrefix(kind: string): string {
     return candidate.replace(/[^A-Za-z]/g, '').toUpperCase().padEnd(3, 'X').slice(0, 3);
 }
 
+/** An author's chosen family (`@MemoKind { idPrefix }`), cleaned to the three letters every family has. */
+export function familyPrefix(chosen: string | undefined): string | undefined {
+    const letters = (chosen ?? '').replace(/[^A-Za-z]/g, '').toUpperCase();
+    return letters ? letters.padEnd(3, 'X').slice(0, 3) : undefined;
+}
+
 /**
  * The URL family segment — first hyphen-separated token of the prefix.
  * e.g. "REQ" → "REQ", "HZD" → "HZD", "OPR" → "OPR"

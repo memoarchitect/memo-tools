@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { assignSequentialShortIds, kindToPrefix } from '../model/short-id.js';
+import { completeModel } from '../model/complete-model.js';
+import { ElementIndex } from '../model/element-index.js';
+import type { MemoElement } from '../model/semantic.js';
 
 describe('MEMO short IDs', () => {
     it('uses the UIE family for UI elements', () => {
@@ -53,5 +56,38 @@ describe('short ID assignment is monotonic', () => {
         const prior = new Map([['other', 'HZD-9']]);
         const next = assignSequentialShortIds('REQ', ['bravo'], prior);
         expect(next.get('bravo')).toBe('REQ-1');
+    });
+});
+
+// A display id's family is the ontology kind's. A project definition is a model element, not a kind,
+// so what is typed by one takes the family of the ontology kind it descends from; only a definition
+// that declares `@MemoKind { idPrefix }` extends the ontology with a family of its own.
+describe('the family of a short id', () => {
+    const element = (id: string, kind: string, extra: Partial<MemoElement> = {}): MemoElement => ({
+        id, shortName: id, name: id, kind, construct: 'part', layer: 'x', file: 'a.sysml', attributes: {}, ...extra,
+    } as MemoElement);
+    const build = (list: MemoElement[]) => {
+        const elements = new ElementIndex();
+        for (const el of list) elements.set(el.id, el);
+        const kindRegistry = { getKind: (k: string) => (k === 'System' ? { name: 'System' } : undefined), toDefinitionDTOs: () => [] };
+        return completeModel({ elements, relationships: [], errors: [], config: {} as never, registries: { kindRegistry: kindRegistry as never } });
+    };
+
+    it('does not mint a family from the name of a project definition', () => {
+        const model = build([
+            element('HospitalSystem', 'System', { isDefinition: true }),
+            element('HospitalSub', 'HospitalSystem', { isDefinition: true }),
+            element('hospital', 'HospitalSystem'),
+        ]);
+        expect(model.elements.get('hospital')!.shortId).toMatch(/^SYS-/);
+    });
+
+    it('gives a definition that declares idPrefix a family of its own, and what it types', () => {
+        const model = build([
+            element('Pacer', 'System', { isDefinition: true, attributes: { idPrefix: 'pcr' } }),
+            element('pacer1', 'Pacer'),
+        ]);
+        expect(model.elements.get('Pacer')!.shortId).toMatch(/^PCR-/);
+        expect(model.elements.get('pacer1')!.shortId).toMatch(/^PCR-/);
     });
 });

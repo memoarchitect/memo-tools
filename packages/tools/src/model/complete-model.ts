@@ -15,7 +15,7 @@ import type {
     ParseError,
     UnresolvedReference,
 } from './semantic.js';
-import { assignSequentialShortIds, kindToPrefix } from './short-id.js';
+import { assignSequentialShortIds, familyPrefix, kindToPrefix } from './short-id.js';
 import { priorIdentityFor, priorShortIds } from './identity-registry.js';
 import {
     ElementIndex, describeLocation, qualifiedId, shortNameOf,
@@ -82,8 +82,9 @@ export function completeModel(input: CompleteModelInput): MemoModel {
     // Assign each three-letter prefix one sequential display index. This is
     // deliberately distinct from the technical UUID assigned below.
     const elementsByPrefix = new Map<string, MemoElement[]>();
+    const prefixOf = idFamilyResolver(elements);
     for (const element of elements.values()) {
-        const prefix = kindToPrefix(element.kind);
+        const prefix = prefixOf(element);
         const prefixElements = elementsByPrefix.get(prefix) ?? [];
         prefixElements.push(element);
         elementsByPrefix.set(prefix, prefixElements);
@@ -303,6 +304,46 @@ function applySemanticProvenance(
     for (const relationship of relationships) {
         relationship.provenance = declarationFor(relationship.file, relationship.type);
     }
+}
+
+/**
+ * The family of an element's display id.
+ *
+ * A project definition is registered as a kind of its own, so an element typed by one carries that
+ * definition's name as its `kind`; minting a family from that name made one family per definition
+ * (`HospitalEpRecordingSystemExternal` → HSP). The family belongs to the ontology: walk the project
+ * definitions the kind names, up their specialization chain, to the first ontology kind. The one
+ * exception is a definition that declares `@MemoKind { idPrefix }`, which extends the ontology with a
+ * family of its own, and so does whatever is typed by it or specializes it.
+ */
+function idFamilyResolver(elements: ElementIndex): (element: MemoElement) => string {
+    const projectDefinitions = new Map<string, MemoElement>();
+    for (const el of elements.values()) {
+        if (el.isDefinition && el.provenance?.declaration.origin !== 'dependency') projectDefinitions.set(el.shortName ?? el.name, el);
+    }
+    const memo = new Map<string, string>();
+    const familyOfKind = (kind: string): string => {
+        const cached = memo.get(kind);
+        if (cached) return cached;
+        let name = kind.split('::').pop() ?? kind;
+        const seen = new Set<string>();
+        let found: string | undefined;
+        while (!seen.has(name)) {
+            seen.add(name);
+            const def = projectDefinitions.get(name);
+            if (!def) break;
+            const chosen = familyPrefix(def.attributes.idPrefix);
+            if (chosen) { found = chosen; break; }
+            name = def.kind.split('::').pop() ?? def.kind;
+        }
+        const family = found ?? kindToPrefix(name);
+        memo.set(kind, family);
+        return family;
+    };
+    return element => {
+        const own = element.isDefinition ? familyPrefix(element.attributes.idPrefix) : undefined;
+        return own ?? familyOfKind(element.kind);
+    };
 }
 
 /**
