@@ -2,6 +2,10 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.15.2
+
+- **A display id's family belongs to the ontology.** A project definition is registered as a kind, so an element typed by one used to mint a family from the first word of the definition's own name (`HospitalEpRecordingSystemExternal` gave HSP). The family is now the ontology kind the element descends from. A definition that declares `@MemoKind { :>> idPrefix = "…"; }` (ontology 0.15.1) extends the ontology with a family of its own, and so does what is typed by it. Elements that were in the old families get new ids in the new ones, so review the `memo.identity.yaml` diff after `memo validate`.
+
 ## 0.15.0 (experimental release)
 
 This release adds support for the OpenSysML compiler alongside SysIDE. The OpenSysML path is new and has had less use. The next version will be more stable.
