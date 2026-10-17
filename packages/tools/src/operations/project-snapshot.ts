@@ -2,8 +2,7 @@ import { resolve } from 'node:path';
 import { computeCompleteness } from '../completeness/tracker.js';
 import { deriveModelViews } from '../model/view-deriver.js';
 import { findConfigFile } from '../model/config-loader.js';
-import { identityKey, writeIdentityRegistry } from '../model/identity-registry.js';
-import type { IdentityRegistry } from '../model/identity-registry.js';
+import { persistIdentities } from '../model/identity-registry.js';
 import { validateModel } from '../validator/rule-engine.js';
 import type { BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
@@ -146,20 +145,7 @@ export async function buildProjectSnapshot(
     // identities for a half-parsed model and retire numbers against elements
     // that do not exist. Prior entries are merged, not replaced, so a deleted
     // element keeps its number reserved.
-    if (lowered) {
-        try {
-            const assigned: IdentityRegistry = {};
-            for (const el of semanticModel.elements.values()) {
-                if (!el.shortId && !el.uuid) continue;
-                if (el.provenance?.declaration.origin === 'dependency') continue;
-                assigned[identityKey(el)] = { shortId: el.shortId, uuid: el.uuid };
-            }
-            writeIdentityRegistry(cwd, assigned, config.priorIdentities ?? {});
-        } catch {
-            // A read-only checkout still builds; it just cannot record new
-            // identities. That is a degraded mode, not a failed build.
-        }
-    }
+    if (lowered) config.priorIdentities = persistIdentities(cwd, semanticModel.elements.values(), config.priorIdentities ?? {});
     const retained = lowered ? undefined : lastGoodModel.get(cwd);
 
     return {

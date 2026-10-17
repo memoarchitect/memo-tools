@@ -115,6 +115,36 @@ export function writeIdentityRegistry(
     writeFileSync(join(projectRoot, IDENTITY_FILENAME), serializeIdentityRegistry(merged));
 }
 
+/**
+ * Record the identities a build assigned, and return the registry as it now stands (the next build's
+ * prior). Called by every command that builds a model and accepts it, so a project written against an
+ * older version is brought up to date by the first build under the new one: the ids it now computes are
+ * recorded, and the ones they replace are retired. Nothing is written when the file already says the
+ * same, which keeps a rebuild from touching the file a watcher is watching.
+ */
+export function persistIdentities(
+    projectRoot: string,
+    elements: Iterable<{ id: string; package?: string; shortId?: string; uuid?: string; provenance?: { declaration: { origin?: string } } }>,
+    prior: IdentityRegistry = {},
+): IdentityRegistry {
+    const merged: IdentityRegistry = { ...prior };
+    for (const el of elements) {
+        if (!el.shortId && !el.uuid) continue;
+        // Another package owns a dependency's identities; this model's registry does not hold them.
+        if (el.provenance?.declaration.origin === 'dependency') continue;
+        const key = identityKey(el);
+        merged[key] = withRetired({ shortId: el.shortId, uuid: el.uuid }, prior[key]);
+    }
+    const path = join(projectRoot, IDENTITY_FILENAME);
+    const text = serializeIdentityRegistry(merged);
+    try {
+        if (!existsSync(path) || readFileSync(path, 'utf-8') !== text) writeFileSync(path, text);
+    } catch {
+        // A read-only checkout still builds; it just cannot record identities. A degraded mode, not a failure.
+    }
+    return merged;
+}
+
 /** `entry`, plus every short id `before` held that `entry` does not: those numbers are retired. */
 export function withRetired(entry: ElementIdentity, before: ElementIdentity | undefined): ElementIdentity {
     if (!before) return entry;
