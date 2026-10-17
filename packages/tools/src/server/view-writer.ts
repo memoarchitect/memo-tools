@@ -33,7 +33,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 
-import type { DiagramDTO, MemoElement, MemoModelDTO } from '../types/index.js';
+import type { DiagramDTO, MatrixAxisDTO, MatrixDefinitionDTO, MemoElement, MemoModelDTO } from '../types/index.js';
 import { insertIntoBody, locatePackages } from './package-source.js';
 import { commitSource } from './persistor.js';
 import type { OutlineSource } from '../authoring/outline-source.js';
@@ -47,6 +47,8 @@ export interface ViewWriteResult {
     identifier?: string;
     /** True when the declaration seeded a new file. */
     created?: boolean;
+    /** The new view's qualified name: its element id once the model recompiles. */
+    qualifiedName?: string;
 }
 
 /**
@@ -68,13 +70,118 @@ const slug = (value: string) =>
 const escape = (value: string) => String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
 /** A SysML identifier not already taken in this model. */
-function freeIdentifier(base: string, model: MemoModelDTO): string {
+function freeIdentifier(base: string, model: MemoModelDTO, packageName?: string): string {
     const cleaned = base.replace(/[^A-Za-z0-9_]/g, '') || 'view';
     const start = /^[A-Za-z_]/.test(cleaned) ? cleaned : `view${cleaned}`;
-    if (!model.elements[start]) return start;
+    // An element's id is its qualified name, so the name is free when neither
+    // the bare form nor the form inside the target package is taken.
+    const taken = (name: string) => Boolean(model.elements[name] || (packageName && model.elements[`${packageName}::${name}`]));
+    if (!taken(start)) return start;
     let n = 2;
-    while (model.elements[`${start}_${n}`]) n++;
+    while (taken(`${start}_${n}`)) n++;
     return `${start}_${n}`;
+}
+
+// ─── Matrix declarations ─────────────────────────────────────────────────────
+//
+// A matrix is a `view` usage typed by MemoTraceabilityMatrixView or
+// MemoDependencyMatrixView (SysML-textual-bnf.kebnf:1610 ViewUsage). Each axis
+// is a redefinition of the part the definition declares —
+// `part :>> rowAxis { attribute :>> query = "…"; }` (PartUsage :627,
+// OwnedRedefinition :482, AttributeUsage :517) — the same shape a view's
+// `selectionQuery` already takes, so the builder reads it with the code that
+// reads that.
+
+const MATRIX_PARTS = ['rowAxis', 'columnAxis', 'axis', 'criticalElements'] as const;
+const MATRIX_ATTRIBUTES = ['linkTypes', 'dependencyTypes', 'containmentTypes', 'symmetric', 'ordering'] as const;
+
+const stringList = (values: string[]) => `(${values.map(value => `"${escape(value)}"`).join(', ')})`;
+
+/** A string literal that survives a multi-line query: the newline is written as the escape SysML defines. */
+const stringLiteral = (value: string) => `"${escape(value).replace(/\r?\n/g, '\\n')}"`;
+
+function axisLines(name: string, axis: MatrixAxisDTO | undefined): string[] {
+    if (!axis || (!axis.query?.trim() && !(axis.elementIds?.length))) return [];
+    return [
+        `    part :>> ${name} {`,
+        ...(axis.query?.trim() ? [`        attribute :>> query = ${stringLiteral(axis.query.trim())};`] : []),
+        ...(axis.elementIds?.length ? [`        attribute :>> includeElementIds = ${stringList(axis.elementIds)};`] : []),
+        '    }',
+    ];
+}
+
+/** The body statements a matrix definition declares, at one level of indentation. */
+export function matrixLines(matrix: MatrixDefinitionDTO | undefined): string[] {
+    if (!matrix) return [];
+    const list = (name: string, values: string[] | undefined) =>
+        values?.length ? [`    attribute :>> ${name} = ${stringList(values)};`] : [];
+    return [
+        ...axisLines('rowAxis', matrix.rowAxis),
+        ...axisLines('columnAxis', matrix.columnAxis),
+        ...axisLines('axis', matrix.axis),
+        ...list('linkTypes', matrix.linkTypes),
+        ...list('dependencyTypes', matrix.dependencyTypes),
+        ...list('containmentTypes', matrix.containmentTypes),
+        ...(matrix.symmetric === undefined ? [] : [`    attribute :>> symmetric = ${matrix.symmetric};`]),
+        ...(matrix.ordering ? [`    attribute :>> ordering = MatrixOrderingKind::${matrix.ordering};`] : []),
+        ...axisLines('criticalElements', matrix.criticalElements),
+    ];
+}
+
+/**
+ * The top-level items of a declaration's body, as [start, end) offsets into the
+ * body text. Strings and comments are skipped, so a `}` inside a query does not
+ * close a block.
+ */
+function bodyItems(body: string): Array<[number, number]> {
+    const items: Array<[number, number]> = [];
+    let depth = 0;
+    let start = -1;
+    for (let i = 0; i < body.length; i++) {
+        const c = body[i];
+        if (c === '"' || c === "'") {
+            const quote = c;
+            for (i++; i < body.length && body[i] !== quote; i++) if (body[i] === '\\') i++;
+            continue;
+        }
+        if (c === '/' && body[i + 1] === '/') { while (i < body.length && body[i] !== '\n') i++; continue; }
+        if (c === '/' && body[i + 1] === '*') { i = body.indexOf('*/', i + 2); if (i < 0) break; i++; continue; }
+        if (/\s/.test(c) && depth === 0 && start < 0) continue;
+        if (start < 0) start = i;
+        if (c === '{') depth++;
+        else if (c === '}') {
+            depth--;
+            if (depth === 0) { items.push([start, i + 1]); start = -1; }
+        } else if (c === ';' && depth === 0) { items.push([start, i + 1]); start = -1; }
+    }
+    return items;
+}
+
+/**
+ * Replace the matrix statements of a view declaration, leaving everything else
+ * (identity, viewpoint binding, group) as it was.
+ */
+export function replaceMatrixStatements(declaration: string, matrix: MatrixDefinitionDTO | undefined, baseIndent = ''): string {
+    const open = declaration.indexOf('{');
+    const close = declaration.lastIndexOf('}');
+    if (open < 0 || close < open) return declaration;
+    const body = declaration.slice(open + 1, close);
+    const owned = new RegExp(`^(part\\s*:>>\\s*(${MATRIX_PARTS.join('|')})\\b|attribute\\s*:>>\\s*(${MATRIX_ATTRIBUTES.join('|')})\\b)`);
+    let kept = '';
+    let cursor = 0;
+    for (const [from, to] of bodyItems(body)) {
+        if (owned.test(body.slice(from, to))) {
+            kept += body.slice(cursor, from).replace(/[ \t]*$/, '');
+            cursor = to;
+            // swallow the rest of the line the removed item ended on
+            const eol = body.indexOf('\n', cursor);
+            if (eol >= 0 && body.slice(cursor, eol).trim() === '') cursor = eol + 1;
+        }
+    }
+    kept += body.slice(cursor);
+    const added = matrixLines(matrix).map(line => `${baseIndent}${line}`);
+    const trimmed = kept.replace(/\s+$/, '');
+    return `${declaration.slice(0, open + 1)}${trimmed}${added.length ? `\n${added.join('\n')}` : ''}\n${baseIndent}${declaration.slice(close)}`;
 }
 
 /**
@@ -166,17 +273,24 @@ export function selectionQueryLines(diagram: DiagramDTO): string[] {
 }
 
 export async function writeViewDeclaration(
-    projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO,
+    projectRoot: string, model: MemoModelDTO, diagram: Omit<DiagramDTO, 'id' | 'auto'> & { id?: string },
     /** Outlines of the project's files, from the selected compiler. */
     outlines: OutlineSource,
 ): Promise<ViewWriteResult> {
-    const home = conventionalHome(siblingViews(model, diagram.viewKind ?? null));
-    const bootstrap = home ? undefined : bootstrapHome(projectRoot, model, diagram);
-    if (!home && !bootstrap) {
+    // A matrix names its package: the person chose a folder in the tree, and the
+    // declaration goes into a file that declares it. Every other view learns its
+    // home from the views the project already has.
+    const chosen = diagram.package ? model.packages?.find(pkg => pkg.qualifiedName === diagram.package) : undefined;
+    if (diagram.package && !chosen) {
+        return { success: false, reason: `the package ${diagram.package} is not declared in this project` };
+    }
+    const home = chosen ? undefined : conventionalHome(siblingViews(model, diagram.viewKind ?? null));
+    const bootstrap = chosen || home ? undefined : bootstrapHome(projectRoot, model, diagram as DiagramDTO);
+    if (!chosen && !home && !bootstrap) {
         return { success: false, reason: 'this project declares no view at all, so there is no convention to place one by' };
     }
-    const exemplar = home ? home.members[0] : bootstrap!.exemplar;
-    const targetFile = home ? home.file : bootstrap!.file;
+    const exemplar = chosen ? undefined : home ? home.members[0] : bootstrap!.exemplar;
+    const targetFile = chosen ? chosen.file : home ? home.file : bootstrap!.file;
     const absolute = resolve(projectRoot, targetFile);
 
     if (bootstrap && !existsSync(absolute)) {
@@ -202,28 +316,30 @@ export async function writeViewDeclaration(
         return { success: false, reason: `${targetFile} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
     }
     const packages = locatePackages(outline);
-    const wanted = bootstrap ? bootstrap.pkg : exemplar.package;
-    const target = packages.find(pkg => pkg.qualifiedName === wanted) ?? packages[0];
+    const wanted = chosen ? chosen.qualifiedName : bootstrap ? bootstrap.pkg : exemplar!.package;
+    const target = packages.find(pkg => pkg.qualifiedName === wanted) ?? (chosen ? undefined : packages[0]);
     if (!target) return { success: false, reason: `${targetFile} declares no package to hold the view` };
 
-    // The primary element the view shows decides what it exposes. Siblings
-    // expose their subject's whole package, which is what lets a screen view
-    // pick up a region added later without another edit.
+    // A matrix selects by its axes and exposes nothing (ViewBodyItem makes
+    // Expose optional, SysML-textual-bnf.kebnf:1618-1622). Every other view
+    // exposes the package of the element it shows.
+    const isMatrix = Boolean(diagram.viewDefinition && diagram.matrix);
     const primary = model.elements[(diagram.elementIds ?? [])[0] ?? ''];
-    const exposePackage = primary?.package
-        ?? (exemplar.attributes?.expose as string | undefined)?.split(',')[0]?.replace(/::\*$/, '');
-    if (!exposePackage) {
+    const exposePackage = isMatrix ? undefined : primary?.package
+        ?? (exemplar?.attributes?.expose as string | undefined)?.split(',')[0]?.replace(/::\*$/, '');
+    if (!isMatrix && !exposePackage) {
         return { success: false, reason: 'the view has no element whose package it could expose' };
     }
 
     // A sibling's definition is authoritative; without one, derive it from the
-    // kind so the declaration still states what it is.
+    // kind so the declaration still states what it is. A matrix names its own.
     const derived = viewDefinitionFor(diagram.viewKind ?? '');
-    const viewDef = home ? ((exemplar.attributes?.usageType as string) || derived.def) : derived.def;
-    const viewpoint = diagram.viewpointId && diagram.viewpointId !== '__model'
+    const viewDef = diagram.viewDefinition
+        ?? (home && exemplar ? ((exemplar.attributes?.usageType as string) || derived.def) : derived.def);
+    const viewpoint = diagram.viewpointId && diagram.viewpointId !== '__model' && diagram.viewpointId !== '__unassigned'
         ? diagram.viewpointId
-        : (exemplar.attributes?.viewpointDefinition as string | undefined);
-    const group = exemplar.attributes?.group as string | undefined;
+        : (exemplar?.attributes?.viewpointDefinition as string | undefined);
+    const group = exemplar?.attributes?.group as string | undefined;
 
     // A screen layout is named for the screen it depicts — the existing
     // convention, and it reads well because there is one per screen. Any other
@@ -233,17 +349,23 @@ export async function writeViewDeclaration(
     const preferred = derived.def === 'MemoScreenLayoutView' && primary
         ? `${primary.id}Layout`
         : camel.charAt(0).toLowerCase() + camel.slice(1);
-    const identifier = freeIdentifier(preferred, model);
+    const identifier = freeIdentifier(preferred, model, target.qualifiedName);
 
     // Emitted at column 0: `insertIntoBody` indents the block one level into the
-    // package body it is placed in.
+    // package body it is placed in. An id is written only when the caller has
+    // one: Architect generates none, and the compiler assigns the element's.
+    const identity = [
+        ...(diagram.id ? [`:>> providedId = "${escape(diagram.id)}";`] : []),
+        `:>> label = "${escape(diagram.name)}";`,
+    ].join(' ');
     const body = [
         `view ${identifier} : ${viewDef} {`,
-        `    expose ${exposePackage}::*;`,
-        `    @MemoIdentity { :>> providedId = "${escape(diagram.id)}"; :>> label = "${escape(diagram.name)}"; }`,
-        ...(!home && derived.declaresKind ? [`    attribute :>> viewKind = DiagramViewKind::${diagram.viewKind};`] : []),
+        ...(exposePackage ? [`    expose ${exposePackage}::*;`] : []),
+        `    @MemoIdentity { ${identity} }`,
+        ...(!home && !isMatrix && derived.declaresKind ? [`    attribute :>> viewKind = DiagramViewKind::${diagram.viewKind};`] : []),
         ...(group ? [`    attribute group = "${escape(group)}";`] : []),
-        ...selectionQueryLines(diagram),
+        ...selectionQueryLines(diagram as DiagramDTO),
+        ...matrixLines(diagram.matrix),
         ...(viewpoint ? [`    ref :>> viewpointDefinition = ${viewpoint};`] : []),
         '}',
     ].join('\n');
@@ -251,7 +373,54 @@ export async function writeViewDeclaration(
     const updated = insertIntoBody(source, target, `${body}\n`);
     const committed = await commitSource(absolute, targetFile, updated, outlines);
     if (!committed.success) return { success: false, reason: committed.error };
-    return { success: true, filePath: targetFile, identifier, created: !!bootstrap };
+    return { success: true, filePath: targetFile, identifier, created: !!bootstrap, qualifiedName: `${target.qualifiedName}::${identifier}` };
+}
+
+/**
+ * Change a matrix view's name or definition, in its own declaration.
+ *
+ * The name is the `label` of its `@MemoIdentity`, so a rename leaves the
+ * element's identifier, and every reference to it, where it was. The axes and
+ * options are the statements `matrixLines` writes; everything else in the
+ * declaration is kept.
+ */
+export async function updateViewDeclaration(
+    projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO,
+    change: { name?: string; matrix?: MatrixDefinitionDTO },
+    outlines: OutlineSource,
+): Promise<ViewWriteResult> {
+    const view = model.elements[diagram?.elementId ?? ''];
+    if (!view?.file) return { success: false, reason: 'the view has no source file to edit' };
+    const absolute = resolve(projectRoot, view.file);
+    if (!existsSync(absolute)) return { success: false, reason: `${view.file} does not exist` };
+    const source = readFileSync(absolute, 'utf8');
+    const file = (isAbsolute(view.file) ? relative(projectRoot, view.file) : view.file).replaceAll('\\', '/');
+    let outline;
+    try {
+        outline = await outlines.outline(file, source);
+    } catch (e) {
+        return { success: false, reason: `${view.file} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
+    }
+    const node = [...outlineNodes(outline)].find(candidate => candidate.key === view.id);
+    if (!node) return { success: false, reason: `${view.id} was not found in ${view.file}` };
+
+    let declaration = source.slice(node.start, node.end);
+    if (change.matrix) {
+        // The declaration is spliced from its first character, so the indentation
+        // of the line it sits on is what the new statements must be offset by.
+        const baseIndent = /^[ \t]*/.exec(source.slice(source.lastIndexOf('\n', node.start - 1) + 1, node.start))![0];
+        declaration = replaceMatrixStatements(declaration, change.matrix, baseIndent);
+    }
+    if (change.name !== undefined) {
+        const label = `:>> label = "${escape(change.name)}";`;
+        declaration = /:>>\s*label\s*=\s*"(?:[^"\\]|\\.)*"\s*;/.test(declaration)
+            ? declaration.replace(/:>>\s*label\s*=\s*"(?:[^"\\]|\\.)*"\s*;/, () => label)
+            : declaration.replace(/@MemoIdentity\s*\{/, () => `@MemoIdentity { ${label}`);
+    }
+    const updated = source.slice(0, node.start) + declaration + source.slice(node.end);
+    const committed = await commitSource(absolute, view.file, updated, outlines);
+    if (!committed.success) return { success: false, reason: committed.error };
+    return { success: true, filePath: view.file };
 }
 
 /**

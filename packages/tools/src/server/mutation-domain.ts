@@ -52,6 +52,8 @@ const MUTATION_DOMAINS: Record<string, MutationDomain> = {
     // Writes the generated documents of one device under dhf-output/, which is output and not model source.
     'dhf:device:generate': 'neither',
     'guide:evaluate': 'neither',
+    // Evaluates a query against the model and writes nothing.
+    'query:run': 'neither',
     // Reads the working tree against the commit it branched from and writes nothing. Not a read a pinned view can answer.
     'impact:compute': 'neither',
     'import:apply': 'semantic',
@@ -120,6 +122,8 @@ export const READ_ONLY_MESSAGES: ReadonlySet<string> = new Set([
     'versions:list', 'version:open', 'release:diff',
     // Evaluating the method against the model reads it and writes nothing.
     'guide:evaluate',
+    // Sizing a matrix axis reads the model.
+    'query:run',
 ]);
 
 /** Whether a read-only server may answer this message. */

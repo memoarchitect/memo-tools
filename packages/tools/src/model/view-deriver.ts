@@ -13,7 +13,7 @@
 // appear in the Diagrams browser with an auto-populated element selection.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MemoModel, MemoElement, ViewpointDTO, DiagramDTO } from './semantic.js';
+import type { MemoModel, MemoElement, ViewpointDTO, DiagramDTO, MatrixAxisDTO, MatrixDefinitionDTO } from './semantic.js';
 import type { KindRegistry } from './kind-registry.js';
 import { resolveViewKind, VIEW_KIND_SHORT_ID_PREFIX } from './view-kinds.js';
 
@@ -441,6 +441,35 @@ export interface DerivedViews {
     diagrams: DiagramDTO[];
 }
 
+/** The last segment of an enum value, however qualified it was written. */
+const enumMember = (raw: string | undefined): string | undefined =>
+    raw ? raw.split('::').pop()!.trim() || undefined : undefined;
+
+/**
+ * What a matrix view declares, read from the attributes the builder flattened
+ * off its `part :>> rowAxis { … }` redefinitions (`rowAxis.query`, `axis.includeElementIds`)
+ * and its own attributes. Absent when the view declares none of them, so every
+ * other view keeps a DTO without a `matrix`.
+ */
+export function readMatrixDefinition(attributes: Record<string, string>): MatrixDefinitionDTO | undefined {
+    const axis = (name: string): MatrixAxisDTO | undefined => {
+        const query = attributes[`${name}.query`]?.trim();
+        const elementIds = splitList(attributes[`${name}.includeElementIds`]);
+        if (!query && elementIds.length === 0) return undefined;
+        return { ...(query ? { query } : {}), ...(elementIds.length > 0 ? { elementIds } : {}) };
+    };
+    const list = (name: string) => { const values = splitList(attributes[name]); return values.length > 0 ? values : undefined; };
+    const definition: MatrixDefinitionDTO = {
+        rowAxis: axis('rowAxis'), columnAxis: axis('columnAxis'), axis: axis('axis'),
+        linkTypes: list('linkTypes'), dependencyTypes: list('dependencyTypes'), containmentTypes: list('containmentTypes'),
+        symmetric: attributes['symmetric'] === undefined ? undefined : attributes['symmetric'] === 'true',
+        ordering: enumMember(attributes['ordering']) as MatrixDefinitionDTO['ordering'],
+        criticalElements: axis('criticalElements'),
+    };
+    const declared = Object.fromEntries(Object.entries(definition).filter(([, value]) => value !== undefined));
+    return Object.keys(declared).length > 0 ? declared as MatrixDefinitionDTO : undefined;
+}
+
 /**
  * Derive viewpoint and diagram DTOs from view elements modelled in SysML.
  * Views are grouped by their `viewpointDefinition` binding. The binding and
@@ -546,6 +575,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         // explicit `viewKind` declaration wins, else the legacy diagramType
         // key maps; document-backed views (no diagramType) become browser.
         const viewKind = resolveViewKind(attr('viewKind'), el.attributes['diagramType']);
+        const matrix = readMatrixDefinition(el.attributes);
 
         diagrams.push({
             id: isRendererSample
@@ -581,6 +611,8 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             ...(queryKinds.length > 0
                 ? { elementKinds: [...expandKinds(queryKinds, kindRegistry)] }
                 : {}),
+            viewDefinition: el.kind,
+            ...(matrix ? { matrix } : {}),
             sourceFile: el.file,
             package: el.package,
         });

@@ -1,0 +1,55 @@
+import { describe, expect, it } from 'vitest';
+import { matrixLines, replaceMatrixStatements } from '../server/view-writer.js';
+import type { MatrixDefinitionDTO } from '../model/semantic.js';
+
+const trace: MatrixDefinitionDTO = {
+    rowAxis: { query: 'kind: Requirement\nwhere: name contains "}"' },
+    columnAxis: { elementIds: ['pkg::a', 'pkg::b'] },
+    linkTypes: ['verifiedBy'],
+};
+
+describe('matrix declarations', () => {
+    it('writes each axis as a redefinition of the part the definition declares', () => {
+        const text = matrixLines(trace).join('\n');
+        expect(text).toContain('part :>> rowAxis {');
+        expect(text).toContain('attribute :>> query = "kind: Requirement\\nwhere: name contains \\"}\\"";');
+        expect(text).toContain('attribute :>> includeElementIds = ("pkg::a", "pkg::b");');
+        expect(text).toContain('attribute :>> linkTypes = ("verifiedBy");');
+    });
+
+    it('replaces only the matrix statements and keeps identity and the viewpoint', () => {
+        const declaration = [
+            'view vt : MemoTraceabilityMatrixView {',
+            '    @MemoIdentity { :>> label = "T"; }',
+            '    part :>> rowAxis {',
+            '        attribute :>> query = "kind: Hazard } still inside";',
+            '    }',
+            '    attribute :>> linkTypes = ("mitigates");',
+            '    ref :>> viewpointDefinition = vp;',
+            '}',
+        ].join('\n');
+        const next = replaceMatrixStatements(declaration, trace);
+        expect(next).toContain('@MemoIdentity { :>> label = "T"; }');
+        expect(next).toContain('ref :>> viewpointDefinition = vp;');
+        expect(next).not.toContain('Hazard');
+        expect(next).not.toContain('mitigates');
+        expect(next).toContain('"verifiedBy"');
+        expect(next.trimEnd().endsWith('}')).toBe(true);
+        expect((next.match(/part :>> rowAxis/g) ?? []).length).toBe(1);
+    });
+});
+
+describe('indentation', () => {
+    it('offsets the statements by the declaration\'s own indent', () => {
+        const declaration = 'view v : D {\n        @MemoIdentity { :>> label = "T"; }\n    }';
+        const next = replaceMatrixStatements(declaration, { rowAxis: { query: 'kind: X' } }, '    ');
+        expect(next.split('\n')).toEqual([
+            'view v : D {',
+            '        @MemoIdentity { :>> label = "T"; }',
+            '        part :>> rowAxis {',
+            '            attribute :>> query = "kind: X";',
+            '        }',
+            '    }',
+        ]);
+    });
+});

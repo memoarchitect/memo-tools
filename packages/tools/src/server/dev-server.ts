@@ -51,7 +51,7 @@ import { createRule, previewRule } from './rule-service.js';
 import { loadViewLayouts, saveViewLayout } from './view-layout-store.js';
 import { layoutBlindRevision } from '../model/view-layout-block.js';
 import { assertWritable } from './write-guard.js';
-import { updateViewDisplay, updateViewExpose, writeViewDeclaration } from './view-writer.js';
+import { updateViewDeclaration, updateViewDisplay, updateViewExpose, writeViewDeclaration } from './view-writer.js';
 import { usageKeyword } from '../model/semantic.js';
 import {
     loadDhfDocs, saveDhfDoc, deleteDhfDoc,
@@ -1775,7 +1775,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     }
                 } else if (msg.type === 'diagram:create') {
                     const { projectRoot } = options;
-                    const diagram: DiagramDTO = { ...msg.payload, auto: false };
+                    const diagram = { ...msg.payload, auto: false } as Omit<DiagramDTO, 'id'> & { id?: string };
+                    const requestId = (msg.payload as any)?.requestId as string | undefined;
                     // A view is model content, so it is DECLARED, not recorded in
                     // a sidecar. Writing the SysML puts it where `memo validate`,
                     // the selected compiler, review and git can all see it, and — the
@@ -1791,33 +1792,66 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         const error = `The view "${diagram.name}" was not created: ${declared.reason}. `
                             + 'Every view must be declared in SysML.';
                         console.error(`[Diagram] REFUSED: ${error}`);
-                        ws.send(JSON.stringify({ type: 'app:error', payload: { requestId: (msg.payload as any)?.requestId, error } }));
+                        ws.send(JSON.stringify({ type: 'app:error', payload: { requestId, error } }));
+                        if (requestId) ws.send(JSON.stringify({ type: 'diagram:result', payload: { requestId, success: false, error } }));
                         return;
                     }
-                    console.log(`[Diagram] Declared: ${diagram.name} (${diagram.id}) as ${declared.identifier} in ${declared.filePath}`);
+                    console.log(`[Diagram] Declared: ${diagram.name} as ${declared.identifier} in ${declared.filePath}`);
                     // The file watcher recompiles and `view-deriver` emits the
                     // diagram; no broadcast here, or clients would briefly hold
                     // a second, sidecar-shaped copy of it.
                     await recompileAfterWrite();
+                    if (requestId) {
+                        ws.send(JSON.stringify({ type: 'diagram:result', payload: {
+                            requestId, success: true, qualifiedName: declared.qualifiedName, filePath: declared.filePath,
+                        } }));
+                    }
+                } else if (msg.type === 'query:run') {
+                    const requestId = msg.payload?.requestId;
+                    try {
+                        const { runAxisQuery } = await import('./axis-query.js');
+                        const { findConfigFile } = await import('@memoarchitect/tools');
+                        const { loadAndResolveConfig } = await import('./config-resolver.js');
+                        const configPath = findConfigFile(options.projectRoot);
+                        const config = configPath ? await loadAndResolveConfig(configPath) : {} as any;
+                        const ctx = await scopedQueryContext(config, msg.payload?.workspace);
+                        const result = runAxisQuery(String(msg.payload?.query ?? ''), ctx, {
+                            ids: msg.payload?.idLimit, preview: msg.payload?.previewLimit,
+                        });
+                        ws.send(JSON.stringify({ type: 'query:result', payload: { requestId, ...result } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'query:result', payload: { requestId, count: 0, preview: [], error: e?.message ?? String(e) } }));
+                    }
                 } else if (msg.type === 'diagram:update') {
                     // What a view shows lives in its `expose` members, not in a
                     // list of ids in a sidecar, so the update is applied to the
                     // declaration. This used to edit the sidecar, which meant
                     // that for a DECLARED view it silently did nothing at all.
+                    // A matrix view has no `expose`: its name and its axes are
+                    // statements of its own declaration.
                     const { projectRoot } = options;
-                    const declared = currentDiagrams().find(d => d.id === (msg.payload as any)?.id);
+                    const payload = (msg.payload ?? {}) as any;
+                    const requestId = payload.requestId as string | undefined;
+                    const declared = currentDiagrams().find(d => d.id === payload.id || d.elementId === payload.id);
+                    const isMatrixChange = payload.matrix !== undefined || (payload.name !== undefined && payload.elementIds === undefined);
                     const result = declared
-                        ? await updateViewExpose(
-                            projectRoot, currentModel() ?? ({ elements: {} } as any), declared,
-                            (msg.payload as any)?.elementIds, (await authoringContext()).outlines)
-                        : { success: false, reason: `no view "${(msg.payload as any)?.id}" is declared` } as const;
+                        ? isMatrixChange
+                            ? await updateViewDeclaration(
+                                projectRoot, currentModel() ?? ({ elements: {} } as any), declared,
+                                { name: payload.name, matrix: payload.matrix }, (await authoringContext()).outlines)
+                            : await updateViewExpose(
+                                projectRoot, currentModel() ?? ({ elements: {} } as any), declared,
+                                payload.elementIds, (await authoringContext()).outlines)
+                        : { success: false, reason: `no view "${payload.id}" is declared` } as const;
                     if (result.success) {
-                        console.log(`[Diagram] Exposed ${(result as any).exposed.join(', ')} on ${declared!.name} (${(result as any).filePath})`);
+                        console.log(`[Diagram] Updated ${declared!.name} (${(result as any).filePath})`);
                         await recompileAfterWrite();
+                        if (requestId) ws.send(JSON.stringify({ type: 'diagram:result', payload: { requestId, success: true, filePath: (result as any).filePath } }));
                     } else {
-                        const error = `The view "${declared?.name ?? (msg.payload as any)?.id}" was not changed: ${result.reason}.`;
+                        const error = `The view "${declared?.name ?? payload.id}" was not changed: ${result.reason}.`;
                         console.error(`[Diagram] REFUSED: ${error}`);
-                        ws.send(JSON.stringify({ type: 'app:error', payload: { requestId: (msg.payload as any)?.requestId, error } }));
+                        ws.send(JSON.stringify({ type: 'app:error', payload: { requestId, error } }));
+                        if (requestId) ws.send(JSON.stringify({ type: 'diagram:result', payload: { requestId, success: false, error } }));
                     }
                 } else if (msg.type === 'diagram:display:update') {
                     const { projectRoot } = options;
