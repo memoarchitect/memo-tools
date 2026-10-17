@@ -40,6 +40,12 @@ export const IDENTITY_FILENAME = 'memo.identity.yaml';
 export interface ElementIdentity {
     shortId?: string;
     uuid?: string;
+    /**
+     * Short ids this element held and no longer does (a usage that was `SYS-20` and is now `SYS-7:1`).
+     * They stay in the ledger so their numbers stay retired: a number once handed out is never handed out
+     * again, whichever element it was on.
+     */
+    retired?: string[];
 }
 
 /** `package::name` → identity. */
@@ -102,8 +108,20 @@ export function writeIdentityRegistry(
     assigned: IdentityRegistry,
     prior: IdentityRegistry = {},
 ): void {
-    const merged: IdentityRegistry = { ...prior, ...assigned };
+    const merged: IdentityRegistry = { ...prior };
+    for (const [key, entry] of Object.entries(assigned)) {
+        merged[key] = withRetired(entry, prior[key]);
+    }
     writeFileSync(join(projectRoot, IDENTITY_FILENAME), serializeIdentityRegistry(merged));
+}
+
+/** `entry`, plus every short id `before` held that `entry` does not: those numbers are retired. */
+export function withRetired(entry: ElementIdentity, before: ElementIdentity | undefined): ElementIdentity {
+    if (!before) return entry;
+    const retired = new Set([...(before.retired ?? []), ...(entry.retired ?? [])]);
+    if (before.shortId && before.shortId !== entry.shortId) retired.add(before.shortId);
+    if (entry.shortId) retired.delete(entry.shortId);
+    return retired.size > 0 ? { ...entry, retired: [...retired].sort() } : entry;
 }
 
 /** Serialize to the same hand-written YAML subset the lockfile uses. */
@@ -116,10 +134,11 @@ export function serializeIdentityRegistry(registry: IdentityRegistry): string {
     out += `elements:\n`;
     for (const key of Object.keys(registry).sort()) {
         const entry = registry[key];
-        if (!entry?.shortId && !entry?.uuid) continue;
+        if (!entry?.shortId && !entry?.uuid && !entry?.retired?.length) continue;
         out += `  "${key}":\n`;
         if (entry.shortId) out += `    shortId: "${entry.shortId}"\n`;
         if (entry.uuid) out += `    uuid: "${entry.uuid}"\n`;
+        if (entry.retired?.length) out += `    retired: "${entry.retired.join(',')}"\n`;
     }
     return out;
 }
@@ -138,9 +157,10 @@ export function parseIdentityRegistry(content: string): IdentityRegistry {
             registry[current] = {};
             continue;
         }
-        const fieldMatch = line.match(/^ {4}(shortId|uuid): "(.*)"$/);
+        const fieldMatch = line.match(/^ {4}(shortId|uuid|retired): "(.*)"$/);
         if (fieldMatch && current) {
-            registry[current][fieldMatch[1] as 'shortId' | 'uuid'] = fieldMatch[2];
+            if (fieldMatch[1] === 'retired') registry[current].retired = fieldMatch[2].split(',').filter(Boolean);
+            else registry[current][fieldMatch[1] as 'shortId' | 'uuid'] = fieldMatch[2];
         }
     }
     return registry;
@@ -163,6 +183,8 @@ export function priorShortIds(registry: IdentityRegistry): Map<string, string> {
     const out = new Map<string, string>();
     for (const [key, entry] of Object.entries(registry)) {
         if (entry.shortId) out.set(key, entry.shortId);
+        // A retired number matches no element, and raises the family's high-water mark like a deleted one.
+        for (const retired of entry.retired ?? []) out.set(`${key}\0retired\0${retired}`, retired);
     }
     return out;
 }
