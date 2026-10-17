@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { providedIdLiterals, rebaseProvidedIds, rebaseRegistry } from '../model/id-rebase.js';
+import { parseIdentityRegistry, priorShortIds, serializeIdentityRegistry, withRetired } from '../model/identity-registry.js';
+import { assignSequentialShortIds, assignUsageShortIds } from '../model/short-id.js';
 
 const reg = (entries: Record<string, string>) => Object.fromEntries(Object.entries(entries).map(([k, v]) => [k, { shortId: v, uuid: `u-${k}` }]));
 
@@ -106,5 +108,42 @@ describe('mentions of a renumbered authored id', () => {
         const branch = new Map([['a.sysml', `${decl('REQ-5')}\ndoc /* see REQ-5 */\n${decl('REQ-5')}\n`]]);
         const { files } = rebaseProvidedIds(target, branch);
         expect(files.get('a.sysml')).toContain('/* see REQ-5 */');
+    });
+});
+
+describe('usage ids (<definition id>:<n>) across branches', () => {
+    it('numbers a branch\'s clashing usage of a definition above the target\'s', () => {
+        const target = reg({ 'p::def': 'SYS-7', 'p::u1': 'SYS-7:1', 'p::u2': 'SYS-7:2' });
+        const branch = reg({ 'p::def': 'SYS-7', 'p::u1': 'SYS-7:1', 'p::u2': 'SYS-7:2', 'p::mine': 'SYS-7:2' });
+        const { registry, changes } = rebaseRegistry(target, branch);
+        expect(registry['p::mine'].shortId).toBe('SYS-7:3');
+        expect(changes).toEqual([{ where: 'p::mine', from: 'SYS-7:2', to: 'SYS-7:3' }]);
+    });
+
+    it('moves a usage with its definition when the definition is renumbered', () => {
+        const target = reg({ 'p::a': 'SYS-1' });
+        const branch = reg({ 'p::a': 'SYS-1', 'p::newdef': 'SYS-1', 'p::use': 'SYS-1:1' });
+        const { registry } = rebaseRegistry(target, branch);
+        expect(registry['p::newdef'].shortId).toBe('SYS-2');
+        expect(registry['p::use'].shortId).toBe('SYS-2:1');
+    });
+});
+
+describe('a number that has been handed out stays retired', () => {
+    it('records the id an element held when it changes, and keeps it across a write and a read', () => {
+        const entry = withRetired({ shortId: 'SYS-7:1', uuid: 'u' }, { shortId: 'SYS-20', uuid: 'u' });
+        expect(entry.retired).toEqual(['SYS-20']);
+        const round = parseIdentityRegistry(serializeIdentityRegistry({ 'p::use': entry }));
+        expect(round['p::use'].retired).toEqual(['SYS-20']);
+    });
+
+    it('does not hand a retired number to another element of the family', () => {
+        const prior = priorShortIds({ 'p::use': { shortId: 'SYS-7:1', retired: ['SYS-20'] }, 'p::def': { shortId: 'SYS-7' } });
+        expect(assignSequentialShortIds('SYS', ['p::def', 'p::new'], prior).get('p::new')).toBe('SYS-21');
+    });
+
+    it('does not hand a retired usage number to another usage of the definition', () => {
+        const prior = priorShortIds({ 'p::use': { shortId: 'SYS-9:1', retired: ['SYS-7:5'] } });
+        expect(assignUsageShortIds(new Map([['SYS-7', ['p::n']]]), prior).get('p::n')).toBe('SYS-7:6');
     });
 });

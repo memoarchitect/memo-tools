@@ -23,7 +23,7 @@
 // against the target); without that, the last occurrences in a file are taken to be the branch's.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { parseShortId } from './short-id.js';
+import { parseShortId, parseUsageShortId } from './short-id.js';
 import type { IdentityRegistry } from './identity-registry.js';
 
 export interface IdChange {
@@ -38,48 +38,80 @@ export interface RegistryRebase {
     changes: IdChange[];
 }
 
-/** Renumber the branch's new short ids that collide with the target's. */
+/** A short id as a family and a number (`SYS-7`), or as a definition's id and a usage number (`SYS-7:2`). */
+function parseAnyShortId(shortId: string | undefined): { prefix: string; seq: number; sep: '-' | ':' } | null {
+    if (!shortId) return null;
+    const usage = parseUsageShortId(shortId);
+    if (usage) return { prefix: usage.base, seq: usage.seq, sep: ':' };
+    const family = parseShortId(shortId);
+    return family ? { ...family, sep: '-' } : null;
+}
+
+/**
+ * Renumber the branch's new short ids that collide with the target's.
+ *
+ * A usage's id is built on its definition's (`SYS-7:2`), so the definitions are repaired first and a usage
+ * of one that was renumbered follows it, then the usages are numbered within their definition.
+ */
 export function rebaseRegistry(target: IdentityRegistry, branch: IdentityRegistry): RegistryRebase {
     const highWater = new Map<string, number>();
     const take = (shortId: string | undefined) => {
-        const parsed = shortId ? parseShortId(shortId) : null;
+        const parsed = parseAnyShortId(shortId);
         if (parsed) highWater.set(parsed.prefix, Math.max(highWater.get(parsed.prefix) ?? 0, parsed.seq));
     };
-    for (const entry of Object.values(target)) take(entry.shortId);
+    // A retired number is as taken as a live one.
+    for (const entry of Object.values(target)) { take(entry.shortId); for (const retired of entry.retired ?? []) take(retired); }
     const targetHigh = new Map(highWater);
-    for (const [key, entry] of Object.entries(branch)) if (key in target) take(entry.shortId);
+    for (const [key, entry] of Object.entries(branch)) if (key in target) { take(entry.shortId); for (const retired of entry.retired ?? []) take(retired); }
 
     const registry: IdentityRegistry = {};
     const changes: IdChange[] = [];
-    const fresh = Object.keys(branch).filter(key => !(key in target)).sort((a, b) => {
-        const pa = parseShortId(branch[a].shortId ?? ''); const pb = parseShortId(branch[b].shortId ?? '');
-        return (pa?.seq ?? 0) - (pb?.seq ?? 0) || a.localeCompare(b);
-    });
     for (const [key, entry] of Object.entries(branch)) if (key in target) registry[key] = target[key] ?? entry;
-    // Keep the branch's own ids that do not collide, so the new numbers stay clear of them.
-    // Two new elements with one number above the target's mark are two sibling branches' work merged
-    // into this one: nothing in the target says which came first, so the first in key order keeps it.
-    const colliding = new Set<string>();
-    const kept = new Set<string>();
-    for (const key of fresh) {
-        const shortId = branch[key].shortId;
-        const parsed = shortId ? parseShortId(shortId) : null;
-        if (parsed && (parsed.seq <= (targetHigh.get(parsed.prefix) ?? 0) || kept.has(shortId!))) colliding.add(key);
-        else {
-            take(shortId);
-            if (shortId) kept.add(shortId);
+
+    const isUsage = (key: string) => Boolean(branch[key].shortId && parseUsageShortId(branch[key].shortId!));
+    const fresh = Object.keys(branch).filter(key => !(key in target));
+    const sorted = (keys: string[], entries: IdentityRegistry) => [...keys].sort((a, b) =>
+        (parseAnyShortId(entries[a].shortId)?.seq ?? 0) - (parseAnyShortId(entries[b].shortId)?.seq ?? 0) || a.localeCompare(b));
+
+    const repair = (keys: string[], entries: IdentityRegistry) => {
+        // Keep the branch's own ids that do not collide, so the new numbers stay clear of them.
+        // Two new elements with one number above the target's mark are two sibling branches' work merged
+        // into this one: nothing in the target says which came first, so the first in key order keeps it.
+        const colliding = new Set<string>();
+        const kept = new Set<string>();
+        for (const key of sorted(keys, entries)) {
+            const shortId = entries[key].shortId;
+            const parsed = parseAnyShortId(shortId);
+            if (parsed && (parsed.seq <= (targetHigh.get(parsed.prefix) ?? 0) || kept.has(shortId!))) colliding.add(key);
+            else {
+                take(shortId);
+                if (shortId) kept.add(shortId);
+            }
         }
+        for (const key of sorted(keys, entries)) {
+            const entry = entries[key];
+            const parsed = parseAnyShortId(entry.shortId);
+            if (!colliding.has(key) || !parsed) { registry[key] = entry; continue; }
+            const next = (highWater.get(parsed.prefix) ?? 0) + 1;
+            highWater.set(parsed.prefix, next);
+            const to = `${parsed.prefix}${parsed.sep}${next}`;
+            registry[key] = { ...entry, shortId: to };
+            changes.push({ where: key, from: entry.shortId!, to });
+        }
+    };
+
+    repair(fresh.filter(key => !isUsage(key)), branch);
+    // A usage follows its definition if the definition was renumbered.
+    const renamed = new Map(changes.map(change => [change.from, change.to]));
+    const usageKeys = fresh.filter(isUsage);
+    const usages: IdentityRegistry = {};
+    for (const key of usageKeys) {
+        const parsed = parseAnyShortId(branch[key].shortId)!;
+        const base = renamed.get(parsed.prefix);
+        if (base) changes.push({ where: key, from: branch[key].shortId!, to: `${base}:${parsed.seq}` });
+        usages[key] = base ? { ...branch[key], shortId: `${base}:${parsed.seq}` } : branch[key];
     }
-    for (const key of fresh) {
-        const entry = branch[key];
-        const parsed = entry.shortId ? parseShortId(entry.shortId) : null;
-        if (!colliding.has(key) || !parsed) { registry[key] = entry; continue; }
-        const next = (highWater.get(parsed.prefix) ?? 0) + 1;
-        highWater.set(parsed.prefix, next);
-        const to = `${parsed.prefix}-${next}`;
-        registry[key] = { ...entry, shortId: to };
-        changes.push({ where: key, from: entry.shortId!, to });
-    }
+    repair(usageKeys, usages);
     return { registry, changes };
 }
 
