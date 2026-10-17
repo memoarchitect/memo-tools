@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { providedIdLiterals, rebaseProvidedIds, rebaseRegistry } from '../model/id-rebase.js';
-import { parseIdentityRegistry, priorShortIds, serializeIdentityRegistry, withRetired } from '../model/identity-registry.js';
+import { IDENTITY_FILENAME, parseIdentityRegistry, persistIdentities, priorShortIds, readIdentityRegistry, serializeIdentityRegistry, withRetired } from '../model/identity-registry.js';
 import { assignSequentialShortIds, assignUsageShortIds } from '../model/short-id.js';
 
 const reg = (entries: Record<string, string>) => Object.fromEntries(Object.entries(entries).map(([k, v]) => [k, { shortId: v, uuid: `u-${k}` }]));
@@ -145,5 +148,23 @@ describe('a number that has been handed out stays retired', () => {
     it('does not hand a retired usage number to another usage of the definition', () => {
         const prior = priorShortIds({ 'p::use': { shortId: 'SYS-9:1', retired: ['SYS-7:5'] } });
         expect(assignUsageShortIds(new Map([['SYS-7', ['p::n']]]), prior).get('p::n')).toBe('SYS-7:6');
+    });
+});
+
+describe('opening a project written under an older version', () => {
+    it('records the ids the new version computes and retires the ones they replace, once', () => {
+        const dir = mkdtempSync(join(tmpdir(), 'memo-ids-'));
+        writeFileSync(join(dir, IDENTITY_FILENAME), serializeIdentityRegistry({ 'p::use': { shortId: 'SYS-20', uuid: 'u' } }));
+        const prior = readIdentityRegistry(dir);
+        const elements = [{ id: 'p::use', shortId: 'SYS-7:1', uuid: 'u' }, { id: 'p::new', shortId: 'REQ-1', uuid: 'v' }];
+        const merged = persistIdentities(dir, elements, prior);
+        expect(merged['p::use']).toEqual({ shortId: 'SYS-7:1', uuid: 'u', retired: ['SYS-20'] });
+        expect(readIdentityRegistry(dir)['p::use'].retired).toEqual(['SYS-20']);
+        // A second build with nothing new leaves the file alone.
+        const before = statSync(join(dir, IDENTITY_FILENAME)).mtimeMs;
+        const text = readFileSync(join(dir, IDENTITY_FILENAME), 'utf-8');
+        persistIdentities(dir, elements, merged);
+        expect(readFileSync(join(dir, IDENTITY_FILENAME), 'utf-8')).toBe(text);
+        expect(statSync(join(dir, IDENTITY_FILENAME)).mtimeMs).toBe(before);
     });
 });

@@ -7,8 +7,7 @@
 import { relative, resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { identityKey, writeIdentityRegistry } from '../model/identity-registry.js';
-import type { IdentityRegistry } from '../model/identity-registry.js';
+import { persistIdentities } from '../model/identity-registry.js';
 import {
     loadProjectSettings,
     findProjectRoot,
@@ -304,18 +303,7 @@ export async function runValidation(
     // runs most, so it is where a project first acquires memo.identity.yaml;
     // without this the registry would only appear on a pack or an Architect
     // build, and every validate in between would re-mint identities.
-    if (!options?.readOnly) try {
-        const assigned: IdentityRegistry = {};
-        for (const el of model.elements.values()) {
-            if (!el.shortId && !el.uuid) continue;
-            // Another package owns a dependency's identities; this model's registry does not hold them.
-            if (el.provenance?.declaration.origin === 'dependency') continue;
-            assigned[identityKey(el)] = { shortId: el.shortId, uuid: el.uuid };
-        }
-        writeIdentityRegistry(projectRoot, assigned, config.priorIdentities ?? {});
-    } catch {
-        // A read-only checkout still validates; it just cannot record identities.
-    }
+    if (!options?.readOnly) config.priorIdentities = persistIdentities(projectRoot, model.elements.values(), config.priorIdentities ?? {});
 
     // 6. Validate — native ontology constraints (constraint def bodies) + structural checks.
     //    The compiler's handoff carries the ontology, so its rules are read from

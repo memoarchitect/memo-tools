@@ -56,6 +56,7 @@ import { loadProjectModel, stage1CacheDir, type ProjectModel } from '../toolchai
 import { apiEnumerations, apiProjectSourcePackages, resolutionLoads } from '../stage2/project-from-api.js';
 import { outlinesFromHandoff } from '../authoring/outline-source.js';
 import { outlineIdentityTable } from '../authoring/outline-identity.js';
+import { persistIdentities } from '../model/identity-registry.js';
 import { discoverProjectSources } from '../model/native-project.js';
 import { isRulePackageInScope, resolveProjectRules, scopedSubjectIds } from '../model/effective-scope.js';
 import { isProjectSource } from '../stage2/project-from-api.js';
@@ -468,6 +469,9 @@ export async function devCommand(options: {
             : kept!.sourceGraph;
         const enumerations = accepted ? apiEnumerations(stage1.api!) : kept!.enumerations;
         if (accepted) {
+            // The first build under a new version records the ids it computes, so an old project is migrated by
+            // opening it; later builds read them back, so a number once handed out is never moved.
+            config.priorIdentities = persistIdentities(cwd, model.elements.values(), config.priorIdentities ?? {});
             lastAccepted = { model, irIdentities, constraints: nativeConstraints, registries: stage2Registries, sourceGraph, enumerations, api: stage1.api };
         }
         for (const diagram of diagrams) {
