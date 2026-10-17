@@ -15,7 +15,7 @@ import type {
     ParseError,
     UnresolvedReference,
 } from './semantic.js';
-import { assignSequentialShortIds, familyPrefix, kindToPrefix } from './short-id.js';
+import { assignSequentialShortIds, assignUsageShortIds, familyPrefix, kindToPrefix, parseUsageShortId } from './short-id.js';
 import { priorIdentityFor, priorShortIds } from './identity-registry.js';
 import {
     ElementIndex, describeLocation, qualifiedId, shortNameOf,
@@ -83,7 +83,11 @@ export function completeModel(input: CompleteModelInput): MemoModel {
     // deliberately distinct from the technical UUID assigned below.
     const elementsByPrefix = new Map<string, MemoElement[]>();
     const prefixOf = idFamilyResolver(elements);
+    // A usage typed by a project definition is the definition seen again: its id is the definition's
+    // short id and a number of its own, assigned below once the definitions have theirs.
+    const definitionOfUsage = usageDefinitions(elements);
     for (const element of elements.values()) {
+        if (definitionOfUsage.has(element.id)) continue;
         const prefix = prefixOf(element);
         const prefixElements = elementsByPrefix.get(prefix) ?? [];
         prefixElements.push(element);
@@ -113,20 +117,30 @@ export function completeModel(input: CompleteModelInput): MemoModel {
             prefixElements.filter(e => e.provenance?.declaration.origin !== 'dependency').map(e => e.id),
             priorShortIdsByElement,
         );
-        for (const el of prefixElements) {
-            (el as MemoElement).shortId = idToShortId.get(el.id);
-            // `uuid` is part of the ontology's identification core, so a model
-            // may author it. An authored value wins: it is the whole point of
-            // writing one — the element keeps its identity across a file move
-            // or an id change, which the derived hash cannot survive.
-            // Precedence: an authored uuid, then the one this project already
-            // assigned, then a fresh derivation. The middle term is what makes a
-            // uuid survive a file move — the derivation hashes the file path, so
-            // without it the same element gets a new identity when it moves.
-            (el as MemoElement).uuid = el.attributes.uuid?.trim()
-                || priorIdentityFor(priorIdentities, el)?.uuid
-                || stableElementUuid(el);
-        }
+        for (const el of prefixElements) (el as MemoElement).shortId = idToShortId.get(el.id);
+    }
+    const usagesByBase = new Map<string, string[]>();
+    for (const [usageId, definition] of definitionOfUsage) {
+        if (!definition.shortId) continue;
+        usagesByBase.set(definition.shortId, [...(usagesByBase.get(definition.shortId) ?? []), usageId]);
+    }
+    for (const [id, shortId] of assignUsageShortIds(usagesByBase, priorShortIdsByElement)) {
+        (elements.get(id) as MemoElement).shortId = shortId;
+    }
+    for (const el of elements.values()) {
+        // `uuid` is part of the ontology's identification core, so a model
+        // may author it. An authored value wins: it is the whole point of
+        // writing one — the element keeps its identity across a file move
+        // or an id change, which the derived hash cannot survive.
+        // Precedence: an authored uuid, then the one this project already
+        // assigned, then a fresh derivation. The middle term is what makes a
+        // uuid survive a file move — the derivation hashes the file path, so
+        // without it the same element gets a new identity when it moves.
+        (el as MemoElement).uuid = el.attributes.uuid?.trim()
+            || priorIdentityFor(priorIdentities, el)?.uuid
+            || stableElementUuid(el);
+        el.idFamily = el.shortId?.split('-')[0];
+        el.displayId = el.attributes.providedId?.trim() || usageDisplayId(el, definitionOfUsage.get(el.id)) || el.shortId;
     }
 
     // Phase 4: Validate relationship end types (warnings only).
@@ -304,6 +318,32 @@ function applySemanticProvenance(
     for (const relationship of relationships) {
         relationship.provenance = declarationFor(relationship.file, relationship.type);
     }
+}
+
+/** The definition's own display id and the usage's number, `EXT-AFR-06:1`. */
+function usageDisplayId(usage: MemoElement, definition: MemoElement | undefined): string | undefined {
+    const seq = usage.shortId ? parseUsageShortId(usage.shortId)?.seq : undefined;
+    if (!definition || seq === undefined) return undefined;
+    return `${definition.attributes.providedId?.trim() || definition.shortId}:${seq}`;
+}
+
+/**
+ * Each usage typed by a project definition, with that definition. A usage names its type by the name the
+ * definition declares; one typed by an ontology kind, or by nothing the project declares, is not here.
+ */
+function usageDefinitions(elements: ElementIndex): Map<string, MemoElement> {
+    const projectDefinitions = new Map<string, MemoElement>();
+    for (const el of elements.values()) {
+        if (el.isDefinition && el.provenance?.declaration.origin !== 'dependency') projectDefinitions.set(el.shortName ?? el.name, el);
+    }
+    const out = new Map<string, MemoElement>();
+    for (const el of elements.values()) {
+        if (el.isDefinition || el.provenance?.declaration.origin === 'dependency') continue;
+        const typeName = (el.attributes.usageType ?? el.attributes.actionType ?? el.kind ?? '').split('::').pop();
+        const definition = typeName ? projectDefinitions.get(typeName) : undefined;
+        if (definition && definition !== el) out.set(el.id, definition);
+    }
+    return out;
 }
 
 /**

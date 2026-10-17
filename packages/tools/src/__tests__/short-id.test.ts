@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assignSequentialShortIds, kindToPrefix } from '../model/short-id.js';
+import { assignSequentialShortIds, assignUsageShortIds, kindToPrefix } from '../model/short-id.js';
 import { completeModel } from '../model/complete-model.js';
 import { ElementIndex } from '../model/element-index.js';
 import type { MemoElement } from '../model/semantic.js';
@@ -89,5 +89,57 @@ describe('the family of a short id', () => {
         ]);
         expect(model.elements.get('Pacer')!.shortId).toMatch(/^PCR-/);
         expect(model.elements.get('pacer1')!.shortId).toMatch(/^PCR-/);
+    });
+});
+
+// A usage is its definition seen again: it is read by the definition's id and a number of its own, and
+// the model addresses it by that number, which is recorded and never reused.
+describe('the id of a usage', () => {
+    const element = (id: string, kind: string, extra: Partial<MemoElement> = {}): MemoElement => ({
+        id, shortName: id, name: id, kind, construct: 'part', layer: 'x', file: 'a.sysml', attributes: {}, ...extra,
+    } as MemoElement);
+    const build = (list: MemoElement[], priorIdentities: Record<string, { shortId: string }> = {}) => {
+        const elements = new ElementIndex();
+        for (const el of list) elements.set(el.id, el);
+        const kindRegistry = { getKind: (k: string) => (k === 'System' ? { name: 'System' } : undefined), toDefinitionDTOs: () => [] };
+        return completeModel({ elements, relationships: [], errors: [], config: { priorIdentities } as never, registries: { kindRegistry: kindRegistry as never } });
+    };
+
+    it('is the definition\'s short id and a number', () => {
+        const model = build([
+            element('Hospital', 'System', { isDefinition: true }),
+            element('a', 'Hospital', { attributes: { usageType: 'Hospital' } }),
+            element('b', 'Hospital', { attributes: { usageType: 'Hospital' } }),
+        ]);
+        const def = model.elements.get('Hospital')!;
+        expect(model.elements.get('a')!.shortId).toBe(`${def.shortId}:1`);
+        expect(model.elements.get('b')!.shortId).toBe(`${def.shortId}:2`);
+        expect(model.elements.get('a')!.idFamily).toBe('SYS');
+    });
+
+    it('reads as the definition\'s authored id and its own number', () => {
+        const model = build([
+            element('Hospital', 'System', { isDefinition: true, attributes: { providedId: 'EXT-06' } }),
+            element('a', 'Hospital', { attributes: { usageType: 'Hospital' } }),
+        ]);
+        expect(model.elements.get('Hospital')!.displayId).toBe('EXT-06');
+        expect(model.elements.get('a')!.displayId).toBe('EXT-06:1');
+    });
+
+    it('keeps an id the usage authors itself', () => {
+        const model = build([
+            element('Hospital', 'System', { isDefinition: true }),
+            element('a', 'Hospital', { attributes: { usageType: 'Hospital', providedId: 'OWN-1' } }),
+        ]);
+        expect(model.elements.get('a')!.displayId).toBe('OWN-1');
+    });
+
+    it('does not renumber when a usage is added first alphabetically or deleted', () => {
+        const base = new Map([['b', 'SYS-1:1'], ['c', 'SYS-1:2']]);
+        const next = assignUsageShortIds(new Map([['SYS-1', ['a', 'b', 'c']]]), base);
+        expect(next.get('b')).toBe('SYS-1:1');
+        expect(next.get('c')).toBe('SYS-1:2');
+        expect(next.get('a')).toBe('SYS-1:3');
+        expect(assignUsageShortIds(new Map([['SYS-1', ['c']]]), base).get('c')).toBe('SYS-1:2');
     });
 });

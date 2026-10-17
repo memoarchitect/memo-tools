@@ -201,3 +201,39 @@ export function parseShortId(shortId: string): { prefix: string; seq: number } |
     if (!match) return null;
     return { prefix: match[1], seq: parseInt(match[2], 10) };
 }
+
+/** A usage's id is its definition's short id and a number of its own: `SYS-7:1`. */
+export function parseUsageShortId(shortId: string): { base: string; seq: number } | null {
+    const match = shortId.match(/^(.+):(\d+)$/);
+    return match ? { base: match[1], seq: parseInt(match[2], 10) } : null;
+}
+
+/**
+ * Number the usages of each definition: `usagesByBase` maps a definition's short id to the ids of the
+ * elements typed by it. Monotonic, like `assignSequentialShortIds`: a recorded number is kept, a
+ * newcomer takes the next one above the highest ever handed out under that definition.
+ */
+export function assignUsageShortIds(
+    usagesByBase: ReadonlyMap<string, string[]>,
+    prior: ReadonlyMap<string, string>,
+): Map<string, string> {
+    const out = new Map<string, string>();
+    for (const [base, ids] of usagesByBase) {
+        let highWater = 0;
+        const carried = new Map<string, string>();
+        for (const [id, shortId] of prior) {
+            const parsed = parseUsageShortId(shortId);
+            if (!parsed || parsed.base !== base) continue;
+            highWater = Math.max(highWater, parsed.seq);
+            carried.set(id, shortId);
+        }
+        for (const id of ids) {
+            const existing = carried.get(id);
+            if (existing) out.set(id, existing);
+        }
+        for (const id of ids.filter(candidate => !out.has(candidate)).sort((a, b) => a.localeCompare(b))) {
+            out.set(id, `${base}:${++highWater}`);
+        }
+    }
+    return out;
+}
