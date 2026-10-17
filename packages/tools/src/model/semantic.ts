@@ -355,6 +355,45 @@ export interface ViewpointDTO {
     supportedDiagramTypes?: string[];
 }
 
+/**
+ * One axis of a matrix view: the elements it lists.
+ *
+ * Hand-picked elements and a query are a union. A query is kept as its text and
+ * evaluated when the matrix opens; the ids it matched are never stored.
+ */
+export interface MatrixAxisDTO {
+    /** The text of a `memo-query` block. */
+    query?: string;
+    /** Hand-picked elements, by qualified name. */
+    elementIds?: string[];
+}
+
+/** A named group of rows in a dependency matrix. */
+export interface MatrixGroupDTO {
+    name: string;
+    groupedBy: 'owningPackage' | 'memoQuery' | 'clusterResult';
+    /** A package qualified name, or the text of a memo-query; absent for a cluster result. */
+    expression?: string;
+}
+
+/**
+ * What a matrix view (`MemoTraceabilityMatrixView`, `MemoDependencyMatrixView`)
+ * declares. The traceability screen reads `rowAxis` and `columnAxis`; the
+ * dependency screen reads `axis` and the options after it.
+ */
+export interface MatrixDefinitionDTO {
+    rowAxis?: MatrixAxisDTO;
+    columnAxis?: MatrixAxisDTO;
+    axis?: MatrixAxisDTO;
+    linkTypes?: string[];
+    dependencyTypes?: string[];
+    containmentTypes?: string[];
+    symmetric?: boolean;
+    ordering?: 'natural' | 'kind' | 'partition' | 'cluster';
+    groups?: MatrixGroupDTO[];
+    criticalElements?: MatrixAxisDTO;
+}
+
 /** Diagram definition (serializable for WebSocket transport) */
 export interface DiagramDTO {
     id: string;
@@ -383,6 +422,13 @@ export interface DiagramDTO {
      * distinct from the union its viewpoint accumulates.
      */
     elementKinds?: string[];
+    /**
+     * The `view def` the view is typed by, as the model names it. A screen that
+     * manages one definition lists the views that carry it.
+     */
+    viewDefinition?: string;
+    /** What a matrix view declares; absent on every other view. */
+    matrix?: MatrixDefinitionDTO;
     /** SysML source containing the view definition (project-relative). */
     sourceFile?: string;
     /** SysML package that owns the view; independent of source-file location. */

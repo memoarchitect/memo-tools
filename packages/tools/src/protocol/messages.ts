@@ -96,6 +96,8 @@ export type ServerMessage =
     | ElementDeleteResultMessage
     | ElementMutationResultMessage
     | PackageMutationResultMessage
+    | DiagramResultMessage
+    | QueryResultMessage
     | MethodologySourceResultMessage
     | RulePolicyWriteResultMessage
     | RulePreviewResultMessage
@@ -431,6 +433,7 @@ export type ClientMessage =
     | SourceImportMessage
     | SuspectReviewMessage
     | DiagramCreateMessage
+    | QueryRunMessage
     | DiagramUpdateMessage
     | DiagramDeleteMessage
     | DiagramParseMessage
@@ -761,7 +764,11 @@ export interface CsvImportMessage {
 export interface DiagramCreateMessage {
     type: 'diagram:create';
     payload: {
-        id: string;
+        /**
+         * Optional: Architect generates no ids. The element's identifier is the
+         * declaration's qualified name; an id is written only when one is given.
+         */
+        id?: string;
         name: string;
         diagramType: string;
         viewKind?: string;
@@ -769,6 +776,17 @@ export interface DiagramCreateMessage {
         description?: string;
         properties?: Record<string, string>;
         elementIds?: string[];
+        /**
+         * A matrix view names the package it is declared in, the `view def` it is
+         * typed by, and what it declares. The writer puts the declaration in a
+         * file that declares the package; without `package` it learns a home from
+         * the project's other views.
+         */
+        package?: string;
+        viewDefinition?: string;
+        matrix?: import('../model/semantic.js').MatrixDefinitionDTO;
+        /** Answered by a `diagram:result` carrying the same id. */
+        requestId?: string;
         /**
          * The query a view selects BY, rather than the ids it happens to
          * contain. A traceability matrix is defined by the kinds on its axes
@@ -790,7 +808,42 @@ export interface DiagramUpdateMessage {
         properties?: Record<string, string>;
         elementIds?: string[];
         relationshipTypes?: string[];
+        /** A matrix view: its new definition, replacing the one it declares. */
+        matrix?: import('../model/semantic.js').MatrixDefinitionDTO;
+        requestId?: string;
     };
+}
+
+/** What happened to a view the client asked to create or change. */
+export interface DiagramResultMessage {
+    type: 'diagram:result';
+    payload: {
+        requestId?: string;
+        success: boolean;
+        error?: string;
+        /** The new view's qualified name, which is its element id once the model recompiles. */
+        qualifiedName?: string;
+        filePath?: string;
+    };
+}
+
+/** Client asks which elements a memo-query selects, to size an axis before drawing it. */
+export interface QueryRunMessage {
+    type: 'query:run';
+    payload: {
+        requestId: string;
+        query: string;
+        /** Return the ids only when no more than this many match. */
+        idLimit?: number;
+        previewLimit?: number;
+        workspace?: string;
+    };
+}
+
+/** The elements a query selects: the count, a preview, and the ids when they fit. */
+export interface QueryResultMessage {
+    type: 'query:result';
+    payload: { requestId?: string } & import('../server/axis-query.js').AxisQueryResult;
 }
 
 /** Client deletes a user-created diagram */
