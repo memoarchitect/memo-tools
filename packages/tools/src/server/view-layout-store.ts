@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import type { DiagramDTO, DiagramLayout } from '@memoarchitect/tools';
 import type { OutlineSource } from '../authoring/outline-source.js';
 import {
-    importsLayoutPackage, layoutToStatements, readFileLayouts, replaceViewLayout, scanViewLayouts, stripLayout, type Canvas,
+    importsLayoutPackage, layoutExtension, layoutToStatements, readFileLayouts, replaceViewLayout, scanViewLayouts, stripLayout, type Canvas,
 } from '../model/view-layout-block.js';
 import { atomicWrite, commitSource } from './persistor.js';
 
@@ -29,6 +29,7 @@ export function isDefaultViewLayout(layout: DiagramLayout): boolean {
     if (Object.keys(layout.nodes ?? {}).length > 0) return false;
     if (Object.values(layout.edges ?? {}).some(edge => Object.keys(edge).length > 0)) return false;
     if (Object.keys(layout.annotations ?? {}).length > 0) return false;
+    if (Object.keys(layoutExtension(layout)).length) return false;
     const canvas = layout.canvas as Canvas | undefined;
     if (!canvas) return true;
     return canvas.autoLayout !== false

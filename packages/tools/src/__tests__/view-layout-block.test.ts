@@ -125,13 +125,36 @@ describe('layout statements in a view', () => {
         expect(stripLayout(SOURCE)).toBe(SOURCE);
     });
 
-    it('rounds coordinates, so a drag does not write float noise', () => {
+    it('preserves exact fractional coordinates rather than drifting on reload', () => {
         const [line] = layoutToStatements({ nodes: { a: { x: 53.400000000000006, y: -0.001 } }, edges: {} }, '');
-        expect(line).toBe('@MemoLayoutNode { :>> element = "a"; :>> x = 53.4; :>> y = 0; }');
+        expect(line).toBe('@MemoLayoutNode { :>> element = "a"; :>> x = 53.400000000000006; :>> y = -0.001; }');
     });
 
     it('reads nothing from a malformed statement and leaves it where it is', () => {
         const text = SOURCE.replace('expose pump::**;', 'expose pump::**;\n        @MemoLayoutNode { :>> element = ; }');
         expect(layoutFromStatements(scanViewLayouts(text)[0].statements)).toBeNull();
     });
+});
+
+
+describe('renderer extension validation', () => {
+    it('does not let an extension override typed geometry or camera state', () => {
+        const text = replaceViewLayout(SOURCE, 'outer::inner::overview', layout)!;
+        const payload = JSON.stringify({ version: 1, layout: { nodes: { 'outer::inner::pump': { x: 999, future: true } }, canvas: { zoom: 9, pan: { x: 1, y: 2 }, renderer: 'memo.renderer.x6' } } });
+        const injected = text.replace('expose pump::**;', `@MemoLayoutExtension { :>> payload = ${JSON.stringify(payload)}; }\n        expose pump::**;`);
+        const loaded = readFileLayouts(injected)['outer::inner::overview'];
+        expect(loaded.nodes['outer::inner::pump'].x).toBe(layout.nodes['outer::inner::pump'].x);
+        expect(loaded.canvas?.zoom).toBeUndefined();
+        expect(loaded.canvas?.pan).toBeUndefined();
+        expect(loaded.canvas?.renderer).toBe('memo.renderer.x6');
+        expect(loaded.nodes['outer::inner::pump']).toMatchObject({ future: true });
+    });
+});
+
+
+it('retains an explicit automatic placement setting with routing and exact route points', () => {
+    const original = { nodes: {}, edges: { line: { points: [{ x: 1.123456789, y: -0.00001 }] } }, canvas: { autoLayout: true, routingMode: 'manual' } } as DiagramLayout;
+    const text = replaceViewLayout(SOURCE, 'outer::inner::overview', original)!;
+    const actual = readFileLayouts(text)['outer::inner::overview'];
+    expect(actual).toMatchObject(original);
 });

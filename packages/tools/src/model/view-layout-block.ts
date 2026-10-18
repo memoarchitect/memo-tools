@@ -225,6 +225,49 @@ function put<T extends object>(target: T, key: keyof T, value: unknown) {
     if (value !== undefined) (target as Record<string, unknown>)[key as string] = value;
 }
 
+// The extension contains only fields outside the typed layout schema. It never
+// overrides typed geometry or restores camera state, including when read from
+// hand-edited input. Native renderer records stay plain JSON document values.
+type JsonRecord = Record<string, unknown>;
+const record = (v: unknown): v is JsonRecord => !!v && typeof v === 'object' && !Array.isArray(v);
+const extras = (v: unknown, known: string[]): JsonRecord => record(v)
+    ? Object.fromEntries(Object.entries(v).filter(([k]) => !known.includes(k) && !['__proto__', 'prototype', 'constructor'].includes(k))) : {};
+const NODE_FIELDS = ['x', 'y', 'width', 'height', 'parent', 'color', 'borderColor', 'textColor', 'fontSize', 'fontWeight', 'textAlign', 'verticalAlign', 'opacity', 'ports'];
+const EDGE_FIELDS = ['color', 'strokeWidth', 'labelVisible', 'style', 'points', 'source', 'target', 'sourcePortId', 'targetPortId', 'manualLanding', 'sourceSide', 'sourceT', 'targetSide', 'targetT'];
+const NOTE_FIELDS = ['kind', 'x', 'y', 'width', 'height', 'text', 'color'];
+
+/** Fields that the current typed metadata cannot express, without camera data. */
+export function layoutExtension(layout: DiagramLayout): JsonRecord {
+    const result = extras(layout, ['nodes', 'edges', 'annotations', 'canvas']);
+    const canvas = extras(layout.canvas, ['autoLayout', 'grid', 'snap', 'coordinateSpace', 'layout', 'portWalls', 'zoom', 'pan']);
+    // These two values are defaults, so they should not create a layout alone.
+    if (canvas.flowAnimation === false) delete canvas.flowAnimation;
+    if (Object.keys(canvas).length) result.canvas = canvas;
+    for (const [name, fields] of [['nodes', NODE_FIELDS], ['edges', EDGE_FIELDS], ['annotations', NOTE_FIELDS]] as const) {
+        const values: JsonRecord = {};
+        for (const [id, entry] of Object.entries(layout[name] ?? {})) {
+            const extra = extras(entry, [...fields]);
+            if (name === 'nodes' && record(entry) && record(entry.ports)) {
+                const ports = Object.fromEntries(Object.entries(entry.ports).map(([id, p]) => [id, extras(p, ['x', 'y', 'side', 'size'])]).filter(([, p]) => Object.keys(p as object).length));
+                if (Object.keys(ports).length) extra.ports = ports;
+            }
+            if (Object.keys(extra).length) values[id] = extra;
+        }
+        if (Object.keys(values).length) result[name] = values;
+    }
+    return result;
+}
+
+function mergeExtension(target: JsonRecord, source: JsonRecord): void {
+    for (const [key, value] of Object.entries(source)) {
+        if (['__proto__', 'prototype', 'constructor'].includes(key)) continue;
+        if (record(value)) {
+            const into = record(target[key]) ? target[key] as JsonRecord : {};
+            mergeExtension(into, value); target[key] = into;
+        } else target[key] = value;
+    }
+}
+
 /** The layout a view's statements describe, or null when it has none. */
 export function layoutFromStatements(statements: readonly LayoutStatement[]): DiagramLayout | null {
     if (statements.length === 0) return null;
@@ -324,13 +367,17 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
         }
     }
     if (Object.keys(canvas).length > 0) layout.canvas = canvas;
+    for (const statement of statements.filter(s => s.definition === 'MemoLayoutExtension')) {
+        try {
+            const envelope: unknown = JSON.parse(str(statement.values.payload) ?? 'null');
+            if (record(envelope) && envelope.version === 1 && record(envelope.layout)) {
+                mergeExtension(layout as unknown as JsonRecord, layoutExtension(envelope.layout as unknown as DiagramLayout));
+            }
+        } catch { /* Invalid extension text cannot replace typed geometry. */ }
+    }
     return layout;
 }
 
-const round = (n: number) => {
-    const r = Math.round(n * 100) / 100;
-    return Object.is(r, -0) ? 0 : r;
-};
 const q = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n')}"`;
 
 type Field = [name: string, value: string | undefined];
@@ -339,7 +386,7 @@ type Field = [name: string, value: string | undefined];
 function routeLiteral(points: ReadonlyArray<{ x: number; y: number }> | undefined): string | undefined {
     if (!Array.isArray(points) || points.length === 0) return undefined;
     const flat = points.flatMap(p => [p?.x, p?.y]);
-    return flat.every(v => typeof v === 'number' && Number.isFinite(v)) ? `(${flat.map(v => round(v as number)).join(', ')})` : undefined;
+    return flat.every(v => typeof v === 'number' && Number.isFinite(v)) ? `(${flat.map(v => String(v)).join(', ')})` : undefined;
 }
 
 function statement(definition: string, fields: Field[], indent: string): string {
@@ -350,7 +397,7 @@ function statement(definition: string, fields: Field[], indent: string): string 
 // The layout comes from a client, so nothing in it is trusted to be SysML: a number
 // that is not finite would be written as text no compiler reads, and an enum literal
 // outside its set would not resolve. Such a value is left out, not repaired.
-const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? String(round(v)) : undefined;
+const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? String(v) : undefined;
 const s = (v: unknown) => typeof v === 'string' ? q(v) : undefined;
 const b = (v: unknown) => typeof v === 'boolean' ? String(v) : undefined;
 const SIDES = new Set(['top', 'bottom', 'left', 'right']);
@@ -374,7 +421,7 @@ export function layoutToStatements(layout: DiagramLayout, indent: string): strin
     const lines: string[] = [];
     const canvas = layout.canvas as Canvas | undefined;
     const canvasFields: Field[] = [
-        ['autoLayout', canvas?.autoLayout === false ? 'false' : undefined],
+        ['autoLayout', b(canvas?.autoLayout)],
         ['grid', n(canvas?.grid)],
         ['snap', b(canvas?.snap)],
         ['coordinateSpace', s(canvas?.coordinateSpace)],
@@ -438,6 +485,10 @@ export function layoutToStatements(layout: DiagramLayout, indent: string): strin
             ['width', n(note.width)], ['height', n(note.height)], ['text', q(note.text)], ['fillColor', s(note.color)],
         ], indent));
     }
+    const extension = layoutExtension(layout);
+    if (Object.keys(extension).length) lines.push(statement('MemoLayoutExtension', [
+        ['payload', q(JSON.stringify({ version: 1, layout: extension }))],
+    ], indent));
     return lines;
 }
 
