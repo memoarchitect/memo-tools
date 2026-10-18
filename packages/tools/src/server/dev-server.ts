@@ -1870,7 +1870,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     console.error(`[Diagram] REFUSED: ${error}`);
                     ws.send(JSON.stringify({ type: 'app:error', payload: { requestId: (msg.payload as any)?.requestId, error } }));
                 } else if (msg.type === 'diagram:layout:update') {
-                    const { diagramId, layout } = msg.payload;
+                    const { diagramId, layout, requestId } = msg.payload;
                     const diagram = currentDiagrams().find(d => d.id === diagramId);
                     // The layout is written into the `view` that declares the
                     // diagram, and nowhere else. A diagram that is not a declared
@@ -1879,6 +1879,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         ? await saveViewLayout(options.projectRoot, diagram, layout, (await authoringContext()).outlines)
                         : { success: false, reason: `no view "${diagramId}" is declared` } as const;
                     if (!saved.success) {
+                        if (requestId) ws.send(JSON.stringify({ type: 'diagram:layout:saved', payload: { diagramId, requestId, error: saved.reason } }));
                         console.log(`[Diagram] Layout of ${diagramId} not saved: ${saved.reason}`);
                         // Said to the sender, who is showing a layout the file does not hold.
                         ws.send(JSON.stringify({ type: 'app:error', payload: {
@@ -1895,6 +1896,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     } else {
                         console.log(`[Diagram] No change to the layout of ${diagramId}`);
                     }
+                    if (requestId) ws.send(JSON.stringify({ type: 'diagram:layout:saved', payload: { diagramId, requestId } }));
                     // Broadcast to other clients (not the sender)
                     const layoutMsg = JSON.stringify({ type: 'diagram:layout', payload: { layouts: { [diagramId]: layout } } });
                     for (const client of clients) {
