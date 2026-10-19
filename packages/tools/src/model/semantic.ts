@@ -382,6 +382,11 @@ export interface MatrixGroupDTO {
  * dependency screen reads `axis` and the options after it.
  */
 export interface MatrixDefinitionDTO {
+    /**
+     * The system or system of systems the matrix is about, as a workspace root (the element id of its
+     * definition). Its queries run in that workspace, and the matrix shows that workspace's model.
+     */
+    system?: string;
     rowAxis?: MatrixAxisDTO;
     columnAxis?: MatrixAxisDTO;
     axis?: MatrixAxisDTO;

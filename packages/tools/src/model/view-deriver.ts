@@ -460,6 +460,7 @@ export function readMatrixDefinition(attributes: Record<string, string>, groups:
     };
     const list = (name: string) => { const values = splitList(attributes[name]); return values.length > 0 ? values : undefined; };
     const definition: MatrixDefinitionDTO = {
+        system: attributes['system']?.trim() || undefined,
         rowAxis: axis('rowAxis'), columnAxis: axis('columnAxis'), axis: axis('axis'),
         linkTypes: list('linkTypes'), dependencyTypes: list('dependencyTypes'), containmentTypes: list('containmentTypes'),
         symmetric: attributes['symmetric'] === undefined ? undefined : attributes['symmetric'] === 'true',
