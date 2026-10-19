@@ -39,10 +39,12 @@ describe('readMatrixDefinition', () => {
             'rowAxis.query': 'kind: Requirement',
             'columnAxis.includeElementIds': 'pkg::a,pkg::b',
             linkTypes: 'verifiedBy,satisfiedBy',
+            system: 'pkg::sysA',
             symmetric: 'true',
             ordering: 'MatrixOrderingKind::cluster',
         });
         expect(matrix).toEqual({
+            system: 'pkg::sysA',
             rowAxis: { query: 'kind: Requirement' },
             columnAxis: { elementIds: ['pkg::a', 'pkg::b'] },
             linkTypes: ['verifiedBy', 'satisfiedBy'],

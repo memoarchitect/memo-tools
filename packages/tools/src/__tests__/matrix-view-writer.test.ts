@@ -52,6 +52,16 @@ describe('named groups', () => {
     });
 });
 
+describe('system', () => {
+    it('ties a matrix to its system by the qualified name of its definition, and replaces it on update', () => {
+        const text = matrixLines({ system: 'pkg::sysA' }).join('\n');
+        expect(text).toBe('    attribute :>> system = "pkg::sysA";');
+        const next = replaceMatrixStatements(`view v : D {\n${text}\n}`, { system: 'pkg::sysB' });
+        expect(next).toContain('pkg::sysB');
+        expect(next).not.toContain('pkg::sysA');
+    });
+});
+
 describe('indentation', () => {
     it('offsets the statements by the declaration\'s own indent', () => {
         const declaration = 'view v : D {\n        @MemoIdentity { :>> label = "T"; }\n    }';

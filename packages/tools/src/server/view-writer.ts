@@ -94,7 +94,7 @@ function freeIdentifier(base: string, model: MemoModelDTO, packageName?: string)
 
 const MATRIX_PARTS = ['rowAxis', 'columnAxis', 'axis', 'criticalElements'] as const;
 const MATRIX_GROUP_TYPE = 'MemoMatrixGroup';
-const MATRIX_ATTRIBUTES = ['linkTypes', 'dependencyTypes', 'containmentTypes', 'symmetric', 'ordering'] as const;
+const MATRIX_ATTRIBUTES = ['system', 'linkTypes', 'dependencyTypes', 'containmentTypes', 'symmetric', 'ordering'] as const;
 
 const stringList = (values: string[]) => `(${values.map(value => `"${escape(value)}"`).join(', ')})`;
 
@@ -117,6 +117,7 @@ export function matrixLines(matrix: MatrixDefinitionDTO | undefined): string[] {
     const list = (name: string, values: string[] | undefined) =>
         values?.length ? [`    attribute :>> ${name} = ${stringList(values)};`] : [];
     return [
+        ...(matrix.system ? [`    attribute :>> system = ${stringLiteral(matrix.system)};`] : []),
         ...axisLines('rowAxis', matrix.rowAxis),
         ...axisLines('columnAxis', matrix.columnAxis),
         ...axisLines('axis', matrix.axis),
