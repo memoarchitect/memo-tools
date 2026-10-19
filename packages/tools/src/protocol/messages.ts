@@ -843,7 +843,7 @@ export interface QueryRunMessage {
 /** The elements a query selects: the count, a preview, and the ids when they fit. */
 export interface QueryResultMessage {
     type: 'query:result';
-    payload: { requestId?: string } & import('../server/axis-query.js').AxisQueryResult;
+    payload: { requestId?: string } & import('../model/semantic.js').AxisQueryResult;
 }
 
 /** Client deletes a user-created diagram */

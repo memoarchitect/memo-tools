@@ -13,7 +13,7 @@
 // appear in the Diagrams browser with an auto-populated element selection.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MemoModel, MemoElement, ViewpointDTO, DiagramDTO, MatrixAxisDTO, MatrixDefinitionDTO } from './semantic.js';
+import type { MemoModel, MemoElement, ViewpointDTO, DiagramDTO, MatrixAxisDTO, MatrixDefinitionDTO, MatrixGroupDTO } from './semantic.js';
 import type { KindRegistry } from './kind-registry.js';
 import { resolveViewKind, VIEW_KIND_SHORT_ID_PREFIX } from './view-kinds.js';
 
@@ -451,7 +451,7 @@ const enumMember = (raw: string | undefined): string | undefined =>
  * and its own attributes. Absent when the view declares none of them, so every
  * other view keeps a DTO without a `matrix`.
  */
-export function readMatrixDefinition(attributes: Record<string, string>): MatrixDefinitionDTO | undefined {
+export function readMatrixDefinition(attributes: Record<string, string>, groups: MatrixGroupDTO[] = []): MatrixDefinitionDTO | undefined {
     const axis = (name: string): MatrixAxisDTO | undefined => {
         const query = attributes[`${name}.query`]?.trim();
         const elementIds = splitList(attributes[`${name}.includeElementIds`]);
@@ -465,6 +465,7 @@ export function readMatrixDefinition(attributes: Record<string, string>): Matrix
         symmetric: attributes['symmetric'] === undefined ? undefined : attributes['symmetric'] === 'true',
         ordering: enumMember(attributes['ordering']) as MatrixDefinitionDTO['ordering'],
         criticalElements: axis('criticalElements'),
+        groups: groups.length > 0 ? groups : undefined,
     };
     const declared = Object.fromEntries(Object.entries(definition).filter(([, value]) => value !== undefined));
     return Object.keys(declared).length > 0 ? declared as MatrixDefinitionDTO : undefined;
@@ -479,6 +480,18 @@ export function readMatrixDefinition(attributes: Record<string, string>): Matrix
 export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry): DerivedViews {
     const viewpointsById = new Map<string, ViewpointDTO>();
     const diagrams: DiagramDTO[] = [];
+
+    // A matrix view's named groups are typed parts it contains, each with its own
+    // attributes; one pass collects them by owner.
+    const groupsByView = new Map<string, MatrixGroupDTO[]>();
+    for (const child of model.elements.values()) {
+        if (!child.owner || !child.attributes['groupName']) continue;
+        groupsByView.set(child.owner, [...(groupsByView.get(child.owner) ?? []), {
+            name: child.attributes['groupName'],
+            groupedBy: (enumMember(child.attributes['groupedBy']) ?? 'owningPackage') as MatrixGroupDTO['groupedBy'],
+            ...(child.attributes['expression'] ? { expression: child.attributes['expression'] } : {}),
+        }]);
+    }
 
     for (const el of model.elements.values()) {
         if (!isViewElement(el, kindRegistry)) continue;
@@ -575,7 +588,8 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
         // explicit `viewKind` declaration wins, else the legacy diagramType
         // key maps; document-backed views (no diagramType) become browser.
         const viewKind = resolveViewKind(attr('viewKind'), el.attributes['diagramType']);
-        const matrix = readMatrixDefinition(el.attributes);
+        const groups = groupsByView.get(el.id) ?? [];
+        const matrix = readMatrixDefinition(el.attributes, groups);
 
         diagrams.push({
             id: isRendererSample

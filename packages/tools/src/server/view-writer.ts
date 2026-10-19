@@ -93,6 +93,7 @@ function freeIdentifier(base: string, model: MemoModelDTO, packageName?: string)
 // reads that.
 
 const MATRIX_PARTS = ['rowAxis', 'columnAxis', 'axis', 'criticalElements'] as const;
+const MATRIX_GROUP_TYPE = 'MemoMatrixGroup';
 const MATRIX_ATTRIBUTES = ['linkTypes', 'dependencyTypes', 'containmentTypes', 'symmetric', 'ordering'] as const;
 
 const stringList = (values: string[]) => `(${values.map(value => `"${escape(value)}"`).join(', ')})`;
@@ -125,7 +126,23 @@ export function matrixLines(matrix: MatrixDefinitionDTO | undefined): string[] {
         ...(matrix.symmetric === undefined ? [] : [`    attribute :>> symmetric = ${matrix.symmetric};`]),
         ...(matrix.ordering ? [`    attribute :>> ordering = MatrixOrderingKind::${matrix.ordering};`] : []),
         ...axisLines('criticalElements', matrix.criticalElements),
+        ...groupLines(matrix.groups),
     ];
+}
+
+/**
+ * Each named group is a typed part of the view that subsets the `groups` the
+ * definition declares (PartUsage, SysML-textual-bnf.kebnf:627), so several can
+ * coexist where a redefinition could be stated once.
+ */
+function groupLines(groups: MatrixDefinitionDTO['groups']): string[] {
+    return (groups ?? []).flatMap((group, index) => [
+        `    part group${index + 1} : ${MATRIX_GROUP_TYPE} :> groups {`,
+        `        attribute :>> groupName = ${stringLiteral(group.name)};`,
+        `        attribute :>> groupedBy = MatrixGroupKind::${group.groupedBy};`,
+        ...(group.expression?.trim() ? [`        attribute :>> expression = ${stringLiteral(group.expression.trim())};`] : []),
+        '    }',
+    ]);
 }
 
 /**
@@ -166,7 +183,7 @@ export function replaceMatrixStatements(declaration: string, matrix: MatrixDefin
     const close = declaration.lastIndexOf('}');
     if (open < 0 || close < open) return declaration;
     const body = declaration.slice(open + 1, close);
-    const owned = new RegExp(`^(part\\s*:>>\\s*(${MATRIX_PARTS.join('|')})\\b|attribute\\s*:>>\\s*(${MATRIX_ATTRIBUTES.join('|')})\\b)`);
+    const owned = new RegExp(`^(part\\s+\\w+\\s*:\\s*${MATRIX_GROUP_TYPE}\\b|part\\s*:>>\\s*(${MATRIX_PARTS.join('|')})\\b|attribute\\s*:>>\\s*(${MATRIX_ATTRIBUTES.join('|')})\\b)`);
     let kept = '';
     let cursor = 0;
     for (const [from, to] of bodyItems(body)) {
