@@ -13,25 +13,7 @@
 
 import type { QueryContext } from '../dhf/query-engine.js';
 import { executeQuery, MemoQueryError, parseMemoQuery, selectsRelationships } from '../dhf/query-executor.js';
-import type { MemoElement } from '../model/semantic.js';
-
-/** One matched element, enough to recognise it in a preview. */
-export interface AxisPreviewRow {
-    id: string;
-    name: string;
-    kind: string;
-    package?: string;
-}
-
-export interface AxisQueryResult {
-    /** Set when the query could not be run; nothing else is meaningful then. */
-    error?: string;
-    count: number;
-    /** Every matched id, present only when there are no more than the limit. */
-    ids?: string[];
-    /** The first few matches, in the order the query returned them. */
-    preview: AxisPreviewRow[];
-}
+import type { AxisQueryResult, MemoElement } from '../model/semantic.js';
 
 export const DEFAULT_AXIS_ID_LIMIT = 5000;
 export const DEFAULT_AXIS_PREVIEW = 25;

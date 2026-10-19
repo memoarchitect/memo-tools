@@ -39,6 +39,19 @@ describe('matrix declarations', () => {
     });
 });
 
+describe('named groups', () => {
+    it('writes each group as a typed part that subsets the definition\'s groups, and replaces them on update', () => {
+        const groups = [{ name: 'Front', groupedBy: 'owningPackage' as const, expression: 'a::b' }, { name: 'C', groupedBy: 'clusterResult' as const }];
+        const text = matrixLines({ groups }).join('\n');
+        expect(text).toContain('part group1 : MemoMatrixGroup :> groups {');
+        expect(text).toContain('attribute :>> groupedBy = MatrixGroupKind::owningPackage;');
+        expect(text).not.toContain('expression = ""');
+        const next = replaceMatrixStatements(`view v : D {\n${text}\n}`, { groups: [groups[1]] });
+        expect(next).not.toContain('Front');
+        expect((next.match(/part group/g) ?? []).length).toBe(1);
+    });
+});
+
 describe('indentation', () => {
     it('offsets the statements by the declaration\'s own indent', () => {
         const declaration = 'view v : D {\n        @MemoIdentity { :>> label = "T"; }\n    }';

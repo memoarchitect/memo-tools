@@ -394,6 +394,24 @@ export interface MatrixDefinitionDTO {
     criticalElements?: MatrixAxisDTO;
 }
 
+/** One matched element, enough to recognise it in a preview. */
+export interface AxisPreviewRow {
+    id: string;
+    name: string;
+    kind: string;
+    package?: string;
+}
+
+export interface AxisQueryResult {
+    /** Set when the query could not be run; nothing else is meaningful then. */
+    error?: string;
+    count: number;
+    /** Every matched id, present only when there are no more than the limit. */
+    ids?: string[];
+    /** The first few matches, in the order the query returned them. */
+    preview: AxisPreviewRow[];
+}
+
 /** Diagram definition (serializable for WebSocket transport) */
 export interface DiagramDTO {
     id: string;

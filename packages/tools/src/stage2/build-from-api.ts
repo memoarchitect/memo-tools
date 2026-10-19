@@ -328,7 +328,9 @@ class ElementBuilder {
         this.define(element, usage);
 
         if (construct === 'port') this.ports(usage, packageName, id);
-        if (construct === 'part' || construct === 'item') this.nestedParts(usage, packageName, id);
+        // A view contains the typed parts it declares too: a matrix's named groups are `part g : MemoMatrixGroup`
+        // members of the view (ViewBodyItem takes any DefinitionBodyItem, SysML-textual-bnf.kebnf:1618-1622).
+        if (construct === 'part' || construct === 'item' || construct === 'view') this.nestedParts(usage, packageName, id);
         if (construct === 'part') this.ports(usage, packageName, id);
         for (const member of this.api.ownedMembers(usage['@id'])) {
             if (member['@type'] === 'TransitionUsage') this.transition(member, packageName, id);
