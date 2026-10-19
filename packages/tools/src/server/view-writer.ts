@@ -302,7 +302,10 @@ export async function writeViewDeclaration(
     if (diagram.package && !chosen) {
         return { success: false, reason: `the package ${diagram.package} is not declared in this project` };
     }
-    const home = chosen ? undefined : conventionalHome(siblingViews(model, diagram.viewKind ?? null));
+    // A matrix with no package joins the project's commonest home for views of ANY kind: there is rarely a
+    // sibling matrix, and a package invented for the first one would be a new place to look.
+    const isMatrixView = Boolean(diagram.viewDefinition && diagram.matrix);
+    const home = chosen ? undefined : conventionalHome(siblingViews(model, isMatrixView ? null : diagram.viewKind ?? null));
     const bootstrap = chosen || home ? undefined : bootstrapHome(projectRoot, model, diagram as DiagramDTO);
     if (!chosen && !home && !bootstrap) {
         return { success: false, reason: 'this project declares no view at all, so there is no convention to place one by' };
@@ -356,8 +359,9 @@ export async function writeViewDeclaration(
         ?? (home && exemplar ? ((exemplar.attributes?.usageType as string) || derived.def) : derived.def);
     const viewpoint = diagram.viewpointId && diagram.viewpointId !== '__model' && diagram.viewpointId !== '__unassigned'
         ? diagram.viewpointId
-        : (exemplar?.attributes?.viewpointDefinition as string | undefined);
-    const group = exemplar?.attributes?.group as string | undefined;
+        : (isMatrix ? undefined : exemplar?.attributes?.viewpointDefinition as string | undefined);
+    // A matrix is not another kind of view's sibling: it takes neither its viewpoint nor its group.
+    const group = isMatrix ? undefined : exemplar?.attributes?.group as string | undefined;
 
     // A screen layout is named for the screen it depicts — the existing
     // convention, and it reads well because there is one per screen. Any other
