@@ -307,6 +307,9 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
     //   survives the definition, and a fresh registry carries both.)
     const UNTYPED_END_EXEMPTIONS = [
         'Mitigates', 'Realizes', 'Validates', 'DerivesFrom', 'Composes',
+        // The scoped item is a need, a requirement, a risk or a verification case: four metaclasses.
+        // Its target IS typed (a part, which System and SystemOfSystems both are).
+        'ScopedTo',
         'SatisfiedBy', 'VerifiedBy', 'AllocatedTo',
         'Performs', 'BindsToInterface', 'CrossesTrustBoundary',
         'Dependency',
