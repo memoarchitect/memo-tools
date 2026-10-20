@@ -1467,6 +1467,8 @@ export interface UserPreferencesDTO {
     explorerSplit?: string;
     /** The experimental features this person switched on in Settings, by id; none means all are off. */
     features?: string[];
+    /** False lists the Model Explorer without package folders; unset means packages are folders. */
+    packageFolders?: boolean;
 }
 
 /** Server → Client: the person's choices (on connect and after a save) */

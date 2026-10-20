@@ -29,7 +29,7 @@ export function loadUserPreferences(projectRoot: string): UserPreferencesDTO {
     const path = resolve(projectRoot, USER_PREFERENCES_FILE);
     if (!existsSync(path)) return {};
     const parsed = parseYaml(readFileSync(path, 'utf8')) as Record<string, unknown> | null;
-    return clean({ role: parsed?.role, workspace: parsed?.workspace, explorerSplit: parsed?.explorerSplit, features: parsed?.features });
+    return clean({ role: parsed?.role, workspace: parsed?.workspace, explorerSplit: parsed?.explorerSplit, features: parsed?.features, packageFolders: parsed?.packageFolders });
 }
 
 /** Keep the string choices that are set, trimmed; drop the rest. */
@@ -39,6 +39,8 @@ function clean(raw: Record<string, unknown>): UserPreferencesDTO {
         const value = raw[key];
         if (typeof value === 'string' && value.trim()) out[key] = value.trim();
     }
+    // Package folders are on unless the person turned them off, so only `false` is kept.
+    if (raw.packageFolders === false) out.packageFolders = false;
     // The feature ids switched on: a list of non-empty strings, each once, in the order given.
     if (Array.isArray(raw.features)) {
         const features = [...new Set(raw.features.filter((id): id is string => typeof id === 'string' && id.trim() !== '').map(id => id.trim()))];

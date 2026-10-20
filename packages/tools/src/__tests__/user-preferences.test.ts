@@ -33,6 +33,14 @@ describe('one person\'s choices for a model', () => {
         expect(loadUserPreferences(dir)).toEqual({});
     });
 
+    it('keep only a choice to hide package folders, the default being to show them', () => {
+        const dir = root();
+        saveUserPreferences(dir, { packageFolders: false });
+        expect(loadUserPreferences(dir)).toEqual({ packageFolders: false });
+        saveUserPreferences(dir, { packageFolders: true });
+        expect(loadUserPreferences(dir)).toEqual({});
+    });
+
     it('drop the role when it is cleared', () => {
         const dir = root();
         saveUserPreferences(dir, { role: 'safetyEngineer' });
