@@ -2,6 +2,12 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.15.3
+
+- **Ids.** A usage's id is its definition's id plus a number of its own, and every element carries `displayId` and `idFamily`; ids rebase renumbers usages, and opening a project under a new version migrates its ids.
+- **Matrix views.** Derive, declare, update and size traceability and DSM matrices, scoped to a system, with named groups in DSM views.
+- **User preferences.** The experimental features a person switched on, and `packageFolders`, are kept per person (the latter only when off).
+
 ## 0.15.2
 
 - **A display id's family belongs to the ontology.** A project definition is registered as a kind, so an element typed by one used to mint a family from the first word of the definition's own name (`HospitalEpRecordingSystemExternal` gave HSP). The family is now the ontology kind the element descends from. A definition that declares `@MemoKind { :>> idPrefix = "…"; }` (ontology 0.15.1) extends the ontology with a family of its own, and so does what is typed by it. Elements that were in the old families get new ids in the new ones, so review the `memo.identity.yaml` diff after `memo validate`.
