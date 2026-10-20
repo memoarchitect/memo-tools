@@ -25,6 +25,14 @@ describe('one person\'s choices for a model', () => {
         expect(readFileSync(join(dir, '.gitignore'), 'utf8').split(USER_PREFERENCES_FILE).length).toBe(2);
     });
 
+    it('keep the experimental features switched on, once each, and drop them when none are', () => {
+        const dir = root();
+        saveUserPreferences(dir, { features: ['guide', 'guide', ' custom-dashboards '] });
+        expect(loadUserPreferences(dir)).toEqual({ features: ['guide', 'custom-dashboards'] });
+        saveUserPreferences(dir, { features: [] });
+        expect(loadUserPreferences(dir)).toEqual({});
+    });
+
     it('drop the role when it is cleared', () => {
         const dir = root();
         saveUserPreferences(dir, { role: 'safetyEngineer' });
