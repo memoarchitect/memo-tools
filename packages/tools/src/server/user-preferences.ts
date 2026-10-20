@@ -1,7 +1,7 @@
 // ─── One person's preferences for one model ─────────────────────────────────
 //
 // What a person chose for themselves in Architect while working on this model —
-// the role whose viewpoints they want to see, how the explorer splits its folders, and the workspace (the system of systems, or one
+// the role whose viewpoints they want to see, how the explorer splits its folders, the experimental features they switched on, and the workspace (the system of systems, or one
 // system) they are working in. It is not model content
 // and not something the team shares, so it lives in one visible file at the
 // model root, `memo.user.yaml`, which the model's `.gitignore` keeps out of git
@@ -29,7 +29,7 @@ export function loadUserPreferences(projectRoot: string): UserPreferencesDTO {
     const path = resolve(projectRoot, USER_PREFERENCES_FILE);
     if (!existsSync(path)) return {};
     const parsed = parseYaml(readFileSync(path, 'utf8')) as Record<string, unknown> | null;
-    return clean({ role: parsed?.role, workspace: parsed?.workspace, explorerSplit: parsed?.explorerSplit });
+    return clean({ role: parsed?.role, workspace: parsed?.workspace, explorerSplit: parsed?.explorerSplit, features: parsed?.features });
 }
 
 /** Keep the string choices that are set, trimmed; drop the rest. */
@@ -38,6 +38,11 @@ function clean(raw: Record<string, unknown>): UserPreferencesDTO {
     for (const key of ['role', 'workspace', 'explorerSplit'] as const) {
         const value = raw[key];
         if (typeof value === 'string' && value.trim()) out[key] = value.trim();
+    }
+    // The feature ids switched on: a list of non-empty strings, each once, in the order given.
+    if (Array.isArray(raw.features)) {
+        const features = [...new Set(raw.features.filter((id): id is string => typeof id === 'string' && id.trim() !== '').map(id => id.trim()))];
+        if (features.length > 0) out.features = features;
     }
     return out;
 }

@@ -1465,6 +1465,8 @@ export interface UserPreferencesDTO {
     workspace?: string;
     /** The attribute the Model Explorer splits its folders by; unset means it does not. */
     explorerSplit?: string;
+    /** The experimental features this person switched on in Settings, by id; none means all are off. */
+    features?: string[];
 }
 
 /** Server → Client: the person's choices (on connect and after a save) */
