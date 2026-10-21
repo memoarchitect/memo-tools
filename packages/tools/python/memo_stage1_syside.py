@@ -33,6 +33,7 @@ alone, `diagnostics` of the libraries and the project), with `"library":
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -94,10 +95,16 @@ def classify(project_root: Path, library_roots: list[Path], files: list[str] | N
 
 def reported(diagnostics) -> list[dict]:
     out = []
-    for diagnostic in diagnostics.all:
-        # The full message is what `syside check` prints: the snippet with its
-        # carets (the span's width) and any related note. Colour is stripped.
-        text = ANSI.sub("", diagnostic.full_message).rstrip()
+    for item in diagnostics.all:
+        # SysIDE 1.0 yields (document url, diagnostic) pairs and has no
+        # `full_message`; 0.10 yields the diagnostic alone.
+        url, diagnostic = item if isinstance(item, tuple) else (None, item)
+        if hasattr(diagnostic, "full_message"):
+            # The full message is what `syside check` prints: the snippet with its
+            # carets (the span's width) and any related note. Colour is stripped.
+            text = ANSI.sub("", diagnostic.full_message).rstrip()
+        else:
+            text = f"{url}:{diagnostic.line}:{diagnostic.col}: {severity_of(diagnostic)} ({diagnostic.code}): {diagnostic.message}"
         out.append({"severity": severity_of(diagnostic), "text": text})
     return out
 
@@ -147,6 +154,29 @@ def base_of(path: Path, role: str, project_root: Path, library_roots: list[Path]
         (root for root in library_roots if root in path.parents), path.parent)
 
 
+def user_documents(model):
+    """The model's own documents. SysIDE 1.0 calls them `documents` and hands
+    them over already locked; 0.10 kept them as `user_docs`, locked by the caller."""
+    return model.user_docs if hasattr(model, "user_docs") else model.documents
+
+
+def standard_documents(model):
+    """The standard library's documents: `stdlib_docs` up to SysIDE 0.10, the
+    model's environment's `documents` from 1.0."""
+    return model.stdlib_docs if hasattr(model, "stdlib_docs") else model.environment.documents
+
+
+@contextlib.contextmanager
+def opened(shared):
+    """A document to read: locked for the caller on 0.10 (`SharedMutex`), already
+    a `Document` on 1.0."""
+    if hasattr(shared, "lock"):
+        with shared.lock() as document:
+            yield document
+    else:
+        yield shared
+
+
 def export(model, files: list[Path], role: str, project_root: Path, library_roots: list[Path],
            standard: dict[str, str | None], carried: frozenset[str] = frozenset()):
     """The API JSON of the model's documents among `files`, all of one role,
@@ -157,8 +187,8 @@ def export(model, files: list[Path], role: str, project_root: Path, library_root
     referenced: set[str] = set()
     documents = []
     index: dict[str, dict] = {}
-    for shared in model.user_docs:
-        with shared.lock() as document:
+    for shared in user_documents(model):
+        with opened(shared) as document:
             path = Path(document.url.path).resolve()
             if str(path) not in wanted_files:
                 continue
@@ -174,8 +204,8 @@ def standard_names(model) -> dict[str, str | None]:
     """Each standard library element's qualified name (None for an unnamed one),
     by id: read once, since walking the library is most of an export's cost."""
     names: dict[str, str | None] = {}
-    for shared in model.stdlib_docs:
-        with shared.lock() as document:
+    for shared in standard_documents(model):
+        with opened(shared) as document:
             for element in document.all_nodes(syside.Element):
                 qualified = element.qualified_name
                 names[str(element.element_id)] = str(qualified) if qualified else None
@@ -307,8 +337,8 @@ class Project:
         if not reusable:
             self.exported = {}
         sent: set[str] = set()
-        for shared in model.user_docs:
-            with shared.lock() as document:
+        for shared in user_documents(model):
+            with opened(shared) as document:
                 path = str(Path(document.url.path).resolve())
                 if path not in texts:
                     continue

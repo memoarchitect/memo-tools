@@ -582,7 +582,9 @@ describe.runIf(sysideAvailable())('the configured external validator', () => {
 `);
         expect(() => execFileSync(
             'syside',
-            ['check', '--diagnose', 'all', resolve(projectRoot, 'model/flow.sysml')],
+            // `project`, not `all`: `all` also diagnoses SysIDE's bundled standard
+            // library, which 1.0.0 itself fails (see validator-exceptions.json).
+            ['check', '--diagnose', 'project', resolve(projectRoot, 'model/flow.sysml')],
             { stdio: 'pipe' },
         )).not.toThrow();
     });

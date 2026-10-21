@@ -42,6 +42,9 @@ export function sysidePythonCandidates(projectDir: string, env: NodeJS.ProcessEn
     }
     // Where SysIDE's own documentation puts it, then the interpreters on PATH.
     add(inEnvironment(join(homedir(), '.venvs', 'syside')));
+    // SysIDE 1.0 ships its CLI inside the Python package, so `uv tool install syside`
+    // is the way to get the `syside` command, and it keeps the interpreter here.
+    add(inEnvironment(join(env.UV_TOOL_DIR ?? join(homedir(), '.local', 'share', 'uv', 'tools'), 'syside')));
     add(whichExecutable('python3', env));
     add(whichExecutable('python', env));
     return found.filter(candidate => existsSync(candidate));

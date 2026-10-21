@@ -1,7 +1,7 @@
 # Install and Create a Project
 
 [Check the prerequisites](prerequisites.md), including when SysIDE or `sysand`
-is needed.
+is needed, or see [SysIDE](syside.md) and [OpenSysML](opensysml.md).
 
 ## Install
 

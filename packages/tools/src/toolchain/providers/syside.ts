@@ -1,7 +1,7 @@
 // ─── Adapter: Syside CLI ─────────────────────────────────────────────────────
 //
 // The best validator available today: full semantic validation, 151 stable
-// rule codes, absolute paths and full ranges. It cannot emit IR (`syside 0.10.2`
+// rule codes, absolute paths and full ranges. It cannot emit IR (`syside` 0.10 and 1.0
 // exposes only check/format/rule/viz/table), so it fills the validator role and
 // nothing else — which is precisely why the validator and lowering roles are
 // separate. Requiring one tool to do both would delete the only external
@@ -61,7 +61,7 @@ const SETTINGS_SCHEMA: readonly ToolchainSchemaLeaf[] = [
         path: `${SYSIDE_PROVIDER_ID}.diagnose`,
         type: 'enum',
         values: DIAGNOSE_SCOPES,
-        description: 'Validation scope. Defaults to all.',
+        description: 'Validation scope. Defaults to all, and to project for SysIDE 1.0 and later, whose `all` also fails its own bundled standard library.',
     },
 ];
 
@@ -73,9 +73,27 @@ function command(context: ProviderContext): string {
     return resolveExecutable(settings(context).executable, SYSIDE_PROVIDER_ID, context.projectDir);
 }
 
-export function buildSysideInvocation(context: ProviderContext): ToolInvocation {
+/**
+ * `all` adds the diagnostics of SysIDE's bundled standard library to the
+ * project's. 1.0.0 reports 22 errors and 10 warnings there (Geometry and
+ * Systems Library files nobody here owns), so a clean project would fail every
+ * check. `project` still diagnoses each file the project ships, including
+ * namespace shadowing and reserved-keyword misuse. 0.10.x is clean under both,
+ * so it keeps the stricter default.
+ */
+export function defaultDiagnoseScope(version: string | undefined): 'all' | 'project' {
+    const major = version ? Number(version.split('.')[0]) : NaN;
+    return major >= 1 ? 'project' : 'all';
+}
+
+/** `version` is the installed SysIDE's, read from the executable when not given. */
+export function buildSysideInvocation(
+    context: ProviderContext,
+    version: string | undefined = cachedVersion(command(context)),
+): ToolInvocation {
     const tool = settings(context);
-    const args = ['check', '--colour', 'no', '--diagnose', tool.diagnose ?? 'all'];
+    const scope = tool.diagnose ?? defaultDiagnoseScope(version);
+    const args = ['check', '--colour', 'no', '--diagnose', scope];
     if (tool.configFile) args.push('--config', resolveProjectPath(tool.configFile, context.projectDir));
     if (tool.warningsAsErrors ?? true) args.push('--warnings-as-errors');
     // Every resolvable library root is offered as an include path. Which of
@@ -92,7 +110,7 @@ export function buildSysideInvocation(context: ProviderContext): ToolInvocation 
 }
 
 /**
- * `syside --version` prints `syside 0.10.2 <commit>`; the commit is noise for a
+ * `syside --version` prints `syside 1.0.0 <commit>` (0.10 prints the same shape); the commit is noise for a
  * probe listing. Reduce to the version number when the shape is recognisable,
  * and otherwise report whatever it said rather than nothing.
  */
@@ -178,7 +196,7 @@ export function parseSysideDiagnostics(output: string, version?: string): Diagno
 export const sysideValidatorDescriptor: ValidatorDescriptor = {
     id: SYSIDE_PROVIDER_ID,
     role: 'validator',
-    // No `emit-ir`: `syside 0.10.2` has no AST, semantic-model or IR export.
+    // No `emit-ir`: neither `syside` 0.10 nor 1.0 has an AST, semantic-model or IR export.
     capabilities: ['check', 'format'],
     settingsSchema: SETTINGS_SCHEMA,
     probe(context: ProviderContext): Availability {
