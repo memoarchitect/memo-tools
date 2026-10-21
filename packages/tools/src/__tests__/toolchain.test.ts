@@ -149,7 +149,7 @@ describe('provider invocations', () => {
         expect(buildSysideInvocation(context({
             validator: 'syside',
             syside: { warningsAsErrors: false },
-        }))).toMatchObject({
+        }), '0.10.3')).toMatchObject({
             args: ['check', '--colour', 'no', '--diagnose', 'all', '/project'],
         });
     });

@@ -65,6 +65,8 @@ nav:
       - What MEMO Tools Is: index.md
       - Prerequisites: start/prerequisites.md
       - Install and Create a Project: start/install.md
+      - Install and Configure SysIDE: start/syside.md
+      - Install and Configure OpenSysML: start/opensysml.md
       - First Useful Workflow: start/first-workflow.md
   - Everyday Tasks:
       - Validate a Model: tasks/validate.md

@@ -58,7 +58,12 @@ describe('SysIDE suite gate', () => {
     });
 
     it('asks SysIDE for full diagnostics with warnings as errors by default', () => {
-        const { args } = buildSysideInvocation({ config: { modelName: 'x' } as MEMOConfig, projectDir: '/p', files: ['/p/a.sysml'] });
+        const { args } = buildSysideInvocation({ config: { modelName: 'x' } as MEMOConfig, projectDir: '/p', files: ['/p/a.sysml'] }, '0.10.3');
         expect(args).toEqual(expect.arrayContaining(['--diagnose', 'all', '--warnings-as-errors']));
+    });
+
+    it('diagnoses the project alone by default on SysIDE 1.0, whose bundled library fails `all`', () => {
+        const { args } = buildSysideInvocation({ config: { modelName: 'x' } as MEMOConfig, projectDir: '/p', files: ['/p/a.sysml'] }, '1.0.0');
+        expect(args).toEqual(expect.arrayContaining(['--diagnose', 'project', '--warnings-as-errors']));
     });
 });
