@@ -2,6 +2,12 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.16.0
+
+- **SysIDE 1.0.** `compiler: syside` works with SysIDE 1.0.0 as well as 0.10.x. Stage 1 reads both Python APIs (1.0 renamed `user_docs` and `stdlib_docs` and dropped `Diagnostic.full_message`), and the validator's default `diagnose` scope is `project` on 1.0, because 1.0's `all` also fails SysIDE's own bundled standard library. An explicit `toolchain.syside.diagnose` still wins. With 1.0, a diagnostic from stage 1 has no source snippet.
+- **Finding SysIDE's Python.** The interpreter that `uv tool install syside` creates is now one of the places MEMO looks.
+- **Docs.** New pages: Install and Configure SysIDE, Install and Configure OpenSysML.
+
 ## 0.15.3
 
 - **Ids.** A usage's id is its definition's id plus a number of its own, and every element carries `displayId` and `idFamily`; ids rebase renumbers usages, and opening a project under a new version migrates its ids.
