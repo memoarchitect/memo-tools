@@ -213,10 +213,11 @@ describe('E2E: memo init → validate → export', () => {
             .toContain('ModelMethodBinding');
     });
 
-    it('memo init --list shows packages and examples, and no templates', () => {
+    it('memo init --list shows packages, and neither templates nor examples', () => {
         const output = run('init --list', REPO_ROOT);
-        expect(output).toContain('Available examples');
+        expect(output).toContain('Available ontology packages');
         expect(output).not.toContain('Available templates');
+        expect(output).not.toContain('Available examples');
     });
 
     it('memo init has no --template option', () => {
@@ -224,64 +225,10 @@ describe('E2E: memo init → validate → export', () => {
         expect(exitCode).not.toBe(0);
     });
 
-    it('memo init --example gpca-pump copies example project', () => {
-        const projectDir = join(tmpDir, 'test-from-example');
-        const output = run(`init ${projectDir} --example gpca-pump`, REPO_ROOT);
-
-        expect(output).toContain('Creating project from example');
-        expect(output).toContain('gpca-pump');
-        expect(output).toContain('Model created');
-
-        expect(existsSync(join(projectDir, 'model', 'methodology', 'project.sysml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'model'))).toBe(true);
-
-        // One catalog root, and nothing beside it. `model/views/` and
-        // `model/samples/` were the pre-catalog layout; the session 4
-        // conversion moved views beneath the viewpoints that govern them, so
-        // their absence here is the assertion, not an omission.
-        const modelDir = join(projectDir, 'model');
-        expect(readdirSync(modelDir)).toEqual(['catalog', 'methodology']);
-
-        const catalogFiles = readdirSync(join(modelDir, 'catalog'));
-        expect(catalogFiles.some(f => f.endsWith('.sysml'))).toBe(true);
-        expect(existsSync(join(modelDir, 'catalog', 'viewpoints'))).toBe(true);
-    });
-
-    it('memo init --example gpca matches gpca-pump by prefix', () => {
-        const projectDir = join(tmpDir, 'test-example-prefix');
-        const output = run(`init ${projectDir} --example gpca`, REPO_ROOT);
-
-        expect(output).toContain('Creating project from example');
-        expect(output).toContain('gpca-pump');
-        expect(existsSync(join(projectDir, 'model', 'methodology', 'project.sysml'))).toBe(true);
-    });
-
-    it('memo init --example with no name copies into the current (empty) directory', () => {
-        const projectDir = join(tmpDir, 'test-example-inplace');
-        mkdirSync(projectDir);
-
-        const output = run('init --example gpca', projectDir);
-        expect(output).toContain('Model created in current directory');
-        expect(existsSync(join(projectDir, 'model', 'methodology', 'project.sysml'))).toBe(true);
-        expect(existsSync(join(projectDir, 'model'))).toBe(true);
-
-        // Refuses to copy into a non-empty directory
-        const { exitCode, stdout } = runMayFail('init --example gpca', projectDir);
+    it('memo init --example is removed and points at running an example', () => {
+        const { exitCode, stdout } = runMayFail(`init ${join(tmpDir, 'test-no-example')} --example gpca --no-install`, REPO_ROOT);
         expect(exitCode).not.toBe(0);
-        expect(stdout).toContain('already a MEMO project');
-    });
-
-    it('memo init --example rejects unknown example', () => {
-        const projectDir = join(tmpDir, 'test-bad-example');
-        const { exitCode, stdout } = runMayFail(`init ${projectDir} --example nonexistent`, REPO_ROOT);
-        expect(exitCode).not.toBe(0);
-        expect(stdout).toContain('Unknown example');
-    });
-
-    it('memo init --list shows available examples', () => {
-        const output = run('init --list', REPO_ROOT);
-        expect(output).toContain('Available examples');
-        expect(output).toContain('gpca-pump');
+        expect(stdout).toContain('memo-architect --example gpca');
     });
 });
 

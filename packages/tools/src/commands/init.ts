@@ -30,18 +30,6 @@ function namesACompiler(toolchain: Record<string, unknown> | undefined): boolean
     return Boolean(toolchain && (toolchain.compiler || (toolchain.validator && toolchain.lowering)));
 }
 
-/** Add the recommended compiler to the settings file of a project created from an example. */
-function nameCompilerInProject(projectDir: string): void {
-    const file = resolve(projectDir, 'memo.package.yaml');
-    if (!existsSync(file)) return;
-    const document = parseDocument(readFileSync(file, 'utf-8'));
-    const toolchain = (document.toJS() as { toolchain?: Record<string, unknown> } | null)?.toolchain;
-    if (namesACompiler(toolchain)) return;
-    document.setIn(['toolchain', 'compiler'], NEW_PROJECT_COMPILER);
-    writeFileSync(file, document.toString());
-    console.log(chalk.gray(`  Compiler: ${NEW_PROJECT_COMPILER} (in memo.package.yaml; change it in Architect: the Compiler control, or memo-architect config set compiler <id>)`));
-}
-
 export interface AvailableOntology {
     name: string;
     version: string;
@@ -50,14 +38,6 @@ export interface AvailableOntology {
     extends?: string;
     path: string;
     isDefault: boolean;
-}
-
-export interface AvailableExample {
-    id: string;
-    aliases: string[];
-    name: string;
-    description: string;
-    path: string;
 }
 
 function manifests(fromDir: string): LoadedMemoManifest[] {
@@ -89,32 +69,6 @@ export function discoverOntologies(fromDir: string): AvailableOntology[] {
     return results;
 }
 
-export function discoverExamples(fromDir: string): AvailableExample[] {
-    const results: AvailableExample[] = [];
-    for (const loaded of manifests(fromDir)) {
-        for (const [alias, subpath] of Object.entries(loaded.manifest.examples)) {
-            const path = resolveManifestPath(loaded, subpath);
-            if (!existsSync(path)) continue;
-            const id = basename(path);
-            if (results.some(result => result.path === path)) continue;
-            const configPath = ['memo.package.yaml', 'memo.config.yaml']
-                .map(name => resolve(path, name)).find(existsSync);
-            let name = id;
-            let description = '';
-            if (configPath) {
-                const raw = readFileSync(configPath, 'utf-8');
-                const parsed = parseYaml(raw);
-                name = String(parsed?.name ?? parsed?.projectName ?? id);
-                description = typeof parsed?.description === 'string'
-                    ? parsed.description
-                    : (raw.split('\n').find(line => /^#\s+/.test(line))?.replace(/^#\s*/, '') ?? '');
-            }
-            results.push({ id, aliases: [alias], name, description, path });
-        }
-    }
-    return results;
-}
-
 export function listOntologiesCommand(fromDir = process.cwd()): void {
     const available = discoverOntologies(fromDir);
     if (available.length === 0) {
@@ -130,38 +84,13 @@ export function listOntologiesCommand(fromDir = process.cwd()): void {
     }
 }
 
-export function listExamplesCommand(fromDir = process.cwd()): void {
-    const examples = discoverExamples(fromDir);
-    if (examples.length === 0) {
-        console.log(chalk.yellow('No installed worked examples found.'));
-        return;
-    }
-    console.log(chalk.bold('\nAvailable examples:\n'));
-    for (const example of examples) {
-        const aliases = example.aliases.filter(alias => alias !== example.id);
-        console.log(`  ${chalk.cyan(example.id)}${aliases.length ? chalk.gray(` (aliases: ${aliases.join(', ')})`) : ''}`);
-        if (example.description) console.log(`    ${chalk.gray(example.description)}`);
-    }
-    console.log(chalk.gray('\nCreate one with: memo-architect init <project> --example <id-or-alias>\n'));
-}
-
 export interface InitOptions {
     ontology?: string;
     list?: boolean;
-    example?: string;
     install?: boolean;
 }
 
-function matchExample(examples: AvailableExample[], query: string): { example?: AvailableExample; candidates: AvailableExample[] } {
-    const exact = examples.find(example => example.id === query || example.aliases.includes(query));
-    if (exact) return { example: exact, candidates: [exact] };
-    let candidates = examples.filter(example => example.id.startsWith(query)
-        || example.aliases.some(alias => alias.startsWith(query)));
-    if (candidates.length === 0) candidates = examples.filter(example => example.id.includes(query));
-    return { example: candidates.length === 1 ? candidates[0] : undefined, candidates };
-}
-
-function ensureTarget(name: string | undefined, exampleId?: string): { projectDir: string; modelName: string; inPlace: boolean } {
+function ensureTarget(name: string | undefined): { projectDir: string; modelName: string; inPlace: boolean } {
     const inPlace = !name || name === '.';
     const projectDir = inPlace ? process.cwd() : resolve(process.cwd(), name!);
     if (inPlace) {
@@ -173,7 +102,6 @@ function ensureTarget(name: string | undefined, exampleId?: string): { projectDi
             console.error(chalk.red(existsSync(entrypoint)
                 ? '❌ This directory is already a MEMO project (model/methodology/project.sysml exists).'
                 : '❌ Current directory is not empty.'));
-            if (exampleId) console.log(chalk.gray(`  Run in an empty directory, or pass a name: memo-architect init <name> --example ${exampleId}`));
             process.exit(1);
         }
     } else if (existsSync(projectDir)) {
@@ -240,12 +168,11 @@ function selectManifest(fromDir: string, logicalName?: string): LoadedMemoManife
 
 export async function initCommand(name: string | undefined, options: InitOptions): Promise<void> {
     const fromDir = process.cwd();
-    const exampleQuery = options.example;
     let preparedTarget: ReturnType<typeof ensureTarget> | undefined;
     let loaded: LoadedMemoManifest;
     try {
         if (manifests(fromDir).length === 0 && !options.list) {
-            preparedTarget = ensureTarget(name, exampleQuery);
+            preparedTarget = ensureTarget(name);
             console.log(chalk.gray('  Fetching MEMO content package...'));
             installContentPackage(preparedTarget.projectDir);
             loaded = selectManifest(preparedTarget.projectDir, options.ontology);
@@ -262,24 +189,6 @@ export async function initCommand(name: string | undefined, options: InitOptions
 
     if (options.list) {
         listOntologiesCommand(fromDir);
-        listExamplesCommand(fromDir);
-        return;
-    }
-
-    if (exampleQuery) {
-        const { example, candidates } = matchExample(discoverExamples(contentFromDir), exampleQuery);
-        if (!example) {
-            console.error(chalk.red(candidates.length > 1
-                ? `❌ Example "${exampleQuery}" is ambiguous.`
-                : `❌ Unknown example "${exampleQuery}".`));
-            process.exit(1);
-        }
-        const target = preparedTarget ?? ensureTarget(name, example.id);
-        console.log(chalk.bold(`\n📦 Creating project from example: ${example.id}\n`));
-        cpSync(example.path, target.projectDir, { recursive: true });
-        scaffoldAnalysisSamples(target.projectDir);
-        nameCompilerInProject(target.projectDir);
-        console.log(chalk.green(target.inPlace ? '\n✅ Model created in current directory' : `\n✅ Model created at ./${name}`));
         return;
     }
 

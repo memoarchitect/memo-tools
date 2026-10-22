@@ -8,7 +8,7 @@
 // same functions.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { setCommandLineToolchain } from '../model/config-loader.js';
 import { toolchainOverridesFromCliOptions } from '../toolchain/schema.js';
 import { initCommand } from '../commands/init.js';
@@ -158,10 +158,15 @@ export function registerProjectCommands(program: Command): void {
         .description('Scaffold a new MEMO model')
         .argument('[name]', 'Model directory (omit or "." to initialize the current directory)')
         .option('--ontology <package>', 'Logical ontology package to use (defaults from the content manifest)')
-        .option('--example <id>', 'Create from an example model (e.g. gpca)')
-        .option('--list', 'List installed ontology packages and examples')
+        .addOption(new Option('--example <id>').hideHelp())
+        .option('--list', 'List installed ontology packages')
         .option('--no-install', 'Create the model without running npm install')
         .action(async (name: string | undefined, options: { ontology?: string; example?: string; list?: boolean; install?: boolean }) => {
+            // An example is run, not created: `init` makes a new project.
+            if (options.example) {
+                console.error(`✖ \`init --example\` was removed: \`init\` creates a new project. Run an example with \`memo-architect --example ${options.example}\`; \`memo-architect --list\` lists them.`);
+                process.exit(1);
+            }
             await initCommand(name, options);
         });
 
