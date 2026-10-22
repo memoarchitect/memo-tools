@@ -1,22 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { placeDisplayStatements } from '../server/view-writer.js';
+import { placeDisplayStatements } from '../server/view-writer';
 
-const statement = '    attribute :>> portDisplay = PortDisplay::wall;';
+const indent = '        ';
+const view = [
+    'view v : MemoDiagramView {',
+    `${indent}attribute :>> layoutHint = "context:compass";`,
+    `${indent}attribute :>> autoPopulate = false;`,
+    `${indent}part :>> selectionQuery {`,
+    `${indent}    attribute :>> includeRelationshipKinds = ("InteractsInContext");`,
+    `${indent}}`,
+    '    }',
+].join('\n') + '\n';
 
-describe('a view\'s display statements', () => {
-    it('follow the view\'s other attribute redefinitions, not the opening brace', () => {
-        const view = 'view v : V {\n    expose a::*;\n    attribute :>> title = "T";\n    expose b::*;\n}';
-        expect(placeDisplayStatements(view, statement, '    ')).toBe(
-            `view v : V {\n    expose a::*;\n    attribute :>> title = "T";\n${statement}\n    expose b::*;\n}`);
-    });
-
-    it('go at the end of a body that has none', () => {
-        const view = 'view v : V {\n    expose a::*;\n}';
-        expect(placeDisplayStatements(view, statement, '    ')).toBe(
-            `view v : V {\n    expose a::*;\n${statement}\n}`);
-    });
-
-    it('go into an empty body', () => {
-        expect(placeDisplayStatements('view v : V {}', statement, '    ')).toBe(`view v : V {\n${statement}\n}`);
+describe('placing a display statement in a view', () => {
+    it('puts it beside the view\'s own attributes, never inside a part nested in the view', () => {
+        const statement = `${indent}attribute :>> styleHint = "edge=rounded";`;
+        const placed = placeDisplayStatements(view, statement, indent);
+        const lines = placed.split('\n');
+        const at = lines.indexOf(statement);
+        // After the view's last own attribute, and before the nested part opens.
+        expect(lines[at - 1]).toBe(`${indent}attribute :>> autoPopulate = false;`);
+        expect(lines[at + 1]).toBe(`${indent}part :>> selectionQuery {`);
     });
 });
