@@ -56,6 +56,48 @@ The notebooks read the model through `analysis/memo_model.py`, which runs
 (`toolchain.compiler`), so they need `memo` on `PATH` (or `MEMO_CLI`) and
 whatever that compiler needs. A model loads once the compiler accepts it.
 
+## Upgrade MEMO
+
+A MEMO project depends on three packages that ship together:
+`@memoarchitect/architect`, `@memoarchitect/tools` and `@memoarchitect/ontology`.
+Pin all three to the same release.
+
+Below 1.0, npm's caret range only lets the leftmost non-zero segment change, so a
+plain `npm update` never crosses a minor version:
+
+| Range in `package.json` | Resolves to | Does **not** include |
+| --- | --- | --- |
+| `^0.11.0` | `>=0.11.0 <0.12.0` | 0.12 and later |
+| `^0.16.0` | `>=0.16.0 <0.17.0` | 0.17 and later |
+
+A project pinned at `^0.11.0` therefore keeps installing 0.11.x, however many newer
+releases exist. `npm install` also installs what the committed `package-lock.json`
+says, and `node_modules` can lag behind `package.json`; check what is installed
+rather than what is declared:
+
+```bash
+npm ls @memoarchitect/architect @memoarchitect/tools @memoarchitect/ontology
+```
+
+To move to a new release, let MEMO do it:
+
+```bash
+npx memo-architect upgrade            # the latest on npm
+npx memo-architect upgrade 0.16.0     # a named release
+npx memo-architect upgrade --dry-run  # show the target, change nothing
+npx memo-architect upgrade --sync-only  # align package.json to the Architect already installed
+```
+
+It installs `@memoarchitect/architect`, `tools` and `ontology` at that release (or at the
+tools and ontology versions Architect declares, when they differ), pins all three in
+`package.json`, runs `npm install` and regenerates `memo.lock.yaml` with the new release.
+Every `memo` and `memo-architect` command also warns when an installed package falls outside
+the range `package.json` pins, and names `npm install` and `memo-architect upgrade` as the
+fixes; a linked workspace checkout is not warned about.
+
+Then run `npx memo validate .` and read the [release notes](../release-notes.md) if the
+ontology changed. Use `npm ci` in CI so installs match the lock file.
+
 ## Check the resolved vocabulary
 
 ```bash
