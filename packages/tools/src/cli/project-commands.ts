@@ -34,6 +34,8 @@ import { importSysandCommand } from '../commands/import-sysand.js';
 import { importKpar, inspectKpar } from '../commands/package.js';
 import { importOwlCommand } from '../commands/import-owl.js';
 import { lockCommand } from '../commands/lock.js';
+import { upgradeCommand } from '../commands/upgrade.js';
+import { warnOnPinMismatch } from '../pin-check.js';
 import { installCommand } from '../commands/install.js';
 import { createPackageCommand } from '../commands/create-package.js';
 import { askCommand } from '../commands/ask.js';
@@ -226,6 +228,16 @@ export function registerProjectCommands(program: Command): void {
         .description('Regenerate memo.lock.yaml from the current ontology')
         .action(async () => {
             await lockCommand();
+        });
+
+    program
+        .command('upgrade')
+        .description('Move the project to one release of the architect, tools and ontology packages, then re-lock')
+        .argument('[version]', 'Release to install; the latest on npm when omitted')
+        .option('--sync-only', 'Align package.json to the installed Architect instead of installing a release')
+        .option('--dry-run', 'Print what would change and change nothing')
+        .action(async (version: string | undefined, options: { syncOnly?: boolean; dryRun?: boolean }) => {
+            await upgradeCommand(version, options);
         });
 
     // ─── memo ontology ──────────────────────────────────────────────────────────
@@ -680,5 +692,7 @@ export function registerProjectCommands(program: Command): void {
     }
     program.hook('preAction', (_program, action) => {
         setCommandLineToolchain(toolchainOverridesFromCliOptions(action.opts(), defaultRegistry));
+        // `upgrade` and `install` are how the mismatch is fixed; they need no warning about it.
+        if (!['upgrade', 'install'].includes(action.name())) warnOnPinMismatch();
     });
 }

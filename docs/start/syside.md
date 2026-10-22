@@ -70,6 +70,13 @@ machines that cannot reach its servers. Put the `export` in your shell profile
 (`~/.bashrc` or `~/.zshrc`) so every terminal, and every tool started from one,
 has it.
 
+A profile file is read only by shells. `npm run` scripts started from an editor task, a
+desktop launcher or a background service inherit little of it, and SysIDE then falls back
+to the system keyring and may open a keychain dialog even though
+`echo $SYSIDE_LICENSE_KEY` works in your terminal. For those launches, export the key in
+the process that starts MEMO, or in a git-ignored `.env` that your launch script loads
+before it starts `memo-architect`.
+
 ### Check the install
 
 ```bash

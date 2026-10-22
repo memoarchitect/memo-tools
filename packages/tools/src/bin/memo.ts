@@ -38,6 +38,7 @@ import { Stage1RejectedError } from '../toolchain/project-model.js';
 import { ToolchainNotConfiguredError } from '../toolchain/effective.js';
 import { ProjectNamesUserSettingError } from '../toolchain/ownership.js';
 import { setCommandLineToolchain } from '../model/config-loader.js';
+import { warnOnPinMismatch } from '../pin-check.js';
 import { toolchainOverridesFromCliOptions } from '../toolchain/schema.js';
 
 const program = new Command();
@@ -234,6 +235,8 @@ for (const command of allCommands(program)) {
 }
 program.hook('preAction', (_program, action) => {
     setCommandLineToolchain(toolchainOverridesFromCliOptions(action.opts(), defaultRegistry));
+    // `upgrade` and `install` are how the mismatch is fixed; they need no warning about it.
+    if (!['upgrade', 'install'].includes(action.name())) warnOnPinMismatch();
 });
 
 // A stage 1 that rejects the source is a verdict on the model, not a crash:

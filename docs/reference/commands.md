@@ -50,6 +50,7 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 | `memo-architect convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion of an old-layout project to the native `model/catalog/` layout; refuses collisions. Guide: [Convert an Old Project](../tasks/convert.md). |
 | `memo-architect export …` | Export JSON, Graphviz DOT, or DHF artifacts. |
 | `memo-architect install [source]`, `lock` | Install and lock packages. |
+| `memo-architect upgrade [version]` | Install one release of the architect, tools and ontology packages, pin all three, and re-lock. `--sync-only` aligns `package.json` to the installed Architect; `--dry-run` changes nothing. |
 | `memo-architect ontology …` | Inspect or export the resolved ontology. |
 | `memo-architect import …` | Import CSV, EA, Cameo, SysAnd or OWL data, or an export from another system (`import source <file> --system <name> [--format csv\|reqif\|trace-matrix]`, which diffs against the last import and writes `model/imports/<system>.sysml`), or a KPAR archive (`import kpar <archive>`; `--inspect` only reads it, and imports nothing). |
 | `memo-architect ask <question>`, `generate <description>`, `mcp [init]` | The AI helpers: a model-grounded question, SysML from natural language, MCP for coding tools. |
