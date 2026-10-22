@@ -508,7 +508,9 @@ export async function updateViewExpose(
  */
 export function placeDisplayStatements(declaration: string, statements: string, indent: string): string {
     let at = -1;
-    for (const other of declaration.matchAll(/^[ \t]*attribute\s+:>>[^;]*;[ \t]*\r?\n/gm)) at = other.index + other[0].length;
+    // Only the view's own statements count: one in a part nested in the view (its selection query, say) is that
+    // part's, and a statement placed after it would land inside the part.
+    for (const other of declaration.matchAll(new RegExp(`^${indent}attribute\\s+:>>[^;]*;[ \\t]*\\r?\\n`, 'gm'))) at = other.index + other[0].length;
     if (at >= 0) return `${declaration.slice(0, at)}${statements}\n${declaration.slice(at)}`;
     const close = declaration.lastIndexOf('}');
     const before = declaration.slice(0, close).replace(/[ \t]*$/, '');
@@ -549,7 +551,8 @@ export async function updateViewDisplay(
     const indent = ' '.repeat((node.start - (source.lastIndexOf('\n', node.start - 1) + 1)) + 4);
     const names = Object.keys(display).filter(name => /^\w+$/.test(name));
     for (const name of names) {
-        declaration = declaration.replace(new RegExp(`^[ \\t]*attribute\\s+:>>\\s*${name}\\s*=\\s*[^;]+;[ \\t]*\\r?\\n`, 'm'), '');
+        // A value may be a quoted string with a `;` inside it, so the statement ends at the first `;` outside quotes.
+        declaration = declaration.replace(new RegExp(`^${indent}attribute\\s+:>>\\s*${name}\\s*=\\s*(?:"(?:[^"\\\\]|\\\\.)*"|[^;"])+;[ \\t]*\\r?\\n`, 'm'), '');
     }
     const statements = names.map(name => `${indent}attribute :>> ${name} = ${display[name]};`).join('\n');
     declaration = placeDisplayStatements(declaration, statements, indent);
