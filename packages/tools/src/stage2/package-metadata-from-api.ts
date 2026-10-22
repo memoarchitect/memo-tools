@@ -58,6 +58,14 @@ interface Declared {
  * "Available" comes from locators; "selected" comes from the import closure
  * (`selectedRootDirs`) and nothing else.
  */
+/**
+ * A descriptor whose name is still a `{{token}}` is a skeleton that `new package` fills in (the
+ * ontology ships one as `extensions/template`), not a package a project can select.
+ */
+export function isUnfilledTemplate(name: string | undefined): boolean {
+    return name !== undefined && /\{\{[^}]*\}\}/.test(name);
+}
+
 export function apiPackageMetadata(
     api: ApiModel,
     projectRoot: string,
@@ -73,7 +81,7 @@ export function apiPackageMetadata(
     const result: OntologyPackageInfo[] = [];
     for (const root of roots) {
         const { path, manifest } = readPackageManifest(root.dir);
-        if (!path) continue;
+        if (!path || isUnfilledTemplate(manifest.name)) continue;
         const sysmlDir = manifest.sysmlDir ? resolve(root.dir, manifest.sysmlDir) : join(root.dir, 'sysml');
         const mine = definitions.filter(d => within(d.file, sysmlDir));
         const rootUsages = usages.filter(u => within(fileOf(u), sysmlDir));

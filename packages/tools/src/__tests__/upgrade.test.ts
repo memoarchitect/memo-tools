@@ -52,3 +52,13 @@ describe('pinned versus installed', () => {
         expect(pinMismatches(root)).toEqual([{ name: '@memoarchitect/tools', pinned: '^0.16.0', installed: '0.13.2' }]);
     });
 });
+
+import { isUnfilledTemplate } from '../stage2/package-metadata-from-api';
+
+describe('the package list', () => {
+    it('leaves out a skeleton whose name is still a template token', () => {
+        expect(isUnfilledTemplate('{{name}}')).toBe(true);
+        expect(isUnfilledTemplate('@memoarchitect/extension-aadl')).toBe(false);
+        expect(isUnfilledTemplate(undefined)).toBe(false);
+    });
+});
