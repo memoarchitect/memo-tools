@@ -213,5 +213,16 @@ describe('KindRegistry', () => {
             namespace: ['sysml'],
         });
         expect(registry.has('FirmwareComponent')).toBe(false);
+
+        // the project's own definitions are marked, so a type picker can offer only the ontology's
+        const dtos = extended.toDefinitionDTOs();
+        expect(dtos.find(kind => kind.name === 'FirmwareComponent')?.origin).toBe('project');
+        expect(dtos.find(kind => kind.name === 'SoftwareComponent')?.origin).toBe('ontology');
+    });
+
+    it('marks a kind the ontology declares as ontology in the serialized definitions', () => {
+        const registry = new KindRegistry();
+        registry.register({ name: 'Hazard', label: 'Hazard', layer: 'safety', sysmlConstruct: 'part def' });
+        expect(registry.toDefinitionDTOs()[0].origin).toBe('ontology');
     });
 });
