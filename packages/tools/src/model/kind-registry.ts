@@ -83,6 +83,8 @@ export interface KindRegistryEntry {
     qualifiedName?: string;
     /** Source file this definition was declared in. */
     sourceFile?: string;
+    /** `project` for a definition the project itself declares (see `withProjectExtensionsFromApi`); the ontology's own are unmarked. */
+    origin?: 'project';
     /**
      * Names of the attributes the definition's own body declares.
      *
@@ -289,7 +291,7 @@ export class KindRegistry {
         const discovered = new KindRegistry();
         const { kinds, views } = apiKindEntries(api, fileOf, 'project');
         for (const view of views) discovered.registerViewDefinition(view.name, view.defaults, view.superType);
-        for (const kind of kinds) discovered.register(kind);
+        for (const kind of kinds) discovered.register({ ...kind, origin: 'project' });
         return this.extendedWith(discovered);
     }
 
@@ -373,6 +375,7 @@ export class KindRegistry {
             additionalSuperTypes: entry.additionalSuperTypes,
             isAbstract: entry.isAbstract,
             namespace: entry.namespace,
+            origin: entry.origin ?? 'ontology',
         }));
     }
 
@@ -514,7 +517,8 @@ export class KindRegistry {
         const { kinds, views, viewpoints } = apiKindEntries(api, fileOf, role, include);
         for (const view of views) this.registerViewDefinition(view.name, view.defaults, view.superType);
         for (const viewpoint of viewpoints) this.registerViewpoint(viewpoint.name, viewpoint.stakeholders);
-        for (const kind of kinds) this.register(kind);
+        // What the project itself declares is marked as such, so a picker can offer the ontology's own types.
+        for (const kind of kinds) this.register(role === 'project' ? { ...kind, origin: 'project' } : kind);
     }
 
 }

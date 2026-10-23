@@ -102,6 +102,12 @@ export interface KindDefinitionDTO {
      * Example: ["assurance", "safety_risk", "analysis"].
      */
     namespace?: string[];
+    /**
+     * Where the definition comes from. `ontology` kinds belong to the MEMO ontology and are what a type
+     * picker offers; `project` kinds are the project's own definitions, which specialize one of those.
+     * Absent on a registry built before this was recorded: read it as `ontology` only if you must.
+     */
+    origin?: 'ontology' | 'project';
 }
 
 /** Both ontology registries in serializable form, as shipped to the client. */
