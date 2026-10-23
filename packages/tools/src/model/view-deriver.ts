@@ -375,7 +375,7 @@ function viewpointStakeholders(
 ): string[] {
     const leaf = (name: string) => name.split(/::|\./).pop() ?? name;
     const names = authored
-        ? splitList(authored.attributes['stakeholders'])
+        ? splitList(authored.attributes['memoStakeholders'])
         : kindRegistry?.getViewpointStakeholders(leaf(ref)) ?? [];
     return [...new Set(names.map(leaf))];
 }
