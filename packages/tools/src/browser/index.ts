@@ -17,6 +17,7 @@ export * from '../model/view-deriver.js';
 export * from '../model/view-kinds.js';
 export * from '../analysis/dsm.js';
 export * from '../analysis/impact.js';
+export * from '../analysis/interfaces-between.js';
 export * from '../analysis/suspect-links.js';
 export * from '../model/variability.js';
 export * from '../model/model-diff.js';
