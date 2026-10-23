@@ -161,7 +161,7 @@ export function apiKindEntries(
             }
             if (type === 'ViewpointUsage') {
                 if (!memberName) continue;
-                const stakeholders = (apiDefinitionFacts(api, member).attributes['stakeholders'] ?? '')
+                const stakeholders = (apiDefinitionFacts(api, member).attributes['memoStakeholders'] ?? '')
                     .split(',').map(name => name.trim()).filter(Boolean);
                 viewpoints.push({ name: memberName, stakeholders });
                 continue;
