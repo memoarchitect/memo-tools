@@ -50,14 +50,17 @@ describe('memo toolchain probe', () => {
         const packager = probe.roles.find(r => r.role === 'package')!;
         expect(packager.availability).toMatchObject({ available: true, transport: 'in-process' });
         expect(packager.source).not.toBe('unset');
-        // MEMO has no compiler of its own, so nothing fills the compiler roles unnamed.
-        for (const role of probe.roles.filter(r => r.role !== 'package')) expect(role.source).toBe('unset');
+        // Nothing names a compiler, so the default fills the compiler roles.
+        for (const role of probe.roles.filter(r => r.role !== 'package')) {
+            expect(role.source).toBe('default');
+            expect(role.provider).toBe('opensysml');
+        }
     });
 
-    it('reports a role the settings do not name as not configured, saying what to set', () => {
+    it('reports a packager nobody names as not configured, saying what to set', () => {
         const root = project();
         const probe = probeToolchain({ config: { modelName: 'p' }, projectDir: root, registry });
-        for (const role of probe.roles) {
+        for (const role of probe.roles.filter(r => r.role === 'package')) {
             expect(role.source).toBe('unset');
             expect(role.availability.available).toBe(false);
             expect(role.availability.detail).toMatch(/Compiler control|Set toolchain\./);

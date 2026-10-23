@@ -16,18 +16,27 @@ import {
     type ProviderRole,
 } from './registry.js';
 
+/**
+ * The compiler a project, a user and the command line all leave unnamed. The open-source one, so a clone
+ * validates without a licence; SysIDE is chosen by saying so.
+ */
+export const DEFAULT_COMPILER = 'opensysml';
+
+/** The roles the compiler setting fills, so the default applies to them and never to packaging. */
+const COMPILED_ROLES: readonly ProviderRole[] = ['validator', 'lowering'];
+
 export interface RoleSelection {
     role: ProviderRole;
     provider: string;
     /** Where the value came from — useful in `memo compile --effective`. */
-    source: 'settings' | 'compiler';
+    source: 'settings' | 'compiler' | 'default';
 }
 
 export interface EffectiveToolchain {
     /**
-     * The provider of each role, as the settings name it. Reading a role the
-     * settings leave unset throws `ToolchainNotConfiguredError`: there is no
-     * default to fall back on.
+     * The provider of each role, as the settings name it. The validator and the
+     * lowering default to `DEFAULT_COMPILER`; reading a packager the settings
+     * leave unset throws `ToolchainNotConfiguredError`.
      */
     readonly validator: string;
     readonly lowering: string;
@@ -62,8 +71,9 @@ export class ToolchainNotConfiguredError extends Error {
 /**
  * Resolve every role from the settings.
  *
- * Precedence is the role's own key, then `toolchain.compiler`. There is no
- * default: a role neither names is unconfigured, and reading it is an error.
+ * Precedence is the role's own key, then `toolchain.compiler`, then
+ * `DEFAULT_COMPILER` for the roles it fills. Packaging has no default: a
+ * packager nobody names is unconfigured, and reading it is an error.
  *
  * The alias fills both roles that split out of it — but only where the named
  * provider is registered for the role. A role the named compiler cannot fill
@@ -80,6 +90,10 @@ export function resolveToolchain(
     const selections: RoleSelection[] = [];
     const aliasCannotFill: ProviderRole[] = [];
 
+    // The default stands in only for a settings file that names no compiler role at all: one that names a
+    // validator and no lowering has chosen, and is not given the other half from somewhere else.
+    const namesCompiler = alias !== undefined || COMPILED_ROLES.some(role => readString(toolchain, ROLE_SETTING[role]) !== undefined);
+
     for (const role of PROVIDER_ROLES) {
         const explicit = readString(toolchain, ROLE_SETTING[role]);
         // The alias only ever meant "the thing that compiles", so it is offered
@@ -90,14 +104,16 @@ export function resolveToolchain(
         if (offered !== undefined && aliased === undefined && explicit === undefined) {
             aliasCannotFill.push(role);
         }
-        const provider = explicit ?? aliased;
+        const fallback = !namesCompiler && COMPILED_ROLES.includes(role) && registry.has(role, DEFAULT_COMPILER)
+            ? DEFAULT_COMPILER : undefined;
+        const provider = explicit ?? aliased ?? fallback;
         if (!provider) continue;
         if (!registry.has(role, provider)) {
             // Resolving through the registry produces the message listing what
             // *is* registered, which is the only correct roster.
             registry.descriptor(role, provider);
         }
-        selections.push({ role, provider, source: explicit ? 'settings' : 'compiler' });
+        selections.push({ role, provider, source: explicit ? 'settings' : aliased ? 'compiler' : 'default' });
     }
 
     if (alias !== undefined) {

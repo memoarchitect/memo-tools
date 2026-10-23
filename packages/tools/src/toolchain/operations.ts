@@ -203,7 +203,7 @@ export interface RoleProbe {
     /** The provider the settings name, or `(not configured)`. */
     provider: string;
     /** Where the setting came from; `unset` when the settings name none. */
-    source: 'settings' | 'compiler' | 'unset';
+    source: 'settings' | 'compiler' | 'default' | 'unset';
     availability: Availability;
 }
 
