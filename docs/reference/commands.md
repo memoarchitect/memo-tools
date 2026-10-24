@@ -46,7 +46,7 @@ authority on whether SysML is valid; `memo conformance` graded MEMO's own compil
 |---|---|
 | `memo-architect dev`, `build` | Open the workbench, or build a static viewer. |
 | `memo-architect --example <id>`, `--list` | Run a bundled example (`--list` shows them all with their commands); `memo-architect examples` is the same list. |
-| `memo-architect init [name]` | Create a new project from the one project skeleton. It names MEMO's recommended compiler as the project's compiler. |
+| `memo-architect init [name]` | Create a new project from the one project skeleton. It names no compiler: your settings file (`memo-architect config set compiler <id>`) or MEMO's default decides, until the project names one. |
 | `memo-architect config set\|get\|unset` | Choose the compiler: for yourself, or with `--project` for everyone on the project. |
 | `memo-architect element …` | Author one element in source and recompile. |
 | `memo-architect convert [dir]` | Plan (default) or apply (`--write`) a one-time conversion of an old-layout project to the native `model/catalog/` layout; refuses collisions. Guide: [Convert an Old Project](../tasks/convert.md). |

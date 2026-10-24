@@ -14,21 +14,6 @@ import { createLockFile } from '../lock.js';
 import { scaffoldAnalysisSamples } from '../analysis-starters.js';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
-import { RECOMMENDED_COMPILER } from '../toolchain/providers/recommended.js';
-
-/**
- * The compiler a new project names: the recommended one (`toolchain/providers/recommended.ts`,
- * the single place to change it). It is the project's
- * choice, written into its own settings file so everyone who clones it runs the
- * same one; a user's own settings file is the default only for a project
- * that names none, and one run overrides the project with the variable or a flag. A project that
- * already names a compiler, or both roles, keeps its own.
- */
-const NEW_PROJECT_COMPILER = RECOMMENDED_COMPILER;
-
-function namesACompiler(toolchain: Record<string, unknown> | undefined): boolean {
-    return Boolean(toolchain && (toolchain.compiler || (toolchain.validator && toolchain.lowering)));
-}
 
 export interface AvailableOntology {
     name: string;
@@ -230,11 +215,6 @@ export async function initCommand(name: string | undefined, options: InitOptions
         ? descriptor.entrypoint.trim()
         : 'model/methodology/project.sysml';
     descriptor.entrypoint = entrypointRel;
-    if (!namesACompiler(descriptor.toolchain)) {
-        descriptor.toolchain = { ...(descriptor.toolchain ?? {}), compiler: NEW_PROJECT_COMPILER };
-        console.log(chalk.gray(`  Compiler: ${NEW_PROJECT_COMPILER} (in memo.package.yaml; change it in Architect: the Compiler control, or memo-architect config set compiler <id>)`));
-    }
-
     if (!existsSync(resolve(target.projectDir, entrypointRel))) {
         console.error(chalk.red(
             `❌ The project skeleton produced no ${entrypointRel}. `
