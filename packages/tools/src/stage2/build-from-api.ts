@@ -666,6 +666,7 @@ class ElementBuilder {
             case 'string': return value.value;
             case 'number': return renderNumber(value.value, value.rational);
             case 'boolean': return String(value.value);
+            case 'quantity': return `${renderNumber(value.amount, false)} [${value.unit}]`;
             case 'sequence': return value.items.map(item => this.render(item)).filter(s => s.length > 0).join(', ');
             case 'reference': {
                 // An enumeration literal is `Kind::member`, the one spelling MEMO
