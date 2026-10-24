@@ -46,7 +46,8 @@ describe.runIf(compilerConfigured && examplesPresent)('the stakeholders a viewpo
             .toEqual(['riskViewpoint', 'uiLayoutViewpoint', 'usabilityViewpoint']);
         expect(viewpointsForRole(all, 'projectLead').map(vp => vp.id)).toEqual(['vpReview']);
         expect(viewpointRoles(all)).toEqual([
-            'projectLead', 'safetyEngineer', 'softwareArchitect', 'usabilityEngineer', 'verificationEngineer',
+            // systemArchitect: the example's own overview view conforms to the logical architecture viewpoint.
+            'projectLead', 'safetyEngineer', 'softwareArchitect', 'systemArchitect', 'usabilityEngineer', 'verificationEngineer',
         ]);
     });
 });

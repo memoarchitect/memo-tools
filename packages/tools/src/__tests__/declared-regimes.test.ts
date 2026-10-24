@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { readDeclaredRegimes } from '../dhf/standards-report.js';
 import type { MemoModel } from '../model/semantic.js';
 
-// One approval per jurisdiction (plan O6): a regulated device states its own regime, and the method
-// binding's `regulatoryRegime` is read only when the model declares no device.
+// One approval per jurisdiction (plan O6): a regulated device states its own regime. The method binding no
+// longer carries one.
 
 const element = (id: string, kind: string, attributes: Record<string, string>) => ({ id, name: id, kind, attributes });
 const model = (...elements: ReturnType<typeof element>[]): MemoModel => {
@@ -11,19 +11,17 @@ const model = (...elements: ReturnType<typeof element>[]): MemoModel => {
     for (const e of elements) byKind.set(e.kind, [...(byKind.get(e.kind) ?? []), e]);
     return { elements: new Map(elements.map(e => [e.id, e])), elementsByKind: byKind } as unknown as MemoModel;
 };
-const binding = (regimes: string) => element('binding', 'ModelMethodBinding', { regulatoryRegime: regimes });
 const device = (id: string, jurisdiction: string, kind = 'RegulatedDevice') => element(id, kind, { jurisdiction });
 
 describe('the regimes a model declares', () => {
-    it('reads each device\'s jurisdiction, and ignores the binding with a record of what it ignored', () => {
-        const declared = readDeclaredRegimes(model(device('a', 'RegulatoryRegimeKind::MDR'), device('b', 'RegulatoryRegimeKind::FDA_510k'), binding('RegulatoryRegimeKind::CE')));
-        expect(declared).toEqual({ regimes: ['MDR', 'FDA_510k'], rejected: [], source: 'devices', ignoredBinding: ['CE'] });
+    it('reads each device\'s jurisdiction', () => {
+        const declared = readDeclaredRegimes(model(device('a', 'RegulatoryRegimeKind::MDR'), device('b', 'RegulatoryRegimeKind::FDA_510k')));
+        expect(declared).toEqual({ regimes: ['MDR', 'FDA_510k'], rejected: [], source: 'devices' });
     });
 
-    it('falls back to the binding, marked as such, when there is no device', () => {
-        expect(readDeclaredRegimes(model(binding('RegulatoryRegimeKind::CE, RegulatoryRegimeKind::MDR')))).toMatchObject({
-            regimes: ['CE', 'MDR'], source: 'binding', ignoredBinding: [],
-        });
+    it('declares nothing when there is no device, whatever a binding says', () => {
+        const stale = element('binding', 'ModelMethodBinding', { regulatoryRegime: 'RegulatoryRegimeKind::CE' });
+        expect(readDeclaredRegimes(model(stale))).toEqual({ regimes: [], rejected: [], source: 'none' });
         expect(readDeclaredRegimes(model())).toMatchObject({ regimes: [], source: 'none' });
     });
 

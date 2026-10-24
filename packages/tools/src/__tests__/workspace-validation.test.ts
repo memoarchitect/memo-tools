@@ -93,20 +93,22 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
         const unknown = selectWorkspace(e0.model, membership, 'nope');
         expect(unknown).toMatchObject({ ok: false });
         expect((unknown as { message: string }).message).toMatch(/Manipulator System \(system\)/);
-        const dsm = await compiledExample('nested-architecture-dsm');
-        const none = selectWorkspace(dsm.model, computeWorkspaceMembership(dsm.model, dsm.registries!), 'anything');
+        // The example declares a System now; take its definition away to get a model without one.
+        const none = await withExample({ 'model/catalog/nested_architecture_dsm_system.sysml': 'package memo_examples_nested_architecture_dsm_system {}' },
+            dsm => selectWorkspace(dsm.model, computeWorkspaceMembership(dsm.model, dsm.registries!), 'anything'), 'nested-architecture-dsm');
         expect(none).toMatchObject({ ok: false });
         expect((none as { message: string }).message).toMatch(/declares no System/);
     }, 180_000);
 
     it('requires the model to declare a System (CR-ONT-084)', async () => {
-        const fires = async (name: string) => {
-            const project = await compiledExample(name);
-            const result = validateModel(project.model, collectApiConstraints(project.api), project.registries!.kindRegistry);
-            return result.violations.some(v => v.ruleId === 'CR-ONT-084');
-        };
-        expect(await fires('robot-cell-family')).toBe(false);
-        expect(await fires('nested-architecture-dsm')).toBe(true);
+        const fires = (project: ProjectModel) =>
+            validateModel(project.model, collectApiConstraints(project.api), project.registries!.kindRegistry)
+                .violations.some(v => v.ruleId === 'CR-ONT-084');
+        expect(fires(await compiledExample('robot-cell-family'))).toBe(false);
+        expect(fires(await compiledExample('nested-architecture-dsm'))).toBe(false);
+        // Without its System definition the same model fires the rule.
+        expect(await withExample({ 'model/catalog/nested_architecture_dsm_system.sysml': 'package memo_examples_nested_architecture_dsm_system {}' },
+            fires, 'nested-architecture-dsm')).toBe(true);
     }, 180_000);
 
     it('scopes the DHF query context to the workspace', async () => {

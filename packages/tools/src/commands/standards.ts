@@ -104,11 +104,6 @@ export async function standardsCheckCommand(options: StandardsCheckOptions = {})
     const { model, registries, projectRoot, native } = await loadProjectModel(cwd);
 
     const declared = readDeclaredRegimes(model, registries?.kindRegistry);
-    if (declared.ignoredBinding.length > 0) {
-        console.error(chalk.yellow(`⚠ The model declares regulated devices, so its regulatoryRegime (${declared.ignoredBinding.join(', ')}) is ignored: each device states its own jurisdiction.`));
-    } else if (declared.source === 'binding') {
-        console.error(chalk.yellow('⚠ regulatoryRegime on the method binding is deprecated: declare a RegulatedDevice with a jurisdiction for each approval.'));
-    }
     const flagged = (options.regime ?? []).filter(Boolean);
 
     const full = buildStandardsReport({ model, registries, projectRoot, regimeOverride: flagged });
@@ -217,12 +212,12 @@ function printReport(report: StandardsReport, ctx: PrintContext): void {
     // Which regimes, and where they came from. A report scoped to a market the
     // reader did not expect is worse than one that says it is scoped to none.
     if (report.regimes.length > 0) {
-        const origin = report.regimeSource === 'flag' ? '--regime' : 'ModelMethodBinding';
+        const origin = report.regimeSource === 'flag' ? '--regime' : 'RegulatedDevice';
         console.log(chalk.gray(`Regimes: ${report.regimes.join(', ')} (from ${origin})`));
     } else {
         console.log(chalk.yellow(
             'Regimes: none declared. Every standard with regime standing is reported. '
-            + 'Declare `regulatoryRegime` on the ModelMethodBinding to scope this to your submission.'));
+            + 'Declare a `RegulatedDevice` with a jurisdiction for each approval to scope this to your submission.'));
     }
     console.log('');
 
@@ -232,7 +227,7 @@ function printReport(report: StandardsReport, ctx: PrintContext): void {
     }
     for (const entry of ctx.declaredRejected) {
         console.log(chalk.yellow(
-            `  ⚠ regulatoryRegime entry "${entry}" is not a qualified member and was ignored. `
+            `  ⚠ jurisdiction "${entry}" is not a qualified member and was ignored. `
             + `Write RegulatoryRegimeKind::${entry}.`));
     }
     for (const bad of report.unknownRegimes) {

@@ -198,11 +198,13 @@ describe('regime scoping', () => {
         expect(report.standards.length).toBe(library.standards.size - report.unrequired.length);
     });
 
-    it('reads the project declaration only in its qualified spelling', () => {
+    it('reads a device\'s jurisdiction only in its qualified spelling', () => {
         const declared = readDeclaredRegimes(model(
-            [element('binding', 'ProjectMethodBinding', {
-                regulatoryRegime: 'RegulatoryRegimeKind::CE, MDR, RegulatoryRegimeKind::FDA_510k',
-            })],
+            [
+                element('a', 'RegulatedDevice', { jurisdiction: 'RegulatoryRegimeKind::CE' }),
+                element('b', 'RegulatedDevice', { jurisdiction: 'MDR' }),
+                element('c', 'RegulatedDevice', { jurisdiction: 'RegulatoryRegimeKind::FDA_510k' }),
+            ],
             [],
         ));
         // `MDR` unqualified is not a synonym — one spelling, and the rejected
