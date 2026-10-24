@@ -1,11 +1,11 @@
 {
   "project": "ui-screen-regions",
   "totals": {
-    "files": 23,
-    "elements": 66,
-    "definitions": 0,
-    "relationships": 109,
-    "packages": 23,
+    "files": 24,
+    "elements": 77,
+    "definitions": 1,
+    "relationships": 121,
+    "packages": 24,
     "parseErrors": 0,
     "builderFindings": 0
   },
@@ -16,10 +16,11 @@
       "kinds": {
         "SystemFunction": 6
       },
-      "relationships": 17,
+      "relationships": 19,
       "relationshipTypes": {
         "composes": 5,
-        "satisfiedBy": 12
+        "satisfiedBy": 12,
+        "succession": 2
       },
       "packages": 1,
       "parseErrors": 0,
@@ -130,14 +131,18 @@
       "builderFindings": 0
     },
     "model/catalog/assurance/safety_risk/risk.sysml": {
-      "elements": 10,
+      "elements": 20,
       "definitions": 0,
       "kinds": {
+        "Harm": 5,
         "Hazard": 5,
+        "HazardousSituation": 5,
         "RiskControlMeasure": 5
       },
-      "relationships": 0,
-      "relationshipTypes": {},
+      "relationships": 10,
+      "relationshipTypes": {
+        "tracesRisk": 10
+      },
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -153,18 +158,6 @@
       "relationshipTypes": {
         "verifiedBy": 18
       },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -188,6 +181,18 @@
         "producesEvidence": 3,
         "rationaleFor": 1
       },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/ui_screen_regions_system.sysml": {
+      "elements": 1,
+      "definitions": 1,
+      "kinds": {
+        "System": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -297,6 +302,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

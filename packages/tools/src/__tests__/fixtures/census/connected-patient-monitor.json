@@ -2,8 +2,8 @@
   "project": "connected-patient-monitor",
   "totals": {
     "files": 4,
-    "elements": 11,
-    "definitions": 0,
+    "elements": 12,
+    "definitions": 1,
     "relationships": 5,
     "packages": 4,
     "parseErrors": 0,
@@ -11,12 +11,13 @@
   },
   "files": {
     "model/catalog/connected_patient_monitor.sysml": {
-      "elements": 9,
-      "definitions": 0,
+      "elements": 10,
+      "definitions": 1,
       "kinds": {
         "LogicalComponent": 3,
         "LogicalExchangeItem": 1,
         "LogicalPort": 4,
+        "System": 1,
         "TrustBoundary": 1
       },
       "relationships": 5,
@@ -26,18 +27,6 @@
         "interface": 1,
         "logicalConnector": 2
       },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -57,6 +46,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

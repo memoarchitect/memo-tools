@@ -2,44 +2,37 @@
   "project": "software-only-medical-device",
   "totals": {
     "files": 4,
-    "elements": 9,
-    "definitions": 0,
-    "relationships": 5,
+    "elements": 13,
+    "definitions": 1,
+    "relationships": 9,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
     "model/catalog/software_only_medical_device.sysml": {
-      "elements": 7,
-      "definitions": 0,
+      "elements": 11,
+      "definitions": 1,
       "kinds": {
         "Algorithm": 1,
         "CloudService": 1,
+        "Need": 1,
         "OTSSoftwareModule": 1,
         "ProcessingNode": 1,
+        "Requirement": 2,
         "SoftwareDeploymentUnit": 1,
         "SoftwareModule": 1,
-        "SoftwareSystem": 1
+        "SoftwareSystem": 1,
+        "System": 1
       },
-      "relationships": 5,
+      "relationships": 9,
       "relationshipTypes": {
         "dependency": 2,
         "deploysTo": 1,
+        "derivesFrom": 2,
         "hostedBy": 1,
-        "realizes": 1
+        "realizes": 1,
+        "satisfiedBy": 2
       },
       "packages": 1,
       "parseErrors": 0,
@@ -60,6 +53,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

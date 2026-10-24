@@ -2,35 +2,24 @@
   "project": "surgical-robot",
   "totals": {
     "files": 4,
-    "elements": 10,
-    "definitions": 0,
+    "elements": 11,
+    "definitions": 1,
     "relationships": 3,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
     "model/catalog/surgical_robot.sysml": {
-      "elements": 8,
-      "definitions": 0,
+      "elements": 9,
+      "definitions": 1,
       "kinds": {
         "Actuator": 1,
         "LogicalComponent": 3,
         "MechanicalPart": 1,
         "OperatorInterfaceElement": 1,
-        "PhysicalPort": 2
+        "PhysicalPort": 2,
+        "System": 1
       },
       "relationships": 3,
       "relationshipTypes": {
@@ -57,6 +46,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

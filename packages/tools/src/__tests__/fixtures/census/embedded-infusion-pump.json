@@ -2,45 +2,43 @@
   "project": "embedded-infusion-pump",
   "totals": {
     "files": 4,
-    "elements": 8,
-    "definitions": 0,
-    "relationships": 8,
+    "elements": 19,
+    "definitions": 1,
+    "relationships": 20,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
     "model/catalog/embedded_infusion_pump.sysml": {
-      "elements": 6,
-      "definitions": 0,
+      "elements": 17,
+      "definitions": 1,
       "kinds": {
+        "MemoEvidence": 3,
+        "Need": 1,
         "ProcessingNode": 1,
+        "Requirement": 2,
         "RuntimeEnvironment": 1,
         "SoftwareComponent": 1,
         "SoftwareDeploymentUnit": 1,
-        "SoftwareModule": 2
+        "SoftwareModule": 3,
+        "System": 1,
+        "VerificationCase": 3
       },
-      "relationships": 8,
+      "relationships": 20,
       "relationshipTypes": {
         "buildsInto": 1,
+        "composes": 1,
         "dependency": 2,
         "deploysTo": 1,
+        "derivesFrom": 2,
         "hostedBy": 1,
+        "producesEvidence": 3,
         "providesEnvironment": 1,
-        "realizes": 2
+        "realizes": 2,
+        "satisfiedBy": 3,
+        "verifiedBy": 3
       },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -60,6 +58,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

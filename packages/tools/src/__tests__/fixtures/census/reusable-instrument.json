@@ -2,43 +2,34 @@
   "project": "reusable-instrument",
   "totals": {
     "files": 4,
-    "elements": 9,
-    "definitions": 0,
-    "relationships": 8,
+    "elements": 13,
+    "definitions": 1,
+    "relationships": 11,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
     "model/catalog/reusable_instrument.sysml": {
-      "elements": 7,
-      "definitions": 0,
+      "elements": 11,
+      "definitions": 1,
       "kinds": {
         "OperationalWorkflow": 1,
         "OperativeAction": 3,
         "OperativeScenario": 1,
+        "System": 1,
         "UseCase": 1,
-        "User": 1
+        "User": 1,
+        "ValidationCase": 3
       },
-      "relationships": 8,
+      "relationships": 11,
       "relationshipTypes": {
         "composes": 1,
         "participatesIn": 1,
         "performs": 3,
         "realizesUseCase": 1,
-        "succession": 2
+        "succession": 2,
+        "validates": 3
       },
       "packages": 1,
       "parseErrors": 0,
@@ -59,6 +50,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

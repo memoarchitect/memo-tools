@@ -2,9 +2,9 @@
   "project": "robot-cell-family",
   "totals": {
     "files": 10,
-    "elements": 46,
+    "elements": 47,
     "definitions": 12,
-    "relationships": 41,
+    "relationships": 45,
     "packages": 10,
     "parseErrors": 0,
     "builderFindings": 0
@@ -73,8 +73,8 @@
       "definitions": 2,
       "kinds": {
         "GraspEventPort": 2,
-        "PointCloudPort": 2,
-        "Interface": 2
+        "Interface": 2,
+        "PointCloudPort": 2
       },
       "relationships": 0,
       "relationshipTypes": {},
@@ -88,8 +88,8 @@
       "kinds": {
         "ManipulatorSystem": 1,
         "NavigationSystem": 1,
-        "RoboticCell": 1,
         "PerceptionSystem": 1,
+        "RoboticCell": 1,
         "SystemOfSystems": 1
       },
       "relationships": 5,
@@ -118,20 +118,21 @@
       "builderFindings": 0
     },
     "model/systems/manipulation/manipulation_system.sysml": {
-      "elements": 5,
+      "elements": 6,
       "definitions": 1,
       "kinds": {
         "GraspEventPort": 1,
-        "LogicalComponent": 1,
+        "LogicalComponent": 2,
         "System": 1,
         "SystemFunction": 1,
         "UseCase": 1
       },
-      "relationships": 4,
+      "relationships": 6,
       "relationshipTypes": {
         "allocatedTo": 1,
-        "composes": 1,
+        "composes": 2,
         "hasSubject": 1,
+        "logicalConnector": 1,
         "participatesIn": 1
       },
       "packages": 1,
@@ -143,18 +144,19 @@
       "definitions": 1,
       "kinds": {
         "GraspEventPort": 1,
-        "PointCloudPort": 1,
         "LogicalComponent": 1,
+        "PointCloudPort": 1,
         "SafetyRelayModule": 1,
         "System": 1,
         "SystemFunction": 2,
         "UseCase": 1
       },
-      "relationships": 6,
+      "relationships": 7,
       "relationshipTypes": {
         "allocatedTo": 2,
         "composes": 2,
         "hasSubject": 1,
+        "logicalConnector": 1,
         "participatesIn": 1
       },
       "packages": 1,
@@ -165,18 +167,19 @@
       "elements": 6,
       "definitions": 1,
       "kinds": {
-        "PointCloudPort": 1,
         "LogicalComponent": 1,
+        "PointCloudPort": 1,
         "SafetyRelayModule": 1,
         "System": 1,
         "SystemFunction": 1,
         "UseCase": 1
       },
-      "relationships": 5,
+      "relationships": 6,
       "relationshipTypes": {
         "allocatedTo": 1,
         "composes": 2,
         "hasSubject": 1,
+        "logicalConnector": 1,
         "participatesIn": 1
       },
       "packages": 1,

@@ -2,41 +2,32 @@
   "project": "ivd-laboratory-system",
   "totals": {
     "files": 4,
-    "elements": 10,
-    "definitions": 0,
-    "relationships": 1,
+    "elements": 12,
+    "definitions": 1,
+    "relationships": 2,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
     "model/catalog/ivd_laboratory_system.sysml": {
-      "elements": 8,
-      "definitions": 0,
+      "elements": 10,
+      "definitions": 1,
       "kinds": {
         "FluidicComponent": 2,
         "LogicalExchangeItem": 1,
         "OperativeAction": 1,
         "OpticalComponent": 1,
         "PhysicalAssembly": 1,
-        "PhysicalPort": 2
+        "PhysicalPort": 2,
+        "System": 1,
+        "ValidationCase": 1
       },
-      "relationships": 1,
+      "relationships": 2,
       "relationshipTypes": {
-        "flow": 1
+        "flow": 1,
+        "validates": 1
       },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -56,6 +47,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

@@ -2,33 +2,24 @@
   "project": "ros-mobile-robot",
   "totals": {
     "files": 4,
-    "elements": 29,
-    "definitions": 3,
-    "relationships": 18,
+    "elements": 36,
+    "definitions": 4,
+    "relationships": 26,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
     "model/catalog/ros_mobile_robot.sysml": {
-      "elements": 27,
-      "definitions": 3,
+      "elements": 34,
+      "definitions": 4,
       "kinds": {
         "EmergencyStop": 1,
         "LaserScan": 1,
+        "MemoEvidence": 1,
+        "Need": 1,
         "ProcessingNode": 1,
+        "Requirement": 3,
         "RosActionClient": 1,
         "RosActionServer": 1,
         "RosContainerImage": 2,
@@ -40,16 +31,22 @@
         "RosServiceServer": 1,
         "RosSubscriber": 4,
         "SoftwareModule": 3,
-        "VelocityCommand": 1
+        "System": 1,
+        "VelocityCommand": 1,
+        "VerificationCase": 1
       },
-      "relationships": 18,
+      "relationships": 26,
       "relationshipTypes": {
         "buildsInto": 3,
         "dependency": 3,
         "deploysTo": 2,
+        "derivesFrom": 3,
         "interface": 6,
+        "producesEvidence": 1,
         "providesEnvironment": 1,
-        "realizes": 3
+        "realizes": 3,
+        "satisfiedBy": 3,
+        "verifiedBy": 1
       },
       "packages": 1,
       "parseErrors": 0,
@@ -70,6 +67,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

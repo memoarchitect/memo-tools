@@ -2,40 +2,30 @@
   "project": "surgical-closure-workflow",
   "totals": {
     "files": 4,
-    "elements": 28,
-    "definitions": 0,
-    "relationships": 43,
+    "elements": 32,
+    "definitions": 1,
+    "relationships": 46,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
     "model/catalog/surgical_closure_workflow.sysml": {
-      "elements": 26,
-      "definitions": 0,
+      "elements": 30,
+      "definitions": 1,
       "kinds": {
         "ActionUsage": 4,
         "ClinicalProcedureWorkflow": 1,
         "Need": 1,
         "OperativeAction": 13,
         "OperativeScenario": 2,
+        "System": 1,
         "UseCase": 1,
         "UseContext": 1,
-        "User": 3
+        "User": 3,
+        "ValidationCase": 3
       },
-      "relationships": 43,
+      "relationships": 46,
       "relationshipTypes": {
         "composes": 12,
         "dependency": 2,
@@ -45,7 +35,8 @@
         "performs": 7,
         "realizes": 2,
         "realizesUseCase": 1,
-        "succession": 14
+        "succession": 14,
+        "validates": 3
       },
       "packages": 1,
       "parseErrors": 0,
@@ -66,6 +57,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},
