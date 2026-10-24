@@ -31,31 +31,13 @@ import { importKpar } from '../commands/package.js';
 import type { SemanticOrigin } from './source-provenance.js';
 
 /**
- * SysML v2 standard-library packages.
- *
- * These are supplied by the selected compiler and the package manager, not by a MEMO
- * package, so an import of one resolves to nothing on disk and that is correct.
- * Reporting it as an unresolved import would bury the real diagnostics under
- * one line per file.
+ * Whether an import names a package MEMO is answerable for. The selected compiler resolves the SysML
+ * standard library, the Domain Libraries and every other package it knows, and rejects one it does not, so
+ * no list of them is kept here (one went stale each time the specification added a package). What this
+ * resolution reports is a MEMO package (the ontology's and a project's are named `memo_…`) that the import
+ * graph names and no source on disk declares.
  */
-const STANDARD_LIBRARY_PACKAGES = new Set([
-    'ScalarValues', 'Base', 'Occurrences', 'Objects', 'Performances', 'Transfers',
-    'Parts', 'Items', 'Ports', 'Connections', 'Interfaces', 'Actions', 'States',
-    'Constraints', 'Requirements', 'Cases', 'AnalysisCases', 'VerificationCases',
-    'UseCases', 'Views', 'Metadata', 'Metaobjects', 'Allocations', 'Calculations', 'Attributes',
-    'Collections', 'SequenceFunctions', 'ControlFunctions', 'BaseFunctions',
-    'NumericalFunctions', 'StringFunctions', 'BooleanFunctions', 'DataFunctions',
-    'ISQ', 'SI', 'Quantities', 'MeasurementReferences', 'Time', 'SpatialFrames',
-    // The standard Domain Libraries (`sysml.library/Domain Libraries`): the specification ships them, so
-    // an import of one is not a package a project failed to supply.
-    'AnalysisTooling', 'CausationConnections', 'CauseAndEffect', 'DerivationConnections', 'ISQAcoustics',
-    'ISQAtomicNuclear', 'ISQBase', 'ISQCharacteristicNumbers', 'ISQChemistryMolecular', 'ISQCondensedMatter',
-    'ISQElectromagnetism', 'ISQInformation', 'ISQLight', 'ISQMechanics', 'ISQSpaceTime', 'ISQThermodynamics',
-    'ImageMetadata', 'MeasurementRefCalculations', 'ModelingMetadata', 'ParametersOfInterestMetadata',
-    'QuantityCalculations', 'RequirementDerivation', 'RiskMetadata', 'SIPrefixes', 'SampledFunctions',
-    'ShapeItems', 'SpatialItems', 'StateSpaceRepresentation', 'TensorCalculations', 'TradeStudies',
-    'VectorCalculations',
-]);
+const isMemoPackage = (name: string): boolean => name.startsWith('memo_');
 
 /** Conventional template value for the required project root descriptor. */
 export const PROJECT_ENTRYPOINT = join('model', 'methodology', 'project.sysml');
@@ -615,7 +597,7 @@ export function finishResolution(
         const { name, depth, via } = queue.shift()!;
         const entry = index.get(name);
         if (!entry) {
-            if (via && !STANDARD_LIBRARY_PACKAGES.has(name.split('::')[0])) {
+            if (via && isMemoPackage(name)) {
                 diagnostics.push({
                     code: 'unresolved-import',
                     message:
