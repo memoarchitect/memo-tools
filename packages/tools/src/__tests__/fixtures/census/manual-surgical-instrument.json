@@ -2,8 +2,8 @@
   "project": "manual-surgical-instrument",
   "totals": {
     "files": 4,
-    "elements": 6,
-    "definitions": 0,
+    "elements": 7,
+    "definitions": 1,
     "relationships": 4,
     "packages": 4,
     "parseErrors": 0,
@@ -11,30 +11,19 @@
   },
   "files": {
     "model/catalog/manual_surgical_instrument.sysml": {
-      "elements": 4,
-      "definitions": 0,
+      "elements": 5,
+      "definitions": 1,
       "kinds": {
         "MechanicalPart": 2,
         "OperativeAction": 1,
-        "PhysicalAssembly": 1
+        "PhysicalAssembly": 1,
+        "System": 1
       },
       "relationships": 4,
       "relationshipTypes": {
         "dependency": 2,
         "realizes": 2
       },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -54,6 +43,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

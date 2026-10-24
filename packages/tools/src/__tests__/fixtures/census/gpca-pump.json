@@ -1,11 +1,11 @@
 {
   "project": "gpca-pump",
   "totals": {
-    "files": 55,
-    "elements": 689,
+    "files": 56,
+    "elements": 700,
     "definitions": 14,
-    "relationships": 905,
-    "packages": 55,
+    "relationships": 918,
+    "packages": 56,
     "parseErrors": 0,
     "builderFindings": 0
   },
@@ -43,10 +43,11 @@
         "SoftwareSystem": 1,
         "System": 2
       },
-      "relationships": 127,
+      "relationships": 130,
       "relationshipTypes": {
         "composes": 15,
         "flow": 1,
+        "logicalConnector": 3,
         "realizedBy": 2,
         "satisfiedBy": 109
       },
@@ -94,17 +95,25 @@
       "builderFindings": 0
     },
     "model/catalog/gpca_behavior_subsystems.sysml": {
-      "elements": 20,
+      "elements": 26,
       "definitions": 0,
       "kinds": {
+        "ActionUsage": 1,
         "ComponentFunction": 3,
+        "FunctionalFlow": 1,
         "InterfaceItem": 6,
-        "SystemFunction": 11
+        "MemoEvidence": 2,
+        "SystemFunction": 11,
+        "VerificationCase": 2
       },
-      "relationships": 7,
+      "relationships": 15,
       "relationshipTypes": {
-        "composes": 3,
-        "flow": 4
+        "composes": 4,
+        "flow": 4,
+        "performs": 1,
+        "producesEvidence": 2,
+        "succession": 2,
+        "verifiedBy": 2
       },
       "packages": 1,
       "parseErrors": 0,
@@ -160,6 +169,18 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
+    "model/catalog/gpca_devices.sysml": {
+      "elements": 3,
+      "definitions": 0,
+      "kinds": {
+        "RegulatedDevice": 3
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
     "model/catalog/gpca_formal_behavior.sysml": {
       "elements": 20,
       "definitions": 0,
@@ -198,7 +219,7 @@
       "builderFindings": 0
     },
     "model/catalog/gpca_operational.sysml": {
-      "elements": 50,
+      "elements": 52,
       "definitions": 0,
       "kinds": {
         "ActionUsage": 16,
@@ -207,9 +228,10 @@
         "OperationalWorkflow": 3,
         "OperativeAction": 14,
         "OperativeScenario": 6,
-        "UseCase": 1
+        "UseCase": 1,
+        "ValidationCase": 2
       },
-      "relationships": 91,
+      "relationships": 93,
       "relationshipTypes": {
         "composes": 28,
         "dependency": 15,
@@ -218,7 +240,8 @@
         "realizes": 15,
         "realizesUseCase": 3,
         "requiresCapability": 2,
-        "succession": 22
+        "succession": 22,
+        "validates": 2
       },
       "packages": 1,
       "parseErrors": 0,
@@ -364,18 +387,6 @@
       "relationshipTypes": {
         "verifiedBy": 64
       },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -795,6 +806,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

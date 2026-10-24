@@ -2,36 +2,28 @@
   "project": "temperature-alarm",
   "totals": {
     "files": 4,
-    "elements": 20,
-    "definitions": 0,
-    "relationships": 16,
+    "elements": 27,
+    "definitions": 1,
+    "relationships": 23,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
     "model/catalog/temperature_alarm.sysml": {
-      "elements": 18,
-      "definitions": 0,
+      "elements": 25,
+      "definitions": 1,
       "kinds": {
+        "Harm": 1,
         "Hazard": 1,
+        "HazardousSituation": 1,
         "LogicalComponent": 2,
-        "MemoEvidence": 2,
+        "MemoEvidence": 3,
         "OperativeAction": 2,
         "OperativeScenario": 1,
+        "Requirement": 1,
         "RiskControlMeasure": 1,
+        "System": 1,
         "SystemFunction": 1,
         "UIAction": 1,
         "UIElement": 1,
@@ -39,10 +31,10 @@
         "UseError": 1,
         "User": 1,
         "UserInterface": 1,
-        "ValidationCase": 1,
-        "VerificationCase": 1
+        "ValidationCase": 2,
+        "VerificationCase": 2
       },
-      "relationships": 16,
+      "relationships": 23,
       "relationshipTypes": {
         "allocatedTo": 1,
         "causes": 1,
@@ -50,14 +42,17 @@
         "composes": 1,
         "controlImplementedBy": 1,
         "dependency": 1,
+        "derivesFrom": 1,
         "elementTriggersAction": 1,
         "independentOf": 1,
         "mitigates": 1,
         "participatesIn": 1,
         "performs": 2,
-        "producesEvidence": 2,
-        "validates": 1,
-        "verifiedBy": 1
+        "producesEvidence": 3,
+        "satisfiedBy": 1,
+        "tracesRisk": 2,
+        "validates": 2,
+        "verifiedBy": 2
       },
       "packages": 1,
       "parseErrors": 0,
@@ -78,6 +73,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

@@ -1,11 +1,11 @@
 {
   "project": "nested-architecture-dsm",
   "totals": {
-    "files": 8,
-    "elements": 58,
-    "definitions": 0,
-    "relationships": 104,
-    "packages": 8,
+    "files": 9,
+    "elements": 67,
+    "definitions": 1,
+    "relationships": 127,
+    "packages": 9,
     "parseErrors": 0,
     "builderFindings": 0
   },
@@ -34,9 +34,10 @@
         "Subsystem": 5,
         "System": 1
       },
-      "relationships": 17,
+      "relationships": 27,
       "relationshipTypes": {
-        "composes": 17
+        "composes": 17,
+        "flow": 10
       },
       "packages": 1,
       "parseErrors": 0,
@@ -83,14 +84,40 @@
       "builderFindings": 0
     },
     "model/catalog/assurance/verification_validation/verification_validation.sysml": {
-      "elements": 8,
+      "elements": 16,
       "definitions": 0,
       "kinds": {
+        "MemoEvidence": 8,
         "VerificationCase": 8
       },
-      "relationships": 25,
+      "relationships": 33,
       "relationshipTypes": {
+        "producesEvidence": 8,
         "verifiedBy": 25
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/nested_architecture_dsm_system.sysml": {
+      "elements": 1,
+      "definitions": 1,
+      "kinds": {
+        "System": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/traces.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 19,
+      "relationshipTypes": {
+        "allocatedTo": 19
       },
       "packages": 1,
       "parseErrors": 0,
@@ -104,18 +131,6 @@
       },
       "relationships": 0,
       "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/catalog/traces.sysml": {
-      "elements": 0,
-      "definitions": 0,
-      "kinds": {},
-      "relationships": 14,
-      "relationshipTypes": {
-        "allocatedTo": 14
-      },
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0

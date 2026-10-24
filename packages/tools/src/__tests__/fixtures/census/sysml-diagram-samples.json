@@ -1,32 +1,20 @@
 {
   "project": "sysml-diagram-samples",
   "totals": {
-    "files": 18,
-    "elements": 268,
-    "definitions": 32,
-    "relationships": 283,
-    "packages": 21,
+    "files": 19,
+    "elements": 299,
+    "definitions": 39,
+    "relationships": 325,
+    "packages": 22,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
-    "model/methodology/project.sysml": {
+    "model/catalog/sysml_diagram_samples_system.sysml": {
       "elements": 1,
-      "definitions": 0,
+      "definitions": 1,
       "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
-      "elements": 10,
-      "definitions": 0,
-      "kinds": {
-        "MemoViewpoint": 10
+        "System": 1
       },
       "relationships": 0,
       "relationshipTypes": {},
@@ -46,9 +34,9 @@
         "SystemFunction": 5,
         "ValidateInput": 2
       },
-      "relationships": 27,
+      "relationships": 28,
       "relationshipTypes": {
-        "allocatedTo": 7,
+        "allocatedTo": 8,
         "composes": 7,
         "dependency": 1,
         "flow": 3,
@@ -95,13 +83,38 @@
       "builderFindings": 0
     },
     "model/catalog/viewpoints/unassigned/views/diagram_samples.sysml": {
-      "elements": 18,
+      "elements": 22,
       "definitions": 0,
       "kinds": {
-        "MemoDiagramView": 18
+        "MemoDiagramView": 22
       },
       "relationships": 0,
       "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/unassigned/views/drill_down_view.sysml": {
+      "elements": 35,
+      "definitions": 6,
+      "kinds": {
+        "DataPort": 13,
+        "DrillCalibrate": 1,
+        "DrillController": 1,
+        "DrillDrive": 1,
+        "DrillGearbox": 1,
+        "DrillMotor": 1,
+        "DrillVerify": 1,
+        "LogicalComponent": 9,
+        "SystemFunction": 7
+      },
+      "relationships": 34,
+      "relationshipTypes": {
+        "allocatedTo": 7,
+        "composes": 14,
+        "logicalConnector": 4,
+        "succession": 9
+      },
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -123,11 +136,12 @@
         "LogicalComponent": 9,
         "SystemFunction": 12
       },
-      "relationships": 53,
+      "relationships": 57,
       "relationshipTypes": {
-        "allocatedTo": 11,
+        "allocatedTo": 12,
         "composes": 21,
         "flow": 5,
+        "logicalConnector": 3,
         "succession": 16
       },
       "packages": 1,
@@ -203,15 +217,17 @@
       "builderFindings": 0
     },
     "model/catalog/viewpoints/unassigned/views/requirements_view.sysml": {
-      "elements": 5,
+      "elements": 6,
       "definitions": 0,
       "kinds": {
+        "LogicalComponent": 1,
         "Need": 2,
         "Requirement": 3
       },
-      "relationships": 4,
+      "relationships": 7,
       "relationshipTypes": {
-        "derivesFrom": 4
+        "derivesFrom": 4,
+        "satisfiedBy": 3
       },
       "packages": 1,
       "parseErrors": 0,
@@ -292,6 +308,18 @@
         "participatesIn": 5,
         "specialization": 2
       },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0

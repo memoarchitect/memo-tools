@@ -2,42 +2,45 @@
   "project": "functional-logical-physical",
   "totals": {
     "files": 4,
-    "elements": 7,
-    "definitions": 0,
-    "relationships": 6,
+    "elements": 17,
+    "definitions": 1,
+    "relationships": 15,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
     "model/catalog/functional_logical_physical.sysml": {
-      "elements": 5,
-      "definitions": 0,
+      "elements": 15,
+      "definitions": 1,
       "kinds": {
+        "ActionUsage": 1,
+        "FunctionalFlow": 1,
         "LogicalComponent": 1,
         "MechanicalPart": 1,
+        "MemoEvidence": 2,
+        "Need": 1,
         "OperativeAction": 1,
+        "Requirement": 1,
         "SoftwareModule": 1,
-        "SystemFunction": 1
+        "System": 1,
+        "SystemFunction": 1,
+        "ValidationCase": 1,
+        "VerificationCase": 2
       },
-      "relationships": 6,
+      "relationships": 15,
       "relationshipTypes": {
         "allocatedTo": 1,
+        "composes": 1,
         "dependency": 3,
-        "realizes": 2
+        "derivesFrom": 1,
+        "performs": 1,
+        "producesEvidence": 2,
+        "realizes": 2,
+        "satisfiedBy": 1,
+        "validates": 1,
+        "verifiedBy": 2
       },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -57,6 +60,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

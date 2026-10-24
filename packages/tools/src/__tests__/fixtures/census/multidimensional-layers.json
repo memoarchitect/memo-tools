@@ -2,40 +2,35 @@
   "project": "multidimensional-layers",
   "totals": {
     "files": 4,
-    "elements": 5,
-    "definitions": 0,
-    "relationships": 3,
+    "elements": 9,
+    "definitions": 1,
+    "relationships": 6,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
     "model/catalog/multidimensional_layers.sysml": {
-      "elements": 3,
-      "definitions": 0,
+      "elements": 7,
+      "definitions": 1,
       "kinds": {
+        "MemoEvidence": 1,
+        "Need": 1,
+        "Requirement": 1,
         "SoftwareComponent": 1,
         "SoftwareModule": 1,
+        "System": 1,
         "VerificationCase": 1
       },
-      "relationships": 3,
+      "relationships": 6,
       "relationshipTypes": {
         "dependency": 1,
+        "derivesFrom": 1,
+        "producesEvidence": 1,
         "realizes": 1,
+        "satisfiedBy": 1,
         "verifiedBy": 1
       },
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -55,6 +50,18 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
       },
       "relationships": 0,
       "relationshipTypes": {},
