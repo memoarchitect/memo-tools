@@ -316,6 +316,12 @@ export interface MemoModel {
     elementsByLayer: Map<string, MemoElement[]>;
     /** Relationships grouped by type */
     relationshipsByType: Map<string, MemoRelationship[]>;
+    /**
+     * Every relation the ontology declares plus the edges the builder synthesizes, lowercased, whether or
+     * not this model holds a link of it. A rule navigating a declared relation reads an empty collection
+     * rather than failing to resolve the name. Absent when the model was built without the ontology's registry.
+     */
+    declaredRelationTypes?: ReadonlySet<string>;
     /** Outgoing relationships from element id */
     outgoing: Map<string, MemoRelationship[]>;
     /** Incoming relationships to element id */

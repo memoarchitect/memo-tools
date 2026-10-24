@@ -116,6 +116,8 @@ describe('a relation with no links is an empty collection, not a scalar', () => 
             elementsByLayer: new Map(),
             relationships: [],
             relationshipsByType: new Map(),
+            // What `completeModel` records from the relationship registry: the ontology declares `composes`.
+            declaredRelationTypes: new Set(['composes']),
             outgoing: new Map(),
             incoming: new Map(),
         } as never;

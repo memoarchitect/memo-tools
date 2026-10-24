@@ -23,6 +23,7 @@ import {
 } from './element-index.js';
 import type { KindRegistry } from './kind-registry.js';
 import type { RelationshipRegistry } from './relationship-registry.js';
+import { BUILDER_NATIVE_RELATION_TYPES } from './selector-vocabulary.js';
 import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } from './relationship-registry.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
 import type { ProvenanceTable, SemanticElementProvenance } from './source-provenance.js';
@@ -267,6 +268,10 @@ export function completeModel(input: CompleteModelInput): MemoModel {
         elementsByKind,
         elementsByLayer,
         relationshipsByType,
+        ...(registries?.relationshipRegistry && {
+            declaredRelationTypes: new Set(
+                [...registries.relationshipRegistry.relTypeNames(), ...BUILDER_NATIVE_RELATION_TYPES].map(name => name.toLowerCase())),
+        }),
         outgoing,
         incoming,
     };
