@@ -15,6 +15,7 @@ import { mergeToolchain } from '../model/toolchain-merge.js';
 import { USER_COMPILER_ENV, userToolchain } from '../model/user-settings.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { resolveToolchain, ToolchainNotConfiguredError } from '../toolchain/effective.js';
+import { DEFAULT_COMPILER } from '../toolchain/providers/default-compiler.js';
 import { ProjectNamesUserSettingError } from '../toolchain/ownership.js';
 
 describe('mergeToolchain', () => {
@@ -57,9 +58,9 @@ describe('the layers a command sees', () => {
         user('toolchain:\n  compiler: syside\n');
         expect(lowering(project(''))).toBe('syside');
     });
-    it('names nothing anywhere: the command fails, nothing is chosen', () => {
+    it('names nothing anywhere: the default compiler runs', () => {
         user('toolchain: {}\n');
-        expect(() => lowering(project(''))).toThrow(ToolchainNotConfiguredError);
+        expect(lowering(project(''))).toBe(DEFAULT_COMPILER);
     });
     it('a project names its compiler, and that is what runs when the user says nothing', () => {
         user('toolchain: {}\n');

@@ -15,12 +15,7 @@ import {
     type ProviderRegistry,
     type ProviderRole,
 } from './registry.js';
-
-/**
- * The compiler a project, a user and the command line all leave unnamed. The open-source one, so a clone
- * validates without a licence; SysIDE is chosen by saying so.
- */
-export const DEFAULT_COMPILER = 'opensysml';
+import { DEFAULT_COMPILER } from './providers/default-compiler.js';
 
 /** The roles the compiler setting fills, so the default applies to them and never to packaging. */
 const COMPILED_ROLES: readonly ProviderRole[] = ['validator', 'lowering'];
