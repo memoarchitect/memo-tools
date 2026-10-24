@@ -471,7 +471,8 @@ export async function devCommand(options: {
         if (accepted) {
             // The first build under a new version records the ids it computes, so an old project is migrated by
             // opening it; later builds read them back, so a number once handed out is never moved.
-            config.priorIdentities = persistIdentities(cwd, model.elements.values(), config.priorIdentities ?? {});
+            // A read-only server (a pinned view) writes nothing into the directory it shows.
+            if (!options.readOnly) config.priorIdentities = persistIdentities(cwd, model.elements.values(), config.priorIdentities ?? {});
             lastAccepted = { model, irIdentities, constraints: nativeConstraints, registries: stage2Registries, sourceGraph, enumerations, api: stage1.api };
         }
         for (const diagram of diagrams) {
