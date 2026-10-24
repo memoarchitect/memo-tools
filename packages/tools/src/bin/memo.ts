@@ -36,6 +36,7 @@ import { defaultRegistry } from '../toolchain/default-registry.js';
 import chalk from 'chalk';
 import { Stage1RejectedError } from '../toolchain/project-model.js';
 import { ToolchainNotConfiguredError } from '../toolchain/effective.js';
+import { UnknownProviderError } from '../toolchain/registry.js';
 import { ProjectNamesUserSettingError } from '../toolchain/ownership.js';
 import { setCommandLineToolchain } from '../model/config-loader.js';
 import { warnOnPinMismatch } from '../pin-check.js';
@@ -244,7 +245,7 @@ program.hook('preAction', (_program, action) => {
 // `memo validate` does. Anything else is still a crash, with its stack.
 program.parseAsync().catch((error: unknown) => {
     // So is a project whose settings name no compiler: MEMO chooses none.
-    if (error instanceof Stage1RejectedError || error instanceof ToolchainNotConfiguredError || error instanceof ProjectNamesUserSettingError) {
+    if (error instanceof Stage1RejectedError || error instanceof ToolchainNotConfiguredError || error instanceof UnknownProviderError || error instanceof ProjectNamesUserSettingError) {
         console.error(chalk.red(`\n❌ ${error.message}\n`));
         process.exit(1);
     }
