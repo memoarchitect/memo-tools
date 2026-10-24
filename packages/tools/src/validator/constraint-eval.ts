@@ -677,25 +677,8 @@ function isRelType(model: MemoModel, seg: string, kindRegistry?: KindRegistry): 
     if (model.relationshipsByType.has(seg)) return true;
     const low = seg.toLowerCase();
     for (const k of model.relationshipsByType.keys()) if (k.toLowerCase() === low) return true;
-    for (const known of KNOWN_RELATION_SEGMENTS) if (known === low) return true;
-    return false;
+    return model.declaredRelationTypes?.has(low) ?? false;
 }
-
-/**
- * Relation names the evaluator must treat as collections even when the model
- * carries none of them. Kept to the relations that ontology rules navigate.
- */
-const KNOWN_RELATION_SEGMENTS = new Set([
-    'composes', 'allocatedto', 'satisfiedby', 'verifiedby', 'realizes',
-    'derivesfrom', 'mitigates', 'performs', 'enables', 'precedes',
-    'bindstointerface', 'crossestrustboundary', 'dependency', 'validates',
-    // Native edges. A rule asking whether a function is connected has to read
-    // as false in a model with no flows at all, rather than failing to resolve
-    // the name — which is what happens when nothing in the model carries it.
-    'flow', 'succession', 'bind', 'interface',
-    // A symmetric relation a rule reads as one hop in either direction (`excludesFeature`, CR-ONT-089).
-    'excludesfeature',
-]);
 
 /** Resolve a feature chain starting from `start`. See navigation semantics in header. */
 function resolveFeature(start: MemoElement, segments: string[], model: MemoModel): Value {
