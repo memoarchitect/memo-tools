@@ -37,7 +37,7 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
         ].sort());
         expect(membersOf(project, result, 'ManipulatorSystem')).toEqual([
             'GraspEvent', 'GraspEventPort', 'ManipulatorSystem', 'ManipulatorSystem::motionController',
-            'ManipulatorSystem::pGraspEventOut', 'cellOperator', 'fnExecuteGrasp', 'ucExecuteGrasp',
+            'ManipulatorSystem::gripperDrive', 'ManipulatorSystem::pGraspEventOut', 'cellOperator', 'fnExecuteGrasp', 'ucExecuteGrasp',
         ].sort());
         expect(membersOf(project, result, 'PerceptionSystem')).toEqual([
             'PointCloud', 'PointCloudPort', 'SafetyRelayModule', 'PerceptionSystem',
