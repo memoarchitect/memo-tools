@@ -64,11 +64,15 @@ export const STAGE1_FORMAT = 'memo-stage1/1';
 export type ApiValue =
     | { kind: 'string'; value: string }
     | { kind: 'number'; value: number; rational: boolean }
+    /** `20 [milli*s]`: a number and the measurement unit it is in, the unit as the source writes it. */
+    | { kind: 'quantity'; amount: number; unit: string }
     | { kind: 'boolean'; value: boolean }
     | { kind: 'reference'; qualifiedName: string }
     | { kind: 'chain'; steps: string[] }
     | { kind: 'sequence'; items: ApiValue[] }
     | { kind: 'other'; metaclass: string };
+
+const lastSegment = (name: string) => name.slice(name.lastIndexOf('::') + 2);
 
 const isRef = (value: unknown): value is ApiRef =>
     typeof value === 'object' && value !== null && typeof (value as ApiRef)['@id'] === 'string';
@@ -389,9 +393,42 @@ export class ApiModel {
                         .map(operand => this.value(operand) ?? { kind: 'other' as const, metaclass: 'unbound operand' });
                     return { kind: 'sequence', items: items.flatMap(i => i.kind === 'sequence' ? i.items : [i]) };
                 }
+                if (expression.operator === '[') {
+                    const operands = this.operands(id);
+                    const amount = operands[0] ? this.expressionValue(operands[0]) : undefined;
+                    const unit = operands[1] ? this.unitText(operands[1]) : undefined;
+                    if (amount?.kind === 'number' && unit) return { kind: 'quantity', amount: amount.value, unit };
+                }
                 return { kind: 'other', metaclass: type };
             }
             default: return { kind: 'other', metaclass: type };
         }
+    }
+
+    /** The operands of an operator expression, in order: each parameter's bound value expression. */
+    private operands(id: string): string[] {
+        return this.ownedRelationships(id)
+            .filter(r => r['@type'] === 'ParameterMembership')
+            .flatMap(r => refs(r.ownedRelatedElement))
+            .flatMap(parameter => {
+                const bound = this.ownedRelationships(parameter).find(r => r['@type'] === 'FeatureValue');
+                return bound ? refs(bound.ownedRelatedElement) : [];
+            });
+    }
+
+    /** A unit expression as written: `Hz`, `milli*s`, `m/s`, `s^2`. Undefined when it is anything else. */
+    private unitText(id: string): string | undefined {
+        const expression = this.byId.get(id);
+        if (!expression) return undefined;
+        if (expression['@type'] === 'FeatureReferenceExpression') {
+            const value = this.expressionValue(id);
+            return value.kind === 'reference' ? lastSegment(value.qualifiedName) : undefined;
+        }
+        if (expression['@type'] === 'LiteralInteger') return String(expression.value);
+        if (expression['@type'] === 'OperatorExpression' && ['*', '/', '^'].includes(String(expression.operator))) {
+            const parts = this.operands(id).map(operand => this.unitText(operand));
+            return parts.length === 2 && parts.every(Boolean) ? parts.join(String(expression.operator)) : undefined;
+        }
+        return undefined;
     }
 }
