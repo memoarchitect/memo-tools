@@ -423,6 +423,13 @@
         "package": "memo_examples_ui_screen_regions_project"
       },
       {
+        "id": "memo_examples_ui_screen_regions_system::UiScreenRegionsSystem",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_ui_screen_regions_system"
+      },
+      {
         "id": "memo_examples_ui_screen_regions_viewpoints_functional_views_ui_functional_tree::uiFunctionalTree",
         "kind": "MemoDiagramView",
         "construct": "view",
@@ -1025,6 +1032,7 @@
       "Requirement": 12,
       "RiskControlMeasure": 5,
       "ScreenCapture": 3,
+      "System": 1,
       "SystemFunction": 6,
       "UIAction": 3,
       "UIElement": 7,
@@ -1037,6 +1045,7 @@
       "functional": 6,
       "human-factors": 5,
       "implementation": 14,
+      "logical": 1,
       "methodology": 1,
       "requirements": 13,
       "safety_risk": 10,
@@ -1091,21 +1100,16 @@
         "rule": "CR-MED-110",
         "severity": "error",
         "elementId": "memo_examples_ui_screen_regions_architecture_implementation_ui::elMainScreen::uiElement12"
-      },
-      {
-        "rule": "CR-ONT-084",
-        "severity": "error",
-        "elementId": "__model__"
       }
     ],
     "counts": {
-      "error": 2,
+      "error": 1,
       "warning": 8
     }
   },
   "errors": [],
   "summary": {
-    "elements": 66,
+    "elements": 67,
     "completeness": 100
   }
 }

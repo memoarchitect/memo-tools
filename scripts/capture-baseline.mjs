@@ -769,6 +769,14 @@ export function capture(fixture) {
  * | --- | --- |
  * | 9 `Interface` → `LogicalInterface` | The LI-* and SI-* interfaces state what is exchanged between components. |
  * | 2 `Interface` → `PhysicalInterface`, layer `logical` → `realization` | `hwSoftwareBus` and `batteryMonitorLine`; a hardware interface is a realization element. |
+ *
+ * BASELINE RE-FROZEN 2026-10-24 — gpca and ui-regions, for the example clean-up (memo).
+ * Compared by leaf name; nothing removed.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | gpca +3 elements: `deviceCe`, `deviceMdr`, `deviceFda` | The pump's approvals are `RegulatedDevice` parts; `ModelMethodBinding.regulatoryRegime` is deleted. |
+ * | ui-regions +1 element: `UiScreenRegionsSystem`, and `CR-ONT-084` no longer fires | The example declares a System definition. |
  */
 
 if (import.meta.url === `file://${process.argv[1]}`) {

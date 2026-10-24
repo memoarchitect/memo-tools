@@ -40,7 +40,6 @@ import type {
 } from './standards-library.js';
 import { resolveClause } from './standards-library.js';
 import { loadTemplate, parseFrontmatter } from './template-resolver.js';
-import { METHOD_BINDING_KINDS } from '../model/native-project.js';
 
 // ─── Evidence ─────────────────────────────────────────────────────────────────
 
@@ -454,10 +453,8 @@ export function readDeclaredRegimes(
     regimes: string[];
     /** Entries that were not qualified members, verbatim. */
     rejected: string[];
-    /** Where the regimes came from: the devices' jurisdictions, the (deprecated) binding, or nowhere. */
-    source: 'devices' | 'binding' | 'none';
-    /** Regimes the binding states and that are ignored because the model declares devices. */
-    ignoredBinding: string[];
+    /** Where the regimes came from: the devices' jurisdictions, or nowhere. */
+    source: 'devices' | 'none';
 } {
     const rejected: string[] = [];
     const members = (raw: string | undefined): string[] => {
@@ -472,13 +469,10 @@ export function readDeclaredRegimes(
         }
         return out;
     };
-    // One approval per jurisdiction (plan O6): a device states its own regime. Devices win.
+    // One approval per jurisdiction (plan O6): a device states its own regime.
     const devices = [...(model?.elements.values() ?? [])].filter(el => isRegulatedDevice(el.kind, kinds));
     const fromDevices = [...new Set(devices.flatMap(device => members(device.attributes?.jurisdiction)))];
-    const binding = [...new Set(METHOD_BINDING_KINDS.flatMap(kind => model?.elementsByKind.get(kind) ?? [])
-        .flatMap(el => members(el.attributes?.regulatoryRegime)))];
-    if (devices.length > 0) return { regimes: fromDevices, rejected, source: 'devices', ignoredBinding: binding };
-    return { regimes: binding, rejected, source: binding.length > 0 ? 'binding' : 'none', ignoredBinding: [] };
+    return { regimes: fromDevices, rejected, source: devices.length > 0 ? 'devices' : 'none' };
 }
 
 /** The kind a device is declared with. */

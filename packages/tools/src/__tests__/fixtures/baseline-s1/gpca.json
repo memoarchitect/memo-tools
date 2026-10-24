@@ -1697,6 +1697,27 @@
         "package": "memo_examples_gpca_pump_gpca_cybersecurity"
       },
       {
+        "id": "memo_examples_gpca_pump_gpca_devices::deviceCe",
+        "kind": "RegulatedDevice",
+        "construct": "part",
+        "layer": "artifacts",
+        "package": "memo_examples_gpca_pump_gpca_devices"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_devices::deviceFda",
+        "kind": "RegulatedDevice",
+        "construct": "part",
+        "layer": "artifacts",
+        "package": "memo_examples_gpca_pump_gpca_devices"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_devices::deviceMdr",
+        "kind": "RegulatedDevice",
+        "construct": "part",
+        "layer": "artifacts",
+        "package": "memo_examples_gpca_pump_gpca_devices"
+      },
+      {
         "id": "memo_examples_gpca_pump_gpca_formal_behavior::alarmContract",
         "kind": "Contract",
         "construct": "requirement",
@@ -9408,6 +9429,7 @@
       "PhysicalPort": 27,
       "ProcessingNode": 1,
       "ReasonablyForeseeableMisuse": 1,
+      "RegulatedDevice": 3,
       "Requirement": 100,
       "ResidualRisk": 7,
       "Risk": 7,
@@ -9438,7 +9460,7 @@
       "Vulnerability": 1
     },
     "layerCounts": {
-      "artifacts": 4,
+      "artifacts": 7,
       "core": 29,
       "cybersecurity": 10,
       "functional": 65,
@@ -9520,7 +9542,7 @@
   },
   "errors": [],
   "summary": {
-    "elements": 689,
+    "elements": 692,
     "completeness": 100
   }
 }
