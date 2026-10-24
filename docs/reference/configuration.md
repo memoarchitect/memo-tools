@@ -61,9 +61,8 @@ toolchain:
     configFile: ./sysand.toml
 ```
 
-**You choose a compiler; MEMO finds its tools.** The project names the compiler it
-uses, and `memo-architect init` writes MEMO's recommended compiler into a new project's settings
-file. Your own settings file (`~/.config/memo/settings.yaml`, written by
+**You choose a compiler; MEMO finds its tools.** A project may name the compiler it
+uses (`memo-architect config set compiler <id> --project`); `memo-architect init` names none. Your own settings file (`~/.config/memo/settings.yaml`, written by
 `memo-architect config set compiler syside` or Architect's **Compiler** control, never checked in) is your default
 for projects that name none; a project's own compiler beats it. To use another compiler for one run without editing the
 project, set `MEMO_TOOLCHAIN_COMPILER` or pass `--toolchain.compiler`, which beat the project. Where the compiler's
