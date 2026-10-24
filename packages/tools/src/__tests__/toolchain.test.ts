@@ -13,6 +13,7 @@ import {
 } from '../toolchain/registry.js';
 import { createDefaultRegistry } from '../toolchain/default-registry.js';
 import { resolveToolchain, ToolchainNotConfiguredError } from '../toolchain/effective.js';
+import { DEFAULT_COMPILER } from '../toolchain/providers/default-compiler.js';
 import { compileServesValidator, runPackager, runValidator } from '../toolchain/operations.js';
 import { buildSysideInvocation } from '../toolchain/providers/syside.js';
 import { buildSysandInvocation } from '../toolchain/providers/sysand.js';
@@ -32,13 +33,14 @@ function context(toolchain: MEMOConfig['toolchain'], extra: Partial<ProviderCont
 }
 
 describe('role resolution', () => {
-    it('chooses nothing for settings that name nothing, and says what to set', () => {
+    it('fills the compiler roles with the default for settings that name nothing, and no packager', () => {
         const registry = createDefaultRegistry();
         const effective = resolveToolchain(config(), registry);
-        expect(effective.selections).toEqual([]);
-        expect(() => effective.lowering).toThrow(ToolchainNotConfiguredError);
-        // The compiler is the user's to choose: the message names their command, not the project file.
-        expect(() => effective.validator).toThrow(/in Architect \(the Compiler control/);
+        expect(effective.selections).toEqual([
+            { role: 'validator', provider: DEFAULT_COMPILER, source: 'default' },
+            { role: 'lowering', provider: DEFAULT_COMPILER, source: 'default' },
+        ]);
+        expect(effective.lowering).toBe(DEFAULT_COMPILER);
         expect(() => effective.packager).toThrow(/Set toolchain\.packager/);
     });
 
