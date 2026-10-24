@@ -786,6 +786,14 @@ export function capture(fixture) {
  * | gpca +4 elements, 4 CR-ONT-040/041 errors cleared, 2 warnings added (CR-MED-032) | Two verification cases and two validation cases for the safety-critical functions and critical tasks; the cases have no evidence record yet. |
  * | gpca: the two `RulePolicy` parts for rules the method never selects are gone | A policy that targets a rule outside the resolved rule set fails the run. |
  * | ui-regions: CR-MED-110 clears | `uiElement12` is marked `decoration`. |
+ *
+ * BASELINE RE-FROZEN 2026-10-24 (third) — gpca and ui-regions, for the example warnings (memo).
+ * Compared by leaf name; nothing removed except the findings the authoring clears.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | gpca: AR-IBD-001 ×3, CR-MED-023 ×4 and CR-MED-032 ×2 clear | Three `LogicalConnector`s between the subsystems, successions among the sensor functions, a functional chain for `ManagePower`, and evidence records for the two new verification cases. |
+ * | ui-regions: CR-MED-005 ×5 and CR-MED-023 ×3 clear | Each hazard reaches a hazardous situation and a harm; the display functions follow one another by succession. |
  */
 
 if (import.meta.url === `file://${process.argv[1]}`) {

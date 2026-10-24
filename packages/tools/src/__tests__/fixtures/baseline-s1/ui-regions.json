@@ -304,6 +304,76 @@
         "package": "memo_examples_ui_screen_regions_assurance_requirements"
       },
       {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzIncorrectDeliveredVolumeAssessment",
+        "kind": "Harm",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzIncorrectEventChronology",
+        "kind": "Harm",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzUnexpectedPowerLoss",
+        "kind": "Harm",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzWrongDrug",
+        "kind": "Harm",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzWrongRate",
+        "kind": "Harm",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzIncorrectDeliveredVolumeAssessment",
+        "kind": "HazardousSituation",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzIncorrectEventChronology",
+        "kind": "HazardousSituation",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzUnexpectedPowerLoss",
+        "kind": "HazardousSituation",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzWrongDrug",
+        "kind": "HazardousSituation",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
+        "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzWrongRate",
+        "kind": "HazardousSituation",
+        "construct": "item",
+        "layer": "safety_risk",
+        "package": "memo_examples_ui_screen_regions_assurance_safety_risk"
+      },
+      {
         "id": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectDeliveredVolumeAssessment",
         "kind": "Hazard",
         "construct": "item",
@@ -929,6 +999,66 @@
         "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
       },
       {
+        "type": "succession",
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime",
+        "targetId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzIncorrectDeliveredVolumeAssessment",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzIncorrectDeliveredVolumeAssessment"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzIncorrectEventChronology",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzIncorrectEventChronology"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzUnexpectedPowerLoss",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzUnexpectedPowerLoss"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzWrongDrug",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzWrongDrug"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzWrongRate",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::harmAuthoredHzWrongRate"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectDeliveredVolumeAssessment",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzIncorrectDeliveredVolumeAssessment"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectEventChronology",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzIncorrectEventChronology"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzUnexpectedPowerLoss",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzUnexpectedPowerLoss"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongDrug",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzWrongDrug"
+      },
+      {
+        "type": "tracesRisk",
+        "sourceId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongRate",
+        "targetId": "memo_examples_ui_screen_regions_assurance_safety_risk::hsAuthoredHzWrongRate"
+      },
+      {
         "type": "verifiedBy",
         "sourceId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus",
         "targetId": "memo_examples_ui_screen_regions_assurance_verification_validation::vcInfusionStatusContent"
@@ -1020,7 +1150,9 @@
       }
     ],
     "kindCounts": {
+      "Harm": 5,
       "Hazard": 5,
+      "HazardousSituation": 5,
       "MemoDiagramView": 4,
       "MemoEvidence": 3,
       "MemoScreenLayoutView": 2,
@@ -1048,62 +1180,19 @@
       "logical": 1,
       "methodology": 1,
       "requirements": 13,
-      "safety_risk": 10,
+      "safety_risk": 20,
       "unknown": 6,
       "verification_validation": 3
     },
     "diagrams": []
   },
   "validation": {
-    "violations": [
-      {
-        "rule": "CR-MED-005",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectDeliveredVolumeAssessment"
-      },
-      {
-        "rule": "CR-MED-005",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzIncorrectEventChronology"
-      },
-      {
-        "rule": "CR-MED-005",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzUnexpectedPowerLoss"
-      },
-      {
-        "rule": "CR-MED-005",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongDrug"
-      },
-      {
-        "rule": "CR-MED-005",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_assurance_safety_risk::hzWrongRate"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentBatteryStatus"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentDeliveryStatus"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_ui_screen_regions_architecture_functional_functions::fnManageInfusionDisplay::fnPresentLocalTime"
-      }
-    ],
-    "counts": {
-      "warning": 8
-    }
+    "violations": [],
+    "counts": {}
   },
   "errors": [],
   "summary": {
-    "elements": 67,
+    "elements": 77,
     "completeness": 100
   }
 }

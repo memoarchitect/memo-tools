@@ -1431,6 +1431,34 @@
         "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
       },
       {
+        "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::evAuthoredVcAuthoredCfnAggregateSensorStatus",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::evAuthoredVcAuthoredFnAcquireSensors",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::fcAuthoredManagePower",
+        "kind": "FunctionalFlow",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::fcAuthoredManagePower::fcsManagePower",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_gpca_pump_gpca_behavior_subsystems"
+      },
+      {
         "id": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors",
         "kind": "SystemFunction",
         "construct": "action",
@@ -5508,6 +5536,11 @@
       },
       {
         "type": "composes",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fcAuthoredManagePower",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fcAuthoredManagePower::fcsManagePower"
+      },
+      {
+        "type": "composes",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors",
         "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnAggregateSensorStatus"
       },
@@ -7397,6 +7430,21 @@
         "targetId": "memo_examples_gpca_pump_gpca_architecture::pumpMotorAssembly::portFlowCommandIn"
       },
       {
+        "type": "logicalConnector",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcPowerSubsystem",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcDrugDelivery"
+      },
+      {
+        "type": "logicalConnector",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcPowerSubsystem",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcTherapyControl"
+      },
+      {
+        "type": "logicalConnector",
+        "sourceId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcTherapyControl",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcDrugDelivery"
+      },
+      {
         "type": "mitigates",
         "sourceId": "memo_examples_gpca_pump_gpca_analysis::fmeaActionAirSensor",
         "targetId": "memo_examples_gpca_pump_gpca_analysis::fmAirSensorSilent"
@@ -7528,6 +7576,11 @@
       },
       {
         "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fcAuthoredManagePower",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManagePower"
+      },
+      {
+        "type": "performs",
         "sourceId": "memo_examples_gpca_pump_gpca_context::actorNurse",
         "targetId": "memo_examples_gpca_pump_gpca_operational::oaProgram"
       },
@@ -7625,6 +7678,16 @@
         "type": "producesEvent",
         "sourceId": "memo_examples_gpca_pump_gpca_analysis::ftgOverdoseOr",
         "targetId": "memo_examples_gpca_pump_gpca_analysis::fteOverdoseTop"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::vcAuthoredCfnAggregateSensorStatus",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::evAuthoredVcAuthoredCfnAggregateSensorStatus"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::vcAuthoredFnAcquireSensors",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::evAuthoredVcAuthoredFnAcquireSensors"
       },
       {
         "type": "producesEvidence",
@@ -8563,6 +8626,16 @@
       },
       {
         "type": "succession",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnDetectAirInLine",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnAggregateSensorStatus"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnMeasureFlowRate",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnAggregateSensorStatus"
+      },
+      {
+        "type": "succession",
         "sourceId": "memo_examples_gpca_pump_gpca_operational::oaLoadReservoir",
         "targetId": "memo_examples_gpca_pump_gpca_operational::oaProgram"
       },
@@ -9423,7 +9496,7 @@
       }
     ],
     "kindCounts": {
-      "ActionUsage": 32,
+      "ActionUsage": 33,
       "BehaviorProperty": 20,
       "Benefit": 1,
       "Citation": 9,
@@ -9443,7 +9516,7 @@
       "FMEAAction": 1,
       "FMEAWorksheet": 1,
       "FunctionalAction": 6,
-      "FunctionalFlow": 3,
+      "FunctionalFlow": 4,
       "HardwareAssembly": 17,
       "Harm": 3,
       "Hazard": 7,
@@ -9458,7 +9531,7 @@
       "MemoCybersecurityThreatModelView": 1,
       "MemoDiagramView": 17,
       "MemoDocumentView": 6,
-      "MemoEvidence": 11,
+      "MemoEvidence": 13,
       "MemoState": 9,
       "MemoUsabilityEngineeringView": 1,
       "MinimalCutSet": 2,
@@ -9509,9 +9582,9 @@
     },
     "layerCounts": {
       "artifacts": 7,
-      "core": 29,
+      "core": 31,
       "cybersecurity": 10,
-      "functional": 65,
+      "functional": 67,
       "human-factors": 4,
       "implementation": 27,
       "logical": 128,
@@ -9526,60 +9599,12 @@
     "diagrams": []
   },
   "validation": {
-    "violations": [
-      {
-        "rule": "AR-IBD-001",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcDrugDelivery"
-      },
-      {
-        "rule": "AR-IBD-001",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcPowerSubsystem"
-      },
-      {
-        "rule": "AR-IBD-001",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_architecture::GpcaPumpSystem::lcTherapyControl"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnAggregateSensorStatus"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnDetectAirInLine"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors::cfnMeasureFlowRate"
-      },
-      {
-        "rule": "CR-MED-023",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManagePower"
-      },
-      {
-        "rule": "CR-MED-032",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::vcAuthoredCfnAggregateSensorStatus"
-      },
-      {
-        "rule": "CR-MED-032",
-        "severity": "warning",
-        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::vcAuthoredFnAcquireSensors"
-      }
-    ],
-    "counts": {
-      "warning": 9
-    }
+    "violations": [],
+    "counts": {}
   },
   "errors": [],
   "summary": {
-    "elements": 696,
+    "elements": 700,
     "completeness": 100
   }
 }
