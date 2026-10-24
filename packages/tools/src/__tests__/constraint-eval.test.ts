@@ -1,3 +1,4 @@
+import { narrowModel } from '../model/narrow-model.js';
 import { describe, it, expect } from 'vitest';
 import { evaluateNativeConstraint, type NativeConstraint } from '../validator/constraint-eval.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
@@ -125,6 +126,32 @@ describe('a relation with no links is an empty collection, not a scalar', () => 
             { id: 'T', description: 'T', appliesToKind: 'System', severity: 'error',
               expression: "composes->forAll(conformsTo(LogicalComponent))" },
             model,
+        )).not.toThrow();
+    });
+});
+
+describe('the declared relations survive narrowing', () => {
+    it('keeps declaredRelationTypes on a narrowed model, so a rule over a workspace still resolves them', () => {
+        const element = {
+            id: 'sys', name: 'Sys', kind: 'System', construct: 'part',
+            layer: 'logical', file: 'x.sysml', attributes: {},
+        } as never;
+        const full = {
+            elements: toElementIndex([element]),
+            elementsByKind: new Map([['System', [element]]]),
+            elementsByLayer: new Map(),
+            relationships: [],
+            relationshipsByType: new Map(),
+            declaredRelationTypes: new Set(['composes']),
+            outgoing: new Map(),
+            incoming: new Map(),
+        } as never;
+        const narrowed = narrowModel(full, new Map([['sys', element]]) as never);
+        expect(narrowed.declaredRelationTypes).toEqual(new Set(['composes']));
+        expect(() => evaluateNativeConstraint(
+            { id: 'T', description: 'T', appliesToKind: 'System', severity: 'error',
+              expression: 'composes->forAll(conformsTo(LogicalComponent))' },
+            narrowed,
         )).not.toThrow();
     });
 });
