@@ -777,6 +777,15 @@ export function capture(fixture) {
  * | --- | --- |
  * | gpca +3 elements: `deviceCe`, `deviceMdr`, `deviceFda` | The pump's approvals are `RegulatedDevice` parts; `ModelMethodBinding.regulatoryRegime` is deleted. |
  * | ui-regions +1 element: `UiScreenRegionsSystem`, and `CR-ONT-084` no longer fires | The example declares a System definition. |
+ *
+ * BASELINE RE-FROZEN 2026-10-24 (second) — gpca and ui-regions, for the example authoring (memo).
+ * Compared by leaf name; nothing removed except the findings the authoring clears.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | gpca +4 elements, 4 CR-ONT-040/041 errors cleared, 2 warnings added (CR-MED-032) | Two verification cases and two validation cases for the safety-critical functions and critical tasks; the cases have no evidence record yet. |
+ * | gpca: the two `RulePolicy` parts for rules the method never selects are gone | A policy that targets a rule outside the resolved rule set fails the run. |
+ * | ui-regions: CR-MED-110 clears | `uiElement12` is marked `decoration`. |
  */
 
 if (import.meta.url === `file://${process.argv[1]}`) {
