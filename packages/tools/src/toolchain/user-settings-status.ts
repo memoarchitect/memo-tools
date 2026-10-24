@@ -55,7 +55,7 @@ function valueAt(toolchain: ToolchainConfig, path: string): unknown {
 export interface UserSettingReport {
     path: string;
     value?: string;
-    /** The layer that decided: `command line`, `environment`, `user settings`, `project`, or none. */
+    /** The layer that decided: `command line`, `environment`, `project`, `user settings`, or none. */
     layer?: string;
     layers: { layer: string; value: string }[];
 }
@@ -78,8 +78,8 @@ export function userSettingReports(
         };
         add('command line', valueAt(commandLine, leaf.path));
         if (leaf.path === 'compiler') add('environment', env[USER_COMPILER_ENV]?.trim());
-        add('user settings', valueAt(file, leaf.path));
         add('project', valueAt(project, leaf.path));
+        add('user settings', valueAt(file, leaf.path));
         return { path: leaf.path, value: layers[0]?.value, layer: layers[0]?.layer, layers };
     });
 }

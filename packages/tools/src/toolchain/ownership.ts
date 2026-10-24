@@ -9,7 +9,7 @@
 // gets the rule without anyone remembering to.
 //
 // Which compiler runs is different: the project names it (`scope: 'shared'`),
-// and each user may override it for themselves without editing the project.
+// and a user's settings file is only the default for a project that names none; a run overrides it with the variable or a flag.
 //
 // A rejected setting is rejected, never read as a fallback or compared against
 // the user's: the same rule `model/settings-boundary.ts` holds for semantic fields.

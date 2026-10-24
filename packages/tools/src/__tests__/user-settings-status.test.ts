@@ -113,16 +113,17 @@ describe('changing the compiler setting', () => {
     });
 
     describe('what a panel shows', () => {
-        it('reports the layer that decided: the command line, the environment, the user, then the project', () => {
+        it('reports the layer that decided: the command line, the environment, the project, then the user', () => {
             applyUserSetting('compiler', 'syside', defaultRegistry);
             const compiler = (commandLine = {}, project = {}) =>
                 userSettingReports(defaultRegistry, commandLine, process.env, project).find(r => r.path === 'compiler')!;
             expect(compiler()).toMatchObject({ value: 'syside', layer: 'user settings' });
+            expect(compiler({}, { compiler: 'opensysml' })).toMatchObject({ value: 'opensysml', layer: 'project' });
             process.env[USER_COMPILER_ENV] = 'opensysml';
             expect(compiler()).toMatchObject({ value: 'opensysml', layer: 'environment' });
             expect(compiler({ compiler: 'syside' })).toMatchObject({ layer: 'command line' });
             expect(compiler({}, { compiler: 'opensysml' }).layers.map(l => `${l.layer}:${l.value}`))
-                .toEqual(['environment:opensysml', 'user settings:syside', 'project:opensysml']);
+                .toEqual(['environment:opensysml', 'project:opensysml', 'user settings:syside']);
         });
 
         it('lists the choice of compiler and nothing about where its tools are', () => {

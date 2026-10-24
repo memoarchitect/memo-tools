@@ -44,10 +44,15 @@ export function userFileToolchain(env: NodeJS.ProcessEnv = process.env): Toolcha
     }
 }
 
+/** The compiler variable alone: a per-run choice that beats the project's, as the command line does. */
+export function userEnvToolchain(env: NodeJS.ProcessEnv = process.env): ToolchainConfig {
+    const compiler = env[USER_COMPILER_ENV]?.trim();
+    return compiler ? { compiler } : {};
+}
+
 /** The user's `toolchain` settings: the file, then the compiler variable over it. */
 export function userToolchain(env: NodeJS.ProcessEnv = process.env): ToolchainConfig {
-    const compiler = env[USER_COMPILER_ENV]?.trim();
-    return mergeToolchain(userFileToolchain(env), compiler ? { compiler } : undefined);
+    return mergeToolchain(userFileToolchain(env), userEnvToolchain(env));
 }
 
 // ─── Writing the user's settings ─────────────────────────────────────────────
