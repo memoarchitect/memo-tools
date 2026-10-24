@@ -103,10 +103,10 @@ toolchain:
     diagnose: all                 # all | project | external | none
 ```
 
-Or switch for yourself, without editing the project:
+Or switch for yourself (a project that names a compiler beats this; use `MEMO_TOOLCHAIN_COMPILER` for one run):
 
 ```bash
-memo-architect config set compiler syside            # yours alone
+memo-architect config set compiler syside            # yours: the default for projects that name none
 memo-architect config set compiler syside --project  # the whole project
 memo-architect config get                            # which layer decided it
 ```

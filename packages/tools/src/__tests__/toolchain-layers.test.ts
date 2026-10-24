@@ -1,8 +1,9 @@
 // ─── Toolchain settings come from layers ─────────────────────────────────────
 //
-// The project's settings, then the user's, then the command line's flags: each beats the one
-// before, and a `compiler` decides both roles it fills. The project names the compiler; a user
-// overrides it for themselves without editing the project. Where a tool is on one machine is
+// The user's settings file, then the project's, then the compiler variable, then the command
+// line's flags: each beats the one before, and a `compiler` decides both roles it fills. The file
+// is the user's default everywhere; a project names its own compiler over it; a user overrides
+// both for one run with the variable or a flag. Where a tool is on one machine is
 // refused in a project's checked-in file.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -66,17 +67,18 @@ describe('the layers a command sees', () => {
         user('toolchain: {}\n');
         expect(lowering(project('toolchain:\n  compiler: opensysml\n'))).toBe('opensysml');
     });
-    it('the user\'s own setting beats the project\'s, without editing the project', () => {
+    it('the project\'s compiler beats the user\'s settings file, which is the default for projects that name none', () => {
         user('toolchain:\n  compiler: syside\n');
-        expect(lowering(project('toolchain:\n  compiler: opensysml\n'))).toBe('syside');
+        expect(lowering(project('toolchain:\n  compiler: opensysml\n'))).toBe('opensysml');
+        expect(lowering(project(''))).toBe('syside');
     });
-    it('a user\'s compiler decides both roles over a project that names them one by one', () => {
+    it('a project that names its roles one by one beats the user\'s compiler', () => {
         user('toolchain:\n  compiler: syside\n');
         const dir = project('toolchain:\n  validator: opensysml\n  lowering: opensysml\n');
         const effective = resolveToolchain(loadProjectSettings(dir), defaultRegistry);
-        expect([effective.validator, effective.lowering]).toEqual(['syside', 'syside']);
+        expect([effective.validator, effective.lowering]).toEqual(['opensysml', 'opensysml']);
     });
-    it('the variable beats the user\'s file, and both beat the project', () => {
+    it('the variable beats the project, and so does the user\'s file only where the project says nothing', () => {
         user('toolchain:\n  compiler: syside\n');
         process.env[USER_COMPILER_ENV] = 'opensysml';
         expect(userToolchain().compiler).toBe('opensysml');

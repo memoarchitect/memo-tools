@@ -20,7 +20,7 @@ import { readIdentityRegistry } from './identity-registry.js';
 import type { MEMOConfig, ToolchainConfig } from './config.js';
 import { CONFIG_SEARCH_ORDER, readManifest } from './package-manifest.js';
 import { mergeToolchain } from './toolchain-merge.js';
-import { userToolchain } from './user-settings.js';
+import { userEnvToolchain, userFileToolchain } from './user-settings.js';
 
 /** Settings filenames, most product-scoped first. */
 const SETTINGS_FILENAMES = ['memo.tools.yaml', 'memo.tools.yml', ...CONFIG_SEARCH_ORDER] as const;
@@ -93,13 +93,13 @@ export function setCommandLineToolchain(overrides: ToolchainConfig): void {
 
 
 /**
- * The toolchain every command sees: the project's settings, the user's on top
- * of them (the project names a compiler, and a user may use another without
- * editing the project), and the command line's on top of both
- * (`toolchain-merge.ts`).
+ * The toolchain every command sees, lowest first: the user's settings file (their
+ * own default for every project), the project's on top of it (a project names the
+ * compiler it is built with), then the compiler variable and the command line,
+ * which a user sets for one run without editing the project (`toolchain-merge.ts`).
  */
 function withCommandLineToolchain(config: MEMOConfig): MEMOConfig {
-    const toolchain = mergeToolchain(mergeToolchain(config.toolchain, userToolchain()), commandLineToolchain);
+    const toolchain = mergeToolchain(mergeToolchain(mergeToolchain(userFileToolchain(), config.toolchain), userEnvToolchain()), commandLineToolchain);
     return Object.keys(toolchain).length === 0 ? config : { ...config, toolchain };
 }
 

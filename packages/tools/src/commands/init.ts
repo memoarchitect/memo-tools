@@ -20,8 +20,8 @@ import { RECOMMENDED_COMPILER } from '../toolchain/providers/recommended.js';
  * The compiler a new project names: the recommended one (`toolchain/providers/recommended.ts`,
  * the single place to change it). It is the project's
  * choice, written into its own settings file so everyone who clones it runs the
- * same one; a user who wants another overrides it for themselves
- * (Architect's Compiler control) without editing the project. A project that
+ * same one; a user's own settings file is the default only for a project
+ * that names none, and one run overrides the project with the variable or a flag. A project that
  * already names a compiler, or both roles, keeps its own.
  */
 const NEW_PROJECT_COMPILER = RECOMMENDED_COMPILER;

@@ -63,9 +63,10 @@ toolchain:
 
 **You choose a compiler; MEMO finds its tools.** The project names the compiler it
 uses, and `memo-architect init` writes MEMO's recommended compiler into a new project's settings
-file. A user who wants another overrides it for themselves, without editing the
-project, in Architect (the **Compiler** control, or `memo-architect config set compiler opensysml`), which writes their own settings
-file (`~/.config/memo/settings.yaml`) and is never checked in. Where the compiler's
+file. Your own settings file (`~/.config/memo/settings.yaml`, written by
+`memo-architect config set compiler syside` or Architect's **Compiler** control, never checked in) is your default
+for projects that name none; a project's own compiler beats it. To use another compiler for one run without editing the
+project, set `MEMO_TOOLCHAIN_COMPILER` or pass `--toolchain.compiler`, which beat the project. Where the compiler's
 tools are is not something to type: OpenSysML's service comes with its npm package,
 `syside` is taken from `PATH`, and SysIDE's Python is the first of these that can
 `import syside`: the active virtual environment, the project's `.syside-venv`,
