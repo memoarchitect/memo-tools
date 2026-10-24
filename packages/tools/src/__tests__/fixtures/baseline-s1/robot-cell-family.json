@@ -1,0 +1,601 @@
+{
+  "id": "robot-cell-family",
+  "model": {
+    "elements": [
+      {
+        "id": "robot_cell_family_chains::wfMapGuidedPick",
+        "kind": "OperationalWorkflow",
+        "construct": "action",
+        "layer": "operational",
+        "package": "robot_cell_family_chains"
+      },
+      {
+        "id": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "kind": "OperativeScenario",
+        "construct": "action",
+        "layer": "operational",
+        "package": "robot_cell_family_chains"
+      },
+      {
+        "id": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepAcquire",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "operational",
+        "package": "robot_cell_family_chains"
+      },
+      {
+        "id": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepBuildMap",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "operational",
+        "package": "robot_cell_family_chains"
+      },
+      {
+        "id": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepGrasp",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "operational",
+        "package": "robot_cell_family_chains"
+      },
+      {
+        "id": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepTag",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "operational",
+        "package": "robot_cell_family_chains"
+      },
+      {
+        "id": "robot_cell_family_icds::ManipulationToNavigationIcd",
+        "kind": "Interface",
+        "construct": "interface",
+        "layer": "logical",
+        "package": "robot_cell_family_icds"
+      },
+      {
+        "id": "robot_cell_family_icds::ManipulationToNavigationIcd::consumer",
+        "kind": "GraspEventPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_icds"
+      },
+      {
+        "id": "robot_cell_family_icds::ManipulationToNavigationIcd::provider",
+        "kind": "GraspEventPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_icds"
+      },
+      {
+        "id": "robot_cell_family_icds::PerceptionToNavigationIcd",
+        "kind": "Interface",
+        "construct": "interface",
+        "layer": "logical",
+        "package": "robot_cell_family_icds"
+      },
+      {
+        "id": "robot_cell_family_icds::PerceptionToNavigationIcd::consumer",
+        "kind": "PointCloudPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_icds"
+      },
+      {
+        "id": "robot_cell_family_icds::PerceptionToNavigationIcd::provider",
+        "kind": "PointCloudPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_icds"
+      },
+      {
+        "id": "robot_cell_family_manipulation::fnExecuteGrasp",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "robot_cell_family_manipulation"
+      },
+      {
+        "id": "robot_cell_family_manipulation::ManipulatorSystem",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_manipulation"
+      },
+      {
+        "id": "robot_cell_family_manipulation::ManipulatorSystem::gripperDrive",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_manipulation"
+      },
+      {
+        "id": "robot_cell_family_manipulation::ManipulatorSystem::motionController",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_manipulation"
+      },
+      {
+        "id": "robot_cell_family_manipulation::ManipulatorSystem::pGraspEventOut",
+        "kind": "GraspEventPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_manipulation"
+      },
+      {
+        "id": "robot_cell_family_manipulation::ucExecuteGrasp",
+        "kind": "UseCase",
+        "construct": "use case",
+        "layer": "operational",
+        "package": "robot_cell_family_manipulation"
+      },
+      {
+        "id": "robot_cell_family_navigation::fnBuildMap",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "robot_cell_family_navigation"
+      },
+      {
+        "id": "robot_cell_family_navigation::fnTagGrasp",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "robot_cell_family_navigation"
+      },
+      {
+        "id": "robot_cell_family_navigation::NavigationSystem",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_navigation"
+      },
+      {
+        "id": "robot_cell_family_navigation::NavigationSystem::mapEngine",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_navigation"
+      },
+      {
+        "id": "robot_cell_family_navigation::NavigationSystem::pGraspEventIn",
+        "kind": "GraspEventPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_navigation"
+      },
+      {
+        "id": "robot_cell_family_navigation::NavigationSystem::pPointCloudIn",
+        "kind": "PointCloudPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_navigation"
+      },
+      {
+        "id": "robot_cell_family_navigation::NavigationSystem::safetyRelay",
+        "kind": "SafetyRelayModule",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_navigation"
+      },
+      {
+        "id": "robot_cell_family_navigation::ucAcquireMap",
+        "kind": "UseCase",
+        "construct": "use case",
+        "layer": "operational",
+        "package": "robot_cell_family_navigation"
+      },
+      {
+        "id": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace",
+        "kind": "UseCase",
+        "construct": "use case",
+        "layer": "operational",
+        "package": "robot_cell_family_operational_use_cases"
+      },
+      {
+        "id": "robot_cell_family_perception::fnAcquirePointClouds",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "robot_cell_family_perception"
+      },
+      {
+        "id": "robot_cell_family_perception::PerceptionSystem",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_perception"
+      },
+      {
+        "id": "robot_cell_family_perception::PerceptionSystem::pPointCloudOut",
+        "kind": "PointCloudPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_perception"
+      },
+      {
+        "id": "robot_cell_family_perception::PerceptionSystem::safetyRelay",
+        "kind": "SafetyRelayModule",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_perception"
+      },
+      {
+        "id": "robot_cell_family_perception::PerceptionSystem::sensorHub",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_perception"
+      },
+      {
+        "id": "robot_cell_family_perception::ucRecordRun",
+        "kind": "UseCase",
+        "construct": "use case",
+        "layer": "operational",
+        "package": "robot_cell_family_perception"
+      },
+      {
+        "id": "robot_cell_family_project::projectBinding",
+        "kind": "ModelMethodBinding",
+        "construct": "part",
+        "layer": "methodology",
+        "package": "robot_cell_family_project"
+      },
+      {
+        "id": "robot_cell_family_shared::cellOperator",
+        "kind": "User",
+        "construct": "part",
+        "layer": "operational",
+        "package": "robot_cell_family_shared"
+      },
+      {
+        "id": "robot_cell_family_shared::cellTechnician",
+        "kind": "User",
+        "construct": "part",
+        "layer": "operational",
+        "package": "robot_cell_family_shared"
+      },
+      {
+        "id": "robot_cell_family_shared::GraspEvent",
+        "kind": "InterfaceItem",
+        "construct": "item",
+        "layer": "logical",
+        "package": "robot_cell_family_shared"
+      },
+      {
+        "id": "robot_cell_family_shared::GraspEventPort",
+        "kind": "LogicalPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_shared"
+      },
+      {
+        "id": "robot_cell_family_shared::PointCloud",
+        "kind": "InterfaceItem",
+        "construct": "item",
+        "layer": "logical",
+        "package": "robot_cell_family_shared"
+      },
+      {
+        "id": "robot_cell_family_shared::PointCloudPort",
+        "kind": "LogicalPort",
+        "construct": "port",
+        "layer": "logical",
+        "package": "robot_cell_family_shared"
+      },
+      {
+        "id": "robot_cell_family_shared::RobotPose",
+        "kind": "InterfaceItem",
+        "construct": "item",
+        "layer": "logical",
+        "package": "robot_cell_family_shared"
+      },
+      {
+        "id": "robot_cell_family_sos::robotCell",
+        "kind": "RoboticCell",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_sos"
+      },
+      {
+        "id": "robot_cell_family_sos::RoboticCell",
+        "kind": "SystemOfSystems",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_sos"
+      },
+      {
+        "id": "robot_cell_family_sos::RoboticCell::manipulation",
+        "kind": "ManipulatorSystem",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_sos"
+      },
+      {
+        "id": "robot_cell_family_sos::RoboticCell::navigation",
+        "kind": "NavigationSystem",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_sos"
+      },
+      {
+        "id": "robot_cell_family_sos::RoboticCell::perception",
+        "kind": "PerceptionSystem",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_cell_family_sos"
+      },
+      {
+        "id": "robot_platform::SafetyRelayModule",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "robot_platform"
+      }
+    ],
+    "relationships": [
+      {
+        "type": "allocatedTo",
+        "sourceId": "robot_cell_family_manipulation::fnExecuteGrasp",
+        "targetId": "robot_cell_family_manipulation::ManipulatorSystem::motionController"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "robot_cell_family_navigation::fnBuildMap",
+        "targetId": "robot_cell_family_navigation::NavigationSystem::mapEngine"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "robot_cell_family_navigation::fnTagGrasp",
+        "targetId": "robot_cell_family_navigation::NavigationSystem::mapEngine"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "robot_cell_family_perception::fnAcquirePointClouds",
+        "targetId": "robot_cell_family_perception::PerceptionSystem::sensorHub"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepAcquire"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepBuildMap"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepGrasp"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepTag"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_manipulation::ManipulatorSystem",
+        "targetId": "robot_cell_family_manipulation::ManipulatorSystem::gripperDrive"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_manipulation::ManipulatorSystem",
+        "targetId": "robot_cell_family_manipulation::ManipulatorSystem::motionController"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_navigation::NavigationSystem",
+        "targetId": "robot_cell_family_navigation::NavigationSystem::mapEngine"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_navigation::NavigationSystem",
+        "targetId": "robot_cell_family_navigation::NavigationSystem::safetyRelay"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_perception::PerceptionSystem",
+        "targetId": "robot_cell_family_perception::PerceptionSystem::safetyRelay"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_perception::PerceptionSystem",
+        "targetId": "robot_cell_family_perception::PerceptionSystem::sensorHub"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_sos::RoboticCell",
+        "targetId": "robot_cell_family_sos::RoboticCell::manipulation"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_sos::RoboticCell",
+        "targetId": "robot_cell_family_sos::RoboticCell::navigation"
+      },
+      {
+        "type": "composes",
+        "sourceId": "robot_cell_family_sos::RoboticCell",
+        "targetId": "robot_cell_family_sos::RoboticCell::perception"
+      },
+      {
+        "type": "flow",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepAcquire",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepBuildMap"
+      },
+      {
+        "type": "flow",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepGrasp",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepTag"
+      },
+      {
+        "type": "hasSubject",
+        "sourceId": "robot_cell_family_manipulation::ucExecuteGrasp",
+        "targetId": "robot_cell_family_manipulation::ManipulatorSystem"
+      },
+      {
+        "type": "hasSubject",
+        "sourceId": "robot_cell_family_navigation::ucAcquireMap",
+        "targetId": "robot_cell_family_navigation::NavigationSystem"
+      },
+      {
+        "type": "hasSubject",
+        "sourceId": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace",
+        "targetId": "robot_cell_family_sos::robotCell"
+      },
+      {
+        "type": "hasSubject",
+        "sourceId": "robot_cell_family_perception::ucRecordRun",
+        "targetId": "robot_cell_family_perception::PerceptionSystem"
+      },
+      {
+        "type": "includesStep",
+        "sourceId": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace",
+        "targetId": "robot_cell_family_manipulation::ucExecuteGrasp"
+      },
+      {
+        "type": "includesStep",
+        "sourceId": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace",
+        "targetId": "robot_cell_family_navigation::ucAcquireMap"
+      },
+      {
+        "type": "includesStep",
+        "sourceId": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace",
+        "targetId": "robot_cell_family_perception::ucRecordRun"
+      },
+      {
+        "type": "interface",
+        "sourceId": "robot_cell_family_sos::RoboticCell::manipulation",
+        "targetId": "robot_cell_family_sos::RoboticCell::navigation"
+      },
+      {
+        "type": "interface",
+        "sourceId": "robot_cell_family_sos::RoboticCell::perception",
+        "targetId": "robot_cell_family_sos::RoboticCell::navigation"
+      },
+      {
+        "type": "logicalConnector",
+        "sourceId": "robot_cell_family_manipulation::ManipulatorSystem::motionController",
+        "targetId": "robot_cell_family_manipulation::ManipulatorSystem::gripperDrive"
+      },
+      {
+        "type": "logicalConnector",
+        "sourceId": "robot_cell_family_navigation::NavigationSystem::safetyRelay",
+        "targetId": "robot_cell_family_navigation::NavigationSystem::mapEngine"
+      },
+      {
+        "type": "logicalConnector",
+        "sourceId": "robot_cell_family_perception::PerceptionSystem::safetyRelay",
+        "targetId": "robot_cell_family_perception::PerceptionSystem::sensorHub"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "robot_cell_family_shared::cellOperator",
+        "targetId": "robot_cell_family_manipulation::ucExecuteGrasp"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "robot_cell_family_shared::cellOperator",
+        "targetId": "robot_cell_family_navigation::ucAcquireMap"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "robot_cell_family_shared::cellOperator",
+        "targetId": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "robot_cell_family_shared::cellTechnician",
+        "targetId": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "robot_cell_family_shared::cellTechnician",
+        "targetId": "robot_cell_family_perception::ucRecordRun"
+      },
+      {
+        "type": "performs",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "targetId": "robot_cell_family_manipulation::fnExecuteGrasp"
+      },
+      {
+        "type": "performs",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "targetId": "robot_cell_family_navigation::fnBuildMap"
+      },
+      {
+        "type": "performs",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "targetId": "robot_cell_family_navigation::fnTagGrasp"
+      },
+      {
+        "type": "performs",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick",
+        "targetId": "robot_cell_family_perception::fnAcquirePointClouds"
+      },
+      {
+        "type": "realizesUseCase",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick",
+        "targetId": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace"
+      },
+      {
+        "type": "succession",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepAcquire",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepBuildMap"
+      },
+      {
+        "type": "succession",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepBuildMap",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepGrasp"
+      },
+      {
+        "type": "succession",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepGrasp",
+        "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepTag"
+      }
+    ],
+    "kindCounts": {
+      "ActionUsage": 4,
+      "GraspEventPort": 4,
+      "Interface": 2,
+      "InterfaceItem": 3,
+      "LogicalComponent": 5,
+      "LogicalPort": 2,
+      "ManipulatorSystem": 1,
+      "ModelMethodBinding": 1,
+      "NavigationSystem": 1,
+      "OperationalWorkflow": 1,
+      "OperativeScenario": 1,
+      "PerceptionSystem": 1,
+      "PointCloudPort": 4,
+      "RoboticCell": 1,
+      "SafetyRelayModule": 2,
+      "System": 3,
+      "SystemFunction": 4,
+      "SystemOfSystems": 1,
+      "UseCase": 4,
+      "User": 2
+    },
+    "layerCounts": {
+      "functional": 4,
+      "logical": 30,
+      "methodology": 1,
+      "operational": 12
+    },
+    "diagrams": []
+  },
+  "validation": {
+    "violations": [],
+    "counts": {}
+  },
+  "errors": [],
+  "summary": {
+    "elements": 47,
+    "completeness": 100
+  }
+}

@@ -1,9 +1,495 @@
 {
   "id": "extension-clinical",
-  "model": null,
-  "validation": null,
-  "errors": [
-    "model: Error: Command failed: node <path>/project-cli.mjs export json --output <path>/memo-baseline-extension-clinical.json",
-    "validation: Error: Command failed: node <path>/memo.js validate --format json --output <path>/memo-baseline-extension-clinical-validation.json"
-  ]
+  "model": {
+    "elements": [
+      {
+        "id": "memo_examples_surgical_closure_workflow_project::projectBinding",
+        "kind": "ModelMethodBinding",
+        "construct": "part",
+        "layer": "methodology",
+        "package": "memo_examples_surgical_closure_workflow_project"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow_viewpoints_unassigned_views_surgical_closure_workflow_overview::surgicalClosureWorkflowOverview",
+        "kind": "MemoDiagramView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_surgical_closure_workflow_viewpoints_unassigned_views_surgical_closure_workflow_overview"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actAssessStapleLine",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actEstablishAccess",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actExtractSpecimenAndClose",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actHandover",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actMobilizeStomach",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stAssessIntegrity",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stConfirmAnatomy",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stCreateStapleLine",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stInspectBleeding",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::actTimeOutAndPosition",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::anesthetist",
+        "kind": "User",
+        "construct": "part",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::bariatricOr",
+        "kind": "UseContext",
+        "construct": "part",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::bariatricSurgeon",
+        "kind": "User",
+        "construct": "part",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::needControlledGastricResection",
+        "kind": "Need",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::scrubNurse",
+        "kind": "User",
+        "construct": "part",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::SurgicalClosureWorkflowSystem",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy",
+        "kind": "UseCase",
+        "construct": "use case",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::valAuthoredActAssessStapleLine",
+        "kind": "ValidationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::valAuthoredActSizeAndCreateSleeve",
+        "kind": "ValidationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::valAuthoredTaskCreateStapleLine",
+        "kind": "ValidationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy",
+        "kind": "ClinicalProcedureWorkflow",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "kind": "OperativeScenario",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding",
+        "kind": "OperativeScenario",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding",
+        "kind": "OperativeAction",
+        "construct": "action",
+        "layer": "operational",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::controlBleeding",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "unknown",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::escalateIfNeeded",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "unknown",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::reassessStapleLine",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "unknown",
+        "package": "memo_examples_surgical_closure_workflow"
+      },
+      {
+        "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::recognizeBleeding",
+        "kind": "ActionUsage",
+        "construct": "action",
+        "layer": "unknown",
+        "package": "memo_examples_surgical_closure_workflow"
+      }
+    ],
+    "relationships": [
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stAssessIntegrity"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stConfirmAnatomy"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stCreateStapleLine"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stInspectBleeding"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::controlBleeding"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::escalateIfNeeded"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::reassessStapleLine"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::recognizeBleeding"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "dependency",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "heldBy",
+        "sourceId": "memo_examples_surgical_closure_workflow::needControlledGastricResection",
+        "targetId": "memo_examples_surgical_closure_workflow::bariatricSurgeon"
+      },
+      {
+        "type": "motivates",
+        "sourceId": "memo_examples_surgical_closure_workflow::needControlledGastricResection",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "memo_examples_surgical_closure_workflow::anesthetist",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "memo_examples_surgical_closure_workflow::bariatricSurgeon",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "participatesIn",
+        "sourceId": "memo_examples_surgical_closure_workflow::scrubNurse",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::actAssessStapleLine"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::actEstablishAccess"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::actExtractSpecimenAndClose"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::actHandover"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::actMobilizeStomach"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::actTimeOutAndPosition"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scNominalSleeveProcedure",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "realizes",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "realizesUseCase",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy",
+        "targetId": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actAssessStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::actExtractSpecimenAndClose"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actEstablishAccess",
+        "targetId": "memo_examples_surgical_closure_workflow::actMobilizeStomach"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actExtractSpecimenAndClose",
+        "targetId": "memo_examples_surgical_closure_workflow::actHandover"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actMobilizeStomach",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stConfirmAnatomy",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stCreateStapleLine"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stCreateStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stInspectBleeding"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stInspectBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine::stAssessIntegrity"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve",
+        "targetId": "memo_examples_surgical_closure_workflow::actAssessStapleLine"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::actTimeOutAndPosition",
+        "targetId": "memo_examples_surgical_closure_workflow::actEstablishAccess"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding__start",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::recognizeBleeding"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::controlBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::reassessStapleLine"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::escalateIfNeeded",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding__done"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::reassessStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::escalateIfNeeded"
+      },
+      {
+        "type": "succession",
+        "sourceId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::recognizeBleeding",
+        "targetId": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy::scStapleLineBleeding::oaControlStapleLineBleeding::controlBleeding"
+      },
+      {
+        "type": "validates",
+        "sourceId": "memo_examples_surgical_closure_workflow::actAssessStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::valAuthoredActAssessStapleLine"
+      },
+      {
+        "type": "validates",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve::taskCreateStapleLine",
+        "targetId": "memo_examples_surgical_closure_workflow::valAuthoredTaskCreateStapleLine"
+      },
+      {
+        "type": "validates",
+        "sourceId": "memo_examples_surgical_closure_workflow::actSizeAndCreateSleeve",
+        "targetId": "memo_examples_surgical_closure_workflow::valAuthoredActSizeAndCreateSleeve"
+      }
+    ],
+    "kindCounts": {
+      "ActionUsage": 4,
+      "ClinicalProcedureWorkflow": 1,
+      "MemoDiagramView": 1,
+      "ModelMethodBinding": 1,
+      "Need": 1,
+      "OperativeAction": 13,
+      "OperativeScenario": 2,
+      "System": 1,
+      "UseCase": 1,
+      "UseContext": 1,
+      "User": 3,
+      "ValidationCase": 3
+    },
+    "layerCounts": {
+      "logical": 1,
+      "methodology": 1,
+      "operational": 21,
+      "requirements": 1,
+      "unknown": 5,
+      "verification_validation": 3
+    },
+    "diagrams": []
+  },
+  "validation": {
+    "violations": [],
+    "counts": {}
+  },
+  "errors": [],
+  "summary": {
+    "elements": 32,
+    "completeness": 100
+  }
 }

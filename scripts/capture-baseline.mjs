@@ -48,7 +48,11 @@ export const FIXTURES = [
     { id: 'gpca', dir: resolve(memoRoot, 'examples/gpca-pump') },
     { id: 'ui-regions', dir: resolve(memoRoot, 'examples/ui-screen-regions') },
     { id: 'default', init: true },
-    { id: 'extension-clinical', dir: resolve(memoRoot, 'extensions/clinical') },
+    // The clinical extension is a package, not a project, and cannot be exported or validated on its own: its
+    // fixture recorded two errors and matched them forever. The project that imports it stands for it.
+    { id: 'extension-clinical', dir: resolve(memoRoot, 'examples/surgical-closure-workflow') },
+    { id: 'robot-cell-family', dir: resolve(memoRoot, 'examples/robot-cell-family') },
+    { id: 'nested-architecture-dsm', dir: resolve(memoRoot, 'examples/nested-architecture-dsm') },
 ];
 
 /**
@@ -794,6 +798,13 @@ export function capture(fixture) {
  * | --- | --- |
  * | gpca: AR-IBD-001 ×3, CR-MED-023 ×4 and CR-MED-032 ×2 clear | Three `LogicalConnector`s between the subsystems, successions among the sensor functions, a functional chain for `ManagePower`, and evidence records for the two new verification cases. |
  * | ui-regions: CR-MED-005 ×5 and CR-MED-023 ×3 clear | Each hazard reaches a hazardous situation and a harm; the display functions follow one another by succession. |
+ *
+ * BASELINE RE-FROZEN 2026-10-24 (fourth) — `extension-clinical` replaced, two fixtures added (memo).
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | `extension-clinical` is `examples/surgical-closure-workflow`, not `extensions/clinical` | The extension is a package: `export json` and `validate` fail on it, so the fixture held two errors and no model. The example that imports it is a project. |
+ * | + `robot-cell-family`, + `nested-architecture-dsm` | Neither was frozen; robot-cell-family gained 8 elements and nested-architecture-dsm 10 flow edges since the last look. |
  */
 
 if (import.meta.url === `file://${process.argv[1]}`) {

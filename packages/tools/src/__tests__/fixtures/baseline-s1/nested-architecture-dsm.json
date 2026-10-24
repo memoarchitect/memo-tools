@@ -1,0 +1,1153 @@
+{
+  "id": "nested-architecture-dsm",
+  "model": {
+    "elements": [
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnComputeRate",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnValidatePrescription",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnMeasureDelivered",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectAirInLine",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectOcclusion",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnEnforceDoseLimits",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAcceptInput",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnRenderStatus",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnMonitorBattery",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnSelectPowerSource",
+        "kind": "SystemFunction",
+        "construct": "action",
+        "layer": "functional",
+        "package": "memo_examples_nested_architecture_dsm_architecture_functional_functions"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl",
+        "kind": "Subsystem",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcDoseController",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcTherapyStateStore",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor",
+        "kind": "Subsystem",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor::lcPressureIntegrityChannel",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor::lcWatchdogChannel",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath",
+        "kind": "Subsystem",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcOcclusionChannel",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcPumpMechanism",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcReservoirInterface",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower",
+        "kind": "Subsystem",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcBatteryManager",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcPowerRailMonitor",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface",
+        "kind": "Subsystem",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcAlarmAnnunciator",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcDisplayManager",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcKeypadHandler",
+        "kind": "LogicalComponent",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_architecture_logical_structure"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_operational_context::ctxIntraHospitalTransport",
+        "kind": "UseContext",
+        "construct": "part",
+        "layer": "operational",
+        "package": "memo_examples_nested_architecture_dsm_architecture_operational_context"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_architecture_operational_context::usrWardNurse",
+        "kind": "User",
+        "construct": "part",
+        "layer": "operational",
+        "package": "memo_examples_nested_architecture_dsm_architecture_operational_context"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needAccurateTherapy",
+        "kind": "Need",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements_needs"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needLegibleStatus",
+        "kind": "Need",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements_needs"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needProtectionFromHarm",
+        "kind": "Need",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements_needs"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needUninterruptedTherapy",
+        "kind": "Need",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements_needs"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAirInLine",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAlarmAnnunciation",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements::reqBatteryEndurance",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements::reqDoseAccuracy",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements::reqOcclusionDetection",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements::reqPrescriptionConfirmation",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_requirements::reqStatusVisibility",
+        "kind": "Requirement",
+        "construct": "requirement",
+        "layer": "requirements",
+        "package": "memo_examples_nested_architecture_dsm_assurance_requirements"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcAirInLineResponse",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcAlarmSignals",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcBatteryEndurance",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcConfirmationFlow",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcDoseAccuracy",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcOcclusionResponse",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcPowerSourceSwitch",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcStatusLegibility",
+        "kind": "MemoEvidence",
+        "construct": "part",
+        "layer": "core",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcAirInLineResponse",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcAlarmSignals",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcBatteryEndurance",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcConfirmationFlow",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcOcclusionResponse",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcPowerSourceSwitch",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcStatusLegibility",
+        "kind": "VerificationCase",
+        "construct": "verification",
+        "layer": "verification_validation",
+        "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_project::projectBinding",
+        "kind": "ModelMethodBinding",
+        "construct": "part",
+        "layer": "methodology",
+        "package": "memo_examples_nested_architecture_dsm_project"
+      },
+      {
+        "id": "memo_examples_nested_architecture_dsm_system::NestedArchitectureDsmSystem",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_system"
+      }
+    ],
+    "relationships": [
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnComputeRate",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcDoseController"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnValidatePrescription",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcDoseController"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcPumpMechanism"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnMeasureDelivered",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcPumpMechanism"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectAirInLine",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcOcclusionChannel"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectOcclusion",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcOcclusionChannel"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnEnforceDoseLimits",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor::lcPressureIntegrityChannel"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnEnforceDoseLimits",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor::lcWatchdogChannel"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAcceptInput",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcKeypadHandler"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcAlarmAnnunciator"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnRenderStatus",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcDisplayManager"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnMonitorBattery",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcBatteryManager"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnSelectPowerSource",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcPowerRailMonitor"
+      },
+      {
+        "type": "allocatedTo",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnComputeRate"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnValidatePrescription"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnMeasureDelivered"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectAirInLine"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectOcclusion"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnEnforceDoseLimits"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAcceptInput"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnRenderStatus"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnMonitorBattery"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnSelectPowerSource"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor::lcPressureIntegrityChannel"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor::lcWatchdogChannel"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcDoseController"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcTherapyStateStore"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcOcclusionChannel"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcPumpMechanism"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcReservoirInterface"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcBatteryManager"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcPowerRailMonitor"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcAlarmAnnunciator"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcDisplayManager"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcKeypadHandler"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower"
+      },
+      {
+        "type": "composes",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needAccurateTherapy",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqDoseAccuracy"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needLegibleStatus",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAlarmAnnunciation"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needLegibleStatus",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqPrescriptionConfirmation"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needLegibleStatus",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqStatusVisibility"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needProtectionFromHarm",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAirInLine"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needProtectionFromHarm",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqOcclusionDetection"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needUninterruptedTherapy",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqBatteryEndurance"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqDoseAccuracy",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqPrescriptionConfirmation"
+      },
+      {
+        "type": "derivesFrom",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqOcclusionDetection",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAlarmAnnunciation"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnComputeRate",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnValidatePrescription",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnComputeRate"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnMeasureDelivered"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnMeasureDelivered",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnComputeRate"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnMeasureDelivered",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnRenderStatus"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectAirInLine",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectOcclusion",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnEnforceDoseLimits"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectOcclusion",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnEnforceDoseLimits",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAcceptInput",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnValidatePrescription"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnMonitorBattery",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnSelectPowerSource",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcDoseController",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcPumpMechanism"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcTherapyStateStore",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcDisplayManager"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor::lcPressureIntegrityChannel",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcAlarmAnnunciator"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::subSafetyMonitor::lcWatchdogChannel",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcDoseController"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcOcclusionChannel",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcDoseController"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcPumpMechanism",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcTherapyStateStore"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcReservoirInterface",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subFluidPath::lcPumpMechanism"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcBatteryManager",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcPowerRailMonitor"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subPower::lcPowerRailMonitor",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcAlarmAnnunciator"
+      },
+      {
+        "type": "flow",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subUserInterface::lcKeypadHandler",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery::subControl::lcDoseController"
+      },
+      {
+        "type": "heldBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needAccurateTherapy",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_operational_context::usrWardNurse"
+      },
+      {
+        "type": "heldBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements_needs::needLegibleStatus",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_operational_context::usrWardNurse"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcAirInLineResponse",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcAirInLineResponse"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcAlarmSignals",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcAlarmSignals"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcBatteryEndurance",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcBatteryEndurance"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcConfirmationFlow",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcConfirmationFlow"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcDoseAccuracy"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcOcclusionResponse",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcOcclusionResponse"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcPowerSourceSwitch",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcPowerSourceSwitch"
+      },
+      {
+        "type": "producesEvidence",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcStatusLegibility",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::evAuthoredVcStatusLegibility"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAirInLine",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectAirInLine"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAirInLine",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAlarmAnnunciation",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqBatteryEndurance",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnMonitorBattery"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqBatteryEndurance",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnSelectPowerSource"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqDoseAccuracy",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnComputeRate"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqDoseAccuracy",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqOcclusionDetection",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectOcclusion"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqOcclusionDetection",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnEnforceDoseLimits"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqPrescriptionConfirmation",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnValidatePrescription"
+      },
+      {
+        "type": "satisfiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqPrescriptionConfirmation",
+        "targetId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAcceptInput"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnComputeRate",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose::fnValidatePrescription",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcConfirmationFlow"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnControlDose",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnDriveActuator",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid::fnMeasureDelivered",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy::fnMeterFluid",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnDeliverTherapy",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectAirInLine",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcAirInLineResponse"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnDetectOcclusion",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcOcclusionResponse"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety::fnEnforceDoseLimits",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcOcclusionResponse"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnEnsureSafety",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcOcclusionResponse"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAcceptInput",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcConfirmationFlow"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnAnnunciateAlarm",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcAlarmSignals"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser::fnRenderStatus",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcStatusLegibility"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnInformUser",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcStatusLegibility"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnMonitorBattery",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcBatteryEndurance"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower::fnSelectPowerSource",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcPowerSourceSwitch"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_architecture_functional_functions::fnManagePower",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcBatteryEndurance"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAirInLine",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcAirInLineResponse"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqAlarmAnnunciation",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcAlarmSignals"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqBatteryEndurance",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcBatteryEndurance"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqDoseAccuracy",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcDoseAccuracy"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqOcclusionDetection",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcOcclusionResponse"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqPrescriptionConfirmation",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcConfirmationFlow"
+      },
+      {
+        "type": "verifiedBy",
+        "sourceId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqStatusVisibility",
+        "targetId": "memo_examples_nested_architecture_dsm_assurance_verification_validation::vcStatusLegibility"
+      }
+    ],
+    "kindCounts": {
+      "LogicalComponent": 12,
+      "MemoEvidence": 8,
+      "ModelMethodBinding": 1,
+      "Need": 4,
+      "Requirement": 7,
+      "Subsystem": 5,
+      "System": 2,
+      "SystemFunction": 18,
+      "UseContext": 1,
+      "User": 1,
+      "VerificationCase": 8
+    },
+    "layerCounts": {
+      "core": 8,
+      "functional": 18,
+      "logical": 19,
+      "methodology": 1,
+      "operational": 2,
+      "requirements": 11,
+      "verification_validation": 8
+    },
+    "diagrams": []
+  },
+  "validation": {
+    "violations": [
+      {
+        "rule": "XL-002",
+        "severity": "warning",
+        "elementId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqStatusVisibility"
+      }
+    ],
+    "counts": {
+      "warning": 1
+    }
+  },
+  "errors": [],
+  "summary": {
+    "elements": 67,
+    "completeness": 100
+  }
+}
