@@ -46,6 +46,15 @@ const STANDARD_LIBRARY_PACKAGES = new Set([
     'Collections', 'SequenceFunctions', 'ControlFunctions', 'BaseFunctions',
     'NumericalFunctions', 'StringFunctions', 'BooleanFunctions', 'DataFunctions',
     'ISQ', 'SI', 'Quantities', 'MeasurementReferences', 'Time', 'SpatialFrames',
+    // The standard Domain Libraries (`sysml.library/Domain Libraries`): the specification ships them, so
+    // an import of one is not a package a project failed to supply.
+    'AnalysisTooling', 'CausationConnections', 'CauseAndEffect', 'DerivationConnections', 'ISQAcoustics',
+    'ISQAtomicNuclear', 'ISQBase', 'ISQCharacteristicNumbers', 'ISQChemistryMolecular', 'ISQCondensedMatter',
+    'ISQElectromagnetism', 'ISQInformation', 'ISQLight', 'ISQMechanics', 'ISQSpaceTime', 'ISQThermodynamics',
+    'ImageMetadata', 'MeasurementRefCalculations', 'ModelingMetadata', 'ParametersOfInterestMetadata',
+    'QuantityCalculations', 'RequirementDerivation', 'RiskMetadata', 'SIPrefixes', 'SampledFunctions',
+    'ShapeItems', 'SpatialItems', 'StateSpaceRepresentation', 'TensorCalculations', 'TradeStudies',
+    'VectorCalculations',
 ]);
 
 /** Conventional template value for the required project root descriptor. */
