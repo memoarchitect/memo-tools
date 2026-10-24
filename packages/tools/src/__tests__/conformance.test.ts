@@ -35,7 +35,7 @@ const STDLIB_WRAPPER_DIR = resolve(ONTOLOGY_ROOT, 'core', 'stdlib');
 
 const STANDARD_LIBRARY_PACKAGES = [
     'ScalarValues', 'BaseFunctions', 'Collections',
-    'ISQBase', 'ISQ', 'SI', 'USCustomary',
+    'ISQBase', 'ISQ', 'SI', 'SIPrefixes', 'USCustomary',
     'MeasurementReferences', 'Quantities',
     'Time', 'Duration',
     'Performances', 'Actions', 'Calculations',
