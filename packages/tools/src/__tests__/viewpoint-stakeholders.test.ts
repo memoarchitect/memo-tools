@@ -14,7 +14,7 @@ const SOURCE = `package t {
     private import memo_viewpoints_ui_layout_ui_layout_viewpoint::*;
     private import memo_viewpoints_software_software_viewpoint::*;
     viewpoint vpReview : MemoViewpoint {
-        ref :>> stakeholders = (verificationEngineer, projectLead);
+        ref :>> memoStakeholders = (verificationEngineer, projectLead);
     }
     viewpoint vpNobody : MemoViewpoint;
     view vRisk : MemoView { ref :>> viewpointDefinition = riskViewpoint; }

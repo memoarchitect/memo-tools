@@ -66,7 +66,7 @@ export interface ApiViewDefinition {
 
 /**
  * A `viewpoint` usage a library declares, and the stakeholders it is written
- * for (`ref :>> stakeholders = (safetyEngineer)`), by usage name.
+ * for (`ref :>> memoStakeholders = (safetyEngineer)`), by usage name.
  *
  * A project's views bind the library's viewpoints by name, and a library usage
  * is not a project element, so without this the stakeholders the ontology
