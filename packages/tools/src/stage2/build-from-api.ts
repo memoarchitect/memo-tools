@@ -265,6 +265,7 @@ class ElementBuilder {
             this.ports(def, packageName, id);
             this.nestedParts(def, packageName, id);
         }
+        if (construct === 'part') this.nestedStates(def, packageName, id);
     }
 
     private itemDefinition(def: ApiElement, packageName: string): void {
@@ -340,7 +341,18 @@ class ElementBuilder {
                 this.usage(member, 'state', packageName, id);
             }
         }
+        if (construct === 'part') this.nestedStates(usage, packageName, id);
         return id;
+    }
+
+    /**
+     * The states a part declares. A state is a behaviour of its part, and what it performs is what is
+     * available in that mode, so it has to be an element for `do fnX;` to say which state does.
+     */
+    private nestedStates(owner: ApiElement, packageName: string, ownerId: string): void {
+        for (const member of this.api.ownedMembers(owner['@id'])) {
+            if (member['@type'] === 'StateUsage' && this.api.name(member['@id'])) this.usage(member, 'state', packageName, ownerId);
+        }
     }
 
     private viewpoint(usage: ApiElement, packageName: string, ownerId: string | undefined): void {
