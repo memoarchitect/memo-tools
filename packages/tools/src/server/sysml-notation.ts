@@ -19,7 +19,8 @@
 import type { RelationshipDefinitionDTO } from '../model/relationship-legality.js';
 
 /** The SysML production a relationship is written as. */
-export type RelationshipNotation = 'succession' | 'flow' | 'satisfy' | 'typedDependency' | 'connection';
+export type RelationshipNotation =
+    'succession' | 'flow' | 'satisfy' | 'typedDependency' | 'connection' | 'interface' | 'typedFlow';
 
 export interface RelationshipNotationRequest {
     /** Connection usage name, when the form carries one. */
@@ -64,6 +65,9 @@ export function notationFor(definition: RelationshipDefinitionDTO): Relationship
     if (definition.nativeKeyword === 'satisfy') return 'satisfy';
     // A typed dependency is a Dependency (SysML-textual-bnf.kebnf:51-59) whose prefix metadata names it.
     if (definition.typedDependency) return 'typedDependency';
+    // An exchange the ontology declares as an `interface def` or a `flow def` is a usage typed by it.
+    if (definition.sysmlConstruct === 'interface def') return 'interface';
+    if (definition.sysmlConstruct === 'flow def') return 'typedFlow';
     return NATIVE_FORMS[definition.sysmlName]
         ?? NATIVE_FORMS[`${definition.sysmlName}Usage`]
         ?? 'connection';
@@ -71,16 +75,18 @@ export function notationFor(definition: RelationshipDefinitionDTO): Relationship
 
 /** True when the form gives the relationship a name of its own. */
 export function notationIsNameable(notation: RelationshipNotation): boolean {
-    return notation === 'connection';
+    return notation === 'connection' || notation === 'interface' || notation === 'typedFlow';
 }
 
 /**
  * Render one relationship as SysML source.
  *
- * Anonymous forms are not a defect of this module: SysML's succession and flow
- * productions do not take a declared name, so a relationship written in one is
- * addressable by position rather than by ID. `writeRelationship` reports that
- * back rather than inventing a name the language cannot carry.
+ * Some forms are anonymous: SysML's succession production takes no declared name, nor does
+ * the bare `flow of Item from a to b;` this module writes for the native flow, so a relationship
+ * written in one is addressable by position rather than by ID. `writeRelationship` reports that
+ * back rather than inventing a name the language cannot carry. A flow DEFINITION's usage is named
+ * (`flow lfX : FunctionalExchange from a to b;`, `FlowDeclaration` begins with `UsageDeclaration`,
+ * SysML-textual-bnf.kebnf:838-843), and so is an interface.
  */
 export function renderRelationship(request: RelationshipNotationRequest): string {
     const notation = notationFor(request.definition);
@@ -93,6 +99,10 @@ export function renderRelationship(request: RelationshipNotationRequest): string
             return renderSatisfy(request);
         case 'typedDependency':
             return `#${request.definition.typedDependency} dependency from ${request.sourceId} to ${request.targetId};`;
+        case 'interface':
+            return `interface ${request.id} : ${request.definition.sysmlName} connect ${request.sourceId} to ${request.targetId};`;
+        case 'typedFlow':
+            return renderTypedFlow(request);
         default:
             return renderConnection(request);
     }
@@ -117,6 +127,13 @@ function renderSuccession(request: RelationshipNotationRequest): string {
 function renderFlow(request: RelationshipNotationRequest): string {
     const item = request.flowItem?.trim() || request.definition.sourceEnd.type || 'Item';
     return `flow of ${item} from ${request.sourceId} to ${request.targetId};`;
+}
+
+/** `flow id : Def [of Item] from source to target;` */
+function renderTypedFlow(request: RelationshipNotationRequest): string {
+    const item = request.flowItem?.trim();
+    return `flow ${request.id} : ${request.definition.sysmlName}${item ? ` of ${item}` : ''} `
+        + `from ${request.sourceId} to ${request.targetId};`;
 }
 
 /** `connection id : Def connect srcEnd ::> source to tgtEnd ::> target;` */
