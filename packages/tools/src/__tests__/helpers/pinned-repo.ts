@@ -133,6 +133,8 @@ export function createFamilyRepo(): FamilyRepo {
     private import memo_architecture_variability::*;
     private import robot_cell_family_features::*;
     private import robot_cell_family_manipulation_options::*;
+    private import robot_cell_family_sos::*;
+    private import robot_cell_family_release_records::*;
 
     part relOutputEu : ReleaseRecord {
         @MemoIdentity { :>> label = "Output stage EU"; }
@@ -161,6 +163,9 @@ export function createFamilyRepo(): FamilyRepo {
         attribute :>> jurisdiction = RegulatoryRegimeKind::FDA_510k;
         attribute :>> submissionId = "K000001";
     }
+    // The SoS version that pins the EU output stage beside the navigation system: the device's SoS context.
+    ${record('relLabOutputEu', 'RoboticCell', c3, 510, ['relOutputEu', 'relNavigation'])}
+
     #Covers dependency from devEu to relOutputEu;
     #Covers dependency from devFda to relOutputUs;
 }
