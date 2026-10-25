@@ -318,6 +318,11 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
         'IncludesStep',
         // See FULLY_UNTYPED below.
         'HasSubject',
+        // `Subsets`: a step is an untyped action nested in its flow, so no MEMO type holds it, and
+        // what it subsets is a function a model may type however it likes; naming one made a step
+        // of any other action a well-formedness error. The edge exists so a rule can reach the
+        // function from the step.
+        'Subsets',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a
     // metaclass boundary. Six of the seven joined this set in A0.
@@ -340,6 +345,8 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
         // requirement or a use case, which sit in unrelated families
         // (MemoRequirementElement, MemoUseCase), the same reason as above.
         'HasSubject',
+        // See the reason on UNTYPED_END_EXEMPTIONS above.
+        'Subsets',
     ];
 
     it('keeps the universal relation identifiable among fully untyped relations', async () => {

@@ -203,6 +203,18 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             { name: 'step' },
         ],
     },
+    subsets: {
+        keyword: ':>',
+        sysmlName: 'Subsets',
+        layer: 'core',
+        description: 'A step subsets the function it carries out. '
+            + 'Written natively as `action <step> :> <function>;` inside a flow. '
+            + 'Distinct from `performs`: the flow performs the function, the step is the flow\'s own position of it.',
+        ends: [
+            { name: 'step' },
+            { name: 'subsettedFunction' },
+        ],
+    },
     dependency: {
         keyword: 'dependency',
         sysmlName: 'Dependency',
