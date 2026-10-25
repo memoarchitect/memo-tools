@@ -11,6 +11,8 @@ import { compilerConfigured, modelFromSources } from './helpers/compile-source.j
 
 const SRC = `package P {
     private import ScalarValues::*;
+    private import ISQ::*;
+    private import SI::*;
     abstract constraint def MemoConsistencyRule;
     constraint def NoNegative :> MemoConsistencyRule { in x : Real; x >= 0 }
     action def Dose {
@@ -20,6 +22,7 @@ const SRC = `package P {
         constraint { rate != 6 }
     }
     attribute def Percentage :> Real { assert constraint { self >= 0.0 and self <= 1.0 } }
+    attribute def DoseMass :> MassValue { assert constraint { self >= 0 [kg] and self <= 5 [kg] } }
     requirement def Limit { subject d : Dose; require constraint { d.rate <= 10 } assume constraint lim { d.rate >= 0 } }
     constraint def Range { in x : Real; x >= 0 }
 }`;
@@ -33,7 +36,9 @@ describe.runIf(compilerConfigured)('native constraints', () => {
     it('are elements, owned by what holds them, each with its expression', async () => {
         const byId = Object.fromEntries((await constraints()).map(c => [c.id, c]));
         expect(byId['P::Dose::rateRange']).toMatchObject({ owner: 'P::Dose', attributes: { constraintRole: 'assert', expression: 'rate >= 0 and rate <= 10' } });
-        expect(byId['P::Percentage::constraint1']).toMatchObject({ owner: 'P::Percentage', attributes: { constraintRole: 'assert' } });
+        expect(byId['P::Percentage::constraint1']).toMatchObject({ owner: 'P::Percentage', attributes: { constraintRole: 'assert', expression: 'self >= 0.0 and self <= 1.0' } });
+        // A range on a quantity type keeps its unit.
+        expect(byId['P::DoseMass::constraint1'].attributes.expression).toBe('self >= 0 [kilogram] and self <= 5 [kilogram]');
         expect(byId['P::Limit::lim']).toMatchObject({ owner: 'P::Limit', attributes: { constraintRole: 'assume', expression: 'd.rate >= 0' } });
         expect(byId['P::Limit::constraint1']).toMatchObject({ attributes: { constraintRole: 'require', expression: 'd.rate <= 10' } });
         expect(byId['P::Range']).toMatchObject({ isDefinition: true, owner: undefined, attributes: { expression: 'x >= 0' } });

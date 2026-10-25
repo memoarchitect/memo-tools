@@ -1095,7 +1095,9 @@ class ElementBuilder {
         if (!expression) return undefined;
         switch (expression['@type']) {
             case 'LiteralBoolean': return String(expression.value);
-            case 'LiteralInteger': case 'LiteralRational': return String(expression.value);
+            case 'LiteralInteger': return String(expression.value);
+            // A rational keeps its point (`1.0`), as a feature value renders it.
+            case 'LiteralRational': return typeof expression.value === 'number' ? renderNumber(expression.value, true) : String(expression.value);
             case 'LiteralString': return `"${expression.value}"`;
             case 'FeatureReferenceExpression': case 'FeatureChainExpression': {
                 const value = this.api.value(expression['@id']) ?? this.valueOfExpression(expression['@id']);
@@ -1111,6 +1113,8 @@ class ElementBuilder {
                     });
                 if (operands.some(o => o === undefined)) return undefined;
                 const operator = String(expression.operator);
+                // `0 [kg]` is the `[` operator applied to a number and a unit, not a binary operator.
+                if (operator === '[' && operands.length === 2) return `${operands[0]} [${operands[1]}]`;
                 return operands.length === 1 ? `${operator} ${operands[0]}` : operands.join(` ${operator} `);
             }
             default: return undefined;
