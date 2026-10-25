@@ -99,12 +99,17 @@ const terminalEnvironment = (): InstallPromptEnvironment => ({
 });
 
 /**
- * At the start of the app: when what is installed is not what package.json pins, say so and offer to run
- * `npm install`. The server loads from those very `node_modules`, so a yes installs and then asks for a restart
- * instead of replacing them under a running process. Without a terminal (a preview launch, CI) it only warns,
- * so nothing waits on an answer. `installed` and `failed` mean the caller should stop.
+ * At the start of the app: when what is installed is not what package.json pins, the app does not start. The user
+ * is offered `npm install` instead; a yes installs and asks for a restart, because the server loads from those very
+ * `node_modules` and must not have them replaced under it. A no, or no terminal to ask in (a preview launch, CI),
+ * leaves the app stopped with the instruction, so nothing waits on an answer and nothing runs the wrong versions.
+ *
+ * `continue` means nothing differs and the app may start; every other outcome means it must not.
  */
-export async function offerNpmInstall(cwd: string = process.cwd(), env: InstallPromptEnvironment = terminalEnvironment()): Promise<'continue' | 'installed' | 'failed'> {
+export async function offerNpmInstall(
+    cwd: string = process.cwd(),
+    env: InstallPromptEnvironment = terminalEnvironment(),
+): Promise<'continue' | 'installed' | 'declined' | 'no-terminal' | 'failed'> {
     let projectRoot: string;
     let found: PinMismatch[];
     try {
@@ -116,15 +121,15 @@ export async function offerNpmInstall(cwd: string = process.cwd(), env: InstallP
         return 'continue';
     }
     if (found.length === 0) return 'continue';
+    for (const line of pinMismatchMessage(found)) env.log(line.startsWith(' ') ? line : `✖ ${line}`);
     if (!env.interactive) {
-        warnOnPinMismatch(cwd);
-        return 'continue';
+        env.log('Not starting. Run `npm install` to match the pins, or `memo-architect upgrade` to move to a newer release.');
+        return 'no-terminal';
     }
-    for (const line of pinMismatchMessage(found)) env.log(line.startsWith(' ') ? line : `⚠ ${line}`);
     const answer = (await env.ask('Run `npm install` now to match them? [Y/n] ')).trim().toLowerCase();
     if (answer !== '' && answer !== 'y' && answer !== 'yes') {
-        env.log('Continuing with what is installed. Run `npm install`, or `memo-architect upgrade` to move to a newer release.');
-        return 'continue';
+        env.log('Not starting. Run `npm install`, or `memo-architect upgrade` to move to a newer release.');
+        return 'declined';
     }
     try {
         env.install(projectRoot);

@@ -690,6 +690,7 @@ export function registerProjectCommands(program: Command): void {
         // Starting the app is the one place worth asking: it is about to load from what is installed.
         if (action.name() === 'dev') {
             const outcome = await offerNpmInstall();
+            // Anything but a match stops the app; after a successful install it is the user's restart that starts it.
             if (outcome !== 'continue') process.exit(outcome === 'installed' ? 0 : 1);
         } else {
             warnOnPinMismatch();

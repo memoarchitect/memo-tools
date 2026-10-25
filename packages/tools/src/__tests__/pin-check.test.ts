@@ -6,7 +6,8 @@ import { offerNpmInstall, pinMismatches, type InstallPromptEnvironment } from '.
 
 // ─── The installed packages are not the ones package.json pins ───────────────
 //
-// At the start of the app the user is asked whether to `npm install`. Without a terminal nothing waits,
+// At the start of the app the user is asked whether to `npm install`, and the app does not start until the
+// installed packages match. Without a terminal nothing waits,
 // and a linked workspace checkout is a developer's own build, not a pin to honour.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -66,19 +67,29 @@ describe('offerNpmInstall', () => {
         expect(calls.log.join('\n')).toContain('Start the app again');
     });
 
-    it('goes on with what is installed when the user says no, and installs nothing', async () => {
+    it('does not start when the user says no, and installs nothing', async () => {
         project('0.16.1', '0.15.0');
         const { env, calls } = environment('n');
-        expect(await offerNpmInstall(root, env)).toBe('continue');
+        expect(await offerNpmInstall(root, env)).toBe('declined');
         expect(calls.installed).toEqual([]);
+        expect(calls.log.join('\n')).toContain('Not starting');
     });
 
-    it('does not ask without a terminal, so a preview launch or CI never waits', async () => {
+    it('does not start without a terminal, and does not wait for an answer', async () => {
         project('0.16.1', '0.15.0');
         const { env, calls } = environment('y', false);
-        expect(await offerNpmInstall(root, env)).toBe('continue');
+        expect(await offerNpmInstall(root, env)).toBe('no-terminal');
         expect(calls.asked).toBe(0);
         expect(calls.installed).toEqual([]);
+        expect(calls.log.join('\n')).toContain('Not starting');
+    });
+
+    it('does not start when the install fails', async () => {
+        project('0.16.1', '0.15.0');
+        const { env, calls } = environment('y');
+        env.install = () => { throw new Error('offline'); };
+        expect(await offerNpmInstall(root, env)).toBe('failed');
+        expect(calls.log.join('\n')).toContain('npm install failed');
     });
 
     it('does not ask when nothing differs', async () => {
