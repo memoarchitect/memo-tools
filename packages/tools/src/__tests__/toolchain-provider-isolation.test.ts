@@ -22,8 +22,6 @@ const TEST_DIR = __dirname;
 /** Naming a CLI subcommand is not selecting a provider. */
 const ALLOWED_USAGES = [
     (id: string) => new RegExp(`\\.command\\((['"])${id}\\1\\)`, 'g'),
-    // A command that moved to memo-architect, left behind as a stub naming where it went.
-    (id: string) => new RegExp(`retiredCommand\\([^,]+,\\s*(['"])${id}\\1,\\s*(['"])[^'"]*\\2\\)`, 'g'),
 ];
 
 function sourceFiles(dir: string): string[] {

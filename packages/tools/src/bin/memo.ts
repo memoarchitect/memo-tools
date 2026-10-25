@@ -21,7 +21,6 @@ import { sysandPublishCommand } from '../commands/sysand-publish.js';
 import { inspectCommand } from '../commands/inspect.js';
 import { rulesExplainCommand, rulesListCommand } from '../commands/rules.js';
 import { standardsCheckCommand } from '../commands/standards.js';
-import { retiredCommand } from '../commands/retired.js';
 import {
     configEffectiveCommand,
     toolchainCheckCommand,
@@ -175,33 +174,9 @@ withToolchainOptions(
     await toolchainCheckCommand(paths, opts);
 });
 
-retiredCommand(toolchainCmd, 'probe', 'memo compile --probe');
-
-// ─── Retired: conformance ───────────────────────────────────────────────────
-retiredCommand(program, 'conformance', {
-    reason: 'it graded MEMO\'s own SysML compiler against the OMG corpus, and that compiler is gone. '
-        + 'The selected compiler is the authority on validity: `memo compile`.',
-});
-
-// ─── Retired: check, round-trip ──────────────────────────────────────────────
-// Heuristic guesses at what external SysML tools accept, from before the
-// selected compiler was the authority on validity; `memo compile` asks it.
-retiredCommand(program, 'check', 'memo compile');
-retiredCommand(program, 'round-trip', 'memo compile');
 
 
-// ─── Moved to memo-architect ───────────────────────────────────────────────
-// One way of doing a thing: these are `memo-architect <command>` now. The old
-// names stay for one release, hidden, and fail naming the replacement.
-retiredCommand(program, 'inspect', 'memo compile --inspect <id>');
-retiredCommand(program, 'element', 'memo-architect element');
-retiredCommand(program, 'init', 'memo-architect init');
-retiredCommand(program, 'convert', 'memo-architect convert');
-retiredCommand(program, 'package', 'memo-architect import kpar [--inspect] <archive>');
-retiredCommand(program, 'config', 'memo compile --effective (what is in effect); memo-architect config (to change it)');
-retiredCommand(program, 'export', 'memo-architect export');
-retiredCommand(program, 'create-package', 'memo-architect new package');
-retiredCommand(program, 'install', 'memo-architect install');
+
 program
     .command('prune')
     .description('Remove the pinned worktrees (.memo/pinned) and assemblies (.memo/assembled) not used lately; both are rebuilt on demand')
@@ -212,20 +187,6 @@ program
         await pruneCommand(dir, opts);
     });
 
-retiredCommand(program, 'lock', 'memo-architect lock');
-retiredCommand(program, 'ontology', 'memo-architect ontology');
-retiredCommand(program, 'import', 'memo-architect import');
-retiredCommand(program, 'ask', 'memo-architect ask');
-retiredCommand(program, 'mcp', 'memo-architect mcp');
-retiredCommand(program, 'generate', 'memo-architect generate');
-retiredCommand(program, 'req', 'memo-architect new requirement --pattern <pattern>');
-retiredCommand(program, 'plugin', 'memo-architect plugin');
-retiredCommand(program, 'dhf', 'memo-architect dhf');
-retiredCommand(program, 'standards', 'memo validate --standards');
-retiredCommand(program, 'sysand', 'memo publish');
-retiredCommand(program, 'rules', 'memo validate --rules, --explain-rule <id> (to change them: memo-architect new rule, rules tailor|tailoring)');
-retiredCommand(program, 'examples', 'memo-architect init --list');
-retiredCommand(program, 'templates', 'memo-architect init --list');
 
 // Every command takes the `--toolchain.*` flags, and the running command's
 // flags apply to whatever settings it loads (model/config-loader.ts).
