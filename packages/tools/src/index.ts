@@ -24,7 +24,7 @@ export {
     applyUserSetting, applyProjectSetting, userToolchainStatus, userSettingReports, userLeaf, ConfigSettingError,
 } from './toolchain/user-settings-status.js';
 export { ProjectNamesUserSettingError } from './toolchain/ownership.js';
-export { registerProjectCommands } from './cli/project-commands.js';
+export { registerProjectCommands, type ProjectCommandHooks } from './cli/project-commands.js';
 export * from './model/semantic.js';
 export * from './model/element-index.js';
 export * from './model/sysml-ir.js';

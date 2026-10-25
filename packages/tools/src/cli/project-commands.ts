@@ -40,6 +40,7 @@ import { createPackageCommand } from '../commands/create-package.js';
 import { askCommand } from '../commands/ask.js';
 import { mcpCommand, mcpInitCommand } from '../commands/mcp.js';
 import { generateCommand } from '../commands/generate.js';
+import type { DiagramRenderer } from '../dhf/diagram-images.js';
 import { dhfDraftCommand } from '../commands/dhf-draft.js';
 import { dhfLintCommand } from '../commands/dhf-lint.js';
 import { dhfInitCommand } from '../commands/dhf-init.js';
@@ -64,7 +65,13 @@ import { idsRebaseCommand } from '../commands/ids-rebase.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 
-export function registerProjectCommands(program: Command): void {
+/** What a host program (Architect) adds to the project commands: things MEMO Tools cannot do itself. */
+export interface ProjectCommandHooks {
+    /** Draws the views a generated document references (`memo export dhf`). */
+    diagramRenderer?: DiagramRenderer;
+}
+
+export function registerProjectCommands(program: Command, hooks: ProjectCommandHooks = {}): void {
     const before = new Set(program.commands);
     const withToolchainOptions = (command: Command): Command =>
         applyToolchainCliOptions(command, defaultRegistry);
@@ -206,7 +213,7 @@ export function registerProjectCommands(program: Command): void {
         .option('--workspace <name>', 'Document one workspace: a System or the SystemOfSystems definition')
         .option('--device <name>', 'Document one regulated device: its covered releases, built at their commits, with the standards and documents its jurisdiction requires (Markdown, one folder per device)')
         .action(async (options: { output: string; target?: string; format?: string; group?: string; workspace?: string; device?: string }) => {
-            await exportDhfCommand(options);
+            await exportDhfCommand(options, { diagramRenderer: hooks.diagramRenderer });
         });
 
     exportCmd

@@ -18,6 +18,7 @@ export * from './query-executor.js';
 export * from './script-runner.js';
 export * from './template-resolver.js';
 export * from './document-compiler.js';
+export * from './diagram-images.js';
 export * from './dhf-config-v2.js';
 export * from './markdown-to-ir.js';
 
