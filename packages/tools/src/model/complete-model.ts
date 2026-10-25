@@ -245,7 +245,9 @@ export function completeModel(input: CompleteModelInput): MemoModel {
             for (const el of elements.values()) {
                 if (!el.kind || known(el.kind)) continue;
                 const def = byName.get(el.kind.split('::').pop()!);
-                if (def && def !== el && def.kind && def.kind !== el.kind) {
+                // Only a MEMO kind is passed down (see `inheritKindsFromLocalDefinitions`): a definition
+                // that specializes none is a `RequirementDefinition`, which its usage is not.
+                if (def && def !== el && def.kind && def.kind !== el.kind && known(def.kind)) {
                     el.kind = def.kind;
                     if (def.layer && (!el.layer || el.layer === 'unknown')) el.layer = def.layer;
                     progressed = true;
