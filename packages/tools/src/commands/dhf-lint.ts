@@ -27,6 +27,7 @@ export async function dhfLintCommand(options: DhfLintOptions = {}): Promise<void
     let kindRegistry;
     let relationshipRegistry;
     let knownLayers: Set<string> | undefined;
+    let noOntology = false;
 
     if (!options.structuralOnly) {
         // The ontology repo itself resolves as a root, so this works both in a
@@ -37,6 +38,12 @@ export async function dhfLintCommand(options: DhfLintOptions = {}): Promise<void
             const loaded = await loadProjectOntology({ projectRoot: root, config: loadProjectSettings(root) });
             kindRegistry = loaded.registries.kindRegistry ?? undefined;
             relationshipRegistry = loaded.registries.relationshipRegistry ?? undefined;
+            // A directory that is not a project resolves an empty ontology, and an empty one would call every kind unknown.
+            if (kindRegistry && kindRegistry.entries().length === 0) {
+                kindRegistry = undefined;
+                relationshipRegistry = undefined;
+                noOntology = true;
+            }
             if (kindRegistry) {
                 knownLayers = new Set(
                     kindRegistry.entries().map(e => e.layer).filter((l): l is string => Boolean(l) && l !== 'unknown'),
@@ -65,6 +72,7 @@ export async function dhfLintCommand(options: DhfLintOptions = {}): Promise<void
     console.log(chalk.gray(
         `Templates: ${report.templatesChecked} | Mode: ${report.ontologyAware ? 'ontology-aware' : 'structural only'}\n`,
     ));
+    if (noOntology) console.log(chalk.yellow(`  No ontology resolves from ${process.cwd()}: run this in a project (the ontology repository itself is not one), for the kinds, layers and columns to be checked.\n`));
 
     if (report.findings.length === 0) {
         console.log(chalk.green('  ✔ no findings\n'));
