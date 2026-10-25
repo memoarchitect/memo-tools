@@ -41,6 +41,8 @@ export function validateModel(
     workspace?: Pick<import('../model/workspace-membership.js').WorkspaceScope, 'subjects' | 'foreign'>,
     /** What each workspace holds. Without it a rule that judges workspace boundaries has no subject. */
     membership?: import('../model/workspace-membership.js').WorkspaceMembership,
+    /** The relations the ontology declares; AR-IBD-001 reads which of them are connectors. */
+    relationshipRegistry?: import('../model/relationship-registry.js').RelationshipRegistry,
 ): ValidationResult {
     // Section 10.4: a violation reports the rule's provenance, not just its ID.
     // Keyed by active rule ID, because that is what the violation carries.
@@ -75,7 +77,7 @@ export function validateModel(
     // AR-IBD-001's subject scope comes from the ontology's own `appliesTo`,
     // so the rule's reach is declared where the rule is declared.
     const ibdScope = nativeConstraints.find(c => c.evaluator === 'architecture')?.appliesToKind;
-    const architectureViolations = validateArchitecture(model, ibdScope, kindRegistry);
+    const architectureViolations = validateArchitecture(model, ibdScope, kindRegistry, relationshipRegistry);
     const viewViolations = validateViews(model);
 
     // The built-in validators take no subject predicate, so a workspace keeps their findings by the

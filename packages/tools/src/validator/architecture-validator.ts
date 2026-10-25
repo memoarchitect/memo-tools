@@ -9,13 +9,15 @@
 import type { MemoElement, MemoModel } from '../model/semantic.js';
 import type { Violation } from './types.js';
 import type { KindRegistry } from '../model/kind-registry.js';
+import type { RelationshipRegistry } from '../model/relationship-registry.js';
 
 const COMPOSITION_TYPES = new Set(['composes', 'composedof', 'decomposedby', 'aggregation']);
-// These are interface/flow relations. Trace, allocation, deployment, and
-// satisfaction links are meaningful model relations, but do not make a block
-// connected in an internal block diagram.
-// `interface` is a SysML interface usage (`interface x : Icd connect a to b;`), a connector between two parts.
-const CONNECTOR_TYPES = new Set(['exchangeswith', 'flow', 'logicalexchange', 'logicalconnector', 'connectsto', 'itemflow', 'interface']);
+// A connector is what makes a block connected in an internal block diagram; trace, allocation, deployment and
+// satisfaction links are meaningful model relations that do not. Which relations are connectors is the
+// ontology's to say (`isConnector` on the relation, read through the registry). Two edge types are connectors by
+// their SysML construct and have no definition to carry the flag: an `interface` usage
+// (`interface x : Icd connect a to b;`) and a `flow` usage. They are the language's, not the ontology's.
+const NATIVE_CONNECTOR_TYPES = new Set(['interface', 'flow']);
 
 /**
  * Warn on a structural part nested in another part when neither it nor a
@@ -28,11 +30,15 @@ const CONNECTOR_TYPES = new Set(['exchangeswith', 'flow', 'logicalexchange', 'lo
  * are judged. Narrowing or widening the rule is therefore an ontology edit, not
  * a code edit — this file holds the graph walk, never the list of kinds it
  * applies to. Omitting the argument judges every part.
+ *
+ * Without a relationship registry only the native connectors count, so a relation the ontology
+ * declares a connector (`LogicalConnector`) is not seen.
  */
 export function validateArchitecture(
     model: MemoModel,
     appliesToKind?: string,
     kindRegistry?: KindRegistry,
+    relationshipRegistry?: RelationshipRegistry,
 ): Violation[] {
     // Kinds conforming to the ontology-declared subject, walked through the
     // registry's supertype chain. Unresolvable scope falls back to every part
@@ -77,7 +83,7 @@ export function validateArchitecture(
     };
 
     for (const rel of model.relationships) {
-        if (!CONNECTOR_TYPES.has(rel.type.toLowerCase())) continue;
+        if (!NATIVE_CONNECTOR_TYPES.has(rel.type) && !relationshipRegistry?.isConnector(rel.type)) continue;
         const sourcePart = partOfEndpoint(rel.sourceId);
         const targetPart = partOfEndpoint(rel.targetId);
         if (!sourcePart || !targetPart || sourcePart === targetPart) continue;

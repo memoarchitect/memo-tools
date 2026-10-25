@@ -427,7 +427,7 @@ export async function runValidation(
     const subjectModel = scope.mode === 'allAvailable' && !workspace ? model : narrowToScope(model);
     const result = validateModel(
         model, effectiveRules.activeConstraints, ontologyRegistries?.kindRegistry, effectiveRules.rules,
-        inScopeIds && (element => inScopeIds.has(element.id)), workspace, membership);
+        inScopeIds && (element => inScopeIds.has(element.id)), workspace, membership, ontologyRegistries?.relationshipRegistry);
     // Completeness reports on what the methodology selected, which is the
     // scoped model — not on content the project deliberately excluded.
     const completeness = computeCompleteness(subjectModel, result);

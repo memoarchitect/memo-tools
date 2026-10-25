@@ -255,6 +255,7 @@ export function apiRelationshipEntries(
             const attributes: string[] = [];
             let isReflexive: boolean | undefined;
             let isUnique: boolean | undefined;
+            let isConnector: boolean | undefined;
             for (const owned of api.ownedMembers(member['@id'])) {
                 if (owned.isEnd === true) {
                     ends.push({
@@ -269,6 +270,7 @@ export function apiRelationshipEntries(
                     const flag = value?.kind === 'boolean' ? value.value : undefined;
                     if (name === 'isReflexive') isReflexive = flag ?? isReflexive;
                     else if (name === 'isUnique') isUnique = flag ?? isUnique;
+                    else if (name === 'isConnector') isConnector = flag ?? isConnector;
                 }
             }
             if (ends.length === 0) ends.push(...(DEFAULT_ENDS[construct] ?? []));
@@ -283,6 +285,7 @@ export function apiRelationshipEntries(
                 superType: superTypes(api, member)[0] || undefined,
                 isReflexive,
                 isUnique,
+                isConnector,
                 ends,
                 attributes,
             });

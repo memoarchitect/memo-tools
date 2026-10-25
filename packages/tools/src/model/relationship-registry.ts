@@ -69,6 +69,12 @@ export interface RelationshipRegistryEntry {
      * `isUnique` attribute. Undefined when the ontology does not say.
      */
     isUnique?: boolean;
+    /**
+     * Whether the relation is a connector between two parts, from the `isConnector` attribute. Undefined when
+     * the ontology does not say. Interface and flow usages are connectors by their language construct and have
+     * no entry here.
+     */
+    isConnector?: boolean;
     /** Supertype connection definition, when the relationship specializes one */
     superType?: string;
     /**
@@ -467,6 +473,12 @@ export class RelationshipRegistry {
 
     private membership = new Map<string, WorkspaceMembership>();
 
+    /** Whether a relation type, by its edge name, is declared a connector, directly or by a supertype. */
+    isConnector(type: string): boolean {
+        const entry = this.relTypes.get(type);
+        return entry ? this.inherited(entry, 'isConnector') === true : false;
+    }
+
     /** Get all entries */
     entries(): RelationshipRegistryEntry[] {
         return Array.from(this.relTypes.values());
@@ -503,7 +515,7 @@ export class RelationshipRegistry {
      */
     private inherited(
         entry: RelationshipRegistryEntry,
-        property: 'isReflexive' | 'isUnique',
+        property: 'isReflexive' | 'isUnique' | 'isConnector',
     ): boolean | undefined {
         let current: RelationshipRegistryEntry | undefined = entry;
         const seen = new Set<string>();
