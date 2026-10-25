@@ -118,7 +118,6 @@ withToolchainOptions(
         .argument('[dir]', 'Model directory', '.')
         .option('--format <format>', 'Output format: text, junit, json', 'text')
         .option('-o, --output <file>', 'Write output to file instead of stdout')
-        .option('--no-server', 'Compile here even when `memo dev` is running for the model')
         .option('--at <ref>', 'Validate the model as it was at this commit, tag or branch; writes nothing into the project')
         .option('--release <record>', 'Validate the SoS version a release record names; writes nothing into the project')
         .option('--strict-ontology', 'With --at or --release: refuse when the commit was made with another ontology version than this run would use')

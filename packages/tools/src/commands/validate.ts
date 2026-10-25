@@ -38,7 +38,6 @@ import { resolutionLoads } from '../stage2/project-from-api.js';
 import { stage1CacheDir } from '../toolchain/project-model.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { countBySeverity, formatDiagnosticsText, type Diagnostic } from '../toolchain/diagnostic.js';
-import { servable, validateWithDevServer } from './validate-client.js';
 
 
 export type ValidateFormat = 'text' | 'junit' | 'json';
@@ -93,17 +92,6 @@ export async function validateCommand(
     projectDir?: string,
     options?: ValidateOptions,
 ): Promise<void> {
-    // A running `memo dev` holds the compiled model already: ask it first.
-    const cwd = resolve(projectDir || process.cwd());
-    const projectRoot = servable(options) ? findProjectRoot(cwd) : undefined;
-    const served = projectRoot ? await validateWithDevServer(projectRoot, process.cwd(), options) : undefined;
-    if (served) {
-        process.stderr.write(chalk.gray(`(answered by the dev server running for this project, from the model it holds; --no-server to compile here)\n`));
-        process.stderr.write(served.stderr);
-        process.stdout.write(served.stdout);
-        if (served.exitCode !== 0) process.exitCode = served.exitCode;
-        return;
-    }
     const code = await validationExitCode(() => runValidation(projectDir, options, consoleIO));
     if (code !== 0) process.exitCode = code;
 }

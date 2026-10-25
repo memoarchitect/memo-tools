@@ -6,7 +6,6 @@ import {
     PinnedBuildError, buildAt, buildRelease, crossSystemReferences, isAncestor, orderingViolations,
     pinWorktree, releasePins, worktreeIsClean,
 } from '../model/pinned.js';
-import { servable } from '../commands/validate-client.js';
 import { loadProjectModel, type ProjectModel } from '../toolchain/project-model.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 import { createFamilyRepo, type FamilyRepo } from './helpers/pinned-repo.js';
@@ -119,7 +118,7 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
         const at = memo(['compile', '.', '--at', 'rc-navigation']);
         expect(at.code, at.out).toBe(0);
         expect(at.out).toContain(repo.c2.slice(0, 7));
-        const release = memo(['validate', '.', '--release', 'relLabV1', '--no-server']);
+        const release = memo(['validate', '.', '--release', 'relLabV1']);
         expect(release.out).toMatch(/relLabV1: .* with .*navigation@/);
         expect(release.out).not.toMatch(/Parse errors: [1-9]/);
         // The identity file a validate would have rewritten is the SoS commit's own, and nothing else moved.
@@ -131,11 +130,6 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
         expect(memo(['compile', '.', '--at', 'no-such-ref']).code).toBe(1);
         expect(memo(['compile', '.', '--at', 'rc-navigation', '--release', 'relLabV1']).out).toMatch(/give one/);
     }, 240_000);
-
-    it('is never answered by a running memo dev, which holds the working model', () => {
-        expect(servable({ format: 'text' })).toBe(true);
-        expect(servable({ readOnly: true })).toBe(false);
-    });
 
     it('knows when one commit is at or after another', async () => {
         expect(await isAncestor(repo.root, repo.c1, repo.c3)).toBe(true);
