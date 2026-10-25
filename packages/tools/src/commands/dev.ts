@@ -7,6 +7,7 @@
 //      Ontology watcher → notifyRestartRequired() (no model mutation)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { libraryUnitSymbols } from '../model/quantity.js';
 import { relative, resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -454,6 +455,7 @@ export async function devCommand(options: {
             ? {
                 relationships: stage2Registries.relationshipRegistry?.toDefinitionDTOs() ?? [],
                 kinds: stage2Registries.kindRegistry?.toDefinitionDTOs() ?? [],
+                unitSymbols: libraryUnitSymbols(),
             }
             : undefined;
 
