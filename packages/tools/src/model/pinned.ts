@@ -14,10 +14,12 @@
 // assembled model, because a system that reached into another system's folder would build from
 // the wrong commit without any error.
 //
-// What a pinned build uses from today, not from the commit: the compiler and the ontology the
-// locator resolves. The worktree sits under the project, so the locator reaches the project's
-// installed ontology, not the one at that commit. `ontologyDrift` says where the commit's lock names another
-// version, and a pinned run reports it.
+// What a pinned build uses from the commit, and what from today. The ontology the commit's `memo.lock.yaml`
+// names is installed into the worktree's own `node_modules` (`installLockedPackages`), which the locator reads
+// first, so the build uses the commit's definitions. The stage 2 builder is the running memo-tools, and the
+// compiler is today's (SysIDE is a separate licensed install npm cannot pin). `ontologyDrift` says where the
+// commit's lock names a version the build still did not use (the install failed, or was off), and a pinned run
+// reports it.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { execFile } from 'node:child_process';
@@ -142,6 +144,7 @@ export async function pinWorktree(projectRoot: string, ref: string): Promise<Pin
         mkdirSync(join(root, '.memo', 'pinned'), { recursive: true });
         await run(top, ['worktree', 'add', '--detach', '--force', dir, sha]);
     }
+    await installLockedPackages(join(dir, subpath));
     return { ref, sha, dir, projectDir: join(dir, subpath), reused, ms: Date.now() - started };
 }
 
@@ -456,6 +459,59 @@ export function releaseInfo(build: ReleaseBuild): PinnedInfo {
 export function refInfo(ref: string, pin: Pin): PinnedInfo {
     const drift = ontologyDrift(pin.projectDir);
     return { kind: 'ref', label: ref, commits: [{ name: 'model', commit: pin.sha }], notARelease: true, ...(drift.length ? { ontologyDrift: drift } : {}) };
+}
+
+/** What `installLockedPackages` does to fetch one package, so a test needs no network. */
+export type PackageInstaller = (name: string, version: string, into: string) => Promise<void>;
+
+/** Fetch one package with npm into a staging directory, then copy it under `into/node_modules/<name>`. */
+const npmInstaller: PackageInstaller = async (name, version, into) => {
+    const staging = join(into, '.memo-install');
+    rmSync(staging, { recursive: true, force: true });
+    mkdirSync(staging, { recursive: true });
+    try {
+        await git('npm', ['install', '--prefix', staging, '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', `${name}@${version}`],
+            { timeout: 180_000, maxBuffer: 16 * 1024 * 1024 });
+        const target = join(into, 'node_modules', ...name.split('/'));
+        rmSync(target, { recursive: true, force: true });
+        mkdirSync(join(target, '..'), { recursive: true });
+        cpSync(join(staging, 'node_modules', ...name.split('/')), target, { recursive: true });
+    } finally {
+        rmSync(staging, { recursive: true, force: true });
+    }
+};
+
+/**
+ * Make the commit's own ontology the one a pinned build reads. The commit's lock names the version it was
+ * made with; when the worktree does not already hold it, that release is installed into the worktree's
+ * `node_modules`, which the locator reads before anything above it. Best effort and cached with the worktree:
+ * offline, a registry error or `MEMO_PINNED_INSTALL=off` leave today's copy in use, and `ontologyDrift` says
+ * so. Returns the packages it installed and the ones it could not.
+ */
+export async function installLockedPackages(
+    projectDir: string,
+    install: PackageInstaller = npmInstaller,
+): Promise<{ installed: string[]; failed: string[] }> {
+    const result = { installed: [] as string[], failed: [] as string[] };
+    if (install === npmInstaller && process.env.MEMO_PINNED_INSTALL === 'off') return result;
+    const lock = readLockFile(projectDir);
+    if (!lock) return result;
+    for (const entry of lock.packages) {
+        if (!entry.name.startsWith('@memoarchitect/') || !entry.version) continue;
+        const own = join(projectDir, 'node_modules', ...entry.name.split('/'), 'package.json');
+        try {
+            if (existsSync(own) && JSON.parse(readFileSync(own, 'utf8')).version === entry.version) continue;
+        } catch { /* unreadable: install it again */ }
+        const today = discoverLibraryRoots(projectDir).find(candidate => candidate.packageName === entry.name);
+        if (today?.packageVersion === entry.version) continue;
+        try {
+            await install(entry.name, entry.version, projectDir);
+            result.installed.push(`${entry.name}@${entry.version}`);
+        } catch {
+            result.failed.push(`${entry.name}@${entry.version}`);
+        }
+    }
+    return result;
 }
 
 /**

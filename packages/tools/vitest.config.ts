@@ -17,6 +17,8 @@ export default defineConfig({
         env: {
             MEMO_TOOLCHAIN_COMPILER: process.env.MEMO_TEST_COMPILER ?? RECOMMENDED_COMPILER,
             MEMO_CONFIG_DIR: mkdtempSync(join(tmpdir(), 'memo-test-config-')),
+            // A pinned build installs its commit's ontology with npm; the suite does not reach the registry.
+            MEMO_PINNED_INSTALL: 'off',
         },
     },
 });
