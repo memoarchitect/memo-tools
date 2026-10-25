@@ -1214,6 +1214,9 @@ class ElementBuilder {
                 const owner = this.nearestElement(node);
                 const target = endpointOf(this.steps(this.api.subsetted(node['@id'])[0]), node);
                 if (owner && target) this.native('performs', owner, target, file);
+                // And the step itself subsets it: a rule about a step reaches the function through this edge.
+                const step = this.api.qualifiedName(node['@id']);
+                if (step && target && this.elements.has(step)) this.native('subsets', step, target, file);
             } else if (type === 'SubjectMembership') {
                 const ownerNode = this.api.owner(node['@id']);
                 const ownerId = ownerNode ? this.api.qualifiedName(ownerNode['@id']) : undefined;

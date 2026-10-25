@@ -187,3 +187,34 @@ describe.runIf(compilerConfigured)('one function at two flow steps', () => {
         expect(unverified).toEqual(['fnAcquireSensors', 'fnLogEvents', 'fnAnnunciate']);
     });
 });
+
+// A step whose function is safety-critical needs its own verification case (CR-ONT-091): the rule
+// reaches the function through the step's `subsets` edge, and a test of another step does not cover it.
+const CRITICAL_SHAPE = GPCA_SHAPE
+    .replace('action fnAcquireSensors : SystemFunction;', 'action fnAcquireSensors : SystemFunction { attribute criticality = "high"; }')
+    .replace('action fnAnnunciate : SystemFunction;', 'action fnAnnunciate : SystemFunction { attribute criticality = "catastrophic"; }');
+
+const stepRule = {
+    id: 'CR-ONT-091',
+    description: 'a step of a safety-critical function has a verification case of its own',
+    appliesToKind: 'ActionUsage',
+    expression: "not(downstream(subsets)->exists(criticality == 'high' or criticality == 'catastrophic')) or verifiedBy->size() >= 1",
+    severity: 'warning' as const,
+};
+
+describe.runIf(compilerConfigured)('a step of a safety-critical function (CR-ONT-091)', () => {
+    it('links each step to the function it subsets', async () => {
+        const model = await build(CRITICAL_SHAPE, KINDS);
+        expect(edges(model, 'subsets')).toEqual(expect.arrayContaining([
+            'P::fcPatientBolus::fcsBolusSense -> P::fnAcquireSensors',
+            'P::fcAlarmStop::fcsAlarmSense -> P::fnAcquireSensors',
+        ]));
+    });
+
+    it('flags the critical steps with no case of their own, and not the one that has it or a step of a plain function', async () => {
+        const model = await build(CRITICAL_SHAPE, KINDS);
+        const flagged = evaluateNativeConstraint(stepRule, model, registry(KINDS)).map(v => v.elementId).sort();
+        expect(flagged).toEqual(['P::fcAlarmStop::fcsAlarmAnnunciate', 'P::fcPatientBolus::fcsBolusSense']);
+        // fcsAlarmSense has vcAirInLine; fcsBolusLog subsets a function with no criticality.
+    });
+});

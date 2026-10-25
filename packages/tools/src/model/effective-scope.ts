@@ -134,7 +134,11 @@ export function activeRuleCandidates(
         // A methodology selects packages, so a kind is placed by
         // the package that declares it — not by the `layer` string, which is a
         // display grouping in a different namespace.
-        return isRulePackageInScope(scope, packageOf(kindSourceFile(kindName)));
+        const declaring = kindSourceFile(kindName);
+        // A kind no package declares is a language kind (an untyped `ActionUsage`): there is no package
+        // for a methodology to select or leave out, so the rule's own package decides.
+        if (declaring === undefined) return true;
+        return isRulePackageInScope(scope, packageOf(declaring));
     };
 
     // An invariant is exempt from both. A RulePolicy cannot disable one

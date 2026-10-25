@@ -544,6 +544,26 @@
         "targetId": "robot_cell_family_operational_use_cases::ucPerformPickAndPlace"
       },
       {
+        "type": "subsets",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepAcquire",
+        "targetId": "robot_cell_family_perception::fnAcquirePointClouds"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepBuildMap",
+        "targetId": "robot_cell_family_navigation::fnBuildMap"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepGrasp",
+        "targetId": "robot_cell_family_manipulation::fnExecuteGrasp"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepTag",
+        "targetId": "robot_cell_family_navigation::fnTagGrasp"
+      },
+      {
         "type": "succession",
         "sourceId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepAcquire",
         "targetId": "robot_cell_family_chains::wfMapGuidedPick::scMapGuidedPick::stepBuildMap"

@@ -807,6 +807,17 @@ export function capture(fixture) {
  * | + `robot-cell-family`, + `nested-architecture-dsm` | Neither was frozen; robot-cell-family gained 8 elements and nested-architecture-dsm 10 flow edges since the last look. |
  */
 
+/**
+ * BASELINE RE-FROZEN 2026-10-24 — gpca and robot-cell-family, for CR-ONT-091 and the `subsets` edge.
+ * ui-regions, default and extension-clinical did not move. Compared by leaf name: zero elements
+ * added or removed.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca, robot-cell-family | +`subsets` step → function (9 and 5) | A step is an action nested in its flow that subsets its function; the builder says so as an edge, so a rule about a step reaches the function. |
+ * | gpca | +9 `CR-ONT-091` (warning), the nine flow steps | Each step of a function with criticality high or catastrophic has no verification case of its own; gpca's tests name functions, never steps. |
+ */
+
 if (import.meta.url === `file://${process.argv[1]}`) {
     if (!existsSync(cli)) {
         console.error(`CLI not built: ${cli}\nRun: pnpm build`);

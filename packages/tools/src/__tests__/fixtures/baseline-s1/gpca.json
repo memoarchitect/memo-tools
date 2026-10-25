@@ -8590,6 +8590,56 @@
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::systemMonitor"
       },
       {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fcAuthoredManagePower::fcsManagePower",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManagePower"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmAnnunciate",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAnnunciate"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmEvaluate",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmSense",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmStopInfusion",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusActuate",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnCommandPump"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusCommand",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusLog",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnLogEvents"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusSense",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors"
+      },
+      {
+        "type": "subsets",
+        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusValidate",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnEnforceLimits"
+      },
+      {
         "type": "succession",
         "sourceId": "memo_examples_gpca_pump_gpca_behavior_actions::infusionDeliveryFlow__start",
         "targetId": "memo_examples_gpca_pump_gpca_behavior_actions::infusionDeliveryFlow::acquireSensors"
@@ -9599,8 +9649,56 @@
     "diagrams": []
   },
   "validation": {
-    "violations": [],
-    "counts": {}
+    "violations": [
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fcAuthoredManagePower::fcsManagePower"
+      },
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmAnnunciate"
+      },
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmEvaluate"
+      },
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmSense"
+      },
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmStopInfusion"
+      },
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusActuate"
+      },
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusCommand"
+      },
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusSense"
+      },
+      {
+        "rule": "CR-ONT-091",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusValidate"
+      }
+    ],
+    "counts": {
+      "warning": 9
+    }
   },
   "errors": [],
   "summary": {
