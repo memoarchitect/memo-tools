@@ -38,6 +38,7 @@
 //   index) names the attribute key.
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { looksLikeQuantity, parseQuantity } from '../model/quantity.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import type { Violation } from './types.js';
 import type { KindRegistry } from '../model/kind-registry.js';
@@ -794,6 +795,15 @@ function reachable(
 }
 
 function compare(op: CmpOp, l: Value, r: Value): boolean {
+    // Two values written as quantities (`10 [milli*second]`) compare as numbers in their dimension's
+    // base unit: as text, "10 …" sorts before "2.5 …".
+    if (typeof l === 'string' && typeof r === 'string' && looksLikeQuantity(l) && looksLikeQuantity(r)) {
+        const lq = parseQuantity(l)!;
+        const rq = parseQuantity(r)!;
+        if (lq.dimension !== rq.dimension) throw new Error(`Cannot compare ${l} (${lq.dimension}) with ${r} (${rq.dimension})`);
+        l = lq.value;
+        r = rq.value;
+    }
     if (typeof l === 'string' || typeof r === 'string') {
         const ls = normalizeEnum(toStringValue(l));
         const rs = normalizeEnum(toStringValue(r));
