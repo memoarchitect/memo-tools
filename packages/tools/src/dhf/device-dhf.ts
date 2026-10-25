@@ -31,7 +31,8 @@ import { listBuiltinTemplates } from './template-resolver.js';
 import { buildStandardsReport } from '../commands/standards.js';
 import type { MEMOConfig } from '../model/config.js';
 import { narrowModel } from '../model/narrow-model.js';
-import { buildForRecord } from '../model/pinned.js';
+import { withContentPackageRoot } from '../model/paths.js';
+import { buildForRecord, ontologyRootAt } from '../model/pinned.js';
 import type { MemoModel } from '../model/semantic.js';
 import { excludedFor } from '../model/variability.js';
 import { computeWorkspaceMembership, selectWorkspace, type WorkspaceScope } from '../model/workspace-membership.js';
@@ -176,23 +177,25 @@ export async function compileDeviceDhf(options: DeviceDhfOptions): Promise<Devic
         const completeness = computeCompleteness(
             workspace ? narrowModel(kept, new Map([...kept.elements].filter(([id]) => workspace!.subjects.has(id)))) : kept, validation);
         const config = { modelName: options.working.model ? (options.config?.modelName ?? 'model') : 'model', ...options.config } as MEMOConfig;
-        const standards = buildStandardsReport({
+        // Templates and standards packs are the commit's own, not today's, as the model is.
+        const contentRoot = ontologyRootAt(built.build.projectDir);
+        const standards = withContentPackageRoot(contentRoot, () => buildStandardsReport({
             model: kept, registries: pinned.registries, projectRoot: built.build.projectDir, regimeOverride: [jurisdiction],
-        });
+        }));
         const ctx = createQueryContext(kept, validation, completeness, config, standards, workspace);
         const dhfConfig = loadDhfConfigV2(built.build.projectDir) ?? ({} as never);
 
         const documents: DeviceDocument[] = [];
         const releaseDir = join(deviceDir, recordName);
         for (const templateId of templates) {
-            const result = await compileMarkdownDocument({
+            const result = await withContentPackageRoot(contentRoot, () => compileMarkdownDocument({
                 templateId, ctx, config: dhfConfig, customTemplateDir: options.customTemplateDir,
                 extraMeta: {
                     product: model.elements.get(item ?? '')?.shortName ?? recordName,
                     version: attribute(model, recordId, 'revision'),
                     device: located.name, jurisdiction, submission: submissionId ?? '', release: recordName, commit: built.commit,
                 },
-            });
+            }));
             const group = templateId.includes('/') ? templateId.slice(0, templateId.indexOf('/')) : 'documents';
             const id = templateId.slice(templateId.lastIndexOf('/') + 1);
             mkdirSync(join(releaseDir, group), { recursive: true });

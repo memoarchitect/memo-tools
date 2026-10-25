@@ -20,6 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { listBuiltinTemplates } from './template-resolver.js';
+import { contentRootKey } from '../model/paths.js';
 import { parseClauseReference, formatClauseReference } from './standards-library.js';
 
 /** A section within a DHF document template */
@@ -85,12 +86,16 @@ function standardsForTemplate(templateId: string | undefined): string[] {
     return clauses.map(entry => formatClauseReference(parseClauseReference(entry, designation)));
 }
 
-let cachedIndex: Map<string, { frontmatter: { standard?: string; clauses?: string[] } }> | undefined;
-function templateIndex(): Map<string, { frontmatter: { standard?: string; clauses?: string[] } }> {
-    if (!cachedIndex) {
-        cachedIndex = new Map(listBuiltinTemplates().map(t => [t.id, { frontmatter: t.frontmatter }]));
+type TemplateIndex = Map<string, { frontmatter: { standard?: string; clauses?: string[] } }>;
+const cachedIndexes = new Map<string, TemplateIndex>();
+function templateIndex(): TemplateIndex {
+    const key = contentRootKey();
+    let index = cachedIndexes.get(key);
+    if (!index) {
+        index = new Map(listBuiltinTemplates().map(t => [t.id, { frontmatter: t.frontmatter }]));
+        cachedIndexes.set(key, index);
     }
-    return cachedIndex;
+    return index;
 }
 
 /** The 18 DHF document types for medical device development */

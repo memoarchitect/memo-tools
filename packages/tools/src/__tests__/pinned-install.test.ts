@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { installLockedPackages, ontologyDrift } from '../model/pinned.js';
+import { installLockedPackages, ontologyDrift, ontologyRootAt } from '../model/pinned.js';
+import { withContentPackageRoot } from '../model/paths.js';
+import { findVendorTemplatesDir, listBuiltinTemplates } from '../dhf/template-resolver.js';
+import { findVendorStandardsDir } from '../dhf/standards-library.js';
 import { discoverLibraryRoots } from '../model/native-project.js';
 
 // ─── A pinned build reads its commit's ontology ──────────────────────────────
@@ -70,5 +73,27 @@ describe('installLockedPackages', () => {
         rmSync(join(dir, 'memo.lock.yaml'));
         const result = await installLockedPackages(dir, async () => { throw new Error('should not run'); });
         expect(result).toEqual({ installed: [], failed: [] });
+    });
+});
+
+describe('a pinned build reads the commit templates and standards', () => {
+    it('finds the package root, not the descriptor folder, and reads the commit content inside the scope only', async () => {
+        await installLockedPackages(dir, async (name, version, into) => {
+            const pkg = join(into, 'node_modules', '@memoarchitect', 'ontology');
+            writePackage(pkg, version);
+            mkdirSync(join(pkg, 'src', 'artifacts', 'templates', 'dhf', 'old-only'), { recursive: true });
+            writeFileSync(join(pkg, 'src', 'artifacts', 'templates', 'dhf', 'old-only', 'commit-template.md'), '---\nid: commit-template\nrequired_for: [FDA]\n---\nbody\n');
+            mkdirSync(join(pkg, 'src', 'artifacts', 'standards'), { recursive: true });
+        });
+        const root = ontologyRootAt(dir)!;
+        expect(root).toBe(join(dir, 'node_modules', '@memoarchitect', 'ontology'));
+
+        const outside = findVendorTemplatesDir();
+        expect(withContentPackageRoot(root, () => findVendorTemplatesDir())).toBe(join(root, 'src/artifacts/templates/dhf'));
+        expect(withContentPackageRoot(root, () => findVendorStandardsDir())).toBe(join(root, 'src/artifacts/standards'));
+        expect(withContentPackageRoot(root, () => listBuiltinTemplates().map(t => t.id))).toContain('old-only/commit-template');
+        // The scope does not leak: the installation's own content is read outside it, cache included.
+        expect(findVendorTemplatesDir()).toBe(outside);
+        expect(listBuiltinTemplates().map(t => t.id)).not.toContain('old-only/commit-template');
     });
 });

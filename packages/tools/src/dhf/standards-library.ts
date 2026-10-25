@@ -20,7 +20,7 @@
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
-import { resolveContentPackageRoot, VENDOR_ONTOLOGY_DIR } from '../model/paths.js';
+import { contentRootKey, resolveContentPackageRoot, VENDOR_ONTOLOGY_DIR } from '../model/paths.js';
 
 /** Relative path (from a legacy tools checkout) to the shipped standards packs. */
 export const VENDOR_STANDARDS_DIR = `${VENDOR_ONTOLOGY_DIR}/src/artifacts/standards`;
@@ -95,15 +95,17 @@ export interface StandardsLibrary {
 
 // ─── Locating the packs ───────────────────────────────────────────────────────
 
-let cachedDir: string | null | undefined;
+const cachedDirs = new Map<string, string | null>();
 
 /** Locate the ontology's standards directory. Cached after first hit. */
 export function findVendorStandardsDir(startDir: string = process.cwd()): string | null {
-    if (cachedDir !== undefined) return cachedDir;
+    const key = contentRootKey();
+    const cached = cachedDirs.get(key);
+    if (cached !== undefined) return cached;
 
     try {
         const installed = join(resolveContentPackageRoot(), 'src/artifacts/standards');
-        if (existsSync(installed)) { cachedDir = installed; return installed; }
+        if (existsSync(installed)) { cachedDirs.set(key, installed); return installed; }
     } catch {
         // Fall through for dependency-free legacy source checkouts.
     }
@@ -111,20 +113,20 @@ export function findVendorStandardsDir(startDir: string = process.cwd()): string
     let dir = resolve(startDir);
     while (true) {
         const candidate = join(dir, VENDOR_STANDARDS_DIR);
-        if (existsSync(candidate)) { cachedDir = candidate; return candidate; }
+        if (existsSync(candidate)) { cachedDirs.set(key, candidate); return candidate; }
         const parent = dirname(dir);
         if (parent === dir) break;
         dir = parent;
     }
 
-    cachedDir = null;
+    cachedDirs.set(key, null);
     return null;
 }
 
 /** Test hook: reset the cached standards directory. */
 export function resetStandardsDirCache(): void {
-    cachedDir = undefined;
-    cachedRegimeVocabulary = undefined;
+    cachedDirs.clear();
+    cachedRegimeVocabularies.clear();
 }
 
 // ─── The regime vocabulary ────────────────────────────────────────────────────
@@ -132,7 +134,7 @@ export function resetStandardsDirCache(): void {
 const ENUM_DEF_RE = (name: string) =>
     new RegExp(`enum\\s+def\\s+${name}\\s*\\{([\\s\\S]*?)\\}`, 'm');
 
-let cachedRegimeVocabulary: string[] | undefined;
+const cachedRegimeVocabularies = new Map<string, string[]>();
 
 /**
  * Read the members of an ontology `enum def` out of the ontology source.
@@ -268,10 +270,11 @@ export function loadStandardsLibrary(startDir?: string): StandardsLibrary {
         };
     }
 
-    if (cachedRegimeVocabulary === undefined) {
-        cachedRegimeVocabulary = readEnumMembers(dir, 'RegulatoryRegimeKind');
+    let regimeVocabulary = cachedRegimeVocabularies.get(dir);
+    if (regimeVocabulary === undefined) {
+        regimeVocabulary = readEnumMembers(dir, 'RegulatoryRegimeKind');
+        cachedRegimeVocabularies.set(dir, regimeVocabulary);
     }
-    const regimeVocabulary = cachedRegimeVocabulary;
     const unknownRegimes: UnknownRegimeCitation[] = [];
 
     const standardsByUsage = new Map<string, RegulatoryStandardInfo>();
