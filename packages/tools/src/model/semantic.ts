@@ -52,6 +52,10 @@ export const MEMO_CONSTRUCTS = [
     'requirement', 'verification', 'concern',
     'actor', 'stakeholder',
     'attribute', 'enumeration',
+    // A native `constraint`: a `constraint def`, a `constraint` or `assert constraint` usage, or the
+    // `assume`/`require constraint` of a requirement. Not a MEMO rule (`MemoConsistencyRule`), which
+    // checks the model and is loaded separately.
+    'constraint',
     'view', 'viewpoint', 'package',
     // The synthetic subject a `Model`-scoped rule is evaluated against. Not a
     // declaration in any file; listed so every value this codebase produces is

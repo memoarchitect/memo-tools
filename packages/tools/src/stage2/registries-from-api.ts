@@ -59,11 +59,18 @@ const DEFAULT_ENDS: Record<string, RelationshipEnd[]> = {
  * `#Name dependency from <client> to <supplier>;`.
  */
 export const TYPED_DEPENDENCY_MARKER = 'MemoTypedDependency';
+
+/**
+ * The ontology's base for a rule that checks the model (`constraint def X :> MemoConsistencyRule`). A
+ * constraint that specializes it is a MEMO rule, loaded by the rule loader, not a constraint of the
+ * system being modelled.
+ */
+export const RULE_MARKER = 'MemoConsistencyRule';
 /** The `sysmlConstruct` of a typed dependency's registry entry. */
 export const TYPED_DEPENDENCY_CONSTRUCT = 'metadata def';
 
 /** Whether a definition specializes `name`, through any chain of supertypes. */
-function specializesByName(api: ApiModel, definition: ApiElement, name: string, seen = new Set<string>()): boolean {
+export function specializesByName(api: ApiModel, definition: ApiElement, name: string, seen = new Set<string>()): boolean {
     if (seen.has(definition['@id'])) return false;
     seen.add(definition['@id']);
     return api.superclassifiers(definition['@id']).some(general =>

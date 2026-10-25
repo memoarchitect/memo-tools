@@ -24,6 +24,7 @@ import type { MEMOConfig } from '../model/config.js';
 import { toModelType } from '../model/naming.js';
 import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } from '../model/relationship-registry.js';
 import { ElementIndex, qualifiedId } from '../model/element-index.js';
+import { RULE_MARKER, specializesByName } from './registries-from-api.js';
 import { resolveLayerFromPath } from '../model/layer-resolver.js';
 import type { ActionParameter, MemoConstruct, MemoElement, MemoModel, MemoPackageDTO, MemoRelationship, PortSpec } from '../model/semantic.js';
 import { ApiModel, type ApiElement, type ApiValue } from './api-model.js';
@@ -154,6 +155,7 @@ class ElementBuilder {
 
     run(): void {
         for (const root of this.projectRootPackages()) this.visitPackage(root, '', undefined);
+        this.constraints();
         this.inheritKindsFromLocalDefinitions();
     }
 
@@ -1346,6 +1348,73 @@ class ElementBuilder {
     }
 
     // ─── After extraction ───────────────────────────────────────────────────
+
+    // ─── Native constraints ────────────────────────────────────────
+
+    /**
+     * The project's native constraints as elements: a `constraint def`, a `constraint` or `assert
+     * constraint` usage, and the `assume` / `require constraint` of a requirement. Each is owned by the
+     * nearest element that holds it and carries its expression as readable text, so "every constraint of
+     * the system" is a query over elements, not a search of the source.
+     *
+     * A constraint that specializes `MemoConsistencyRule` is a MEMO rule and is left to the rule loader.
+     * A library's or a dependency's constraints are not the project's. One without a name takes
+     * `constraint<N>` in its owner's declaration order, which is positional: reordering an owner's
+     * constraints renumbers them.
+     */
+    private constraints(): void {
+        const counters = new Map<string, number>();
+        const nodes = ['ConstraintDefinition', 'ConstraintUsage', 'AssertConstraintUsage']
+            .flatMap(metaclass => this.api.ofType(metaclass).map(node => ({ node, metaclass })))
+            .filter(({ node, metaclass }) => !this.api.isDependency(node['@id'])
+                && !(this.projectFiles && !this.projectFiles.has(this.file(node)))
+                && !(metaclass === 'ConstraintDefinition' && specializesByName(this.api, node, RULE_MARKER)));
+        // Declaration order, so an owner's anonymous constraints are numbered the way they read in the file.
+        const position = (node: ApiElement) => this.api.source(node['@id'])?.startByte ?? 0;
+        nodes.sort((a, b) => this.file(a.node).localeCompare(this.file(b.node)) || position(a.node) - position(b.node));
+        for (const { node, metaclass } of nodes) this.constraint(node, metaclass, counters);
+    }
+
+    private constraint(node: ApiElement, metaclass: string, counters: Map<string, number>): void {
+        const ownerId = this.nearestElement(node);
+        const packageName = ownerId ? this.elements.get(ownerId)?.package : this.packageNameOf(node);
+        if (!ownerId && packageName === undefined) return;
+        const declared = this.api.name(node['@id']);
+        let shortName = declared;
+        if (!shortName) {
+            const key = ownerId ?? packageName ?? '';
+            const next = (counters.get(key) ?? 0) + 1;
+            counters.set(key, next);
+            shortName = `constraint${next}`;
+        }
+        const id = qualifiedId(shortName, packageName, ownerId);
+        if (this.elements.has(id)) return;
+        const membership = (node.owningRelationship as { '@id': string } | undefined)?.['@id'];
+        const via = membership ? this.api.element(membership) : undefined;
+        const role = metaclass === 'AssertConstraintUsage' ? 'assert'
+            : via?.['@type'] === 'RequirementConstraintMembership' ? String(via.kind === 'assumption' ? 'assume' : 'require')
+                : 'constraint';
+        const result = this.api.ownedRelationships(node['@id']).find(r => r['@type'] === 'ResultExpressionMembership');
+        const expression = this.expressionText(((result?.ownedRelatedElement as { '@id': string }[] | undefined) ?? [])[0]?.['@id']);
+        const attributes: Record<string, string> = { constraintRole: role };
+        if (expression !== undefined) attributes.expression = expression;
+        if (!declared) attributes.positional = 'true';
+        const owner = ownerId ? this.elements.get(ownerId) : undefined;
+        this.define({
+            id, shortName, name: shortName, kind: metaclass, construct: 'constraint',
+            layer: owner?.layer ?? resolveLayerFromPath(this.file(node)),
+            file: this.file(node), package: packageName || undefined, attributes, doc: this.doc(node),
+            isDefinition: metaclass === 'ConstraintDefinition' ? true : undefined, owner: ownerId,
+        }, node);
+    }
+
+    /** The qualified name of the package that encloses a top-level declaration. */
+    private packageNameOf(node: ApiElement): string | undefined {
+        for (let current = this.api.owner(node['@id']); current; current = this.api.owner(current['@id'])) {
+            if (current['@type'] === 'Package' || current['@type'] === 'LibraryPackage') return this.api.qualifiedName(current['@id']);
+        }
+        return undefined;
+    }
 
     /** A usage typed by a local definition takes the ontology kind that definition resolved to. */
     private inheritKindsFromLocalDefinitions(): void {
