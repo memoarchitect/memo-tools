@@ -50,6 +50,18 @@ export function isDefaultViewLayout(layout: DiagramLayout): boolean {
  * unaffected: they are nested under their owner and keyed by the name the
  * source declares. The remap is read-only; the next save writes the new spelling.
  */
+/**
+ * How a saved node id that no element carries is mapped to one that does: a layout written before ids were
+ * qualified keys its nodes by the declared name, accepted when exactly one element answers to it.
+ */
+export function savedNodeIdResolver(model: { elements: Record<string, { shortName?: string }> } | undefined): (savedId: string) => string | undefined {
+    return savedId => {
+        if (!model || model.elements[savedId]) return undefined;
+        const matches = Object.keys(model.elements).filter(id => (model.elements[id].shortName ?? id) === savedId);
+        return matches.length === 1 ? matches[0] : undefined;
+    };
+}
+
 export function loadViewLayouts(
     projectRoot: string,
     diagrams: DiagramDTO[],
