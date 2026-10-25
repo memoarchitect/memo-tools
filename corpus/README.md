@@ -3,8 +3,9 @@
 Vendored artifacts from [`Systems-Modeling/SysML-v2-Release`](https://github.com/Systems-Modeling/SysML-v2-Release),
 pinned to one commit and checksummed file by file. They are the reference the
 project cites: the normative textual grammar (`bnf/*.kebnf`), the standard
-library, and the OMG's own example models. Nothing in the toolchain reads them
-at run time.
+library, and the OMG's own example models. The toolchain reads two files at run time, both from the standard library: `SIPrefixes.sysml` and `SI.sysml`
+(`model/quantity.ts` takes the factor of a unit and a prefix from them), and they are listed in `files` so an
+installation has them. Nothing else here is read at run time.
 
 Upstream paths are preserved verbatim, so every entry in
 `sysml-v2-release/manifest.json` can be checked against the Release repository

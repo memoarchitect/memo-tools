@@ -309,15 +309,18 @@ export async function commitSource(
             error: `The updated source was not accepted (${e instanceof Error ? e.message : String(e)}); ${relativePath} was left unchanged.`,
         };
     }
-    const before = new Map<string, string>();
+    // What each file held, or undefined when the write creates it.
+    const before = new Map<string, string | undefined>();
     const files = new Map<string, string>([[absolutePath, updated], ...(others ?? [])]);
     try {
         for (const [path, text] of files) {
-            before.set(path, readFileSync(path, 'utf8'));
+            before.set(path, existsSync(path) ? readFileSync(path, 'utf8') : undefined);
             atomicWrite(path, text);
         }
     } catch (e) {
-        for (const [path, text] of before) atomicWrite(path, text);
+        for (const [path, text] of before) {
+            if (text === undefined) { if (existsSync(path)) unlinkSync(path); } else atomicWrite(path, text);
+        }
         return { success: false, error: `Could not write ${relativePath}: ${String(e)}` };
     }
     return { success: true };

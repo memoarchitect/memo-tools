@@ -84,6 +84,8 @@
     "!packages/tools/lib/**/*.test.*",
     "packages/tools/src/grammar/",
     "corpus/sysml-v2-release/bnf/SysML-graphical-bnf.kgbnf",
+    "corpus/sysml-v2-release/sysml.library/Domain Libraries/Quantities and Units/SI.sysml",
+    "corpus/sysml-v2-release/sysml.library/Domain Libraries/Quantities and Units/SIPrefixes.sysml",
     "README.md",
     "LICENSE"
   ],
