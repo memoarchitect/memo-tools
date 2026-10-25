@@ -23,13 +23,8 @@ import { compiledExample, compilerConfigured, examplesPresent } from './helpers/
 
 const web = resolve(__dirname, '../../../../../memo-architect/packages/web/src');
 
-/** Undeclared literals Architect still names: `<file relative to web/src>: name`. */
-const KNOWN_UNDECLARED: Record<string, string[]> = {
-    // Names from before the ontology's relations were renamed or removed; each view
-    // selects nothing in every model. On the board: "Architect views select
-    // relationship types the ontology does not declare".
-    'views/templates/geometry-view.ts': ['navigatesTo'],
-};
+/** Undeclared literals Architect still names: `<file relative to web/src>: name`. None now; an entry is a gap. */
+const KNOWN_UNDECLARED: Record<string, string[]> = {};
 
 function sources(dir: string, out: string[] = []): string[] {
     for (const name of readdirSync(dir)) {
