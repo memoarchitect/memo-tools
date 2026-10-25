@@ -56,4 +56,24 @@ describe.runIf(compilerConfigured)('native constraints', () => {
         expect(ids).not.toContain('P::NoNegative');
         expect(ids).toContain('P::Range');
     }, 120_000);
+
+    it('do not duplicate a requirement an assume or require only names', async () => {
+        // As gpca writes a contract: the requirements sit in one package, the contract names them from another.
+        const source = `package Props {
+    private import ScalarValues::*;
+    action def Dose { in rate : Real; }
+    requirement def Limit { subject d : Dose; }
+    requirement assumeLow : Limit;
+    requirement guaranteeHigh : Limit;
+}
+package Contracts {
+    private import Props::*;
+    requirement def Contract { subject d : Dose; assume assumeLow; require guaranteeHigh; }
+}`;
+        const model = await modelFromSources([{ source, filePath: 'p.sysml' }], { asGiven: true });
+        const ids = [...model.elements.values()].filter(e => e.construct === 'constraint').map(e => e.id);
+        expect(ids.filter(id => id.startsWith('Contracts::Contract::'))).toEqual([]);
+        expect(model.relationships.filter(r => r.sourceId === 'Contracts::Contract' && ['assumes', 'requires'].includes(r.type)).map(r => `${r.type} ${r.targetId}`).sort())
+            .toEqual(['assumes Props::assumeLow', 'requires Props::guaranteeHigh']);
+    }, 120_000);
 });

@@ -1395,6 +1395,9 @@ class ElementBuilder {
     }
 
     private constraint(node: ApiElement, metaclass: string, counters: Map<string, number>): void {
+        // `assume X;` and `require X;` name a requirement that already exists: that is the `assumes` / `requires`
+        // edge, not a second constraint, and the requirement it names is the element.
+        if (this.api.related(node['@id'], ['ReferenceSubsetting'], 'referencedFeature').length > 0) return;
         const ownerId = this.nearestElement(node);
         const packageName = ownerId ? this.elements.get(ownerId)?.package : this.packageNameOf(node);
         if (!ownerId && packageName === undefined) return;
