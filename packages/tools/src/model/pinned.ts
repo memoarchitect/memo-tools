@@ -25,7 +25,7 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFileSync, cpSync, utimesSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { basename, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import type { MEMOConfig } from './config.js';
 import { loadProjectSettings } from './config-loader.js';
@@ -512,6 +512,22 @@ export async function installLockedPackages(
         }
     }
     return result;
+}
+
+/**
+ * The ontology package a pinned worktree reads (the commit's own once `installLockedPackages` ran), the
+ * directory its DHF templates and standards packs come from. Undefined when the locator finds none, which
+ * leaves this installation's in force.
+ */
+export function ontologyRootAt(pinnedProjectDir: string): string | undefined {
+    const found = discoverLibraryRoots(pinnedProjectDir).find(root => root.packageName === '@memoarchitect/ontology');
+    // The descriptor sits in the package's `ontology/` folder; the templates and packs are under the package root.
+    for (let dir = found?.dir; dir; dir = dirname(dir) === dir ? undefined : dirname(dir)) {
+        try {
+            if (JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name === '@memoarchitect/ontology') return dir;
+        } catch { /* no package.json here: look one level up */ }
+    }
+    return undefined;
 }
 
 /**

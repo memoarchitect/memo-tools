@@ -12,12 +12,14 @@
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
-import { resolveContentPackageRoot, VENDOR_DHF_TEMPLATES_DIR } from '../model/paths.js';
+import { contentRootKey, resolveContentPackageRoot, VENDOR_DHF_TEMPLATES_DIR } from '../model/paths.js';
 
 /** Locate the ontology's dhf-templates directory. Cached after first hit. */
-let vendorTemplatesDir: string | null | undefined;
+const vendorTemplatesDirs = new Map<string, string | null>();
 export function findVendorTemplatesDir(startDir: string = process.cwd()): string | null {
-    if (vendorTemplatesDir !== undefined) return vendorTemplatesDir;
+    const key = contentRootKey();
+    const cached = vendorTemplatesDirs.get(key);
+    if (cached !== undefined) return cached;
 
     // 1. Resolve the content through the declared npm dependency. In the meta
     // workspace this resolves to a local workspace link; standalone installs
@@ -25,7 +27,7 @@ export function findVendorTemplatesDir(startDir: string = process.cwd()): string
     try {
         const ontologyRoot = resolveContentPackageRoot();
         const installed = join(ontologyRoot, 'src/artifacts/templates/dhf');
-        if (existsSync(installed)) { vendorTemplatesDir = installed; return installed; }
+        if (existsSync(installed)) { vendorTemplatesDirs.set(key, installed); return installed; }
     } catch {
         // Fall through for dependency-free legacy source checkouts.
     }
@@ -34,19 +36,19 @@ export function findVendorTemplatesDir(startDir: string = process.cwd()): string
     let dir = resolve(startDir);
     while (true) {
         const candidate = join(dir, VENDOR_DHF_TEMPLATES_DIR);
-        if (existsSync(candidate)) { vendorTemplatesDir = candidate; return candidate; }
+        if (existsSync(candidate)) { vendorTemplatesDirs.set(key, candidate); return candidate; }
         const parent = dirname(dir);
         if (parent === dir) break;
         dir = parent;
     }
 
-    vendorTemplatesDir = null;
+    vendorTemplatesDirs.set(key, null);
     return null;
 }
 
 /** Test hook: reset the cached vendor templates directory */
 export function resetVendorTemplatesDirCache(): void {
-    vendorTemplatesDir = undefined;
+    vendorTemplatesDirs.clear();
 }
 
 export interface TemplateLoadResult {

@@ -6,13 +6,32 @@
 // checkouts and will not be used in the sibling-submodule meta workspace.
 // ───────────────────────────────────────────────────────────────────────────────
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 
 const require = createRequire(import.meta.url);
 
-/** Resolve the ontology package selected by this tools installation. */
+const contentRootScope = new AsyncLocalStorage<string>();
+
+/**
+ * Run `run` with `root` as the ontology package that content (DHF templates, standards packs) is read
+ * from, in place of the one this installation selects. A pinned build uses it so a release's documents
+ * come from the ontology its commit locked. Callers cache by `contentRootKey()`, not globally.
+ */
+export function withContentPackageRoot<T>(root: string | undefined, run: () => T): T {
+    return root ? contentRootScope.run(root, run) : run();
+}
+
+/** The scoped ontology root, or '' when this installation's own is in force: the key content caches use. */
+export function contentRootKey(): string {
+    return contentRootScope.getStore() ?? '';
+}
+
+/** Resolve the ontology package selected by this tools installation, or by an enclosing `withContentPackageRoot`. */
 export function resolveContentPackageRoot(): string {
+    const scoped = contentRootScope.getStore();
+    if (scoped) return scoped;
     try {
         return dirname(require.resolve('@memoarchitect/ontology/package.json'));
     } catch (error) {
