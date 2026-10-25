@@ -59,7 +59,7 @@ export async function dhfDraftCommand(options: DhfDraftCommandOptions): Promise<
     console.log(chalk.dim('Loading model...'));
     const config = loadAndResolveConfig(configPath);
     const { model, registries: ontologyRegistries } = await loadProjectModel({ projectRoot: dirname(configPath), config });
-    const validation = validateModel(model);
+    const validation = validateModel(model, [], undefined, undefined, undefined, undefined, undefined, ontologyRegistries?.relationshipRegistry);
     const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);
     const dhfConfig = loadDhfConfig(cwd);

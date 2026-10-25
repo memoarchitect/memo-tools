@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { outlineSourceFor } from '../authoring/outline-source.js';
 import { modelToDTO } from '../model/semantic.js';
+import { compatibleRelationshipTargets, legalRelationshipDirections } from '../model/relationship-legality.js';
 import { removeRelationship, writeRelationship } from '../server/relationship-writer.js';
 import { loadProjectModel, type ProjectModel } from '../toolchain/project-model.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
@@ -95,5 +96,28 @@ describe.runIf(compilerConfigured && examplesPresent)('requires and excludes thr
             }, 'robot-cell-family');
         }, 240_000);
     }
+});
+
+describe.runIf(compilerConfigured && examplesPresent)('what the relationship picker offers for requires and excludes', () => {
+    // The picker asks legality, from the ontology's registries as the server ships them, what may join a feature:
+    // the app can only author a link the ontology says is legal between the two elements.
+    it('offers RequiresFeature and ExcludesFeature from a feature, and the other features as targets', async () => {
+        await withExample(variabilityFiles(), project => {
+            const registries = {
+                relationships: project.registries!.relationshipRegistry!.toDefinitionDTOs(),
+                kinds: project.registries!.kindRegistry!.toDefinitionDTOs(),
+            };
+            const dto = modelToDTO(project.model);
+            const feature = dto.elements[idOf(project, 'featIrrigatedTip')];
+            const other = idOf(project, 'featEuMarket');
+            for (const type of ['requiresFeature', 'excludesFeature']) {
+                const definition = registries.relationships.find(d => d.name === type)!;
+                expect(legalRelationshipDirections(feature, definition, registries), type).toContain('outgoing');
+                const targets = compatibleRelationshipTargets(feature, definition, 'outgoing', dto, registries);
+                expect(targets.map(t => t.element.id), type).toContain(other);
+                expect(targets.map(t => t.element.id), type).not.toContain(feature.id);
+            }
+        }, 'robot-cell-family');
+    }, 180_000);
 });
 

@@ -49,7 +49,7 @@ export async function validateGeneratedSysml(projectRoot: string, sysml: string)
             // Only what the candidate declares: the project's own findings are not the candidate's to repair.
             const aboutCandidate = (violation: { provenance?: { declaration: { sourceUri?: string } } }) =>
                 violation.provenance?.declaration.sourceUri === candidatePath;
-            diagnostics.push(...validateModel(model).violations.filter(aboutCandidate).map(violation => ({
+            diagnostics.push(...validateModel(model, [], undefined, undefined, undefined, undefined, undefined, lowering.registries?.relationshipRegistry).violations.filter(aboutCandidate).map(violation => ({
                 domain: 'memo-methodology' as const,
                 provider: 'memo', severity: violation.severity === 'error' ? 'warning' as const : violation.severity,
                 code: violation.ruleId,
