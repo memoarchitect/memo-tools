@@ -428,3 +428,28 @@ describe('parseMemoQuery', () => {
         expect(parseMemoQuery(':::not: [valid')).toBeNull();
     });
 });
+
+// ─── a column shown in one unit ──────────────────────────────────────────────
+
+describe('a quantity column in one unit', () => {
+    const components = [
+        makeElement({ id: 'a', name: 'Fast', kind: 'SoftwareComponent', attributes: { wcetMs: '2.5 [milli*second]' } }),
+        makeElement({ id: 'b', name: 'Slow', kind: 'SoftwareComponent', attributes: { wcetMs: '1 [s]' } }),
+        makeElement({ id: 'c', name: 'None', kind: 'SoftwareComponent', attributes: {} }),
+    ];
+    const run = (columns: string) =>
+        processMemoQueryBlocks(['```memo-query', 'kind: SoftwareComponent', `columns: ${columns}`, 'sort: name', '```'].join('\n'), makeCtx(components));
+
+    it('shows each row in the named unit, whatever it was written in', () => {
+        const out = run('name, wcetMs in milli*second');
+        expect(out).toContain('WcetMs (milli*second)');
+        expect(out).toContain('| Fast | 2.5 |');
+        expect(out).toContain('| Slow | 1000 |');
+        expect(out).toContain('| None | — |');
+    });
+
+    it('refuses a value in another dimension, and an unknown unit, rather than print a wrong number', () => {
+        expect(() => run('name, wcetMs in kilo*g')).toThrow(/not a quantity in kilo\*g/);
+        expect(() => run('name, wcetMs in furlongs')).toThrow(/furlongs/);
+    });
+});

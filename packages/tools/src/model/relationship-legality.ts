@@ -127,6 +127,8 @@ export interface KindDefinitionDTO {
 export interface OntologyRegistriesDTO {
     relationships: RelationshipDefinitionDTO[];
     kinds: KindDefinitionDTO[];
+    /** The standard library's symbols for prefixes and units, so a surface shows `20 [milli*second]` as `20 ms`. */
+    unitSymbols?: import('./quantity-format.js').UnitSymbolsDTO;
 }
 
 /** Direction of a relationship relative to the selected element. */

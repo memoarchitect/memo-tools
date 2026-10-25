@@ -14,6 +14,11 @@
 //   group_by: layer
 //   ```
 //
+// A column that holds a quantity (`20 [milli*second]`) can be shown in one unit,
+// whatever each row wrote it in: `columns: name, wcetMs in milli*second`. The
+// cell is the number; the header names the unit. A value in another dimension,
+// or not a quantity, is an error, not a blank.
+//
 // A query selects elements by default. `select: relationships` selects links
 // instead — the shape every clause-traceability and allocation table has, where
 // a row is the edge and the columns come from both of its ends:
@@ -29,6 +34,7 @@
 // Reuses QueryContext from query-engine.ts so all model access is consistent.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { parseQuantity } from '../model/quantity.js';
 import type { QueryContext } from './query-engine.js';
 import type { MemoElement, MemoRelationship } from '../model/semantic.js';
 import * as yaml from 'yaml';
@@ -304,8 +310,12 @@ export function validateQuerySpec(spec: MemoQuerySpec): string[] {
             problems.push(`column \`${col}\` uses an alias — \`as\` is not supported`);
             continue;
         }
-        const why = diagnoseDottedPath(col, relationships);
+        const { field, unit } = parseColumn(col);
+        const why = diagnoseDottedPath(field, relationships);
         if (why) problems.push(`column \`${col}\` — ${why}`);
+        if (unit !== undefined) {
+            try { parseQuantity(`1 [${unit}]`); } catch (e) { problems.push(`column \`${col}\` — ${e instanceof Error ? e.message : String(e)}`); }
+        }
     }
 
     if (spec.group_by !== undefined) {
@@ -605,14 +615,32 @@ function resolveColumns(spec: MemoQuerySpec): string[] {
         : ['name', 'kind', 'layer', 'doc'];
 }
 
+/** A column is a field, optionally shown in one unit: `wcetMs in milli*second`. */
+function parseColumn(column: string): { field: string; unit?: string } {
+    const m = column.match(/^(\S+)\s+in\s+(.+)$/i);
+    return m ? { field: m[1], unit: m[2].trim() } : { field: column };
+}
+
+/** A quantity's number in `unit`, trimmed of floating-point noise. */
+function inUnit(value: string, unit: string, field: string): string {
+    const quantity = parseQuantity(value);
+    if (!quantity) throw new MemoQueryError(`column \`${field}\` holds "${value}", which is not a quantity, so it cannot be shown in ${unit}`);
+    const target = parseQuantity(`1 [${unit}]`)!;
+    if (quantity.dimension !== target.dimension) {
+        throw new MemoQueryError(`column \`${field}\` holds "${value}" (${quantity.dimension}), which is not a quantity in ${unit} (${target.dimension})`);
+    }
+    return String(Number((quantity.value / target.value).toPrecision(6)));
+}
+
 function renderTable(spec: MemoQuerySpec, rows: QueryRow[], read: ReadField): string {
-    const cols = resolveColumns(spec);
-    const header = '| ' + cols.map(c => columnHeader(c)).join(' | ') + ' |';
+    const cols = resolveColumns(spec).map(parseColumn);
+    const header = '| ' + cols.map(c => columnHeader(c.field) + (c.unit ? ` (${c.unit})` : '')).join(' | ') + ' |';
     const sep = '| ' + cols.map(() => '---').join(' | ') + ' |';
     const body = rows.map(row => {
         const cells = cols.map(c => {
-            const val = read(row, c);
-            return val ? String(val).replace(/\|/g, '\\|') : '—';
+            const val = read(row, c.field);
+            if (!val) return '—';
+            return (c.unit ? inUnit(String(val), c.unit, c.field) : String(val)).replace(/\|/g, '\\|');
         });
         return '| ' + cells.join(' | ') + ' |';
     });
