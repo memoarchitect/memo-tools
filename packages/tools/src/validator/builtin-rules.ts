@@ -35,7 +35,7 @@ export interface BuiltinRule {
     description: string;
     severity: RuleSeverity;
     /** Which built-in validator implements it. */
-    validator: 'behavior' | 'architecture' | 'views';
+    validator: 'behavior' | 'architecture' | 'views' | 'constraints';
     /** Always false: a policy cannot reference a rule that has no def name. */
     tailorable: false;
 }
@@ -60,6 +60,11 @@ export const BUILTIN_RULES: readonly BuiltinRule[] = [
         id: 'XR-001', name: 'ReferenceResolvesRule', validator: 'behavior', severity: 'error',
         tailorable: false,
         description: 'A qualified reference resolves to an element the named package declares or re-exports.',
+    },
+    {
+        id: 'MC-001', name: 'ModelConstraintHoldsRule', validator: 'constraints', severity: 'error',
+        tailorable: false,
+        description: 'A `require constraint`, `assume constraint` or `assert constraint` the model declares holds over the values it names.',
     },
     {
         id: 'VW-001', name: 'ViewExposesContentRule', validator: 'views', severity: 'warning',

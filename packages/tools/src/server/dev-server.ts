@@ -913,7 +913,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             // registry so authoring honors the same extension chain as build.
             kinds: currentModel()?.registries?.kinds
                 ?? registries?.kindRegistry?.toDefinitionDTOs() ?? [],
-            unitSymbols: currentModel()?.registries?.unitSymbols,
+            unitTable: currentModel()?.registries?.unitTable,
         };
     }
 

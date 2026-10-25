@@ -34,7 +34,8 @@
 // Reuses QueryContext from query-engine.ts so all model access is consistent.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { parseQuantity } from '../model/quantity.js';
+import { parseQuantity, unitTable } from '../model/quantity.js';
+import { convertQuantity } from '../model/quantity-core.js';
 import type { QueryContext } from './query-engine.js';
 import type { MemoElement, MemoRelationship } from '../model/semantic.js';
 import * as yaml from 'yaml';
@@ -623,13 +624,11 @@ function parseColumn(column: string): { field: string; unit?: string } {
 
 /** A quantity's number in `unit`, trimmed of floating-point noise. */
 function inUnit(value: string, unit: string, field: string): string {
-    const quantity = parseQuantity(value);
-    if (!quantity) throw new MemoQueryError(`column \`${field}\` holds "${value}", which is not a quantity, so it cannot be shown in ${unit}`);
-    const target = parseQuantity(`1 [${unit}]`)!;
-    if (quantity.dimension !== target.dimension) {
-        throw new MemoQueryError(`column \`${field}\` holds "${value}" (${quantity.dimension}), which is not a quantity in ${unit} (${target.dimension})`);
+    try {
+        return String(convertQuantity(value, unit, unitTable()));
+    } catch (e) {
+        throw new MemoQueryError(`column \`${field}\`: ${e instanceof Error ? e.message : String(e)}`);
     }
-    return String(Number((quantity.value / target.value).toPrecision(6)));
 }
 
 function renderTable(spec: MemoQuerySpec, rows: QueryRow[], read: ReadField): string {

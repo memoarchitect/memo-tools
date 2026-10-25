@@ -7,6 +7,7 @@
 // alongside. The proprietary ClosureRule path was removed in Epic EE-4.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { validateModelConstraints } from './model-constraints.js';
 import type { MemoModel } from '../model/semantic.js';
 import type { Violation, ValidationResult, ViolationRuleProvenance } from './types.js';
 import type { EffectiveRule } from '../model/methodology-resolver.js';
@@ -79,6 +80,7 @@ export function validateModel(
     const ibdScope = nativeConstraints.find(c => c.id === 'AR-IBD-001')?.appliesToKind;
     const architectureViolations = validateArchitecture(model, ibdScope, kindRegistry, relationshipRegistry);
     const viewViolations = validateViews(model);
+    const constraintViolations = validateModelConstraints(model);
 
     // The built-in validators take no subject predicate, so a workspace keeps their findings by the
     // element they are about. A model-wide finding (`__model__`) belongs to no element and stays.
@@ -121,7 +123,7 @@ export function validateModel(
     }
 
     const violations = [
-        ...[...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations].filter(inWorkspace),
+        ...[...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations, ...constraintViolations].filter(inWorkspace),
         ...nativeViolations,
     ]
         .map(violation => ({
@@ -137,7 +139,7 @@ export function validateModel(
     // counted only native rules, so "61 evaluated, 32 passed" was reporting
     // two different denominators as though they were one.
     const raisedByBuiltinValidators = new Set([
-        ...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations,
+        ...unresolvedViolations, ...behaviorViolations, ...architectureViolations, ...viewViolations, ...constraintViolations,
     ].filter(inWorkspace).map(violation => violation.ruleId));
     const builtinPassed = BUILTIN_RULE_IDS.filter(id => !raisedByBuiltinValidators.has(id)).length;
     const delegatedPassed = delegated.filter(id => !raisedByBuiltinValidators.has(id)).length;

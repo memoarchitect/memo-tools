@@ -2,6 +2,7 @@
 // filesystem, server, and other Node-only dependencies.
 export * from '../model/naming.js';
 export * from '../model/quantity-format.js';
+export * from '../model/quantity-core.js';
 export * from '../model/relation-selection.js';
 export * from '../model/semantic.js';
 export type { WorkspaceMembershipDTO } from '../model/workspace-membership.js';
