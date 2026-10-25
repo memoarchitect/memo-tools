@@ -126,6 +126,13 @@ empty: "none"
         expect(fdaAll).toContain('no release record contains this one');
     });
 
+    it('links a device to its intended use and to the devices it is used with', () => {
+        const id = (name: string) => [...working.model.elements.values()].find(e => e.shortName === name)!.id;
+        const edges = (type: string) => working.model.relationships.filter(r => r.type === type).map(r => [r.sourceId, r.targetId]);
+        expect(edges('intendedUseOf')).toEqual([[id('euIntendedUse'), id('devEu')]]);
+        expect(edges('usedWith')).toEqual([[id('devEu'), id('devFda')]]);
+    });
+
     it('refuses a device that does not exist', async () => {
         await expect(compileDeviceDhf({ projectRoot: repo.root, working, device: 'devNone', outputDir: join(scratch, 'x'), config: config as never }))
             .rejects.toThrow(/not a regulated device of this model/);

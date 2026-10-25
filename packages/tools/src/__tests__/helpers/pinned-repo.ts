@@ -135,6 +135,7 @@ export function createFamilyRepo(): FamilyRepo {
     private import robot_cell_family_manipulation_options::*;
     private import robot_cell_family_sos::*;
     private import robot_cell_family_release_records::*;
+    private import memo_architecture_operational_structure::*;
 
     part relOutputEu : ReleaseRecord {
         @MemoIdentity { :>> label = "Output stage EU"; }
@@ -166,6 +167,12 @@ export function createFamilyRepo(): FamilyRepo {
     // The SoS version that pins the EU output stage beside the navigation system: the device's SoS context.
     ${record('relLabOutputEu', 'RoboticCell', c3, 510, ['relOutputEu', 'relNavigation'])}
 
+    requirement euIntendedUse : IntendedUse {
+        @MemoIdentity { :>> label = "EU intended use"; }
+        attribute :>> indication = "Drive the output stage of the cell.";
+    }
+    #IntendedUseOf dependency from euIntendedUse to devEu;
+    #UsedWith dependency from devEu to devFda;
     #Covers dependency from devEu to relOutputEu;
     #Covers dependency from devFda to relOutputUs;
 }
