@@ -60,6 +60,13 @@ const NATIVE_DUPLICATES: Record<string, DuplicateRow> = {
         status: 'present',
         reason: 'NOT a duplicate: carries causeKind : CauseKind, which the metadata shorthand drops.',
     },
+    NavigatesTo: {
+        native: 'succession',
+        status: 'present',
+        reason: 'NOT a duplicate: a succession orders occurrences in time, while NavigatesTo says that activating '
+            + 'a UI element opens a screen, and neither end is an occurrence. Declared again in memo_ui.sysml '
+            + '(memo 3ba2688), which this table had not been told.',
+    },
     TracesToDocument: {
         native: 'dependency',
         status: 'present',
@@ -96,7 +103,6 @@ const NATIVE_DUPLICATES: Record<string, DuplicateRow> = {
     ComponentConnects: { native: 'connect', status: 'removed' },
     DataBinding: { native: 'bind', status: 'removed' },
     MemoLink: { native: 'dependency', status: 'removed' },
-    NavigatesTo: { native: 'succession', status: 'removed' },
     RequiresResource: { native: 'dependency', status: 'removed' },
     ResolvesToMethodology: { native: 'dependency', status: 'removed' },
     Supports: { native: 'dependency (also a duplicate of Enables)', status: 'removed' },
