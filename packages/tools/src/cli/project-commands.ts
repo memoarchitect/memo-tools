@@ -34,7 +34,7 @@ import { importKpar, inspectKpar } from '../commands/package.js';
 import { importOwlCommand } from '../commands/import-owl.js';
 import { lockCommand } from '../commands/lock.js';
 import { upgradeCommand } from '../commands/upgrade.js';
-import { warnOnPinMismatch } from '../pin-check.js';
+import { offerNpmInstall, warnOnPinMismatch } from '../pin-check.js';
 import { installCommand } from '../commands/install.js';
 import { createPackageCommand } from '../commands/create-package.js';
 import { askCommand } from '../commands/ask.js';
@@ -683,9 +683,16 @@ export function registerProjectCommands(program: Command): void {
             if (!command.options.some(option => option.attributeName() === 'toolchain.compiler')) withToolchainOptions(command);
         }
     }
-    program.hook('preAction', (_program, action) => {
+    program.hook('preAction', async (_program, action) => {
         setCommandLineToolchain(toolchainOverridesFromCliOptions(action.opts(), defaultRegistry));
         // `upgrade` and `install` are how the mismatch is fixed; they need no warning about it.
-        if (!['upgrade', 'install'].includes(action.name())) warnOnPinMismatch();
+        if (['upgrade', 'install'].includes(action.name())) return;
+        // Starting the app is the one place worth asking: it is about to load from what is installed.
+        if (action.name() === 'dev') {
+            const outcome = await offerNpmInstall();
+            if (outcome !== 'continue') process.exit(outcome === 'installed' ? 0 : 1);
+        } else {
+            warnOnPinMismatch();
+        }
     });
 }

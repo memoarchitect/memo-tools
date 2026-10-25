@@ -5,6 +5,7 @@
 // stale checkout), every command should say so before the user chases a ghost.
 // ─────────────────────────────────────────────────────────────────────────────────────────
 
+import { execFileSync } from 'node:child_process';
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import chalk from 'chalk';
@@ -56,6 +57,14 @@ export function pinMismatches(projectRoot: string): PinMismatch[] {
     return found;
 }
 
+/** The lines that say which packages do not match. */
+export function pinMismatchMessage(found: PinMismatch[]): string[] {
+    return [
+        'The installed MEMO packages do not match package.json:',
+        ...found.map(({ name, pinned, installed }) => `    ${name}: pinned ${pinned}, installed ${installed}`),
+    ];
+}
+
 /** Print the warning for the project the working directory is in, when there is a mismatch. */
 export function warnOnPinMismatch(cwd: string = process.cwd()): void {
     try {
@@ -63,10 +72,66 @@ export function warnOnPinMismatch(cwd: string = process.cwd()): void {
         if (!config) return;
         const found = pinMismatches(dirname(config));
         if (found.length === 0) return;
-        console.error(chalk.yellow('⚠ The installed MEMO packages do not match package.json:'));
-        for (const { name, pinned, installed } of found) console.error(chalk.yellow(`    ${name}: pinned ${pinned}, installed ${installed}`));
-        console.error(chalk.yellow('  Run `npm install` to match the pins, or `memo upgrade` to move to a newer release.\n'));
+        for (const line of pinMismatchMessage(found)) console.error(chalk.yellow(line.startsWith(' ') ? line : `⚠ ${line}`));
+        console.error(chalk.yellow('  Run `npm install` to match the pins, or `memo-architect upgrade` to move to a newer release.\n'));
     } catch {
         // A warning must never stop the command it precedes.
     }
+}
+
+/** What `offerNpmInstall` needs from its surroundings, so a test needs no terminal and no network. */
+export interface InstallPromptEnvironment {
+    interactive: boolean;
+    ask: (question: string) => Promise<string>;
+    install: (projectRoot: string) => void;
+    log: (line: string) => void;
+}
+
+const terminalEnvironment = (): InstallPromptEnvironment => ({
+    interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
+    ask: async question => {
+        const { createInterface } = await import('node:readline/promises');
+        const readline = createInterface({ input: process.stdin, output: process.stdout });
+        try { return await readline.question(question); } finally { readline.close(); }
+    },
+    install: projectRoot => { execFileSync('npm', ['install'], { cwd: projectRoot, stdio: 'inherit' }); },
+    log: line => console.error(line),
+});
+
+/**
+ * At the start of the app: when what is installed is not what package.json pins, say so and offer to run
+ * `npm install`. The server loads from those very `node_modules`, so a yes installs and then asks for a restart
+ * instead of replacing them under a running process. Without a terminal (a preview launch, CI) it only warns,
+ * so nothing waits on an answer. `installed` and `failed` mean the caller should stop.
+ */
+export async function offerNpmInstall(cwd: string = process.cwd(), env: InstallPromptEnvironment = terminalEnvironment()): Promise<'continue' | 'installed' | 'failed'> {
+    let projectRoot: string;
+    let found: PinMismatch[];
+    try {
+        const config = findConfigFile(cwd);
+        if (!config) return 'continue';
+        projectRoot = dirname(config);
+        found = pinMismatches(projectRoot);
+    } catch {
+        return 'continue';
+    }
+    if (found.length === 0) return 'continue';
+    if (!env.interactive) {
+        warnOnPinMismatch(cwd);
+        return 'continue';
+    }
+    for (const line of pinMismatchMessage(found)) env.log(line.startsWith(' ') ? line : `⚠ ${line}`);
+    const answer = (await env.ask('Run `npm install` now to match them? [Y/n] ')).trim().toLowerCase();
+    if (answer !== '' && answer !== 'y' && answer !== 'yes') {
+        env.log('Continuing with what is installed. Run `npm install`, or `memo-architect upgrade` to move to a newer release.');
+        return 'continue';
+    }
+    try {
+        env.install(projectRoot);
+    } catch (error) {
+        env.log(`npm install failed: ${error instanceof Error ? error.message : String(error)}`);
+        return 'failed';
+    }
+    env.log('Installed. Start the app again so it runs the installed versions.');
+    return 'installed';
 }
