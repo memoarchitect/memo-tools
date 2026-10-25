@@ -28,9 +28,7 @@ const KNOWN_UNDECLARED: Record<string, string[]> = {
     // Names from before the ontology's relations were renamed or removed; each view
     // selects nothing in every model. On the board: "Architect views select
     // relationship types the ontology does not declare".
-    'views/ComplianceWizard.tsx': ['verify', 'traceTo'],
     'views/templates/geometry-view.ts': ['navigatesTo'],
-    'views/templates/sequence-view.ts': ['realizesScenario'],
 };
 
 function sources(dir: string, out: string[] = []): string[] {
