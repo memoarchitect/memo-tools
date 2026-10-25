@@ -838,10 +838,18 @@ function declaredNameOf(relationship: Pick<MemoRelationship, 'id' | 'shortName'>
     return relationship.shortName ?? shortNameOf(relationship.id);
 }
 
-/** A named connection usage anywhere in the file. */
+/**
+ * The connector usages a name can address: a typed `connection`, the `interface` and `flow` a
+ * ComponentExchange and a FunctionalExchange are written as, and a named `binding`.
+ */
+const NAMED_CONNECTOR_METACLASSES: ReadonlySet<string> = new Set([
+    'ConnectionUsage', 'InterfaceUsage', 'FlowUsage', 'FlowConnectionUsage', 'BindingConnectorAsUsage',
+]);
+
+/** A named connector usage anywhere in the file. */
 function findConnectionUsage(outline: SourceOutline, name: string): OutlineNode | undefined {
     for (const node of outlineNodes(outline)) {
-        if (node.metaclass === 'ConnectionUsage' && node.name === name) return node;
+        if (NAMED_CONNECTOR_METACLASSES.has(node.metaclass) && node.name === name) return node;
     }
     return undefined;
 }
