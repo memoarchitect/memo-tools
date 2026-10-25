@@ -495,21 +495,28 @@ function newRelationshipFile(relativePath: string, declaration: string): string 
     return `package ${packageName} {\n    ${declaration}\n}\n`;
 }
 
-/** Fully qualify a nested endpoint from the semantic ownership chain. */
+/**
+ * An endpoint as a feature chain that resolves from any package: the outermost owner by its qualified name, then
+ * the nested names by `.` (`Pkg::a.b.port`). Every segment of an `OwnedFeatureChain` is a `[QualifiedName]`
+ * (SysML-textual-bnf.kebnf:487-493), and a connector end is a reference subsetting of one (kebnf:463-465, 693-697).
+ *
+ * Written into SOURCE, so each nested segment is the name its declaration carries, never the qualified id that
+ * addresses it. The declaration lands in a package of its own, which need not be the package of the features it
+ * joins and need not import it; a bare `a.b` would then resolve nowhere.
+ */
 function endpointPath(elementId: string, model: Pick<MemoModelDTO, 'elements'>): string {
-    // Written into SOURCE, so every segment is the name its declaration
-    // carries, never the qualified id that addresses it: `a.b.port`, not
-    // `Pkg::a::b.Pkg::a::b::port`.
     const named = (id: string) => model.elements[id]?.shortName ?? shortNameOf(id);
-    const path = [named(elementId)];
+    const nested = [] as string[];
+    let outermost = elementId;
     const visited = new Set([elementId]);
     let owner = model.elements[elementId]?.owner;
-    while (owner && !visited.has(owner)) {
-        path.unshift(named(owner));
+    while (owner && !visited.has(owner) && model.elements[owner]) {
+        nested.unshift(named(outermost));
+        outermost = owner;
         visited.add(owner);
         owner = model.elements[owner]?.owner;
     }
-    return path.join('.');
+    return [outermost, ...nested].join('.');
 }
 
 /**

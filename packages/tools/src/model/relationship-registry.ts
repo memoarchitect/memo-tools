@@ -94,7 +94,7 @@ export interface RelationshipRegistryEntry {
      * happens to still declare alongside it.
      */
     nativeKeyword?: string;
-    /** Package-qualified name of the definition; set for a typed dependency, whose statement names it. */
+    /** Package-qualified name of the definition; a typed dependency's statement and a typed usage name it. */
     qualifiedName?: string;
     /** End names from the connection definition */
     ends: RelationshipEnd[];
@@ -503,6 +503,7 @@ export class RelationshipRegistry {
             nativeKeyword: entry.nativeKeyword,
             ...(entry.sysmlConstruct === 'interface def' || entry.sysmlConstruct === 'flow def' ? { sysmlConstruct: entry.sysmlConstruct } : {}),
             ...(entry.sysmlConstruct === 'metadata def' && entry.qualifiedName ? { typedDependency: entry.qualifiedName } : {}),
+            ...(entry.sysmlConstruct !== 'metadata def' && entry.qualifiedName ? { qualifiedName: entry.qualifiedName } : {}),
             sourceEnd: toEndDTO(entry.ends[0], 'source'),
             targetEnd: toEndDTO(entry.ends[1], 'target'),
         }));

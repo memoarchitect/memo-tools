@@ -63,6 +63,12 @@ export interface RelationshipDefinitionDTO {
      */
     typedDependency?: string;
     /**
+     * The package-qualified name of the `connection def`, `interface def` or `flow def`, so a usage typed by it
+     * resolves from whichever package it is written into. Absent on a typed dependency, whose `typedDependency`
+     * is the qualified name of its metadata def.
+     */
+    qualifiedName?: string;
+    /**
      * Whether an element may be related to itself by this relation, from the
      * ontology's `isReflexive` attribute. Undefined means the ontology is
      * silent, and self-links are refused — see SELF_LINK_ALLOWED_BY_DEFAULT.

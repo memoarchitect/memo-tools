@@ -110,7 +110,7 @@ describe.runIf(compilerConfigured)('creating a native exchange', () => {
             expect(result.relationshipId).toBeDefined();
             const written = readFileSync(join(root, 'model/p.sysml'), 'utf8');
             expect(written).toContain(`${keyword} ${result.relationshipId} : ${definition.sysmlName}`);
-            expect(written).toContain('a.p to b.q;');
+            expect(written).toContain('P::a.p to P::b.q;');
             expect(written.split(`${keyword} ${result.relationshipId}`)).toHaveLength(2);
             // No shadow part: the model gains no other declaration than the exchange.
             expect(written.replace(result.declaration!, '').replace(/\n\s*\n/g, '\n').trim())
@@ -118,3 +118,27 @@ describe.runIf(compilerConfigured)('creating a native exchange', () => {
         }, 60_000);
     }
 });
+
+describe.runIf(compilerConfigured)('creating an exchange in another package than the features it joins', () => {
+    // The declaration lands in a package of its own, which does not import the features' package: a bare
+    // `a.p` resolves nowhere, the qualified chain `P::a.p` from anywhere. The writer compiles the file before
+    // it commits, so a success is a statement the selected compiler accepted.
+    for (const [label, definition, keyword] of [
+        ['a ComponentExchange', componentExchange, 'interface'],
+        ['a FunctionalExchange', functionalExchange, 'flow'],
+    ] as const) {
+        it(`writes ${label} that names its ends by qualified name`, async () => {
+            writeFileSync(join(root, 'model/p.sysml'), BARE);
+            writeFileSync(join(root, 'model/q.sysml'), `package Q {\n    private import P::CE;\n    private import P::FE;\n}\n`);
+            const result = await writeRelationship(
+                { requestId: 'r', type: definition.name, sourceId: 'P::a::p', targetId: 'P::b::q', direction: 'outgoing', owningFile: 'model/q.sysml' } as never,
+                definition, model(), { projectRoot: root, outlines: directoryOutlines(root, '') });
+            expect(result.error).toBeUndefined();
+            expect(result.success).toBe(true);
+            const written = readFileSync(join(root, 'model/q.sysml'), 'utf8');
+            expect(written).toContain(`${keyword} ${result.relationshipId} : ${definition.sysmlName}`);
+            expect(written).toContain('P::a.p to P::b.q;');
+        }, 60_000);
+    }
+});
+
