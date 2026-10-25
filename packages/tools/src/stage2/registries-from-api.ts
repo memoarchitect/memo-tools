@@ -272,10 +272,7 @@ export function apiRelationshipEntries(
                 layer,
                 sysmlConstruct: construct,
                 description: docOf(api, member),
-                // MEMO declares its flow families `abstract` and types usages by them directly
-                // (`flow lfX : FunctionalExchange`), which both compilers accept; there abstract does
-                // not mean "not offered". An abstract interface def is a base, and stays hidden.
-                isAbstract: construct === 'flow def' ? undefined : declaredAbstract(member),
+                isAbstract: declaredAbstract(member),
                 superType: superTypes(api, member)[0] || undefined,
                 isReflexive,
                 isUnique,
