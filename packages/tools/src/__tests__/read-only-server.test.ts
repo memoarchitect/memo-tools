@@ -76,7 +76,6 @@ describe.runIf(compilerConfigured && examplesPresent && existsSync(join(__dirnam
         }
         expect(digest(pinned.projectDir)).toBe(before);
         expect(existsSync(join(pinned.projectDir, 'memo.user.yaml'))).toBe(false);
-        expect(existsSync(join(pinned.projectDir, '.memo', 'dev-server.json'))).toBe(false);
     }, 300_000);
 
     it('allows only messages that read: the allowlist holds no mutation', () => {

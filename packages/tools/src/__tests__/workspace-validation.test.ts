@@ -131,7 +131,7 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
 
     it('the CLI exits 1 on an unknown workspace and reports the workspace it ran', async () => {
         await withExample({}, (_project, root) => {
-            const run = (...args: string[]) => spawnSync('node', [CLI_PATH, 'validate', root, '--no-server', ...args], {
+            const run = (...args: string[]) => spawnSync('node', [CLI_PATH, 'validate', root, ...args], {
                 encoding: 'utf-8', env: { ...process.env, NO_COLOR: '1' },
             });
             const bad = run('--workspace', 'nope');

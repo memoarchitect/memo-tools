@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import type { MemoElement, MemoModel } from '../model/semantic.js';
 import { toElementIndex } from '../model/element-index.js';
 import { validateModelConstraints, MODEL_CONSTRAINT_RULE_ID } from '../validator/model-constraints.js';
+import { validateModel } from '../validator/rule-engine.js';
+import type { CompiledConstraint } from '../validator/constraint-eval.js';
 import { compiledExample, examplesPresent } from './helpers/compile-source.js';
 
 const element = (over: Partial<MemoElement>): MemoElement =>
@@ -49,6 +51,29 @@ describe('model constraints', () => {
     it('reads an attribute of the owning element before an element of the package', () => {
         const owner = element({ id: 'p::req', shortName: 'req', name: 'req', kind: 'Requirement', package: 'p', attributes: { limit: '1 [s]' } });
         expect(validateModelConstraints(model([loop, owner, constraint('limit == 1000 [milli*second]')]))).toEqual([]);
+    });
+});
+
+// MC-001 is a rule the ontology declares, so a methodology that disables it loses it and one that changes its
+// severity changes the finding's; a caller that loaded no rules still gets the evaluation.
+describe('MC-001 is tailorable', () => {
+    const failing = model([loop, requirement, constraint('loop.wcetMs <= 10 [milli * second]')]);
+    const rule = (over: Partial<CompiledConstraint> = {}): CompiledConstraint => ({
+        id: 'MC-001', description: 'd', appliesToKind: 'Model', severity: 'error', evaluator: 'constraints',
+        ast: { kind: 'bool', value: true } as never, ...over,
+    });
+    const other = (): CompiledConstraint => rule({ id: 'XX-001', evaluator: undefined, appliesToKind: 'Nothing' });
+    const mc = (nativeConstraints?: CompiledConstraint[]) =>
+        validateModel(failing, nativeConstraints).violations.filter(v => v.ruleId === MODEL_CONSTRAINT_RULE_ID);
+
+    it('reports under the rule\'s severity, and counts the rule', () => {
+        expect(mc([rule({ severity: 'warning' })]).map(v => v.severity)).toEqual(['warning']);
+        expect(validateModel(failing, [rule()]).rulesEvaluated).toBeGreaterThan(0);
+    });
+
+    it('reports nothing when the methodology left the rule out, and everything when no rules were loaded', () => {
+        expect(mc([other()])).toEqual([]);
+        expect(mc()).toHaveLength(1);
     });
 });
 

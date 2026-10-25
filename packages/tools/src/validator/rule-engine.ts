@@ -80,7 +80,12 @@ export function validateModel(
     const ibdScope = nativeConstraints.find(c => c.id === 'AR-IBD-001')?.appliesToKind;
     const architectureViolations = validateArchitecture(model, ibdScope, kindRegistry, relationshipRegistry);
     const viewViolations = validateViews(model);
-    const constraintViolations = validateModelConstraints(model);
+    // MC-001 is declared in the ontology like AR-IBD-001, so a methodology can disable it or move its severity;
+    // a caller that loaded no rules at all still gets the evaluation, as it gets the built-in validators.
+    const modelConstraintRule = nativeConstraints.find(c => c.evaluator === 'constraints');
+    const constraintViolations = modelConstraintRule || nativeConstraints.length === 0
+        ? validateModelConstraints(model).map(v => (v.severity === 'error' && modelConstraintRule ? { ...v, severity: modelConstraintRule.severity } : v))
+        : [];
 
     // The built-in validators take no subject predicate, so a workspace keeps their findings by the
     // element they are about. A model-wide finding (`__model__`) belongs to no element and stays.
