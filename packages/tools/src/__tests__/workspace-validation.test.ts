@@ -22,8 +22,8 @@ const seeded = (): Record<string, string> => {
     const perception = readFileSync(join(E0, 'model/systems/perception/perception_system.sysml'), 'utf8')
         .replace('private import memo_architecture_operational_use_cases::*;',
             'private import memo_architecture_operational_use_cases::*;\n    private import memo_assurance_verification_validation::*;')
-        .replace('attribute :>> outputSummary = "Filtered, timestamped point clouds";',
-            `attribute :>> outputSummary = "Filtered, timestamped point clouds";
+        .replace('attribute :>> outputDescription = "Filtered, timestamped point clouds";',
+            `attribute :>> outputDescription = "Filtered, timestamped point clouds";
         attribute :>> criticality = CriticalityKind::high;
     }
     verification vcPointCloudFidelity : VerificationCase {
