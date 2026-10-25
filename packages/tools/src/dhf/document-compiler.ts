@@ -99,6 +99,28 @@ function generateGlossary(ctx: QueryContext): string {
     return lines.join('\n');
 }
 
+// ─── A diagram reference, until a renderer replaces it ───────────────────────
+
+/** What `{{diagram:id}}` compiles to: a note, which an exporter with a renderer replaces by the picture. */
+export function diagramNote(diagramId: string): string {
+    return `\n\n> **[Diagram: ${diagramId}]** _(diagram embed — run \`memo-architect dev\` to view)_\n\n`;
+}
+
+const DIAGRAM_NOTE = /\n\n> \*\*\[Diagram: ([^\]\n]*)\]\*\* _\(diagram embed — run `memo-architect dev` to view\)_\n\n/g;
+
+/** The diagram references still standing as notes in compiled markdown, each once, in order. */
+export function diagramNoteRefs(markdown: string): string[] {
+    return [...new Set([...markdown.matchAll(DIAGRAM_NOTE)].map(m => m[1]))];
+}
+
+/** Replace each note by `replacement(ref)`; a ref it returns nothing for keeps its note. */
+export function replaceDiagramNotes(markdown: string, replacement: (ref: string) => string | undefined): string {
+    return markdown.replace(DIAGRAM_NOTE, (note, ref: string) => {
+        const text = replacement(ref);
+        return text === undefined ? note : `\n\n${text}\n\n`;
+    });
+}
+
 // ─── Main compile function ────────────────────────────────────────────────────
 
 /** Options for compiling raw markdown content (a workbench document) */
@@ -205,7 +227,7 @@ function runCompilePipeline(
             }
             case 'diagram': {
                 const diagramId = directive.diagramId ?? '';
-                return `\n\n> **[Diagram: ${diagramId}]** _(diagram embed — run \`memo-architect dev\` to view)_\n\n`;
+                return diagramNote(diagramId);
             }
             case 'toc': {
                 // TOC is resolved after all other directives, so we use a placeholder

@@ -16,7 +16,7 @@ import {
     getPlugin, getAvailableFormats, createSnapshot, saveSnapshot, loadSnapshots,
     loadLatestSnapshot, diffSnapshots, generateRedlineDocument, createQueryContext,
     loadDhfConfigV2, isDhfConfigV2, resolveManifestDocuments, compileMarkdownDocument,
-    compileMarkdownContent, markdownToDhfDocument,
+    compileMarkdownContent, markdownToDhfDocument, DiagramPictures, type DiagramRenderer,
 } from '@memoarchitect/tools';
 import { readFileSync } from 'node:fs';
 import { loadDhfDocs, loadDhfSettings } from '../server/dhf-doc-store.js';
@@ -105,6 +105,12 @@ function resolveTargets(target?: string, group?: string, dhfConfig?: DhfConfig):
 
 // ─── memo-architect export dhf ─────────────────────────────────────────────────────────
 
+/** What `exportDhfCommand` takes besides the command-line flags. */
+export interface ExportDhfHooks {
+    /** Draws the views a document references. Absent: the document keeps its note where the picture would go. */
+    diagramRenderer?: DiagramRenderer;
+}
+
 export async function exportDhfCommand(options: {
     workspace?: string;
     /** One regulated device: its documents are built from the releases it covers (T14). */
@@ -113,7 +119,7 @@ export async function exportDhfCommand(options: {
     target?: string;
     format?: string;
     group?: string;
-}): Promise<void> {
+}, hooks: ExportDhfHooks = {}): Promise<void> {
     const cwd = process.cwd();
     console.log(chalk.bold('\nMEMO DHF Export\n'));
 
@@ -185,10 +191,15 @@ export async function exportDhfCommand(options: {
             phase: webSettings.phase,
         } : {};
 
+        // Pictures are Markdown images; the other formats go through the document IR, which has no image block.
+        const pictures = hooks.diagramRenderer && !plugin
+            ? new DiagramPictures(hooks.diagramRenderer, resolve(outputDir, 'diagrams'))
+            : undefined;
         let exported = 0;
-        const emit = async (markdown: string, id: string, title: string, group: string, warningCount: number) => {
+        const emit = async (compiled: string, id: string, title: string, group: string, warningCount: number) => {
             const groupDir = resolve(outputDir, group);
             if (!existsSync(groupDir)) mkdirSync(groupDir, { recursive: true });
+            const markdown = pictures ? await pictures.embed(compiled, groupDir) : compiled;
             let filename: string;
             if (plugin) {
                 const ir = markdownToDhfDocument(markdown, {
@@ -237,6 +248,7 @@ export async function exportDhfCommand(options: {
             await emit(markdown, doc.id, doc.title, 'documents', warnings.length);
         }
 
+        for (const warning of pictures?.warnings ?? []) console.log(chalk.yellow(`  ${warning}`));
         console.log(chalk.green(`\nExported ${exported} documents to ${outputDir}\n`));
         return;
     }
