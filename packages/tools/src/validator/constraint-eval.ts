@@ -119,6 +119,15 @@ export function evaluateConstraintNode(
 }
 
 /**
+ * A boolean expression over values already substituted into it (string literals, numbers, quantities as
+ * text), as a model constraint reaches this evaluator: it names no feature of its own, so it has no subject.
+ */
+export function evaluateClosedExpression(source: string, model: MemoModel): boolean {
+    const none = { id: '__constraint__', name: '', kind: '', construct: 'constraint', layer: '', file: '', attributes: {} } as MemoElement;
+    return toBool(evalNode(parseConstraintExpression(source), { root: none, current: none }, model));
+}
+
+/**
  * {@link evaluateConstraintNode}, plus how many subjects the rule ran on.
  *
  * The count is what tells a pass from a vacuous one. Both return no

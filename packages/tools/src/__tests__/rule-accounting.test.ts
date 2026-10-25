@@ -17,8 +17,8 @@ import { BUILTIN_RULES, BUILTIN_RULE_IDS } from '../validator/builtin-rules.js';
 
 describe('built-in rule catalogue', () => {
     it('lists every rule the built-in validators can raise', () => {
-        // Derived from the validators themselves: BV-003 and XR-001 (behavior), VW-001..003
-        // (views). A rule added to a validator without being listed here is
+        // Derived from the validators themselves: BV-003 and XR-001 (behavior), MC-001 (the
+        // constraints a model declares), VW-001..003 (views). A rule added to a validator without being listed here is
         // invisible to `rules list` and miscounts `validate`.
         //
         // BV-001 and BV-002 are gone: an allocation rule and a connectivity
@@ -26,7 +26,7 @@ describe('built-in rule catalogue', () => {
         // (CR-MED-022, CR-ONT-074, CR-MED-023) where a rule can carry a subject
         // set and be tailored. The shorter this list gets, the better.
         expect([...BUILTIN_RULE_IDS].sort())
-            .toEqual(['BV-003', 'VW-001', 'VW-002', 'VW-003', 'XR-001']);
+            .toEqual(['BV-003', 'MC-001', 'VW-001', 'VW-002', 'VW-003', 'XR-001']);
     });
 
     it('excludes AR-IBD-001, which is a tailorable constraint def', () => {

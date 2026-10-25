@@ -127,8 +127,12 @@ export interface KindDefinitionDTO {
 export interface OntologyRegistriesDTO {
     relationships: RelationshipDefinitionDTO[];
     kinds: KindDefinitionDTO[];
-    /** The standard library's symbols for prefixes and units, so a surface shows `20 [milli*second]` as `20 ms`. */
-    unitSymbols?: import('./quantity-format.js').UnitSymbolsDTO;
+    /**
+     * The standard library's prefixes and units with their factors and symbols, read by the tools that
+     * build the model, so a surface shows `20 [milli*second]` as `20 ms` and converts a column to one unit
+     * without a table of its own.
+     */
+    unitTable?: import('./quantity-core.js').UnitTableDTO;
 }
 
 /** Direction of a relationship relative to the selected element. */

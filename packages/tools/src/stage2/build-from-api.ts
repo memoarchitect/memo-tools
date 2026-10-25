@@ -695,9 +695,19 @@ class ElementBuilder {
                 }
                 return lastSegment(value.qualifiedName);
             }
-            case 'chain': return value.steps.map(lastSegment).join('.');
+            // A step that redefines (`:>> wcetMs`) declares no name of its own; OpenSysML's qualified name for
+            // it is a position (`@4`), where it is the name of what it redefines that reads.
+            case 'chain': return value.steps.map(step => this.stepName(step)).join('.');
             default: return '';
         }
+    }
+
+    /** The name a chain step is read by: its last segment, or the name it borrows when that segment is a position. */
+    private stepName(qualifiedName: string): string {
+        const last = lastSegment(qualifiedName);
+        if (!last.startsWith('@')) return last;
+        const step = this.api.resolve(qualifiedName);
+        return (step ? this.api.name(step['@id']) : undefined) ?? last;
     }
 
     /** The flat attribute map of any element, for readers outside the builder. */
