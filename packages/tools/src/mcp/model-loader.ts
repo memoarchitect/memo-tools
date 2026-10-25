@@ -77,7 +77,7 @@ export async function loadProject(projectRoot: string): Promise<LoadedProject> {
     const ontology = registries?.kindRegistry && registries.relationshipRegistry
         ? ontologyViewFrom(registries.kindRegistry, registries.relationshipRegistry)
         : EMPTY_ONTOLOGY_VIEW;
-    const validation = validateModel(model);
+    const validation = validateModel(model, [], undefined, undefined, undefined, undefined, undefined, registries?.relationshipRegistry);
     const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);
 
