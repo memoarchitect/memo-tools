@@ -14,7 +14,6 @@ import type { CompiledConstraint } from './constraint-eval.js';
 import { evaluateConstraintSubjects } from './constraint-eval.js';
 import { validateBehavior } from './behavior-validator.js';
 import { validateArchitecture } from './architecture-validator.js';
-import { validateWorkspaceBoundaries } from './workspace-boundary-validator.js';
 import { validateViews } from './view-validator.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 import { BUILTIN_RULE_IDS } from './builtin-rules.js';
@@ -98,14 +97,6 @@ export function validateModel(
     // meant one rule was evaluated and reported as neither passed nor failed.
     const delegated: string[] = [];
     for (const constraint of nativeConstraints) {
-        if (constraint.evaluator === 'workspace') {
-            // A model with no System has no boundary to judge: the rule ran on nothing, which is not a pass.
-            if (!membership || membership.missingSystem) { nativeVacuous++; continue; }
-            const found = validateWorkspaceBoundaries(model, membership, constraint).filter(inWorkspace);
-            if (found.length === 0) nativePassed++;
-            nativeViolations.push(...found);
-            continue;
-        }
         if (constraint.evaluator && constraint.evaluator !== 'native') {
             delegated.push(constraint.id);
             continue;
