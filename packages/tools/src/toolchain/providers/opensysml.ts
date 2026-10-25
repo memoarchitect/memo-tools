@@ -117,6 +117,15 @@ export interface OpenSysMLConnection {
             keepDerived?: string[];
         }): Promise<{ content: string; error?: string; diagnostics: ServiceDiagnostic[] }>;
     };
+    /** Starts an edit of a parsed model: its collected `operations` are applied by `applyEdits`. */
+    edit?(modelHash: string): { rename(target: string, newName: string): unknown; readonly operations: readonly unknown[] };
+    /**
+     * Applies operations to a parsed model, in the document named by `document`
+     * (a model of several is edited as one with `acceptDocuments`). Raises the
+     * typed error of a refusal, which carries `referringElements` and `failure`.
+     */
+    applyEdits?(modelHash: string, operations: readonly unknown[], options?: { acceptDocuments?: boolean; document?: string }):
+        Promise<{ documents: readonly { name: string; content: string }[] }>;
     close(): Promise<void>;
 }
 
