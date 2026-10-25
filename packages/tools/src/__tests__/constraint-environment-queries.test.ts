@@ -16,6 +16,7 @@ const SRC = `package P {
     action fnDose : Dose;
     action fnLog;
     state def Operating { do fnLog; }
+    state machine { state off; state on { do fnLog; } }
     state def Standby;
     requirement def DoseLimit { subject d : Dose; }
     constraint def Range { in x : Real; x >= 0 }
@@ -41,6 +42,14 @@ describe.runIf(compilerConfigured)('querying constraints and environment', () =>
     }, 120_000);
 
     it('lists the states a project declares', async () => {
-        expect(await run('where: construct == "state"')).toEqual(['P::Operating', 'P::Standby']);
+        expect(await run('where: construct == "state"')).toEqual(['P::Operating', 'P::Standby', 'P::machine', 'P::machine::off', 'P::machine::on']);
+    }, 120_000);
+
+    it('lists the functions available in a state, from the state that performs them', async () => {
+        const model = await modelFromSources([{ source: SRC, filePath: 'p.sysml' }], { asGiven: true });
+        const ctx = createQueryContext(model, validation, completeness, { modelName: 'Test' });
+        const rows = executeQuery(parseMemoQuery('select: relationships\nkind: performs\nwhere: source.construct == "state"')!, ctx)
+            .map(row => { const r = row as { sourceId: string; targetId: string }; return `${r.sourceId} -> ${r.targetId}`; }).sort();
+        expect(rows).toEqual(['P::Operating -> P::fnLog', 'P::machine::on -> P::fnLog']);
     }, 120_000);
 });
