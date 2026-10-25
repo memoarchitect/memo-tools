@@ -504,6 +504,11 @@ function getField(el: MemoElement, field: string): unknown {
     if (field === 'name') return el.name;
     if (field === 'id') return el.id;
     if (field === 'kind') return el.kind;
+    // What the element is declared as (`constraint`, `requirement`, `state`), which `kind` is not: `kind`
+    // is a MEMO kind where the element has one and the metaclass where it has not.
+    if (field === 'construct') return el.construct;
+    // The element that holds it: the function a constraint belongs to, the state a function runs in.
+    if (field === 'owner') return el.owner ?? '';
     if (field === 'layer') return el.layer;
     // The declaring package. Structural, one per source file, and the fact that
     // says which standard a clause belongs to — the standards library is one
