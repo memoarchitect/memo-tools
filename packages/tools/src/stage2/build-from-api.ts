@@ -62,7 +62,10 @@ const METADATA_KEY_ALIASES: Record<string, Record<string, string>> = {
     Rationale: { text: 'rationale' },
 };
 
-const lastSegment = (qualifiedName: string) => qualifiedName.slice(qualifiedName.lastIndexOf('::') + 2);
+const lastSegment = (qualifiedName: string) => {
+    const at = qualifiedName.lastIndexOf('::');
+    return at < 0 ? qualifiedName : qualifiedName.slice(at + 2);
+};
 
 export interface ApiBuildResult {
     elements: ElementIndex;
@@ -1443,7 +1446,10 @@ class ElementBuilder {
             for (const element of this.elements.values()) {
                 if (!element.kind || registry.getKind(element.kind)) continue;
                 const def = byName.get(lastSegment(element.kind));
-                if (def && def !== element && def.kind && def.kind !== element.kind) {
+                // Only a MEMO kind is passed down. A definition that specializes none is a
+                // `RequirementDefinition` or a `PartDefinition`, which says what the definition is,
+                // not what its usage is; the usage keeps the name of the type it is typed by.
+                if (def && def !== element && def.kind && def.kind !== element.kind && registry.getKind(def.kind)) {
                     element.kind = def.kind;
                     if (def.layer && (!element.layer || element.layer === 'unknown')) element.layer = def.layer;
                     progressed = true;
