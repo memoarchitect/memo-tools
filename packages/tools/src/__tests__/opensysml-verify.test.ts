@@ -5,7 +5,7 @@
 // is compiled before it reaches disk, the edited file sent as text.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -69,4 +69,28 @@ describe.runIf(Boolean(binary) && existsSync(example))('an edit verified by Open
         expect(refused.error).toMatch(/opensysml rejects/);
         expect(readFileSync(join(root, FILE), 'utf8')).toBe(before);
     }, 60_000);
+
+    it('renames a declaration and the references to it in another file', async () => {
+        // The compiler names files by their real path, which a temp directory on macOS is not.
+        const real = realpathSync(root);
+        const config = loadProjectSettings(real);
+        const target = 'model/catalog/rename_target.sysml';
+        const other = 'model/catalog/rename_reference.sysml';
+        writeFileSync(join(root, target), 'package rename_target {\n    private import memo_architecture_operational_context_actors::*;\n    private import memo_core_enumerations::*;\n    private import memo_core_common::*;\n    part gauge : User {\n        attribute :>> actorKind = ActorKind::clinician;\n        @MemoIdentity { :>> providedId = "TA-USR-901"; }\n    }\n}\n');
+        writeFileSync(join(root, other), 'package rename_reference {\n    part watcher :> rename_target::gauge;\n}\n');
+        const revision = await recompileProject({ projectDir: real, config });
+        const id = 'rename_target::gauge';
+        const result = await saveElementToFile(real, {
+            id: 'rename_target::meter', shortName: 'meter', renamedFrom: id,
+            kind: 'User', construct: 'part', file: target,
+            attributes: { actorKind: 'ActorKind::clinician' }, irIdentity: revision.index.byMemoElement[id],
+        }, revision.index, revision.outlines);
+
+        expect(result.error).toBeUndefined();
+        expect(result.warnings).toBeUndefined();
+        expect(result.alsoWritten).toEqual([other]);
+        expect(readFileSync(join(root, other), 'utf8')).toContain('rename_target::meter');
+        expect(readFileSync(join(root, target), 'utf8')).toContain('part meter : User');
+        expect(readFileSync(join(root, target), 'utf8')).not.toContain('gauge');
+    }, 90_000);
 });

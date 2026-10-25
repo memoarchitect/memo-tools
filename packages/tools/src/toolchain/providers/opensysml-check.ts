@@ -18,7 +18,7 @@ import type { MEMOConfig } from '../../model/config.js';
 import { discoverProjectSources } from '../../model/native-project.js';
 import { findSysmlFiles } from '../../model/sysml-files.js';
 import type { Diagnostic } from '../diagnostic.js';
-import { OPENSYSML_PROVIDER_ID } from './opensysml-names.js';
+import { OPENSYSML_DISPLAY_NAME, OPENSYSML_PROVIDER_ID } from './opensysml-names.js';
 import { connectOpenSysML, openSysMLSettingsKey, toDiagnostic, type OpenSysMLConnection } from './opensysml.js';
 
 /** How long an idle service is kept before it is closed. */
@@ -94,4 +94,61 @@ export async function checkWithOpenSysML(
         diagnostics.push({ domain: 'sysml', provider: OPENSYSML_PROVIDER_ID, providerVersion: version, severity: 'error', message: parsed.error });
     }
     return diagnostics;
+}
+
+/** The capability that lets an edit follow references into the model's other documents. */
+const EDIT_DOCUMENTS = 'edit_documents';
+
+/** What renaming a declaration across the project came to. */
+export type RenameOutcome =
+    /** The service rewrote these documents (absolute path to text): the declaration and every reference to it. */
+    | { documents: Map<string, string> }
+    /** The service refused, or cannot do it; the declaration alone can be renamed, by hand. */
+    | { refused: string };
+
+/**
+ * Rename a declaration and every reference to it, in every document of the
+ * project. `content` is the project's documents whose text differs from disk
+ * (absolute path), `target` the declaration's qualified name, `file` the
+ * document that declares it. Refused for a library target, for a reference the
+ * service cannot rewrite, and by a service without `edit_documents`.
+ */
+export async function renameWithOpenSysML(
+    config: MEMOConfig, projectRoot: string, content: ReadonlyMap<string, string>,
+    file: string, target: string, newName: string,
+): Promise<RenameOutcome> {
+    const connection = await sharedOpenSysMLConnection(config);
+    if (!connection.info?.has?.(EDIT_DOCUMENTS) || !connection.edit || !connection.applyEdits) {
+        return { refused: `${OPENSYSML_DISPLAY_NAME} ${connection.info?.version ?? ''} cannot edit across documents`.replace('  ', ' ') };
+    }
+    const documents = resolvedCompileDocuments(projectRoot);
+    for (const path of content.keys()) if (!documents.includes(path)) documents.push(path);
+    try {
+        const parsed = await connection.rpc.parseSources({
+            documents: documents.map(path => {
+                const text = content.get(path);
+                return text === undefined
+                    ? { source: { case: 'filePath' as const, value: path } }
+                    : { source: { case: 'content' as const, value: text }, name: path };
+            }),
+        });
+        if (parsed.error || parsed.diagnostics.some(d => d.severity === 'error')) {
+            return { refused: parsed.error ?? 'the project does not compile' };
+        }
+        const editor = connection.edit(parsed.modelHash);
+        editor.rename(target, newName);
+        // The document is named explicitly: left out, the model's first is edited, and a target
+        // declared in another is refused as not in the model's source.
+        const edited = await connection.applyEdits!(parsed.modelHash, editor.operations, { acceptDocuments: true, document: file });
+        return { documents: new Map(edited.documents.map(d => [d.name, d.content] as const)) };
+    } catch (error) {
+        // A refusal is the service's answer (a library target, a reference in a
+        // document it cannot rewrite); anything else is a service that died.
+        const referrers = (error as { referringElements?: string[] }).referringElements;
+        if (referrers !== undefined || (error as { failure?: unknown }).failure !== undefined) {
+            return { refused: error instanceof Error ? error.message : String(error) };
+        }
+        closeSharedOpenSysMLConnection();
+        throw error;
+    }
 }

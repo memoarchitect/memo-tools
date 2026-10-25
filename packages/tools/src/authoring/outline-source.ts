@@ -18,7 +18,7 @@ import { loadProjectModel, Stage1RejectedError, type ProjectModel } from '../too
 import { resolveToolchain } from '../toolchain/effective.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { OPENSYSML_PROVIDER_ID } from '../toolchain/providers/opensysml.js';
-import { checkWithOpenSysML } from '../toolchain/providers/opensysml-check.js';
+import { checkWithOpenSysML, renameWithOpenSysML } from '../toolchain/providers/opensysml-check.js';
 import { outlineIdentities, outlineIdentityTable } from './outline-identity.js';
 import { emptyOutline, outlineFromHandoff, type SourceOutline } from './source-outline.js';
 
@@ -42,6 +42,13 @@ export interface OutlineSource {
      * would cost a conversion of the whole model.
      */
     verify(file: string, text: string, also?: ReadonlyMap<string, string>): Promise<SourceOutline | undefined>;
+    /**
+     * Rename the declaration `target` (qualified name) of `file`, whose text
+     * is `text`, to `newName`, and rewrite every reference to it in the
+     * project. Gives the project-relative files to write, or why the compiler
+     * could not. Absent when the selected compiler has no such edit.
+     */
+    rename?(file: string, text: string, target: string, newName: string): Promise<{ files: Map<string, string> } | { refused: string }>;
 }
 
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -74,6 +81,7 @@ export function handoffOutlineSource(options: {
             return outlineFromHandoff(api, resolve(options.projectRoot, file), file, text);
         },
         verify: (file, text, also) => verifyWithSelected(options.projectRoot, options.config, file, text, also),
+        rename: renamerFor(options.projectRoot, options.config),
     };
 }
 
@@ -88,6 +96,17 @@ function verifyWithSelected(
     return resolveToolchain(config, defaultRegistry).lowering === OPENSYSML_PROVIDER_ID
         ? verifyAsContent(projectRoot, config, file, text, also)
         : verifyInScratchCopy(projectRoot, config, file, text, also);
+}
+
+/** OpenSysML renames across the project's documents; another compiler has no such edit here. */
+function renamerFor(projectRoot: string, config: MEMOConfig): OutlineSource['rename'] {
+    if (resolveToolchain(config, defaultRegistry).lowering !== OPENSYSML_PROVIDER_ID) return undefined;
+    return async (file, text, target, newName) => {
+        const absolute = resolve(projectRoot, file);
+        const outcome = await renameWithOpenSysML(config, projectRoot, new Map([[absolute, text]]), absolute, target, newName);
+        if ('refused' in outcome) return outcome;
+        return { files: new Map([...outcome.documents].map(([path, content]) => [relativeTo(projectRoot, path), content] as const)) };
+    };
 }
 
 /** OpenSysML's verdict on the project with the file's text replaced, read without writing it. */
@@ -165,6 +184,7 @@ export function selectedOutlineSource(projectRoot: string, config: MEMOConfig): 
         async verify(file, text) {
             return verifyWithSelected(projectRoot, config, file, text);
         },
+        rename: renamerFor(projectRoot, config),
     };
 }
 

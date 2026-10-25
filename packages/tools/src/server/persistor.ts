@@ -24,7 +24,7 @@
 
 import { assertWritable } from './write-guard.js';
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { generateUsage } from '../serializer/sysml-generator.js';
 import { usageKeyword } from '../model/semantic.js';
 import {
@@ -108,25 +108,27 @@ export interface ElementWriteResult {
     /** True when the declaration was replaced rather than appended. */
     replaced?: boolean;
     warnings?: ElementWriteWarning[];
+    /** Project-relative files other than `filePath` that a rename rewrote to follow the new name. */
+    alsoWritten?: string[];
     error?: string;
     /** Set when the failure was a stale identity, so callers can say so. */
     stale?: boolean;
 }
 
 /**
- * Why a rename is only a text edit, said once here so every surface says the
+ * Why a rename can be only a text edit, said once here so every surface says the
  * same thing.
  *
- * Updating references would need name resolution across the workspace — the
- * linker, which is Track B B5 and does not exist yet. Silently rewriting the
- * declaration and leaving every reference pointing at the old name would be a
- * broken model presented as a successful edit, so the write succeeds and says
- * what it did not do.
+ * The write path splices source and has no name resolution of its own, so
+ * rewriting the references to a renamed declaration is the compiler's: under
+ * OpenSysML the service's `rename` follows them into every document. Silently
+ * rewriting the declaration and leaving every reference pointing at the old
+ * name would be a broken model presented as a successful edit, so where the
+ * compiler cannot, the write succeeds and says what it did not do.
  */
 export const RENAME_IS_TEXT_ONLY =
-    'Renaming edits this declaration only. MEMO cannot yet update references to it elsewhere in the '
-    + 'project — that needs cross-file name resolution — so any reference to the old name will not resolve '
-    + 'until you update it by hand.';
+    'Renaming edits this declaration only. The selected compiler cannot update references to it elsewhere in the '
+    + 'project, so any reference to the old name will not resolve until you update it by hand.';
 
 /**
  * Write one element into project source.
@@ -163,8 +165,10 @@ export async function saveElementToFile(
     // whatever it was derived from.
     // What the declaration is CALLED, as distinct from what addresses it.
     const declaredName = element.shortName ?? shortNameOf(element.id);
-    const buildUsage = (omit: readonly string[] = DERIVED_ATTRIBUTES) => generateUsage({
-        id: declaredName,
+    // `declaring` is the name the generated text declares: the new one, except
+    // while a compiler's rename still has to find the old one to rewrite.
+    const buildUsage = (omit: readonly string[] = DERIVED_ATTRIBUTES, declaring = declaredName) => generateUsage({
+        id: declaring,
         name: element.name,
         kind: element.kind,
         // Normalized at the boundary: a caller holding a kind definition has
@@ -178,6 +182,8 @@ export async function saveElementToFile(
     let updated: string;
     let replaced = false;
     const warnings: ElementWriteWarning[] = [];
+    // The other files a compiler's rename rewrote, by project-relative path.
+    let renamedElsewhere: Map<string, string> | undefined;
 
     // A caller holding the current index does not have to quote an identity for
     // an element the index already knows: server-side callers (kind remapping,
@@ -205,9 +211,6 @@ export async function saveElementToFile(
             }
             return { success: false, filePath: relativePath, error: String(e) };
         }
-        if (located.declaredName && declaredName !== located.declaredName) {
-            warnings.push({ code: 'rename-is-text-only', message: RENAME_IS_TEXT_ONLY });
-        }
         // An update replaces the declaration's whole source range with text
         // generated from a FLAT attribute map, so everything in the body that is
         // not a scalar attribute — nested usages, `@Foo { … }` annotations,
@@ -216,10 +219,39 @@ export async function saveElementToFile(
         // UI elements declared inside it. Those members are lifted out of the
         // original text and put back verbatim.
         const carried = carriedMembers(content, located.node, element.attributes || {});
+        const renamed = Boolean(located.declaredName) && declaredName !== located.declaredName;
+        const rename = renamed ? outlines.rename : undefined;
+        // With a compiler that rewrites references, the splice keeps the old
+        // name and the compiler's rename then changes the declaration and its
+        // references together.
         updated = spliceIndented(
             content, located.start, located.end,
-            withCarriedMembers(buildUsage([...DERIVED_ATTRIBUTES, ...carried.suppliedKeys]), carried.text),
+            withCarriedMembers(
+                buildUsage([...DERIVED_ATTRIBUTES, ...carried.suppliedKeys], rename ? located.declaredName : declaredName),
+                carried.text),
         );
+        if (renamed) {
+            const outcome = rename
+                ? await rename.call(outlines, relativePath.replaceAll('\\', '/'), updated, located.node.key, declaredName)
+                : undefined;
+            if (outcome && 'files' in outcome) {
+                const key = relativePath.replaceAll('\\', '/');
+                updated = outcome.files.get(key) ?? updated;
+                renamedElsewhere = new Map([...outcome.files].filter(([path]) => path !== key));
+            } else {
+                // The old name stays in the splice when a compiler's rename was
+                // tried and refused: the declaration alone takes the new one.
+                if (rename) {
+                    updated = spliceIndented(
+                        content, located.start, located.end,
+                        withCarriedMembers(buildUsage([...DERIVED_ATTRIBUTES, ...carried.suppliedKeys]), carried.text));
+                }
+                warnings.push({
+                    code: 'rename-is-text-only',
+                    message: outcome && 'refused' in outcome ? `${RENAME_IS_TEXT_ONLY} (${outcome.refused})` : RENAME_IS_TEXT_ONLY,
+                });
+            }
+        }
         replaced = true;
     } else if (element.package) {
         let outline;
@@ -240,9 +272,14 @@ export async function saveElementToFile(
         updated = appendToLastPackage(content, buildUsage());
     }
 
-    const committed = await commitSource(filePath, relativePath, updated, outlines);
+    const committed = await commitSource(filePath, relativePath, updated, outlines, renamedElsewhere
+        ? new Map([...renamedElsewhere].map(([path, text]) => [resolve(cwd, path), text] as const)) : undefined, cwd);
     if (!committed.success) return { success: false, filePath: relativePath, error: committed.error };
-    return { success: true, filePath: relativePath, replaced, ...(warnings.length ? { warnings } : {}) };
+    return {
+        success: true, filePath: relativePath, replaced,
+        ...(warnings.length ? { warnings } : {}),
+        ...(renamedElsewhere?.size ? { alsoWritten: [...renamedElsewhere.keys()] } : {}),
+    };
 }
 
 /**
@@ -256,18 +293,31 @@ export async function commitSource(
     absolutePath: string, relativePath: string, updated: string,
     /** The selected compiler's outlines, which verify the text. */
     outlines: OutlineSource,
+    /** Other files the same edit rewrites (absolute path to text): valid only together, written all or none. */
+    others?: ReadonlyMap<string, string>,
+    /** The project root `others` are named relative to in the verdict. */
+    root?: string,
 ): Promise<{ success: boolean; error?: string }> {
+    const also = others && root
+        ? new Map([...others].map(([path, text]) => [relative(root, path).replaceAll('\\', '/'), text] as const))
+        : undefined;
     try {
-        await outlines.verify(relativePath.replaceAll('\\', '/'), updated);
+        await outlines.verify(relativePath.replaceAll('\\', '/'), updated, also);
     } catch (e) {
         return {
             success: false,
             error: `The updated source was not accepted (${e instanceof Error ? e.message : String(e)}); ${relativePath} was left unchanged.`,
         };
     }
+    const before = new Map<string, string>();
+    const files = new Map<string, string>([[absolutePath, updated], ...(others ?? [])]);
     try {
-        atomicWrite(absolutePath, updated);
+        for (const [path, text] of files) {
+            before.set(path, readFileSync(path, 'utf8'));
+            atomicWrite(path, text);
+        }
     } catch (e) {
+        for (const [path, text] of before) atomicWrite(path, text);
         return { success: false, error: `Could not write ${relativePath}: ${String(e)}` };
     }
     return { success: true };
