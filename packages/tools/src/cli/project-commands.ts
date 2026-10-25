@@ -12,7 +12,6 @@ import { Command, Option } from 'commander';
 import { setCommandLineToolchain } from '../model/config-loader.js';
 import { toolchainOverridesFromCliOptions } from '../toolchain/schema.js';
 import { initCommand } from '../commands/init.js';
-import { retiredCommand } from '../commands/retired.js';
 import { exportJsonCommand, exportDotCommand } from '../commands/export.js';
 import {
     exportDhfCommand,
@@ -671,19 +670,8 @@ export function registerProjectCommands(program: Command): void {
             await pluginCreateCommand(name, options);
         });
 
-    // The old names, for one release.
-    retiredCommand(program, 'create-package', 'memo-architect new package');
-    retiredCommand(program, 'req', 'memo-architect new requirement --pattern <pattern>');
-    retiredCommand(ontologyCmd, 'add-kind', 'memo-architect new kind');
-    retiredCommand(pluginCmd, 'create', 'memo-architect new plugin');
-    retiredCommand(program, 'sysand', 'memo publish');
 
-    retiredCommand(rulesCmd, 'new', 'memo-architect new rule');
-    retiredCommand(rulesCmd, 'check', 'memo validate');
-    retiredCommand(rulesCmd, 'list', 'memo validate --rules');
-    retiredCommand(rulesCmd, 'explain', 'memo validate --explain-rule <id>');
 
-    retiredCommand(rulesCmd, 'coverage', 'memo validate --standards');
 
 
     // Every command registered here takes the `--toolchain.*` flags, and the running
