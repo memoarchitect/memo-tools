@@ -16,7 +16,9 @@
 // model holds no records and no devices. The compiler and the ontology are today's, as for every pinned
 // build (T5); the index says so.
 //
-// Not here: the system of systems' context, which is not part of M5's accept; and a renderer of its own,
+// The system of systems' context is the index's: each covered release lists the release records that
+// `contains` it (an SoS version, the validated configuration) and the releases pinned beside it. It is
+// read from the working model's records, so it needs no build of the SoS. Not here: a renderer of its own,
 // which the "one renderer" board row is about. The documents go through the existing markdown pipeline.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -55,6 +57,16 @@ export interface DeviceRelease {
     /** Variants this release does not build, left out of its documents. */
     excludedVariants: string[];
     documents: DeviceDocument[];
+    /** The release records that contain this one (an SoS version, say) and the releases pinned beside it. */
+    context: ReleaseContext[];
+}
+
+export interface ReleaseContext {
+    record: string;
+    /** The item the containing record is a release of. */
+    item?: string;
+    commit?: string;
+    siblings: { record: string; item?: string; commit?: string }[];
 }
 
 export interface DeviceDhfResult {
@@ -82,6 +94,26 @@ export interface DeviceDhfOptions {
 }
 
 const RISK_GROUP = 'iso-14971';
+
+/** What contains a release record: each container, with the other records it pins. */
+export function releaseContext(model: MemoModel, recordId: string): ReleaseContext[] {
+    const name = (id: string) => model.elements.get(id)?.shortName ?? id;
+    const itemOf = (id: string) => {
+        const target = model.relationships.find(r => r.type === 'releaseOf' && r.sourceId === id)?.targetId;
+        return target ? name(target) : undefined;
+    };
+    return model.relationships
+        .filter(r => r.type === 'contains' && r.targetId === recordId)
+        .map(r => r.sourceId)
+        .filter((id, index, all) => all.indexOf(id) === index)
+        .map(container => ({
+            record: name(container), item: itemOf(container), commit: attribute(model, container, 'modelCommit'),
+            siblings: model.relationships
+                .filter(r => r.type === 'contains' && r.sourceId === container && r.targetId !== recordId)
+                .map(r => ({ record: name(r.targetId), item: itemOf(r.targetId), commit: attribute(model, r.targetId, 'modelCommit') })),
+        }))
+        .sort((a, b) => a.record.localeCompare(b.record));
+}
 
 const attribute = (model: MemoModel, id: string, key: string): string | undefined => model.elements.get(id)?.attributes?.[key] || undefined;
 
@@ -170,6 +202,7 @@ export async function compileDeviceDhf(options: DeviceDhfOptions): Promise<Devic
         releases.push({
             record: recordName, commit: built.commit, workspace: workspace?.name,
             excludedVariants: [...excluded].map(id => pinned.model.elements.get(id)?.shortName ?? id).sort(), documents,
+            context: releaseContext(model, recordId),
         });
     }
 
@@ -191,11 +224,16 @@ function indexText(device: DeviceDhfResult['device'], releases: DeviceRelease[],
         lines.push(`### ${release.record} (${release.commit.slice(0, 7)})`, '');
         if (release.workspace) lines.push(`Scoped to ${release.workspace}.`);
         lines.push(release.excludedVariants.length > 0 ? `Built without: ${release.excludedVariants.join(', ')}.` : 'Every variant is built.', '');
+        const short = (commit?: string) => commit ? ` (${commit.slice(0, 7)})` : '';
+        for (const sos of release.context) {
+            lines.push(`System of systems context: part of ${sos.record}${sos.item ? `, a release of ${sos.item}` : ''}${short(sos.commit)}, pinned with ${sos.siblings.length > 0
+                ? sos.siblings.map(s => `${s.record}${s.item ? ` (${s.item})` : ''}${short(s.commit)}`).join(', ') : 'no other release'}.`, '');
+        }
+        if (release.context.length === 0) lines.push('System of systems context: no release record contains this one.', '');
         for (const doc of release.documents) lines.push(`- [${doc.title}](${doc.path})${doc.warnings > 0 ? ` (${doc.warnings} warnings)` : ''}`);
         lines.push('');
     }
     lines.push(`## Risk management file`, '', risk > 0 ? `${risk} risk management documents (ISO 14971) are among the above.` : 'No risk management documents: see the notes.', '');
     if (notes.length > 0) lines.push('## Notes', '', ...notes.map(n => `- ${n}`), '');
-    lines.push('_The system of systems\' own context is not part of these documents._', '');
     return lines.join('\n');
 }

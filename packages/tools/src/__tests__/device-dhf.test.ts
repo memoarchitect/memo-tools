@@ -113,6 +113,19 @@ empty: "none"
         expect(membership.unassigned).not.toContain(id('devFda'));
     });
 
+    it('names the system of systems version that pins a covered release, and the releases beside it', async () => {
+        const [euAll, fdaAll] = [readFileSync(eu.index, 'utf8'), readFileSync(fda.index, 'utf8')];
+        expect(eu.releases[0].context).toEqual([{
+            record: 'relLabOutputEu', item: 'RoboticCell', commit: repo.c3,
+            siblings: [{ record: 'relNavigation', item: 'NavigationSystem', commit: expect.any(String) }],
+        }]);
+        expect(euAll).toContain('part of relLabOutputEu, a release of RoboticCell');
+        expect(euAll).toContain('relNavigation (NavigationSystem)');
+        // The US release is in no SoS version, and the index says so rather than staying silent.
+        expect(fda.releases[0].context).toEqual([]);
+        expect(fdaAll).toContain('no release record contains this one');
+    });
+
     it('refuses a device that does not exist', async () => {
         await expect(compileDeviceDhf({ projectRoot: repo.root, working, device: 'devNone', outputDir: join(scratch, 'x'), config: config as never }))
             .rejects.toThrow(/not a regulated device of this model/);
