@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { caretRange, installedVersions } from '../commands/upgrade';
+import { exactPin, installedVersions } from '../commands/upgrade';
 
 describe('memo upgrade', () => {
-    it('pins a release with a caret, which below 1.0 stays inside its minor', () => {
-        expect(caretRange('0.16.0')).toBe('^0.16.0');
+    it('pins a release exactly, with no range that could drift to a later patch', () => {
+        expect(exactPin('0.16.0')).toBe('0.16.0');
     });
 
     it('reads the tools and ontology versions the installed Architect declares', () => {

@@ -1,8 +1,8 @@
 // ─── memo upgrade ───────────────────────────────────────────────────────────────────────
 //
 // Moves a project to one release of the three packages that ship together:
-// @memoarchitect/architect, tools and ontology. Below 1.0 a caret range never crosses a
-// minor version, so `npm update` cannot do this; the command names the versions.
+// @memoarchitect/architect, tools and ontology, pinned to the exact version. A range would let a fresh
+// `npm install` drift from the release the lock was made with; the command names the versions.
 //
 // The lock step runs the installed `memo-architect`, not this process, so the new
 // release regenerates memo.lock.yaml.
@@ -26,9 +26,12 @@ export interface UpgradeOptions {
     dryRun?: boolean;
 }
 
-/** The range package.json should carry: below 1.0 the leftmost non-zero segment is the cap. */
-export function caretRange(version: string): string {
-    return `^${version}`;
+/**
+ * What package.json carries for a release: the exact version, no range. A project pins the release it was
+ * made and locked with, so `npm install` lands on that one and not on a later patch.
+ */
+export function exactPin(version: string): string {
+    return version;
 }
 
 /** The version of `name` that npm would install when asked for `target` (the latest when absent). */
@@ -60,7 +63,7 @@ function writePins(projectRoot: string, versions: UpgradeVersions): void {
     const path = join(projectRoot, 'package.json');
     const pkg = readJson(path);
     pkg.dependencies ??= {};
-    for (const name of PACKAGES) pkg.dependencies[`${SCOPE}/${name}`] = caretRange(versions[name]);
+    for (const name of PACKAGES) pkg.dependencies[`${SCOPE}/${name}`] = exactPin(versions[name]);
     writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
 }
 
@@ -91,12 +94,12 @@ export async function upgradeCommand(target: string | undefined, options: Upgrad
                 console.log(chalk.gray(`  would install ${PACKAGES.map(name => `${SCOPE}/${name}@${architect}`).join(' ')}`));
                 return;
             }
-            npm(projectRoot, ['install', ...PACKAGES.map(name => `${SCOPE}/${name}@${architect}`)], true);
+            npm(projectRoot, ['install', '--save-exact', ...PACKAGES.map(name => `${SCOPE}/${name}@${architect}`)], true);
             versions = installedVersions(projectRoot);
             // Architect names the tools and ontology it was built against; follow it when they differ.
             if (versions.tools !== architect || versions.ontology !== architect) {
                 console.log(`Architect declares tools ${versions.tools} and ontology ${versions.ontology}; installing those.`);
-                npm(projectRoot, ['install', `${SCOPE}/tools@${versions.tools}`, `${SCOPE}/ontology@${versions.ontology}`], true);
+                npm(projectRoot, ['install', '--save-exact', `${SCOPE}/tools@${versions.tools}`, `${SCOPE}/ontology@${versions.ontology}`], true);
                 versions = installedVersions(projectRoot);
             }
             writePins(projectRoot, versions);
@@ -107,9 +110,9 @@ export async function upgradeCommand(target: string | undefined, options: Upgrad
         execFileSync('npx', ['memo-architect', 'lock'], { cwd: projectRoot, stdio: 'inherit' });
 
         console.log(chalk.green(`\n✅ Upgraded to ${versions.architect}`));
-        console.log(chalk.gray(`   ${SCOPE}/architect ${caretRange(versions.architect)}`));
-        console.log(chalk.gray(`   ${SCOPE}/tools     ${caretRange(versions.tools)}`));
-        console.log(chalk.gray(`   ${SCOPE}/ontology  ${caretRange(versions.ontology)}`));
+        console.log(chalk.gray(`   ${SCOPE}/architect ${exactPin(versions.architect)}`));
+        console.log(chalk.gray(`   ${SCOPE}/tools     ${exactPin(versions.tools)}`));
+        console.log(chalk.gray(`   ${SCOPE}/ontology  ${exactPin(versions.ontology)}`));
         console.log(chalk.gray('   Next: memo validate .  (and read the release notes if the ontology changed)'));
     } catch (e) {
         console.error(chalk.red(`❌ Upgrade failed: ${e instanceof Error ? e.message : e}`));
