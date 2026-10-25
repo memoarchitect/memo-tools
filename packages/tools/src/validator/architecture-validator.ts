@@ -6,7 +6,7 @@
 // from a connector owned by one of a part's descendants.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MemoElement, MemoModel } from '../model/semantic.js';
+import type { MemoElement, MemoModel, ParameterDirection } from '../model/semantic.js';
 import type { Violation } from './types.js';
 import type { KindRegistry } from '../model/kind-registry.js';
 import type { RelationshipRegistry } from '../model/relationship-registry.js';
@@ -108,6 +108,55 @@ export function validateArchitecture(
             elementName: element.name,
             layer: element.layer,
         });
+    }
+    return [...violations, ...validateExchangeDirections(model)];
+}
+
+// ─── AR-EXCH-001 and AR-EXCH-002: an exchange agrees with the ports it joins ──
+//
+// Direction is written on the ports (`in`, `out`, `inout`; `~` conjugates), and nowhere on the exchange. These
+// two checks hold the exchange to that: a binding's ends have the same direction, and an interface or flow
+// between ports leaves one that sends and enters one that receives. Only ends that are ports with a stated
+// direction are judged. A conjugated port is read from the other side: `~` turns `in` into `out`.
+
+const FLIPPED: Record<ParameterDirection, ParameterDirection> = { in: 'out', out: 'in', inout: 'inout' };
+
+/** What the port does as seen from outside it, or undefined when it states no direction (or is no port). */
+function portDirection(model: MemoModel, id: string): ParameterDirection | undefined {
+    const element = model.elements.get(id);
+    const spec = element?.construct === 'port' ? element.portSpec : undefined;
+    if (!spec?.direction) return undefined;
+    return spec.isConjugated ? FLIPPED[spec.direction] : spec.direction;
+}
+
+function exchangeViolation(
+    model: MemoModel, ruleId: 'AR-EXCH-001' | 'AR-EXCH-002', rel: MemoModel['relationships'][number], description: string,
+): Violation {
+    const element = model.elements.get(rel.sourceId)!;
+    return {
+        ruleId, description, severity: 'error', elementId: element.id, elementKind: element.kind,
+        elementName: element.name, layer: element.layer,
+    };
+}
+
+function validateExchangeDirections(model: MemoModel): Violation[] {
+    const violations: Violation[] = [];
+    const name = (id: string) => model.elements.get(id)?.name ?? id;
+    for (const rel of model.relationships) {
+        const source = portDirection(model, rel.sourceId);
+        const target = portDirection(model, rel.targetId);
+        if (!source || !target) continue;
+        if (rel.type === 'bind') {
+            if (source !== target) {
+                violations.push(exchangeViolation(model, 'AR-EXCH-001', rel,
+                    `"${name(rel.sourceId)}" (${source}) is bound to "${name(rel.targetId)}" (${target}): a binding joins ports of the same direction`));
+            }
+        } else if (NATIVE_CONNECTOR_TYPES.has(rel.type)) {
+            if (source === 'in' || target === 'out') {
+                violations.push(exchangeViolation(model, 'AR-EXCH-002', rel,
+                    `The ${rel.type} from "${name(rel.sourceId)}" (${source}) to "${name(rel.targetId)}" (${target}) must leave a port that sends and enter one that receives`));
+            }
+        }
     }
     return violations;
 }

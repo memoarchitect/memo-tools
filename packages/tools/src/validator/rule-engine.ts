@@ -76,7 +76,7 @@ export function validateModel(
     const behaviorViolations = validateBehavior(model);
     // AR-IBD-001's subject scope comes from the ontology's own `appliesTo`,
     // so the rule's reach is declared where the rule is declared.
-    const ibdScope = nativeConstraints.find(c => c.evaluator === 'architecture')?.appliesToKind;
+    const ibdScope = nativeConstraints.find(c => c.id === 'AR-IBD-001')?.appliesToKind;
     const architectureViolations = validateArchitecture(model, ibdScope, kindRegistry, relationshipRegistry);
     const viewViolations = validateViews(model);
 
@@ -93,8 +93,7 @@ export function validateModel(
     let nativePassed = 0;
     let nativeVacuous = 0;
     // A constraint carrying a non-native `evaluator` is a first-class rule
-    // whose predicate a TypeScript function computes — AR-IBD-001 is the only
-    // one today. Its violations come from the built-in validator above, so it
+    // whose predicate a TypeScript function computes — AR-IBD-001, AR-EXCH-001 and AR-EXCH-002. Its violations come from the built-in validator above, so it
     // is skipped here, but it still has to be counted: skipping it silently
     // meant one rule was evaluated and reported as neither passed nor failed.
     const delegated: string[] = [];
