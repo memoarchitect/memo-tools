@@ -100,7 +100,7 @@ export function renderRelationship(request: RelationshipNotationRequest): string
         case 'typedDependency':
             return `#${request.definition.typedDependency} dependency from ${request.sourceId} to ${request.targetId};`;
         case 'interface':
-            return `interface ${request.id} : ${request.definition.sysmlName} connect ${request.sourceId} to ${request.targetId};`;
+            return `interface ${request.id} : ${typeName(request.definition)} connect ${request.sourceId} to ${request.targetId};`;
         case 'typedFlow':
             return renderTypedFlow(request);
         default:
@@ -132,14 +132,17 @@ function renderFlow(request: RelationshipNotationRequest): string {
 /** `flow id : Def [of Item] from source to target;` */
 function renderTypedFlow(request: RelationshipNotationRequest): string {
     const item = request.flowItem?.trim();
-    return `flow ${request.id} : ${request.definition.sysmlName}${item ? ` of ${item}` : ''} `
+    return `flow ${request.id} : ${typeName(request.definition)}${item ? ` of ${item}` : ''} `
         + `from ${request.sourceId} to ${request.targetId};`;
 }
+
+/** The definition as a usage names its type: qualified when the registry knows the package, so the usage resolves from any file. */
+const typeName = (definition: RelationshipDefinitionDTO) => definition.qualifiedName ?? definition.sysmlName;
 
 /** `connection id : Def connect srcEnd ::> source to tgtEnd ::> target;` */
 function renderConnection(request: RelationshipNotationRequest): string {
     const { definition, sourceId, targetId } = request;
-    const head = `connection ${request.id} : ${definition.sysmlName} connect `
+    const head = `connection ${request.id} : ${typeName(definition)} connect `
         + `${definition.sourceEnd.name} ::> ${sourceId} to `
         + `${definition.targetEnd.name} ::> ${targetId}`;
     const item = request.flowItem?.trim();

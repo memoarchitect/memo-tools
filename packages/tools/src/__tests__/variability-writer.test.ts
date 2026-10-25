@@ -61,3 +61,39 @@ describe.runIf(compilerConfigured && examplesPresent)('typed dependencies throug
         }, 'robot-cell-family');
     }, 180_000);
 });
+
+describe.runIf(compilerConfigured && examplesPresent)('requires and excludes through the relationship writer', () => {
+    // The Variability page shows them and they were only declarable in source: the connection is written into a
+    // package that does not import the features' package, so its type and both ends are named by qualified name.
+    for (const type of ['requiresFeature', 'excludesFeature'] as const) {
+        it(`writes ${type} between two features in another package, reads it back, and removes it`, async () => {
+            await withExample({ ...variabilityFiles(), 'model/sos/links.sysml': 'package robot_cell_family_links {\n}\n' }, async (project, root) => {
+                const definition = project.registries!.relationshipRegistry!.toDefinitionDTOs().find(d => d.name === type)!;
+                expect(definition.qualifiedName).toBe(`memo_architecture_variability::${type[0].toUpperCase()}${type.slice(1)}`);
+
+                const dto = modelToDTO(project.model);
+                const sourceId = idOf(project, 'featIrrigatedTip');
+                const targetId = idOf(project, 'featEuMarket');
+                const options = { projectRoot: root, outlines: outlineSourceFor(root, config, project), irIndex: undefined as never };
+                const written = await writeRelationship(
+                    { requestId: 'r1', type, sourceId, targetId, direction: 'outgoing', owningFile: 'model/sos/links.sysml' }, definition, dto, options);
+                expect(written.error).toBeUndefined();
+                expect(written).toMatchObject({ success: true, notation: 'connection' });
+                const text = readFileSync(join(root, 'model/sos/links.sysml'), 'utf8');
+                expect(text).toContain(`: ${definition.qualifiedName} connect`);
+                expect(text).toContain(`::> ${sourceId} to `);
+
+                const after = await loadProjectModel({ projectRoot: root, config, cache: false });
+                const edge = after.model.relationships.find(r => r.type === type && r.sourceId === sourceId && r.targetId === targetId)!;
+                expect(edge).toBeDefined();
+
+                const removed = await removeRelationship(edge, { ...options, outlines: outlineSourceFor(root, config, after) });
+                expect(removed.error).toBeUndefined();
+                expect(removed.success).toBe(true);
+                const finalModel = await loadProjectModel({ projectRoot: root, config, cache: false });
+                expect(finalModel.model.relationships.some(r => r.type === type && r.sourceId === sourceId && r.targetId === targetId)).toBe(false);
+            }, 'robot-cell-family');
+        }, 240_000);
+    }
+});
+

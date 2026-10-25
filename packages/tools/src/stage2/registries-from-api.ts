@@ -282,6 +282,7 @@ export function apiRelationshipEntries(
                 sysmlConstruct: construct,
                 description: docOf(api, member),
                 isAbstract: declaredAbstract(member),
+                qualifiedName: api.qualifiedName(member['@id']),
                 superType: superTypes(api, member)[0] || undefined,
                 isReflexive,
                 isUnique,

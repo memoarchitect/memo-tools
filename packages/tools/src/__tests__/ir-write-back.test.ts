@@ -444,12 +444,12 @@ describe.runIf(compilerConfigured)('relationship write-back', () => {
 
         if (!result.success) throw new Error(result.error ?? 'write failed');
         expect(result.notation).toBe('succession');
-        expect(result.declaration).toBe('succession first routeOrder then processOrder;');
+        expect(result.declaration).toBe('succession first Flow::routeOrder then Flow::processOrder;');
         // A succession takes no declared name in SysML, and the result says so
         // rather than reporting an ID that deletion could not later resolve.
         expect(result.relationshipId).toBeUndefined();
         expect(readProjectFile('model/flow.sysml'))
-            .toContain('succession first routeOrder then processOrder;');
+            .toContain('succession first Flow::routeOrder then Flow::processOrder;');
 
         // And the written project recompiles.
         const recompiled = await compile();
