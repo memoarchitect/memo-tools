@@ -48,7 +48,7 @@ export function evaluateWorkspaceGuide(input: GuideServiceInput): GuideResult {
         if (!selection.ok) return { ...base, error: selection.message };
         workspace = selection.scope;
     }
-    const validation = validateModel(model, [...constraints], registries.kindRegistry, undefined, undefined, workspace);
+    const validation = validateModel(model, [...constraints], registries.kindRegistry, undefined, undefined, workspace, undefined, registries.relationshipRegistry);
     const evaluation = evaluateGuide({
         steps: sources.steps, model, kinds: registries.kindRegistry, violations: validation.violations,
         workspace: workspace ? { subjects: workspace.subjects, scope: workspace.scope } : undefined,

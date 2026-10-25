@@ -172,7 +172,7 @@ export async function compileDeviceDhf(options: DeviceDhfOptions): Promise<Devic
             const selection = selectWorkspace(kept, computeWorkspaceMembership(kept, pinned.registries), item);
             if (selection.ok) workspace = selection.scope;
         }
-        const validation = validateModel(kept, undefined, undefined, undefined, undefined, workspace);
+        const validation = validateModel(kept, undefined, undefined, undefined, undefined, workspace, undefined, pinned.registries?.relationshipRegistry);
         const completeness = computeCompleteness(
             workspace ? narrowModel(kept, new Map([...kept.elements].filter(([id]) => workspace!.subjects.has(id)))) : kept, validation);
         const config = { modelName: options.working.model ? (options.config?.modelName ?? 'model') : 'model', ...options.config } as MEMOConfig;

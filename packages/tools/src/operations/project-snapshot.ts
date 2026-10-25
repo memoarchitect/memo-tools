@@ -117,7 +117,7 @@ export async function buildProjectSnapshot(
     ontologyRegistries = loweringRun.registries ?? ontologyRegistries;
 
     const semanticModel = dtoToModel(loweringRun.ir.model);
-    const validation = validateModel(semanticModel, [], ontologyRegistries?.kindRegistry);
+    const validation = validateModel(semanticModel, [], ontologyRegistries?.kindRegistry, undefined, undefined, undefined, undefined, ontologyRegistries?.relationshipRegistry);
     const completeness = computeCompleteness(semanticModel, validation);
 
     // Viewpoints and layers are derived from the model. The `viewpoints:` and
