@@ -33,6 +33,8 @@ export interface RelationshipEndDTO {
     name: string;
     /** Declared end type (a kind name). Undefined ends accept any kind. */
     type?: string;
+    /** The SysML construct an element here must have (`port` for an interface's ends), when the language says. */
+    construct?: string;
     /** Declared multiplicity, when the ontology states one. */
     multiplicity?: MultiplicityDTO;
 }
@@ -79,6 +81,11 @@ export interface RelationshipDefinitionDTO {
      * serialized as `connection : X connect a to b`.
      */
     nativeKeyword?: string;
+    /**
+     * Set for the two constructs that are written as a typed named usage and are not a `connection def`:
+     * `interface def` (`interface x : Def connect a to b;`) and `flow def` (`flow x : Def from a to b;`).
+     */
+    sysmlConstruct?: 'interface def' | 'flow def';
     /** First declared end — the source/from end. */
     sourceEnd: RelationshipEndDTO;
     /** Second declared end — the target/to end. */
@@ -318,6 +325,19 @@ export function kindConformsTo(
     return false;
 }
 
+/** What the legality checks read of an element: its kind and, where an end names one, its construct. */
+type EndOccupant = Pick<MemoElement, 'kind'> & Partial<Pick<MemoElement, 'construct'>>;
+
+/** True when `element` may occupy `end`: its kind conforms to the end's type and it has the end's construct. */
+function occupiesEnd(
+    element: EndOccupant,
+    end: RelationshipEndDTO,
+    kinds: Map<string, KindDefinitionDTO> | KindDefinitionDTO[],
+): boolean {
+    if (end.construct && element.construct !== end.construct) return false;
+    return kindConformsTo(element.kind, end.type, kinds);
+}
+
 // ─── legalRelationshipDirections ────────────────────────────────────────────
 
 /**
@@ -336,8 +356,8 @@ export function legalRelationshipDirections(
 
     const kinds = indexKinds(registries.kinds);
     const directions: RelationshipDirection[] = [];
-    if (kindConformsTo(selectedElement.kind, definition.sourceEnd.type, kinds)) directions.push('outgoing');
-    if (kindConformsTo(selectedElement.kind, definition.targetEnd.type, kinds)) directions.push('incoming');
+    if (occupiesEnd(selectedElement, definition.sourceEnd, kinds)) directions.push('outgoing');
+    if (occupiesEnd(selectedElement, definition.targetEnd, kinds)) directions.push('incoming');
     return directions;
 }
 
@@ -393,8 +413,8 @@ export function legalRelationshipTypes(
 
         // Forward: sourceElement on the source end, targetElement on the target end.
         if (
-            kindConformsTo(sourceElement.kind, definition.sourceEnd.type, kinds) &&
-            kindConformsTo(targetElement.kind, definition.targetEnd.type, kinds)
+            occupiesEnd(sourceElement, definition.sourceEnd, kinds) &&
+            occupiesEnd(targetElement, definition.targetEnd, kinds)
         ) {
             options.push({
                 definition,
@@ -406,8 +426,8 @@ export function legalRelationshipTypes(
 
         // Reverse: targetElement on the source end, sourceElement on the target end.
         if (
-            kindConformsTo(targetElement.kind, definition.sourceEnd.type, kinds) &&
-            kindConformsTo(sourceElement.kind, definition.targetEnd.type, kinds)
+            occupiesEnd(targetElement, definition.sourceEnd, kinds) &&
+            occupiesEnd(sourceElement, definition.targetEnd, kinds)
         ) {
             options.push({
                 definition,
@@ -464,14 +484,14 @@ export function compatibleRelationshipTargets(
 
     // The selected element must legally hold its own end, or nothing is offered.
     const ownEnd = direction === 'outgoing' ? definition.sourceEnd : definition.targetEnd;
-    if (!kindConformsTo(selectedElement.kind, ownEnd.type, kinds)) return [];
+    if (!occupiesEnd(selectedElement, ownEnd, kinds)) return [];
 
     const query = filter?.query?.trim().toLowerCase();
     const candidates: RelationshipTargetCandidate[] = [];
 
     for (const element of Object.values(model.elements)) {
         if (element.id === selectedElement.id) continue;                  // no self-links
-        if (!kindConformsTo(element.kind, oppositeEnd.type, kinds)) continue;
+        if (!occupiesEnd(element, oppositeEnd, kinds)) continue;
         if (filter?.kind && element.kind !== filter.kind) continue;
         if (filter?.layer && element.layer !== filter.layer) continue;
         if (filter?.package && element.package !== filter.package) continue;
@@ -577,10 +597,10 @@ export function validateRelationshipMutation(
     const kinds = indexKinds(registries.kinds);
 
     // REL-002 — each endpoint's kind must conform to its declared end type.
-    if (!kindConformsTo(source.kind, definition.sourceEnd.type, kinds)) {
+    if (!occupiesEnd(source, definition.sourceEnd, kinds)) {
         error('REL-002', `${source.kind} cannot occupy the ${definition.sourceEnd.name} end of ${definition.label}`);
     }
-    if (!kindConformsTo(target.kind, definition.targetEnd.type, kinds)) {
+    if (!occupiesEnd(target, definition.targetEnd, kinds)) {
         error('REL-002', `${target.kind} cannot occupy the ${definition.targetEnd.name} end of ${definition.label}`);
     }
 

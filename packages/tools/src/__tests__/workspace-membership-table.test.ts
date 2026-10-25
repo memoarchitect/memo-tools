@@ -10,12 +10,16 @@ import { compiledExample, compilerConfigured, examplesPresent } from './helpers/
 // the registry does not list them, but the closure meets them.
 const BUILDER_EDGES = ['bind', 'flow', 'interface', 'succession', 'variant'];
 
+// An `interface def` and a `flow def` are in the registry so a user can create one, but what the closure
+// meets is the `interface` or `flow` edge a usage of it becomes, which BUILDER_EDGES already names.
+const EXCHANGE_DEFINITIONS = ['interface def', 'flow def'];
+
 describe.runIf(compilerConfigured && examplesPresent)('the workspace-membership table', () => {
     it('has a row for every relation and no row for anything else', async () => {
         const project = await compiledExample('robot-cell-family');
         const registry = project.registries!.relationshipRegistry!;
         const table = registry.workspaceMembership();
-        const relations = [...registry.entries().filter(entry => !entry.isAbstract).map(entry => entry.name), ...BUILDER_EDGES];
+        const relations = [...registry.entries().filter(entry => !entry.isAbstract && !EXCHANGE_DEFINITIONS.includes(entry.sysmlConstruct ?? '')).map(entry => entry.name), ...BUILDER_EDGES];
 
         expect(relations.filter(name => !table.has(name)), 'relations with no row').toEqual([]);
         expect([...table.keys()].filter(name => !relations.includes(name)), 'rows naming no relation').toEqual([]);

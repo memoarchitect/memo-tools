@@ -39,6 +39,8 @@ import type {
 export interface RelationshipEnd {
     name: string;
     type?: string;
+    /** The SysML construct an element at this end must have, e.g. `port` for an interface's ends. */
+    construct?: string;
     /** Declared multiplicity, e.g. `end owner : Requirement [0..1];` */
     multiplicity?: MultiplicityDTO;
 }
@@ -395,7 +397,7 @@ export function cleanDocComment(content: string): string | undefined {
 /** Project one registry end (possibly absent) into its DTO. */
 function toEndDTO(end: RelationshipEnd | undefined, fallbackName: string): RelationshipEndDTO {
     if (!end) return { name: fallbackName };
-    return { name: end.name || fallbackName, type: end.type, multiplicity: end.multiplicity };
+    return { name: end.name || fallbackName, type: end.type, ...(end.construct ? { construct: end.construct } : {}), multiplicity: end.multiplicity };
 }
 
 /** The relationship types a compiled project declares. */
@@ -487,6 +489,7 @@ export class RelationshipRegistry {
             isReflexive: this.inherited(entry, 'isReflexive'),
             isUnique: this.inherited(entry, 'isUnique'),
             nativeKeyword: entry.nativeKeyword,
+            ...(entry.sysmlConstruct === 'interface def' || entry.sysmlConstruct === 'flow def' ? { sysmlConstruct: entry.sysmlConstruct } : {}),
             ...(entry.sysmlConstruct === 'metadata def' && entry.qualifiedName ? { typedDependency: entry.qualifiedName } : {}),
             sourceEnd: toEndDTO(entry.ends[0], 'source'),
             targetEnd: toEndDTO(entry.ends[1], 'target'),

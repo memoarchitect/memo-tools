@@ -38,6 +38,19 @@ const KIND_CONSTRUCTS: Record<string, SysMLConstruct> = {
 const RELATIONSHIP_CONSTRUCTS: Record<string, string> = {
     ConnectionDefinition: 'connection def',
     AllocationDefinition: 'allocation def',
+    // A ComponentExchange is an `interface def` and a FunctionalExchange a `flow def`: a usage typed by
+    // one is written `interface x : Def connect a to b;` and `flow x : Def from a to b;`.
+    InterfaceDefinition: 'interface def',
+    FlowDefinition: 'flow def',
+};
+
+/**
+ * The ends the language gives a construct when its definition declares none. An interface joins two
+ * ports (`InterfaceEnd : PortUsage`, SysML-textual-bnf.kebnf:785); a flow joins two features, which
+ * may be ports or parameters, so its ends say nothing.
+ */
+const DEFAULT_ENDS: Record<string, RelationshipEnd[]> = {
+    'interface def': [{ name: 'source', construct: 'port' }, { name: 'target', construct: 'port' }],
 };
 
 /**
@@ -251,6 +264,7 @@ export function apiRelationshipEntries(
                     else if (name === 'isUnique') isUnique = flag ?? isUnique;
                 }
             }
+            if (ends.length === 0) ends.push(...(DEFAULT_ENDS[construct] ?? []));
             entries.push({
                 sysmlName,
                 name: pascalToCamelCase(sysmlName),
@@ -258,7 +272,10 @@ export function apiRelationshipEntries(
                 layer,
                 sysmlConstruct: construct,
                 description: docOf(api, member),
-                isAbstract: declaredAbstract(member),
+                // MEMO declares its flow families `abstract` and types usages by them directly
+                // (`flow lfX : FunctionalExchange`), which both compilers accept; there abstract does
+                // not mean "not offered". An abstract interface def is a base, and stays hidden.
+                isAbstract: construct === 'flow def' ? undefined : declaredAbstract(member),
                 superType: superTypes(api, member)[0] || undefined,
                 isReflexive,
                 isUnique,
