@@ -13,8 +13,8 @@
 // So two devices that cover different releases of one system differ in the content (the variant each
 // release builds), in the standards sections (what each jurisdiction requires) and in which documents
 // exist at all. The device, its jurisdiction and its covers are read from the working model: a pinned
-// model holds no records and no devices. The compiler and the ontology are today's, as for every pinned
-// build (T5); the index says so.
+// model holds no records and no devices. The compiler is today's, as for every pinned build (T5), and the
+// index says so; the ontology, its templates and standards are the commit's when its lock could be installed.
 //
 // The system of systems' context is the index's: each covered release lists the release records that
 // `contains` it (an SoS version, the validated configuration) and the releases pinned beside it. It is
@@ -220,7 +220,7 @@ function indexText(device: DeviceDhfResult['device'], releases: DeviceRelease[],
         `# Design history file: ${device.name}`, '',
         `- Jurisdiction: ${device.jurisdiction}`,
         ...(device.submissionId ? [`- Submission: ${device.submissionId}`] : []),
-        `- Compiler: ${compiler ?? 'unknown'}${compilerVersion ? ` ${compilerVersion}` : ''}, and the ontology installed now (a pinned build uses today's, not the commit's)`,
+        `- Compiler: ${compiler ?? 'unknown'}${compilerVersion ? ` ${compilerVersion}` : ''}, installed now (a pinned build uses today's compiler; the ontology is the commit's when its locked release could be installed)`,
         '', '## Covered releases', '',
     ];
     for (const release of releases) {
