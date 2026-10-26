@@ -18,4 +18,4 @@ jobs:
       - run: node scripts/sync-version.mjs --check
       - name: Tag a changed VERSION
         if: github.ref == 'refs/heads/main'
-        run: scripts/tag-version-on-change.sh "${{ github.event.before }}"
+        run: node scripts/tag-version-on-change.mjs "${{ github.event.before }}"
