@@ -94,8 +94,8 @@ export const DECISIONS = `package robot_cell_family_decisions {
 
 /** The files a test passes to `withExample(…, 'robot-cell-family')`. */
 export const variabilityFiles = (): Record<string, string> => ({
-    'model/shared/features.sysml': FEATURES,
-    'model/systems/manipulation/output_options.sysml': OUTPUT_OPTIONS,
-    'model/sos/releases.sysml': RELEASES,
-    'model/sos/decisions.sysml': DECISIONS,
+    'model/catalog/shared/features.sysml': FEATURES,
+    'model/catalog/systems/manipulation/output_options.sysml': OUTPUT_OPTIONS,
+    'model/catalog/sos/releases.sysml': RELEASES,
+    'model/catalog/sos/decisions.sysml': DECISIONS,
 });

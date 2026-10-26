@@ -17,7 +17,7 @@ const config = { modelName: 'test', toolchain: { compiler: process.env.MEMO_TOOL
 const idOf = (project: ProjectModel, shortName: string) => [...project.model.elements.values()].find(e => e.shortName === shortName)!.id;
 const fixtureWithoutRelUsSelection = () => {
     const files = variabilityFiles();
-    files['model/sos/releases.sysml'] = files['model/sos/releases.sysml']
+    files['model/catalog/sos/releases.sysml'] = files['model/catalog/sos/releases.sysml']
         .replace('#SelectsFeature dependency from relUs to featUsMarket, featIrrigatedTip;', '#SelectsFeature dependency from relUs to featUsMarket;');
     return files;
 };
@@ -68,7 +68,7 @@ describe.runIf(compilerConfigured && examplesPresent)('requires and excludes thr
     // package that does not import the features' package, so its type and both ends are named by qualified name.
     for (const type of ['requiresFeature', 'excludesFeature'] as const) {
         it(`writes ${type} between two features in another package, reads it back, and removes it`, async () => {
-            await withExample({ ...variabilityFiles(), 'model/sos/links.sysml': 'package robot_cell_family_links {\n}\n' }, async (project, root) => {
+            await withExample({ ...variabilityFiles(), 'model/catalog/sos/links.sysml': 'package robot_cell_family_links {\n}\n' }, async (project, root) => {
                 const definition = project.registries!.relationshipRegistry!.toDefinitionDTOs().find(d => d.name === type)!;
                 expect(definition.qualifiedName).toBe(`memo_architecture_variability::${type[0].toUpperCase()}${type.slice(1)}`);
 
@@ -77,10 +77,10 @@ describe.runIf(compilerConfigured && examplesPresent)('requires and excludes thr
                 const targetId = idOf(project, 'featEuMarket');
                 const options = { projectRoot: root, outlines: outlineSourceFor(root, config, project), irIndex: undefined as never };
                 const written = await writeRelationship(
-                    { requestId: 'r1', type, sourceId, targetId, direction: 'outgoing', owningFile: 'model/sos/links.sysml' }, definition, dto, options);
+                    { requestId: 'r1', type, sourceId, targetId, direction: 'outgoing', owningFile: 'model/catalog/sos/links.sysml' }, definition, dto, options);
                 expect(written.error).toBeUndefined();
                 expect(written).toMatchObject({ success: true, notation: 'connection' });
-                const text = readFileSync(join(root, 'model/sos/links.sysml'), 'utf8');
+                const text = readFileSync(join(root, 'model/catalog/sos/links.sysml'), 'utf8');
                 expect(text).toContain(`: ${definition.qualifiedName} connect`);
                 expect(text).toContain(`::> ${sourceId} to `);
 

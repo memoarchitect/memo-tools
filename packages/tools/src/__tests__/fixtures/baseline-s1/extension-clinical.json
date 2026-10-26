@@ -10,11 +10,11 @@
         "package": "memo_examples_surgical_closure_workflow_project"
       },
       {
-        "id": "memo_examples_surgical_closure_workflow_viewpoints_unassigned_views_surgical_closure_workflow_overview::surgicalClosureWorkflowOverview",
+        "id": "memo_examples_surgical_closure_workflow_viewpoints_logical_views_surgical_closure_workflow_overview::surgicalClosureWorkflowOverview",
         "kind": "MemoDiagramView",
         "construct": "view",
         "layer": "unknown",
-        "package": "memo_examples_surgical_closure_workflow_viewpoints_unassigned_views_surgical_closure_workflow_overview"
+        "package": "memo_examples_surgical_closure_workflow_viewpoints_logical_views_surgical_closure_workflow_overview"
       },
       {
         "id": "memo_examples_surgical_closure_workflow::actAssessStapleLine",

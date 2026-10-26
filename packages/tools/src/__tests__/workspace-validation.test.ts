@@ -19,7 +19,7 @@ const CLI_PATH = join(__dirname, '../../lib/bin/memo.js');
 const RULE = 'CR-ONT-040';
 
 const seeded = (): Record<string, string> => {
-    const perception = readFileSync(join(E0, 'model/systems/perception/perception_system.sysml'), 'utf8')
+    const perception = readFileSync(join(E0, 'model/catalog/systems/perception/perception_system.sysml'), 'utf8')
         .replace('private import memo_architecture_operational_use_cases::*;',
             'private import memo_architecture_operational_use_cases::*;\n    private import memo_assurance_verification_validation::*;')
         .replace('attribute :>> outputDescription = "Filtered, timestamped point clouds";',
@@ -31,11 +31,11 @@ const seeded = (): Record<string, string> => {
         attribute :>> methodKind = MemoVerificationMethodKind::test;
         attribute :>> acceptanceCriteria = "matches the injected reference signal";
         subject verified : Base::Anything[*] = (fnAcquirePointClouds);`);
-    const manipulation = readFileSync(join(E0, 'model/systems/manipulation/manipulation_system.sysml'), 'utf8')
+    const manipulation = readFileSync(join(E0, 'model/catalog/systems/manipulation/manipulation_system.sysml'), 'utf8')
         .replace('and the event that records it";', 'and the event that records it";\n        attribute :>> criticality = CriticalityKind::high;');
     return {
-        'model/systems/perception/perception_system.sysml': perception,
-        'model/systems/manipulation/manipulation_system.sysml': manipulation,
+        'model/catalog/systems/perception/perception_system.sysml': perception,
+        'model/catalog/systems/manipulation/manipulation_system.sysml': manipulation,
     };
 };
 
@@ -144,7 +144,7 @@ describe.runIf(compilerConfigured && examplesPresent)('memo validate --workspace
 
     it("judges the elements no workspace holds in the system of systems' workspace", async () => {
         const orphan = 'package orphans { private import memo_architecture_logical_structure::*; part def StrayModule specializes LogicalComponent; }';
-        await withExample({ 'model/shared/orphan.sysml': orphan }, project => {
+        await withExample({ 'model/catalog/shared/orphan.sysml': orphan }, project => {
             const membership = computeWorkspaceMembership(project.model, project.registries!);
             const stray = membership.unassigned[0];
             const lab = selectWorkspace(project.model, membership, 'RoboticCell');

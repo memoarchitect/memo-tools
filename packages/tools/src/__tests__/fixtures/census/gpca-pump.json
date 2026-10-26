@@ -1,11 +1,11 @@
 {
   "project": "gpca-pump",
   "totals": {
-    "files": 56,
+    "files": 57,
     "elements": 700,
     "definitions": 14,
-    "relationships": 918,
-    "packages": 56,
+    "relationships": 931,
+    "packages": 57,
     "parseErrors": 0,
     "builderFindings": 0
   },
@@ -106,12 +106,13 @@
         "SystemFunction": 11,
         "VerificationCase": 2
       },
-      "relationships": 15,
+      "relationships": 16,
       "relationshipTypes": {
         "composes": 4,
         "flow": 4,
         "performs": 1,
         "producesEvidence": 2,
+        "subsets": 1,
         "succession": 2,
         "verifiedBy": 2
       },
@@ -322,11 +323,12 @@
         "FunctionalFlow": 3,
         "OperativeScenario": 2
       },
-      "relationships": 31,
+      "relationships": 40,
       "relationshipTypes": {
         "composes": 9,
         "flow": 4,
         "performs": 11,
+        "subsets": 9,
         "succession": 7
       },
       "packages": 1,
@@ -339,7 +341,7 @@
       "kinds": {
         "SoftwareDeploymentUnit": 1
       },
-      "relationships": 385,
+      "relationships": 388,
       "relationshipTypes": {
         "allocatedTo": 17,
         "appliesInContext": 2,
@@ -347,7 +349,7 @@
         "bind": 5,
         "bindsToInterface": 3,
         "buildsInto": 6,
-        "causes": 18,
+        "causes": 19,
         "connect": 15,
         "containsEvent": 4,
         "dependency": 5,
@@ -360,6 +362,7 @@
         "governs": 1,
         "hasFailureMode": 5,
         "hostedBy": 1,
+        "impactsSafety": 1,
         "inputToGate": 6,
         "mitigates": 21,
         "producesEvent": 1,
@@ -369,7 +372,8 @@
         "succession": 4,
         "testedByUsability": 8,
         "tracesRisk": 45,
-        "validates": 3
+        "validates": 3,
+        "weighedAgainst": 1
       },
       "packages": 1,
       "parseErrors": 0,
@@ -515,18 +519,6 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/logical/views/document_architecture_description_view.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "MemoDocumentView": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
     "model/catalog/viewpoints/logical/views/logical_device_interconnect_view.sysml": {
       "elements": 1,
       "definitions": 0,
@@ -641,18 +633,6 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/requirements/views/document_dhf_index_view.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "MemoDocumentView": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
     "model/catalog/viewpoints/requirements/views/requirements_requirements_trace_view.sysml": {
       "elements": 1,
       "definitions": 0,
@@ -716,6 +696,40 @@
       "definitions": 0,
       "kinds": {
         "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/shared/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/shared/views/document_architecture_description_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDocumentView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/shared/views/document_dhf_index_view.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDocumentView": 1
       },
       "relationships": 0,
       "relationshipTypes": {},

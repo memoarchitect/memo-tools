@@ -15,8 +15,8 @@ import { createFamilyRepo, type FamilyRepo } from './helpers/pinned-repo.js';
 // branched, and the edits here are not committed.
 
 const config = { toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never;
-const MANIPULATION = 'model/systems/manipulation/manipulation_system.sysml';
-const TRACE = 'model/systems/manipulation/trace.sysml';
+const MANIPULATION = 'model/catalog/systems/manipulation/manipulation_system.sysml';
+const TRACE = 'model/catalog/systems/manipulation/trace.sysml';
 
 describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T11)', () => {
     let repo: FamilyRepo;
@@ -41,7 +41,7 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
         repo = createFamilyRepo();
         // The branch point is c8. `main` then moves on with an unrelated change, and the work is on `feature`.
         git('branch', 'feature');
-        edit('model/systems/navigation/navigation_system.sysml', 'Navigation workstation', 'Navigation workstation, moved on');
+        edit('model/catalog/systems/navigation/navigation_system.sysml', 'Navigation workstation', 'Navigation workstation, moved on');
         git('commit', '-q', '-am', 'main moves on: navigation');
         git('checkout', '-q', 'feature');
     }, 240_000);

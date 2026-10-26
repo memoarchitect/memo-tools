@@ -34,7 +34,10 @@ const write = process.argv.includes('--write');
 /** Every shipped project directory, in a stable order. */
 function corpus() {
     const out = [];
-    const add = (dir) => { if (existsSync(join(dir, 'model'))) out.push(dir); };
+    // A project names its entrypoint in memo.package.yaml. A directory without one is a reusable package another
+    // project depends on (`robot-platform`): converting it would rename the package under its dependents.
+    const isProject = (dir) => /^entrypoint:/m.test(readFileSync(join(dir, 'memo.package.yaml'), 'utf-8'));
+    const add = (dir) => { if (existsSync(join(dir, 'model')) && existsSync(join(dir, 'memo.package.yaml')) && isProject(dir)) out.push(dir); };
     for (const name of readdirSync(join(memoRoot, 'examples')).sort()) {
         const dir = join(memoRoot, 'examples', name);
         if (name === 'extensions') {
@@ -79,23 +82,36 @@ function semanticProjection(dir) {
     catch { return null; }
     finally { rmSync(out, { force: true }); }
 
-    const elements = (model.elements ?? []).map(e => `${e.id}:${e.kind}`).sort();
-    const relationships = (model.relationships ?? [])
-        .map(r => `${r.kind ?? r.type}:${r.source}->${r.target}`).sort();
+    // `export json` nests the model under `model`, with elements keyed by qualified id. The projection is by
+    // the LAST segment of an id, because the conversion renames packages and so changes every qualified id's prefix.
+    const body = model.model ?? model;
+    const leaf = id => String(id).split('::').pop();
+    const entries = Object.entries(body.elements ?? {});
+    if (entries.length === 0) throw new Error('the export holds no elements, so nothing could be compared');
+    const elements = entries.map(([id, e]) => `${leaf(id)}:${e.kind}`).sort();
+    const relationships = (body.relationships ?? [])
+        .map(r => `${r.type}:${leaf(r.sourceId)}->${leaf(r.targetId)}`).sort();
     const kindCounts = {};
-    for (const e of model.elements ?? []) kindCounts[e.kind] = (kindCounts[e.kind] ?? 0) + 1;
+    for (const [, e] of entries) kindCounts[e.kind] = (kindCounts[e.kind] ?? 0) + 1;
     return { elements, relationships, kindCounts };
+}
+
+/** What is in `a` and not in `b`, counting repeats: the same leaf name can legitimately occur in two packages. */
+function subtract(a, b) {
+    const left = new Map();
+    for (const x of b) left.set(x, (left.get(x) ?? 0) + 1);
+    return a.filter(x => { const n = left.get(x) ?? 0; if (n > 0) { left.set(x, n - 1); return false; } return true; });
 }
 
 function compare(before, after) {
     const diffs = [];
-    const missing = before.elements.filter(e => !after.elements.includes(e));
-    const added = after.elements.filter(e => !before.elements.includes(e));
+    const missing = subtract(before.elements, after.elements);
+    const added = subtract(after.elements, before.elements);
     if (missing.length) diffs.push(`elements lost: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ` … +${missing.length - 8}` : ''}`);
     if (added.length) diffs.push(`elements gained: ${added.slice(0, 8).join(', ')}${added.length > 8 ? ` … +${added.length - 8}` : ''}`);
 
-    const relMissing = before.relationships.filter(r => !after.relationships.includes(r));
-    const relAdded = after.relationships.filter(r => !before.relationships.includes(r));
+    const relMissing = subtract(before.relationships, after.relationships);
+    const relAdded = subtract(after.relationships, before.relationships);
     if (relMissing.length) diffs.push(`relationships lost: ${relMissing.length}`);
     if (relAdded.length) diffs.push(`relationships gained: ${relAdded.length}`);
     return diffs;

@@ -32,8 +32,9 @@ test:
     - pnpm run check:baselines
     # The section 13.3 ceilings on GPCA, measured through OpenSysML.
     - pnpm run check:budgets
-    # `check:corpus` is not run here: it fails on examples/sysml-diagram-samples because the converter's idea of
-    # the catalog layout is out of date. It is on the board (KANBAN.md), not skipped silently.
+    # Every shipped example is at the converter's fixed point: a view is filed under the viewpoint it traces to,
+    # else under `viewpoints/shared/`. Converting again changes nothing, or this fails.
+    - pnpm run check:corpus
 
 pages:
   stage: docs

@@ -14,7 +14,7 @@ import { createFamilyRepo, type FamilyRepo } from './helpers/pinned-repo.js';
 // commit does not hold; and it refuses a record earlier than what it contains.
 
 const config = { toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never;
-const RECORDS = 'model/sos/release_records.sysml';
+const RECORDS = 'model/catalog/sos/release_records.sysml';
 
 describe.runIf(compilerConfigured && examplesPresent)('creating a release record (A11)', () => {
     let repo: FamilyRepo;
@@ -52,25 +52,25 @@ describe.runIf(compilerConfigured && examplesPresent)('creating a release record
     }, 240_000);
 
     it('refuses to write under a system folder, and writes nothing', async () => {
-        const result = await writeRelease(request({ file: 'model/systems/manipulation/releases.sysml' }), context());
+        const result = await writeRelease(request({ file: 'model/catalog/systems/manipulation/releases.sysml' }), context());
         expect(result.success).toBe(false);
         expect(result.error).toMatch(/not written under systems\//);
-        expect(existsSync(join(repo.root, 'model/systems/manipulation/releases.sysml'))).toBe(false);
+        expect(existsSync(join(repo.root, 'model/catalog/systems/manipulation/releases.sysml'))).toBe(false);
     }, 240_000);
 
     it('names the file a record goes to: the one that holds records, else sos/ beside systems/', () => {
-        expect(defaultReleaseFile({ recordFiles: [RECORDS, RECORDS, 'model/sos/releases.sysml', 'model/systems/manipulation/r.sysml'] })).toBe(RECORDS);
-        expect(defaultReleaseFile({ recordFiles: ['model/systems/manipulation/r.sysml'], itemFile: 'model/systems/navigation/m.sysml' })).toBe('model/sos/releases.sysml');
-        expect(defaultReleaseFile({ recordFiles: [], itemFile: 'model/sos/sos.sysml' })).toBe('model/sos/releases.sysml');
+        expect(defaultReleaseFile({ recordFiles: [RECORDS, RECORDS, 'model/catalog/sos/releases.sysml', 'model/catalog/systems/manipulation/r.sysml'] })).toBe(RECORDS);
+        expect(defaultReleaseFile({ recordFiles: ['model/catalog/systems/manipulation/r.sysml'], itemFile: 'model/catalog/systems/navigation/m.sysml' })).toBe('model/catalog/sos/releases.sysml');
+        expect(defaultReleaseFile({ recordFiles: [], itemFile: 'model/catalog/sos/sos.sysml' })).toBe('model/catalog/sos/releases.sysml');
         expect(defaultReleaseFile({ recordFiles: [] })).toBe('model/sos/releases.sysml');
     });
 
     it('refuses HEAD when the item\'s folder has uncommitted changes, unless a commit is named', async () => {
-        const file = join(repo.root, 'model/systems/navigation/navigation_system.sysml');
+        const file = join(repo.root, 'model/catalog/systems/navigation/navigation_system.sysml');
         writeFileSync(file, readFileSync(file, 'utf8').replace('rev C', 'rev D'));
         const refused = await writeRelease(request({ name: 'relNavigationD', itemId: idOf('NavigationSystem'), features: [] }), context());
         expect(refused.success).toBe(false);
-        expect(refused.error).toMatch(/uncommitted changes in model\/systems\/navigation/);
+        expect(refused.error).toMatch(/uncommitted changes in model\/catalog\/systems\/navigation/);
         const named = await writeRelease(request({ name: 'relNavigationD', itemId: idOf('NavigationSystem'), features: [], modelCommit: repo.c2 }), context());
         expect(named).toMatchObject({ success: true, modelCommit: repo.c2 });
     }, 240_000);
@@ -91,9 +91,9 @@ describe.runIf(compilerConfigured && examplesPresent)('creating a release record
     }, 240_000);
 
     it('creates a new file with the imports its statements need', async () => {
-        const result = await writeRelease(request({ file: 'model/sos/new_releases.sysml' }), context());
+        const result = await writeRelease(request({ file: 'model/catalog/sos/new_releases.sysml' }), context());
         expect(result.success, result.error).toBe(true);
-        expect(readFileSync(join(repo.root, 'model/sos/new_releases.sysml'), 'utf8')).toContain('private import memo_artifacts_configuration_management::*;');
+        expect(readFileSync(join(repo.root, 'model/catalog/sos/new_releases.sysml'), 'utf8')).toContain('private import memo_artifacts_configuration_management::*;');
     }, 240_000);
 
     it('refuses a name, a status or an id that is not one', async () => {

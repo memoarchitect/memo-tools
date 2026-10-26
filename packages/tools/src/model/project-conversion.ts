@@ -78,6 +78,7 @@ export interface ConversionWarning {
     code:
         | 'package-not-mirroring'
         | 'unclassified-view'
+        | 'package-outside-namespace'
         | 'vendored-reusable-package'
         | 'legacy-settings-file'
         | 'superseded-entrypoint'
@@ -579,11 +580,24 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
         .filter(([relPath]) => !VENDORED_REUSABLE_DIRS.has(relPath.split(sep)[0]))
         .map(([, f]) => f.packageName)
         .filter((n): n is string => Boolean(n));
-    const projectPrefix = deriveProjectPrefix(projectPackages, sharedDirectorySegments([...facts.keys()]));
+    const sharedSegments = sharedDirectorySegments([...facts.keys()]);
+    let projectPrefix = deriveProjectPrefix(projectPackages, sharedSegments);
+    // Packages that sit outside the project's namespace, kept as they are. A sample can carry a verbatim standard
+    // fixture (`activity_example`) or a bundle named for itself, and no prefix is shared by every package. The
+    // namespace is then the one the largest group of packages agrees on, and the rest are moved if their file
+    // moves but never renamed: renaming a standard's own package would assert a claim about it.
+    const outsideNamespace = new Set<string>();
+    if (!projectPrefix && projectPackages.length > 0) {
+        const byFirstSegment = new Map<string, string[]>();
+        for (const name of projectPackages) byFirstSegment.set(name.split('_')[0], [...(byFirstSegment.get(name.split('_')[0]) ?? []), name]);
+        const largest = [...byFirstSegment.values()].sort((a, b) => b.length - a.length)[0];
+        projectPrefix = deriveProjectPrefix(largest, sharedSegments);
+        if (projectPrefix) for (const name of projectPackages) if (!largest.includes(name)) outsideNamespace.add(name);
+    }
     if (!projectPrefix) {
         collisions.push({
             code: 'no-project-prefix',
-            message: 'No project package prefix could be derived: no .sysml file declares a package.',
+            message: 'No project package prefix could be derived: no .sysml file declares a package, or their names share no leading segment.',
             files: [],
         });
         return emptyPlan(root, '', collisions, warnings);
@@ -660,7 +674,15 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
         if (moved) reasons.push(`relocated to the section 6.2 catalog layout (${role})`);
 
         let toPackage = f.packageName;
-        if (f.packageName) {
+        if (f.packageName && outsideNamespace.has(f.packageName)) {
+            warnings.push({
+                code: 'package-outside-namespace',
+                file: relPath,
+                message:
+                    `${relPath} declares ${f.packageName}, which is outside the project namespace ${projectPrefix}. ` +
+                    'The package keeps its name; only its file is placed.',
+            });
+        } else if (f.packageName) {
             if (moved) {
                 toPackage = derivePackageName(projectPrefix, catalogRel);
                 if (toPackage !== f.packageName) {
@@ -1124,6 +1146,21 @@ export interface ApplyResult {
  * `model/catalog/viewpoints/` is exactly the superseded layout the conversion
  * exists to eliminate.
  */
+/**
+ * `memo.identity.yaml` with its keys carried through package renames.
+ *
+ * An identity entry is keyed by the qualified id (`package::owner::name`) and holds the element's short id and
+ * uuid. A conversion renames packages, so left alone every renamed element would get a NEW key on the next
+ * validate, a new short id (`MMX-2` becoming `MMX-5`), and a stale entry for the old one. Only the package segment
+ * of a key changes, in one pass, so a package renamed to another's old name is not renamed twice.
+ */
+export function rewriteIdentityKeys(text: string, renames: ReadonlyMap<string, string>): string {
+    return text.replace(/^(\s+")([^":]+)(::[^"]*":)/gm, (whole, open: string, pkg: string, rest: string) => {
+        const renamed = renames.get(pkg);
+        return renamed ? `${open}${renamed}${rest}` : whole;
+    });
+}
+
 export function applyConversion(plan: ConversionPlan): ApplyResult {
     if (plan.collisions.length > 0) {
         throw new Error(
@@ -1162,6 +1199,14 @@ export function applyConversion(plan: ConversionPlan): ApplyResult {
     for (const name of plan.removals) {
         rmSync(join(root, name), { force: true });
         result.removed.push(name);
+    }
+
+    // The identity file follows the packages it keys on, so a moved element keeps its short id and uuid.
+    const identityFile = join(root, 'memo.identity.yaml');
+    if (plan.packageRenames.size > 0 && existsSync(identityFile)) {
+        const before = readFileSync(identityFile, 'utf8');
+        const after = rewriteIdentityKeys(before, plan.packageRenames);
+        if (after !== before) { writeFileSync(identityFile, after); result.written.push('memo.identity.yaml'); }
     }
 
     pruneEmptyDirs(join(root, 'model'));

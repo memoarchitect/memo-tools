@@ -493,11 +493,11 @@
         "package": "memo_examples_ui_screen_regions_project"
       },
       {
-        "id": "memo_examples_ui_screen_regions_system::UiScreenRegionsSystem",
+        "id": "memo_examples_ui_screen_regions_ui_screen_regions_system::UiScreenRegionsSystem",
         "kind": "System",
         "construct": "part",
         "layer": "logical",
-        "package": "memo_examples_ui_screen_regions_system"
+        "package": "memo_examples_ui_screen_regions_ui_screen_regions_system"
       },
       {
         "id": "memo_examples_ui_screen_regions_viewpoints_functional_views_ui_functional_tree::uiFunctionalTree",
