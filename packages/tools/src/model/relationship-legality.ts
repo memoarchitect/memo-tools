@@ -163,6 +163,15 @@ export interface RelationshipCreateRequest {
     /** Guard expression, for notations that take one (a guarded succession). */
     guard?: string;
     /**
+     * A feature of the source element that is the flow's end, when that is a parameter rather than the element
+     * itself (`in rate` of an action, drawn as a pin). Written as the chain `Pkg::fn.rate`; a flow end is any
+     * feature (`FlowEndSubsetting`, SysML-textual-bnf.kebnf:871-874). A parameter is not an element of the
+     * model, so it is addressed by the element that owns it and its name.
+     */
+    sourceFeature?: string;
+    /** As `sourceFeature`, for the target end. */
+    targetFeature?: string;
+    /**
      * IR identity of the source element, from the revision the caller drew
      * against. Checked before anything is written; a stale one is refused
      * rather than resolved by name. See `model/ir-identity.ts`.

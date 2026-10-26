@@ -369,6 +369,9 @@ export async function writeRelationship(
         throw e;
     }
 
+    const featureError = endFeatureError(request, definition);
+    if (featureError) return { success: false, error: featureError };
+
     const placement = resolveRelationshipPlacement(request, model, options);
     if (!isWritableRelationshipFile(placement.file, options)) {
         return { success: false, error: `No writable project file can own this relationship (${placement.file})` };
@@ -391,8 +394,8 @@ export async function writeRelationship(
         // path, never by the qualified id that addresses them in the model.
         // A dependency takes qualified names (kebnf:58), which resolve from any file; a connection's
         // ends are feature chains relative to the package that holds it.
-        notation === 'typedDependency' ? request.sourceId : endpointPath(request.sourceId, model),
-        notation === 'typedDependency' ? request.targetId : endpointPath(request.targetId, model),
+        notation === 'typedDependency' ? request.sourceId : endpointPath(request.sourceId, model, request.sourceFeature),
+        notation === 'typedDependency' ? request.targetId : endpointPath(request.targetId, model, request.targetFeature),
         request.flowItem, request.guard);
 
     const outlines = options.outlines;
@@ -504,7 +507,30 @@ function newRelationshipFile(relativePath: string, declaration: string): string 
  * addresses it. The declaration lands in a package of its own, which need not be the package of the features it
  * joins and need not import it; a bare `a.b` would then resolve nowhere.
  */
-function endpointPath(elementId: string, model: Pick<MemoModelDTO, 'elements'>): string {
+function endpointPath(elementId: string, model: Pick<MemoModelDTO, 'elements'>, feature?: string): string {
+    const path = elementPath(elementId, model);
+    return feature ? `${path}.${feature}` : path;
+}
+
+/**
+ * A parameter end is written into source as a name, so it must be one, and only a flow's ends are features of
+ * other elements (a connection's are ports, which are elements). Anything else is refused before it is written.
+ */
+function endFeatureError(
+    request: Pick<RelationshipCreateRequest, 'sourceFeature' | 'targetFeature'>,
+    definition: RelationshipDefinitionDTO,
+): string | undefined {
+    const features = [request.sourceFeature, request.targetFeature].filter((f): f is string => f !== undefined);
+    if (features.length === 0) return undefined;
+    const notation = notationFor(definition);
+    if (notation !== 'flow' && notation !== 'typedFlow') {
+        return `Only a flow can end at a parameter; ${definition.name} is written as a ${notation}`;
+    }
+    const bad = features.find(f => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(f));
+    return bad === undefined ? undefined : `"${bad}" is not a parameter name`;
+}
+
+function elementPath(elementId: string, model: Pick<MemoModelDTO, 'elements'>): string {
     const named = (id: string) => model.elements[id]?.shortName ?? shortNameOf(id);
     const nested = [] as string[];
     let outermost = elementId;

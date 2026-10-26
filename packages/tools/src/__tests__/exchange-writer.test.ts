@@ -142,3 +142,55 @@ describe.runIf(compilerConfigured)('creating an exchange in another package than
     }
 });
 
+
+// ─── A flow between action parameters ───────────────────────────────────────
+//
+// An action-flow pin is a parameter, which the model holds only as a feature of its action, so a flow
+// end naming one is the owner's path and the parameter's name (`FlowEndSubsetting` takes a feature chain,
+// SysML-textual-bnf.kebnf:871-874). Whether `out` may meet `in` is the compiler's, not a MEMO rule.
+
+describe.runIf(compilerConfigured)('creating a flow between action parameters', () => {
+    const ACTIONS = `package P {
+    abstract flow def FE;
+    item def Dose;
+    action def Step { in dose : Dose; out result : Dose; }
+    action s1 : Step;
+    action s2 : Step;
+}
+`;
+    const actions = [element('P::s1', 's1', 'action'), element('P::s2', 's2', 'action')];
+    const actionModel = () => ({ elements: Object.fromEntries(actions.map(e => [e.id, e])), relationships: [] });
+    const request = (extra: Record<string, unknown>) =>
+        ({ requestId: 'r', type: 'fe', sourceId: 'P::s1', targetId: 'P::s2', direction: 'outgoing', ...extra }) as never;
+
+    it('writes the owner and the parameter name at each end, and the compiler accepts it', async () => {
+        writeFileSync(join(root, 'model/p.sysml'), ACTIONS);
+        const result = await writeRelationship(
+            request({ sourceFeature: 'result', targetFeature: 'dose' }),
+            functionalExchange, actionModel(), { projectRoot: root, outlines: directoryOutlines(root, '') });
+        expect(result.error).toBeUndefined();
+        expect(result.success).toBe(true);
+        expect(readFileSync(join(root, 'model/p.sysml'), 'utf8')).toContain('from P::s1.result to P::s2.dose;');
+    }, 60_000);
+
+    it('leaves the file unchanged when the parameter does not exist', async () => {
+        writeFileSync(join(root, 'model/p.sysml'), ACTIONS);
+        const result = await writeRelationship(
+            request({ sourceFeature: 'nothing', targetFeature: 'dose' }),
+            functionalExchange, actionModel(), { projectRoot: root, outlines: directoryOutlines(root, '') });
+        expect(result.success).toBe(false);
+        expect(readFileSync(join(root, 'model/p.sysml'), 'utf8')).toBe(ACTIONS);
+    }, 60_000);
+
+    it('refuses a name that is not a name, and a form that is not a flow, before reading anything', async () => {
+        writeFileSync(join(root, 'model/p.sysml'), ACTIONS);
+        const options = { projectRoot: root, outlines: directoryOutlines(root, '') };
+        const injected = await writeRelationship(request({ sourceFeature: 'x; part evil' }), functionalExchange, actionModel(), options);
+        expect(injected.success).toBe(false);
+        expect(injected.error).toContain('not a parameter name');
+        const connection = await writeRelationship(request({ sourceFeature: 'result', type: 'ce' }), componentExchange, actionModel(), options);
+        expect(connection.success).toBe(false);
+        expect(connection.error).toContain('Only a flow can end at a parameter');
+        expect(readFileSync(join(root, 'model/p.sysml'), 'utf8')).toBe(ACTIONS);
+    }, 60_000);
+});
