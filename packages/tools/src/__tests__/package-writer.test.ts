@@ -178,6 +178,20 @@ describe.runIf(compilerConfigured)('element placement on create', () => {
         expect(built.elements.lookup('strainer')?.package).toBe('Plant::Hydraulics');
     });
 
+    // A UI region belongs inside its screen: containment is the part tree, not a link authored afterwards.
+    it('declares a new element inside the part the request names', async () => {
+        writeProjectFile('model/ui.sysml', `package Ui {\n    ${STUBS.split('\n').join('\n    ')}\n    part screen : UIElement {\n    }\n}\n`);
+
+        const result = await saveElementToFile(projectRoot, {
+            id: 'region', name: 'Region', kind: 'UIElement', construct: 'part',
+            file: 'model/ui.sysml', package: 'Ui::screen',
+        });
+
+        expect(result, JSON.stringify(result)).toMatchObject({ success: true });
+        const text = readProjectFile('model/ui.sysml');
+        expect(text).toMatch(/part screen : UIElement \{[^}]*part region : UIElement/s);
+    });
+
     it('refuses to place an element in a package the file does not declare', async () => {
         writeProjectFile('model/plant.sysml', PROJECT);
 

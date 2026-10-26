@@ -28,6 +28,12 @@ export function generateUsage(element: CsvElement, options: GenerateOptions = {}
     if (element.name && element.name !== element.id) {
         lines.push(`${indent}@MemoIdentity { :>> label = "${escapeString(element.name)}"; }`);
     }
+    // The authored id is identity too: `providedId` is a field of `@MemoIdentity`, not an attribute the kind
+    // declares, so `attribute redefines providedId` would not resolve and the whole write would be refused.
+    const providedId = element.attributes.providedId;
+    if (providedId) {
+        lines.push(`${indent}@MemoIdentity { :>> providedId = "${escapeString(providedId)}"; }`);
+    }
 
     // Dynamic attributes. Structured attribute values are flattened in the
     // semantic model (`bounds.x`, `bounds.width`) and reconstructed here so an
@@ -35,7 +41,7 @@ export function generateUsage(element: CsvElement, options: GenerateOptions = {}
     const scalarAttributes: Array<[string, string]> = [];
     const structuredAttributes = new Map<string, Array<[string, string]>>();
     for (const [key, value] of Object.entries(element.attributes)) {
-        if (key === 'name' || key === 'label') continue; // emitted above
+        if (key === 'name' || key === 'label' || key === 'providedId') continue; // emitted above
         // `attribute redefines x` resolves only against an attribute the kind declares; any other
         // column would be a feature nothing declares and the file would not compile.
         if (options.declaresAttribute && !options.declaresAttribute(element.kind, key.split('.')[0])) {

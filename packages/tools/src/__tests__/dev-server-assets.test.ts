@@ -22,6 +22,18 @@ describe('project screen-capture assets', () => {
         )).toBe(resolve(project, 'assets/UI/login-screen.png'));
     });
 
+    // The ui-screen-regions example keeps its captures with the rest of the
+    // catalog. Only `model/assets` was served, so the capture 404ed and Detect
+    // had no pixels to read.
+    it('resolves a capture beneath the catalog layout\'s artifacts/assets', () => {
+        expect(resolveProjectAssetRequest(
+            project,
+            '/model/catalog/artifacts/assets/screen-captures/mainScreenLayout/main-screen-2.4.1.png',
+        )).toBe(resolve(project, 'model/catalog/artifacts/assets/screen-captures/mainScreenLayout/main-screen-2.4.1.png'));
+        expect(resolveProjectAssetRequest(project, '/model/catalog/artifacts/assets/../reviews/notes.sysml')).toBeUndefined();
+        expect(resolveProjectAssetRequest(project, '/model/catalog/system.sysml')).toBeUndefined();
+    });
+
     it('rejects path traversal and unrelated paths', () => {
         expect(resolveProjectAssetRequest(project, '/model/model.sysml')).toBeUndefined();
         expect(resolveProjectAssetRequest(project, '/model/assets/../secret.sysml')).toBeUndefined();
@@ -36,6 +48,7 @@ describe('client source watcher ownership', () => {
     it('leaves model and sidecar updates to MEMO WebSocket reconciliation', () => {
         expect(isModelOwnedWatchPath('/project/model/catalog/system.sysml')).toBe(true);
         expect(isModelOwnedWatchPath('/project/model/assets/screen/capture.png')).toBe(true);
+        expect(isModelOwnedWatchPath('/project/model/catalog/artifacts/assets/screen/capture.png')).toBe(true);
         expect(isModelOwnedWatchPath('/project/.memo/user-diagrams.json')).toBe(true);
         expect(isModelOwnedWatchPath('/project/memo.config.yaml')).toBe(true);
     });
