@@ -24,6 +24,7 @@ import {
 } from '../toolchain/exceptions.js';
 import { findSysmlFiles } from '../model/sysml-files.js';
 import { PROVIDER_ROLES } from '../toolchain/registry.js';
+import { OPENSYSML_PROVIDER_ID } from '../toolchain/providers/opensysml-names.js';
 
 export type StructuredFormat = 'text' | 'json' | 'yaml';
 
@@ -91,9 +92,17 @@ export async function configEffectiveCommand(
 // changing engines is a flag and an exception is honoured by all of them.
 //
 // Unlike `memo validate` it runs no MEMO rule: the question is the SysML's,
-// not the model's. Fails on any error or warning not excepted, on any stale
-// exception for the provider that ran, and on a provider that cannot run.
+// not the model's. Fails on any error not excepted, on any warning not excepted
+// for a provider whose warnings are findings (SysIDE, run with
+// `--warnings-as-errors`), on any stale exception for the provider that ran, and
+// on a provider that cannot run. OpenSysML's warnings are printed and do not
+// fail: its own verdict (`accepted`) is "no errors", and its `name-conflict`
+// warning fires on every recursive `expose X::**` over a tree with repeated
+// member names, which the sample views need.
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Whether a validator's warnings are findings that fail the check. OpenSysML's are reported, not failing. */
+export const warningsFail = (provider: string): boolean => provider !== OPENSYSML_PROVIDER_ID;
 
 export interface ToolchainCheckOptions extends Record<string, unknown> {
     project?: string;
@@ -121,7 +130,8 @@ export async function toolchainCheckCommand(paths: string[], options: ToolchainC
         return;
     }
     const outcome = applyValidatorExceptions(run.diagnostics, exceptions, run.provider, projectDir);
-    const failing = outcome.remaining.filter(d => d.severity === 'error' || d.severity === 'warning');
+    const failing = outcome.remaining.filter(d => d.severity === 'error' || (warningsFail(run.provider) && d.severity === 'warning'));
+    const tolerated = outcome.remaining.filter(d => d.severity === 'warning' && !warningsFail(run.provider));
 
     for (const { diagnostic, exception } of outcome.excepted) {
         const at = `${projectRelative(diagnostic.file, projectDir)}:${diagnostic.range?.start.line ?? 0}`;
@@ -134,6 +144,7 @@ export async function toolchainCheckCommand(paths: string[], options: ToolchainC
             : '';
         console.log(`${at}${diagnostic.severity}${diagnostic.code ? ` (${diagnostic.code})` : ''}: ${diagnostic.message}`);
     }
+    if (tolerated.length > 0) console.log(chalk.yellow(`  ${tolerated.length} ${run.provider} warning(s) reported; they do not fail this check.`));
     for (const exception of outcome.stale) {
         console.error(chalk.red(
             `✖ stale exception ${exception.id}: ${run.provider} no longer reports ${exception.code} in ${exception.file} — delete it.`));

@@ -1,7 +1,16 @@
+/**
+ * Ceilings for the runtime paths of design section 13.3, enforced by `scripts/runtime-budgets.mjs` on GPCA.
+ *
+ * Raised from 5s / 5s / 0.5s on 2026-10-26, at the maintainer's decision, when the paths were re-measured through
+ * OpenSysML (median of 3, macOS arm64): cold bootstrap 8.4s and incremental rebuild 2.5s. The old figures were set
+ * for the compiler that was removed. A shared CI runner is slower than that machine, so each ceiling is about
+ * 1.5x the measurement; the save-to-revision ceiling is therefore no longer sub-second, and a change that makes
+ * the compile faster should lower these again.
+ */
 export const RUNTIME_BUDGET_MS = {
-    coldBootstrap: 5_000,
-    supervisedRestart: 5_000,
-    incrementalProjectRebuild: 500,
+    coldBootstrap: 12_000,
+    supervisedRestart: 12_000,
+    incrementalProjectRebuild: 4_000,
 } as const;
 
 export type RuntimeBudgetPath = keyof typeof RUNTIME_BUDGET_MS;

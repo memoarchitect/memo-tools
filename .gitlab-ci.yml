@@ -30,8 +30,10 @@ test:
     # The session-1 regression oracle: the frozen semantic output of the four reference projects. A difference
     # here is a behaviour change, and it fails the build rather than waiting for someone to run it by hand.
     - pnpm run check:baselines
-    # Not run here: `check:budgets` imports a module deleted with the Langium compiler, and `check:corpus`
-    # fails on examples/sysml-diagram-samples. Both are on the board (KANBAN.md), not skipped silently.
+    # The section 13.3 ceilings on GPCA, measured through OpenSysML.
+    - pnpm run check:budgets
+    # `check:corpus` is not run here: it fails on examples/sysml-diagram-samples because the converter's idea of
+    # the catalog layout is out of date. It is on the board (KANBAN.md), not skipped silently.
 
 pages:
   stage: docs
