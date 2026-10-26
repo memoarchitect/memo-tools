@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { markdownToDhfDocument, parseInlines } from '../dhf/markdown-to-ir.js';
 import type { DhfTable, DhfList, DhfParagraph, DhfImage } from '../dhf/document-ir.js';
 import { getPlugin } from '../dhf/export-plugin.js';
-import { fitToPage, WORD_TEXT_WIDTH_PX } from '../dhf/exporters/docx-exporter.js';
+import { fitToPage, WORD_TEXT_WIDTH_PX } from '../dhf/exporters/docx-document.js';
 
 const SAMPLE = `---
 id: DOC-X

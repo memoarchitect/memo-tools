@@ -49,3 +49,9 @@ export type {
 } from '../llm/chat-engine.js';
 export type { LlmSettingsStatus, LlmSettingsOrigin } from '../llm/llm-settings.js';
 export type { UserToolchainStatus, UserSettingReport } from '../toolchain/user-settings-status.js';
+
+// The Word document built from a DHF document (a real .docx; the `docx` package runs in a browser).
+export { docxToBlob, buildDocxDocument, fitToPage, WORD_TEXT_WIDTH_PX } from '../dhf/exporters/docx-document.js';
+export type {
+    DhfDocument, DhfBlock, DhfDocumentSection, DhfFrontmatter, DhfInline, DhfImage, DhfCell, DhfRow,
+} from '../dhf/document-ir.js';
