@@ -9,7 +9,8 @@ describe('runtime performance gates', () => {
     });
 
     it('fails CI when a ceiling is exceeded', () => {
-        expect(() => enforceRuntimeBudget('incrementalProjectRebuild', 501, true))
-            .toThrow('budget is 500ms');
+        const ceiling = RUNTIME_BUDGET_MS.incrementalProjectRebuild;
+        expect(() => enforceRuntimeBudget('incrementalProjectRebuild', ceiling + 1, true))
+            .toThrow(`budget is ${ceiling}ms`);
     });
 });
