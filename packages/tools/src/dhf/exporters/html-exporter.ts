@@ -111,6 +111,7 @@ function renderBlock(block: DhfBlock): string {
         case 'metric': return renderMetric(block);
         case 'metric-group': return renderMetricGroup(block);
         case 'progress': return renderProgress(block);
+        case 'image': return `<figure class="diagram"><img src="${esc(block.src)}" alt="${esc(block.alt)}"><figcaption>${esc(block.alt)}</figcaption></figure>`;
         case 'divider': return '<hr class="divider">';
         default: return '';
     }
@@ -249,6 +250,9 @@ const CSS = `<style>
   .progress-label { font-size: 12px; color: #374151; margin-bottom: 4px; }
   .progress-track { background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden; }
   .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .diagram { margin: 16px 0; text-align: center; }
+  .diagram img { max-width: 100%; height: auto; }
+  .diagram figcaption { color: #6b7280; font-size: 12px; margin-top: 4px; }
   .divider { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
   .redline-add { background: #dcfce7; color: #166534; text-decoration: none; }
   .redline-del { background: #fef2f2; color: #991b1b; text-decoration: line-through; }

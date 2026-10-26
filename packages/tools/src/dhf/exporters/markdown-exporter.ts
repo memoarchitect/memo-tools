@@ -108,6 +108,7 @@ function renderBlock(block: DhfBlock): string {
             const pct = block.max > 0 ? Math.round(block.value / block.max * 100) : 0;
             return `**${block.label}:** ${block.value}/${block.max} (${pct}%)`;
         }
+        case 'image': return `![${block.alt}](${block.src})`;
         case 'divider': return '---';
         default: return '';
     }

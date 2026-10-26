@@ -136,6 +136,8 @@ function renderBlock(block: DhfBlock): string {
             const pct = block.max > 0 ? Math.round(block.value / block.max * 100) : 0;
             return `<p><b>${esc(block.label)}:</b> ${block.value}/${block.max} (${pct}%)</p>`;
         }
+        // A Word file cannot carry the SVG the renderer drew, so it names the picture and where it is.
+        case 'image': return `<p><i>[Diagram: ${esc(block.alt)} \u2014 ${esc(block.src)}]</i></p>`;
         case 'divider': return '<hr>';
         default: return '';
     }

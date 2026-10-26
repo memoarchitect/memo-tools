@@ -195,8 +195,9 @@ export async function exportDhfCommand(options: {
             phase: webSettings.phase,
         } : {};
 
-        // Pictures are Markdown images; the other formats go through the document IR, which has no image block.
-        const pictures = hooks.diagramRenderer && !plugin
+        // Pictures are Markdown images, which Markdown and HTML carry; a Word file cannot hold the SVG, so it keeps
+        // the note beside the named file.
+        const pictures = hooks.diagramRenderer && (!plugin || format === 'html')
             ? new DiagramPictures(hooks.diagramRenderer, resolve(outputDir, 'diagrams'), { projectRoot, model: viewerModel(model, kindRegistry), validation, completeness })
             : undefined;
         let exported = 0;

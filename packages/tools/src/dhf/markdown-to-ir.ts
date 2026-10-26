@@ -101,6 +101,15 @@ function parseBlocks(lines: string[]): DhfBlock[] {
             continue;
         }
 
+        // A picture on a line of its own, as `DiagramPictures` writes it
+        const image = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(trimmed);
+        if (image) {
+            flush();
+            blocks.push({ type: 'image', alt: image[1], src: image[2] });
+            i++;
+            continue;
+        }
+
         // Pipe table
         if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
             flush();
