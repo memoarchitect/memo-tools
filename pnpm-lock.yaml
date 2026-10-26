@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@memoarchitect/ontology':
-        specifier: 0.13.2
-        version: 0.13.2
+        specifier: 0.16.2
+        version: 0.16.2
       '@openmbee/opensysml':
         specifier: 0.10.0
         version: 0.10.0
@@ -595,8 +595,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@memoarchitect/ontology@0.13.2':
-    resolution: {integrity: sha512-H4gy+BZiwr4PN12+ck8Y2oPfy76gIWRmVUoAbo/yLdiExwB303Gzdgo6TjzJ/A3UTbuZgdEGmEQsE7VeavTW4w==}
+  '@memoarchitect/ontology@0.16.2':
+    resolution: {integrity: sha512-tBPv9EZ6cVftXLyY99KeE3vqcT8Ixijmrik+Npa4kBeEA0+DHcexJnI+RvgnEso8RAZ+nGXQtj1Uw8DDFGS4CA==}
     engines: {node: '>=26.0.0'}
 
   '@npmcli/agent@4.0.2':
@@ -1991,7 +1991,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@memoarchitect/ontology@0.13.2': {}
+  '@memoarchitect/ontology@0.16.2': {}
 
   '@npmcli/agent@4.0.2':
     dependencies:
