@@ -2,7 +2,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { markdownToDhfDocument, parseInlines } from '../dhf/markdown-to-ir.js';
-import type { DhfTable, DhfList, DhfParagraph } from '../dhf/document-ir.js';
+import type { DhfTable, DhfList, DhfParagraph, DhfImage } from '../dhf/document-ir.js';
+import { getPlugin } from '../dhf/export-plugin.js';
 
 const SAMPLE = `---
 id: DOC-X
@@ -80,5 +81,25 @@ describe('parseInlines', () => {
         expect(runs[1].bold).toBe(true);
         expect(runs[3].italic).toBe(true);
         expect(runs[5].code).toBe(true);
+    });
+});
+
+describe('a picture on a line of its own', () => {
+    const doc = markdownToDhfDocument('# T\n\nBefore.\n\n![heater <IBD>](../diagrams/heater.svg)\n\nAfter.\n', { documentId: 'D', title: 'T' });
+    const blocks = doc.sections.flatMap(section => section.blocks);
+
+    it('is an image block, between the paragraphs it sits among', () => {
+        const at = blocks.findIndex(b => b.type === 'image');
+        expect(blocks.slice(at - 1, at + 2).map(b => b.type)).toEqual(['paragraph', 'image', 'paragraph']);
+        expect(blocks[at] as DhfImage).toEqual({ type: 'image', alt: 'heater <IBD>', src: '../diagrams/heater.svg' });
+    });
+
+    it('reaches Markdown and HTML as a picture, and Word as a named file', async () => {
+        const md = (await getPlugin('md')!.render(doc)).content as string;
+        const html = (await getPlugin('html')!.render(doc)).content as string;
+        expect(md).toContain('![heater <IBD>](../diagrams/heater.svg)');
+        expect(html).toContain('<img src="../diagrams/heater.svg" alt="heater &lt;IBD&gt;">');
+        const word = getPlugin('docx');
+        if (word) expect(String((await word.render(doc)).content)).toContain('[Diagram: heater &lt;IBD&gt;');
     });
 });

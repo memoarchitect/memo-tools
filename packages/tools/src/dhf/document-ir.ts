@@ -110,6 +110,13 @@ export interface DhfProgress {
     color?: string;
 }
 
+/** A picture, by path relative to the document (a diagram a renderer drew). */
+export interface DhfImage {
+    type: 'image';
+    src: string;
+    alt: string;
+}
+
 /** A horizontal rule / section break */
 export interface DhfDivider {
     type: 'divider';
@@ -125,6 +132,7 @@ export type DhfBlock =
     | DhfMetric
     | DhfMetricGroup
     | DhfProgress
+    | DhfImage
     | DhfDivider;
 
 /** A section in a DHF document */
