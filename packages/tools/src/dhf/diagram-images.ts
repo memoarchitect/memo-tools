@@ -8,6 +8,20 @@
 
 import { relative } from 'node:path';
 import { diagramNoteRefs, replaceDiagramNotes } from './document-compiler.js';
+import type { MemoModelDTO } from '../model/semantic.js';
+import type { CompletenessReport, ValidationResult } from '../validator/types.js';
+
+/**
+ * What the renderer draws: the model the document was written from, not whatever the working directory holds.
+ * A pinned release hands over its own commit's project (where its authored layouts are) and the model narrowed
+ * to the variants it builds, so a picture shows what the document's text describes.
+ */
+export interface DiagramSource {
+    projectRoot: string;
+    model: MemoModelDTO;
+    validation: ValidationResult;
+    completeness: CompletenessReport;
+}
 
 /** A picture of one view, written under the renderer's output directory. */
 export interface DiagramImage {
@@ -19,21 +33,21 @@ export interface DiagramImage {
  * Draws views. `refs` are the `{{diagram:ref}}` texts of the documents; `outDir` is where the files go.
  * A ref it cannot draw is left out of `images` and named in `warnings`.
  */
-export type DiagramRenderer = (refs: string[], outDir: string) => Promise<{ images: Record<string, DiagramImage>; warnings: string[] }>;
+export type DiagramRenderer = (refs: string[], outDir: string, source: DiagramSource) => Promise<{ images: Record<string, DiagramImage>; warnings: string[] }>;
 
 /** The pictures drawn so far in one export, so a view used by several documents is drawn once. */
 export class DiagramPictures {
     private readonly drawn = new Map<string, DiagramImage | undefined>();
     readonly warnings: string[] = [];
 
-    constructor(private readonly render: DiagramRenderer, private readonly outDir: string) {}
+    constructor(private readonly render: DiagramRenderer, private readonly outDir: string, private readonly source: DiagramSource) {}
 
     /** `markdown` with each diagram note replaced by an image link relative to `documentDir`. */
     async embed(markdown: string, documentDir: string): Promise<string> {
         const wanted = diagramNoteRefs(markdown).filter(ref => !this.drawn.has(ref));
         if (wanted.length > 0) {
             try {
-                const { images, warnings } = await this.render(wanted, this.outDir);
+                const { images, warnings } = await this.render(wanted, this.outDir, this.source);
                 for (const ref of wanted) this.drawn.set(ref, images[ref]);
                 this.warnings.push(...warnings);
             } catch (error) {

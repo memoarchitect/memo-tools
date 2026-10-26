@@ -27,7 +27,9 @@ import { join } from 'node:path';
 import { loadDhfConfigV2 } from './dhf-config-v2.js';
 import { compileMarkdownDocument } from './document-compiler.js';
 import { createQueryContext } from './query-engine.js';
+import { DiagramPictures, type DiagramRenderer } from './diagram-images.js';
 import { listBuiltinTemplates } from './template-resolver.js';
+import { viewerModel } from '../operations/project-snapshot.js';
 import { buildStandardsReport } from '../commands/standards.js';
 import type { MEMOConfig } from '../model/config.js';
 import { narrowModel } from '../model/narrow-model.js';
@@ -92,9 +94,21 @@ export interface DeviceDhfOptions {
     templates?: string[];
     /** A directory of the project's own templates, searched before the library's. */
     customTemplateDir?: string;
+    /**
+     * Draws the views a document references, from the release's own commit (its model and authored layouts).
+     * Absent: a document keeps its note where the picture would go.
+     */
+    diagramRenderer?: DiagramRenderer;
 }
 
 const RISK_GROUP = 'iso-14971';
+
+/** The built-in templates whose `required_for` names the jurisdiction, in the ontology at `contentRoot` (this installation's when absent). */
+export function requiredTemplates(jurisdiction: string, contentRoot?: string): string[] {
+    return withContentPackageRoot(contentRoot, () => listBuiltinTemplates()
+        .filter(t => (t.frontmatter.required_for ?? []).includes(jurisdiction))
+        .map(t => t.id));
+}
 
 /** What contains a release record: each container, with the other records it pins. */
 export function releaseContext(model: MemoModel, recordId: string): ReleaseContext[] {
@@ -142,12 +156,6 @@ export async function compileDeviceDhf(options: DeviceDhfOptions): Promise<Devic
     const notes: string[] = [];
     if (covered.length === 0) throw new Error(`${located.name} covers no release (#Covers): there is nothing to build its documents from.`);
 
-    const templates = (options.templates ?? listBuiltinTemplates()
-        .filter(t => (t.frontmatter.required_for ?? []).includes(jurisdiction))
-        .map(t => t.id)).sort();
-    if (templates.length === 0) notes.push(`No document template names ${jurisdiction} in its required_for, so no document is generated.`);
-    if (!templates.some(id => id.startsWith(`${RISK_GROUP}/`))) notes.push(`No ISO 14971 template is required for ${jurisdiction}, so there is no risk management file for this device.`);
-
     const deviceDir = join(options.outputDir, located.name);
     mkdirSync(deviceDir, { recursive: true });
     const releases: DeviceRelease[] = [];
@@ -179,6 +187,10 @@ export async function compileDeviceDhf(options: DeviceDhfOptions): Promise<Devic
         const config = { modelName: options.working.model ? (options.config?.modelName ?? 'model') : 'model', ...options.config } as MEMOConfig;
         // Templates and standards packs are the commit's own, not today's, as the model is.
         const contentRoot = ontologyRootAt(built.build.projectDir);
+        // The set a jurisdiction requires is the commit's own: a template added or retired since is not this release's.
+        const templates = (options.templates ?? requiredTemplates(jurisdiction, contentRoot)).sort();
+        if (templates.length === 0) notes.push(`${recordName}: no document template names ${jurisdiction} in its required_for, so no document is generated.`);
+        if (!templates.some(id => id.startsWith(`${RISK_GROUP}/`))) notes.push(`${recordName}: no ISO 14971 template is required for ${jurisdiction}, so there is no risk management file for this release.`);
         const standards = withContentPackageRoot(contentRoot, () => buildStandardsReport({
             model: kept, registries: pinned.registries, projectRoot: built.build.projectDir, regimeOverride: [jurisdiction],
         }));
@@ -187,6 +199,12 @@ export async function compileDeviceDhf(options: DeviceDhfOptions): Promise<Devic
 
         const documents: DeviceDocument[] = [];
         const releaseDir = join(deviceDir, recordName);
+        // One set of pictures per release: the cache is by view name, and a view differs between commits.
+        const pictures = options.diagramRenderer
+            ? new DiagramPictures(options.diagramRenderer, join(releaseDir, 'diagrams'), {
+                projectRoot: built.build.projectDir, model: viewerModel(kept, pinned.registries?.kindRegistry), validation, completeness,
+            })
+            : undefined;
         for (const templateId of templates) {
             const result = await withContentPackageRoot(contentRoot, () => compileMarkdownDocument({
                 templateId, ctx, config: dhfConfig, customTemplateDir: options.customTemplateDir,
@@ -199,9 +217,11 @@ export async function compileDeviceDhf(options: DeviceDhfOptions): Promise<Devic
             const group = templateId.includes('/') ? templateId.slice(0, templateId.indexOf('/')) : 'documents';
             const id = templateId.slice(templateId.lastIndexOf('/') + 1);
             mkdirSync(join(releaseDir, group), { recursive: true });
-            writeFileSync(join(releaseDir, group, `${id}.md`), result.markdown, 'utf8');
+            const markdown = pictures ? await pictures.embed(result.markdown, join(releaseDir, group)) : result.markdown;
+            writeFileSync(join(releaseDir, group, `${id}.md`), markdown, 'utf8');
             documents.push({ id: templateId, title: result.title, group, path: `${recordName}/${group}/${id}.md`, warnings: result.warnings.length });
         }
+        for (const warning of new Set(pictures?.warnings ?? [])) notes.push(`${recordName}: ${warning}`);
         releases.push({
             record: recordName, commit: built.commit, workspace: workspace?.name,
             excludedVariants: [...excluded].map(id => pinned.model.elements.get(id)?.shortName ?? id).sort(), documents,
@@ -220,7 +240,7 @@ function indexText(device: DeviceDhfResult['device'], releases: DeviceRelease[],
         `# Design history file: ${device.name}`, '',
         `- Jurisdiction: ${device.jurisdiction}`,
         ...(device.submissionId ? [`- Submission: ${device.submissionId}`] : []),
-        `- Compiler: ${compiler ?? 'unknown'}${compilerVersion ? ` ${compilerVersion}` : ''}, installed now (a pinned build uses today's compiler; the ontology is the commit's when its locked release could be installed)`,
+        `- Compiler: ${compiler ?? 'unknown'}${compilerVersion ? ` ${compilerVersion}` : ''}, installed now (a pinned build uses today's compiler; the ontology is the commit's when its locked release could be installed). Diagrams, when drawn, come from the installed Architect canvas, from the release's model and layouts`,
         '', '## Covered releases', '',
     ];
     for (const release of releases) {

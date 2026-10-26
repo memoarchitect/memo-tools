@@ -5,7 +5,7 @@ export { saveElementToFile as createElement } from '../server/persistor.js';
 export { writeElement, recompileProject } from './authoring.js';
 export { compileMarkdownDocument as generateDocument } from '../dhf/document-compiler.js';
 export { loadViewLayouts, savedNodeIdResolver } from '../server/view-layout-store.js';
-export { buildProjectSnapshot, serializeForInlineScript } from './project-snapshot.js';
+export { buildProjectSnapshot, serializeForInlineScript, viewerModel } from './project-snapshot.js';
 export { devCommand as startProjectServer } from '../commands/dev.js';
 export { generateValidatedSysml, validateGeneratedSysml, MAX_SYSML_GENERATION_ATTEMPTS } from './ai-authoring.js';
 export { pinnedTarget, type PinnedTarget } from '../commands/pinned-target.js';
