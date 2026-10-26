@@ -3,7 +3,7 @@
 // The coverage computation always runs. With a compiler configured
 // (`MEMO_SYSIDE_PYTHON`; `OPENSYSML_BINARY`, and `MEMO_OPENSYSML_CLIENT` only to override the pinned client) the
 // commands run on a copy of temperature-alarm and report what the ontology
-// states: 35 medical-device rules, 30 of them tracing to a clause
+// states: 38 medical-device rules, 33 of them tracing to a clause
 // (plans/memo-rules-domain-trace-and-editor.md).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -81,16 +81,16 @@ function run(root: string, args: string[], flags: string[]): string {
 
 function integration(name: string, flags: string[]): void {
     describe(`rule domains and clauses, through ${name}`, () => {
-        it('lists 35 medical-device rules, 30 with a clause; the other 5 trace to none, which is allowed', () => {
+        it('lists 38 medical-device rules, 33 with a clause; the other 5 trace to none, which is allowed', () => {
             const root = mkdtempSync(join(tmpdir(), 'memo-rule-clauses-'));
             try {
                 cpSync(example, root, { recursive: true, filter: source => !source.includes(`${example}/.memo`) });
                 const listed = JSON.parse(run(root, ['validate', '--rules', '--format', 'json', '--rules-domain', 'medicalDevice'], flags)) as {
                     tailorable: { sourceRuleId: string; domain: string; clauses: { label: string }[] }[];
                 };
-                expect(listed.tailorable).toHaveLength(35);
+                expect(listed.tailorable).toHaveLength(38);
                 expect(listed.tailorable.every(r => r.domain === 'medicalDevice')).toBe(true);
-                expect(listed.tailorable.filter(r => r.clauses.length > 0)).toHaveLength(30);
+                expect(listed.tailorable.filter(r => r.clauses.length > 0)).toHaveLength(33);
                 expect(listed.tailorable.find(r => r.sourceRuleId === 'CR-MED-011')?.clauses[0].label)
                     .toBe('IEC 62304:2006+AMD1:2015 §5.2.1');
 
@@ -101,9 +101,9 @@ function integration(name: string, flags: string[]): void {
                 expect(checked.ruleCoverage.untracedRules.filter(r => r.domain === 'medicalDevice').map(r => r.id).sort())
                     .toEqual(['CR-MED-021', 'CR-MED-030', 'CR-MED-031', 'CR-MED-032', 'CR-ONT-032']);
                 expect(checked.ruleCoverage.untracedRules.some(r => r.domain === 'modelling')).toBe(true);
-                expect(checked.ruleCoverage.tracedRules).toBe(30);
+                expect(checked.ruleCoverage.tracedRules).toBe(33);
                 expect(checked.ruleCoverage.unknownClauses).toEqual([]);
-                expect(checked.ruleCoverage.byDomain).toMatchObject({ medicalDevice: 35, modelling: 44 });
+                expect(checked.ruleCoverage.byDomain).toMatchObject({ medicalDevice: 38, modelling: 44 });
             } finally {
                 rmSync(root, { recursive: true, force: true });
             }
