@@ -126,13 +126,14 @@ const LEGACY_SEMANTIC_SETTINGS = [
 ];
 
 /**
- * Where views that declare no governing viewpoint are collected.
+ * Where a view goes when it does not belong to exactly one viewpoint.
  *
- * ISO 42010 puts every view under a viewpoint, and a view that names none has a
- * real gap in it. The conversion neither invents a viewpoint nor drops the view
- * — it puts them somewhere obvious and says so.
+ * A view traces to one or more viewpoints (`MemoView.viewpointDefinition` is `[1..*]`). One viewpoint: the view
+ * is filed under it. Several: it serves none of them alone, so it is shared. None: it is shared too, but that is
+ * a gap rather than a placement — ISO 42010 puts every view under a viewpoint — so the conversion says so and
+ * the `view-has-viewpoint` rule reports it. The conversion neither invents a viewpoint nor drops the view.
  */
-const UNCLASSIFIED_VIEW_GROUP = 'unassigned';
+const SHARED_VIEW_GROUP = 'shared';
 
 /** Directories under the project root that hold vendored reusable packages. */
 const VENDORED_REUSABLE_DIRS = new Set(['methodology', 'methodologies', 'extensions', 'profile', 'profiles']);
@@ -157,8 +158,8 @@ export interface SourceFacts {
     viewUsages: string[];
     /** `viewpoint <name>` usages declared in the file. */
     viewpointUsages: string[];
-    /** Name bound by `part :>> viewpointDefinition = <name>;`. */
-    viewpointDefinition?: string;
+    /** Every distinct name bound by `ref :>> viewpointDefinition = <name>;` (or a parenthesised list), in order. */
+    viewpointDefinitions: string[];
     /** Package names this file imports. */
     imports: string[];
     /**
@@ -182,16 +183,18 @@ const VIEW_RE = /^\s*view\s+([A-Za-z_][A-Za-z0-9_]*)\s*:/gm;
  */
 const VIEWPOINT_RE =
     /^\s*(?:(?:part\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*\w*Viewpoint\b)|(?:viewpoint\s+([A-Za-z_][A-Za-z0-9_]*)\s*[:{]))/gm;
-const VIEWPOINT_DEF_RE = /viewpointDefinition\s*=\s*([A-Za-z_][A-Za-z0-9_]*)/;
+const VIEWPOINT_DEF_RE = /viewpointDefinition\s*=\s*(\([^)]*\)|[A-Za-z_][A-Za-z0-9_]*)/g;
 const IMPORT_RE = /^\s*(?:public|private)?\s*import\s+([A-Za-z_][A-Za-z0-9_]*)/gm;
 
 export function readSourceFacts(text: string): SourceFacts {
-    const facts: SourceFacts = { topLevelPackages: [], viewUsages: [], viewpointUsages: [], imports: [], declaresOnlyImports: false };
+    const facts: SourceFacts = { topLevelPackages: [], viewUsages: [], viewpointUsages: [], viewpointDefinitions: [], imports: [], declaresOnlyImports: false };
     facts.packageName = PACKAGE_RE.exec(text)?.[1];
     for (const m of text.matchAll(TOP_LEVEL_PACKAGE_RE)) facts.topLevelPackages.push(m[1]);
     for (const m of text.matchAll(VIEW_RE)) facts.viewUsages.push(m[1]);
     for (const m of text.matchAll(VIEWPOINT_RE)) facts.viewpointUsages.push(m[1] ?? m[2]);
-    facts.viewpointDefinition = VIEWPOINT_DEF_RE.exec(text)?.[1];
+    // A file may hold several views, each tracing to its own viewpoint, so every binding counts, not the first.
+    facts.viewpointDefinitions = [...new Set(
+        [...text.matchAll(VIEWPOINT_DEF_RE)].flatMap(m => m[1].match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []))];
     for (const m of text.matchAll(IMPORT_RE)) facts.imports.push(m[1]);
     facts.declaresOnlyImports = facts.packageName !== undefined && text
         .split('\n')
@@ -375,16 +378,16 @@ export function classifyFile(
         // one. Deriving a group from its filename would invent an ISO 42010
         // viewpoint the model never declared, so these collect under one
         // clearly-named group and are reported for an author to place.
-        const group = facts.viewpointDefinition
-            ? viewpointGroup(facts.viewpointDefinition)
-            : UNCLASSIFIED_VIEW_GROUP;
+        const group = facts.viewpointDefinitions.length === 1
+            ? viewpointGroup(facts.viewpointDefinitions[0])
+            : SHARED_VIEW_GROUP;
         return { role: 'view', to: join(CATALOG_ROOT, 'viewpoints', group, 'views', basename(norm)) };
     }
 
     if (isViewpointFile || (inViewsDir && facts.viewpointUsages.length > 0)) {
         const group = facts.viewpointUsages.length > 0
             ? viewpointGroup(facts.viewpointUsages[0])
-            : UNCLASSIFIED_VIEW_GROUP;
+            : SHARED_VIEW_GROUP;
         return { role: 'viewpoint', to: join(CATALOG_ROOT, 'viewpoints', group, 'viewpoint.sysml') };
     }
 
@@ -696,14 +699,14 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
             });
         }
 
-        if (role === 'view' && !facts.get(relPath)?.viewpointDefinition) {
+        if (role === 'view' && (facts.get(relPath)?.viewpointDefinitions.length ?? 0) === 0) {
             warnings.push({
                 code: 'unclassified-view',
                 file: relPath,
                 message:
-                    `${relPath} declares a view but no governing viewpoint, so it lands under ` +
-                    `viewpoints/${UNCLASSIFIED_VIEW_GROUP}/. Give it a viewpointDefinition and move it ` +
-                    'to that viewpoint — ISO 42010 puts every view under one.',
+                    `${relPath} declares a view but no viewpoint it traces to, so it lands under ` +
+                    `viewpoints/${SHARED_VIEW_GROUP}/. Give it a viewpointDefinition — ISO 42010 puts every ` +
+                    'view under at least one.',
             });
         }
 
@@ -711,7 +714,7 @@ export function planConversion(projectRoot: string, options: PlanOptions = {}): 
             // model/catalog/viewpoints/<group>/…
             const group = to.split(sep)[3];
             if (group && !viewpointGroupsSeen.has(group)) {
-                viewpointGroupsSeen.set(group, f.viewpointDefinition ?? f.viewpointUsages[0] ?? group);
+                viewpointGroupsSeen.set(group, f.viewpointDefinitions[0] ?? f.viewpointUsages[0] ?? group);
             }
         }
 
