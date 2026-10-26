@@ -2,6 +2,16 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.16.2
+
+- **Views and viewpoints.** `convert` files a view under the one viewpoint it traces to. It now reads every `viewpointDefinition` in a file, not the first, so a file of views for different viewpoints is no longer misplaced. A view that traces to several viewpoints, or to none, goes under `viewpoints/shared/` (it was `unassigned/`); a view that traces to none still warns (`unclassified-view`). `convert` carries `memo.identity.yaml` with the packages it renames, so a moved element keeps its short id and uuid, and a package outside the project's namespace keeps its name.
+- **Pinned builds.** A family whose `systems/` folder sits under `catalog/` (the layout `convert` produces) is found by the build that pins its systems.
+- **Validator.** `memo toolchain check` prints OpenSysML warnings without failing on them; SysIDE warnings still fail it.
+- **Screen captures.** The dev server serves captures kept under `model/catalog/artifacts/assets/`. An authored id is written as `@MemoIdentity { :>> providedId }`, and a create can name the part it belongs inside, so a region is declared inside its screen.
+- **Constraints and quantities.** A model's own constraints are evaluated (`MC-001`); a quantity is read as a number from the library's unit source and keeps its units and its rational point.
+- **Export.** The Word export is a real `.docx` with the diagram pictures embedded, and the HTML export carries them too.
+- **Build.** The repository's own scripts run as Node, so they work on macOS, Linux and Windows.
+
 ## 0.16.0
 
 - **SysIDE 1.0.** `compiler: syside` works with SysIDE 1.0.0 as well as 0.10.x. Stage 1 reads both Python APIs (1.0 renamed `user_docs` and `stdlib_docs` and dropped `Diagnostic.full_message`), and the validator's default `diagnose` scope is `project` on 1.0, because 1.0's `all` also fails SysIDE's own bundled standard library. An explicit `toolchain.syside.diagnose` still wins. With 1.0, a diagnostic from stage 1 has no source snippet.
