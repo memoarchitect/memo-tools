@@ -458,18 +458,18 @@
         "package": "memo_examples_nested_architecture_dsm_assurance_verification_validation"
       },
       {
+        "id": "memo_examples_nested_architecture_dsm_nested_architecture_dsm_system::NestedArchitectureDsmSystem",
+        "kind": "System",
+        "construct": "part",
+        "layer": "logical",
+        "package": "memo_examples_nested_architecture_dsm_nested_architecture_dsm_system"
+      },
+      {
         "id": "memo_examples_nested_architecture_dsm_project::projectBinding",
         "kind": "ModelMethodBinding",
         "construct": "part",
         "layer": "methodology",
         "package": "memo_examples_nested_architecture_dsm_project"
-      },
-      {
-        "id": "memo_examples_nested_architecture_dsm_system::NestedArchitectureDsmSystem",
-        "kind": "System",
-        "construct": "part",
-        "layer": "logical",
-        "package": "memo_examples_nested_architecture_dsm_system"
       }
     ],
     "relationships": [

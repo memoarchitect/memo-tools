@@ -4,7 +4,7 @@
     "files": 4,
     "elements": 17,
     "definitions": 1,
-    "relationships": 15,
+    "relationships": 16,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
@@ -28,7 +28,7 @@
         "ValidationCase": 1,
         "VerificationCase": 2
       },
-      "relationships": 15,
+      "relationships": 16,
       "relationshipTypes": {
         "allocatedTo": 1,
         "composes": 1,
@@ -38,6 +38,7 @@
         "producesEvidence": 2,
         "realizes": 2,
         "satisfiedBy": 1,
+        "subsets": 1,
         "validates": 1,
         "verifiedBy": 2
       },
@@ -45,7 +46,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+    "model/catalog/viewpoints/logical/viewpoint.sysml": {
       "elements": 0,
       "definitions": 0,
       "kinds": {},
@@ -55,7 +56,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/functional_logical_physical_overview.sysml": {
+    "model/catalog/viewpoints/logical/views/functional_logical_physical_overview.sysml": {
       "elements": 1,
       "definitions": 0,
       "kinds": {

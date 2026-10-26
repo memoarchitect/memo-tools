@@ -146,9 +146,16 @@ memo_examples_gpca_pump_model_views_logical_mode_state_view
   `extensions/`, `profile/` stay where they are and are added to `include`
   (warning `vendored-reusable-package`). Moving them into the catalog would claim
   they belong to the project.
-* **It does not invent viewpoints.** A view naming no viewpoint is filed under
-  `viewpoints/unassigned/` with a warning (`unclassified-view`); give it a
-  `viewpointDefinition` and move it.
+* **It does not invent viewpoints.** A view is filed under the one viewpoint it
+  traces to (`viewpointDefinition`). A file whose views trace to several viewpoints
+  goes under `viewpoints/shared/`, and so does a view that traces to none, with a
+  warning (`unclassified-view`): every view must trace to at least one, and rule
+  `CR-ONT-092` reports it. Give it a `viewpointDefinition` and move it.
+* **It does not rename packages outside the project's namespace.** A package that
+  shares no leading name with the rest (a standard fixture copied in verbatim) keeps
+  its name and only its file is placed (warning `package-outside-namespace`).
+* **It carries `memo.identity.yaml` with the packages it renames,** so a moved
+  element keeps its short id and uuid.
 * **It is not a general reformatter.** It reads files with simple patterns, not a
   full parse, so it works on files that no longer compile. Only the declaration of
   a package, references to renamed packages and artifact URIs are rewritten.

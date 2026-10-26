@@ -12,7 +12,8 @@
 // wrote the converter, and they agree with it by construction.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import {
     applyConversion,
@@ -24,6 +25,7 @@ import {
     readSourceFacts,
     renderPlan,
     rewriteArtifactUris,
+    rewriteIdentityKeys,
     rewritePackageReferences,
 } from '../model/project-conversion.js';
 
@@ -424,6 +426,40 @@ describe('the real pre-conversion GPCA snapshot', () => {
         expect(to('document_sdd_view.sysml')).toContain('viewpoints/software/views/');
         // The index traces to requirements, risk and verification, so no one of them owns it: it is shared.
         expect(to('document_dhf_index_view.sysml')).toContain('viewpoints/shared/views/');
+    });
+
+    it('plans a project with a package outside its namespace, leaving that package unrenamed', () => {
+        const root = mkdtempSync(join(tmpdir(), 'memo-outlier-'));
+        try {
+            const write = (rel: string, text: string) => {
+                mkdirSync(join(root, rel, '..'), { recursive: true });
+                writeFileSync(join(root, rel), text);
+            };
+            write('model/acme_one.sysml', 'package acme_one {\n    part def A;\n}\n');
+            write('model/acme_two.sysml', 'package acme_two {\n    part def B;\n}\n');
+            write('model/standard_fixture.sysml', 'package standard_fixture {\n    part def C;\n}\n');
+            const plan = planConversion(root, { normalizeNames: true });
+            expect(plan.collisions).toEqual([]);
+            expect(plan.projectPrefix).toBe('acme');
+            expect([...plan.packageRenames.keys()]).not.toContain('standard_fixture');
+            expect(plan.warnings.map(w => w.code)).toContain('package-outside-namespace');
+        } finally {
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
+
+    it('carries identity keys through a package rename, once', () => {
+        const yaml = [
+            'elements:',
+            '  "a_unassigned::view":', '    shortId: "MMX-2"',
+            '  "b::part":', '    shortId: "X-1"',
+            '  "a_logical::view":', '    shortId: "MMX-9"',
+        ].join('\n');
+        const out = rewriteIdentityKeys(yaml, new Map([['a_unassigned', 'a_logical'], ['a_logical', 'a_shared']]));
+        // a_unassigned becomes a_logical and a_logical becomes a_shared, each only once (no chain to a_shared).
+        expect(out).toContain('"a_logical::view":\n    shortId: "MMX-2"');
+        expect(out).toContain('"a_shared::view":\n    shortId: "MMX-9"');
+        expect(out).toContain('"b::part":\n    shortId: "X-1"');
     });
 
     it('reads every viewpoint a file traces to, not the first', () => {

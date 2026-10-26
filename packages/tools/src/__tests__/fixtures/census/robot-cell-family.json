@@ -4,7 +4,7 @@
     "files": 10,
     "elements": 47,
     "definitions": 12,
-    "relationships": 45,
+    "relationships": 49,
     "packages": 10,
     "parseErrors": 0,
     "builderFindings": 0
@@ -22,19 +22,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/methodology/project.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "ModelMethodBinding": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/shared/shared.sysml": {
+    "model/catalog/shared/shared.sysml": {
       "elements": 7,
       "definitions": 5,
       "kinds": {
@@ -48,7 +36,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/sos/chains.sysml": {
+    "model/catalog/sos/chains.sysml": {
       "elements": 6,
       "definitions": 0,
       "kinds": {
@@ -56,19 +44,20 @@
         "OperationalWorkflow": 1,
         "OperativeScenario": 1
       },
-      "relationships": 15,
+      "relationships": 19,
       "relationshipTypes": {
         "composes": 5,
         "flow": 2,
         "performs": 4,
         "realizesUseCase": 1,
+        "subsets": 4,
         "succession": 3
       },
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/sos/icds.sysml": {
+    "model/catalog/sos/icds.sysml": {
       "elements": 6,
       "definitions": 2,
       "kinds": {
@@ -82,7 +71,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/sos/sos.sysml": {
+    "model/catalog/sos/sos.sysml": {
       "elements": 5,
       "definitions": 1,
       "kinds": {
@@ -101,7 +90,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/sos/use_cases.sysml": {
+    "model/catalog/sos/use_cases.sysml": {
       "elements": 1,
       "definitions": 0,
       "kinds": {
@@ -117,7 +106,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/systems/manipulation/manipulation_system.sysml": {
+    "model/catalog/systems/manipulation/manipulation_system.sysml": {
       "elements": 6,
       "definitions": 1,
       "kinds": {
@@ -139,7 +128,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/systems/navigation/navigation_system.sysml": {
+    "model/catalog/systems/navigation/navigation_system.sysml": {
       "elements": 8,
       "definitions": 1,
       "kinds": {
@@ -163,7 +152,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/systems/perception/perception_system.sysml": {
+    "model/catalog/systems/perception/perception_system.sysml": {
       "elements": 6,
       "definitions": 1,
       "kinds": {
@@ -182,6 +171,18 @@
         "logicalConnector": 1,
         "participatesIn": 1
       },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0

@@ -51,12 +51,12 @@ export function createFamilyRepo(): FamilyRepo {
     }
     // The manipulator's grasp function has a requirement it satisfies and a test that verifies it, so a
     // change to the function reaches both (impact, T11).
-    writeFileSync(join(root, 'model/systems/manipulation/trace.sysml'), `package robot_cell_family_manipulation_trace {
+    writeFileSync(join(root, 'model/catalog/systems/manipulation/trace.sysml'), `package robot_cell_family_manipulation_trace {
     private import memo_core_common::*;
     private import memo_core_enumerations::*;
     private import memo_assurance_requirements::*;
     private import memo_assurance_verification_validation::*;
-    private import robot_cell_family_manipulation::*;
+    private import robot_cell_family_systems_manipulation_manipulation_system::*;
 
     requirement reqMotionLimits : Requirement {
         attribute :>> requirementType = RequirementTypeKind::system;
@@ -84,21 +84,21 @@ export function createFamilyRepo(): FamilyRepo {
         writeFileSync(join(root, file), text.split(from).join(to));
     };
     const c1 = commit('c1 family');
-    edit('model/systems/navigation/navigation_system.sysml', 'Navigation workstation', 'Navigation workstation rev B');
+    edit('model/catalog/systems/navigation/navigation_system.sysml', 'Navigation workstation', 'Navigation workstation rev B');
     const c2 = commit('c2 navigation');
     git(root, 'tag', 'rc-navigation', c2);
-    edit('model/systems/manipulation/manipulation_system.sysml', 'Arm controller', 'Arm controller rev B');
+    edit('model/catalog/systems/manipulation/manipulation_system.sysml', 'Arm controller', 'Arm controller rev B');
     // Navigation and perception move on at c3 too, so a release that pins them earlier reads something else than c3 holds.
-    edit('model/systems/navigation/navigation_system.sysml', 'rev B', 'rev C');
-    edit('model/systems/perception/perception_system.sysml', 'Amplifier', 'Amplifier rev X');
+    edit('model/catalog/systems/navigation/navigation_system.sysml', 'rev B', 'rev C');
+    edit('model/catalog/systems/perception/perception_system.sysml', 'Amplifier', 'Amplifier rev X');
     const c3 = commit('c3 manipulation');
     const placeholders: Record<string, string> = { '1': c1, '2': c2, '3': c3, '4': c2, '5': c3, '6': c1, '7': c3, '8': c3 };
     let records = RELEASE_RECORDS;
     for (const [digit, sha] of Object.entries(placeholders)) records = records.split(digit.repeat(40)).join(sha);
-    writeFileSync(join(root, 'model/sos/release_records.sysml'), records);
+    writeFileSync(join(root, 'model/catalog/sos/release_records.sysml'), records);
     const c4 = commit('c4 release records');
-    edit('model/shared/shared.sysml', 'RobotPose', 'ToolPose');
-    edit('model/systems/navigation/navigation_system.sysml', 'RobotPose', 'ToolPose');
+    edit('model/catalog/shared/shared.sysml', 'RobotPose', 'ToolPose');
+    edit('model/catalog/systems/navigation/navigation_system.sysml', 'RobotPose', 'ToolPose');
     const c5 = commit('c5 rename');
     const lab = 'RoboticCell';
     const extra = [
@@ -110,22 +110,22 @@ export function createFamilyRepo(): FamilyRepo {
         record('relLabPartial', lab, c3, 506, ['relNavigation', 'relManipulation']),
         record('relLabIcdOnly', lab, c3, 507, ['relManipulationIcd']),
     ].join('\n');
-    const text = readFileSync(join(root, 'model/sos/release_records.sysml'), 'utf8');
-    writeFileSync(join(root, 'model/sos/release_records.sysml'), text.replace(/\}\s*$/, `${extra}\n}\n`));
+    const text = readFileSync(join(root, 'model/catalog/sos/release_records.sysml'), 'utf8');
+    writeFileSync(join(root, 'model/catalog/sos/release_records.sysml'), text.replace(/\}\s*$/, `${extra}\n}\n`));
     const c6 = commit('c6 more records');
     const branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD');
     git(root, 'checkout', '-q', '-b', 'side', c1);
-    writeFileSync(join(root, 'model/systems/perception/side_note.sysml'), 'package robot_cell_family_perception_side_note {\n}\n');
+    writeFileSync(join(root, 'model/catalog/systems/perception/side_note.sysml'), 'package robot_cell_family_perception_side_note {\n}\n');
     const cSide = commit('side note');
     git(root, 'checkout', '-q', branch);
     git(root, 'merge', '-q', '--no-ff', '-m', 'c7 merge side', 'side');
     const c7 = git(root, 'rev-parse', 'HEAD');
     const sideRecord = record('relFirmwareSide', 'MotionControllerFirmware', cSide, 508);
     const mergeRecord = record('relFirmwareMerge', 'MotionControllerFirmware', c7, 509);
-    const withMerge = readFileSync(join(root, 'model/sos/release_records.sysml'), 'utf8');
-    writeFileSync(join(root, 'model/sos/release_records.sysml'), withMerge.replace(/\}\s*$/, `${sideRecord}\n${mergeRecord}\n}\n`));
+    const withMerge = readFileSync(join(root, 'model/catalog/sos/release_records.sysml'), 'utf8');
+    writeFileSync(join(root, 'model/catalog/sos/release_records.sysml'), withMerge.replace(/\}\s*$/, `${sideRecord}\n${mergeRecord}\n}\n`));
     // Two releases of one system that differ by the variant they build, and the two approvals that cover them.
-    writeFileSync(join(root, 'model/sos/devices.sysml'), `package robot_cell_family_devices {
+    writeFileSync(join(root, 'model/catalog/sos/devices.sysml'), `package robot_cell_family_devices {
     private import memo_core_common::*;
     private import memo_core_dimensions::*;
     private import memo_core_enumerations::*;

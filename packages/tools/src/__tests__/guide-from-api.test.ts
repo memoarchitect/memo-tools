@@ -39,7 +39,7 @@ export const FAMILY_METHOD = `package robot_cell_family_method {
 
 describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, from the handoff', () => {
     it('reads the default method\'s steps, their order, roles, viewpoints and done-rules, and a family step that follows one', async () => {
-        await withExample({ 'model/sos/family_method.sysml': FAMILY_METHOD }, project => {
+        await withExample({ 'model/catalog/sos/family_method.sysml': FAMILY_METHOD }, project => {
             const { steps, roleViews } = readGuideSources(project.api, ['memo_methodology_profiles', 'robot_cell_family_method']);
             const byName = new Map(steps.map(s => [s.name, s]));
             expect(steps.map(s => s.name)).toEqual([
@@ -67,7 +67,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
     }, 120_000);
 
     it('reads only the packages it is given', async () => {
-        await withExample({ 'model/sos/family_method.sysml': FAMILY_METHOD }, project => {
+        await withExample({ 'model/catalog/sos/family_method.sysml': FAMILY_METHOD }, project => {
             expect(readGuideSources(project.api, ['robot_cell_family_method']).steps.map(s => s.name)).toEqual(['stepFamilyReview']);
             expect(readGuideSources(project.api, ['no_such_package'])).toEqual({ steps: [], roleViews: [] });
         }, 'robot-cell-family');

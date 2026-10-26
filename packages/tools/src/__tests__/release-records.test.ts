@@ -117,7 +117,7 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
     it('has no version or baseline on a configuration item, and no baseline string on a change request (§8)', async () => {
         for (const [attribute, owner] of [['version', 'ConfigurationItem'], ['baseline', 'ConfigurationItem'], ['affectedBaseline', 'ChangeRequest']]) {
             const files = releaseFiles();
-            files['model/sos/stale.sysml'] = `package robot_cell_family_stale {
+            files['model/catalog/sos/stale.sysml'] = `package robot_cell_family_stale {
     private import memo_artifacts_configuration_management::*;
     part stale : ${owner} { attribute :>> ${attribute} = "x"; }
 }
@@ -128,7 +128,7 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
 
     it('declares the release dependencies, so a misspelt one does not compile', async () => {
         const files = releaseFiles();
-        files['model/sos/release_records.sysml'] = files['model/sos/release_records.sysml'].replace('#Contains dependency from relLabV1', '#Contain dependency from relLabV1');
+        files['model/catalog/sos/release_records.sysml'] = files['model/catalog/sos/release_records.sysml'].replace('#Contains dependency from relLabV1', '#Contain dependency from relLabV1');
         await expect(withReleases(() => 'compiled', files)).rejects.toThrow(/Contain\b/);
     }, 120_000);
 
@@ -137,7 +137,7 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
     // builds the same edge, and the rules judge it without error.
     it('links a record to a usage as well as to a definition', async () => {
         const files = releaseFiles();
-        files['model/sos/release_records.sysml'] = files['model/sos/release_records.sysml'].replace(/\}\n$/, `
+        files['model/catalog/sos/release_records.sysml'] = files['model/catalog/sos/release_records.sysml'].replace(/\}\n$/, `
     part relLabUsage : ReleaseRecord {
         @MemoIdentity { :>> providedId = "RCF-REL-402"; :>> label = "Lab usage release"; }
         attribute :>> status = ElementStatusKind::released;

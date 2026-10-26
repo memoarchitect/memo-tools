@@ -99,6 +99,21 @@ export const FIXTURES = [
  * the other three fixtures are unchanged.
  */
 /**
+ * BASELINES RE-FROZEN 2026-10-26 — gpca, ui-regions, extension-clinical, robot-cell-family, nested-architecture-dsm.
+ *
+ * `convert` re-laid the examples out by viewpoint (a view that traces to one viewpoint is filed under it; one that
+ * traces to several or none under `viewpoints/shared/`) and rewrote package names to mirror the new tree. Only the
+ * declaring package moved, and with it the package-derived part of a view's id; the corpus run compared every
+ * example's elements and relationships by leaf name before and after and found them identical (700 for GPCA).
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | `package` on the views that moved; `document_architecture_description_view` and `document_dhf_index_view` now under `viewpoints/shared/` | Both trace to several viewpoints. |
+ * | robot-cell-family | `package` on most elements | Its files moved from `model/{shared,sos,systems}` into `model/catalog/`. |
+ * | ui-regions, extension-clinical, nested-architecture-dsm | `package` on a few elements | Package names now mirror their location. |
+ * | default | none | Already native. |
+ */
+/**
  * BASELINE RE-FROZEN 2026-08-02 — all four fixtures, end of session 4.
  *
  * The baselines had been red since the session-3 flip and were never re-frozen,

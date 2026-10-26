@@ -36,13 +36,13 @@ describe.runIf(compilerConfigured && examplesPresent)('features and design optio
 
     it('declares the typed dependencies, so a misspelt one does not compile', async () => {
         const files = variabilityFiles();
-        files['model/sos/releases.sysml'] = files['model/sos/releases.sysml'].replace('#SelectsFeature dependency from relEu', '#SelectsFeatur dependency from relEu');
+        files['model/catalog/sos/releases.sysml'] = files['model/catalog/sos/releases.sysml'].replace('#SelectsFeature dependency from relEu', '#SelectsFeatur dependency from relEu');
         await expect(withVariability(() => 'compiled', files)).rejects.toThrow(/SelectsFeatur/);
     }, 120_000);
 
     it('has no string options on a design decision: they are typed links to variants', async () => {
         const files = variabilityFiles();
-        files['model/sos/decisions.sysml'] = files['model/sos/decisions.sysml'].replace(
+        files['model/catalog/sos/decisions.sysml'] = files['model/catalog/sos/decisions.sysml'].replace(
             '#Selected dependency', 'attribute :>> selectedOption = "euOutput";\n        #Selected dependency');
         await expect(withVariability(() => 'compiled', files)).rejects.toThrow(/selectedOption/);
     }, 120_000);

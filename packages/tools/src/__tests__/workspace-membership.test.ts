@@ -98,7 +98,7 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
                 allocation coreOnWorkstation : RealizedBy allocate core to workstation;
             }
         }`;
-        await withExample({ 'model/shared/realized.sysml': source }, project => {
+        await withExample({ 'model/catalog/shared/realized.sysml': source }, project => {
             expect(project.model.relationships.filter(r => r.type === 'realizedBy').map(r => `${label(project, r.sourceId)} -> ${label(project, r.targetId)}`))
                 .toEqual(['DemoSystem::core -> workstation']);
             const result = membership(project);
@@ -123,7 +123,7 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
 
     it('lists a seeded orphan as Unassigned and nothing else new', async () => {
         const orphan = 'package orphans { private import memo_architecture_logical_structure::*; part def StrayModule specializes LogicalComponent; }';
-        await withExample({ 'model/shared/orphan.sysml': orphan }, project => {
+        await withExample({ 'model/catalog/shared/orphan.sysml': orphan }, project => {
             expect(membership(project).unassigned.map(id => label(project, id))).toContain('StrayModule');
             expect(membership(project).unassigned).toHaveLength(1);
         }, 'robot-cell-family');

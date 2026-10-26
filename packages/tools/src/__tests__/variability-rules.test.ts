@@ -15,9 +15,9 @@ const edit = (file: string, from: string, to: string) => (files: Record<string, 
     expect(files[file], `seed anchor in ${file}: ${from}`).toContain(from);
     files[file] = files[file].replace(from, to);
 };
-const RELEASES = 'model/sos/releases.sysml';
-const FEATURES = 'model/shared/features.sysml';
-const OPTIONS = 'model/systems/manipulation/output_options.sysml';
+const RELEASES = 'model/catalog/sos/releases.sysml';
+const FEATURES = 'model/catalog/shared/features.sysml';
+const OPTIONS = 'model/catalog/systems/manipulation/output_options.sysml';
 
 /** The records each release rule flags, in a seeded copy of the fixture. */
 async function flagged(seed: ((files: Record<string, string>) => void)[] = []): Promise<Record<string, string[]>> {

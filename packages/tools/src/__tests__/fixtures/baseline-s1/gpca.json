@@ -4770,13 +4770,6 @@
         "package": "memo_examples_gpca_pump_viewpoints_logical_views_behavior_action_flow_view"
       },
       {
-        "id": "memo_examples_gpca_pump_viewpoints_logical_views_document_architecture_description_view::architectureDescriptionView",
-        "kind": "MemoDocumentView",
-        "construct": "view",
-        "layer": "unknown",
-        "package": "memo_examples_gpca_pump_viewpoints_logical_views_document_architecture_description_view"
-      },
-      {
         "id": "memo_examples_gpca_pump_viewpoints_logical_views_logical_device_interconnect_view::gpcaDeviceInterconnectView",
         "kind": "MemoDiagramView",
         "construct": "view",
@@ -4826,13 +4819,6 @@
         "package": "memo_examples_gpca_pump_viewpoints_physical_views_physical_physical_bom_view"
       },
       {
-        "id": "memo_examples_gpca_pump_viewpoints_requirements_views_document_dhf_index_view::dhfIndexView",
-        "kind": "MemoDocumentView",
-        "construct": "view",
-        "layer": "unknown",
-        "package": "memo_examples_gpca_pump_viewpoints_requirements_views_document_dhf_index_view"
-      },
-      {
         "id": "memo_examples_gpca_pump_viewpoints_requirements_views_requirements_requirements_trace_view::gpcaRequirementsTraceView",
         "kind": "MemoDiagramView",
         "construct": "view",
@@ -4866,6 +4852,20 @@
         "construct": "view",
         "layer": "unknown",
         "package": "memo_examples_gpca_pump_viewpoints_risk_views_risk_risk_chain_view"
+      },
+      {
+        "id": "memo_examples_gpca_pump_viewpoints_shared_views_document_architecture_description_view::architectureDescriptionView",
+        "kind": "MemoDocumentView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_gpca_pump_viewpoints_shared_views_document_architecture_description_view"
+      },
+      {
+        "id": "memo_examples_gpca_pump_viewpoints_shared_views_document_dhf_index_view::dhfIndexView",
+        "kind": "MemoDocumentView",
+        "construct": "view",
+        "layer": "unknown",
+        "package": "memo_examples_gpca_pump_viewpoints_shared_views_document_dhf_index_view"
       },
       {
         "id": "memo_examples_gpca_pump_viewpoints_software_views_document_sdd_view::sddView",

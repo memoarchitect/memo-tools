@@ -57,7 +57,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
     }, 180_000);
 
     it('adds a family step through baseMethodology and judges it by an existing rule, per system', async () => {
-        const perception = readFileSync(join(E0, 'model/systems/perception/perception_system.sysml'), 'utf8')
+        const perception = readFileSync(join(E0, 'model/catalog/systems/perception/perception_system.sysml'), 'utf8')
             .replace('private import memo_architecture_operational_use_cases::*;', 'private import memo_architecture_operational_use_cases::*;\n    private import memo_assurance_verification_validation::*;')
             .replace('attribute :>> outputDescription = "Filtered, timestamped point clouds";',
                 `attribute :>> outputDescription = "Filtered, timestamped point clouds";
@@ -68,14 +68,14 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
         attribute :>> methodKind = MemoVerificationMethodKind::test;
         attribute :>> acceptanceCriteria = "matches the injected reference signal";
         subject verified : Base::Anything[*] = (fnAcquirePointClouds);`);
-        const manipulation = readFileSync(join(E0, 'model/systems/manipulation/manipulation_system.sysml'), 'utf8')
+        const manipulation = readFileSync(join(E0, 'model/catalog/systems/manipulation/manipulation_system.sysml'), 'utf8')
             .replace('and the event that records it";', 'and the event that records it";\n        attribute :>> criticality = CriticalityKind::high;');
         const method = FAMILY_METHOD
             .replace('#DoneWhen dependency from stepFamilyReview to NestedPartConnectedRule;', '#DoneWhen dependency from stepFamilyReview to SafetyCriticalFunctionVerifiedRule;')
             .replace('attribute :>> outputKinds = ("ReleaseRecord");', 'attribute :>> outputKinds = ();');
         await withExample({
-            'model/systems/perception/perception_system.sysml': perception, 'model/systems/manipulation/manipulation_system.sysml': manipulation,
-            'model/sos/family_method.sysml': method,
+            'model/catalog/systems/perception/perception_system.sysml': perception, 'model/catalog/systems/manipulation/manipulation_system.sysml': manipulation,
+            'model/catalog/sos/family_method.sysml': method,
         }, project => {
             const packages = ['memo_methodology_profiles', 'robot_cell_family_method'];
             const review = (workspace: string) => evaluate(project, workspace, packages).steps.find(s => s.name === 'stepFamilyReview')!;
@@ -91,7 +91,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
 
     it('names only kinds the ontology declares in the default method, and reports a family step that names one it does not', async () => {
         const method = FAMILY_METHOD.replace('attribute :>> outputKinds = ("ReleaseRecord");', 'attribute :>> outputKinds = ("ReleaseRecord", "Hazrd");');
-        await withExample({ 'model/sos/family_method.sysml': method }, project => {
+        await withExample({ 'model/catalog/sos/family_method.sysml': method }, project => {
             const kinds = project.registries!.kindRegistry!;
             const defaults = readGuideSources(project.api, ['memo_methodology_profiles']).steps;
             expect(defaults.flatMap(s => [...s.inputKinds, ...s.outputKinds]).filter(kind => !kinds.has(kind))).toEqual([]);

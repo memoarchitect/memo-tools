@@ -21,7 +21,7 @@ export const FIRMWARE = `package robot_cell_family_manipulation_firmware {
     private import memo_core_common::*;
     private import memo_architecture_implementation_software_structure::*;
     private import memo_architecture_realization_deployment::*;
-    private import robot_cell_family_manipulation::*;
+    private import robot_cell_family_systems_manipulation_manipulation_system::*;
 
     part def MotionControllerFirmware specializes SoftwareSystem {
         @MemoIdentity { :>> providedId = "RCF-MAN-SW-001"; :>> label = "Motion Controller Firmware"; }
@@ -52,10 +52,10 @@ export const RELEASE_RECORDS = `package robot_cell_family_release_records {
     private import memo_core_dimensions::*;
     private import memo_artifacts_configuration_management::*;
     private import robot_cell_family_sos::*;
-    private import robot_cell_family_icds::*;
-    private import robot_cell_family_navigation::*;
-    private import robot_cell_family_manipulation::*;
-    private import robot_cell_family_perception::*;
+    private import robot_cell_family_sos_icds::*;
+    private import robot_cell_family_systems_navigation_navigation_system::*;
+    private import robot_cell_family_systems_manipulation_manipulation_system::*;
+    private import robot_cell_family_systems_perception_perception_system::*;
     private import robot_cell_family_manipulation_firmware::*;
     private import robot_cell_family_lab_tests::*;
 
@@ -155,8 +155,8 @@ export const PROJECTS = `package robot_cell_family_projects {
 /** The files a test passes to `withExample(…, 'robot-cell-family')`: the variability fixture plus the release records. */
 export const releaseFiles = (): Record<string, string> => ({
     ...variabilityFiles(),
-    'model/systems/manipulation/firmware.sysml': FIRMWARE,
-    'model/sos/lab_tests.sysml': SYSTEM_TEST,
-    'model/sos/release_records.sysml': RELEASE_RECORDS,
-    'model/sos/projects.sysml': PROJECTS,
+    'model/catalog/systems/manipulation/firmware.sysml': FIRMWARE,
+    'model/catalog/sos/lab_tests.sysml': SYSTEM_TEST,
+    'model/catalog/sos/release_records.sysml': RELEASE_RECORDS,
+    'model/catalog/sos/projects.sysml': PROJECTS,
 });

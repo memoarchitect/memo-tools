@@ -1,28 +1,16 @@
 {
   "project": "sysml-diagram-samples",
   "totals": {
-    "files": 19,
+    "files": 20,
     "elements": 299,
     "definitions": 39,
     "relationships": 325,
-    "packages": 22,
+    "packages": 23,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
-    "model/catalog/sysml_diagram_samples_system.sysml": {
-      "elements": 1,
-      "definitions": 1,
-      "kinds": {
-        "System": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/catalog/viewpoints/unassigned/views/action_flow_view.sysml": {
+    "model/catalog/samples/action_flow_view.sysml": {
       "elements": 17,
       "definitions": 7,
       "kinds": {
@@ -46,7 +34,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/browser_view.sysml": {
+    "model/catalog/samples/browser_view.sysml": {
       "elements": 10,
       "definitions": 0,
       "kinds": {
@@ -63,7 +51,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/context_view.sysml": {
+    "model/catalog/samples/context_view.sysml": {
       "elements": 8,
       "definitions": 0,
       "kinds": {
@@ -82,19 +70,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/diagram_samples.sysml": {
-      "elements": 22,
-      "definitions": 0,
-      "kinds": {
-        "MemoDiagramView": 22
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/catalog/viewpoints/unassigned/views/drill_down_view.sysml": {
+    "model/catalog/samples/drill_down_view.sysml": {
       "elements": 35,
       "definitions": 6,
       "kinds": {
@@ -119,7 +95,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/functional_flow_view.sysml": {
+    "model/catalog/samples/functional_flow_view.sysml": {
       "elements": 35,
       "definitions": 12,
       "kinds": {
@@ -148,7 +124,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/grid_view.sysml": {
+    "model/catalog/samples/grid_view.sysml": {
       "elements": 3,
       "definitions": 0,
       "kinds": {
@@ -160,7 +136,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/interconnection_view.sysml": {
+    "model/catalog/samples/interconnection_view.sysml": {
       "elements": 30,
       "definitions": 0,
       "kinds": {
@@ -177,7 +153,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/operational_behaviour_view.sysml": {
+    "model/catalog/samples/operational_behaviour_view.sysml": {
       "elements": 28,
       "definitions": 6,
       "kinds": {
@@ -203,7 +179,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/package_view.sysml": {
+    "model/catalog/samples/package_view.sysml": {
       "elements": 16,
       "definitions": 0,
       "kinds": {
@@ -216,7 +192,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/requirements_view.sysml": {
+    "model/catalog/samples/requirements_view.sysml": {
       "elements": 6,
       "definitions": 0,
       "kinds": {
@@ -233,7 +209,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/sequence_view.sysml": {
+    "model/catalog/samples/sequence_view.sysml": {
       "elements": 15,
       "definitions": 0,
       "kinds": {
@@ -253,7 +229,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/standard_activity_view.sysml": {
+    "model/catalog/samples/standard_activity_view.sysml": {
       "elements": 0,
       "definitions": 0,
       "kinds": {},
@@ -263,7 +239,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/state_transition_view.sysml": {
+    "model/catalog/samples/state_transition_view.sysml": {
       "elements": 17,
       "definitions": 0,
       "kinds": {
@@ -279,7 +255,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/tree_view.sysml": {
+    "model/catalog/samples/tree_view.sysml": {
       "elements": 9,
       "definitions": 0,
       "kinds": {
@@ -293,7 +269,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/use_case_view.sysml": {
+    "model/catalog/samples/use_case_view.sysml": {
       "elements": 10,
       "definitions": 1,
       "kinds": {
@@ -312,11 +288,11 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/methodology/project.sysml": {
+    "model/catalog/sysml_diagram_samples_system.sysml": {
       "elements": 1,
-      "definitions": 0,
+      "definitions": 1,
       "kinds": {
-        "ModelMethodBinding": 1
+        "System": 1
       },
       "relationships": 0,
       "relationshipTypes": {},
@@ -324,7 +300,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/sysml_v2_activity_example.sysml": {
+    "model/catalog/sysml_v2_activity_example.sysml": {
       "elements": 36,
       "definitions": 6,
       "kinds": {
@@ -346,6 +322,40 @@
         "flow": 1,
         "succession": 33
       },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/shared/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/shared/views/diagram_samples.sysml": {
+      "elements": 22,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 22
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0

@@ -292,6 +292,13 @@ export interface Assembly {
 const assemblyKey = (sos: string, systems: ReleasePin[]) => createHash('sha256')
     .update([sos, ...systems.map(s => `${s.path}@${s.commit}`).sort()].join('\n')).digest('hex').slice(0, 12);
 
+/**
+ * Where a family keeps its `systems/` folder: directly under an include root, or under that root's `catalog/`
+ * (the section 6.2 layout `memo-architect convert` produces). Both are looked at, so converting a family does not
+ * hide its systems from the build that pins them.
+ */
+const systemsBases = (roots: string[]): string[] => roots.flatMap(r => [r, `${r}/catalog`]);
+
 function includeRoots(projectDir: string): string[] {
     const manifest = readManifest(join(projectDir, 'memo.package.yaml'));
     return (manifest.include ?? ['model']).map(root => root.replace(/\/+$/, ''));
@@ -313,9 +320,9 @@ export async function assemble(projectRoot: string, sosCommit: string, pins: Rel
     for (const pin of pins) worktrees.push({ pin, worktree: await pinWorktree(root, pin.commit) });
 
     const roots = includeRoots(sos.projectDir);
-    const present = roots.flatMap(r => {
-        const systems = join(sos.projectDir, r, SYSTEMS_DIR);
-        return existsSync(systems) ? readdirSync(systems).filter(n => statSync(join(systems, n)).isDirectory()).map(n => `${r}/${SYSTEMS_DIR}/${n}`) : [];
+    const present = systemsBases(roots).flatMap(base => {
+        const systems = join(sos.projectDir, base, SYSTEMS_DIR);
+        return existsSync(systems) ? readdirSync(systems).filter(n => statSync(join(systems, n)).isDirectory()).map(n => `${base}/${SYSTEMS_DIR}/${n}`) : [];
     });
     const unpinned = present.filter(p => !pins.some(pin => pin.path === p));
     if (unpinned.length > 0) throw new Error(`the SoS commit ${sos.sha.slice(0, 7)} holds system folders no contained release pins: ${unpinned.join(', ')}`);
@@ -326,7 +333,7 @@ export async function assemble(projectRoot: string, sosCommit: string, pins: Rel
     }
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(dir, { recursive: true });
-    const systemsRoots = roots.map(r => join(sos.projectDir, r, SYSTEMS_DIR));
+    const systemsRoots = systemsBases(roots).map(base => join(sos.projectDir, base, SYSTEMS_DIR));
     cpSync(sos.projectDir, dir, {
         recursive: true,
         filter: source => basename(source) !== '.memo' && basename(source) !== '.git' && !systemsRoots.includes(source),

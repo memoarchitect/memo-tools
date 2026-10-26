@@ -35,7 +35,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+    "model/catalog/viewpoints/logical/viewpoint.sysml": {
       "elements": 0,
       "definitions": 0,
       "kinds": {},
@@ -45,7 +45,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/reusable_instrument_overview.sysml": {
+    "model/catalog/viewpoints/logical/views/reusable_instrument_overview.sysml": {
       "elements": 1,
       "definitions": 0,
       "kinds": {

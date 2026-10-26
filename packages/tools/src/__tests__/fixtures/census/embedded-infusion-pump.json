@@ -2,48 +2,51 @@
   "project": "embedded-infusion-pump",
   "totals": {
     "files": 4,
-    "elements": 19,
+    "elements": 25,
     "definitions": 1,
-    "relationships": 20,
+    "relationships": 25,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
     "model/catalog/embedded_infusion_pump.sysml": {
-      "elements": 17,
+      "elements": 23,
       "definitions": 1,
       "kinds": {
-        "MemoEvidence": 3,
+        "AssertConstraintUsage": 1,
+        "ConstraintUsage": 1,
+        "MemoEvidence": 4,
         "Need": 1,
         "ProcessingNode": 1,
-        "Requirement": 2,
+        "Requirement": 3,
         "RuntimeEnvironment": 1,
         "SoftwareComponent": 1,
         "SoftwareDeploymentUnit": 1,
         "SoftwareModule": 3,
         "System": 1,
-        "VerificationCase": 3
+        "TestRun": 1,
+        "VerificationCase": 4
       },
-      "relationships": 20,
+      "relationships": 25,
       "relationshipTypes": {
         "buildsInto": 1,
         "composes": 1,
         "dependency": 2,
         "deploysTo": 1,
-        "derivesFrom": 2,
+        "derivesFrom": 3,
         "hostedBy": 1,
-        "producesEvidence": 3,
+        "producesEvidence": 5,
         "providesEnvironment": 1,
         "realizes": 2,
-        "satisfiedBy": 3,
-        "verifiedBy": 3
+        "satisfiedBy": 4,
+        "verifiedBy": 4
       },
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/viewpoint.sysml": {
+    "model/catalog/viewpoints/logical/viewpoint.sysml": {
       "elements": 0,
       "definitions": 0,
       "kinds": {},
@@ -53,7 +56,7 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/unassigned/views/embedded_infusion_pump_overview.sysml": {
+    "model/catalog/viewpoints/logical/views/embedded_infusion_pump_overview.sysml": {
       "elements": 1,
       "definitions": 0,
       "kinds": {

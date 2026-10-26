@@ -67,14 +67,14 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
     }, 180_000);
 
     it('refuses a system folder the SoS commit holds and no contained release pins', async () => {
-        await expect(buildRelease(repo.root, working, idOf('relLabPartial'), options)).rejects.toThrow(/no contained release pins: model\/systems\/perception/);
+        await expect(buildRelease(repo.root, working, idOf('relLabPartial'), options)).rejects.toThrow(/no contained release pins: model\/catalog\/systems\/perception/);
     }, 180_000);
 
     it('names the item and file of a release that pins nothing under systems/', async () => {
         const pins = releasePins(working.model, idOf('relLabIcdOnly'));
         expect(pins.systems).toEqual([]);
         expect(pins.notPinned.map(n => n.item)).toEqual(['ManipulationToNavigationIcd']);
-        await expect(buildRelease(repo.root, working, idOf('relLabIcdOnly'), options)).rejects.toThrow(/relManipulationIcd is a release of ManipulationToNavigationIcd, declared in model\/sos\/icds\.sysml/);
+        await expect(buildRelease(repo.root, working, idOf('relLabIcdOnly'), options)).rejects.toThrow(/relManipulationIcd is a release of ManipulationToNavigationIcd, declared in model\/catalog\/sos\/icds\.sysml/);
     }, 180_000);
 
     it('reuses a worktree and an assembly on the second call, and adds no second worktree', async () => {
@@ -90,7 +90,7 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
 
     it('moves a modified worktree back to its commit instead of building on it', async () => {
         const pin = await pinWorktree(repo.root, repo.c2);
-        const file = join(pin.projectDir, 'model/systems/navigation/navigation_system.sysml');
+        const file = join(pin.projectDir, 'model/catalog/systems/navigation/navigation_system.sysml');
         writeFileSync(file, readFileSync(file, 'utf8') + '\n// edited\n');
         expect(await worktreeIsClean(pin)).toBe(false);
         const again = await pinWorktree(repo.root, repo.c2);
@@ -103,7 +103,7 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
         expect(tagged.pins[0].pin.sha).toBe(repo.c2);
         expect(boundary(tagged.project, 'NavigationSystem')).toMatch(/rev B/);
         expect(boundary(tagged.project, 'ManipulatorSystem')).not.toMatch(/rev B/);
-        expect(existsSync(join(tagged.projectDir, 'model/sos/release_records.sysml'))).toBe(false);
+        expect(existsSync(join(tagged.projectDir, 'model/catalog/sos/release_records.sysml'))).toBe(false);
         expect(await worktreeIsClean(tagged.pins[0].pin)).toBe(true);
         expect(tagged.compiler).toBe(process.env.MEMO_TOOLCHAIN_COMPILER);
         await expect(buildAt(repo.root, 'no-such-ref', options)).rejects.toThrow(/not a commit or a ref/);
@@ -141,15 +141,15 @@ describe.runIf(compilerConfigured && examplesPresent)('pinned builds (T5)', () =
 describe.runIf(compilerConfigured && examplesPresent)('system folders are self-contained (spike decision 3)', () => {
     it('reports a system that types by, or links to, an element declared in another system folder', async () => {
         await withExample({
-            'model/systems/perception/reach.sysml': `package robot_cell_family_perception_reach {
-    private import robot_cell_family_navigation::*;
+            'model/catalog/systems/perception/reach.sysml': `package robot_cell_family_perception_reach {
+    private import robot_cell_family_systems_navigation_navigation_system::*;
     part reachIntoMapping : NavigationSystem;
 }
 `,
         }, project => {
             const found = crossSystemReferences(project.model, project.registries!);
             expect(found.map(f => `${f.from}:${f.fromSystem}->${f.to}:${f.toSystem} by ${f.how}`)).toEqual([
-                'reachIntoMapping:model/systems/perception->NavigationSystem:model/systems/navigation by typing',
+                'reachIntoMapping:model/catalog/systems/perception->NavigationSystem:model/catalog/systems/navigation by typing',
             ]);
         }, 'robot-cell-family');
     }, 120_000);

@@ -17,7 +17,7 @@ const IMPORTS = `
     private import memo_architecture_operational_use_cases::*;
     private import robot_cell_family_shared::*;
     private import robot_cell_family_sos::*;
-    private import robot_cell_family_manipulation::*;`;
+    private import robot_cell_family_systems_manipulation_manipulation_system::*;`;
 
 const sosUseCase = `package seeded_sos_use_case {${IMPORTS}
     use case ucPlanProcedure : UseCase {
@@ -46,7 +46,7 @@ describe.runIf(compilerConfigured && examplesPresent)('use case scope rule (O8)'
     }, 180_000);
 
     it('flag a use case of the system of systems that includes no system use case', async () => {
-        await withExample({ 'model/sos/seeded.sysml': sosUseCase },
+        await withExample({ 'model/catalog/sos/seeded.sysml': sosUseCase },
             project => expect(findings(project)).toEqual(['CR-ONT-085:Plan Procedure']), 'robot-cell-family');
     }, 180_000);
 });
