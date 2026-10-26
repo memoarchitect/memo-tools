@@ -7,6 +7,8 @@
 import { computeWorkspaceMembership, selectWorkspace, type WorkspaceScope } from '../model/workspace-membership.js';
 import { narrowModel } from '../model/narrow-model.js';
 import { compileDeviceDhf } from '../dhf/device-dhf.js';
+import { viewerModel } from '../operations/project-snapshot.js';
+import type { BuilderRegistries } from '../model/complete-model.js';
 import { resolve, dirname } from 'node:path';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
@@ -39,6 +41,8 @@ interface LoadedModel {
     dhfConfig: DhfConfig | undefined;
     queryCtx: ReturnType<typeof createQueryContext>;
     workspace: WorkspaceScope | undefined;
+    projectRoot: string;
+    kindRegistry: BuilderRegistries['kindRegistry'] | undefined;
 }
 
 async function loadModel(workspaceName?: string): Promise<LoadedModel> {
@@ -78,7 +82,7 @@ async function loadModel(workspaceName?: string): Promise<LoadedModel> {
     const standardsReport = buildStandardsReport({ model, registries: ontologyRegistries, projectRoot: cwd });
     const queryCtx = createQueryContext(model, validation, completeness, config, standardsReport, workspace);
 
-    return { model, config, validation, completeness, dhfConfig, queryCtx, workspace };
+    return { model, config, validation, completeness, dhfConfig, queryCtx, workspace, projectRoot: dirname(configPath), kindRegistry: ontologyRegistries?.kindRegistry };
 }
 
 // ─── Resolve target documents ────────────────────────────────────────────────
@@ -145,7 +149,7 @@ export async function exportDhfCommand(options: {
             const working = await loadProjectModel({ projectRoot, config });
             const result = await compileDeviceDhf({
                 projectRoot, working, device: options.device, outputDir: resolve(cwd, options.output || 'dhf-output'),
-                config: { toolchain: config.toolchain },
+                config: { toolchain: config.toolchain }, diagramRenderer: hooks.diagramRenderer,
             });
             for (const release of result.releases) {
                 console.log(chalk.cyan(`  ${result.device.name} / ${release.record} (${release.commit.slice(0, 7)}): ${release.documents.length} documents`));
@@ -159,7 +163,7 @@ export async function exportDhfCommand(options: {
         return;
     }
 
-    const { model, config, validation, completeness, dhfConfig, queryCtx, workspace } = await loadModel(options.workspace);
+    const { model, config, validation, completeness, dhfConfig, queryCtx, workspace, projectRoot, kindRegistry } = await loadModel(options.workspace);
 
     // ── V2: markdown-first pipeline (manifest docs + workbench documents) ────
     const dhfConfigV2 = loadDhfConfigV2(cwd);
@@ -193,7 +197,7 @@ export async function exportDhfCommand(options: {
 
         // Pictures are Markdown images; the other formats go through the document IR, which has no image block.
         const pictures = hooks.diagramRenderer && !plugin
-            ? new DiagramPictures(hooks.diagramRenderer, resolve(outputDir, 'diagrams'))
+            ? new DiagramPictures(hooks.diagramRenderer, resolve(outputDir, 'diagrams'), { projectRoot, model: viewerModel(model, kindRegistry), validation, completeness })
             : undefined;
         let exported = 0;
         const emit = async (compiled: string, id: string, title: string, group: string, warningCount: number) => {

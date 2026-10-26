@@ -133,6 +133,37 @@ empty: "none"
         expect(edges('usedWith')).toEqual([[id('devEu'), id('devFda')]]);
     });
 
+    it('draws the views of a document from the release\'s own commit and model, not the working directory\'s', async () => {
+        writeFileSync(join(custom, 'pictured.md'), `---
+id: pictured
+title: Pictured
+standard: project
+clauses: []
+required_for: ["MDR"]
+---
+
+{{diagram:someView}}
+`);
+        const seen: Array<{ root: string; model: object }> = [];
+        const result = await compileDeviceDhf({
+            projectRoot: repo.root, working, device: 'devEu', outputDir: join(scratch, 'pictured'), config: config as never,
+            templates: ['pictured'], customTemplateDir: custom,
+            diagramRenderer: async (refs, outDir, source) => {
+                seen.push({ root: source.projectRoot, model: source.model });
+                return { images: { [refs[0]]: { file: join(outDir, 'someView.svg') } }, warnings: [] };
+            },
+        });
+        const doc = read(result, 'relOutputEu', 'documents/pictured.md');
+        expect(doc).toContain('![someView](../diagrams/someView.svg)');
+        expect(seen).toHaveLength(1);
+        // The pinned worktree, not the working project; the model excludes the variant the release does not build.
+        expect(seen[0].root).not.toBe(repo.root);
+        const names = Object.values((seen[0].model as unknown as { elements: Record<string, { shortName?: string }> }).elements).map(e => e.shortName);
+        expect(names).toContain('euOutput');
+        expect(names).not.toContain('usOutput');
+        expect(readFileSync(result.index, 'utf8')).toContain('Architect canvas');
+    }, 300_000);
+
     it('refuses a device that does not exist', async () => {
         await expect(compileDeviceDhf({ projectRoot: repo.root, working, device: 'devNone', outputDir: join(scratch, 'x'), config: config as never }))
             .rejects.toThrow(/not a regulated device of this model/);

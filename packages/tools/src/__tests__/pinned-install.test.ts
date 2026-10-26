@@ -6,6 +6,7 @@ import { installLockedPackages, ontologyDrift, ontologyRootAt } from '../model/p
 import { withContentPackageRoot } from '../model/paths.js';
 import { findVendorTemplatesDir, listBuiltinTemplates } from '../dhf/template-resolver.js';
 import { findVendorStandardsDir } from '../dhf/standards-library.js';
+import { requiredTemplates } from '../dhf/device-dhf.js';
 import { discoverLibraryRoots } from '../model/native-project.js';
 
 // ─── A pinned build reads its commit's ontology ──────────────────────────────
@@ -95,5 +96,21 @@ describe('a pinned build reads the commit templates and standards', () => {
         // The scope does not leak: the installation's own content is read outside it, cache included.
         expect(findVendorTemplatesDir()).toBe(outside);
         expect(listBuiltinTemplates().map(t => t.id)).not.toContain('old-only/commit-template');
+    });
+});
+
+describe('the templates a jurisdiction requires are the commit\'s', () => {
+    it('lists what the commit\'s ontology requires, not what this installation requires', async () => {
+        await installLockedPackages(dir, async (name, version, into) => {
+            const pkg = join(into, 'node_modules', '@memoarchitect', 'ontology');
+            writePackage(pkg, version);
+            const folder = join(pkg, 'src', 'artifacts', 'templates', 'dhf', 'retired');
+            mkdirSync(folder, { recursive: true });
+            writeFileSync(join(folder, 'only-then.md'), '---\nid: only-then\nrequired_for: [PinnedOnlyRegime]\n---\nbody\n');
+            mkdirSync(join(pkg, 'src', 'artifacts', 'standards'), { recursive: true });
+        });
+        const root = ontologyRootAt(dir)!;
+        expect(requiredTemplates('PinnedOnlyRegime', root)).toEqual(['retired/only-then']);
+        expect(requiredTemplates('PinnedOnlyRegime')).toEqual([]);
     });
 });

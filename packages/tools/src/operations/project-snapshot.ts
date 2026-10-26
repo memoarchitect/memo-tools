@@ -7,7 +7,8 @@ import { validateModel } from '../validator/rule-engine.js';
 import type { BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
 import { dtoToModel, modelToDTO } from '../model/semantic.js';
-import type { ArchLayerDTO, DiagramDTO, MemoModelDTO, ViewpointDTO } from '../model/semantic.js';
+import type { MemoModel, MemoModelDTO } from '../model/semantic.js';
+import type { KindRegistry } from '../model/kind-registry.js';
 import type { CompletenessReport, ValidationResult } from '../validator/types.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { findProjectRoot, loadProjectSettings } from '@memoarchitect/tools';
@@ -65,6 +66,17 @@ export function forgetLastGoodModel(projectRoot?: string): void {
     else lastGoodModel.clear();
 }
 
+/**
+ * The model as the viewer takes it. Viewpoints and layers are derived from the model: the `viewpoints:` and
+ * `architectureLayers:` settings blocks that used to supply them are gone, because a portable view's content
+ * cannot depend on a file the model does not carry. Diagrams are authored model views; no generic BDD is made
+ * per layer, since those carry no diagram intent and obscure the useful views.
+ */
+export function viewerModel(semanticModel: MemoModel, kindRegistry?: KindRegistry): MemoModelDTO {
+    const derived = deriveModelViews(semanticModel, kindRegistry);
+    return modelToDTO(semanticModel, { viewpoints: [...derived.viewpoints], architectureLayers: undefined, diagrams: [...derived.diagrams] });
+}
+
 /** Build the immutable data payload consumed by exports and Architect. */
 export async function buildProjectSnapshot(
     projectRoot = process.cwd(),
@@ -120,19 +132,7 @@ export async function buildProjectSnapshot(
     const validation = validateModel(semanticModel, [], ontologyRegistries?.kindRegistry, undefined, undefined, undefined, undefined, ontologyRegistries?.relationshipRegistry);
     const completeness = computeCompleteness(semanticModel, validation);
 
-    // Viewpoints and layers are derived from the model. The `viewpoints:` and
-    // `architectureLayers:` settings blocks that used to supply them are gone:
-    // a portable view's content cannot depend on a file the model does not carry.
-    const viewpoints: ViewpointDTO[] = [];
-    const architectureLayers: ArchLayerDTO[] | undefined = undefined;
-    // Diagrams are authored model views. Do not fabricate one generic BDD per
-    // layer: those views carry no diagram intent and obscure the useful views.
-    const diagrams: DiagramDTO[] = [];
-    const derivedViews = deriveModelViews(semanticModel, ontologyRegistries?.kindRegistry);
-    viewpoints.push(...derivedViews.viewpoints);
-    diagrams.push(...derivedViews.diagrams);
-
-    const model = modelToDTO(semanticModel, { viewpoints, architectureLayers, diagrams });
+    const model = viewerModel(semanticModel, ontologyRegistries?.kindRegistry);
 
     // "Built" means lowering produced a model without ingest failures. A
     // revision that lowered cleanly becomes the new last good picture; one that
