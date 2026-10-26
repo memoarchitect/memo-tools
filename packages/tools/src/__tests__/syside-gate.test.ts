@@ -36,7 +36,7 @@ describe('SysIDE suite gate', () => {
     // either list recreates that gap exactly, and nothing else would catch it.
     it.each([
         ['check-syside-gate.mjs', resolve(__dirname, '../../../../scripts/check-syside-gate.mjs')],
-        ['build-kpar.sh', resolve(__dirname, '../../../../../memo/scripts/build-kpar.sh')],
+        ['build-kpar.mjs', resolve(__dirname, '../../../../../memo/scripts/build-kpar.mjs')],
     ])('%s checks src, extensions, and examples', (_name, path) => {
         const text = readFileSync(path, 'utf8');
         const checked = text.includes("['src', 'extensions', 'examples']")
@@ -48,10 +48,12 @@ describe('SysIDE suite gate', () => {
     // a setting and an exception granted to one caller is granted to all.
     it.each([
         ['check-syside-gate.mjs', resolve(__dirname, '../../../../scripts/check-syside-gate.mjs')],
-        ['build-kpar.sh', resolve(__dirname, '../../../../../memo/scripts/build-kpar.sh')],
-        ['check-project-portability.sh', resolve(__dirname, '../../../../../memo/scripts/check-project-portability.sh')],
+        ['build-kpar.mjs', resolve(__dirname, '../../../../../memo/scripts/build-kpar.mjs')],
+        ['check-project-portability.mjs', resolve(__dirname, '../../../../../memo/scripts/check-project-portability.mjs')],
     ])('%s runs the selected validator through memo toolchain check', (_name, path) => {
-        const text = readFileSync(path, 'utf8');
+        // memo's scripts share `toolchainCheck` in lib.mjs, which is where the command is spelled.
+        const lib = resolve(__dirname, '../../../../../memo/scripts/lib.mjs');
+        const text = readFileSync(path, 'utf8') + (path.endsWith('.mjs') && path.includes('/memo/scripts/') ? readFileSync(lib, 'utf8') : '');
         expect(text).toMatch(/'toolchain', 'check'|toolchain check/);
         expect(text).toMatch(/--toolchain\.validator/);
         expect(text).not.toMatch(/syside check (src|"\$)|spawnSync\(executable/);
