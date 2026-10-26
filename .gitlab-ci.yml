@@ -17,7 +17,7 @@ test:
   stage: test
   image: node:26
   before_script:
-    - corepack enable
+    - npm install --global pnpm@9.15.0
   script:
     - pnpm install --frozen-lockfile
     - pnpm run version:check
