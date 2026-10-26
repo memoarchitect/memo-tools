@@ -115,6 +115,8 @@ export interface DhfImage {
     type: 'image';
     src: string;
     alt: string;
+    /** The file's bytes and pixel size, when an exporter must carry the picture itself (Word). */
+    data?: { mime: 'image/png'; base64: string; width: number; height: number };
 }
 
 /** A horizontal rule / section break */

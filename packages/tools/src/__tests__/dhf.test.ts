@@ -1,4 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
     DHF_DOCUMENT_TYPES, getDocumentType, getDocumentsByGroup, getAllDocumentIds,
     resolveDocumentType,
@@ -403,7 +407,18 @@ describe('Export Plugins', () => {
         const plugin = getPlugin('docx')!;
         const result = await plugin.render(doc);
         expect(result.format).toBe('docx');
-        expect(result.content).toContain('Risk Management Plan');
+        expect(result.extension).toBe('.docx');
+        // A real .docx is a zip; its text is in word/document.xml.
+        const bytes = Buffer.from(result.content);
+        expect(bytes.subarray(0, 2).toString('latin1')).toBe('PK');
+        const dir = mkdtempSync(join(tmpdir(), 'dhf-docx-'));
+        try {
+            const file = join(dir, 'rmp.docx');
+            writeFileSync(file, bytes);
+            expect(execFileSync('unzip', ['-p', file, 'word/document.xml'], { encoding: 'utf8' })).toContain('Risk Management Plan');
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 });
 

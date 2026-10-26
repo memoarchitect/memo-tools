@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { markdownToDhfDocument, parseInlines } from '../dhf/markdown-to-ir.js';
 import type { DhfTable, DhfList, DhfParagraph, DhfImage } from '../dhf/document-ir.js';
 import { getPlugin } from '../dhf/export-plugin.js';
+import { fitToPage, WORD_TEXT_WIDTH_PX } from '../dhf/exporters/docx-exporter.js';
 
 const SAMPLE = `---
 id: DOC-X
@@ -99,7 +100,34 @@ describe('a picture on a line of its own', () => {
         const html = (await getPlugin('html')!.render(doc)).content as string;
         expect(md).toContain('![heater <IBD>](../diagrams/heater.svg)');
         expect(html).toContain('<img src="../diagrams/heater.svg" alt="heater &lt;IBD&gt;">');
-        const word = getPlugin('docx');
-        if (word) expect(String((await word.render(doc)).content)).toContain('[Diagram: heater &lt;IBD&gt;');
+        const word = await getPlugin('docx')!.render(doc);
+        expect(word.extension).toBe('.docx');
+        // A real .docx is a zip: it opens with the "PK" signature, not with markup.
+        expect(Buffer.from(word.content).subarray(0, 2).toString('latin1')).toBe('PK');
+    });
+});
+
+describe('a picture in a Word file', () => {
+    // A 1x1 PNG.
+    const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+    it('is shown at the size it was drawn, and shrunk to fit the text width, never enlarged', () => {
+        // The PNG is drawn at twice its shown size.
+        expect(fitToPage(400, 200)).toEqual({ width: 200, height: 100 });
+        const wide = fitToPage(3000, 1500);
+        expect(wide).toEqual({ width: WORD_TEXT_WIDTH_PX, height: 312 });
+        expect(fitToPage(40, 20)).toEqual({ width: 20, height: 10 });
+    });
+
+    it('is carried inside the .docx when it has bytes, and named when it has none', async () => {
+        const withBytes = markdownToDhfDocument('# T\n\n![view](d/v.png)\n', { documentId: 'D', title: 'T' });
+        const image = withBytes.sections.flatMap(s => s.blocks).find(b => b.type === 'image') as DhfImage;
+        image.data = { mime: 'image/png', base64: PNG, width: 2, height: 2 };
+        const plugin = getPlugin('docx')!;
+        const embedded = Buffer.from((await plugin.render(withBytes)).content).toString('latin1');
+        expect(embedded).toContain('word/media/');
+        delete image.data;
+        const named = Buffer.from((await plugin.render(withBytes)).content).toString('latin1');
+        expect(named).not.toContain('word/media/');
     });
 });

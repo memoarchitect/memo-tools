@@ -18,7 +18,7 @@ import {
     getPlugin, getAvailableFormats, createSnapshot, saveSnapshot, loadSnapshots,
     loadLatestSnapshot, diffSnapshots, generateRedlineDocument, createQueryContext,
     loadDhfConfigV2, isDhfConfigV2, resolveManifestDocuments, compileMarkdownDocument,
-    compileMarkdownContent, markdownToDhfDocument, DiagramPictures, type DiagramRenderer,
+    compileMarkdownContent, markdownToDhfDocument, DiagramPictures, attachImageData, type DiagramRenderer,
 } from '@memoarchitect/tools';
 import { readFileSync } from 'node:fs';
 import { loadDhfDocs, loadDhfSettings } from '../server/dhf-doc-store.js';
@@ -195,16 +195,15 @@ export async function exportDhfCommand(options: {
             phase: webSettings.phase,
         } : {};
 
-        // Pictures are Markdown images, which Markdown and HTML carry; a Word file cannot hold the SVG, so it keeps
-        // the note beside the named file.
-        const pictures = hooks.diagramRenderer && (!plugin || format === 'html')
+        // Pictures are Markdown images. Markdown and HTML link the SVG; a Word file embeds the PNG of the same picture.
+        const pictures = hooks.diagramRenderer && (!plugin || format === 'html' || format === 'docx')
             ? new DiagramPictures(hooks.diagramRenderer, resolve(outputDir, 'diagrams'), { projectRoot, model: viewerModel(model, kindRegistry), validation, completeness })
             : undefined;
         let exported = 0;
         const emit = async (compiled: string, id: string, title: string, group: string, warningCount: number) => {
             const groupDir = resolve(outputDir, group);
             if (!existsSync(groupDir)) mkdirSync(groupDir, { recursive: true });
-            const markdown = pictures ? await pictures.embed(compiled, groupDir) : compiled;
+            const markdown = pictures ? await pictures.embed(compiled, groupDir, format === 'docx' ? 'png' : 'svg') : compiled;
             let filename: string;
             if (plugin) {
                 const ir = markdownToDhfDocument(markdown, {
@@ -214,6 +213,7 @@ export async function exportDhfCommand(options: {
                     organization: typeof extraMeta.company === 'string' ? extraMeta.company : undefined,
                     version: typeof extraMeta.version === 'string' ? extraMeta.version : undefined,
                 });
+                if (format === 'docx') attachImageData(ir, groupDir);
                 const rendered = await plugin.render(ir);
                 filename = `${id}${rendered.extension}`;
                 writeFileSync(resolve(groupDir, filename), rendered.content);
