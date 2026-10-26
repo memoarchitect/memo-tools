@@ -5346,6 +5346,11 @@
       },
       {
         "type": "causes",
+        "sourceId": "memo_examples_gpca_pump_gpca_context::bolusByProxyMisuse",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::hsExcessInfusion"
+      },
+      {
+        "type": "causes",
         "sourceId": "memo_examples_gpca_pump_gpca_context::ueAlarmDisregard",
         "targetId": "memo_examples_gpca_pump_gpca_risk::seqOcclusion"
       },
@@ -7227,6 +7232,11 @@
       {
         "type": "impactsSafety",
         "sourceId": "memo_examples_gpca_pump_gpca_cybersecurity::configurationTamperingRisk",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::overdoseHazard"
+      },
+      {
+        "type": "impactsSafety",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::programmedDoseCharacteristic",
         "targetId": "memo_examples_gpca_pump_gpca_risk::overdoseHazard"
       },
       {
@@ -9543,6 +9553,11 @@
         "type": "verifiedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_risk::watchdogControl",
         "targetId": "memo_examples_gpca_pump_gpca_verification::vcWatchdog"
+      },
+      {
+        "type": "weighedAgainst",
+        "sourceId": "memo_examples_gpca_pump_gpca_risk::analgesiaBenefit",
+        "targetId": "memo_examples_gpca_pump_gpca_risk::riskAfterWrongDose"
       }
     ],
     "kindCounts": {
