@@ -183,7 +183,8 @@ export function isModelOwnedWatchPath(path: string): boolean {
         || normalized.endsWith('/memo.config.yaml')
         || normalized.endsWith('/memo.package.yaml')
         || normalized.includes('/.memo/')
-        || normalized.includes('/model/assets/');
+        || normalized.includes('/model/assets/')
+        || normalized.includes('/artifacts/assets/');
 }
 
 // ─── User-diagram persistence helpers ──────────────────────────────────────
@@ -242,7 +243,14 @@ function streamFile(res: any, fullPath: string, status = 200): void {
  * this server hands project files to a browser, so it serves these two
  * subtrees and nothing else — not `.env`, not `.git/`, not the source.
  */
-const CAPTURE_ROOTS = ['model/assets', 'assets'] as const;
+const CAPTURE_ROOTS = ['model/catalog/artifacts/assets', 'model/assets', 'assets'] as const;
+
+/** Where a new capture is written: the first capture root the project already has, else the legacy default. */
+function captureRootFor(projectRoot: string): string {
+    const existing = CAPTURE_ROOTS.find(root => existsSync(resolve(projectRoot, root)));
+    if (existing) return resolve(projectRoot, existing);
+    return resolve(projectRoot, existsSync(resolve(projectRoot, 'model')) ? 'model/assets' : 'assets');
+}
 
 /** True when `candidate` is a real descendant of `root` — the traversal guard. */
 function isWithinRoot(root: string, candidate: string): boolean {
@@ -1738,9 +1746,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         // resurrects a directory that layout deliberately does not
                         // have, and the capture would then sit outside the tree the
                         // rest of the model is kept in.
-                        const captureRoot = existsSync(resolve(options.projectRoot, 'model'))
-                            ? resolve(options.projectRoot, 'model', 'assets')
-                            : resolve(options.projectRoot, 'assets');
+                        const captureRoot = captureRootFor(options.projectRoot);
                         const assetDir = resolve(captureRoot, safeView);
                         const assetPath = resolve(assetDir, `${safeStem}${extension}`);
                         if (!isWithinRoot(captureRoot, assetPath)) throw new Error('Invalid capture path.');

@@ -35,7 +35,7 @@ import {
 import type { OutlineSource } from '../authoring/outline-source.js';
 import { resolveOutlineIdentity } from '../authoring/outline-identity.js';
 import { bodyMembers, type OutlineNode } from '../authoring/source-outline.js';
-import { insertIntoBody, locatePackages } from './package-source.js';
+import { insertIntoBody, locateContainers } from './package-source.js';
 import { shortNameOf } from '../model/element-index.js';
 
 /** Default home for an element the request does not place. */
@@ -66,7 +66,8 @@ export interface ElementWriteRequest {
     /** Project-relative source file. */
     file?: string;
     /**
-     * Qualified name of the package that should declare this element.
+     * Qualified name of the package — or the usage, for an element that belongs INSIDE a part, as a region
+     * belongs inside its screen — that should declare this element.
      *
      * Creation only — a package change on an existing declaration is a move,
      * which is ./package-writer.ts's job because it has to cut the declaration
@@ -260,7 +261,7 @@ export async function saveElementToFile(
         } catch (e) {
             return { success: false, filePath: relativePath, error: `${relativePath} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
         }
-        const target = locatePackages(outline).find(pkg => pkg.qualifiedName === element.package);
+        const target = locateContainers(outline).find(container => container.qualifiedName === element.package);
         if (!target) {
             return {
                 success: false, filePath: relativePath,

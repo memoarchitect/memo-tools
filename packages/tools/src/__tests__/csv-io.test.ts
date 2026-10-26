@@ -312,6 +312,18 @@ describe('generateUsage', () => {
         expect(sysml).toContain('}');
     });
 
+    // The UI Screens workspace sent `id`; the compiler refused the write ("No Feature named 'id' found") and the
+    // region was never saved. The authored id is a field of @MemoIdentity.
+    it('writes a provided id as identity, not as an attribute the kind would have to declare', () => {
+        const sysml = generateUsage({
+            id: 'uiElement8', name: 'Rate and drug panel', kind: 'UIElement', construct: 'part',
+            layer: 'implementation', doc: '', attributes: { providedId: 'UIE-009', formKind: 'UIElementFormKind::panel' },
+        });
+        expect(sysml).toContain('@MemoIdentity { :>> providedId = "UIE-009"; }');
+        expect(sysml).not.toContain('redefines providedId');
+        expect(sysml).toContain('attribute redefines formKind = UIElementFormKind::panel');
+    });
+
     it('reconstructs structured values from dotted semantic attributes', () => {
         const sysml = generateUsage({
             id: 'rateValue', name: 'Rate Value', kind: 'UIElement', construct: 'part',
