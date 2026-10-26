@@ -422,7 +422,17 @@ describe('the real pre-conversion GPCA snapshot', () => {
         // The eight `document_*` views belong to six different viewpoints.
         expect(to('document_hazard_analysis_view.sysml')).toContain('viewpoints/risk/views/');
         expect(to('document_sdd_view.sysml')).toContain('viewpoints/software/views/');
-        expect(to('document_dhf_index_view.sysml')).toContain('viewpoints/requirements/views/');
+        // The index traces to requirements, risk and verification, so no one of them owns it: it is shared.
+        expect(to('document_dhf_index_view.sysml')).toContain('viewpoints/shared/views/');
+    });
+
+    it('reads every viewpoint a file traces to, not the first', () => {
+        expect(readSourceFacts('view a { part :>> viewpointDefinition = x; } view b { ref :>> viewpointDefinition = y; }')
+            .viewpointDefinitions).toEqual(['x', 'y']);
+        expect(readSourceFacts('view a { ref :>> viewpointDefinition = (x, y); }').viewpointDefinitions).toEqual(['x', 'y']);
+        expect(readSourceFacts('view a { ref :>> viewpointDefinition = x; } view b { ref :>> viewpointDefinition = x; }')
+            .viewpointDefinitions).toEqual(['x']);
+        expect(readSourceFacts('package p { }').viewpointDefinitions).toEqual([]);
     });
 
     it('lines the project\'s viewpoint directories up with the ontology\'s when one is resolved', () => {
