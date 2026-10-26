@@ -1,12 +1,16 @@
 // ─── DHF DOCX Exporter ───────────────────────────────────────────────────────
 //
-// Renders Document IR to DOCX format. Uses a lightweight approach that
-// generates the DOCX XML structure manually to avoid heavy dependencies.
-// Falls back to Markdown if DOCX generation fails.
+// Renders Document IR to a real .docx (Office Open XML, a zip), with the `docx` package: styled headings,
+// tables, lists, a table-of-contents field, "Page x of y" in the footer, and pictures. A picture is the PNG of
+// a view (an image block carrying its bytes, see `attachImageData`), shrunk to fit the text width.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import {
+    AlignmentType, BorderStyle, Document, Footer, HeadingLevel, ImageRun, Packer, PageNumber, Paragraph,
+    ShadingType, Table, TableCell, TableOfContents, TableRow, TextRun, WidthType, type ParagraphChild,
+} from 'docx';
 import type { DhfExportPlugin, DhfExportResult } from '../export-plugin.js';
-import type { DhfDocument, DhfBlock, DhfInline, DhfTable, DhfList } from '../document-ir.js';
+import type { DhfBlock, DhfDocument, DhfInline, DhfTable } from '../document-ir.js';
 
 export class DocxExportPlugin implements DhfExportPlugin {
     format = 'docx' as const;
@@ -14,160 +18,170 @@ export class DocxExportPlugin implements DhfExportPlugin {
     mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
     async render(doc: DhfDocument): Promise<DhfExportResult> {
-        // Word-compatible HTML with MSO field codes (real TOC, page numbers).
-        // The .doc extension opens directly in Word/LibreOffice/Pages — the
-        // same approach pandoc and many eQMS tools use as a docx fallback.
-        const html = renderWordCompatibleHtml(doc);
         return {
             format: 'docx',
-            content: html,
-            extension: '.doc',
-            mimeType: 'application/msword',
+            content: await Packer.toBuffer(buildDocument(doc)),
+            extension: '.docx',
+            mimeType: this.mimeType,
         };
     }
 }
 
-/** Word field-code helper: renders an MSO field with a visible placeholder */
-function msoField(code: string, placeholder: string): string {
-    return `<!--[if supportFields]><span style="mso-element:field-begin"></span><span> ${code} </span><span style="mso-element:field-separator"></span><![endif]-->${placeholder}<!--[if supportFields]><span style="mso-element:field-end"></span><![endif]-->`;
+/** The widest a picture may be on the page: US Letter less 1in margins, 6.5in at 96 dpi. */
+export const WORD_TEXT_WIDTH_PX = 624;
+
+/**
+ * A picture's size on the page: its own, shrunk to fit the text width, never enlarged. The PNG is drawn at twice the
+ * size it is shown at, so its pixels are halved to the size it was drawn at.
+ */
+export function fitToPage(width: number, height: number, max = WORD_TEXT_WIDTH_PX): { width: number; height: number } {
+    const natural = { width: Math.max(1, Math.round(width / 2)), height: Math.max(1, Math.round(height / 2)) };
+    if (natural.width <= max) return natural;
+    return { width: max, height: Math.max(1, Math.round(natural.height * max / natural.width)) };
 }
 
-/** Table-of-contents field — Word populates it on "Update Field" (F9) */
-export function wordTocField(): string {
-    return `<h2>Table of Contents</h2>\n<p>${msoField('TOC \\o "1-3" \\h \\z \\u',
-        '<span style="color:#6B7280"><i>Right-click here and choose "Update Field" (or press F9) to generate the table of contents.</i></span>')}</p>`;
-}
+const INK = '1B3A4B';
+const MUTED = '6B7280';
+const BADGE_COLOR: Record<string, string> = { success: '059669', warning: 'D97706', error: 'DC2626', info: '2563EB', neutral: '374151' };
 
-/** Footer with PAGE/NUMPAGES fields, referenced by the WordSection page setup */
-export function wordPageFooter(): string {
-    return `<div style="mso-element:footer" id="f1"><p class="MsoFooter" align="center" style="text-align:center">Page ${msoField('PAGE', '1')} of ${msoField('NUMPAGES', '1')}</p></div>`;
-}
-
-/** Page setup CSS enabling US Letter pages with the numbered footer */
-export const WORD_SECTION_CSS = `
-  @page WordSection1 { size: 8.5in 11.0in; margin: 1.0in; mso-header-margin: 0.5in; mso-footer-margin: 0.5in; mso-footer: f1; }
-  div.WordSection1 { page: WordSection1; }
-  p.MsoFooter { font-size: 9pt; color: #6B7280; }
-`;
-
-/** Generate Word-compatible HTML that can be opened by Word/LibreOffice */
-function renderWordCompatibleHtml(doc: DhfDocument): string {
+function buildDocument(doc: DhfDocument): Document {
     const { frontmatter, sections } = doc;
-    const date = new Date(frontmatter.generatedAt).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'long', day: 'numeric',
-    });
+    const date = new Date(frontmatter.generatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const byline = [frontmatter.project, frontmatter.organization, date, frontmatter.version ? `v${frontmatter.version}` : undefined]
+        .filter(Boolean).join(' — ');
 
-    let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
-  xmlns:w="urn:schemas-microsoft-com:office:word"
-  xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="UTF-8">
-<meta name="ProgId" content="Word.Document">
-<meta name="Generator" content="MEMO Architect">
-<style>
-  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; margin: 2.54cm; }
-  h1 { font-size: 18pt; font-weight: bold; color: #1B3A4B; border-bottom: 2pt solid #2DD4A8; padding-bottom: 6pt; }
-  h2 { font-size: 14pt; font-weight: bold; color: #1B3A4B; margin-top: 18pt; border-bottom: 1pt solid #2DD4A8; padding-bottom: 4pt; }
-  h3 { font-size: 12pt; font-weight: bold; color: #374151; margin-top: 12pt; }
-  table { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 10pt; }
-  th, td { border: 1pt solid #d1d5db; padding: 4pt 8pt; text-align: left; }
-  th { background: #f3f4f6; font-weight: bold; }
-  .badge { font-weight: bold; font-size: 9pt; padding: 1pt 4pt; }
-  .badge-success { color: #059669; background: #ecfdf5; }
-  .badge-warning { color: #d97706; background: #fffbeb; }
-  .badge-error { color: #dc2626; background: #fef2f2; }
-  .badge-info { color: #2563eb; background: #eff6ff; }
-  .metric-group { display: flex; gap: 16pt; margin: 8pt 0; }
-  .metric { text-align: center; padding: 8pt; border: 1pt solid #e5e7eb; }
-  .metric-value { font-size: 18pt; font-weight: bold; }
-  .metric-label { font-size: 9pt; color: #6B7280; }
-  ins { background: #dcfce7; color: #166534; text-decoration: none; }
-  del { background: #fef2f2; color: #991b1b; }
-  .footer { margin-top: 24pt; border-top: 1pt solid #e5e7eb; padding-top: 8pt; font-size: 9pt; color: #9ca3af; }
-${WORD_SECTION_CSS}
-</style>
-</head>
-<body>
-<div class="WordSection1">
-<h1>${esc(frontmatter.title)}</h1>
-<p><b>${esc(frontmatter.project || '')}</b>
-${frontmatter.organization ? ` &mdash; ${esc(frontmatter.organization)}` : ''}
- &mdash; ${date}
-${frontmatter.version ? ` &mdash; v${esc(frontmatter.version)}` : ''}</p>
-${frontmatter.standards ? `<p><i>Standards: ${frontmatter.standards.map(esc).join(', ')}</i></p>` : ''}
-${wordTocField()}
-`;
+    const children: (Paragraph | Table | TableOfContents)[] = [
+        new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: frontmatter.title, color: INK })] }),
+        new Paragraph({ children: [new TextRun({ text: byline, bold: true })] }),
+    ];
+    if (frontmatter.standards && frontmatter.standards.length > 0) {
+        children.push(new Paragraph({ children: [new TextRun({ text: `Standards: ${frontmatter.standards.join(', ')}`, italics: true })] }));
+    }
+    // A field Word fills when the file is opened (it asks to update fields) or on "Update Field".
+    children.push(new TableOfContents('Table of Contents', { hyperlink: true, headingStyleRange: '1-3' }));
 
     for (const section of sections) {
-        html += `<h2>${esc(section.title)}</h2>\n`;
-        for (const block of section.blocks) {
-            html += renderBlock(block) + '\n';
-        }
+        children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(section.title)] }));
+        for (const block of section.blocks) children.push(...renderBlock(block));
     }
 
     if (frontmatter.approvers && frontmatter.approvers.length > 0) {
-        html += '<h2>Approvals</h2>\n<table><tr><th>Name</th><th>Role</th><th>Date</th><th>Signature</th></tr>\n';
-        for (const a of frontmatter.approvers) {
-            html += `<tr><td>${esc(a.name)}</td><td>${esc(a.role)}</td><td>${esc(a.date || '________')}</td><td>________________</td></tr>\n`;
-        }
-        html += '</table>\n';
+        children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun('Approvals')] }));
+        children.push(table(['Name', 'Role', 'Date', 'Signature'],
+            frontmatter.approvers.map(a => [a.name, a.role, a.date || '________', '________________'])));
     }
+    children.push(new Paragraph({
+        spacing: { before: 480 },
+        border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'E5E7EB', space: 6 } },
+        children: [new TextRun({ text: `Generated by MEMO Architect — ${frontmatter.generatedAt}`, size: 18, color: '9CA3AF' })],
+    }));
 
-    html += `<div class="footer">Generated by MEMO Architect &mdash; ${esc(frontmatter.generatedAt)}</div>\n</div>\n${wordPageFooter()}\n</body>\n</html>`;
-    return html;
+    return new Document({
+        creator: 'MEMO Architect',
+        title: frontmatter.title,
+        features: { updateFields: true },
+        styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
+        sections: [{
+            properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+            footers: {
+                default: new Footer({
+                    children: [new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [new TextRun({ children: ['Page ', PageNumber.CURRENT, ' of ', PageNumber.TOTAL_PAGES], size: 18, color: MUTED })],
+                    })],
+                }),
+            },
+            children,
+        }],
+    });
 }
 
-function esc(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function runs(inlines: DhfInline[]): ParagraphChild[] {
+    return inlines.map(inline => {
+        if (inline.type === 'xref') return new TextRun({ text: inline.label, bold: true });
+        if (inline.type === 'badge') return new TextRun({ text: inline.label, bold: true, color: BADGE_COLOR[inline.variant] });
+        return new TextRun({
+            text: inline.value,
+            bold: inline.bold,
+            italics: inline.italic,
+            font: inline.code ? 'Courier New' : undefined,
+            underline: inline.change === 'added' ? {} : undefined,
+            color: inline.change === 'added' ? '166534' : inline.change === 'removed' ? '991B1B' : undefined,
+            strike: inline.change === 'removed',
+        });
+    });
 }
 
-function renderBlock(block: DhfBlock): string {
+function table(headers: string[] | undefined, rows: string[][]): Table {
+    const cell = (text: string, header: boolean) => new TableCell({
+        shading: header ? { type: ShadingType.CLEAR, fill: 'F3F4F6', color: 'auto' } : undefined,
+        children: [new Paragraph({ children: [new TextRun({ text, bold: header, size: 20 })] })],
+    });
+    return new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+            ...(headers ? [new TableRow({ tableHeader: true, children: headers.map(h => cell(h, true)) })] : []),
+            ...rows.map(r => new TableRow({ children: r.map(c => cell(c, false)) })),
+        ],
+    });
+}
+
+function inlineTable(t: DhfTable): Table {
+    const cell = (inlines: DhfInline[], header: boolean) => new TableCell({
+        shading: header ? { type: ShadingType.CLEAR, fill: 'F3F4F6', color: 'auto' } : undefined,
+        children: [new Paragraph({ children: runs(inlines) })],
+    });
+    return new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+            ...(t.headers.length > 0 ? [new TableRow({ tableHeader: true, children: t.headers.map(h => cell(h.content, true)) })] : []),
+            ...t.rows.map(r => new TableRow({ children: r.cells.map(c => cell(c.content, !!c.header)) })),
+        ],
+    });
+}
+
+const HEADINGS = [HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_4, HeadingLevel.HEADING_5] as const;
+
+function renderBlock(block: DhfBlock): (Paragraph | Table)[] {
     switch (block.type) {
-        case 'heading': return `<h${block.level + 1}>${esc(block.text)}</h${block.level + 1}>`;
-        case 'paragraph': return `<p>${block.content.map(renderInline).join('')}</p>`;
-        case 'table': return renderTable(block);
-        case 'list': return renderList(block);
-        case 'badge': return `<span class="badge badge-${block.variant}">${esc(block.label)}</span>`;
-        case 'metric': return `<p><b>${esc(block.label)}:</b> ${esc(String(block.value))}</p>`;
-        case 'metric-group': return `<div class="metric-group">${block.metrics.map(m =>
-            `<div class="metric"><div class="metric-value">${esc(String(m.value))}</div><div class="metric-label">${esc(m.label)}</div></div>`
-        ).join('')}</div>`;
+        case 'heading':
+            return [new Paragraph({ heading: HEADINGS[Math.min(block.level, 4) - 1], children: [new TextRun(block.text)] })];
+        case 'paragraph':
+            return [new Paragraph({ spacing: { after: 120 }, children: runs(block.content) })];
+        case 'table':
+            return [inlineTable(block), new Paragraph({ children: [] })];
+        case 'list':
+            return block.items.map((item, i) => new Paragraph(block.ordered
+                ? { indent: { left: 360, hanging: 360 }, children: [new TextRun(`${i + 1}.\t`), ...runs(item)] }
+                : { bullet: { level: 0 }, children: runs(item) }));
+        case 'badge':
+            return [new Paragraph({ children: [new TextRun({ text: block.label, bold: true, color: BADGE_COLOR[block.variant] })] })];
+        case 'metric':
+            return [new Paragraph({ children: [new TextRun({ text: `${block.label}: `, bold: true }), new TextRun(`${block.value}${block.unit ? ` ${block.unit}` : ''}`)] })];
+        case 'metric-group':
+            return block.metrics.flatMap(m => renderBlock(m));
         case 'progress': {
-            const pct = block.max > 0 ? Math.round(block.value / block.max * 100) : 0;
-            return `<p><b>${esc(block.label)}:</b> ${block.value}/${block.max} (${pct}%)</p>`;
+            const pct = block.max > 0 ? Math.round((block.value / block.max) * 100) : 0;
+            return [new Paragraph({ children: [new TextRun({ text: `${block.label}: `, bold: true }), new TextRun(`${block.value}/${block.max} (${pct}%)`)] })];
         }
-        // A Word file cannot carry the SVG the renderer drew, so it names the picture and where it is.
-        case 'image': return `<p><i>[Diagram: ${esc(block.alt)} \u2014 ${esc(block.src)}]</i></p>`;
-        case 'divider': return '<hr>';
-        default: return '';
+        case 'image': {
+            // The picture is the PNG of the view, inside the file; one without bytes is named, with where it is.
+            if (!block.data) return [new Paragraph({ children: [new TextRun({ text: `[Diagram: ${block.alt} — ${block.src}]`, italics: true })] })];
+            const size = fitToPage(block.data.width, block.data.height);
+            return [new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 120, after: 120 },
+                children: [new ImageRun({
+                    type: 'png',
+                    data: Buffer.from(block.data.base64, 'base64'),
+                    transformation: size,
+                    altText: { name: block.alt, title: block.alt, description: block.alt },
+                })],
+            })];
+        }
+        case 'divider':
+            return [new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'E5E7EB', space: 1 } }, children: [] })];
+        default:
+            return [];
     }
-}
-
-function renderInline(inline: DhfInline): string {
-    if (inline.type === 'xref') return `<b>${esc(inline.label)}</b>`;
-    if (inline.type === 'badge') return `<span class="badge badge-${inline.variant}">${esc(inline.label)}</span>`;
-    let s = esc(inline.value);
-    if (inline.code) s = `<code>${s}</code>`;
-    if (inline.bold) s = `<b>${s}</b>`;
-    if (inline.italic) s = `<i>${s}</i>`;
-    if (inline.change === 'added') s = `<ins>${s}</ins>`;
-    if (inline.change === 'removed') s = `<del>${s}</del>`;
-    return s;
-}
-
-function renderTable(t: DhfTable): string {
-    let html = '<table><tr>';
-    for (const h of t.headers) html += `<th>${h.content.map(renderInline).join('')}</th>`;
-    html += '</tr>';
-    for (const row of t.rows) {
-        html += '<tr>';
-        for (const cell of row.cells) html += `<td>${cell.content.map(renderInline).join('')}</td>`;
-        html += '</tr>';
-    }
-    return html + '</table>';
-}
-
-function renderList(l: DhfList): string {
-    const tag = l.ordered ? 'ol' : 'ul';
-    return `<${tag}>${l.items.map(item => `<li>${item.map(renderInline).join('')}</li>`).join('')}</${tag}>`;
 }

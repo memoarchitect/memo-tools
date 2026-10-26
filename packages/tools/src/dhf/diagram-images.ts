@@ -6,7 +6,9 @@
 // returns. Without one, or for a view it cannot draw, the note stays and the export says so.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { relative } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
+import type { DhfDocument } from './document-ir.js';
 import { diagramNoteRefs, replaceDiagramNotes } from './document-compiler.js';
 import type { MemoModelDTO } from '../model/semantic.js';
 import type { CompletenessReport, ValidationResult } from '../validator/types.js';
@@ -25,8 +27,10 @@ export interface DiagramSource {
 
 /** A picture of one view, written under the renderer's output directory. */
 export interface DiagramImage {
-    /** Absolute path of the image file. */
+    /** Absolute path of the SVG file. */
     file: string;
+    /** Absolute path of the same picture as PNG, for a format that cannot hold SVG (Word). */
+    png?: string;
 }
 
 /**
@@ -42,8 +46,11 @@ export class DiagramPictures {
 
     constructor(private readonly render: DiagramRenderer, private readonly outDir: string, private readonly source: DiagramSource) {}
 
-    /** `markdown` with each diagram note replaced by an image link relative to `documentDir`. */
-    async embed(markdown: string, documentDir: string): Promise<string> {
+    /**
+     * `markdown` with each diagram note replaced by an image link relative to `documentDir`: the SVG, or the PNG for a
+     * format that cannot hold SVG. A view with no picture in the wanted form keeps its note.
+     */
+    async embed(markdown: string, documentDir: string, form: 'svg' | 'png' = 'svg'): Promise<string> {
         const wanted = diagramNoteRefs(markdown).filter(ref => !this.drawn.has(ref));
         if (wanted.length > 0) {
             try {
@@ -57,8 +64,28 @@ export class DiagramPictures {
         }
         return replaceDiagramNotes(markdown, ref => {
             const image = this.drawn.get(ref);
-            if (!image) return undefined;
-            return `![${ref}](${relative(documentDir, image.file).split('\\').join('/')})`;
+            const file = form === 'png' ? image?.png : image?.file;
+            if (!file) return undefined;
+            return `![${ref}](${relative(documentDir, file).split('\\').join('/')})`;
         });
+    }
+}
+
+/**
+ * Give each PNG image block its bytes and pixel size, read from `documentDir`, so an exporter that must carry the
+ * picture itself (Word) can. The size is the PNG's own (its IHDR chunk); a file that is missing or is not a PNG is
+ * left as a link.
+ */
+export function attachImageData(doc: DhfDocument, documentDir: string): void {
+    for (const section of doc.sections) {
+        for (const block of section.blocks) {
+            if (block.type !== 'image' || !/\.png$/i.test(block.src)) continue;
+            const path = resolve(documentDir, block.src);
+            if (!existsSync(path)) continue;
+            const bytes = readFileSync(path);
+            const isPng = bytes.length > 24 && bytes.readUInt32BE(0) === 0x89504e47;
+            if (!isPng) continue;
+            block.data = { mime: 'image/png', base64: bytes.toString('base64'), width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+        }
     }
 }
