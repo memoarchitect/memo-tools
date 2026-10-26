@@ -17,9 +17,11 @@
 //                             project file, builds the registries and the
 //                             model — exactly what a runtime restart redoes.
 //                             Includes node startup, so it over-reports.
-//   incrementalProjectRebuild a real edit to one GPCA catalog file, reparsed
-//                             through IncrementalProjectParser with the rest of
+//   incrementalProjectRebuild a real edit to one GPCA catalog file, recompiled
+//                             through the OpenSysML provider with the rest of
 //                             the closure warm — the save-to-revision path.
+//                             Run on a copy of GPCA, so the checkout is never
+//                             edited. Needs OPENSYSML_BINARY.
 //
 // `supervisedRestart` is deliberately NOT simulated here. It is a process
 // teardown plus the cold-bootstrap path, and inventing a number for it would
@@ -28,8 +30,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -53,12 +55,20 @@ if (!existsSync(gpca)) {
 const { RUNTIME_BUDGET_MS } = await import(
     resolve(toolsRoot, 'packages/tools/lib/server/runtime-budget.js')
 );
-const { IncrementalProjectParser } = await import(
-    resolve(toolsRoot, 'packages/tools/lib/model/parser-utils.js')
-);
 const { findSysmlFiles } = await import(
     resolve(toolsRoot, 'packages/tools/lib/model/sysml-files.js')
 );
+const { discoverProjectSources } = await import(
+    resolve(toolsRoot, 'packages/tools/lib/model/native-project.js')
+);
+const { compileWithOpenSysML } = await import(
+    resolve(toolsRoot, 'packages/tools/lib/toolchain/providers/opensysml-lowering.js')
+);
+
+if (!process.env.OPENSYSML_BINARY) {
+    console.error('OPENSYSML_BINARY is not set: the incremental rebuild is measured through OpenSysML.');
+    process.exit(1);
+}
 
 const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
@@ -81,26 +91,42 @@ function measureColdBootstrap() {
 // One file changes; everything else stays warm. That is the save-to-published-
 // revision path, and the only one with a sub-second ceiling.
 async function measureIncrementalRebuild() {
-    const files = findSysmlFiles(gpca);
-    const target = files.find(f => f.endsWith('gpca_risk.sysml')) ?? files[0];
-    const original = readFileSync(target, 'utf-8');
-    const parser = new IncrementalProjectParser(gpca);
-
-    await parser.parse(files);   // warm the closure — not measured
-
-    const samples = [];
+    const root = mkdtempSync(join(tmpdir(), 'memo-budget-gpca-'));
+    cpSync(gpca, root, { recursive: true, filter: source => !/[\\/](\.memo|\.venv|node_modules)([\\/]|$)/.test(source) });
     try {
+        const sources = discoverProjectSources(root);
+        const options = {
+            config: { modelName: 'x', toolchain: { compiler: 'opensysml', opensysml: { binary: process.env.OPENSYSML_BINARY } } },
+            projectDir: root,
+            libraryDirs: [...new Set(sources.libraryRoots.map(r => r.sysmlDir))],
+            projectFiles: new Set(sources.projectFiles.map(file => relative(root, file))),
+            resolveProject: true,
+            cacheDir: join(root, '.memo', 'stage1'),
+            force: true,
+        };
+        const files = findSysmlFiles(root);
+        const target = files.find(f => f.endsWith('gpca_risk.sysml')) ?? files[0];
+        const original = readFileSync(target, 'utf-8');
+        const compile = async () => {
+            const result = await compileWithOpenSysML(options);
+            if (!result.accepted) throw new Error('GPCA did not compile; the budget cannot be measured.');
+        };
+
+        await compile();   // warm the closure — not measured
+        // The service reports an edit narrow only once it has seen the documents twice, so two unmeasured edits first.
+        for (let i = 0; i < 2; i++) { writeFileSync(target, `${original}\n// budget warm-up ${i}\n`); await compile(); }
+
+        const samples = [];
         for (let i = 0; i < RUNS; i++) {
             writeFileSync(target, `${original}\n// budget probe ${i}\n`);
-            const relative = target.slice(gpca.length + 1);
             const start = process.hrtime.bigint();
-            await parser.parse(files, [relative]);
+            await compile();
             samples.push(Number(process.hrtime.bigint() - start) / 1e6);
         }
+        return samples;
     } finally {
-        writeFileSync(target, original);
+        rmSync(root, { recursive: true, force: true });
     }
-    return samples;
 }
 
 const measured = [
