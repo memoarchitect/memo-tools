@@ -831,6 +831,14 @@ export function capture(fixture) {
  * | --- | --- | --- |
  * | gpca, robot-cell-family | +`subsets` step → function (9 and 5) | A step is an action nested in its flow that subsets its function; the builder says so as an edge, so a rule about a step reaches the function. |
  * | gpca | +9 `CR-ONT-091` (warning), the nine flow steps | Each step of a function with criticality high or catastrophic has no verification case of its own; gpca's tests name functions, never steps. |
+ *
+ * BASELINE RE-FROZEN 2026-10-27 — gpca, extension-clinical and robot-cell-family, for the workflow as a part.
+ * ui-regions, default and nested-architecture-dsm did not move. Compared by leaf name: zero elements added or
+ * removed, no relationship moved.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca (3), extension-clinical (1), robot-cell-family (1) | workflow `construct`: `action` → `part` | An OperationalWorkflow is the analysis of a body of work (IEC 62366-1's use specification), a part that owns its scenarios; the builder now builds a part's own actions, so each scenario keeps its owner, `composes` edge and steps. |
  */
 
 if (import.meta.url === `file://${process.argv[1]}`) {

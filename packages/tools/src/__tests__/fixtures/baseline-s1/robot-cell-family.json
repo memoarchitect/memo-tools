@@ -61,7 +61,7 @@
       {
         "id": "robot_cell_family_sos_chains::wfMapGuidedPick",
         "kind": "OperationalWorkflow",
-        "construct": "action",
+        "construct": "part",
         "layer": "operational",
         "package": "robot_cell_family_sos_chains"
       },

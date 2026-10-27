@@ -145,6 +145,8 @@ class ElementBuilder {
     readonly relationships: MemoRelationship[] = [];
     readonly diagnostics: string[] = [];
     private counter = 0;
+    /** Actions a part declares in its own body, which it composes; a `perform` in place is not one. */
+    private readonly partOwnedActions = new Set<string>();
     /** The line each relationship is declared on, for end-kind findings. */
     private readonly relationshipLines = new Map<MemoRelationship, number>();
     /** API element → the MEMO element it became, including anonymous ones (a `terminate`). */
@@ -345,7 +347,23 @@ class ElementBuilder {
             }
         }
         if (construct === 'part') this.nestedStates(usage, packageName, id);
+        if (construct === 'part') this.ownedActions(usage, packageName, id);
         return id;
+    }
+
+    /**
+     * The actions a part declares in its body: what it owns as behaviour, and for an operational workflow, the
+     * analysis of a body of work, its scenarios. A part body takes any OccurrenceUsageElement, ActionUsage among
+     * its behaviour usages (SysML-textual-bnf.kebnf:241, :358, :378-379), and the part is the action's owner, not
+     * its `parentAction`. A `perform` is a
+     * PerformActionUsage, built as a trace; a parameter or a redefinition declares no step of its own.
+     */
+    private ownedActions(owner: ApiElement, packageName: string, ownerId: string): void {
+        for (const member of this.api.ownedMembers(owner['@id'])) {
+            if (member['@type'] !== 'ActionUsage' || !this.api.declaredName(member['@id']) || this.direction(member)) continue;
+            this.action(member, packageName, undefined, ownerId);
+            this.partOwnedActions.add(qualifiedId(this.api.name(member['@id'])!, packageName, ownerId));
+        }
     }
 
     /**
@@ -1357,13 +1375,20 @@ class ElementBuilder {
         return undefined;
     }
 
-    /** `composes` edges from native nesting: parts, items and states by owner; actions by parent action. */
+    /** `composes` edges from native nesting: parts, items and states by owner; actions by parent action, or by
+     *  the part whose own body declares them. */
     private composition(): void {
         const containing = new Set(['part', 'item', 'state']);
         for (const element of this.elements.values()) {
             if (!containing.has(element.construct) || !element.owner) continue;
             const parent = this.elements.get(element.owner);
             if (!parent || !containing.has(parent.construct)) continue;
+            this.relationships.push({ id: this.nextId(), type: 'composes', sourceId: element.owner, sourceEnd: 'parent',
+                targetId: element.id, targetEnd: 'child', file: element.file, named: false });
+        }
+        for (const id of this.partOwnedActions) {
+            const element = this.elements.get(id);
+            if (!element?.owner || !this.elements.get(element.owner)) continue;
             this.relationships.push({ id: this.nextId(), type: 'composes', sourceId: element.owner, sourceEnd: 'parent',
                 targetId: element.id, targetEnd: 'child', file: element.file, named: false });
         }
