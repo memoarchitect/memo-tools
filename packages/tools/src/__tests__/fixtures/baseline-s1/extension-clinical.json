@@ -173,7 +173,7 @@
       {
         "id": "memo_examples_surgical_closure_workflow::wfSleeveGastrectomy",
         "kind": "ClinicalProcedureWorkflow",
-        "construct": "action",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_surgical_closure_workflow"
       },

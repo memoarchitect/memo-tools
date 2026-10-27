@@ -2441,7 +2441,7 @@
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfManageActiveTherapy",
         "kind": "OperationalWorkflow",
-        "construct": "action",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
@@ -2504,14 +2504,14 @@
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfPrepareAndStartTherapy",
         "kind": "OperationalWorkflow",
-        "construct": "action",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfRespondToTherapyAlarm",
         "kind": "OperationalWorkflow",
-        "construct": "action",
+        "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },

@@ -46,13 +46,14 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
         ].sort());
         // The lab holds its constituent systems as parts but not their definitions, the two ICDs with
         // their ends, and the use case whose subject is the lab. The workflow that realizes the lab's use case comes in through
-        // `realizesUseCase`, with its scenario and steps by ownership.
+        // `realizesUseCase`, with its scenario and steps by ownership. The workflow is a part, so its scenario is
+        // named by its owner here, as the systems' parts are.
         expect(membersOf(project, result, 'RoboticCell')).toEqual([
             'GraspEventPort', 'ManipulationToNavigationIcd', 'ManipulationToNavigationIcd::consumer', 'ManipulationToNavigationIcd::provider',
             'PointCloudPort', 'RoboticCell', 'RoboticCell::manipulation', 'RoboticCell::navigation',
             'RoboticCell::perception', 'PerceptionToNavigationIcd', 'PerceptionToNavigationIcd::consumer',
             'PerceptionToNavigationIcd::provider', 'cellOperator', 'robotCell', 'cellTechnician', 'ucPerformPickAndPlace',
-            'wfMapGuidedPick', 'scMapGuidedPick', 'stepAcquire', 'stepBuildMap', 'stepGrasp', 'stepTag',
+            'wfMapGuidedPick', 'wfMapGuidedPick::scMapGuidedPick', 'stepAcquire', 'stepBuildMap', 'stepGrasp', 'stepTag',
         ].sort());
     }, 120_000);
 
