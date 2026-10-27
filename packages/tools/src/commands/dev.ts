@@ -42,6 +42,15 @@ import { withToolchainOverrides } from '../toolchain/schema.js';
 import { createVersionServers } from '../server/version-servers.js';
 import { compileDeviceDhf } from '../dhf/device-dhf.js';
 import { evaluateWorkspaceGuide } from '../methodology/guide-service.js';
+
+/** The SysML metaclasses a MEMO kind can be declared as. Language metaclasses, not a list of MEMO kinds. */
+const DEFINITION_METACLASSES = [
+    'PartDefinition', 'ItemDefinition', 'ActionDefinition', 'UseCaseDefinition', 'RequirementDefinition',
+    'ConstraintDefinition', 'PortDefinition', 'InterfaceDefinition', 'ConnectionDefinition', 'StateDefinition',
+    'VerificationCaseDefinition', 'AnalysisCaseDefinition', 'OccurrenceDefinition', 'AttributeDefinition',
+    'ConcernDefinition', 'ViewpointDefinition', 'ViewDefinition', 'AllocationDefinition', 'FlowDefinition',
+    'CalculationDefinition', 'CaseDefinition', 'EnumerationDefinition',
+] as const;
 import { computeChangeImpact } from '../model/impact.js';
 import { compileResolvedProject } from '../toolchain/operations.js';
 import { resolveToolchain } from '../toolchain/effective.js';
@@ -626,8 +635,20 @@ export async function devCommand(options: {
             });
         },
     };
+    // The definition a kind name stands for, by qualified name: a created element imports it when its file cannot
+    // see it. Names are unique across the ontology (ontology-name-uniqueness), so the first definition is the one.
+    const kindDefinition = (kind: string) => {
+        const api = lastAccepted?.api;
+        if (!api) return undefined;
+        for (const metaclass of DEFINITION_METACLASSES) {
+            const definition = api.ofType(metaclass).find(d => api.declaredName(d['@id']) === kind);
+            if (definition) return api.qualifiedName(definition['@id']);
+        }
+        return undefined;
+    };
     const server = await createDevServer({
         memoModel: () => lastAccepted?.model,
+        kindDefinition,
         workspaceScope: root => {
             if (!lastAccepted?.registries?.kindRegistry || !lastAccepted.registries.relationshipRegistry) return undefined;
             const membership = computeWorkspaceMembership(lastAccepted.model, lastAccepted.registries);
