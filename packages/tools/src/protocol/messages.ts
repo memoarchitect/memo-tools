@@ -159,7 +159,7 @@ export interface ReleaseCreateResultMessage {
     payload: { requestId?: string; success: boolean; filePath?: string; name?: string; modelCommit?: string; error?: string };
 }
 
-/** Where the model stands against its method (`guide:evaluate`): each step done, open or blocked, and the next. */
+/** Where the model stands against its method (`guide:evaluate`): each step done, open or waiting on another team, and the next. */
 export interface GuideResultMessage {
     type: 'guide:result';
     payload: import('../methodology/guide-service.js').GuideResult & { requestId?: string };

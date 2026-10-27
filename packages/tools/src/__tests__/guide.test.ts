@@ -3,14 +3,14 @@ import { evaluateGuide } from '../methodology/guide.js';
 import type { GuideStep } from '../stage2/guide-from-api.js';
 import type { MemoModel } from '../model/semantic.js';
 
-// The Guide's rules on a synthetic model: when a step is done, open, blocked, or states no criterion.
+// The Guide's rules on a synthetic model: when a step is done, open, waiting on another team, or states no criterion.
 
 const step = (name: string, over: Partial<GuideStep> = {}): GuideStep => ({
-    id: name, name, inputKinds: [], outputKinds: [], doneWhen: [], predecessors: [], methodology: 'm', ...over,
+    id: name, name, inputKinds: [], outputKinds: [], doneWhen: [], linkedWhen: [], predecessors: [], methodology: 'm', ...over,
 });
 const element = (id: string, kind: string, attributes: Record<string, string> = {}) => ({ id, name: id, kind, attributes });
 const link = (type: string, sourceId: string, targetId: string) => ({ id: `${type}:${sourceId}:${targetId}`, type, sourceId, targetId });
-const KINDS: Record<string, string | undefined> = { UseCase: 'MemoUseCase', MemoUseCase: undefined, SystemFunction: undefined, Workflow: undefined, Hazard: undefined };
+const KINDS: Record<string, string | undefined> = { UseCase: 'MemoUseCase', MemoUseCase: undefined, SystemFunction: undefined, Workflow: undefined, Hazard: undefined, LogicalComponent: undefined };
 const kinds = { getKind: (name: string) => (name in KINDS ? { superType: KINDS[name] } : undefined) } as never;
 
 function model(elements: ReturnType<typeof element>[], links: ReturnType<typeof link>[] = []): MemoModel {
@@ -33,16 +33,22 @@ describe('the Guide', () => {
         step('risk', { outputKinds: ['Hazard'], predecessors: ['functional'] }),
     ];
 
-    it('has every step open or blocked on a model with nothing in it, and the first is next', () => {
+    it('has every step open on a model with nothing in it: a step is never held back by the one before it', () => {
         const result = evaluate(chain, model([]));
-        expect(result.steps.map(s => s.state)).toEqual(['open', 'blocked', 'blocked']);
+        expect(result.steps.map(s => s.state)).toEqual(['open', 'open', 'open']);
         expect(result.next).toBe('operational');
-        expect(result.steps[2].blockedBy).toEqual(['functional']);
+        // The order is still reported, as which step feeds which.
+        expect(result.steps[2].predecessors).toEqual(['functional']);
     });
 
-    it('marks a step done once every output kind has an element, and the next step opens', () => {
+    it('judges a step by its own work even while the step before it is open', () => {
+        // The risk team has hazards before anyone has written a function.
+        expect(states(chain, model([element('h', 'Hazard')]))).toEqual({ operational: 'open', functional: 'open', risk: 'done' });
+    });
+
+    it('marks a step done once every output kind has an element, and the next open step is next', () => {
         const m = model([element('uc', 'UseCase'), element('wf', 'Workflow')]);
-        expect(states(chain, m)).toEqual({ operational: 'done', functional: 'open', risk: 'blocked' });
+        expect(states(chain, m)).toEqual({ operational: 'done', functional: 'open', risk: 'open' });
         expect(evaluate(chain, m).next).toBe('functional');
         // Only one of the two kinds: still open, and it says what is missing.
         const partial = evaluate(chain, model([element('uc', 'UseCase')]));
@@ -97,7 +103,6 @@ describe('the Guide', () => {
     it('reports a step that names no output and no rule as having no criterion, never as done', () => {
         const result = evaluate([step('a'), step('b', { outputKinds: ['UseCase'], predecessors: ['a'] })], model([]));
         expect(result.steps.map(s => s.state)).toEqual(['no-criterion', 'open']);
-        // A step with no criterion does not block what follows it.
         expect(result.next).toBe('b');
     });
 
@@ -111,8 +116,64 @@ describe('the Guide', () => {
         expect(evaluate(steps, m).steps.map(s => s.name)).toEqual(['sos', 'sys']);
     });
 
-    it('does not let a step in another level block a step', () => {
+    it('leaves a step in another level out of a workspace\'s steps', () => {
         const steps = [step('sos', { level: 'systemOfSystems', outputKinds: ['Hazard'] }), step('sys', { level: 'system', outputKinds: ['UseCase'], predecessors: ['sos'] })];
         expect(states(steps, model([element('uc', 'UseCase')]), { workspace: { subjects: new Set(['uc']), scope: 'system' } })).toEqual({ sys: 'done' });
+    });
+});
+
+describe('links between layers', () => {
+    // The logical team allocates the functional team's functions to its components.
+    const rules = [{ id: 'CR-ALLOC', typeName: 'AllocationRule', appliesToKind: 'SystemFunction' }];
+    const functional = step('functional', { label: 'Functional', outputKinds: ['SystemFunction'] });
+    const logical = step('logical', { label: 'Logical', outputKinds: ['LogicalComponent'], linkedWhen: ['AllocationRule'], predecessors: ['functional'] });
+    const steps = [functional, logical];
+    const run = (elements: ReturnType<typeof element>[], violations: { ruleId: string; elementId: string }[] = []) =>
+        evaluate(steps, model(elements), { rules, violations: violations as never });
+
+    it('waits for the step that produces the link\'s subjects, and is not the next step', () => {
+        const result = run([element('c', 'LogicalComponent')]);
+        expect(result.steps[1]).toMatchObject({
+            state: 'waiting', reasons: [], waiting: ['AllocationRule waits for Functional'],
+            links: [{ rule: 'AllocationRule', state: 'waiting', waitingFor: ['functional'], unlinked: [] }],
+        });
+        // The functional team has work to do; the logical team has none it can do.
+        expect(result.next).toBe('functional');
+    });
+
+    it('is ready to link once both sides exist and a subject is not linked, and names the unlinked elements', () => {
+        const result = run([element('f', 'SystemFunction'), element('g', 'SystemFunction'), element('c', 'LogicalComponent')],
+            [{ ruleId: 'CR-ALLOC', elementId: 'g' }]);
+        expect(result.steps[1]).toMatchObject({
+            state: 'open', reasons: ['AllocationRule: 1 not linked yet'], waiting: [],
+            links: [{ state: 'ready', subjects: 2, violations: 1, unlinked: ['g'] }],
+        });
+        expect(result.next).toBe('logical');
+    });
+
+    it('is done when its own work is there and every link is made', () => {
+        expect(states(steps, model([element('f', 'SystemFunction'), element('c', 'LogicalComponent')]), { rules })).toEqual({ functional: 'done', logical: 'done' });
+    });
+
+    it('is open while its own work is missing, whatever its links', () => {
+        expect(run([]).steps[1]).toMatchObject({ state: 'open', reasons: ['no LogicalComponent yet'], waiting: ['AllocationRule waits for Functional'] });
+    });
+
+    it('says a link rule it cannot find is missing: that is work, not waiting', () => {
+        const result = evaluate([step('s', { linkedWhen: ['NoSuchRule'] })], model([]));
+        expect(result.steps[0]).toMatchObject({ state: 'open', reasons: ['the rule NoSuchRule is not in the rule set'], links: [{ state: 'unknown' }] });
+    });
+
+    it('waits on nobody when the step produces the link\'s subjects itself: its own output is the work', () => {
+        // The risk team's hazards are its own output, and the mitigation link is judged on them.
+        const risk = step('risk', { outputKinds: ['Hazard'], linkedWhen: ['MitigationRule'] });
+        const other = step('sosRisk', { outputKinds: ['Hazard'] });
+        const result = evaluate([other, risk], model([]), { rules: [{ id: 'CR-M', typeName: 'MitigationRule', appliesToKind: 'Hazard' }] });
+        expect(result.steps[1]).toMatchObject({ state: 'open', reasons: ['no Hazard yet'], waiting: [], links: [{ state: 'waiting', waitingFor: [] }] });
+    });
+
+    it('waits on nothing in particular when no step produces the subjects, and says so', () => {
+        const result = evaluate([step('s', { linkedWhen: ['AllocationRule'] })], model([]), { rules });
+        expect(result.steps[0]).toMatchObject({ state: 'waiting', waiting: ['AllocationRule has nothing to judge yet'] });
     });
 });

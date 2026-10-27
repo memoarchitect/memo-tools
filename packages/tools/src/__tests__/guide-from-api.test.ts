@@ -38,7 +38,7 @@ export const FAMILY_METHOD = `package robot_cell_family_method {
 `;
 
 describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, from the handoff', () => {
-    it('reads the default method\'s steps, their order, roles, viewpoints and done-rules, and a family step that follows one', async () => {
+    it('reads the default method\'s steps, their order, roles, viewpoints, done- and link-rules, and a family step that follows one', async () => {
         await withExample({ 'model/catalog/sos/family_method.sysml': FAMILY_METHOD }, project => {
             const { steps, roleViews } = readGuideSources(project.api, ['memo_methodology_profiles', 'robot_cell_family_method']);
             const byName = new Map(steps.map(s => [s.name, s]));
@@ -49,7 +49,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
             ]);
             expect(byName.get('stepSosHazards')).toMatchObject({
                 stage: 'risk', level: 'systemOfSystems', role: 'safetyEngineer', guideViewpoint: 'vpRiskChain',
-                outputKinds: ['Hazard'], doneWhen: ['HazardMitigationRule'],
+                outputKinds: ['Hazard'], doneWhen: [], linkedWhen: ['HazardMitigationRule'],
                 predecessors: ['memo_methodology_profiles::stepSosArchitecture'], methodology: 'memo_methodology_profiles',
             });
             expect(byName.get('stepSysLogical')!.predecessors).toEqual(['memo_methodology_profiles::stepSysFunctional']);
@@ -60,7 +60,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
             // A family step added by `first <base step> then <family step>`.
             expect(byName.get('stepFamilyReview')).toMatchObject({
                 level: 'system', role: 'regulatoryEngineer', guideViewpoint: 'vpModelContent', outputKinds: ['ReleaseRecord'],
-                doneWhen: ['NestedPartConnectedRule'], predecessors: ['memo_methodology_profiles::stepSysRelease'], methodology: 'robot_cell_family_method',
+                doneWhen: ['NestedPartConnectedRule'], linkedWhen: [], predecessors: ['memo_methodology_profiles::stepSysRelease'], methodology: 'robot_cell_family_method',
             });
             expect(roleViews).toEqual([{ stakeholder: 'safetyEngineer', viewpoints: ['vpRiskChain', 'vpEvidenceTraceability'], methodology: 'robot_cell_family_method' }]);
         }, 'robot-cell-family');
