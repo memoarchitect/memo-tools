@@ -62,6 +62,7 @@ import {
 import { convertCommand } from '../commands/convert.js';
 import { migrateLayoutCommand } from '../commands/migrate-layout.js';
 import { idsRebaseCommand } from '../commands/ids-rebase.js';
+import { anatomyGenerateCommand } from '../commands/anatomy.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 
@@ -103,6 +104,19 @@ export function registerProjectCommands(program: Command, hooks: ProjectCommandH
         .action(async (dir: string, opts: { onto?: string; dryRun?: boolean }) => {
             await idsRebaseCommand(dir, opts);
         });
+
+    // ─── memo anatomy ──────────────────────────────────────────────────────────
+
+    const anatomyCmd = program.command('anatomy').description('Generate the human anatomy a project selects');
+    withToolchainOptions(
+        anatomyCmd
+            .command('generate')
+            .description('Write the project\'s anatomy package from the union of its AnatomySelectors')
+            .argument('[dir]', 'Model directory', '.')
+            .option('--force', 'Write it even when the model names anatomy the selectors no longer select'),
+    ).action(async (dir: string, opts: Record<string, unknown>) => {
+        await anatomyGenerateCommand(dir, opts);
+    });
 
     // ─── memo migrate-layout ───────────────────────────────────────────────────
 
