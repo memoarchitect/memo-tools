@@ -3,8 +3,9 @@
 // A methodology's steps are the `MethodologyWorkflowStep` usages in the package that declares it; its role
 // views are the `RoleView` usages there. Read from the handoff, not from the built model: the default
 // method is library content, which is never built into the model, and a family method's package is read
-// the same way so there is one reader. Order is `first <step> then <step>;`, a dependency from a step to a
-// rule def under `#DoneWhen` says what finishes it.
+// the same way so there is one reader. Order is `first <step> then <step>;`. A dependency from a step to a
+// rule def under `#DoneWhen` says what finishes its own work, one under `#LinkedWhen` what links it to
+// another layer's.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { UsageReader } from './project-from-api.js';
@@ -22,8 +23,10 @@ export interface GuideStep {
     guideViewpoint?: string;
     inputKinds: string[];
     outputKinds: string[];
-    /** The rule defs that must have a subject and no finding, by name. */
+    /** The rule defs that must have a subject and no finding, by name: the step's own work. */
     doneWhen: string[];
+    /** The rule defs that link the step's work to another layer's, by name. */
+    linkedWhen: string[];
     objective?: string;
     entryCriteria?: string;
     exitCriteria?: string;
@@ -58,7 +61,7 @@ export function readGuideSources(api: ApiModel, packages: readonly string[]): Gu
     const steps: GuideStep[] = [];
     const roleViews: GuideRoleView[] = [];
     const byId = new Map<string, GuideStep>();
-    const doneWhen: { client: string; rules: string[] }[] = [];
+    const marked: { client: string; rules: string[]; marker: 'doneWhen' | 'linkedWhen' }[] = [];
     const successions: { from: string; to: string }[] = [];
 
     const isStep = (usage: ApiElement) => {
@@ -70,18 +73,20 @@ export function readGuideSources(api: ApiModel, packages: readonly string[]): Gu
     const endsOf = (connector: ApiElement) => api.ownedMembers(connector['@id'])
         .filter(m => m.isEnd === true || api.ownedRelationships(m['@id']).some(r => r['@type'] === 'ReferenceSubsetting'));
 
-    // A `#DoneWhen` dependency stated beside a step or inside its body.
-    const collectDoneWhen = (dependency: ApiElement) => {
-        const named = api.ownedRelationships(dependency['@id']).filter(r => r['@type'] === 'Annotation').some(annotation => {
+    // A `#DoneWhen` or `#LinkedWhen` dependency stated beside a step or inside its body.
+    const MARKERS = { DoneWhen: 'doneWhen', LinkedWhen: 'linkedWhen' } as const;
+    const collectMarked = (dependency: ApiElement) => {
+        const names = api.ownedRelationships(dependency['@id']).filter(r => r['@type'] === 'Annotation').map(annotation => {
             const metadata = api.ownedMembers(annotation['@id'])[0]
                 ?? ((annotation.ownedRelatedElement as { '@id': string }[] | undefined) ?? []).map(x => api.element(x['@id'])).find(Boolean);
             const type = metadata ? api.types(metadata['@id'])[0] : undefined;
-            return type !== undefined && api.name(type['@id']) === 'DoneWhen';
+            return type ? api.name(type['@id']) : undefined;
         });
-        if (!named) return;
+        const marker = names.map(name => MARKERS[name as keyof typeof MARKERS]).find(Boolean);
+        if (!marker) return;
         const ids = (key: string) => ((dependency[key] as { '@id': string }[] | undefined) ?? []).map(r => api.element(r['@id'])).filter(Boolean) as ApiElement[];
         for (const client of ids('client')) {
-            doneWhen.push({ client: api.qualifiedName(client['@id']) ?? '', rules: ids('supplier').map(s => api.name(s['@id']) ?? '').filter(Boolean) });
+            marked.push({ client: api.qualifiedName(client['@id']) ?? '', rules: ids('supplier').map(s => api.name(s['@id']) ?? '').filter(Boolean), marker });
         }
     };
 
@@ -99,18 +104,18 @@ export function readGuideSources(api: ApiModel, packages: readonly string[]): Gu
                     role: reader.refQualified(member, 'role') ? lastSegment(reader.refQualified(member, 'role')!) : undefined,
                     guideViewpoint: reader.refQualified(member, 'guideViewpoint') ? lastSegment(reader.refQualified(member, 'guideViewpoint')!) : undefined,
                     inputKinds: reader.attrList(member, 'inputKinds'), outputKinds: reader.attrList(member, 'outputKinds'),
-                    doneWhen: [], objective: reader.attr(member, 'objectiveDescription'),
+                    doneWhen: [], linkedWhen: [], objective: reader.attr(member, 'objectiveDescription'),
                     entryCriteria: reader.attr(member, 'entryCriteria'), exitCriteria: reader.attr(member, 'exitCriteria'),
                     predecessors: [], methodology: packageName,
                 };
                 steps.push(step);
                 byId.set(id, step);
-                for (const inner of api.ownedMembers(member['@id'])) if (inner['@type'] === 'Dependency') collectDoneWhen(inner);
+                for (const inner of api.ownedMembers(member['@id'])) if (inner['@type'] === 'Dependency') collectMarked(inner);
             } else if (member['@type'] === 'SuccessionAsUsage') {
                 const [from, to] = endsOf(member).map(end => api.referenced(end['@id'])[0]).map(f => f ? api.qualifiedName(f['@id']) : undefined);
                 if (from && to) successions.push({ from, to });
             } else if (member['@type'] === 'Dependency') {
-                collectDoneWhen(member);
+                collectMarked(member);
             } else if (member['@type'] === 'PartUsage' && reader.typeName(member) === 'RoleView') {
                 const stakeholder = reader.refQualified(member, 'forStakeholder');
                 if (stakeholder) roleViews.push({
@@ -120,7 +125,7 @@ export function readGuideSources(api: ApiModel, packages: readonly string[]): Gu
             }
         }
     }
-    for (const dependency of doneWhen) byId.get(dependency.client)?.doneWhen.push(...dependency.rules);
+    for (const dependency of marked) byId.get(dependency.client)?.[dependency.marker].push(...dependency.rules);
     for (const { from, to } of successions) byId.get(to)?.predecessors.push(from);
     return { steps, roleViews };
 }

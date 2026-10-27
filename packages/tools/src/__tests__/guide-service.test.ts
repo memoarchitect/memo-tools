@@ -21,7 +21,7 @@ const evaluate = (project: ProjectModel, workspace: string | undefined, packages
 const states = (result: ReturnType<typeof evaluate>) => Object.fromEntries(result.steps.map(s => [s.name.replace(/^step/, ''), s.state]));
 
 describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10)', () => {
-    it('reads the system of systems\' steps against E0: what is there is done, the rest waits behind it', async () => {
+    it('reads the system of systems\' steps against E0: what is there is done, and each step on its own', async () => {
         await withExample({}, project => {
             const result = evaluate(project, 'RoboticCell');
             expect(result.error).toBeUndefined();
@@ -34,7 +34,8 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
             });
             expect(result.next).toBe('memo_methodology_profiles::stepSosFunctions');
             expect(result.steps.find(s => s.name === 'stepSosFunctions')!.reasons).toEqual(['no FunctionalFlow yet']);
-            expect(result.steps.find(s => s.name === 'stepSosHazards')!.reasons).toEqual(['no Hazard yet', 'HazardMitigationRule has nothing to judge yet']);
+            // No hazard yet: the risk team's own work. The mitigation link is judged on those hazards, so it waits on nobody else.
+            expect(result.steps.find(s => s.name === 'stepSosHazards')).toMatchObject({ reasons: ['no Hazard yet'], waiting: [] });
         }, 'robot-cell-family');
     }, 180_000);
 
@@ -81,10 +82,10 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
             const review = (workspace: string) => evaluate(project, workspace, packages).steps.find(s => s.name === 'stepFamilyReview')!;
             // The perception system verifies its own critical function; the manipulator's has no test.
             expect(review('PerceptionSystem')).toMatchObject({ state: 'done', methodology: 'robot_cell_family_method' });
-            // The manipulator's is not done, and it follows the base method's last step, which is not done either.
+            // The manipulator's is not done. It follows the base method's last step, which is reported, not waited on.
             expect(review('ManipulatorSystem')).toMatchObject({
-                state: 'blocked', reasons: ['SafetyCriticalFunctionVerifiedRule: 1 finding(s)'],
-                predecessors: ['memo_methodology_profiles::stepSysRelease'], blockedBy: ['memo_methodology_profiles::stepSysRelease'],
+                state: 'open', reasons: ['SafetyCriticalFunctionVerifiedRule: 1 finding(s)'],
+                predecessors: ['memo_methodology_profiles::stepSysRelease'],
             });
         }, 'robot-cell-family');
     }, 180_000);
