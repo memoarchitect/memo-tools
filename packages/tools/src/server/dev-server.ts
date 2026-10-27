@@ -73,6 +73,8 @@ export interface DevServerOptions {
     impact?: { compute(target?: string): Promise<import('../model/impact.js').ImpactReport> };
     /** Where the model stands against its method, for one workspace. */
     guide?: { evaluate(workspace?: string): import('../methodology/guide-service.js').GuideResult };
+    /** A kind's definition by qualified name (`pkg::Kind`), so a created element can import the kind it is typed by. */
+    kindDefinition?(kind: string): string | undefined;
     /** Generating the design history of a regulated device from the releases it covers. */
     devices?: { generate(device: string): Promise<import('../dhf/device-dhf.js').DeviceDhfResult> };
     /** Opening another version: the refs on offer, and a read-only server for a chosen one. */
@@ -1658,7 +1660,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // the selected lowering provider so the identity the client
                     // edits next is the one this write produced. The file
                     // watcher still publishes the model.
-                    const result = await writeElement(await authoringContext(), msg.payload);
+                    // A new element imports its kind when the file cannot see it; an update never changes imports.
+                    const request = msg.type === 'element:create' && msg.payload?.kind && options.kindDefinition
+                        ? { ...msg.payload, kindDefinition: options.kindDefinition(msg.payload.kind) } : msg.payload;
+                    const result = await writeElement(await authoringContext(), request);
                     let transactionId: string | undefined;
                     if (result.success) {
                         transactionId = recordWriteTransaction(

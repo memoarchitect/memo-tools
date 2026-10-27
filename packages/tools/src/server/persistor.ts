@@ -76,6 +76,13 @@ export interface ElementWriteRequest {
      */
     package?: string;
     /**
+     * The qualified name of the kind's definition (`pkg::Kind`), creation only. A new usage typed by a kind the
+     * file cannot see does not compile, so the write imports the kind beside the usage unless the file already
+     * imports its package or uses the kind. The server resolves it from the compiled model; absent, nothing is
+     * imported.
+     */
+    kindDefinition?: string;
+    /**
      * IR identity of the declaration being edited.
      *
      * Required to *update* an existing declaration. Absent means "create":
@@ -268,9 +275,9 @@ export async function saveElementToFile(
                 error: `${relativePath} does not declare package "${element.package}"; nothing was written.`,
             };
         }
-        updated = insertIntoBody(content, target, `${buildUsage()}\n`);
+        updated = insertIntoBody(content, target, `${kindImportFor(content, element.kindDefinition)}${buildUsage()}\n`);
     } else {
-        updated = appendToLastPackage(content, buildUsage());
+        updated = appendToLastPackage(content, `${kindImportFor(content, element.kindDefinition)}${buildUsage()}`);
     }
 
     const committed = await commitSource(filePath, relativePath, updated, outlines, renamedElsewhere
@@ -488,6 +495,22 @@ function spliceIndented(source: string, start: number, end: number, replacement:
 }
 
 /** Append a new declaration as the last member of the file's final package. */
+/**
+ * `private import <pkg>::<Kind>;` to write ahead of a new usage of `Kind`, or nothing when the file can already see
+ * the kind: it imports the kind's package or the kind itself, or another usage in it is typed by the kind. An import
+ * is an ordinary package member in SysML, so it may sit beside the usage it serves.
+ */
+export function kindImportFor(source: string, kindDefinition: string | undefined): string {
+    const split = kindDefinition?.lastIndexOf('::') ?? -1;
+    if (!kindDefinition || split <= 0) return '';
+    const pkg = kindDefinition.slice(0, split);
+    const kind = kindDefinition.slice(split + 2);
+    const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const imported = new RegExp(`\\bimport\\s+${escape(pkg)}::(\\*|${escape(kind)})\\s*;`).test(source);
+    const typedBy = new RegExp(`(?<![:>]):\\s*${escape(kind)}\\b`).test(source);
+    return imported || typedBy ? '' : `private import ${kindDefinition};\n`;
+}
+
 export function appendToLastPackage(source: string, usage: string): string {
     const lastBrace = source.lastIndexOf('}');
     if (lastBrace === -1) return `${source}\n${usage}\n`;
