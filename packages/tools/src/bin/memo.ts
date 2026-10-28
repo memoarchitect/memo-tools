@@ -28,6 +28,7 @@ import {
 } from '../commands/toolchain.js';
 import { applyToolchainCliOptions } from '../toolchain/schema.js';
 import { compileCommand } from '../commands/compile.js';
+import { evaluateCommand } from '../commands/evaluate.js';
 import { pinnedTarget } from '../commands/pinned-target.js';
 import { pruneCommand } from '../commands/prune.js';
 import { shipLibraryCommand } from '../commands/ship-library.js';
@@ -91,6 +92,16 @@ withToolchainOptions(
     const pinned = await pinnedTarget(dir, opts);
     if (pinned) console.error(chalk.gray(`(${pinned.label})`));
     await compileCommand(pinned ? pinned.dir : dir, pinned ? { ...opts, at: undefined, release: undefined } : opts);
+});
+
+withToolchainOptions(
+    program
+        .command('evaluate')
+        .description('Evaluate the project\'s calculations (the roll-ups of time, cost and success) and score its trade studies')
+        .argument('[dir]', 'Model directory', '.')
+        .option('--format <format>', 'Output format: text, json', 'text'),
+).action(async (dir: string, opts: Record<string, unknown>) => {
+    await evaluateCommand(dir, opts);
 });
 
 withToolchainOptions(

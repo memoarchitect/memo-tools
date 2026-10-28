@@ -150,38 +150,7 @@ export function completeModel(input: CompleteModelInput): MemoModel {
     if (registries?.relationshipRegistry) {
         // Same resolver the authoring UI and the server persistence path use,
         // so a link the panel offers is a link the builder accepts.
-        const kindIndex = indexKinds(registries.kindRegistry?.toDefinitionDTOs() ?? []);
-        // A project definition specializes an ontology kind, and the ontology
-        // registry has never heard of it: `AfferaStakeholder` is declared in
-        // this project, not in memo. So a chain like
-        // `AfferaHospitalEpLabStakeholder :> AfferaStakeholder :> MemoPart`
-        // broke at the first hop and fell through to guessing by name suffix,
-        // reporting a well-formed context diagram as malformed.
-        //
-        // A definition element records what it specializes in its own `kind`,
-        // so the model supplies the missing links. This is the same walk the
-        // explorer makes to file an element under its ontology kind.
-        const projectSuper = new Map<string, string>();
-        for (const el of elements.values()) {
-            if (!el.isDefinition || !el.kind || el.kind === el.name) continue;
-            const short = el.shortName ?? el.name;
-            if (!projectSuper.has(short)) projectSuper.set(short, el.kind);
-            if (el.name && !projectSuper.has(el.name)) projectSuper.set(el.name, el.kind);
-            if (!projectSuper.has(el.id)) projectSuper.set(el.id, el.kind);
-        }
-        const conformsTo = (kind: string, expected: string): boolean => {
-            let current: string | undefined = kind;
-            const seen = new Set<string>();
-            while (current && !seen.has(current)) {
-                if (current === expected) return true;
-                if (kindConformsTo(current, expected, kindIndex)) return true;
-                seen.add(current);
-                current = kindIndex.get(current)?.superType ?? projectSuper.get(current);
-            }
-            // Legacy fallback when neither the ontology nor the project knows
-            // this kind's hierarchy at all.
-            return !kindIndex.has(kind) && !projectSuper.has(kind) && kind.endsWith(expected);
-        };
+        const conformsTo = makeKindConformance(elements, registries.kindRegistry);
 
         // A finding names the edge's own line. Every one of them used to point
         // at 1:1 of its file, which in a trace file of six hundred lines is no
@@ -410,6 +379,50 @@ function stableElementUuid(element: Pick<MemoElement, 'file' | 'kind' | 'id'>): 
     bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
     const hex = bytes.toString('hex');
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
+ * Whether one element kind conforms to another: equal, or a specialization of it through the ontology's
+ * registry and through the project's own definitions (a definition records what it specializes in its own
+ * `kind`). Shared by the well-formedness check and anything else that asks "is this an X".
+ */
+export function makeKindConformance(
+    elements: ReadonlyMap<string, MemoElement> | { values(): Iterable<MemoElement> },
+    kindRegistry: KindRegistry | undefined,
+): (kind: string, expected: string) => boolean {
+    const kindIndex = indexKinds(kindRegistry?.toDefinitionDTOs() ?? []);
+    // A project definition specializes an ontology kind, and the ontology
+    // registry has never heard of it: `AfferaStakeholder` is declared in
+    // this project, not in memo. So a chain like
+    // `AfferaHospitalEpLabStakeholder :> AfferaStakeholder :> MemoPart`
+    // broke at the first hop and fell through to guessing by name suffix,
+    // reporting a well-formed context diagram as malformed.
+    //
+    // A definition element records what it specializes in its own `kind`,
+    // so the model supplies the missing links. This is the same walk the
+    // explorer makes to file an element under its ontology kind.
+    const projectSuper = new Map<string, string>();
+    for (const el of elements.values()) {
+        if (!el.isDefinition || !el.kind || el.kind === el.name) continue;
+        const short = el.shortName ?? el.name;
+        if (!projectSuper.has(short)) projectSuper.set(short, el.kind);
+        if (el.name && !projectSuper.has(el.name)) projectSuper.set(el.name, el.kind);
+        if (!projectSuper.has(el.id)) projectSuper.set(el.id, el.kind);
+    }
+    const conformsTo = (kind: string, expected: string): boolean => {
+        let current: string | undefined = kind;
+        const seen = new Set<string>();
+        while (current && !seen.has(current)) {
+            if (current === expected) return true;
+            if (kindConformsTo(current, expected, kindIndex)) return true;
+            seen.add(current);
+            current = kindIndex.get(current)?.superType ?? projectSuper.get(current);
+        }
+        // Legacy fallback when neither the ontology nor the project knows
+        // this kind's hierarchy at all.
+        return !kindIndex.has(kind) && !projectSuper.has(kind) && kind.endsWith(expected);
+    };
+    return conformsTo;
 }
 
 /** The kind a nested grouping package becomes, distinct from a namespace package. */
