@@ -210,6 +210,12 @@ class ElementBuilder {
             if (type === 'ViewpointUsage') { this.viewpoint(member, packageName, undefined); continue; }
             if (type === 'TransitionUsage') { this.transition(member, packageName, undefined); continue; }
             if (type === 'InterfaceUsage' && this.connectorEnds(member).length >= 2) continue; // an edge: next slice
+            // A unit declared at package level (`attribute <EUR> euro : CurrencyUnit;`) is a declaration a rule
+            // may need to count, as ISQ and SI declare theirs. Other attribute usages stay values of their owner.
+            if (type === 'AttributeUsage' && !isLibrary && this.isUnitDeclaration(member)) {
+                this.usage(member, 'attribute', packageName, undefined);
+                continue;
+            }
             const construct = type === 'InterfaceUsage' ? 'interface' : USAGE_CONSTRUCTS[type];
             if (construct) {
                 const id = this.usage(member, construct, packageName, undefined);
@@ -219,6 +225,22 @@ class ElementBuilder {
                 }
             }
         }
+    }
+
+    /**
+     * Whether a usage is typed by a definition that specializes the standard library's `MeasurementUnit`.
+     * The library's own definitions are not in the handoff, so the walk stops at the three it names:
+     * `MeasurementUnit` and its two direct subtypes, `SimpleUnit` and `DerivedUnit`
+     * (MeasurementReferences.sysml), which every unit definition in ISQ, SI and a project reaches.
+     */
+    private isUnitDeclaration(usage: ApiElement): boolean {
+        const seen = new Set<string>();
+        const reaches = (type: ApiElement): boolean => {
+            if (seen.has(type['@id'])) return false;
+            seen.add(type['@id']);
+            return ['MeasurementUnit', 'SimpleUnit', 'DerivedUnit'].includes(this.api.name(type['@id']) ?? '') || this.api.superclassifiers(type['@id']).some(reaches);
+        };
+        return this.api.types(usage['@id']).some(reaches);
     }
 
     /** A folder's label: an explicit `Matrix folder:` doc line, else the package name tidied. */

@@ -2,7 +2,7 @@
   "project": "gastric-bypass-variants",
   "totals": {
     "files": 2,
-    "elements": 65,
+    "elements": 66,
     "definitions": 2,
     "relationships": 106,
     "packages": 2,
@@ -11,10 +11,11 @@
   },
   "files": {
     "model/catalog/gastric_bypass_variants.sysml": {
-      "elements": 63,
+      "elements": 64,
       "definitions": 2,
       "kinds": {
         "ClinicalProcedureWorkflow": 1,
+        "CurrencyUnit": 1,
         "FunctionUsage": 9,
         "Jejunum": 1,
         "OperationalEntity": 1,
