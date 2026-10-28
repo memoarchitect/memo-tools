@@ -5,11 +5,11 @@ import type { ProjectModel } from '../toolchain/project-model.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
 // Operational levels (plan memo-operational-levels): a use case is at the level of its subject, and
-// the rules CR-ONT-093..100 judge what each level may say. Each rule has a passing and a failing
+// the rules CR-ONT-093..101 judge what each level may say. Each rule has a passing and a failing
 // fixture, seeded into temperature-alarm, whose own model has no use case subject and no currency,
 // so the rules find nothing in it before the seed.
 
-const RULES = ['CR-ONT-093', 'CR-ONT-094', 'CR-ONT-095', 'CR-ONT-096', 'CR-ONT-097', 'CR-ONT-098', 'CR-ONT-099', 'CR-ONT-100'];
+const RULES = ['CR-ONT-093', 'CR-ONT-094', 'CR-ONT-095', 'CR-ONT-096', 'CR-ONT-097', 'CR-ONT-098', 'CR-ONT-099', 'CR-ONT-100', 'CR-ONT-101'];
 
 const IMPORTS = `
     private import ScalarValues::*;
@@ -26,7 +26,8 @@ const IMPORTS = `
     private import memo_architecture_operational_workflows::*;
     private import memo_architecture_operational_scenarios::*;
     private import memo_architecture_logical_structure::*;
-    private import memo_architecture_functional_functions::*;`;
+    private import memo_architecture_functional_functions::*;
+    private import memo_core_stdlib_analysis::*;`;
 
 /**
  * Level 1 (the care team) and level 2 (one platform), well formed: the level-1 step carries no
@@ -74,7 +75,7 @@ function findings(project: ProjectModel): string[] {
 
 const seeded = (text: string) => ({ 'model/catalog/seeded_levels.sysml': text });
 
-describe.runIf(compilerConfigured && examplesPresent)('operational level rules (CR-ONT-093..100)', () => {
+describe.runIf(compilerConfigured && examplesPresent)('operational level rules (CR-ONT-093..101)', () => {
     it('are rules in the rule set', async () => {
         await withExample({}, project => {
             const ids = collectApiConstraints(project.api).map(c => c.id);
@@ -131,5 +132,30 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
     it('100 flags a level-1 workflow that carries a per-procedure cost', async () => {
         const text = levels(t => t.replace('part wfL1 : OperationalWorkflow {', 'part wfL1 : OperationalWorkflow {\n        attribute :>> perProcedureCost = 100 [EUR];'));
         await withExample(seeded(text), project => expect(findings(project)).toEqual(['CR-ONT-100:wfL1']));
+    }, 180_000);
+
+    /** A trade study over two level-2 workflows; `second` is what the second one holds. */
+    const study = (secondRefines: boolean) => levels(t => t.replace('    attribute <EUR> euro : CurrencyUnit;', `    action actPouchY : OperativeAction;
+    part wfL2b : OperationalWorkflow {
+        action scL2b : OperativeScenario { perform actPouchY; }
+    }
+    ${secondRefines ? '#refinement dependency actPouchY to stepPouch;' : ''}
+    analysis study : TradeStudy {
+        subject : OperationalWorkflow = (wfL2, wfL2b);
+        objective : MinimizeObjective;
+        calc :>> evaluationFunction {
+            in part aWorkflow :>> alternative : OperationalWorkflow;
+            return :>> result : Real = 1.0;
+        }
+        return part :>> selectedAlternative : OperationalWorkflow;
+    }
+    attribute <EUR> euro : CurrencyUnit;`));
+
+    it('101 finds nothing wrong when every alternative refines the same step', async () => {
+        await withExample(seeded(study(true)), project => expect(findings(project).filter(f => f.startsWith('CR-ONT-101'))).toEqual([]));
+    }, 180_000);
+
+    it('101 flags an alternative that leaves out a step another one refines', async () => {
+        await withExample(seeded(study(false)), project => expect(findings(project).filter(f => f.startsWith('CR-ONT-101'))).toEqual(['CR-ONT-101:wfL2b']));
     }, 180_000);
 });
