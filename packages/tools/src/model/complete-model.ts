@@ -204,6 +204,9 @@ export function completeModel(input: CompleteModelInput): MemoModel {
                 const el = endIndex === 0 ? sourceEl : targetEl;
                 if (!el) continue;
 
+                // A native action usage with no MEMO type (`action step :> fnX`, a chain step) is an action: SysML
+                // lets it be performed, and it has no kind to conform with. An end typed with an action kind takes it.
+                if (el.construct === 'action' && el.kind === 'ActionUsage' && conformsTo(end.type, 'MemoAction')) continue;
                 if (!conformsTo(el.kind, end.type)) {
                     errors.push({
                         code: RELATIONSHIP_END_KIND,

@@ -99,6 +99,9 @@ export function validateArchitecture(
         // judged for isolation within a parent composition.
         const parentId = parentOf.get(element.id);
         if (!parentId || !model.elements.get(parentId) || connected.has(element.id)) continue;
+        // The variants of a variation are alternatives: only one is the product, so no connector between
+        // them, or into them from a sibling, is meaningful.
+        if (model.elements.get(parentId)!.attributes.isVariation === 'true') continue;
         violations.push({
             ruleId: 'AR-IBD-001',
             description: `Part "${element.name}" has no modeled interface connector within "${model.elements.get(parentId)!.name}"`,

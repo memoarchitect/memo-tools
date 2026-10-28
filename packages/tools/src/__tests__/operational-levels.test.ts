@@ -5,11 +5,11 @@ import type { ProjectModel } from '../toolchain/project-model.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
 // Operational levels (plan memo-operational-levels): a use case is at the level of its subject, and
-// the rules CR-ONT-093..098 judge what each level may say. Each rule has a passing and a failing
+// the rules CR-ONT-093..100 judge what each level may say. Each rule has a passing and a failing
 // fixture, seeded into temperature-alarm, whose own model has no use case subject and no currency,
 // so the rules find nothing in it before the seed.
 
-const RULES = ['CR-ONT-093', 'CR-ONT-094', 'CR-ONT-095', 'CR-ONT-096', 'CR-ONT-097', 'CR-ONT-098'];
+const RULES = ['CR-ONT-093', 'CR-ONT-094', 'CR-ONT-095', 'CR-ONT-096', 'CR-ONT-097', 'CR-ONT-098', 'CR-ONT-099', 'CR-ONT-100'];
 
 const IMPORTS = `
     private import ScalarValues::*;
@@ -74,7 +74,7 @@ function findings(project: ProjectModel): string[] {
 
 const seeded = (text: string) => ({ 'model/catalog/seeded_levels.sysml': text });
 
-describe.runIf(compilerConfigured && examplesPresent)('operational level rules (CR-ONT-093..098)', () => {
+describe.runIf(compilerConfigured && examplesPresent)('operational level rules (CR-ONT-093..100)', () => {
     it('are rules in the rule set', async () => {
         await withExample({}, project => {
             const ids = collectApiConstraints(project.api).map(c => c.id);
@@ -121,5 +121,15 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
     it('098 flags a project that declares two currencies', async () => {
         const text = levels(t => t.replace('attribute <EUR> euro : CurrencyUnit;', 'attribute <EUR> euro : CurrencyUnit;\n    attribute <USD> dollar : CurrencyUnit;'));
         await withExample(seeded(text), project => expect(findings(project).map(f => f.split(':')[0])).toEqual(['CR-ONT-098']));
+    }, 180_000);
+
+    it('099 flags a level-1 scenario that carries a likelihood', async () => {
+        const text = levels(t => t.replace('action scL1 : OperativeScenario { perform stepPouch; }', 'action scL1 : OperativeScenario { attribute :>> likelihood = 0.1 [one]; perform stepPouch; }'));
+        await withExample(seeded(text), project => expect(findings(project)).toEqual(['CR-ONT-099:scL1']));
+    }, 180_000);
+
+    it('100 flags a level-1 workflow that carries a per-procedure cost', async () => {
+        const text = levels(t => t.replace('part wfL1 : OperationalWorkflow {', 'part wfL1 : OperationalWorkflow {\n        attribute :>> perProcedureCost = 100 [EUR];'));
+        await withExample(seeded(text), project => expect(findings(project)).toEqual(['CR-ONT-100:wfL1']));
     }, 180_000);
 });
