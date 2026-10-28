@@ -113,7 +113,7 @@ describe.runIf(compilerConfigured && examplesPresent)('what a change reaches (T1
         try {
             const report = await compute('main');
             expect(report.changed.elements.map(e => `${e.via}: ${e.name}`)).toContain('removed: vcMotionLimits');
-            expect(report.reopened.map(r => `${r.workspace}: ${r.label}`)).toContain('ManipulatorSystem: Sys Verification');
+            expect(report.reopened.map(r => `${r.workspace}: ${r.label}`)).toContain('ManipulatorSystem: Write the verification cases');
         } finally { reset(); }
     }, 240_000);
 

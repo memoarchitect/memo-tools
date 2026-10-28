@@ -30,7 +30,8 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
             // functional chain (the chain is a workflow) and no hazard. Its interfaces exist, so the architecture step
             // is done although the step before it is not: a step is judged by what it states, not by its place.
             expect(states(result)).toEqual({
-                SosContext: 'done', SosOperational: 'done', SosFunctions: 'open', SosArchitecture: 'done', SosHazards: 'open',
+                SosContext: 'done', SosUsers: 'done', SosUseCases: 'done', SosOperational: 'done', SosFunctions: 'open',
+                SosArchitecture: 'done', SosHazards: 'open',
             });
             expect(result.next).toBe('memo_methodology_profiles::stepSosFunctions');
             expect(result.steps.find(s => s.name === 'stepSosFunctions')!.reasons).toEqual(['no FunctionalFlow yet']);

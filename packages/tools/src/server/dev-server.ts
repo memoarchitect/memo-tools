@@ -2646,7 +2646,7 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                         if (!options.guide) throw new Error('The Guide is not available here.');
                         ws.send(JSON.stringify({ type: 'guide:result', payload: { requestId, ...options.guide.evaluate(msg.payload?.workspace || undefined) } }));
                     } catch (e: any) {
-                        ws.send(JSON.stringify({ type: 'guide:result', payload: { requestId, steps: [], methodologies: [], roleViews: [], error: e?.message ?? String(e) } }));
+                        ws.send(JSON.stringify({ type: 'guide:result', payload: { requestId, steps: [], methodologies: [], layers: [], roleViews: [], error: e?.message ?? String(e) } }));
                     }
                 } else if (msg.type === 'dhf:device:generate') {
                     const requestId = msg.payload?.requestId;

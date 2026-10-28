@@ -41,6 +41,14 @@ describe('one person\'s choices for a model', () => {
         expect(loadUserPreferences(dir)).toEqual({});
     });
 
+    it('keep only a choice to switch Pathways off, and the step last opened', () => {
+        const dir = root();
+        saveUserPreferences(dir, { pathways: false, lastStep: ' memo_methodology_profiles::stepSysLogicalInterfaces ' });
+        expect(loadUserPreferences(dir)).toEqual({ pathways: false, lastStep: 'memo_methodology_profiles::stepSysLogicalInterfaces' });
+        saveUserPreferences(dir, { pathways: true });
+        expect(loadUserPreferences(dir)).toEqual({});
+    });
+
     it('drop the role when it is cleared', () => {
         const dir = root();
         saveUserPreferences(dir, { role: 'safetyEngineer' });

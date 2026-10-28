@@ -8,7 +8,7 @@
 import type { BuilderRegistries } from '../model/complete-model.js';
 import type { MemoModel } from '../model/semantic.js';
 import { computeWorkspaceMembership, selectWorkspace } from '../model/workspace-membership.js';
-import { readGuideSources, type GuideRoleView } from '../stage2/guide-from-api.js';
+import { readGuideSources, type GuideLayer, type GuideRoleView } from '../stage2/guide-from-api.js';
 import type { ApiModel } from '../stage2/api-model.js';
 import type { CompiledConstraint } from '../validator/constraint-eval.js';
 import { validateModel } from '../validator/rule-engine.js';
@@ -20,6 +20,8 @@ export interface GuideResult extends GuideEvaluation {
     scope?: 'sos' | 'system';
     /** The packages whose methodologies the steps come from, base first. */
     methodologies: string[];
+    /** The rows of the method map, base methodology first. */
+    layers: GuideLayer[];
     roleViews: GuideRoleView[];
     /** Set when nothing could be evaluated, and why. */
     error?: string;
@@ -39,7 +41,7 @@ export interface GuideServiceInput {
 export function evaluateWorkspaceGuide(input: GuideServiceInput): GuideResult {
     const { api, model, registries, constraints, packages } = input;
     const sources = readGuideSources(api, packages);
-    const base: GuideResult = { steps: [], methodologies: [...packages], roleViews: sources.roleViews };
+    const base: GuideResult = { steps: [], methodologies: [...packages], layers: sources.layers, roleViews: sources.roleViews };
     if (sources.steps.length === 0) return { ...base, error: 'The method has no steps: no methodology in the chain declares a MethodologyWorkflowStep.' };
 
     let workspace;

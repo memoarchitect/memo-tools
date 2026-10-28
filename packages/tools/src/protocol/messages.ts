@@ -1501,6 +1501,10 @@ export interface UserPreferencesDTO {
     features?: string[];
     /** False lists the Model Explorer without package folders; unset means packages are folders. */
     packageFolders?: boolean;
+    /** False switches Pathways (guided modelling) off; unset means it is on where the method guide is. */
+    pathways?: boolean;
+    /** The method step this person last opened, by its qualified name: where they continue. */
+    lastStep?: string;
     /** What the person marked as a favorite, in the order they added it. */
     favorites?: FavoriteDTO[];
     /** The views (diagram ids) the person opened last, most recent first. */
