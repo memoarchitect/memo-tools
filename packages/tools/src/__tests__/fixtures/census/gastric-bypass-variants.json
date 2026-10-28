@@ -1,27 +1,34 @@
 {
   "project": "gastric-bypass-variants",
   "totals": {
-    "files": 7,
-    "elements": 70,
-    "definitions": 2,
-    "relationships": 106,
-    "packages": 7,
+    "files": 8,
+    "elements": 80,
+    "definitions": 7,
+    "relationships": 117,
+    "packages": 8,
     "parseErrors": 0,
     "builderFindings": 0
   },
   "files": {
     "model/catalog/gastric_bypass_variants.sysml": {
-      "elements": 64,
-      "definitions": 2,
+      "elements": 73,
+      "definitions": 7,
       "kinds": {
+        "ActionUsage": 3,
         "ClinicalProcedureWorkflow": 1,
+        "ConvertToOpenSurgery": 4,
+        "CreateGastricPouch": 4,
+        "CreateGastrojejunostomy": 4,
         "CurrencyUnit": 1,
+        "EstablishPneumoperitoneumAndAccess": 4,
+        "FunctionalFlow": 1,
         "FunctionUsage": 9,
         "Jejunum": 1,
         "OperationalEntity": 1,
         "OperationalWorkflow": 3,
-        "OperativeAction": 20,
+        "OperativeAction": 5,
         "OperativeScenario": 8,
+        "PerformLeakTest": 4,
         "Stapler": 3,
         "Stomach": 1,
         "SurgicalPlatform": 4,
@@ -31,16 +38,17 @@
         "User": 3,
         "WorkflowResource": 1
       },
-      "relationships": 106,
+      "relationships": 117,
       "relationshipTypes": {
         "allocatedTo": 3,
-        "composes": 14,
+        "composes": 37,
         "dependency": 15,
         "hasSubject": 4,
-        "performs": 36,
+        "performs": 19,
         "realizes": 15,
         "realizesUseCase": 4,
-        "succession": 12,
+        "subsets": 3,
+        "succession": 14,
         "variant": 3
       },
       "packages": 1,
@@ -70,6 +78,18 @@
       "builderFindings": 0
     },
     "model/catalog/viewpoints/operational/views/bypass_flow_competitor_robot.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/operational/views/bypass_flow_functional.sysml": {
       "elements": 1,
       "definitions": 0,
       "kinds": {
