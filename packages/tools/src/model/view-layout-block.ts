@@ -378,6 +378,10 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
     return layout;
 }
 
+const round = (n: number) => {
+    const r = Math.round(n * 100) / 100;
+    return Object.is(r, -0) ? 0 : r;
+};
 const q = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n')}"`;
 
 type Field = [name: string, value: string | undefined];
@@ -386,7 +390,7 @@ type Field = [name: string, value: string | undefined];
 function routeLiteral(points: ReadonlyArray<{ x: number; y: number }> | undefined): string | undefined {
     if (!Array.isArray(points) || points.length === 0) return undefined;
     const flat = points.flatMap(p => [p?.x, p?.y]);
-    return flat.every(v => typeof v === 'number' && Number.isFinite(v)) ? `(${flat.map(v => String(v)).join(', ')})` : undefined;
+    return flat.every(v => typeof v === 'number' && Number.isFinite(v)) ? `(${flat.map(v => round(v as number)).join(', ')})` : undefined;
 }
 
 function statement(definition: string, fields: Field[], indent: string): string {
@@ -397,7 +401,7 @@ function statement(definition: string, fields: Field[], indent: string): string 
 // The layout comes from a client, so nothing in it is trusted to be SysML: a number
 // that is not finite would be written as text no compiler reads, and an enum literal
 // outside its set would not resolve. Such a value is left out, not repaired.
-const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? String(v) : undefined;
+const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? String(round(v)) : undefined;
 const s = (v: unknown) => typeof v === 'string' ? q(v) : undefined;
 const b = (v: unknown) => typeof v === 'boolean' ? String(v) : undefined;
 const SIDES = new Set(['top', 'bottom', 'left', 'right']);

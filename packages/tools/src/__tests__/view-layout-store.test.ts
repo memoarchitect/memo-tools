@@ -150,10 +150,10 @@ describe('a view\'s layout lives in the view', () => {
 
 
 describe('native layout extensions in declared views', () => {
-    it('round-trips routing, native snapshots and unknown nested fields without a companion', async () => {
+    it('round-trips routing settings and unknown nested fields without a companion', async () => {
         const root = project();
         const original = { nodes: { a: { x: 1, y: 2, futureNode: { opaque: true }, ports: { p: { x: 0, y: 3, futurePort: 'keep' } } } }, edges: {},
-            canvas: { renderer: 'memo.renderer.x6', routingType: 'arc', routingMode: 'manual', x6: { nodes: { a: { x: 1.123456789, y: 2 } }, future: ['keep'] }, futureCanvas: { retain: true } },
+            canvas: { routingType: 'arc', routingMode: 'manual', plugin: { nodes: { a: { x: 1.123456789, y: 2 } }, future: ['keep'] }, futureCanvas: { retain: true } },
             futureLayout: { text: 'quoted "value" and \\ path' } } as unknown as DiagramLayout;
         expect(isDefaultViewLayout(original)).toBe(false);
         expect(await saveViewLayout(root, diagram(), original, accepting)).toMatchObject({ success: true, changed: true });
