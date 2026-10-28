@@ -1,0 +1,61 @@
+{
+  "project": "gastric-bypass-variants",
+  "totals": {
+    "files": 2,
+    "elements": 65,
+    "definitions": 3,
+    "relationships": 106,
+    "packages": 2,
+    "parseErrors": 0,
+    "builderFindings": 0
+  },
+  "files": {
+    "model/catalog/gastric_bypass_variants.sysml": {
+      "elements": 64,
+      "definitions": 3,
+      "kinds": {
+        "AnatomicalSite": 2,
+        "FunctionUsage": 9,
+        "MemoPart": 1,
+        "OperationalEntity": 1,
+        "OperationalWorkflow": 4,
+        "OperativeAction": 20,
+        "OperativeScenario": 8,
+        "Stapler": 3,
+        "SurgicalPlatform": 4,
+        "System": 1,
+        "SystemFunction": 3,
+        "UseCase": 4,
+        "User": 3,
+        "WorkflowResource": 1
+      },
+      "relationships": 106,
+      "relationshipTypes": {
+        "allocatedTo": 3,
+        "composes": 14,
+        "dependency": 15,
+        "hasSubject": 4,
+        "performs": 36,
+        "realizes": 15,
+        "realizesUseCase": 4,
+        "succession": 12,
+        "variant": 3
+      },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/methodology/project.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "ModelMethodBinding": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    }
+  }
+}

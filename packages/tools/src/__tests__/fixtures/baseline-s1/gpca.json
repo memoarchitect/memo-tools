@@ -6046,53 +6046,8 @@
       },
       {
         "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmAnnunciate",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm"
-      },
-      {
-        "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmEvaluate",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm"
-      },
-      {
-        "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmSense",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm"
-      },
-      {
-        "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmStopInfusion",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm"
-      },
-      {
-        "type": "dependency",
         "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop",
         "targetId": "memo_examples_gpca_pump_gpca_system::ssAlarmPause"
-      },
-      {
-        "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusActuate",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
-      },
-      {
-        "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusCommand",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
-      },
-      {
-        "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusLog",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
-      },
-      {
-        "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusSense",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
-      },
-      {
-        "type": "dependency",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusValidate",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
       },
       {
         "type": "dependency",
@@ -7631,6 +7586,51 @@
       },
       {
         "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnCommandPump"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnEnforceLimits"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnLogEvents"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAnnunciate"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnManageInfusion"
+      },
+      {
+        "type": "performs",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm",
+        "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnMonitorAlarm"
+      },
+      {
+        "type": "performs",
         "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop",
         "targetId": "memo_examples_gpca_pump_gpca_behavior_subsystems::fnAcquireSensors"
       },
@@ -7886,53 +7886,8 @@
       },
       {
         "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmAnnunciate",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm"
-      },
-      {
-        "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmEvaluate",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm"
-      },
-      {
-        "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmSense",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm"
-      },
-      {
-        "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop::fcsAlarmStopInfusion",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRespondAlarm"
-      },
-      {
-        "type": "realizes",
         "sourceId": "memo_examples_gpca_pump_gpca_system::fcAlarmStop",
         "targetId": "memo_examples_gpca_pump_gpca_system::ssAlarmPause"
-      },
-      {
-        "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusActuate",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
-      },
-      {
-        "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusCommand",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
-      },
-      {
-        "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusLog",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
-      },
-      {
-        "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusSense",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
-      },
-      {
-        "type": "realizes",
-        "sourceId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusValidate",
-        "targetId": "memo_examples_gpca_pump_gpca_operational::oaRequestBolus"
       },
       {
         "type": "realizes",

@@ -4,7 +4,7 @@
     "files": 57,
     "elements": 700,
     "definitions": 14,
-    "relationships": 931,
+    "relationships": 922,
     "packages": 57,
     "parseErrors": 0,
     "builderFindings": 0
@@ -232,13 +232,14 @@
         "UseCase": 1,
         "ValidationCase": 2
       },
-      "relationships": 93,
+      "relationships": 84,
       "relationshipTypes": {
         "composes": 28,
-        "dependency": 15,
+        "dependency": 6,
         "enablesUseCase": 2,
         "participatesIn": 4,
-        "realizes": 15,
+        "performs": 9,
+        "realizes": 6,
         "realizesUseCase": 3,
         "requiresCapability": 2,
         "succession": 22,

@@ -38,7 +38,7 @@ const STANDARD_LIBRARY_PACKAGES = [
     'ISQBase', 'ISQ', 'SI', 'SIPrefixes', 'USCustomary',
     'MeasurementReferences', 'Quantities',
     'Time', 'Duration',
-    'Performances', 'Actions', 'Calculations',
+    'Performances', 'Actions', 'Calculations', 'ControlFunctions', 'SequenceFunctions', 'TradeStudies',
     'ControlPerformances', 'TransitionPerformances',
     'StatePerformances', 'Triggers',
     'KerML', 'SysML',
