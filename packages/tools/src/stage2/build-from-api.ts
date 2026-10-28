@@ -206,7 +206,8 @@ class ElementBuilder {
             }
             if (type === 'ActionDefinition' || type === 'CalculationDefinition') { if (!isLibrary) this.actionDefinition(member, packageName); continue; }
             if (type === 'ItemDefinition') { if (!isLibrary) this.itemDefinition(member, packageName); continue; }
-            if (type === 'ActionUsage' || type === 'CalculationUsage') { this.action(member, packageName, undefined); continue; }
+            // An analysis case (a `TradeStudy`) is an action whose subject is what it analyses.
+            if (type === 'ActionUsage' || type === 'CalculationUsage' || type === 'AnalysisCaseUsage') { this.action(member, packageName, undefined); continue; }
             if (type === 'ViewpointUsage') { this.viewpoint(member, packageName, undefined); continue; }
             if (type === 'TransitionUsage') { this.transition(member, packageName, undefined); continue; }
             if (type === 'InterfaceUsage' && this.connectorEnds(member).length >= 2) continue; // an edge: next slice
@@ -1315,7 +1316,7 @@ class ElementBuilder {
                 // carried out with, which `verifiedBy` would claim was verified.
                 const aboutSubject = [
                     'RequirementUsage', 'RequirementDefinition',
-                    'UseCaseUsage', 'UseCaseDefinition', 'IncludeUseCaseUsage',
+                    'UseCaseUsage', 'UseCaseDefinition', 'IncludeUseCaseUsage', 'AnalysisCaseUsage', 'AnalysisCaseDefinition',
                 ].includes(ownerNode['@type']);
                 // A subject declared by TYPE (`subject :>> supportingSystem : NavigationSystem;`)
                 // is about that definition: it is how a system's use case names its system. Only a
