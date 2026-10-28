@@ -145,7 +145,17 @@ describe('DD-4: Syside compatibility — structural invariants', () => {
     }
 
     function collectAllSysml(): { relPath: string; text: string; allPackages: string[]; leafPackages: string[]; imports: string[] }[] {
-        const dirs = [ONTOLOGY_ROOT, EXTENSIONS_ROOT, EXAMPLES_ROOT];
+        // An example's generated library (`memo_packages/<name>`, the anatomy it selects) is skipped by the
+        // walk by design, so it is named as a root: the example's import of it must resolve.
+        const exampleLibraries = existsSync(EXAMPLES_ROOT)
+            ? readdirSync(EXAMPLES_ROOT, { withFileTypes: true }).filter(e => e.isDirectory()).flatMap(e => {
+                const packages = join(EXAMPLES_ROOT, e.name, 'memo_packages');
+                return existsSync(packages)
+                    ? readdirSync(packages, { withFileTypes: true }).filter(l => l.isDirectory()).map(l => join(packages, l.name))
+                    : [];
+            })
+            : [];
+        const dirs = [ONTOLOGY_ROOT, EXTENSIONS_ROOT, EXAMPLES_ROOT, ...exampleLibraries];
         const entries: { relPath: string; text: string; allPackages: string[]; leafPackages: string[]; imports: string[] }[] = [];
         const root = CONTENT_ROOT;
         for (const dir of dirs) {

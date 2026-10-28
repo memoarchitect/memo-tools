@@ -8,7 +8,7 @@
 // so a compiler failure stops the same `pnpm test` invocation agents use.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
@@ -57,6 +57,20 @@ function check(project, roots) {
     }
 }
 
-check(memoRoot, sourceRoots);
+// An example may ship a library of its own (`memo_packages/<name>`: the anatomy a project generates
+// from FMA). The file walk skips `memo_packages` by design, so the library is named here as a root;
+// without it the example's imports of it would be unresolved in this flat check.
+const exampleLibraries = readdirSync(resolve(memoRoot, 'examples'), { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .flatMap(entry => {
+        const packages = resolve(memoRoot, 'examples', entry.name, 'memo_packages');
+        return existsSync(packages)
+            ? readdirSync(packages, { withFileTypes: true })
+                .filter(library => library.isDirectory())
+                .map(library => `examples/${entry.name}/memo_packages/${library.name}`)
+            : [];
+    });
+
+check(memoRoot, [...sourceRoots, ...exampleLibraries]);
 
 console.log('✔ SysIDE gate: ontology, extensions and examples resolve cleanly.');
