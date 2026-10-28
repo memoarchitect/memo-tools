@@ -265,7 +265,18 @@ class ElementBuilder {
     /** The type a usage names, spelled as MEMO stores it: the type's own name. */
     private typeName(element: ApiElement): string | undefined {
         const type = this.api.types(element['@id'])[0] ?? this.api.conjugatedOriginal(element['@id']);
-        return type ? this.api.name(type['@id']) : undefined;
+        if (type) return this.api.name(type['@id']);
+        // A variant declared without a type is typed by its variation (SysML: a variant usage specializes
+        // the variation point it is in), so it is an element of the variation's kind.
+        const variation = this.variationOf(element);
+        return variation ? this.typeName(variation) : undefined;
+    }
+
+    /** The variation a `variant part` is declared in, when it is declared without a type of its own. */
+    private variationOf(member: ApiElement): ApiElement | undefined {
+        if (member['@type'] !== 'PartUsage') return undefined;
+        const owner = this.api.owner(member['@id']);
+        return owner && owner.isVariation === true ? owner : undefined;
     }
 
     private superTypeName(element: ApiElement): string | undefined {
@@ -540,7 +551,7 @@ class ElementBuilder {
             // A connection definition's `end part source : T` is an end, not a part it contains.
             if (member.isEnd === true) continue;
             // Only a TYPED nested usage is containment; an untyped one is view metadata.
-            if (!this.api.name(member['@id']) || this.api.types(member['@id']).length === 0) continue;
+            if (!this.api.name(member['@id']) || (this.api.types(member['@id']).length === 0 && !this.variationOf(member))) continue;
             // A typed part that subsets a feature (`part mapEngine : LogicalComponent :> component`)
             // is still a part usage the owner contains: `PartUsage` takes a `UsageDeclaration`, whose
             // `FeatureSpecializationPart` allows typing and subsetting together

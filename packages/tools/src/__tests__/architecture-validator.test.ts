@@ -34,6 +34,15 @@ describe('AR-IBD-001 nested-part connectivity', () => {
         expect(result[0].severity).toBe('warning');
     });
 
+    it('does not judge the variants of a variation, which are alternatives', () => {
+        const variation: MemoElement = { ...part('platform'), attributes: { isVariation: 'true' } };
+        const result = validateArchitecture(model(
+            [variation, part('tower'), part('robot')],
+            [rel('composes', 'platform', 'tower'), rel('composes', 'platform', 'robot')],
+        ));
+        expect(result).toEqual([]);
+    });
+
     it('counts a connector on a child as a connection for its containing assembly', () => {
         const result = validateArchitecture(model(
             [part('device'), part('assembly'), part('module'), part('software')],
