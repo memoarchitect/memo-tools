@@ -32,9 +32,9 @@
       "relationshipTypes": {
         "allocatedTo": 1,
         "composes": 1,
-        "dependency": 3,
+        "dependency": 2,
         "derivesFrom": 1,
-        "performs": 1,
+        "performs": 2,
         "producesEvidence": 2,
         "realizes": 2,
         "satisfiedBy": 1,

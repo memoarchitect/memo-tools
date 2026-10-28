@@ -56,6 +56,17 @@ export const FIXTURES = [
 ];
 
 /**
+ * BASELINE RE-FROZEN 2026-10-28 - `gpca` only (memo dev). The retired function-to-action link, a
+ * `#refinement dependency` from a chain step to an operational activity, is written the native way
+ * the operational-levels plan keeps: the activity `perform`s the function. Compared by leaf name:
+ * nine edges replaced by nine. Validation and every element are unchanged; no other fixture moved.
+ *
+ * | Difference | Why |
+ * | --- | --- |
+ * | -9 `dependency` and -9 `realizes`, chain step -> `oaRequestBolus` / `oaRespondAlarm` | The retired spelling, deleted. |
+ * | +9 `performs`, `oaRequestBolus` / `oaRespondAlarm` -> the function (`fnAcquireSensors`, ...) | The activity performs the function that carries it out; the chain steps are untyped usages, so the function is the performed element. |
+ */
+/**
  * BASELINE RE-FROZEN 2026-10-14 - `default` only. The starter is a `ProductSystem`, a System,
  * where it was a bare `MemoPart` named `system` (memo dbcaed6): a new project declares the System
  * CR-ONT-084 asks for, and files under Architecture rather than evidence. gpca, ui-regions and
