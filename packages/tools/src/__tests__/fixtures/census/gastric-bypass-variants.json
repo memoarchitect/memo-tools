@@ -1,11 +1,11 @@
 {
   "project": "gastric-bypass-variants",
   "totals": {
-    "files": 8,
+    "files": 4,
     "elements": 80,
     "definitions": 7,
     "relationships": 117,
-    "packages": 8,
+    "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
   },
@@ -65,59 +65,11 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
-    "model/catalog/viewpoints/operational/views/bypass_flow_baseline.sysml": {
-      "elements": 1,
+    "model/catalog/viewpoints/operational/views/bypass_flows.sysml": {
+      "elements": 5,
       "definitions": 0,
       "kinds": {
-        "MemoDiagramView": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/catalog/viewpoints/operational/views/bypass_flow_competitor_robot.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "MemoDiagramView": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/catalog/viewpoints/operational/views/bypass_flow_functional.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "MemoDiagramView": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/catalog/viewpoints/operational/views/bypass_flow_laparoscopic.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "MemoDiagramView": 1
-      },
-      "relationships": 0,
-      "relationshipTypes": {},
-      "packages": 1,
-      "parseErrors": 0,
-      "builderFindings": 0
-    },
-    "model/catalog/viewpoints/operational/views/bypass_flow_our_robot.sysml": {
-      "elements": 1,
-      "definitions": 0,
-      "kinds": {
-        "MemoDiagramView": 1
+        "MemoDiagramView": 5
       },
       "relationships": 0,
       "relationshipTypes": {},
