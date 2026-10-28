@@ -125,9 +125,9 @@ describe('layout statements in a view', () => {
         expect(stripLayout(SOURCE)).toBe(SOURCE);
     });
 
-    it('preserves exact fractional coordinates rather than drifting on reload', () => {
+    it('rounds coordinates, so a drag does not write float noise', () => {
         const [line] = layoutToStatements({ nodes: { a: { x: 53.400000000000006, y: -0.001 } }, edges: {} }, '');
-        expect(line).toBe('@MemoLayoutNode { :>> element = "a"; :>> x = 53.400000000000006; :>> y = -0.001; }');
+        expect(line).toBe('@MemoLayoutNode { :>> element = "a"; :>> x = 53.4; :>> y = 0; }');
     });
 
     it('reads nothing from a malformed statement and leaves it where it is', () => {
@@ -137,23 +137,23 @@ describe('layout statements in a view', () => {
 });
 
 
-describe('renderer extension validation', () => {
+describe('layout extension validation', () => {
     it('does not let an extension override typed geometry or camera state', () => {
         const text = replaceViewLayout(SOURCE, 'outer::inner::overview', layout)!;
-        const payload = JSON.stringify({ version: 1, layout: { nodes: { 'outer::inner::pump': { x: 999, future: true } }, canvas: { zoom: 9, pan: { x: 1, y: 2 }, renderer: 'memo.renderer.x6' } } });
+        const payload = JSON.stringify({ version: 1, layout: { nodes: { 'outer::inner::pump': { x: 999, future: true } }, canvas: { zoom: 9, pan: { x: 1, y: 2 }, routingType: 'manhattan' } } });
         const injected = text.replace('expose pump::**;', `@MemoLayoutExtension { :>> payload = ${JSON.stringify(payload)}; }\n        expose pump::**;`);
         const loaded = readFileLayouts(injected)['outer::inner::overview'];
         expect(loaded.nodes['outer::inner::pump'].x).toBe(layout.nodes['outer::inner::pump'].x);
         expect(loaded.canvas?.zoom).toBeUndefined();
         expect(loaded.canvas?.pan).toBeUndefined();
-        expect(loaded.canvas?.renderer).toBe('memo.renderer.x6');
+        expect(loaded.canvas?.routingType).toBe('manhattan');
         expect(loaded.nodes['outer::inner::pump']).toMatchObject({ future: true });
     });
 });
 
 
-it('retains an explicit automatic placement setting with routing and exact route points', () => {
-    const original = { nodes: {}, edges: { line: { points: [{ x: 1.123456789, y: -0.00001 }] } }, canvas: { autoLayout: true, routingMode: 'manual' } } as DiagramLayout;
+it('retains an explicit automatic placement setting with routing and route points', () => {
+    const original = { nodes: {}, edges: { line: { points: [{ x: 1.12, y: 0 }] } }, canvas: { autoLayout: true, routingMode: 'manual' } } as DiagramLayout;
     const text = replaceViewLayout(SOURCE, 'outer::inner::overview', original)!;
     const actual = readFileLayouts(text)['outer::inner::overview'];
     expect(actual).toMatchObject(original);

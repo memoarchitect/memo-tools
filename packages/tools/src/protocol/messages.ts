@@ -1028,15 +1028,6 @@ export interface DiagramLayout {
         snap?: boolean;
         /** False after the first user geometry override. */
         autoLayout?: boolean;
-        /** Per-view renderer selection and renderer-owned pilot geometry. */
-        renderer?: string;
-        jointjs?: { nodes: Record<string, DiagramNodeLayout>; edges?: Record<string, {
-            vertices: Array<{ x: number; y: number }>; manual: true;
-        }> };
-        x6?: { nodes: Record<string, DiagramNodeLayout>;
-            ports?: Record<string, Record<string, { x: number; y: number; side: 'left' | 'right' | 'top' | 'bottom' }>>;
-            edges?: Record<string, Array<{ x: number; y: number }>>;
-        };
         /** Connector routing is independent of automatic node placement. */
         routingType?: 'manhattan' | 'orthogonal' | 'straight' | 'elbow' | 'rounded' | 'curved' | 'arc';
         routingMode?: 'automatic' | 'manual';
