@@ -2,6 +2,13 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.16.3
+
+- **`memo evaluate`.** Evaluates a project's calculations and scores its trade studies. The calculations are the ontology's own roll-ups of time, cost and success, read from their bodies: the SysML standard library's functions and operators are implemented, and one that is not fails with its name. Units follow the library's own conversions (`scripts/generate-si-units.mjs`), so minutes and hours add and a rate times a duration is an amount.
+- **Builder.** A package-level unit declaration (`attribute <EUR> euro : CurrencyUnit;`) and an analysis case (a `TradeStudy`, its alternatives as `hasSubject` edges) are elements. An untyped `variant part` is an element of its variation's kind. A `perform` of an untyped functional-chain step is no longer an end-kind finding.
+- **Validator.** `AR-IBD-001` does not judge the variants of a variation.
+- **Gates.** The SysIDE gate and the import check include an example's own generated library.
+
 ## 0.16.2
 
 - **Views and viewpoints.** `convert` files a view under the one viewpoint it traces to. It now reads every `viewpointDefinition` in a file, not the first, so a file of views for different viewpoints is no longer misplaced. A view that traces to several viewpoints, or to none, goes under `viewpoints/shared/` (it was `unassigned/`); a view that traces to none still warns (`unclassified-view`). `convert` carries `memo.identity.yaml` with the packages it renames, so a moved element keeps its short id and uuid, and a package outside the project's namespace keeps its name.
