@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <code>memo-tools 0.16.4</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
+  <code>memo-tools 0.16.5</code> &middot; MIT &middot; SysML v2 &middot; ISO 14971 &middot; IEC 62304 &middot; ISO/IEC/IEEE 42010
 </p>
 
 > **0.15.0 is an experimental release.** It adds support for the OpenSysML compiler alongside SysIDE; the OpenSysML path is new and has had less use. The next version will be more stable. Pin an exact version.
