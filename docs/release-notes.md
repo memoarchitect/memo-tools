@@ -2,6 +2,12 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.16.5
+
+- **Saved layouts (tools).** A port, or a port wall, that a view's layout names by its declared name is matched to the port it names. Before, an authored boundary-port position was ignored and the port fell back to automatic placement.
+- **IBD (architect).** A connector to a connector-typed port reaches it: the pins' body carries the handles a plain port has, and a flow written to `connector.pin` ends on that pin. Before, every connector to a return electrode, catheter or panel-LED connector failed to draw. A saved connector route whose ends no longer meet its ports is routed again instead of hanging in empty space.
+- **Diagram toolbar (architect).** The IBD routing controls are icon tiles in the toolbar's own grid, with an opt-in compact mode that hides the group captions.
+
 ## 0.16.4
 
 - **`memo evaluate`.** Evaluates a project's calculations and scores its trade studies. The calculations are the ontology's own roll-ups of time, cost and success, read from their bodies: the SysML standard library's functions and operators are implemented, and one that is not fails with its name. Units follow the library's own conversions (`scripts/generate-si-units.mjs`), so minutes and hours add and a rate times a duration is an amount.
