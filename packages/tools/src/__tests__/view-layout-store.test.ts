@@ -120,6 +120,16 @@ describe('a view\'s layout lives in the view', () => {
         expect(Object.keys(loaded['view-thermal'].nodes)).toEqual(['coffee::heater']);
     });
 
+    it('re-keys a port saved under its declared name to the id the canvas looks up', async () => {
+        const root = project();
+        await saveViewLayout(root, diagram(), { ...layout, canvas: { ...layout.canvas, portWalls: { out: 'right' } } }, accepting);
+        const loaded = loadViewLayouts(root, [diagram()], id => ({ heater: 'coffee::heater', out: 'coffee::heater::out' } as Record<string, string>)[id]);
+        const node = loaded['view-thermal'].nodes['coffee::heater'];
+        expect(Object.keys(node.ports ?? {})).toEqual(['coffee::heater::out']);
+        expect(node.ports?.['coffee::heater::out']).toMatchObject({ x: 210, y: 62 });
+        expect(Object.keys(loaded['view-thermal'].canvas?.portWalls ?? {})).toEqual(['coffee::heater::out']);
+    });
+
     it('has the compiler check the write that adds the import, and no later one', async () => {
         const root = project();
         let compiles = 0;

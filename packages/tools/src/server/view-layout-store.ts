@@ -47,9 +47,9 @@ export function isDefaultViewLayout(layout: DiagramLayout): boolean {
  * A layout written before element ids were qualified keys its nodes by the
  * short name that was then an id — `coffeeMachine`, not
  * `Kitchen::coffeeMachine`. Without `resolveNodeId` those entries match no node
- * and every hand-placed box silently returns to automatic placement. Ports are
- * unaffected: they are nested under their owner and keyed by the name the
- * source declares. The remap is read-only; the next save writes the new spelling.
+ * and every hand-placed box silently returns to automatic placement. Ports are keyed by the name
+ * their owner declares, and are re-keyed to the qualified id the canvas looks up. The remap is read-only; the next save
+ * writes the new spelling.
  */
 /**
  * How a saved node id that no element carries is mapped to one that does: a layout written before ids were
@@ -141,7 +141,10 @@ function onlyThisViewChanged(text: string, updated: string, viewId: string, layo
     return view.statements.length === wanted;
 }
 
-/** A copy of `layout` whose node keys are the ids the current model uses. */
+/**
+ * A copy of `layout` whose node, port and port-wall keys are the ids the current model uses. A port is keyed by the name
+ * its owner declares for it, so it is stored under the owner's id with that name appended, the id the canvas looks up.
+ */
 function withResolvedNodes(
     layout: DiagramLayout,
     resolveNodeId: (savedId: string) => string | undefined,
@@ -151,9 +154,29 @@ function withResolvedNodes(
     for (const [savedId, node] of Object.entries(layout.nodes ?? {})) {
         const resolved = resolveNodeId(savedId) ?? savedId;
         if (resolved !== savedId) changed = true;
+        let entry = node;
+        if (node.ports) {
+            const ports: NonNullable<typeof node.ports> = {};
+            for (const [portKey, port] of Object.entries(node.ports)) {
+                const portId = portKey.includes('::') ? portKey : `${resolved}::${portKey}`;
+                if (portId !== portKey) changed = true;
+                ports[portId] = ports[portId] ?? port;
+            }
+            entry = { ...node, ports };
+        }
         // A saved id that resolves onto one already present loses: the entry
         // written under the current spelling is the more recent of the two.
-        nodes[resolved] = nodes[resolved] ?? node;
+        nodes[resolved] = nodes[resolved] ?? entry;
     }
-    return changed ? { ...layout, nodes } : layout;
+    const portWalls = layout.canvas?.portWalls;
+    let walls = portWalls;
+    if (portWalls) {
+        walls = {};
+        for (const [portId, wall] of Object.entries(portWalls)) {
+            const resolved = resolveNodeId(portId) ?? portId;
+            if (resolved !== portId) changed = true;
+            walls[resolved] = walls[resolved] ?? wall;
+        }
+    }
+    return changed ? { ...layout, nodes, ...(walls ? { canvas: { ...layout.canvas, portWalls: walls } } : {}) } : layout;
 }
