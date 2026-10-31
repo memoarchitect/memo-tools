@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DiagramLayout } from '../protocol/messages.js';
+import { edgeAttachment } from '../model/edge-attachment.js';
 import {
     layoutBlindRevision, layoutFromStatements, layoutToStatements, readFileLayouts,
     replaceViewLayout, scanViewLayouts, stripLayout,
@@ -157,4 +158,32 @@ it('retains an explicit automatic placement setting with routing and route point
     const text = replaceViewLayout(SOURCE, 'outer::inner::overview', original)!;
     const actual = readFileLayouts(text)['outer::inner::overview'];
     expect(actual).toMatchObject(original);
+});
+
+it('keeps a connector\'s ends as one token, last in the view, and reads a layout written with the ids', () => {
+    const ends = { source: 'a::pump', target: 'a::valve', sourcePortId: 'a::pump::out', targetPortId: 'a::valve::in' };
+    const original = { nodes: { 'a::pump': { x: 1, y: 2 } }, edges: { flow: { points: [{ x: 1, y: 2 }], ...ends } }, annotations: { n: { kind: 'note', x: 1, y: 1, text: 't' } } } as unknown as DiagramLayout;
+    const text = replaceViewLayout(SOURCE, 'outer::inner::overview', original)!;
+    expect(text).not.toContain('sourceElement');
+    expect(text).not.toContain('a::valve::in');
+    expect(text.indexOf('@MemoLayoutEdge')).toBeGreaterThan(text.indexOf('@MemoLayoutNote'));
+    const loaded = readFileLayouts(text)['outer::inner::overview'].edges.flow;
+    expect(loaded.attachment).toBe(edgeAttachment(ends));
+    expect(edgeAttachment({ ...ends, targetPortId: 'a::valve::other' })).not.toBe(loaded.attachment);
+    const old = text.replace(/:>> attachment = "[0-9a-f]+";/, `:>> sourceElement = "a::pump"; :>> targetElement = "a::valve";`);
+    expect(readFileLayouts(old)['outer::inner::overview'].edges.flow).toMatchObject({ source: 'a::pump', target: 'a::valve' });
+});
+
+it('writes a pin under its connector\'s shortest unique name and reads it back whole', async () => {
+    const { portKeyCodec } = await import('../server/view-layout-store.js');
+    const ids = ['hw::rfg::gen', 'ifc_rfg::Catheter', 'ifc_rfg::Encoder', 'ifc_ims::Catheter'];
+    const codec = portKeyCodec({ elements: Object.fromEntries(ids.map(id => [id, {}])) });
+    expect(codec.shorten('ifc_rfg::Encoder::knob')).toBe('Encoder::knob');
+    expect(codec.expand('Encoder::knob')).toBe('ifc_rfg::Encoder::knob');
+    expect(codec.shorten('ifc_rfg::Catheter::rfPin')).toBe('ifc_rfg::Catheter::rfPin');
+    expect(codec.expand('Catheter::rfPin')).toBe('Catheter::rfPin');
+    expect(codec.shorten('unknown::x')).toBe('unknown::x');
+    const layout = { nodes: { 'hw::rfg::gen': { x: 0, y: 0, ports: { 'ifc_rfg::Encoder::knob': { x: 1, y: 2 } } } }, edges: {} } as unknown as DiagramLayout;
+    const text = replaceViewLayout(SOURCE, 'outer::inner::overview', layout, codec.shorten)!;
+    expect(text).toContain('portName = "Encoder::knob"');
 });

@@ -63,10 +63,56 @@ export function savedNodeIdResolver(model: { elements: Record<string, { shortNam
     };
 }
 
+/**
+ * Port keys as a layout file spells them. A pin reached through a connector is keyed by its whole qualified id,
+ * package first, which is most of a port line; the file keeps the shortest tail of it that names one element and
+ * the model gives the rest back. A tail that fits two elements is never written.
+ */
+export interface PortKeyCodec {
+    shorten(key: string): string;
+    expand(key: string): string;
+}
+
+export function portKeyCodec(model: { elements: Record<string, unknown> } | undefined): PortKeyCodec {
+    const ids = model ? Object.keys(model.elements) : [];
+    const answering = (tail: string) => ids.filter(id => id === tail || id.endsWith(`::${tail}`));
+    // A pin is not an element of its own: its key is the connector definition's id with the pin's name after it.
+    // So the head of the key is what the model can answer for, and the pin's own name is carried through as it is.
+    const expand = (key: string): string => {
+        if (!key.includes('::') || model?.elements[key]) return key;
+        const parts = key.split('::');
+        for (let cut = parts.length - 1; cut >= 1; cut--) {
+            const matches = answering(parts.slice(0, cut).join('::'));
+            if (matches.length === 1) return `${matches[0]}::${parts.slice(cut).join('::')}`;
+        }
+        return key;
+    };
+    return {
+        // A bare name is the owner's own port and is read by the owner rule in `withResolvedNodes`; leaving it alone keeps the two rules apart.
+        expand,
+        shorten: key => {
+            const parts = key.split('::');
+            for (let cut = parts.length - 1; cut >= 1; cut--) {
+                const head = parts.slice(0, cut).join('::');
+                if (!model?.elements[head]) continue;
+                const rest = parts.slice(cut).join('::');
+                const headParts = head.split('::');
+                for (let from = headParts.length - 1; from >= 0; from--) {
+                    const candidate = `${headParts.slice(from).join('::')}::${rest}`;
+                    if (expand(candidate) === key) return candidate;
+                }
+                return key;
+            }
+            return key;
+        },
+    };
+}
+
 export function loadViewLayouts(
     projectRoot: string,
     diagrams: DiagramDTO[],
     resolveNodeId?: (savedId: string) => string | undefined,
+    ports?: PortKeyCodec,
 ): Record<string, DiagramLayout> {
     const byFile = new Map<string, Record<string, DiagramLayout>>();
     const layouts: Record<string, DiagramLayout> = {};
@@ -79,7 +125,7 @@ export function loadViewLayouts(
             byFile.set(diagram.sourceFile, fileLayouts);
         }
         const layout = fileLayouts[diagram.elementId];
-        if (layout) layouts[diagram.id] = resolveNodeId ? withResolvedNodes(layout, resolveNodeId) : layout;
+        if (layout) layouts[diagram.id] = resolveNodeId ? withResolvedNodes(layout, resolveNodeId, ports) : layout;
     }
     return layouts;
 }
@@ -100,7 +146,7 @@ export interface ViewLayoutSave {
  * before it reaches disk, like every other write.
  */
 export async function saveViewLayout(
-    projectRoot: string, diagram: DiagramDTO, layout: DiagramLayout, outlines: OutlineSource,
+    projectRoot: string, diagram: DiagramDTO, layout: DiagramLayout, outlines: OutlineSource, ports?: PortKeyCodec,
 ): Promise<ViewLayoutSave> {
     if (!diagram.sourceFile || !diagram.elementId) {
         return { success: false, reason: `"${diagram.name}" is not a declared view, so it has no place to keep a layout` };
@@ -108,7 +154,7 @@ export async function saveViewLayout(
     const absolute = resolve(projectRoot, diagram.sourceFile);
     if (!existsSync(absolute)) return { success: false, reason: `${diagram.sourceFile} does not exist` };
     const text = readFileSync(absolute, 'utf8');
-    const updated = replaceViewLayout(text, diagram.elementId, isDefaultViewLayout(layout) ? null : layout);
+    const updated = replaceViewLayout(text, diagram.elementId, isDefaultViewLayout(layout) ? null : layout, ports?.shorten);
     if (updated === undefined) {
         return { success: false, reason: `${diagram.elementId} was not found in ${diagram.sourceFile}` };
     }
@@ -148,6 +194,7 @@ function onlyThisViewChanged(text: string, updated: string, viewId: string, layo
 function withResolvedNodes(
     layout: DiagramLayout,
     resolveNodeId: (savedId: string) => string | undefined,
+    codec?: PortKeyCodec,
 ): DiagramLayout {
     const nodes: DiagramLayout['nodes'] = {};
     let changed = false;
@@ -158,7 +205,7 @@ function withResolvedNodes(
         if (node.ports) {
             const ports: NonNullable<typeof node.ports> = {};
             for (const [portKey, port] of Object.entries(node.ports)) {
-                const portId = portKey.includes('::') ? portKey : `${resolved}::${portKey}`;
+                const portId = portKey.includes('::') ? (codec?.expand(portKey) ?? portKey) : `${resolved}::${portKey}`;
                 if (portId !== portKey) changed = true;
                 ports[portId] = ports[portId] ?? port;
             }

@@ -251,7 +251,7 @@ function bootstrapHome(projectRoot: string, model: MemoModelDTO, diagram: Diagra
     // are `<project>_views_<area>`, and an unrelated name would break that.
     const parts = String(exemplar.package ?? 'views').split('::');
     const base = parts[parts.length - 1].replace(/[^A-Za-z0-9_]/g, '_');
-    const pkg = `${base.replace(/_[^_]*$/, '')}_${slug(diagram.viewKind ?? 'view')}`;
+    const pkg = `${base.replace(/_[^_]*$/, '')}_${slug(diagram.name)}`;
     const imports = readFileSync(resolve(projectRoot, home.file), 'utf8')
         .split('\n')
         .filter(line => /^\s*(private\s+)?import\s/.test(line))
@@ -305,8 +305,10 @@ export async function writeViewDeclaration(
     // A matrix with no package joins the project's commonest home for views of ANY kind: there is rarely a
     // sibling matrix, and a package invented for the first one would be a new place to look.
     const isMatrixView = Boolean(diagram.viewDefinition && diagram.matrix);
-    const home = chosen ? undefined : conventionalHome(siblingViews(model, isMatrixView ? null : diagram.viewKind ?? null));
-    const bootstrap = chosen || home ? undefined : bootstrapHome(projectRoot, model, diagram as DiagramDTO);
+    // One view per file: a view's layout is its own statements and a file of several views is one long scroll
+    // of them, so each new view gets a file beside the project's other views.
+    const home = undefined as ReturnType<typeof conventionalHome>;
+    const bootstrap = chosen ? undefined : bootstrapHome(projectRoot, model, diagram as DiagramDTO);
     if (!chosen && !home && !bootstrap) {
         return { success: false, reason: 'this project declares no view at all, so there is no convention to place one by' };
     }

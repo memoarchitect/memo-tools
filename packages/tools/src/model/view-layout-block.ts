@@ -25,6 +25,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
+import { edgeAttachment } from './edge-attachment.js';
 import type { DiagramLayout, DiagramNodeLayout, DiagramEdgeLayout, DiagramAnnotation } from '../protocol/messages.js';
 
 type Side = 'top' | 'bottom' | 'left' | 'right';
@@ -233,7 +234,7 @@ const record = (v: unknown): v is JsonRecord => !!v && typeof v === 'object' && 
 const extras = (v: unknown, known: string[]): JsonRecord => record(v)
     ? Object.fromEntries(Object.entries(v).filter(([k]) => !known.includes(k) && !['__proto__', 'prototype', 'constructor'].includes(k))) : {};
 const NODE_FIELDS = ['x', 'y', 'width', 'height', 'parent', 'color', 'borderColor', 'textColor', 'fontSize', 'fontWeight', 'textAlign', 'verticalAlign', 'opacity', 'ports'];
-const EDGE_FIELDS = ['color', 'strokeWidth', 'labelVisible', 'style', 'points', 'source', 'target', 'sourcePortId', 'targetPortId', 'manualLanding', 'sourceSide', 'sourceT', 'targetSide', 'targetT'];
+const EDGE_FIELDS = ['color', 'strokeWidth', 'labelVisible', 'style', 'points', 'source', 'target', 'sourcePortId', 'targetPortId', 'attachment', 'manualLanding', 'sourceSide', 'sourceT', 'targetSide', 'targetT'];
 const NOTE_FIELDS = ['kind', 'x', 'y', 'width', 'height', 'text', 'color'];
 
 /** Fields that the current typed metadata cannot express, without camera data. */
@@ -343,6 +344,7 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
                 put(edge, 'target', str(v.targetElement));
                 put(edge, 'sourcePortId', str(v.sourcePortId));
                 put(edge, 'targetPortId', str(v.targetPortId));
+                put(edge, 'attachment', str(v.attachment));
                 put(edge, 'manualLanding', bool(v.manualLanding));
                 put(edge, 'sourceSide', lit<Side>(v.sourceSide));
                 put(edge, 'sourceT', num(v.sourceT));
@@ -421,7 +423,7 @@ const side = (v: unknown) => literal('MemoLayoutSide', SIDES, v);
  * the drawing, and the IBD display toggles, which the view declares as its own
  * attributes and which the canvas reads from there.
  */
-export function layoutToStatements(layout: DiagramLayout, indent: string): string[] {
+export function layoutToStatements(layout: DiagramLayout, indent: string, portKey: (key: string) => string = key => key): string[] {
     const lines: string[] = [];
     const canvas = layout.canvas as Canvas | undefined;
     const canvasFields: Field[] = [
@@ -455,7 +457,7 @@ export function layoutToStatements(layout: DiagramLayout, indent: string): strin
             const port = node.ports![name];
             if (n(port?.x) === undefined || n(port?.y) === undefined) continue;
             lines.push(statement('MemoLayoutPort', [
-                ['element', q(id)], ['portName', q(name)], ['x', n(port.x)], ['y', n(port.y)],
+                ['element', q(id)], ['portName', q(portKey(name))], ['x', n(port.x)], ['y', n(port.y)],
                 ['side', side(port.side)], ['size', n(port.size)],
             ], indent));
         }
@@ -464,22 +466,6 @@ export function layoutToStatements(layout: DiagramLayout, indent: string): strin
         lines.push(statement('MemoLayoutPortWall', [
             ['portId', q(id)], ['wall', side(canvas!.portWalls![id])],
         ], indent));
-    }
-    for (const id of Object.keys(layout.edges ?? {}).sort()) {
-        const edge = layout.edges[id];
-        const fields: Field[] = [
-            ['color', s(edge.color)], ['strokeWidth', n(edge.strokeWidth)], ['labelVisible', b(edge.labelVisible)],
-            ['lineStyle', literal('MemoLayoutLineStyle', LINE_STYLES, edge.style)],
-            ['route', routeLiteral(edge.points)],
-            ['sourceElement', s(edge.source)], ['targetElement', s(edge.target)],
-            ['sourcePortId', s(edge.sourcePortId)], ['targetPortId', s(edge.targetPortId)],
-            ['manualLanding', b(edge.manualLanding)],
-            ['sourceSide', side(edge.sourceSide)], ['sourceT', n(edge.sourceT)],
-            ['targetSide', side(edge.targetSide)], ['targetT', n(edge.targetT)],
-        ];
-        // An edge entry that overrides nothing says nothing.
-        if (fields.every(([, v]) => v === undefined)) continue;
-        lines.push(statement('MemoLayoutEdge', [['edge', q(id)], ...fields], indent));
     }
     for (const id of Object.keys(layout.annotations ?? {}).sort()) {
         const note = layout.annotations![id];
@@ -493,6 +479,22 @@ export function layoutToStatements(layout: DiagramLayout, indent: string): strin
     if (Object.keys(extension).length) lines.push(statement('MemoLayoutExtension', [
         ['payload', q(JSON.stringify({ version: 1, layout: extension }))],
     ], indent));
+    // Connector routes are the longest statements and the ones a reader skips, so they come last.
+    for (const id of Object.keys(layout.edges ?? {}).sort()) {
+        const edge = layout.edges[id];
+        const fields: Field[] = [
+            ['color', s(edge.color)], ['strokeWidth', n(edge.strokeWidth)], ['labelVisible', b(edge.labelVisible)],
+            ['lineStyle', literal('MemoLayoutLineStyle', LINE_STYLES, edge.style)],
+            ['route', routeLiteral(edge.points)],
+            ['attachment', edge.source === undefined && edge.target === undefined ? s(edge.attachment) : s(edgeAttachment(edge))],
+            ['manualLanding', b(edge.manualLanding)],
+            ['sourceSide', side(edge.sourceSide)], ['sourceT', n(edge.sourceT)],
+            ['targetSide', side(edge.targetSide)], ['targetT', n(edge.targetT)],
+        ];
+        // An edge entry that overrides nothing says nothing.
+        if (fields.every(([, v]) => v === undefined)) continue;
+        lines.push(statement('MemoLayoutEdge', [['edge', q(id)], ...fields], indent));
+    }
     return lines;
 }
 
@@ -552,11 +554,11 @@ export function readFileLayouts(text: string): Record<string, DiagramLayout> {
  * nothing) removes the view's statements. Returns undefined when the file has
  * no view of that id — a layout that cannot be written is not invented a home.
  */
-export function replaceViewLayout(text: string, viewId: string, layout: DiagramLayout | null): string | undefined {
+export function replaceViewLayout(text: string, viewId: string, layout: DiagramLayout | null, portKey?: (key: string) => string): string | undefined {
     const view = scanViewLayouts(text).find(candidate => candidate.id === viewId);
     if (!view) return undefined;
     const bodyIndent = indentOfBody(text, view);
-    const lines = layout ? layoutToStatements(layout, bodyIndent) : [];
+    const lines = layout ? layoutToStatements(layout, bodyIndent, portKey) : [];
     const without = removeStatements(text, view.statements);
     if (lines.length === 0) return without;
     // Re-find the view: its offsets moved when the old statements went.

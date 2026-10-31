@@ -47,7 +47,7 @@ import { classifyConflict } from './conflict-policy.js';
 import type { SemanticOrigin } from '../model/source-provenance.js';
 import { checkRulePolicy, insertRulePolicy, renderRulePolicy } from './rule-policy-writer.js';
 import { createRule, previewRule } from './rule-service.js';
-import { loadViewLayouts, saveViewLayout, savedNodeIdResolver } from './view-layout-store.js';
+import { loadViewLayouts, saveViewLayout, savedNodeIdResolver, portKeyCodec } from './view-layout-store.js';
 import { layoutBlindRevision } from '../model/view-layout-block.js';
 import { assertWritable } from './write-guard.js';
 import { updateViewDeclaration, updateViewDisplay, updateViewExpose, writeViewDeclaration } from './view-writer.js';
@@ -1489,7 +1489,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         if (sourceIncoherence) ws.send(JSON.stringify(sourceIncoherence));
 
         // Send all sidecar layouts on connect
-        const layouts = loadViewLayouts(options.projectRoot, currentDiagrams(), savedId => savedNodeIdResolver(currentModel())(savedId));
+        const layouts = loadViewLayouts(options.projectRoot, currentDiagrams(), savedId => savedNodeIdResolver(currentModel())(savedId), portKeyCodec(currentModel()));
         if (Object.keys(layouts).length > 0) {
             ws.send(JSON.stringify({ type: 'diagram:layout', payload: { layouts } }));
         }
@@ -1881,7 +1881,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // diagram, and nowhere else. A diagram that is not a declared
                     // view keeps its layout for the session only.
                     const saved = diagram
-                        ? await saveViewLayout(options.projectRoot, diagram, layout, (await authoringContext()).outlines)
+                        ? await saveViewLayout(options.projectRoot, diagram, layout, (await authoringContext()).outlines, portKeyCodec(currentModel()))
                         : { success: false, reason: `no view "${diagramId}" is declared` } as const;
                     if (!saved.success) {
                         if (requestId) ws.send(JSON.stringify({ type: 'diagram:layout:saved', payload: { diagramId, requestId, error: saved.reason } }));
@@ -2835,7 +2835,7 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
         refreshLayouts(files: readonly string[]) {
             const wanted = new Set(files.map(file => file.replaceAll('\\', '/')));
             const diagrams = currentDiagrams().filter(d => d.sourceFile && wanted.has(d.sourceFile.replaceAll('\\', '/')));
-            const layouts = loadViewLayouts(options.projectRoot, diagrams);
+            const layouts = loadViewLayouts(options.projectRoot, diagrams, savedId => savedNodeIdResolver(currentModel())(savedId), portKeyCodec(currentModel()));
             // A diagram whose statements are all gone is sent as an empty layout,
             // or the clients would keep the one they had.
             for (const diagram of diagrams) layouts[diagram.id] ??= { nodes: {}, edges: {} };

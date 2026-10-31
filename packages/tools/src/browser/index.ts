@@ -1,6 +1,7 @@
 // Browser-safe @memoarchitect/tools surface. Keep this entrypoint free of parser,
 // filesystem, server, and other Node-only dependencies.
 export * from '../model/naming.js';
+export * from '../model/edge-attachment.js';
 export * from '../model/quantity-format.js';
 export * from '../model/quantity-core.js';
 export * from '../model/relation-selection.js';

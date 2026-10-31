@@ -990,6 +990,8 @@ export interface DiagramEdgeLayout {
     target?: string;
     sourcePortId?: string;
     targetPortId?: string;
+    /** `edgeAttachment` of the four ids above, which a layout file keeps instead of the ids. */
+    attachment?: string;
     /**
      * Where each end lands on its box: a wall, and a fraction along it.
      *
