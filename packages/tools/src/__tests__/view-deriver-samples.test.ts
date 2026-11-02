@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveModelViews } from '../model/view-deriver.js';
+import { deriveModelViews, resolveExposeIds } from '../model/view-deriver.js';
 import type { MemoElement, MemoModel } from '../model/semantic.js';
 import { toElementIndex } from '../model/element-index.js';
 
@@ -104,5 +104,44 @@ describe('explicit renderer samples', () => {
 
         expect(result.viewpoints).toEqual([expect.objectContaining({ id: 'VP-FUNC' })]);
         expect(result.diagrams).toEqual([expect.objectContaining({ viewpointId: 'VP-FUNC' })]);
+    });
+
+    it('exposes the action a scenario performs, since the perform usage is owned', () => {
+        const scenario = element('wf::scn', 'OperativeScenario', 'wf');
+        scenario.construct = 'action';
+        const step = element('acts::step', 'OperativeAction', 'acts');
+        step.construct = 'action';
+        const view = element('flowView', 'DiagramView', 'wf');
+        view.attributes = { expose: 'wf::**' };
+        const model = {
+            elements: toElementIndex([scenario, step, view]),
+            packages: [{ qualifiedName: 'wf' }],
+            relationships: [{ type: 'performs', sourceId: 'wf::scn', targetId: 'acts::step' }],
+            incoming: new Map(),
+        } as unknown as MemoModel;
+
+        expect(resolveExposeIds(view, model).sort()).toEqual(['acts::step', 'wf::scn']);
+    });
+
+    it('does not add the action a step already subsets', () => {
+        const chain = element('fc', 'FunctionalFlow', 'fc');
+        chain.construct = 'action';
+        const step = element('fc::dock', 'OperativeAction', 'fc');
+        step.owner = 'fc';
+        const fn = element('fn', 'SystemFunction', 'fns');
+        fn.construct = 'action';
+        const view = element('v', 'DiagramView', 'fc');
+        view.attributes = { expose: 'fc::**' };
+        const model = {
+            elements: toElementIndex([chain, step, fn, view]),
+            packages: [],
+            relationships: [
+                { type: 'performs', sourceId: 'fc', targetId: 'fn' },
+                { type: 'subsets', sourceId: 'fc::dock', targetId: 'fn' },
+            ],
+            incoming: new Map(),
+        } as unknown as MemoModel;
+
+        expect(resolveExposeIds(view, model)).not.toContain('fn');
     });
 });

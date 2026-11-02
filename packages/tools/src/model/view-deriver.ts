@@ -148,6 +148,17 @@ export function resolveExposeIds(view: MemoElement, model: MemoModel): string[] 
             ids.add(id);
         }
     });
+    // `perform a;` is a PerformActionUsage the scenario owns (SysML-textual-bnf.kebnf:948),
+    // so `expose` reaches it. The builder records it as a `performs` edge rather than an
+    // element, so the action it stands for is added here, or the exposed usage vanishes.
+    // A step that subsets the action (`action s :> fnX;`) is already an element, so fnX is not added.
+    const stepped = new Set(model.relationships
+        .filter(r => r.type === 'subsets' && ids.has(r.sourceId)).map(r => r.targetId));
+    const performed = new Set(model.relationships
+        .filter(r => r.type === 'performs' && ids.has(r.sourceId) && !stepped.has(r.targetId)
+            && model.elements.get(r.sourceId)?.construct === 'action')
+        .map(r => r.targetId));
+    for (const id of performed) if (model.elements.has(id)) ids.add(id);
     return [...ids];
 }
 
