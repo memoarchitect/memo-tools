@@ -154,9 +154,12 @@ export function resolveExposeIds(view: MemoElement, model: MemoModel): string[] 
     // A step that subsets the action (`action s :> fnX;`) is already an element, so fnX is not added.
     const stepped = new Set(model.relationships
         .filter(r => r.type === 'subsets' && ids.has(r.sourceId)).map(r => r.targetId));
+    // Only within the same layer: an operational step that performs a system function must not pull
+    // the function into an operational view, which stays a black box.
     const performed = new Set(model.relationships
         .filter(r => r.type === 'performs' && ids.has(r.sourceId) && !stepped.has(r.targetId)
-            && model.elements.get(r.sourceId)?.construct === 'action')
+            && model.elements.get(r.sourceId)?.construct === 'action'
+            && model.elements.get(r.targetId)?.layer === model.elements.get(r.sourceId)?.layer)
         .map(r => r.targetId));
     for (const id of performed) if (model.elements.has(id)) ids.add(id);
     return [...ids];

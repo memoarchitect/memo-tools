@@ -109,8 +109,10 @@ describe('explicit renderer samples', () => {
     it('exposes the action a scenario performs, since the perform usage is owned', () => {
         const scenario = element('wf::scn', 'OperativeScenario', 'wf');
         scenario.construct = 'action';
+        scenario.layer = 'operational';
         const step = element('acts::step', 'OperativeAction', 'acts');
         step.construct = 'action';
+        step.layer = 'operational';
         const view = element('flowView', 'DiagramView', 'wf');
         view.attributes = { expose: 'wf::**' };
         const model = {
@@ -143,5 +145,24 @@ describe('explicit renderer samples', () => {
         } as unknown as MemoModel;
 
         expect(resolveExposeIds(view, model)).not.toContain('fn');
+    });
+
+    it('does not pull a function of another layer into the view of the step that performs it', () => {
+        const step = element('wf::scn::s', 'OperativeAction', 'wf');
+        step.construct = 'action';
+        step.layer = 'operational';
+        const fn = element('fns::fn', 'SystemFunction', 'fns');
+        fn.construct = 'action';
+        fn.layer = 'functional';
+        const view = element('v2', 'DiagramView', 'wf');
+        view.attributes = { expose: 'wf::**' };
+        const model = {
+            elements: toElementIndex([step, fn, view]),
+            packages: [{ qualifiedName: 'wf' }],
+            relationships: [{ type: 'performs', sourceId: 'wf::scn::s', targetId: 'fns::fn' }],
+            incoming: new Map(),
+        } as unknown as MemoModel;
+
+        expect(resolveExposeIds(view, model)).not.toContain('fns::fn');
     });
 });

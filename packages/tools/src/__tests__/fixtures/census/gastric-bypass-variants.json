@@ -1,11 +1,11 @@
 {
   "project": "gastric-bypass-variants",
   "totals": {
-    "files": 4,
+    "files": 6,
     "elements": 83,
     "definitions": 7,
     "relationships": 122,
-    "packages": 4,
+    "packages": 6,
     "parseErrors": 0,
     "builderFindings": 0
   },
@@ -55,6 +55,28 @@
       "parseErrors": 0,
       "builderFindings": 0
     },
+    "model/catalog/viewpoints/functional/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/functional/views/bypass_flows.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
     "model/catalog/viewpoints/operational/viewpoint.sysml": {
       "elements": 0,
       "definitions": 0,
@@ -66,10 +88,10 @@
       "builderFindings": 0
     },
     "model/catalog/viewpoints/operational/views/bypass_flows.sysml": {
-      "elements": 5,
+      "elements": 4,
       "definitions": 0,
       "kinds": {
-        "MemoDiagramView": 5
+        "MemoDiagramView": 4
       },
       "relationships": 0,
       "relationshipTypes": {},
