@@ -63,6 +63,40 @@ describe.runIf(compilerConfigured && examplesPresent)('the roll-up calculations,
         }, 'gastric-bypass-variants');
     }, 180_000);
 
+    it('take a fork\'s longest branch for a scenario\'s time, and treat steps with no succession as concurrent', async () => {
+        const source = `package seeded_fork {
+    private import ScalarValues::*;
+    private import memo_core_stdlib_quantities::*;
+    private import memo_architecture_operational_activities::*;
+    private import memo_architecture_operational_scenarios::*;
+    private import memo_architecture_operational_workflows::*;
+    part wfFork : OperationalWorkflow {
+        action sc : OperativeScenario {
+            action open : OperativeAction { attribute :>> expectedDuration = 10 [min]; }
+            action left : OperativeAction { attribute :>> expectedDuration = 30 [min]; }
+            action right : OperativeAction { attribute :>> expectedDuration = 20 [min]; }
+            action close : OperativeAction { attribute :>> expectedDuration = 5 [min]; }
+            first open then left;
+            first open then right;
+            first left then close;
+            first right then close;
+        }
+        action unordered : OperativeScenario {
+            action one : OperativeAction { attribute :>> expectedDuration = 4 [min]; }
+            action two : OperativeAction { attribute :>> expectedDuration = 6 [min]; }
+        }
+    }
+    calc forkTime : memo_architecture_operational_rollups::ScenarioDuration { in scenario = wfFork.sc; }
+    calc chainTime : memo_architecture_operational_rollups::ScenarioDuration { in scenario = wfFork.unordered; }
+}`;
+        await withExample({ 'model/catalog/seeded_fork.sysml': source }, project => {
+            const report = evaluateCalculations(project);
+            const result = (name: string) => report.calculations.find(c => c.name === name);
+            expect(result('forkTime')?.result).toMatch(/^45 \[min/);
+            expect(result('chainTime')?.result).toMatch(/^6 \[min/);
+        }, 'gastric-bypass-variants');
+    }, 180_000);
+
     it('fail with the function\'s name when a body calls one the evaluator does not implement', async () => {
         const source = `package seeded_calc {
     private import ScalarValues::*;

@@ -127,6 +127,12 @@ export class CalcEvaluator {
             case 'SequenceFunctions::size': return flatten(evaluated[0] as Value).length;
             case 'QuantityCalculations::sum': case 'NumericalFunctions::sum':
                 return add(flatten(evaluated[0] as Value).filter((v): v is number | Quantity => typeof v === 'number' || isQuantity(v)));
+            case 'NumericalFunctions::max': return extreme(flatten(evaluated[0] as Value), flatten(evaluated[1] as Value), 1);
+            case 'NumericalFunctions::min': return extreme(flatten(evaluated[0] as Value), flatten(evaluated[1] as Value), -1);
+            case 'ControlFunctions::reduce': {
+                const [first, ...rest] = flatten(evaluated[0] as Value);
+                return first === undefined ? [] : rest.reduce<Value>((acc, item) => (evaluated[1] as unknown as Callable)([acc, item]), first);
+            }
             case 'QuantityCalculations::product': case 'NumericalFunctions::product':
                 return flatten(evaluated[0] as Value).filter((v): v is number | Quantity => typeof v === 'number' || isQuantity(v))
                     .reduce<number | Quantity>((product, v) => multiply(product, v), 1);
@@ -188,9 +194,33 @@ export class CalcEvaluator {
         switch (name) {
             case 'subactions': case 'ownedActions': return edges('composes').filter(e => e.construct === 'action');
             case 'includedUseCases': return edges('includesStep');
+            case 'successors': return this.reachable(element, 'targetId');
+            case 'predecessors': return this.reachable(element, 'sourceId');
             case 'enclosedPerformances': return [...edges('composes'), ...edges('performs'), ...edges('includesStep')].filter(isBehaviour);
             default: return undefined;
         }
+    }
+
+    /**
+     * Every occurrence before (`sourceId`) or after (`targetId`) an element along succession edges, which is what the
+     * kernel library's `predecessors` and `successors` are: all of them, not just the adjacent ones.
+     */
+    private reachable(element: MemoElement, end: 'sourceId' | 'targetId'): MemoElement[] {
+        const index = end === 'targetId' ? this.model.outgoing : this.model.incoming;
+        const far = end === 'targetId' ? 'targetId' : 'sourceId';
+        const seen = new Set<string>();
+        const found: MemoElement[] = [];
+        const queue = [element.id];
+        while (queue.length > 0) {
+            for (const edge of index.get(queue.shift()!) ?? []) {
+                if (edge.type !== 'succession' || seen.has(edge[far])) continue;
+                seen.add(edge[far]);
+                const next = this.model.elements.get(edge[far]);
+                if (next) found.push(next);
+                queue.push(edge[far]);
+            }
+        }
+        return found;
     }
 
     /** What the definition that declares a feature gives it when the model sets none. */
@@ -240,6 +270,24 @@ function equal(a: Value, b: Value): boolean {
     const left = flatten(a); const right = flatten(b);
     if (left.length !== right.length) return false;
     return left.every((item, index) => norm(item) === norm(right[index]));
+}
+
+/** The larger (`1`) or smaller (`-1`) of two numbers or quantities; an operand that is nothing is the other one. */
+function extreme(x: Value[], y: Value[], direction: 1 | -1): Value {
+    if (x.length === 0) return y.length === 0 ? [] : y[0];
+    if (y.length === 0) return x[0];
+    const [a, b] = [x[0], y[0]];
+    if ((typeof a !== 'number' && !isQuantity(a)) || (typeof b !== 'number' && !isQuantity(b))) {
+        throw new UnsupportedCalculation('max or min of something that is not a number');
+    }
+    return direction * diff(a, b) >= 0 ? a : b;
+}
+
+/** `a - b` as a plain number once both are brought to the same units. */
+function diff(a: number | Quantity, b: number | Quantity): number {
+    const negative = typeof b === 'number' ? -b : { num: -b.num, units: b.units };
+    const result = add([a, negative]);
+    return typeof result === 'number' ? result : result.num;
 }
 
 function compare(op: string, a: number | Quantity, b: number | Quantity): boolean {
