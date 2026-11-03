@@ -101,9 +101,9 @@ function integration(name: string, flags: string[]): void {
                 expect(checked.ruleCoverage.untracedRules.filter(r => r.domain === 'medicalDevice').map(r => r.id).sort())
                     .toEqual(['CR-MED-021', 'CR-MED-030', 'CR-MED-031', 'CR-MED-032', 'CR-ONT-032']);
                 expect(checked.ruleCoverage.untracedRules.some(r => r.domain === 'modelling')).toBe(true);
-                expect(checked.ruleCoverage.tracedRules).toBe(33);
+                expect(checked.ruleCoverage.tracedRules).toBe(34);
                 expect(checked.ruleCoverage.unknownClauses).toEqual([]);
-                expect(checked.ruleCoverage.byDomain).toMatchObject({ medicalDevice: 38, modelling: 54 });
+                expect(checked.ruleCoverage.byDomain).toMatchObject({ medicalDevice: 38, modelling: 55 });
             } finally {
                 rmSync(root, { recursive: true, force: true });
             }
