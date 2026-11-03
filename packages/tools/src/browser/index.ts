@@ -56,3 +56,4 @@ export { docxToBlob, buildDocxDocument, fitToPage, WORD_TEXT_WIDTH_PX } from '..
 export type {
     DhfDocument, DhfBlock, DhfDocumentSection, DhfFrontmatter, DhfInline, DhfImage, DhfCell, DhfRow,
 } from '../dhf/document-ir.js';
+export * from '../model/variant-overlay.js';
