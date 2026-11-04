@@ -28,15 +28,28 @@ export interface CalcDefinition {
     body?: Expr;
 }
 
+// SysIDE writes a resolved reference as `{ "@id" }`. OpenSysML writes a feature reference it did not
+// resolve to an element as `{ "@ref": "<name>" }`, and that name is all there is to read (a calc
+// parameter, `inner` in `select { in inner : …; inner istype … }`), so it stands for the id.
 const idOf = (reference: unknown): string => {
-    const value = reference as { '@id'?: string } | string;
-    return typeof value === 'string' ? value : value?.['@id'] ?? '';
+    const value = reference as { '@id'?: string; '@ref'?: string } | string;
+    return typeof value === 'string' ? value : value?.['@id'] ?? value?.['@ref'] ?? '';
 };
 
 export class CalcReader {
     constructor(private readonly api: ApiModel) {}
 
-    private qn(id: string): string { return this.api.qualifiedName(id) ?? this.api.name(id) ?? id; }
+    /**
+     * The name a feature goes by. A redefinition written without a name (`attribute :>> num : Real;`) is the
+     * feature it redefines: SysIDE names it so, OpenSysML leaves it anonymous (`MoneyValue::@0`), and a chain
+     * `cost.num` ends on it, so the name is the redefined feature's.
+     */
+    private qn(id: string): string {
+        const element = this.api.element(id);
+        const redefined = idOf((element as { redefines?: unknown } | undefined)?.redefines);
+        if (element && !element.declaredName && !element.name && redefined) return this.qn(redefined);
+        return this.api.qualifiedName(id) ?? this.api.name(id) ?? id;
+    }
     private rels(id: string) { return this.api.ownedRelationships(id); }
     private owned(rel: ApiElement): string { return idOf(((rel.ownedRelatedElement as unknown[]) ?? [])[0]); }
 

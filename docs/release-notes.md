@@ -2,6 +2,11 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.17.1
+
+- **`memo evaluate` under OpenSysML.** A reference in a calculation body that OpenSysML leaves as a name (`{ "@ref": "inner" }`) is read, and an unnamed redefinition (`:>> num`) takes the name of the feature it redefines. Before, every roll-up and trade study evaluated to nothing or to `NaN` under OpenSysML.
+- **AI authoring.** The diagnostics sent back to repair a draft are about the draft. A warning in a library the project imports is not the draft's to repair, and counting it made a valid draft take another attempt.
+
 ## 0.17.0
 
 - **Operational levels (tools).** The model carries `operationalLevels`; a definition is at the level its usages are, and a usage's type is resolved by classifier or written name. Short ids keep their families for level-typed use cases and workflows. DHF kind lists name the level kinds.

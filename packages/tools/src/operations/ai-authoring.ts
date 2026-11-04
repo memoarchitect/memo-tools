@@ -4,7 +4,7 @@
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { findMemoManifests } from '../model/manifest.js';
 import { EMPTY_ONTOLOGY_VIEW, ontologyViewFrom } from '../model/kind-registry.js';
 import { loadProjectConfig } from '../toolchain/project-config.js';
@@ -43,7 +43,10 @@ export async function validateGeneratedSysml(projectRoot: string, sysml: string)
         const options = { config, projectDir: projectRoot, files: [candidatePath] };
         const validator = await runValidator(options);
         const lowering = await runLowering(options);
-        const diagnostics = mergeDiagnostics(validator.diagnostics, lowering.diagnostics);
+        // Only what the candidate declares, as below: a warning in a library the project imports is not the
+        // candidate's to repair, and sending it back asks the model to fix a file it cannot touch.
+        const diagnostics = mergeDiagnostics(validator.diagnostics, lowering.diagnostics)
+            .filter(diagnostic => !diagnostic.file || basename(diagnostic.file) === basename(candidatePath));
         if (lowering.accepted) {
             const model = dtoToModel(lowering.ir.model);
             // Only what the candidate declares: the project's own findings are not the candidate's to repair.
