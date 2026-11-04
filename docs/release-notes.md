@@ -2,6 +2,14 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.17.0
+
+- **Operational levels (tools).** The model carries `operationalLevels`; a definition is at the level its usages are, and a usage's type is resolved by classifier or written name. Short ids keep their families for level-typed use cases and workflows. DHF kind lists name the level kinds.
+- **Views.** `expose` reaches the action a scenario performs, not one a step subsets; `perform` is followed only within a layer. `variantOverlay` adds per-step rows for each variant that refines a base step.
+- **Calc evaluator.** Adds predecessors and successors, `max`, `min` and `reduce`.
+- **Layout.** Statements are shorter, routes come last, and each new view has its own file.
+- **Breaking.** Follows the ontology: `UseCaseKind::clinical` is `UseCaseKind::care`, and the four removed workflow members fail to compile.
+
 ## 0.16.5
 
 - **Saved layouts (tools).** A port, or a port wall, that a view's layout names by its declared name is matched to the port it names. Before, an authored boundary-port position was ignored and the port fell back to automatic placement.
