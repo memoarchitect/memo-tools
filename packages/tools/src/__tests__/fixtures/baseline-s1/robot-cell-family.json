@@ -60,7 +60,7 @@
       },
       {
         "id": "robot_cell_family_sos_chains::wfMapGuidedPick",
-        "kind": "OperationalWorkflow",
+        "kind": "SystemWorkflow",
         "construct": "part",
         "layer": "operational",
         "package": "robot_cell_family_sos_chains"
@@ -144,7 +144,7 @@
       },
       {
         "id": "robot_cell_family_sos_use_cases::ucPerformPickAndPlace",
-        "kind": "UseCase",
+        "kind": "SystemUseCase",
         "construct": "use case",
         "layer": "operational",
         "package": "robot_cell_family_sos_use_cases"
@@ -221,7 +221,7 @@
       },
       {
         "id": "robot_cell_family_systems_manipulation_manipulation_system::ucExecuteGrasp",
-        "kind": "UseCase",
+        "kind": "SystemUseCase",
         "construct": "use case",
         "layer": "operational",
         "package": "robot_cell_family_systems_manipulation_manipulation_system"
@@ -277,7 +277,7 @@
       },
       {
         "id": "robot_cell_family_systems_navigation_navigation_system::ucAcquireMap",
-        "kind": "UseCase",
+        "kind": "SystemUseCase",
         "construct": "use case",
         "layer": "operational",
         "package": "robot_cell_family_systems_navigation_navigation_system"
@@ -319,7 +319,7 @@
       },
       {
         "id": "robot_cell_family_systems_perception_perception_system::ucRecordRun",
-        "kind": "UseCase",
+        "kind": "SystemUseCase",
         "construct": "use case",
         "layer": "operational",
         "package": "robot_cell_family_systems_perception_perception_system"
@@ -589,7 +589,6 @@
       "ManipulatorSystem": 1,
       "ModelMethodBinding": 1,
       "NavigationSystem": 1,
-      "OperationalWorkflow": 1,
       "OperativeScenario": 1,
       "PerceptionSystem": 1,
       "PointCloudPort": 4,
@@ -598,7 +597,8 @@
       "System": 3,
       "SystemFunction": 4,
       "SystemOfSystems": 1,
-      "UseCase": 4,
+      "SystemUseCase": 4,
+      "SystemWorkflow": 1,
       "User": 2
     },
     "layerCounts": {

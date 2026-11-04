@@ -142,4 +142,11 @@ describe('the id of a usage', () => {
         expect(next.get('a')).toBe('SYS-1:3');
         expect(assignUsageShortIds(new Map([['SYS-1', ['c']]]), base).get('c')).toBe('SYS-1:2');
     });
+
+    it('keeps the use case and workflow families when they are typed by level', () => {
+        expect(kindToPrefix('ClinicalUseCase')).toBe(kindToPrefix('UseCase'));
+        expect(kindToPrefix('SystemUseCase')).toBe(kindToPrefix('UseCase'));
+        expect(kindToPrefix('ClinicalWorkflow')).toBe(kindToPrefix('OperationalWorkflow'));
+        expect(kindToPrefix('SystemWorkflow')).toBe(kindToPrefix('OperationalWorkflow'));
+    });
 });

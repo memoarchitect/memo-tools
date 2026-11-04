@@ -27,6 +27,11 @@ import { RECOMMENDED_COMPILER } from '../packages/tools/lib/toolchain/providers/
 // place, packages/tools/src/toolchain/providers/recommended.ts.
 process.env.MEMO_TOOLCHAIN_COMPILER ??= RECOMMENDED_COMPILER;
 
+// Re-frozen 2026-11-03 (operational level types): a use case and a workflow are now declared at a
+// level, so gpca, robot-cell-family and extension-clinical record `SystemUseCase`, `SystemWorkflow`
+// and `ClinicalUseCase` where they recorded `UseCase` and `OperationalWorkflow`. Nothing else moved:
+// no element, relationship or violation changed.
+
 const here = dirname(fileURLToPath(import.meta.url));
 const toolsRoot = resolve(here, '..');
 const metaRoot = resolve(toolsRoot, '..');

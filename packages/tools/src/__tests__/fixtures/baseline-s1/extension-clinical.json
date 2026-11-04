@@ -144,7 +144,7 @@
       },
       {
         "id": "memo_examples_surgical_closure_workflow::ucPerformSleeveGastrectomy",
-        "kind": "UseCase",
+        "kind": "ClinicalUseCase",
         "construct": "use case",
         "layer": "operational",
         "package": "memo_examples_surgical_closure_workflow"
@@ -462,13 +462,13 @@
     "kindCounts": {
       "ActionUsage": 4,
       "ClinicalProcedureWorkflow": 1,
+      "ClinicalUseCase": 1,
       "MemoDiagramView": 1,
       "ModelMethodBinding": 1,
       "Need": 1,
       "OperativeAction": 13,
       "OperativeScenario": 2,
       "System": 1,
-      "UseCase": 1,
       "UseContext": 1,
       "User": 3,
       "ValidationCase": 3

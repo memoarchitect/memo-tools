@@ -19,6 +19,12 @@ const KIND_PREFIX_OVERRIDES: Record<string, string> = {
     // Renaming the kind must not re-mint every model's binding (short ids are
     // never reassigned), so ModelMethodBinding keeps the family it had.
     ModelMethodBinding: 'PRJ',
+    // The two operational levels are kinds of use case and of workflow. Typing a use case by its
+    // level must not re-mint its short id (USE-1 would become CLN-2), so each keeps its family.
+    ClinicalUseCase: 'USE',
+    SystemUseCase: 'USE',
+    ClinicalWorkflow: 'WFL',
+    SystemWorkflow: 'WFL',
     // Risk
     Hazard: 'HZD',
     HazardousEvent: 'HZD-EVT',

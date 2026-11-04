@@ -4,12 +4,12 @@ import { collectApiConstraints } from '../validator/constraint-loader-api.js';
 import type { ProjectModel } from '../toolchain/project-model.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
-// Operational levels (plan memo-operational-levels): a use case is at the level of its subject, and
-// the rules CR-ONT-093..101 judge what each level may say. Each rule has a passing and a failing
+// Operational levels (plan memo-operational-levels): a use case and a workflow are at a level by their
+// declared type, and the rules CR-ONT-093..103 judge what each level may say. Each rule has a passing and a failing
 // fixture, seeded into temperature-alarm, whose own model has no use case subject and no currency,
 // so the rules find nothing in it before the seed.
 
-const RULES = ['CR-ONT-093', 'CR-ONT-094', 'CR-ONT-095', 'CR-ONT-096', 'CR-ONT-097', 'CR-ONT-098', 'CR-ONT-099', 'CR-ONT-100', 'CR-ONT-101'];
+const RULES = ['CR-ONT-093', 'CR-ONT-094', 'CR-ONT-095', 'CR-ONT-096', 'CR-ONT-097', 'CR-ONT-098', 'CR-ONT-099', 'CR-ONT-100', 'CR-ONT-101', 'CR-ONT-103'];
 
 const IMPORTS = `
     private import ScalarValues::*;
@@ -49,16 +49,16 @@ const levels = (edit: (text: string) => string = text => text): string => edit(`
         perform fnStaple;
     }
 
-    use case ucL1 : UseCase {
+    use case ucL1 : ClinicalUseCase {
         subject :>> supportingSystem = careTeam;
     }
-    use case ucL2 : UseCase {
+    use case ucL2 : SystemUseCase {
         subject :>> supportingSystem = platformX;
     }
-    part wfL1 : OperationalWorkflow {
+    part wfL1 : ClinicalWorkflow {
         action scL1 : OperativeScenario { perform stepPouch; }
     }
-    part wfL2 : OperationalWorkflow {
+    part wfL2 : SystemWorkflow {
         action scL2 : OperativeScenario { perform actPouchX; }
     }
     connection : RealizesUseCase connect realizingWorkflow ::> wfL1 to realizedUseCase ::> ucL1;
@@ -75,7 +75,7 @@ function findings(project: ProjectModel): string[] {
 
 const seeded = (text: string) => ({ 'model/catalog/seeded_levels.sysml': text });
 
-describe.runIf(compilerConfigured && examplesPresent)('operational level rules (CR-ONT-093..101)', () => {
+describe.runIf(compilerConfigured && examplesPresent)('operational level rules (CR-ONT-093..103)', () => {
     it('are rules in the rule set', async () => {
         await withExample({}, project => {
             const ids = collectApiConstraints(project.api).map(c => c.id);
@@ -87,10 +87,30 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
         await withExample(seeded(levels()), project => expect(findings(project)).toEqual([]));
     }, 180_000);
 
-    it('093 flags a use case whose subject is at neither level', async () => {
+    it('093 flags a clinical use case whose subject is at neither level', async () => {
         const text = levels(t => t.replace('subject :>> supportingSystem = careTeam;', 'subject :>> supportingSystem = surgeon;')
             .replace('part careTeam : OperationalEntity;', 'part careTeam : OperationalEntity;\n    part surgeon : User;'));
         await withExample(seeded(text), project => expect(findings(project)).toEqual(['CR-ONT-093:ucL1']));
+    }, 180_000);
+
+    it('093 flags a use case whose declared type disagrees with its subject', async () => {
+        const text = levels(t => t.replace('use case ucL2 : SystemUseCase', 'use case ucL2 : ClinicalUseCase'));
+        await withExample(seeded(text), project => expect(findings(project)).toContain('CR-ONT-093:ucL2'));
+    }, 180_000);
+
+    it('093 flags a use case of neither level', async () => {
+        const text = levels(t => t.replace('use case ucL1 : ClinicalUseCase', 'use case ucL1 : UseCase'));
+        await withExample(seeded(text), project => expect(findings(project)).toContain('CR-ONT-093:ucL1'));
+    }, 180_000);
+
+    it('103 flags a workflow that realizes a use case of the other level', async () => {
+        const text = levels(t => t.replace('part wfL2 : SystemWorkflow {', 'part wfL2 : ClinicalWorkflow {'));
+        await withExample(seeded(text), project => expect(findings(project)).toContain('CR-ONT-103:wfL2'));
+    }, 180_000);
+
+    it('103 flags a workflow of neither level', async () => {
+        const text = levels(t => t.replace('part wfL1 : ClinicalWorkflow {', 'part wfL1 : OperationalWorkflow {'));
+        await withExample(seeded(text), project => expect(findings(project)).toContain('CR-ONT-103:wfL1'));
     }, 180_000);
 
     it('094 flags a level-1 step that carries a planned number', async () => {
@@ -130,7 +150,7 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
     }, 180_000);
 
     it('100 flags a level-1 workflow that carries a per-procedure cost', async () => {
-        const text = levels(t => t.replace('part wfL1 : OperationalWorkflow {', 'part wfL1 : OperationalWorkflow {\n        attribute :>> perProcedureCost = 100 [EUR];'));
+        const text = levels(t => t.replace('part wfL1 : ClinicalWorkflow {', 'part wfL1 : ClinicalWorkflow {\n        attribute :>> perProcedureCost = 100 [EUR];'));
         await withExample(seeded(text), project => expect(findings(project)).toEqual(['CR-ONT-100:wfL1']));
     }, 180_000);
 
