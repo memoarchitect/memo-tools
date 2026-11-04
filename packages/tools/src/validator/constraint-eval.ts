@@ -42,6 +42,7 @@ import { looksLikeQuantity, parseQuantity } from '../model/quantity.js';
 import type { MemoModel, MemoElement, MemoRelationship } from '../model/semantic.js';
 import type { Violation } from './types.js';
 import type { KindRegistry } from '../model/kind-registry.js';
+import { withSpecializationExtents } from '../model/kind-extents.js';
 import { withRelationshipSubjects } from '../model/relationship-subjects.js';
 
 /** A constraint authored as a KerML-subset boolean expression over a subject element. */
@@ -204,29 +205,6 @@ function subjectsForScope(scope: string, model: MemoModel): MemoElement[] {
     const extent = model.elementsByKind.get(kind) ?? [];
     if (!attribute) return extent;
     return extent.filter(element => normalizeEnum(element.attributes[attribute] ?? '') === normalizeEnum(expected));
-}
-
-/**
- * Add inherited kind extents for the duration of constraint evaluation. The
- * canonical model keeps exact-kind indexes; the evaluator's type extent uses
- * SysML specialization semantics, including kinds supplied by user ontology
- * extensions.
- */
-function withSpecializationExtents(model: MemoModel, kindRegistry: KindRegistry): MemoModel {
-    const elementsByKind = new Map(model.elementsByKind);
-    for (const base of kindRegistry.entries()) {
-        const names = new Set<string>();
-        const queue = [base.name];
-        while (queue.length > 0) {
-            const name = queue.pop()!;
-            if (names.has(name)) continue;
-            names.add(name);
-            for (const derived of kindRegistry.getKind(name)?.derivedBy ?? []) queue.push(derived);
-        }
-        const extent = [...names].flatMap(name => model.elementsByKind.get(name) ?? []);
-        if (extent.length > 0) elementsByKind.set(base.name, [...new Map(extent.map(el => [el.id, el])).values()]);
-    }
-    return { ...model, elementsByKind };
 }
 
 // ─── AST ────────────────────────────────────────────────────────────────────

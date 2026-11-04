@@ -1,11 +1,11 @@
 {
   "project": "gastric-bypass-variants",
   "totals": {
-    "files": 6,
+    "files": 8,
     "elements": 83,
     "definitions": 7,
     "relationships": 122,
-    "packages": 6,
+    "packages": 8,
     "parseErrors": 0,
     "builderFindings": 0
   },
@@ -16,6 +16,7 @@
       "kinds": {
         "ActionUsage": 4,
         "ClinicalProcedureWorkflow": 1,
+        "ClinicalUseCase": 1,
         "ConvertToOpenSurgery": 4,
         "CreateGastricPouch": 4,
         "CreateGastrojejunostomy": 4,
@@ -25,7 +26,6 @@
         "FunctionUsage": 11,
         "Jejunum": 1,
         "OperationalEntity": 1,
-        "OperationalWorkflow": 3,
         "OperativeAction": 5,
         "OperativeScenario": 8,
         "PerformLeakTest": 4,
@@ -34,7 +34,8 @@
         "SurgicalPlatform": 4,
         "System": 1,
         "SystemFunction": 3,
-        "UseCase": 4,
+        "SystemUseCase": 3,
+        "SystemWorkflow": 3,
         "User": 3,
         "WorkflowResource": 1
       },
@@ -51,6 +52,28 @@
         "succession": 14,
         "variant": 3
       },
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/clinical_workflow/viewpoint.sysml": {
+      "elements": 0,
+      "definitions": 0,
+      "kinds": {},
+      "relationships": 0,
+      "relationshipTypes": {},
+      "packages": 1,
+      "parseErrors": 0,
+      "builderFindings": 0
+    },
+    "model/catalog/viewpoints/clinical_workflow/views/bypass_flow.sysml": {
+      "elements": 1,
+      "definitions": 0,
+      "kinds": {
+        "MemoDiagramView": 1
+      },
+      "relationships": 0,
+      "relationshipTypes": {},
       "packages": 1,
       "parseErrors": 0,
       "builderFindings": 0
@@ -88,10 +111,10 @@
       "builderFindings": 0
     },
     "model/catalog/viewpoints/operational/views/bypass_flows.sysml": {
-      "elements": 4,
+      "elements": 3,
       "definitions": 0,
       "kinds": {
-        "MemoDiagramView": 4
+        "MemoDiagramView": 3
       },
       "relationships": 0,
       "relationshipTypes": {},

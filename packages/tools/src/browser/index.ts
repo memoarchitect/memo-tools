@@ -7,6 +7,7 @@ export * from '../model/quantity-core.js';
 export * from '../model/relation-selection.js';
 export * from '../model/semantic.js';
 export type { WorkspaceMembershipDTO } from '../model/workspace-membership.js';
+export type { OperationalLevel } from '../model/operational-level.js';
 export * from '../model/source-affinity.js';
 export * from '../model/relationship-legality.js';
 export * from '../model/activity-notation.js';

@@ -19,6 +19,7 @@ import {
 } from '@memoarchitect/tools';
 import { sourceGraphToDTO, viewSourceFiles } from '@memoarchitect/tools';
 import { buildSourceGraphFromPackages } from '../model/source-graph.js';
+import { operationalLevels } from '../model/operational-level.js';
 import { computeWorkspaceMembership, selectWorkspace, workspaceMembershipToDTO, type WorkspaceScope } from '../model/workspace-membership.js';
 import type {
     BuilderRegistries, RestartRequiredMessage, MethodologyDescriptor, OntologyPackageInfo,
@@ -491,6 +492,7 @@ export async function devCommand(options: {
             sourceHashes: lastSourceHashes,
             enumerations,
             workspaceMembership: membership ? workspaceMembershipToDTO(membership, model) : undefined,
+            operationalLevels: stage2Registries?.kindRegistry ? operationalLevels(model, stage2Registries.kindRegistry) : undefined,
         });
         // Compute the clause coverage report and attach it to the model DTO
         // so the Architect can badge document cards with gap counts without a

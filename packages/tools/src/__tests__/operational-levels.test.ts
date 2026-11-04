@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateModel } from '../validator/rule-engine.js';
 import { collectApiConstraints } from '../validator/constraint-loader-api.js';
 import type { ProjectModel } from '../toolchain/project-model.js';
+import { operationalLevels } from '../model/operational-level.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
 // Operational levels (plan memo-operational-levels): a use case and a workflow are at a level by their
@@ -85,6 +86,21 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
 
     it('find nothing wrong with two well formed levels', async () => {
         await withExample(seeded(levels()), project => expect(findings(project)).toEqual([]));
+    }, 180_000);
+
+    it('reads each element\'s level from its type, and a step\'s from its workflow', async () => {
+        await withExample(seeded(levels()), project => {
+            const byName = (name: string) => [...project.model.elements.values()].find(e => e.name === name)!.id;
+            const found = operationalLevels(project.model, project.registries!.kindRegistry!);
+            expect(found[byName('ucL1')]).toBe('clinical');
+            expect(found[byName('wfL1')]).toBe('clinical');
+            expect(found[byName('stepPouch')]).toBe('clinical');
+            expect(found[byName('ucL2')]).toBe('system');
+            expect(found[byName('scL2')]).toBe('system');
+            expect(found[byName('actPouchX')]).toBe('system');
+            expect(found[byName('careTeam')]).toBeUndefined();
+            expect(found[byName('platformX')]).toBeUndefined();
+        });
     }, 180_000);
 
     it('093 flags a clinical use case whose subject is at neither level', async () => {

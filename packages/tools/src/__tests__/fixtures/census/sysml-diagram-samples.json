@@ -39,7 +39,7 @@
       "definitions": 0,
       "kinds": {
         "OperationalEntity": 4,
-        "UseCase": 3,
+        "SystemUseCase": 3,
         "User": 3
       },
       "relationships": 6,
@@ -274,7 +274,7 @@
       "definitions": 1,
       "kinds": {
         "MemoRelationship": 1,
-        "UseCase": 5,
+        "SystemUseCase": 5,
         "User": 4
       },
       "relationships": 10,

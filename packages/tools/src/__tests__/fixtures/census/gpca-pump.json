@@ -226,10 +226,10 @@
         "ActionUsage": 16,
         "OperationalCapability": 2,
         "OperationalEntity": 8,
-        "OperationalWorkflow": 3,
         "OperativeAction": 14,
         "OperativeScenario": 6,
-        "UseCase": 1,
+        "SystemUseCase": 1,
+        "SystemWorkflow": 3,
         "ValidationCase": 2
       },
       "relationships": 84,

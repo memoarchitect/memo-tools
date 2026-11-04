@@ -579,6 +579,12 @@ export interface MemoModelDTO {
      * without the ontology registries.
      */
     workspaceMembership?: import('./workspace-membership.js').WorkspaceMembershipDTO;
+    /**
+     * The operational level of each element that has one (`operational-level.ts`): a use case or a
+     * workflow by its type, a scenario, step or resource by the workflow it sits in. An element
+     * at no level is absent. Absent altogether when the model was built without the registries.
+     */
+    operationalLevels?: Record<string, import('./operational-level.js').OperationalLevel>;
 }
 
 /** A SysML enum and its literals, preserved for view declarations. */
@@ -601,6 +607,7 @@ export function modelToDTO(
         irIdentities?: Record<string, string>;
         enumerations?: EnumDefinitionDTO[];
         workspaceMembership?: import('./workspace-membership.js').WorkspaceMembershipDTO;
+        operationalLevels?: Record<string, import('./operational-level.js').OperationalLevel>;
     }
 ): MemoModelDTO {
     const elements: Record<string, MemoElement> = {};
@@ -623,6 +630,7 @@ export function modelToDTO(
         sysmlIr: undefined,
         irIdentities: options?.irIdentities,
         workspaceMembership: options?.workspaceMembership,
+        operationalLevels: options?.operationalLevels,
     };
 }
 

@@ -16,11 +16,11 @@
       "kinds": {
         "ActionUsage": 4,
         "ClinicalProcedureWorkflow": 1,
+        "ClinicalUseCase": 1,
         "Need": 1,
         "OperativeAction": 13,
         "OperativeScenario": 2,
         "System": 1,
-        "UseCase": 1,
         "UseContext": 1,
         "User": 3,
         "ValidationCase": 3

@@ -14,11 +14,11 @@
       "elements": 11,
       "definitions": 1,
       "kinds": {
-        "OperationalWorkflow": 1,
+        "ClinicalUseCase": 1,
+        "ClinicalWorkflow": 1,
         "OperativeAction": 3,
         "OperativeScenario": 1,
         "System": 1,
-        "UseCase": 1,
         "User": 1,
         "ValidationCase": 3
       },
