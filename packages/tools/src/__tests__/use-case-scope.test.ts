@@ -22,7 +22,7 @@ const IMPORTS = `
 const sosUseCase = `package seeded_sos_use_case {${IMPORTS}
     use case ucPlanProcedure : UseCase {
         @MemoIdentity { :>> providedId = "RCF-UC-099"; :>> label = "Plan Procedure"; }
-        attribute :>> useCaseKind = UseCaseKind::clinical;
+        attribute :>> useCaseKind = UseCaseKind::care;
         subject :>> supportingSystem = robotCell;
     }
 }`;
