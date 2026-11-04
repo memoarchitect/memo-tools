@@ -9,7 +9,7 @@
 //
 // Nothing here is a kind list beyond the four level types, which are the ontology's own: the
 // types are read through the kind registry, so a project's specialization of one is at its level.
-// An element reached from both levels is at neither, and an element reachable from no workflow
+// A definition is at the level its usages are. An element reached from both levels is at neither, and an element reachable from no workflow
 // (a user, an operational entity, a platform part) has no level.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -59,6 +59,30 @@ export function operationalLevels(model: MemoModel, kindRegistry: KindRegistry):
                 }
             }
         }
+    }
+
+    // A usage is at the level it sits at, and the definition it is typed by is used there: a step
+    // written once as an action definition and used in a clinical scenario is a clinical step. One used
+    // from both levels is at neither.
+    // The builder resolves the classifier of a typed element when it can; otherwise the type is a name
+    // written in the usage, found in the nearest enclosing scope that declares a definition of it.
+    const definitionOf = (id: string): string | undefined => {
+        const element = model.elements.get(id);
+        const classifier = element?.provenance?.classifier?.qualifiedName;
+        if (classifier && model.elements.has(classifier)) return classifier;
+        const written = element?.attributes.usageType;
+        if (!written) return undefined;
+        const scopes = id.split('::').slice(0, -1);
+        for (let depth = scopes.length; depth >= 0; depth--) {
+            const candidate = [...scopes.slice(0, depth), written].join('::');
+            if (model.elements.get(candidate)?.isDefinition) return candidate;
+        }
+        return undefined;
+    };
+    for (const [id, levels] of [...found]) {
+        const definition = definitionOf(id);
+        if (!definition || definition === id) continue;
+        for (const level of levels) note(definition, level);
     }
 
     const out: Record<string, OperationalLevel> = {};

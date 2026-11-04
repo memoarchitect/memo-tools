@@ -103,6 +103,16 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
         });
     }, 180_000);
 
+    it('puts a step definition at the level of the scenario that uses it', async () => {
+        const text = levels(t => t.replace('action scL1 : OperativeScenario { perform stepPouch; }', 'action scL1 : OperativeScenario { perform stepPouch; action typedStep : TypedStepDef; }')
+            .replace('action stepPouch : OperativeAction;', 'action stepPouch : OperativeAction;\n    action def TypedStepDef :> OperativeAction;'));
+        await withExample(seeded(text), project => {
+            const byName = (name: string) => [...project.model.elements.values()].find(e => e.name === name)!.id;
+            const found = operationalLevels(project.model, project.registries!.kindRegistry!);
+            expect(found[byName('TypedStepDef')]).toBe('clinical');
+        });
+    }, 180_000);
+
     it('093 flags a clinical use case whose subject is at neither level', async () => {
         const text = levels(t => t.replace('subject :>> supportingSystem = careTeam;', 'subject :>> supportingSystem = surgeon;')
             .replace('part careTeam : OperationalEntity;', 'part careTeam : OperationalEntity;\n    part surgeon : User;'));
