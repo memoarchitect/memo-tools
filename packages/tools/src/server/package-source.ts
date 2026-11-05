@@ -83,6 +83,22 @@ export function insertIntoBody(source: string, target: LocatedPackage, text: str
     return `${before}${separator}${body}\n${closingIndent}${source.slice(target.bodyEnd)}`;
 }
 
+/**
+ * Insert text as the last member of the named declaration. A usage written with no body (`part x : T;`) can hold
+ * a member once it has one, so the semicolon becomes a body. `undefined` when the file does not declare the name.
+ */
+export function insertIntoContainer(source: string, outline: SourceOutline, qualifiedName: string, text: string): string | undefined {
+    const container = locateContainers(outline).find(candidate => candidate.qualifiedName === qualifiedName);
+    if (container) return insertIntoBody(source, container, text);
+    const usage = [...outlineNodes(outline)].find(node => node.key === qualifiedName && !node.body && node.role !== 'package');
+    if (!usage || source[usage.end - 1] !== ';') return undefined;
+    const lineStart = source.lastIndexOf('\n', usage.start - 1) + 1;
+    const lead = source.slice(lineStart, usage.start);
+    const indent = /^[ \t]*$/.test(lead) ? lead : '';
+    const body = text.replace(/\s+$/, '').split('\n').map(line => (line ? indent + INDENT + line : line)).join('\n');
+    return `${source.slice(0, usage.end - 1)} {\n${body}\n${indent}}${source.slice(usage.end)}`;
+}
+
 /** Replace a range, re-indenting the replacement to the line it starts on. */
 export function spliceIndented(source: string, start: number, end: number, replacement: string): string {
     const lineStart = source.lastIndexOf('\n', start - 1) + 1;

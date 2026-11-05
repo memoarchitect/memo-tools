@@ -20,7 +20,7 @@ import type { RelationshipDefinitionDTO } from '../model/relationship-legality.j
 
 /** The SysML production a relationship is written as. */
 export type RelationshipNotation =
-    'succession' | 'flow' | 'satisfy' | 'typedDependency' | 'connection' | 'interface' | 'typedFlow';
+    'succession' | 'flow' | 'satisfy' | 'allocate' | 'typedDependency' | 'connection' | 'interface' | 'typedFlow';
 
 export interface RelationshipNotationRequest {
     /** Connection usage name, when the form carries one. */
@@ -63,6 +63,8 @@ export function notationFor(definition: RelationshipDefinitionDTO): Relationship
     // but its registry metadata is the authority for how a new satisfaction is
     // written.
     if (definition.nativeKeyword === 'satisfy') return 'satisfy';
+    // An allocation has its own usage form, `allocate a to b;`, with no connection def behind it.
+    if (definition.nativeKeyword === 'allocate') return 'allocate';
     // A typed dependency is a Dependency (SysML-textual-bnf.kebnf:51-59) whose prefix metadata names it.
     if (definition.typedDependency) return 'typedDependency';
     // An exchange the ontology declares as an `interface def` or a `flow def` is a usage typed by it.
@@ -97,6 +99,8 @@ export function renderRelationship(request: RelationshipNotationRequest): string
             return renderFlow(request);
         case 'satisfy':
             return renderSatisfy(request);
+        case 'allocate':
+            return `allocate ${request.sourceId} to ${request.targetId};`;
         case 'typedDependency':
             return `#${request.definition.typedDependency} dependency from ${request.sourceId} to ${request.targetId};`;
         case 'interface':

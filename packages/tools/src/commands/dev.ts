@@ -7,6 +7,7 @@
 //      Ontology watcher → notifyRestartRequired() (no model mutation)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { relationshipEndScopes } from '../validator/relationship-end-scope.js';
 import { libraryUnitTable } from '../model/quantity.js';
 import { relative, resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
@@ -397,6 +398,9 @@ export async function devCommand(options: {
         if (accepted) latestClauses = readClauseFacts(stage1.api!);
         const projectSourceFiles = discoverProjectSources(cwd).projectFiles;
         (effectiveRuleSet as Record<string, unknown>).clauses = latestClauses;
+        const activeRuleIds = new Set(effectiveRuleSet.rules.filter(rule => rule.disposition !== 'disabled').map(rule => rule.activeRuleId));
+        (effectiveRuleSet as Record<string, unknown>).relationshipEndScopes = relationshipEndScopes(
+            nativeConstraints.filter(constraint => activeRuleIds.has(constraint.id)), stage2Registries?.kindRegistry, model.elements.values());
         (effectiveRuleSet as Record<string, unknown>).projectFiles = projectSourceFiles
             .map(file => relative(cwd, file).replaceAll('\\', '/')).sort();
         ruleContext = {

@@ -280,6 +280,34 @@ export function isUniversalRelationship(definition: RelationshipDefinitionDTO): 
     return relationshipSpecificity(definition) === 0;
 }
 
+/**
+ * True when the writer can state this relation in source. A native keyword other than `satisfy` and
+ * `allocate` needs an owner the writer does not choose (`verify` belongs to a verification case), so it
+ * is authored in its owner's text and not offered as a link between two elements.
+ */
+export function isAuthorableRelationship(definition: RelationshipDefinitionDTO): boolean {
+    if (definition.isAbstract) return false;
+    if (definition.typedDependency) return true;
+    return !definition.nativeKeyword || definition.nativeKeyword === 'satisfy' || definition.nativeKeyword === 'allocate';
+}
+
+/**
+ * The kinds the ontology's rules refuse at each end of a relation, by relation name. A relation whose ends
+ * are untyped can still be scoped by a rule (`sourcesOf(allocatedTo)->forAll(...)`), and only the server can
+ * run a rule, so it evaluates them per kind and sends the answer.
+ */
+export type RelationshipEndScopes = Record<string, { source?: string[]; target?: string[] }>;
+
+/** Whether the rules allow a kind at one end of a relation. A relation no rule scopes allows every kind. */
+export function endAllowedByRules(
+    scopes: RelationshipEndScopes | undefined,
+    relationshipName: string,
+    end: 'source' | 'target',
+    kind: string,
+): boolean {
+    return !scopes?.[relationshipName]?.[end]?.includes(kind);
+}
+
 /** Order definitions most-specific first, then alphabetically for stability. */
 function bySpecificity(
     a: RelationshipDefinitionDTO,

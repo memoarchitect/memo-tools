@@ -279,6 +279,8 @@ export interface RulesUpdateMessage {
         clauses?: ClauseFact[];
         /** The project's own `.sysml` files, project-relative: where a rule of the user's may be written. */
         projectFiles?: string[];
+        /** The kinds the rules refuse at each end of a relation, for an authoring surface to leave out. */
+        relationshipEndScopes?: import('../model/relationship-legality.js').RelationshipEndScopes;
     };
 }
 

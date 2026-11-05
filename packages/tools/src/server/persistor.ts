@@ -35,7 +35,7 @@ import {
 import type { OutlineSource } from '../authoring/outline-source.js';
 import { resolveOutlineIdentity } from '../authoring/outline-identity.js';
 import { bodyMembers, type OutlineNode } from '../authoring/source-outline.js';
-import { insertIntoBody, locateContainers } from './package-source.js';
+import { insertIntoContainer } from './package-source.js';
 import { shortNameOf } from '../model/element-index.js';
 
 /** Default home for an element the request does not place. */
@@ -269,14 +269,14 @@ export async function saveElementToFile(
         } catch (e) {
             return { success: false, filePath: relativePath, error: `${relativePath} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
         }
-        const target = locateContainers(outline).find(container => container.qualifiedName === element.package);
-        if (!target) {
+        const inserted = insertIntoContainer(content, outline, element.package, `${kindImportFor(content, element.kindDefinition)}${buildUsage()}\n`);
+        if (inserted === undefined) {
             return {
                 success: false, filePath: relativePath,
                 error: `${relativePath} does not declare package "${element.package}"; nothing was written.`,
             };
         }
-        updated = insertIntoBody(content, target, `${kindImportFor(content, element.kindDefinition)}${buildUsage()}\n`);
+        updated = inserted;
     } else {
         updated = appendToLastPackage(content, `${kindImportFor(content, element.kindDefinition)}${buildUsage()}`);
     }
