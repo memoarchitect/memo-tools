@@ -109,6 +109,29 @@ describe('layout statements in a view', () => {
         expect(replaceViewLayout(SOURCE, 'outer::inner::nope', layout)).toBeUndefined();
     });
 
+    it('keeps an automatic route in fields of its own, and no JSON', () => {
+        const routed: DiagramLayout = {
+            nodes: { 'p::box': { x: 1, y: 2, ports: { pin: { x: 3, y: 4, side: 'left', alongOffset: 12.5, faceOuter: true } } } },
+            edges: {
+                'rel-abc': {
+                    points: [{ x: 0, y: 0 }, { x: 5, y: 5 }], manualRoute: false, routingType: 'manhattan',
+                    labelPoint: { x: 7.5, y: 8 },
+                    sourceOffset: { x: 16, y: 122, side: 'right' }, targetOffset: { x: -16, y: 74, side: 'left' },
+                },
+            },
+            annotations: {},
+            canvas: { routingType: 'manhattan', routingMode: 'automatic' },
+        };
+        const text = replaceViewLayout('package p {\n    view v {\n    }\n}\n', 'p::v', routed)!;
+        expect(text).not.toContain('MemoLayoutExtension');
+        expect(text).toContain(':>> manualRoute = false;');
+        expect(text).toContain(':>> sourceOffsetSide = MemoLayoutSide::right;');
+        const read = readFileLayouts(text)['p::v'];
+        expect(read.edges['rel-abc']).toMatchObject(routed.edges['rel-abc']);
+        expect(read.nodes['p::box'].ports?.pin).toEqual(routed.nodes['p::box'].ports?.pin);
+        expect(read.canvas).toMatchObject(routed.canvas!);
+    });
+
     it('reads every spelling MetadataBodyUsage allows as the same statement', () => {
         const read = (fields: string) => readFileLayouts(`package p {
     view v : MemoDiagramView {
@@ -159,7 +182,7 @@ describe('layout extension validation', () => {
         expect(loaded.nodes['outer::inner::pump'].x).toBe(layout.nodes['outer::inner::pump'].x);
         expect(loaded.canvas?.zoom).toBeUndefined();
         expect(loaded.canvas?.pan).toBeUndefined();
-        expect(loaded.canvas?.routingType).toBe('manhattan');
+        expect(loaded.canvas?.routingType).toBeUndefined();
         expect(loaded.nodes['outer::inner::pump']).toMatchObject({ future: true });
     });
 });

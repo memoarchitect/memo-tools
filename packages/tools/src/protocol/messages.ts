@@ -973,7 +973,7 @@ export interface DiagramNodeLayout {
     /** Fill opacity 0..1, for dimming context around the parts under review. */
     opacity?: number;
     /** Per-diagram boundary-port positions, relative to the owning node. */
-    ports?: Record<string, { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right'; size?: number }>;
+    ports?: Record<string, { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right'; size?: number; alongOffset?: number; faceOuter?: boolean }>;
 }
 
 /** Per-edge visual override */
@@ -1005,6 +1005,14 @@ export interface DiagramEdgeLayout {
     sourceT?: number;
     targetSide?: 'top' | 'bottom' | 'left' | 'right';
     targetT?: number;
+    /** False when the router computed `points`, so the next routing may replace them. */
+    manualRoute?: boolean;
+    routingType?: string;
+    routingOverride?: string;
+    labelPoint?: { x: number; y: number };
+    /** Where each end leaves its box, relative to the box. */
+    sourceOffset?: { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right' };
+    targetOffset?: { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right' };
 }
 
 /** Presentation-only annotation stored with a diagram, never as a model fact. */

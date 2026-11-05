@@ -18,6 +18,7 @@
 // because the metamodel already says what the grammar had to infer.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { createHash } from 'node:crypto';
 import { CONTROL_KIND_METACLASS } from '../model/activity-notation.js';
 import { completeModel, type BuilderRegistries } from '../model/complete-model.js';
 import type { MEMOConfig } from '../model/config.js';
@@ -809,6 +810,24 @@ class ElementBuilder {
         for (const c of scoped(['AllocationUsage'], 'package')) this.allocation(c.node, c.packageName);
         this.nativeTraces(project);
         this.composition();
+        this.settleAnonymousIds();
+    }
+
+    /**
+     * An anonymous connection's id comes from what it connects, not from where it fell in the
+     * build, so adding a connection elsewhere does not move a saved route onto another line.
+     * Two connections with the same type and ends are told apart by their order.
+     */
+    private settleAnonymousIds(): void {
+        const seen = new Map<string, number>();
+        for (const relationship of this.relationships) {
+            if (!/^rel-\d+$/.test(relationship.id)) continue;
+            const { type, sourceId, sourceEnd, targetId, targetEnd } = relationship;
+            const key = [type, sourceId, sourceEnd, targetId, targetEnd].join('|');
+            const occurrence = seen.get(key) ?? 0;
+            seen.set(key, occurrence + 1);
+            relationship.id = `rel-${createHash('sha256').update(`${key}#${occurrence}`).digest('hex').slice(0, 12)}`;
+        }
     }
 
     /** The enclosing package (qualified) and, when directly in an action body, that action's element id. */

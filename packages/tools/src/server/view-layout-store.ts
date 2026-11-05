@@ -37,6 +37,8 @@ export function isDefaultViewLayout(layout: DiagramLayout): boolean {
         && canvas.grid === undefined
         && canvas.snap === undefined
         && canvas.coordinateSpace === undefined
+        && canvas.routingType === undefined
+        && canvas.routingMode === undefined
         && canvas.layout === undefined;
 }
 

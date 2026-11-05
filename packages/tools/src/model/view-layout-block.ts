@@ -235,13 +235,13 @@ const record = (v: unknown): v is JsonRecord => !!v && typeof v === 'object' && 
 const extras = (v: unknown, known: string[]): JsonRecord => record(v)
     ? Object.fromEntries(Object.entries(v).filter(([k]) => !known.includes(k) && !['__proto__', 'prototype', 'constructor'].includes(k))) : {};
 const NODE_FIELDS = ['x', 'y', 'width', 'height', 'parent', 'color', 'borderColor', 'textColor', 'fontSize', 'fontWeight', 'textAlign', 'verticalAlign', 'opacity', 'ports'];
-const EDGE_FIELDS = ['color', 'strokeWidth', 'labelVisible', 'style', 'points', 'source', 'target', 'sourcePortId', 'targetPortId', 'attachment', 'manualLanding', 'sourceSide', 'sourceT', 'targetSide', 'targetT'];
+const EDGE_FIELDS = ['color', 'strokeWidth', 'labelVisible', 'style', 'points', 'source', 'target', 'sourcePortId', 'targetPortId', 'attachment', 'manualLanding', 'sourceSide', 'sourceT', 'targetSide', 'targetT', 'manualRoute', 'routingType', 'routingOverride', 'labelPoint', 'sourceOffset', 'targetOffset'];
 const NOTE_FIELDS = ['kind', 'x', 'y', 'width', 'height', 'text', 'color'];
 
 /** Fields that the current typed metadata cannot express, without camera data. */
 export function layoutExtension(layout: DiagramLayout): JsonRecord {
     const result = extras(layout, ['nodes', 'edges', 'annotations', 'canvas']);
-    const canvas = extras(layout.canvas, ['autoLayout', 'grid', 'snap', 'coordinateSpace', 'layout', 'portWalls', 'zoom', 'pan']);
+    const canvas = extras(layout.canvas, ['autoLayout', 'grid', 'snap', 'coordinateSpace', 'layout', 'portWalls', 'zoom', 'pan', 'routingType', 'routingMode']);
     // These two values are defaults, so they should not create a layout alone.
     if (canvas.flowAnimation === false) delete canvas.flowAnimation;
     if (Object.keys(canvas).length) result.canvas = canvas;
@@ -250,7 +250,7 @@ export function layoutExtension(layout: DiagramLayout): JsonRecord {
         for (const [id, entry] of Object.entries(layout[name] ?? {})) {
             const extra = extras(entry, [...fields]);
             if (name === 'nodes' && record(entry) && record(entry.ports)) {
-                const ports = Object.fromEntries(Object.entries(entry.ports).map(([id, p]) => [id, extras(p, ['x', 'y', 'side', 'size'])]).filter(([, p]) => Object.keys(p as object).length));
+                const ports = Object.fromEntries(Object.entries(entry.ports).map(([id, p]) => [id, extras(p, ['x', 'y', 'side', 'size', 'alongOffset', 'faceOuter'])]).filter(([, p]) => Object.keys(p as object).length));
                 if (Object.keys(ports).length) extra.ports = ports;
             }
             if (Object.keys(extra).length) values[id] = extra;
@@ -270,6 +270,15 @@ function mergeExtension(target: JsonRecord, source: JsonRecord): void {
     }
 }
 
+/** Where a connector end leaves its box, from the three flat fields a metadata body can hold. */
+function endOffset(x: Scalar | undefined, y: Scalar | undefined, wall: Scalar | undefined): DiagramEdgeLayout['sourceOffset'] {
+    const [ox, oy] = [num(x), num(y)];
+    if (ox === undefined || oy === undefined) return undefined;
+    const offset: NonNullable<DiagramEdgeLayout['sourceOffset']> = { x: ox, y: oy };
+    put(offset, 'side', lit<Side>(wall));
+    return offset;
+}
+
 /** The layout a view's statements describe, or null when it has none. */
 export function layoutFromStatements(statements: readonly LayoutStatement[]): DiagramLayout | null {
     if (statements.length === 0) return null;
@@ -282,6 +291,8 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
                 put(canvas, 'grid', num(v.grid));
                 put(canvas, 'snap', bool(v.snap));
                 put(canvas, 'coordinateSpace', str(v.coordinateSpace));
+                put(canvas, 'routingType', str(v.routingType));
+                put(canvas, 'routingMode', str(v.routingMode));
                 if (str(v.layoutProvider) !== undefined) {
                     canvas.layout = { provider: str(v.layoutProvider)! };
                     put(canvas.layout, 'providerVersion', str(v.layoutProviderVersion));
@@ -319,6 +330,8 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
                 const port: NonNullable<DiagramNodeLayout['ports']>[string] = { x: num(v.x) ?? 0, y: num(v.y) ?? 0 };
                 put(port, 'side', lit<Side>(v.side));
                 put(port, 'size', num(v.size));
+                put(port, 'alongOffset', num(v.alongOffset));
+                put(port, 'faceOuter', bool(v.faceOuter));
                 (node.ports ??= {})[name] = port;
                 break;
             }
@@ -351,6 +364,12 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
                 put(edge, 'sourceT', num(v.sourceT));
                 put(edge, 'targetSide', lit<Side>(v.targetSide));
                 put(edge, 'targetT', num(v.targetT));
+                put(edge, 'manualRoute', bool(v.manualRoute));
+                put(edge, 'routingType', str(v.routingType));
+                put(edge, 'routingOverride', str(v.routingOverride));
+                if (num(v.labelX) !== undefined && num(v.labelY) !== undefined) edge.labelPoint = { x: num(v.labelX)!, y: num(v.labelY)! };
+                put(edge, 'sourceOffset', endOffset(v.sourceOffsetX, v.sourceOffsetY, v.sourceOffsetSide));
+                put(edge, 'targetOffset', endOffset(v.targetOffsetX, v.targetOffsetY, v.targetOffsetSide));
                 layout.edges[id] = edge;
                 break;
             }
@@ -432,6 +451,8 @@ export function layoutToStatements(layout: DiagramLayout, indent: string, portKe
         ['grid', n(canvas?.grid)],
         ['snap', b(canvas?.snap)],
         ['coordinateSpace', s(canvas?.coordinateSpace)],
+        ['routingType', s(canvas?.routingType)],
+        ['routingMode', s(canvas?.routingMode)],
         ['layoutProvider', s(canvas?.layout?.provider)],
         ['layoutProviderVersion', s(canvas?.layout?.providerVersion)],
         ['layoutContractVersion', s(canvas?.layout?.contractVersion)],
@@ -460,6 +481,7 @@ export function layoutToStatements(layout: DiagramLayout, indent: string, portKe
             lines.push(statement('MemoLayoutPort', [
                 ['element', q(id)], ['portName', q(portKey(name))], ['x', n(port.x)], ['y', n(port.y)],
                 ['side', side(port.side)], ['size', n(port.size)],
+                ['alongOffset', n(port.alongOffset)], ['faceOuter', b(port.faceOuter)],
             ], indent));
         }
     }
@@ -491,6 +513,10 @@ export function layoutToStatements(layout: DiagramLayout, indent: string, portKe
             ['manualLanding', b(edge.manualLanding)],
             ['sourceSide', side(edge.sourceSide)], ['sourceT', n(edge.sourceT)],
             ['targetSide', side(edge.targetSide)], ['targetT', n(edge.targetT)],
+            ['manualRoute', b(edge.manualRoute)], ['routingType', s(edge.routingType)], ['routingOverride', s(edge.routingOverride)],
+            ['labelX', n(edge.labelPoint?.x)], ['labelY', n(edge.labelPoint?.y)],
+            ['sourceOffsetX', n(edge.sourceOffset?.x)], ['sourceOffsetY', n(edge.sourceOffset?.y)], ['sourceOffsetSide', side(edge.sourceOffset?.side)],
+            ['targetOffsetX', n(edge.targetOffset?.x)], ['targetOffsetY', n(edge.targetOffset?.y)], ['targetOffsetSide', side(edge.targetOffset?.side)],
         ];
         // An edge entry that overrides nothing says nothing.
         if (fields.every(([, v]) => v === undefined)) continue;

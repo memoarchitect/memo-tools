@@ -17,6 +17,24 @@ const source = (connect: string) => `package connection_probe {
 `;
 
 describe.runIf(compilerConfigured && examplesPresent)('a connection with positional ends', () => {
+    it('keeps its id when another connection is added before it', async () => {
+        const idOfMonitorLink = (extra: string) => withExample({ [FILE]: `package connection_probe {
+    private import memo::*;
+    part monitor : LogicalComponent;
+    part primary : LogicalComponent;
+    part other : LogicalComponent;
+    ${extra}
+    connection : IndependentOf connect monitor to primary;
+}
+` }, async (_host, root) => {
+            const config = { modelName: 'test', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } };
+            const { model } = await loadProjectModel({ projectRoot: root, config: config as never, cache: false });
+            return model.relationships.find(r => r.sourceId === 'connection_probe::monitor' && r.targetId === 'connection_probe::primary')!.id;
+        });
+        const alone = await idOfMonitorLink('');
+        expect(await idOfMonitorLink('connection : IndependentOf connect other to primary;')).toBe(alone);
+    });
+
     it('builds the same relationship as one that names its ends', async () => {
         const build = (connect: string) => withExample({ [FILE]: source(connect) }, async (_host, root) => {
             const config = { modelName: 'test', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } };
