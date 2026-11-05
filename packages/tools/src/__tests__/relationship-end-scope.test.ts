@@ -46,6 +46,13 @@ describe('relationshipEndScopes', () => {
         expect(endAllowedByRules(scopes, 'allocatedTo', 'target', 'ActionUsage')).toBe(false);
     });
 
+    it('sees through several levels of specialization', () => {
+        const kinds = registry();
+        kinds.register({ name: 'Subsystem', label: 'Subsystem', layer: 'core', sysmlConstruct: 'part def', superType: 'LogicalComponent' } as Parameters<KindRegistry['register']>[0]);
+        kinds.computeDerivedBy();
+        expect(endAllowedByRules(relationshipEndScopes([target], kinds), 'allocatedTo', 'target', 'Subsystem')).toBe(true);
+    });
+
     it('allows every kind on a relation no rule scopes', () => {
         expect(endAllowedByRules(relationshipEndScopes([source], registry()), 'mitigates', 'source', 'Hazard')).toBe(true);
     });

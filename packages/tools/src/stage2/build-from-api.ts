@@ -1232,6 +1232,8 @@ class ElementBuilder {
         this.relationships.push({
             id: this.nextId(), type, sourceId: source.id, sourceEnd: ends2[0]?.name ?? 'source',
             targetId: target.id, targetEnd: ends2[1]?.name ?? 'target', file: this.file(node),
+            // An allocation usually has no name, so a writer addresses the statement by where it is.
+            sourceRange: this.sourceRangeOf(node),
         });
     }
 

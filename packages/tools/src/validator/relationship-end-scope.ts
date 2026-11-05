@@ -31,8 +31,12 @@ function endsQuantified(node: ConstraintNode): EndsOf[] {
     return found;
 }
 
-/** A model holding one element of `kind`, linked to itself by `relationshipType`. */
-function oneLinkModel(kind: string, construct: string | undefined, relationshipType: string): MemoModel {
+/**
+ * A model holding one element of `kind`, linked to itself by `relationshipType`. `conforming` is the kind and its
+ * ancestors, so `conformsTo` answers without the evaluator re-deriving every kind's extent per call: this runs once
+ * per kind per rule on each rebuild, and doing that took seconds.
+ */
+function oneLinkModel(kind: string, construct: string | undefined, relationshipType: string, conforming: readonly string[]): MemoModel {
     const element = {
         id: 'subject', name: 'subject', kind, construct: usageKeyword(construct), layer: '', file: '', attributes: {},
     } as MemoElement;
@@ -41,9 +45,24 @@ function oneLinkModel(kind: string, construct: string | undefined, relationshipT
         elements: new Map([[element.id, element]]),
         relationships: [link],
         relationshipsByType: new Map([[relationshipType, [link]]]),
-        elementsByKind: new Map([[kind, [element]]]),
+        elementsByKind: new Map(conforming.map(name => [name, [element]])),
         outgoing: new Map(), incoming: new Map(), errors: [],
     } as unknown as MemoModel;
+}
+
+/** A kind and everything it specializes. */
+function kindAndAncestors(kind: string, kindRegistry: KindRegistry): string[] {
+    const seen = new Set<string>();
+    const pending = [kind];
+    while (pending.length > 0) {
+        const name = pending.pop()!;
+        if (seen.has(name)) continue;
+        seen.add(name);
+        const entry = kindRegistry.getKind(name);
+        if (entry?.superType) pending.push(entry.superType);
+        pending.push(...(entry?.additionalSuperTypes ?? []));
+    }
+    return [...seen];
 }
 
 /**
@@ -68,8 +87,8 @@ export function relationshipEndScopes(
         const { relationshipType, side } = ends[0];
         const { ast, ...meta } = constraint;
         for (const [kind, construct] of subjects) {
-            const model = oneLinkModel(kind, construct, relationshipType);
-            if (evaluateConstraintNode(meta, ast, model, kindRegistry).length === 0) continue;
+            const model = oneLinkModel(kind, construct, relationshipType, kindAndAncestors(kind, kindRegistry));
+            if (evaluateConstraintNode(meta, ast, model).length === 0) continue;
             const scope = scopes[relationshipType] ??= {};
             (scope[side] ??= []).push(kind);
         }

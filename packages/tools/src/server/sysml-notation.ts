@@ -56,12 +56,10 @@ const NATIVE_FORMS: Record<string, RelationshipNotation> = {
  * everything else is a typed connection usage, which is the general case.
  */
 export function notationFor(definition: RelationshipDefinitionDTO): RelationshipNotation {
-    // `satisfy` has a complete two-ended package-member form. The other native
-    // requirement relations need an owning case or a typed allocation usage,
-    // respectively, so their authoring paths are deliberately not guessed here.
-    // A connection definition may remain in the ontology during the migration,
-    // but its registry metadata is the authority for how a new satisfaction is
-    // written.
+    // `satisfy` and `allocate` have complete two-ended package-member forms. The other native requirement
+    // relations need an owning case, so their authoring paths are deliberately not guessed here. A connection
+    // definition may remain in the ontology during the migration, but its registry metadata is the authority
+    // for how a new satisfaction is written.
     if (definition.nativeKeyword === 'satisfy') return 'satisfy';
     // An allocation has its own usage form, `allocate a to b;`, with no connection def behind it.
     if (definition.nativeKeyword === 'allocate') return 'allocate';
