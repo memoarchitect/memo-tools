@@ -109,6 +109,18 @@ describe('layout statements in a view', () => {
         expect(replaceViewLayout(SOURCE, 'outer::inner::nope', layout)).toBeUndefined();
     });
 
+    it('reads every spelling MetadataBodyUsage allows as the same statement', () => {
+        const read = (fields: string) => readFileLayouts(`package p {
+    view v : MemoDiagramView {
+        @MemoLayoutNode { ${fields} }
+    }
+}`)['p::v'];
+        const expected = read(':>> element = "p::a"; :>> x = 1; :>> y = 2;');
+        expect(expected.nodes['p::a']).toMatchObject({ x: 1, y: 2 });
+        expect(read('element = "p::a"; x = 1; y = 2;')).toEqual(expected);
+        expect(read('redefines element = "p::a"; ref :>> x = 1; ref redefines y = 2;')).toEqual(expected);
+    });
+
     it('ignores statements that are not in a view, and comments and strings that look like them', () => {
         const text = `package p {
     part x { @MemoLayoutNode { :>> element = "a"; :>> x = 1; :>> y = 2; } }

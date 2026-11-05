@@ -437,8 +437,10 @@ export async function updateViewDeclaration(
     }
     if (change.name !== undefined) {
         const label = `:>> label = "${escape(change.name)}";`;
-        declaration = /:>>\s*label\s*=\s*"(?:[^"\\]|\\.)*"\s*;/.test(declaration)
-            ? declaration.replace(/:>>\s*label\s*=\s*"(?:[^"\\]|\\.)*"\s*;/, () => label)
+        // A metadata body may leave `:>>` out, and then `label = "…"` is the same field.
+        const existing = /(?:(?::>>|redefines)\s*|(?<=[{;]\s*))label\s*=\s*"(?:[^"\\]|\\.)*"\s*;/;
+        declaration = existing.test(declaration)
+            ? declaration.replace(existing, () => label)
             : declaration.replace(/@MemoIdentity\s*\{/, () => `@MemoIdentity { ${label}`);
     }
     const updated = source.slice(0, node.start) + declaration + source.slice(node.end);

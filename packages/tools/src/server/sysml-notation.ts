@@ -139,12 +139,11 @@ function renderTypedFlow(request: RelationshipNotationRequest): string {
 /** The definition as a usage names its type: qualified when the registry knows the package, so the usage resolves from any file. */
 const typeName = (definition: RelationshipDefinitionDTO) => definition.qualifiedName ?? definition.sysmlName;
 
-/** `connection id : Def connect srcEnd ::> source to tgtEnd ::> target;` */
+/** `connection id : Def connect source to target;`: a connection binds its ends by position. */
 function renderConnection(request: RelationshipNotationRequest): string {
     const { definition, sourceId, targetId } = request;
     const head = `connection ${request.id} : ${typeName(definition)} connect `
-        + `${definition.sourceEnd.name} ::> ${sourceId} to `
-        + `${definition.targetEnd.name} ::> ${targetId}`;
+        + `${sourceId} to ${targetId}`;
     const item = request.flowItem?.trim();
     if (!item) return `${head};`;
     const inner = `${request.indent ?? '    '}    `;

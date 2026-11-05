@@ -13,20 +13,18 @@ package my_device {
     requirement safeOperation : Need {
         attribute :>> id = "NEED-001";
         attribute :>> needKind = NeedKind::stakeholder;
-        attribute :>> statement = "The device must protect the patient during normal use.";
+        doc /* The device must protect the patient during normal use. */
     }
 
     requirement detectFault : Requirement {
         attribute :>> id = "REQ-001";
         attribute :>> requirementKind = RequirementKind::system;
         @MemoIdentity { :>> label = "DetectDeliveryFault"; }
-        attribute :>> statement =
-            "The device shall detect a delivery fault within two seconds.";
+        doc /* The device shall detect a delivery fault within two seconds. */
     }
 
     connection : DerivesFrom
-        connect sourceDriver ::> safeOperation
-        to targetRequirement ::> detectFault;
+        connect safeOperation to detectFault;
 }
 ```
 

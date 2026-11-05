@@ -16,13 +16,13 @@ import { compilerConfigured, examplesPresent, withExample } from './helpers/comp
 
 // T6, end to end through the real parse -> plan -> render -> write path. The records are
 // requirements exported from a requirements tool; MEMO-authored links are written against them.
-const V1 = `sourceId,revision,name,kind,statement
+const V1 = `sourceId,revision,name,kind,doc
 REQ-1,B,Single mode,Requirement,The system shall be in one mode.
 REQ-2,A,Alarm latency,Requirement,The alarm shall sound within two seconds.
 REQ-3,A,Battery,Requirement,The device shall run for eight hours.
 `;
 // REQ-1 moves to revision C with new text, REQ-2 is gone, REQ-3 is untouched.
-const V2 = `sourceId,revision,name,kind,statement
+const V2 = `sourceId,revision,name,kind,doc
 REQ-1,C,Single mode,Requirement,The system shall be in exactly one mode.
 REQ-3,A,Battery,Requirement,The device shall run for eight hours.
 `;
@@ -222,7 +222,6 @@ describe('reading a source export', () => {
         const result = parseReqIf(REQIF, {
             system: 'reqtool', defaultKind: 'Requirement', constructOf: () => 'requirement',
             kinds: new Set(['Requirement']),
-            declaresAttribute: (_kind, attribute) => attribute === 'statement',
             relationTypes: new Set(['derivesFrom']),
         });
         expect(result.errors).toEqual([]);
@@ -230,8 +229,8 @@ describe('reading a source export', () => {
             ['req10', 'Boot time', 'Requirement', 'REQ-10', '2026-09-01T10:00:00Z'],
             ['req11', 'Boot time, cold', 'Requirement', 'REQ-11', '2026-09-02T10:00:00Z'],
         ]);
-        // XHTML is plain text, entities decoded, markup dropped; the text is the kind's `statement`.
-        expect(result.items[0].attributes['statement']).toBe('The device shall boot in < 5 s & report ready.');
+        // XHTML is plain text, entities decoded, markup dropped; the text is the element's `doc`.
+        expect(result.items[0].doc).toBe('The device shall boot in < 5 s & report ready.');
         expect(result.items[0].attributes['verificationMethod']).toBe('Test');
         expect(result.links).toEqual([{ fromId: 'REQ-11', toId: 'REQ-10', type: 'derivesFrom' }]);
     });
@@ -263,7 +262,7 @@ describe.runIf(compilerConfigured && examplesPresent)('a ReqIF import', () => {
 
             const after = await loadProjectModel({ projectRoot: root, config, cache: false });
             const element = after.model.elements.get('imports_reqtool::req10');
-            expect(element?.attributes['statement']).toBe('The device shall boot in < 5 s & report ready.');
+            expect(element?.doc).toBe('The device shall boot in < 5 s & report ready.');
             expect(element?.attributes['externalReference.revision']).toBe('2026-09-01T10:00:00Z');
             // The trace is source-mastered: it carries no baseline, and so is never suspect.
             const trace = after.model.relationships.find(r => r.type === 'derivesFrom' && r.targetId === 'imports_reqtool::req10');
@@ -275,7 +274,7 @@ describe.runIf(compilerConfigured && examplesPresent)('a ReqIF import', () => {
 
 // ─── The suspect queue: a preview says what the queue will show, and a review clears it ───
 
-const V2_WITH_NEW = `sourceId,revision,name,kind,statement
+const V2_WITH_NEW = `sourceId,revision,name,kind,doc
 REQ-1,C,Single mode,Requirement,The system shall be in exactly one mode.
 REQ-3,A,Battery,Requirement,The device shall run for eight hours.
 REQ-4,A,Display,Requirement,The display shall show the mode.

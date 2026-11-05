@@ -404,12 +404,12 @@ package custom_device_model {
 
     requirement need1 : Requirement {
         @MemoIdentity { :>> providedId = "REQ-001"; :>> label = "User need 1"; }
-        attribute :>> statement = "User need 1";
+        doc /* User need 1 */
     }
 
     requirement sysReq1 : Requirement {
         @MemoIdentity { :>> providedId = "REQ-002"; :>> label = "System requirement 1"; }
-        attribute :>> statement = "System requirement 1";
+        doc /* System requirement 1 */
     }
 
     satisfy sysReq1 by mySystem;

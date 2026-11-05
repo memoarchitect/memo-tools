@@ -176,7 +176,8 @@ function parseAssignments(body: string): Record<string, Scalar> | undefined {
     for (;;) {
         skipSpace();
         if (i >= body.length) return values;
-        const head = /^:>>\s*(\w+)\s*=\s*/.exec(body.slice(i));
+        // `MetadataBodyUsage`: 'ref'? ( ':>>' | 'redefines' )? name, so every prefix is optional.
+        const head = /^(?:ref\s+)?(?::>>\s*|redefines\s+)?(\w+)\s*=\s*/.exec(body.slice(i));
         if (!head) return undefined;
         i += head[0].length;
         const parsed = readValue(body, i);

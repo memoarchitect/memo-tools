@@ -1047,12 +1047,16 @@ class ElementBuilder {
         const typeName = this.typeName(node);
         const name = this.api.declaredName(node['@id']);
         const attributes = this.attributes(node);
+        const type = typeName ? toModelType(typeName) : 'connect';
+        // `connect a to b` names no ends: a connection binds by position, so each end is the
+        // definition's end at that position, the same one `connect x ::> a to y ::> b` means.
+        const declaredEnds = this.registries?.relationshipRegistry?.getRelType(type)?.ends ?? [];
         const relationship: MemoRelationship = {
             id: name ? qualifiedId(name, packageName || undefined, undefined) : this.nextId(),
             ...(name ? { shortName: name } : {}),
-            type: typeName ? toModelType(typeName) : 'connect',
-            sourceId: source.id, sourceEnd: this.api.declaredName(ends[0]['@id']) ?? 'source',
-            targetId: target.id, targetEnd: this.api.declaredName(ends[1]['@id']) ?? 'target',
+            type,
+            sourceId: source.id, sourceEnd: this.api.declaredName(ends[0]['@id']) ?? declaredEnds[0]?.name ?? 'source',
+            targetId: target.id, targetEnd: this.api.declaredName(ends[1]['@id']) ?? declaredEnds[1]?.name ?? 'target',
             file: this.file(node), sourceRange: this.sourceRangeOf(node), named: name ? true : undefined,
             attributes, flowItem: attributes.transportedItem || attributes.flowItem || undefined,
         };

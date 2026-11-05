@@ -111,7 +111,6 @@ export function readSource(request: SourceImportRequest, context: SourceImportCo
             defaultKind: request.defaultKind,
             constructOf: (kind) => constructOf(kindRegistry, kind),
             kinds: new Set(kindRegistry.kindNames()),
-            declaresAttribute: (kind, attribute) => kindDeclaresAttribute(kindRegistry, kind, attribute),
             relationTypes: new Set(relationshipRegistry.relTypeNames()),
             defaultRelation: request.defaultRelation,
         });

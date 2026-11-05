@@ -462,7 +462,7 @@ export function cameoResultToSysml(result: CameoImportResult, packageName: strin
             const targetId = idToSysmlId.get(rel.targetXmiId);
             if (!sourceId || !targetId) continue;
             const typeName = capitalizeFirst(rel.memoRelType!);
-            lines.push(`${indent}connection : ${typeName} connect source ::> ${sourceId} to target ::> ${targetId};`);
+            lines.push(`${indent}connection : ${typeName} connect ${sourceId} to ${targetId};`);
         }
         lines.push('');
     }

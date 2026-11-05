@@ -93,7 +93,7 @@ function clauseRules(name: string, flags: string[], available: boolean): void {
                 expect(flagged('CR-MED-016', 'IdentifiedSoup')).toBe(false);
                 for (const rule of ['CR-MED-019', 'CR-MED-025', 'CR-MED-026']) expect(flagged(rule, 'UnrecordedChange')).toBe(true);
                 // The temperature-alarm hazard reaches a hazardous situation now, so the rule is quiet about it.
-                expect(report).not.toMatch(/\[CR-MED-005\] Hazard\/UndetectedTemperatureDeviation/);
+                expect(report).not.toMatch(/\[CR-MED-005\] Hazard\/Undetected temperature deviation/);
             } finally {
                 rmSync(root, { recursive: true, force: true });
             }

@@ -319,7 +319,7 @@ describe('generateUsage', () => {
             id: 'uiElement8', name: 'Rate and drug panel', kind: 'UIElement', construct: 'part',
             layer: 'implementation', doc: '', attributes: { providedId: 'UIE-009', formKind: 'UIElementFormKind::panel' },
         });
-        expect(sysml).toContain('@MemoIdentity { :>> providedId = "UIE-009"; }');
+        expect(sysml).toContain(':>> providedId = "UIE-009";');
         expect(sysml).not.toContain('redefines providedId');
         expect(sysml).toContain('attribute redefines formKind = UIElementFormKind::panel');
     });
@@ -354,8 +354,7 @@ describe('generateConnection', () => {
         });
 
         expect(sysml).toContain('connection : Mitigates');
-        expect(sysml).toContain('control ::> ctrl_001');
-        expect(sysml).toContain('hazard ::> haz_001');
+        expect(sysml).toContain('connect ctrl_001 to haz_001');
     });
 });
 

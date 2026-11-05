@@ -82,7 +82,7 @@ describe.runIf(compilerConfigured && examplesPresent)('requires and excludes thr
                 expect(written).toMatchObject({ success: true, notation: 'connection' });
                 const text = readFileSync(join(root, 'model/catalog/sos/links.sysml'), 'utf8');
                 expect(text).toContain(`: ${definition.qualifiedName} connect`);
-                expect(text).toContain(`::> ${sourceId} to `);
+                expect(text).toContain(`connect ${sourceId} to `);
 
                 const after = await loadProjectModel({ projectRoot: root, config, cache: false });
                 const edge = after.model.relationships.find(r => r.type === type && r.sourceId === sourceId && r.targetId === targetId)!;

@@ -127,7 +127,7 @@ function integration(name: string, flags: string[]): void {
                 // The example carries other findings, so validate exits 1; its report is what is read.
                 let report = '';
                 try { report = run(['validate', '.']); } catch (error) { report = String((error as { stdout?: string }).stdout ?? ''); }
-                expect(report).toContain('[ORG-001] Hazard/UndetectedTemperatureDeviation');
+                expect(report).toContain('[ORG-001] Hazard/Undetected temperature deviation');
 
                 // The same id again is refused and the file is left alone.
                 const after = readFileSync(join(root, file), 'utf8');

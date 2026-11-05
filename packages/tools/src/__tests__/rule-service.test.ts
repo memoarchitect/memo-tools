@@ -66,7 +66,7 @@ function service(name: string, toolchain: Record<string, unknown>): void {
 
                 const preview = previewRule(context, form());
                 expect(preview, JSON.stringify(preview)).toMatchObject({ success: true, predicateExpression: 'mitigates->size() >= 2', subjects: 1 });
-                expect(preview.success && preview.flagged.map(f => f.elementName)).toEqual(['UndetectedTemperatureDeviation']);
+                expect(preview.success && preview.flagged.map(f => f.elementName)).toEqual(['Undetected temperature deviation']);
                 expect(preview.success && preview.baseRevision).toBe(revisionOf(readFileSync(join(root, FILE), 'utf8')));
 
                 expect(previewRule(context, form({ id: 'CR-MED-001' }))).toMatchObject({ success: false, code: 'duplicate-id' });

@@ -321,9 +321,9 @@ describe('generateRelationshipId', () => {
 });
 
 describe('generateRelationshipDeclaration', () => {
-    it('renders a typed connection usage with named ends', () => {
+    it('renders a typed connection usage with positional ends', () => {
         expect(generateRelationshipDeclaration('rel_1', satisfiedBy, 'controller', 'sr104'))
-            .toBe('connection rel_1 : SatisfiedBy connect satisfyingElement ::> controller to requiredElement ::> sr104;');
+            .toBe('connection rel_1 : SatisfiedBy connect controller to sr104;');
     });
 
     it('persists an optional transported-item label on the connector', () => {
@@ -356,7 +356,7 @@ describe('writeRelationship', () => {
 
         const written = readProjectFile('model/catalog/architecture.sysml');
         expect(written).toContain(
-            'connection rel_satisfiedBy_controller_sr104 : SatisfiedBy connect satisfyingElement ::> controller to requiredElement ::> sr104;');
+            'connection rel_satisfiedBy_controller_sr104 : SatisfiedBy connect controller to sr104;');
     });
 
     it('reports the file it chose', async () => {
@@ -551,8 +551,9 @@ describe('relationship persistence round trip', () => {
             type: 'satisfiedBy',
             sourceId: 'Pump::controller',
             targetId: 'Pump::sr104',
-            sourceEnd: 'satisfyingElement',
-            targetEnd: 'requiredElement',
+            // The ends come from STUBS' definition by position, and it declares requiredElement first.
+            sourceEnd: 'requiredElement',
+            targetEnd: 'satisfyingElement',
             named: true,
         });
 
@@ -600,8 +601,8 @@ describe('removeRelationship', () => {
         '    part controller : SoftwareComponent;',
         '    requirement sr104 : SoftwareRequirement;',
         '    requirement sr105 : SoftwareRequirement;',
-        '    connection rel_satisfiedBy_controller_sr104 : SatisfiedBy connect satisfyingElement ::> controller to requiredElement ::> sr104;',
-        '    connection rel_satisfiedBy_controller_sr105 : SatisfiedBy connect satisfyingElement ::> controller to requiredElement ::> sr105;',
+        '    connection rel_satisfiedBy_controller_sr104 : SatisfiedBy connect controller to sr104;',
+        '    connection rel_satisfiedBy_controller_sr105 : SatisfiedBy connect controller to sr105;',
         '}',
         '',
     ].join('\n');
@@ -640,7 +641,7 @@ describe('removeRelationship', () => {
         writeProjectFile('model/catalog/architecture.sysml', sourceWithTwoLinks);
         const result = await removeRelationship(named, options());
         expect(result.removedDeclaration).toBe(
-            'connection rel_satisfiedBy_controller_sr104 : SatisfiedBy connect satisfyingElement ::> controller to requiredElement ::> sr104;');
+            'connection rel_satisfiedBy_controller_sr104 : SatisfiedBy connect controller to sr104;');
     });
 
     it('supports undo by recreating the exact declaration', async () => {

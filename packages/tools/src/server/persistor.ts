@@ -177,7 +177,8 @@ export async function saveElementToFile(
     // while a compiler's rename still has to find the old one to rewrite.
     const buildUsage = (omit: readonly string[] = DERIVED_ATTRIBUTES, declaring = declaredName) => generateUsage({
         id: declaring,
-        name: element.name,
+        // A label the file already states is carried and edited in place: writing it here too would add a second annotation.
+        name: omit.includes('label') ? '' : element.name,
         kind: element.kind,
         // Normalized at the boundary: a caller holding a kind definition has
         // `part def`, and this text is a USAGE. See `usageKeyword`.
@@ -388,7 +389,7 @@ function keysSuppliedBy(member: OutlineNode): string[] {
  */
 function retargetAnnotationField(text: string, field: string, value: string): string {
     const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(`((?::>>|redefines)\\s+${escaped}\\s*=\\s*)"([^"]*)"`, 'g');
+    const pattern = new RegExp(`((?:(?::>>|redefines)\\s+|(?<=[{;]\\s*))${escaped}\\s*=\\s*)"([^"]*)"`, 'g');
     const occurrences = [...text.matchAll(pattern)];
     if (!occurrences.length) return text;
     // `extractAttributes` keeps the LAST assignment, so that is the one the

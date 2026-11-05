@@ -366,7 +366,7 @@ export function eaResultToSysml(result: EaImportResult, packageName: string): st
             const targetId = idToSysmlId.get(rel.targetEaId);
             if (!sourceId || !targetId) continue;
             const typeName = capitalizeFirst(rel.memoRelType!);
-            lines.push(`${indent}connection : ${typeName} connect source ::> ${sourceId} to target ::> ${targetId};`);
+            lines.push(`${indent}connection : ${typeName} connect ${sourceId} to ${targetId};`);
         }
         lines.push('');
     }

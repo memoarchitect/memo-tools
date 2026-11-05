@@ -201,6 +201,27 @@ describe.runIf(compilerConfigured)('element write-back', () => {
         expect(source).not.toContain('"plant"');
     });
 
+    it('edits a label in its annotation, and does not write a second one', async () => {
+        writeProjectFile('model/plant.sysml', `package Plant {
+    part pump : Component {
+        @MemoIdentity { :>> providedId = "P-1"; :>> label = "Old label"; }
+    }
+}
+`);
+        const index = await compile();
+        const result = await saveElementToFile(projectRoot, {
+            id: 'Plant::pump', shortName: 'pump', name: 'Old label', kind: 'Component', construct: 'part',
+            attributes: { providedId: 'P-1', label: 'New label' }, file: 'model/plant.sysml',
+            irIdentity: index.byMemoElement['Plant::pump'],
+        }, index);
+
+        expect(result.success).toBe(true);
+        const source = readProjectFile('model/plant.sysml');
+        expect(source).toContain('@MemoIdentity { :>> providedId = "P-1"; :>> label = "New label"; }');
+        expect(source).not.toContain('Old label');
+        expect(source.match(/@MemoIdentity/g)).toHaveLength(1);
+    });
+
     it('leaves comments and neighbouring declarations untouched', async () => {
         writeProjectFile('model/plant.sysml', `package Plant {
     // a comment that mentions pump and must survive
@@ -394,7 +415,7 @@ describe('SysML notation', () => {
     it('still writes an ontology-defined relationship as a typed connection', () => {
         expect(notationFor(satisfiedBy)).toBe('connection');
         expect(generateRelationshipDeclaration('rel_1', satisfiedBy, 'controller', 'sr104'))
-            .toBe('connection rel_1 : SatisfiedBy connect satisfyingElement ::> controller to requiredElement ::> sr104;');
+            .toBe('connection rel_1 : SatisfiedBy connect controller to sr104;');
     });
 
     it.runIf(compilerConfigured)('the selected compiler accepts every notation it emits', async () => {

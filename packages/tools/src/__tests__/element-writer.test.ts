@@ -66,6 +66,33 @@ describe.runIf(compilerConfigured)('removeElement', () => {
         await expect(outlines().verify('model/catalog.sysml', updated)).resolves.toBeDefined();
     });
 
+    it('removes connections written with positional ends, and leaves no reference behind', async () => {
+        const source = `package Test {
+    part parent : UIElement;
+    part victim : UIElement;
+    part survivor : UIElement;
+    connection : Composes connect parent to victim;
+    connection : Composes connect victim to survivor;
+    connection : Composes connect parent to survivor;
+}\n`;
+        write('model/catalog.sysml', source);
+        const victim = element('victim');
+        const result = await removeElement(victim, model(
+            [element('parent'), victim, element('survivor')],
+            [
+                relationship('in', 'parent', 'victim', 'model/catalog.sysml'),
+                relationship('out', 'victim', 'survivor', 'model/catalog.sysml'),
+                relationship('keep', 'parent', 'survivor', 'model/catalog.sysml'),
+            ],
+        ), projectRoot, outlines());
+
+        expect(result).toMatchObject({ success: true, removedRelationshipIds: ['in', 'out'] });
+        const updated = read('model/catalog.sysml');
+        expect(updated).not.toContain('victim');
+        expect(updated).toContain('connect parent to survivor');
+        await expect(outlines().verify('model/catalog.sysml', updated)).resolves.toBeDefined();
+    });
+
     it('cleans connected relationships owned by a different source file', async () => {
         write('model/catalog.sysml', `package Catalog { part victim : UIElement; part survivor : UIElement; }\n`);
         write('model/relationships.sysml', `package Relations {

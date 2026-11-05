@@ -67,7 +67,7 @@ function activation(name: string, flags: string[]): void {
                 };
                 expect(listed.tailorable.map(r => r.sourceRuleId)).toContain('ORG-002');
                 expect(listed.inactive).toEqual([]);
-                expect(run(root, ['validate', '.'], flags)).toContain('[ORG-002] Hazard/UndetectedTemperatureDeviation');
+                expect(run(root, ['validate', '.'], flags)).toContain('[ORG-002] Hazard/Undetected temperature deviation');
             } finally {
                 rmSync(root, { recursive: true, force: true });
             }

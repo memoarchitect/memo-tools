@@ -25,15 +25,17 @@ export function generateUsage(element: CsvElement, options: GenerateOptions = {}
     // attribute, so `attribute redefines name` — what this emitted until the
     // label migration — no longer resolves, and the generated file would not
     // compile.
+    const identity: string[] = [];
     if (element.name && element.name !== element.id) {
-        lines.push(`${indent}@MemoIdentity { :>> label = "${escapeString(element.name)}"; }`);
+        identity.push(`:>> label = "${escapeString(element.name)}";`);
     }
     // The authored id is identity too: `providedId` is a field of `@MemoIdentity`, not an attribute the kind
     // declares, so `attribute redefines providedId` would not resolve and the whole write would be refused.
     const providedId = element.attributes.providedId;
     if (providedId) {
-        lines.push(`${indent}@MemoIdentity { :>> providedId = "${escapeString(providedId)}"; }`);
+        identity.push(`:>> providedId = "${escapeString(providedId)}";`);
     }
+    if (identity.length) lines.push(`${indent}@MemoIdentity { ${identity.join(' ')} }`);
 
     // Dynamic attributes. Structured attribute values are flattened in the
     // semantic model (`bounds.x`, `bounds.width`) and reconstructed here so an
@@ -123,12 +125,12 @@ function renderAttributeValue(value: string): string {
  *
  * Example output:
  * ```sysml
- * connection : Mitigates connect control ::> risk_control_001 to hazard ::> hazard_001;
+ * connection : Mitigates connect risk_control_001 to hazard_001;
  * ```
  */
 export function generateConnection(rel: CsvRelationship): string {
     const typeName = capitalizeFirst(rel.type);
-    return `connection : ${typeName} connect ${rel.sourceEnd} ::> ${rel.sourceId} to ${rel.targetEnd} ::> ${rel.targetId};`;
+    return `connection : ${typeName} connect ${rel.sourceId} to ${rel.targetId};`;
 }
 
 /**

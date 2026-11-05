@@ -61,7 +61,7 @@ export function createFamilyRepo(): FamilyRepo {
     requirement reqMotionLimits : Requirement {
         attribute :>> requirementType = RequirementTypeKind::system;
         @MemoIdentity { :>> providedId = "RCF-MAN-REQ-001"; :>> label = "MotionWithinLimits"; }
-        attribute :>> statement = "The manipulator shall grasp within the set force and time limits.";
+        doc /* The manipulator shall grasp within the set force and time limits. */
     }
     satisfy reqMotionLimits by fnExecuteGrasp;
     verification vcMotionLimits : VerificationCase {

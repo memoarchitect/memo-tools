@@ -25,8 +25,6 @@ export interface ReqIfOptions {
     constructOf: (kind: string) => string;
     /** Kinds the ontology has, matched against a record type's LONG-NAME. */
     kinds?: ReadonlySet<string>;
-    /** Whether the kind declares the attribute; routes the requirement text. */
-    declaresAttribute?: (kind: string, attribute: string) => boolean;
     /** Relation names the ontology has, matched against a relation type's LONG-NAME. */
     relationTypes?: ReadonlySet<string>;
     /** The relation of a SPEC-RELATION whose type names none the ontology has. */
@@ -138,12 +136,8 @@ export function parseReqIf(xml: string, options: ReqIfOptions): ReqIfResult {
             else attributes[camel(label)] = content;
         }
 
-        // The requirement text is the kind's `statement` where it declares one, and prose otherwise.
-        let doc = '';
-        if (text) {
-            if (options.declaresAttribute?.(kind, 'statement')) attributes['statement'] = text;
-            else doc = text;
-        }
+        // The requirement text is native `doc`, which SysML defines as a requirement's text.
+        const doc = text ?? '';
         const element: CsvElement = {
             id: deriveElementName(identifier),
             name: name || identifier,
