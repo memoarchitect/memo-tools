@@ -204,7 +204,7 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
         // No single type can carry it: the kinds this relation joins sit in
         // unrelated families — a FunctionalFlow is a MemoAction, a UseCase a
         // MemoUseCase, and MEMO has no root above the metaclasses. Naming two of them made every use-case `include` a
-        // well-formedness error: 132 of them in project, on a construct the
+        // well-formedness error: 132 of them in one real model, on a construct the
         // design intends.
         ends: [
             { name: 'functionalFlow' },

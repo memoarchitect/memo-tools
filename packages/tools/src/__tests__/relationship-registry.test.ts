@@ -337,7 +337,7 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
         // unified on this one. No type can name the ends: a FunctionalFlow is
         // a MemoAction, a UseCase a MemoUseCase.
         // Naming two of the three made every use-case `include` a
-        // well-formedness error — 132 of them in project, on a construct the
+        // well-formedness error — 132 of them in one real model, on a construct the
         // design intends.
         'IncludesStep',
         // `HasSubject`: a subject is whatever the owner is about — a part, an

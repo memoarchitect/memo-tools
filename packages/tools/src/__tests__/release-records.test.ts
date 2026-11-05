@@ -133,7 +133,7 @@ describe.runIf(compilerConfigured && examplesPresent)('release records (O2, O3, 
     }, 120_000);
 
     // A family may write its items as usages typed directly by a MEMO type and declare no definitions
-    // (the project model rules, MR-01). A dependency's supplier is any element, so a record of a usage
+    //. A dependency's supplier is any element, so a record of a usage
     // builds the same edge, and the rules judge it without error.
     it('links a record to a usage as well as to a definition', async () => {
         const files = releaseFiles();

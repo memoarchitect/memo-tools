@@ -259,6 +259,15 @@ describe.runIf(available)('Track A0 relation-end rules', () => {
             .map(v => v.elementId)).toContain('cfn');
     });
 
+    it('CR-ONT-074 does not ask a definition to be allocated: its usages are', () => {
+        if (!available) return;
+        const constraint = rules.get('CR-ONT-074')!;
+        const model = buildModel(VALID_LINKS.filter(l => !(l.type === 'allocatedTo' && l.from === 'cfn')));
+        model.elements.get('cfn')!.isDefinition = true;
+        expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
+            .map(v => v.elementId)).not.toContain('cfn');
+    });
+
     it('CR-ONT-074 leaves an unallocated SYSTEM function alone', () => {
         if (!available) return;
         const constraint = rules.get('CR-ONT-074')!;

@@ -392,9 +392,9 @@ export function makeKindConformance(
 ): (kind: string, expected: string) => boolean {
     const kindIndex = indexKinds(kindRegistry?.toDefinitionDTOs() ?? []);
     // A project definition specializes an ontology kind, and the ontology
-    // registry has never heard of it: `Stakeholder` is declared in
+    // registry has never heard of it: `ProjectStakeholder` is declared in
     // this project, not in memo. So a chain like
-    // `HospitalEpLabStakeholder :> Stakeholder :> MemoPart`
+    // `HospitalLabStakeholder :> ProjectStakeholder :> MemoPart`
     // broke at the first hop and fell through to guessing by name suffix,
     // reporting a well-formed context diagram as malformed.
     //

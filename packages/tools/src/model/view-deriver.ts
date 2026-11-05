@@ -232,7 +232,7 @@ const COMPOSITION_TYPES = new Set(['composedOf', 'composes', 'decomposedBy', 'ag
  *
  * A view that says `attribute depth = 2` is saying "the subject and two levels
  * of what it is made of". That was never read, so authors listed every id by
- * hand instead — and the project L1 function view listed the root and eight
+ * hand instead — and an L1 function view listed the root and eight
  * grandchildren while omitting the level between them, leaving a diagram whose
  * elements shared no composition edge at all.
  *
