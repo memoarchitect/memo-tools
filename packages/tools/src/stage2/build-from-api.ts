@@ -1119,6 +1119,8 @@ class ElementBuilder {
         if (!sourceId || !targetId) return;
         this.relationships.push({
             id: this.nextId(), type: 'succession', sourceId, sourceEnd: '', targetId, targetEnd: '', file: this.file(node),
+            // A succession has no name, so a writer that moves an end addresses the statement by where it is.
+            sourceRange: this.sourceRangeOf(node),
         });
     }
 

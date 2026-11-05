@@ -195,6 +195,50 @@ describe('updateRelationship', () => {
     });
 });
 
+describe('a succession between the steps of one action', () => {
+    const succession: RelationshipDefinitionDTO = {
+        name: 'succession', sysmlName: 'Succession', label: 'Succession', layer: 'core', nativeKeyword: 'succession',
+        sourceEnd: { name: 'earlierOccurrence', construct: 'action' }, targetEnd: { name: 'laterOccurrence', construct: 'action' },
+    };
+    const file = 'model/catalog/flow.sysml';
+    const step = (name: string) => ({ ...element(`Flow::procedure::${name}`, 'ActionUsage', file), construct: 'action' as const,
+        shortName: name, parentAction: 'Flow::procedure' });
+    const procedure = { ...element('Flow::procedure', 'ActionUsage', file), construct: 'action' as const, shortName: 'procedure' };
+
+    it('is written in the owning action, naming its steps', async () => {
+        writeProjectFile(file, 'package Flow {\n    action procedure {\n        action dock;\n        action fire;\n    }\n}\n');
+        const result = await writeRelationship(
+            request({ type: 'succession', sourceId: 'Flow::procedure::dock', targetId: 'Flow::procedure::fire' }),
+            succession, model([procedure, step('dock'), step('fire')]), options());
+        expect(result.error).toBeUndefined();
+        expect(readProjectFile(file)).toContain('        action fire;\n        succession first dock then fire;\n    }');
+    });
+
+    it('moves an end by the range the compile recorded, so a step can be put between two', async () => {
+        const declaration = 'first dock then fire;';
+        const source = `package Flow {\n    action procedure {\n        action dock;\n        action check;\n        action fire;\n        ${declaration}\n    }\n}\n`;
+        writeProjectFile(file, source);
+        const relationship: MemoRelationship = {
+            id: 'rel-1', type: 'succession', sourceId: 'Flow::procedure::dock', sourceEnd: '', targetId: 'Flow::procedure::fire',
+            targetEnd: '', file, sourceRange: { offset: source.indexOf(declaration), length: declaration.length },
+        };
+        const result = await updateRelationship(
+            { requestId: 'u', relationshipId: 'rel-1', sourceId: 'Flow::procedure::dock', targetId: 'Flow::procedure::check' },
+            relationship, succession, model([procedure, step('dock'), step('check'), step('fire')]), options());
+        expect(result.error).toBeUndefined();
+        expect(readProjectFile(file)).toContain('succession first dock then check;');
+        expect(readProjectFile(file)).not.toContain('then fire;');
+    });
+
+    it('is built with the range a writer addresses it by', async () => {
+        writeProjectFile(file, 'package Flow {\n    action procedure {\n        action dock;\n        action fire;\n        first dock then fire;\n    }\n}\n');
+        const built = await rebuilt(file);
+        const link = built.relationships.find(rel => rel.type === 'succession');
+        expect(link?.sourceRange).toBeDefined();
+        expect(readProjectFile(file).slice(link!.sourceRange!.offset, link!.sourceRange!.offset + link!.sourceRange!.length)).toContain('dock then fire');
+    });
+});
+
 // ─── Ownership policy ───────────────────────────────────────────────────────
 
 describe('resolveRelationshipPlacement', () => {

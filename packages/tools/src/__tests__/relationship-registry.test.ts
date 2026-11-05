@@ -323,6 +323,9 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
         // of any other action a well-formedness error. The edge exists so a rule can reach the
         // function from the step.
         'Subsets',
+        // `Succession`: its ends are the steps of one action, often usages typed by a library action that no
+        // MEMO kind names. Both ends require the `action` construct instead of a type.
+        'Succession',
     ];
     // Relations with BOTH ends untyped: the ones whose two ends each cross a
     // metaclass boundary. Six of the seven joined this set in A0.
@@ -347,6 +350,8 @@ describe.runIf(compilerConfigured && examplesPresent)('MEMO ontology relationshi
         'HasSubject',
         // See the reason on UNTYPED_END_EXEMPTIONS above.
         'Subsets',
+            // `Succession`: see UNTYPED_END_EXEMPTIONS; a construct, not a type, holds each end.
+        'Succession',
     ];
 
     it('keeps the universal relation identifiable among fully untyped relations', async () => {

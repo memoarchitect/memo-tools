@@ -44,6 +44,7 @@ import {
 import { shortNameOf } from '../model/element-index.js';
 import type { OutlineSource } from '../authoring/outline-source.js';
 import { bodyMembers, outlineNodes, type OutlineNode, type SourceOutline } from '../authoring/source-outline.js';
+import { insertIntoContainer } from './package-source.js';
 
 // Project-layout conventions, not ontology semantics — these describe where a
 // MEMO project keeps its files, so they are overridable per project rather than
@@ -372,7 +373,11 @@ export async function writeRelationship(
     const featureError = endFeatureError(request, definition);
     if (featureError) return { success: false, error: featureError };
 
-    const placement = resolveRelationshipPlacement(request, model, options);
+    // A succession orders the steps of one action, so it is written in that action, naming its steps.
+    const stepOwner = notationFor(definition) === 'succession' ? commonStepOwner(request, model) : undefined;
+    const placement: RelationshipPlacement = stepOwner?.file && isWritableRelationshipFile(stepOwner.file, options)
+        ? { file: stepOwner.file, reason: 'source-element-file', willCreate: false }
+        : resolveRelationshipPlacement(request, model, options);
     if (!isWritableRelationshipFile(placement.file, options)) {
         return { success: false, error: `No writable project file can own this relationship (${placement.file})` };
     }
@@ -394,8 +399,10 @@ export async function writeRelationship(
         // path, never by the qualified id that addresses them in the model.
         // A dependency takes qualified names (kebnf:58), which resolve from any file; a connection's
         // ends are feature chains relative to the package that holds it.
-        notation === 'typedDependency' ? request.sourceId : endpointPath(request.sourceId, model, request.sourceFeature),
-        notation === 'typedDependency' ? request.targetId : endpointPath(request.targetId, model, request.targetFeature),
+        notation === 'typedDependency' ? request.sourceId
+            : stepOwner ? stepName(request.sourceId, model) : endpointPath(request.sourceId, model, request.sourceFeature),
+        notation === 'typedDependency' ? request.targetId
+            : stepOwner ? stepName(request.targetId, model) : endpointPath(request.targetId, model, request.targetFeature),
         request.flowItem, request.guard);
 
     const outlines = options.outlines;
@@ -411,7 +418,12 @@ export async function writeRelationship(
         } catch (e) {
             return { success: false, error: `The target file cannot be edited (${message(e)})` };
         }
-        const inserted = insertIntoPackage(outline, declaration);
+        const inOwner = stepOwner && placement.file === stepOwner.file
+            ? insertIntoContainer(original, outline, stepOwner.id, `${declaration}\n`) : undefined;
+        if (stepOwner && inOwner === undefined) {
+            return { success: false, error: `${placement.file} does not declare ${stepOwner.id} with a body to hold the succession` };
+        }
+        const inserted = inOwner !== undefined ? { ok: true as const, text: inOwner } : insertIntoPackage(outline, declaration);
         if (!inserted.ok) return { success: false, error: inserted.error };
         updated = inserted.text;
     }
@@ -530,6 +542,24 @@ function endFeatureError(
     return bad === undefined ? undefined : `"${bad}" is not a parameter name`;
 }
 
+/** The action that owns both steps a succession joins, when one does. */
+function commonStepOwner(
+    request: Pick<RelationshipCreateRequest, 'sourceId' | 'targetId'>,
+    model: Pick<MemoModelDTO, 'elements'>,
+): { id: string; file?: string } | undefined {
+    // A step's owner is recorded as `parentAction`; an owner chain of parts is `owner`.
+    const ownerOf = (id: string) => model.elements[id]?.parentAction ?? model.elements[id]?.owner;
+    const owner = ownerOf(request.sourceId);
+    if (!owner || owner !== ownerOf(request.targetId)) return undefined;
+    const element = model.elements[owner];
+    return element ? { id: element.id, file: element.file } : undefined;
+}
+
+/** A step as its owner names it. */
+function stepName(elementId: string, model: Pick<MemoModelDTO, 'elements'>): string {
+    return model.elements[elementId]?.shortName ?? shortNameOf(elementId);
+}
+
 function elementPath(elementId: string, model: Pick<MemoModelDTO, 'elements'>): string {
     const named = (id: string) => model.elements[id]?.shortName ?? shortNameOf(id);
     const nested = [] as string[];
@@ -580,11 +610,12 @@ export async function updateRelationship(
     const located = locateRelationship(outline, relationship);
     if (typeof located === 'string') return { success: false, error: located };
 
+    const byStep = notationFor(definition) === 'succession' && commonStepOwner(request, model) !== undefined;
     const declaration = generateRelationshipDeclaration(
         declaredNameOf(relationship),
         definition,
-        endpointPath(request.sourceId, model),
-        endpointPath(request.targetId, model),
+        byStep ? stepName(request.sourceId, model) : endpointPath(request.sourceId, model),
+        byStep ? stepName(request.targetId, model) : endpointPath(request.targetId, model),
         relationship.flowItem,
         relationship.attributes?.guard,
     );

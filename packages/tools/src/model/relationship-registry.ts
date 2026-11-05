@@ -367,6 +367,19 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
             { name: 'realized' },
         ],
     },
+    // The order of an action's steps. Both ends are steps, so they are actions whatever their kind: a step is
+    // often a usage typed by a library action, which no MEMO kind names.
+    succession: {
+        keyword: 'succession',
+        sysmlName: 'Succession',
+        layer: 'core',
+        description: 'One step of an action follows another. '
+            + 'Written natively as `succession first <earlier> then <later>;` inside the action that owns both.',
+        ends: [
+            { name: 'earlierOccurrence', construct: 'action' },
+            { name: 'laterOccurrence', construct: 'action' },
+        ],
+    },
 };
 
 /**

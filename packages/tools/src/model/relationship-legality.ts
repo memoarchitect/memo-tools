@@ -286,14 +286,14 @@ export function isUniversalRelationship(definition: RelationshipDefinitionDTO): 
 }
 
 /**
- * True when the writer can state this relation in source. A native keyword other than `satisfy` and
- * `allocate` needs an owner the writer does not choose (`verify` belongs to a verification case), so it
+ * True when the writer can state this relation in source. A native keyword other than `satisfy`, `allocate` and
+ * `succession` needs an owner the writer does not choose (`verify` belongs to a verification case), so it
  * is authored in its owner's text and not offered as a link between two elements.
  */
 export function isAuthorableRelationship(definition: RelationshipDefinitionDTO): boolean {
     if (definition.isAbstract) return false;
     if (definition.typedDependency) return true;
-    return !definition.nativeKeyword || definition.nativeKeyword === 'satisfy' || definition.nativeKeyword === 'allocate';
+    return !definition.nativeKeyword || ['satisfy', 'allocate', 'succession'].includes(definition.nativeKeyword);
 }
 
 /**
