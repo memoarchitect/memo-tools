@@ -256,6 +256,7 @@ export function apiRelationshipEntries(
             let isReflexive: boolean | undefined;
             let isUnique: boolean | undefined;
             let isConnector: boolean | undefined;
+            let isTrace: boolean | undefined;
             for (const owned of api.ownedMembers(member['@id'])) {
                 if (owned.isEnd === true) {
                     ends.push({
@@ -271,6 +272,7 @@ export function apiRelationshipEntries(
                     if (name === 'isReflexive') isReflexive = flag ?? isReflexive;
                     else if (name === 'isUnique') isUnique = flag ?? isUnique;
                     else if (name === 'isConnector') isConnector = flag ?? isConnector;
+                    else if (name === 'isTrace') isTrace = flag ?? isTrace;
                 }
             }
             if (ends.length === 0) ends.push(...(DEFAULT_ENDS[construct] ?? []));
@@ -287,6 +289,7 @@ export function apiRelationshipEntries(
                 isReflexive,
                 isUnique,
                 isConnector,
+                isTrace,
                 ends,
                 attributes,
             });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { KindRegistry } from '../model/kind-registry.js';
+import { RelationshipRegistry } from '../model/relationship-registry.js';
 import { endAllowedByRules, isAuthorableRelationship, type RelationshipDefinitionDTO } from '../model/relationship-legality.js';
 import { insertIntoContainer } from '../server/package-source.js';
 import { renderRelationship } from '../server/sysml-notation.js';
@@ -100,5 +101,24 @@ describe('insertIntoContainer', () => {
     it('answers undefined for a name the file does not declare', () => {
         const text = 'package p {\n}\n';
         expect(insertIntoContainer(text, outlineOf(text, []), 'p::missing', 'part b;\n')).toBeUndefined();
+    });
+});
+
+describe('isTrace', () => {
+    it('reaches the client from a relation, a supertype and a native relation', () => {
+        const relations = new RelationshipRegistry();
+        const entry = (sysmlName: string, rest: Record<string, unknown> = {}) => relations.register({
+            sysmlName, name: sysmlName.charAt(0).toLowerCase() + sysmlName.slice(1), label: sysmlName, layer: 'core', ends: [], ...rest,
+        } as Parameters<RelationshipRegistry['register']>[0]);
+        entry('Mitigates', { isTrace: true });
+        entry('MitigatesFully', { superType: 'Mitigates' });
+        entry('HostedBy');
+        (relations as unknown as { registerLanguageNatives(): void }).registerLanguageNatives();
+        const flag = (name: string) => relations.toDefinitionDTOs().find(definition => definition.name === name)?.isTrace;
+        expect(flag('mitigates')).toBe(true);
+        expect(flag('mitigatesFully')).toBe(true);
+        expect(flag('satisfiedBy')).toBe(true);
+        expect(flag('hostedBy')).toBeUndefined();
+        expect(flag('allocatedTo')).toBeUndefined();
     });
 });

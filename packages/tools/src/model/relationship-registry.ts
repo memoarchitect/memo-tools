@@ -75,6 +75,8 @@ export interface RelationshipRegistryEntry {
      * no entry here.
      */
     isConnector?: boolean;
+    /** Whether the relation is a trace, from the `isTrace` attribute. Undefined when the ontology does not say. */
+    isTrace?: boolean;
     /** Supertype connection definition, when the relationship specializes one */
     superType?: string;
     /**
@@ -131,12 +133,15 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
     sysmlName: string;
     layer: string;
     description: string;
+    /** Whether the relation is a trace. A native relation has no connection def to state `isTrace` on. */
+    isTrace?: boolean;
     ends: RelationshipEnd[];
 }> = {
     satisfiedBy: {
         keyword: 'satisfy',
         sysmlName: 'SatisfiedBy',
         layer: 'core',
+        isTrace: true,
         description: 'A requirement is satisfied by an architecture element. '
             + 'Written natively as `satisfy <requirement> by <element>;`.',
         ends: [
@@ -148,6 +153,7 @@ export const LANGUAGE_NATIVE_RELATIONS: Record<string, {
         keyword: 'verify',
         sysmlName: 'VerifiedBy',
         layer: 'core',
+        isTrace: true,
         description: 'An element is verified by a verification case. '
             + 'Written natively as `verify <requirement>;` inside the case.',
         ends: [
@@ -500,6 +506,7 @@ export class RelationshipRegistry {
             isAbstract: entry.isAbstract,
             isReflexive: this.inherited(entry, 'isReflexive'),
             isUnique: this.inherited(entry, 'isUnique'),
+            isTrace: this.inherited(entry, 'isTrace'),
             nativeKeyword: entry.nativeKeyword,
             ...(entry.sysmlConstruct === 'interface def' || entry.sysmlConstruct === 'flow def' ? { sysmlConstruct: entry.sysmlConstruct } : {}),
             ...(entry.sysmlConstruct === 'metadata def' && entry.qualifiedName ? { typedDependency: entry.qualifiedName } : {}),
@@ -516,7 +523,7 @@ export class RelationshipRegistry {
      */
     private inherited(
         entry: RelationshipRegistryEntry,
-        property: 'isReflexive' | 'isUnique' | 'isConnector',
+        property: 'isReflexive' | 'isUnique' | 'isConnector' | 'isTrace',
     ): boolean | undefined {
         let current: RelationshipRegistryEntry | undefined = entry;
         const seen = new Set<string>();
@@ -575,6 +582,7 @@ export class RelationshipRegistry {
             const existing = this.relTypes.get(name);
             if (existing) {
                 existing.nativeKeyword = native.keyword;
+                existing.isTrace ??= native.isTrace;
                 continue;
             }
             this.relTypes.set(name, {
@@ -584,6 +592,7 @@ export class RelationshipRegistry {
                 layer: native.layer,
                 description: native.description,
                 nativeKeyword: native.keyword,
+                isTrace: native.isTrace,
                 ends: native.ends,
             });
         }

@@ -81,6 +81,11 @@ export interface RelationshipDefinitionDTO {
      */
     isUnique?: boolean;
     /**
+     * Whether the relation is a trace, from the ontology's `isTrace` attribute: a link to a requirement, a risk,
+     * a verification, a standard or a controlled document. Undefined reads as false.
+     */
+    isTrace?: boolean;
+    /**
      * The SysML v2 keyword that writes this relation natively — `satisfy`,
      * `verify`, `allocate` — when the language already provides one. Set means
      * the relation is a usage, not a `connection def` instance, and must not be
