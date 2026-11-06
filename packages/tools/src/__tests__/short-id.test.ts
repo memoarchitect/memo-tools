@@ -8,6 +8,10 @@ describe('MEMO short IDs', () => {
     it('uses the UIE family for UI elements', () => {
         expect(kindToPrefix('UIElement')).toBe('UIE');
     });
+
+    it('uses the ACR family for an actor, not the MEM of its prefix', () => {
+        expect(kindToPrefix('MemoActor')).toBe('ACR');
+    });
 });
 
 // A short ID is a traceability handle. If it moves, every report, review

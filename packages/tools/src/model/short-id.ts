@@ -61,6 +61,8 @@ const KIND_PREFIX_OVERRIDES: Record<string, string> = {
     OperationalWorkflow: 'WFL',
     // Operational
     Stakeholder: 'STK',
+    // `actor` is a SysML keyword, so the kind is MemoActor; its family is not MEM.
+    MemoActor: 'ACR',
     OperationalScenario: 'SCN',
     MemoScenario: 'SCN',
     Mission: 'MSNS',
