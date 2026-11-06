@@ -7,7 +7,7 @@
 
 import { resolve } from 'node:path';
 import { findProjectRoot, loadProjectSettings, modelToDTO } from '@memoarchitect/tools';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { ownProjectFiles } from '../model/native-project.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
@@ -46,7 +46,7 @@ export async function interfacesCommand(a: string, b: string, options: Interface
         throw new Error('No MEMO project found. A project is located by the `entrypoint` in its `memo.package.yaml`.');
     }
     const config = withToolchainOverrides(loadProjectSettings(projectRoot), options as Record<string, unknown>, defaultRegistry);
-    const { model, registries } = await loadProjectModel({ projectRoot, config, files: findSysmlFiles(projectRoot), cache: false });
+    const { model, registries } = await loadProjectModel({ projectRoot, config, files: ownProjectFiles(projectRoot), cache: false });
 
     const ids = [a, b].map(name => {
         const ambiguous = model.elements.ambiguities.find(x => x.reference === name);

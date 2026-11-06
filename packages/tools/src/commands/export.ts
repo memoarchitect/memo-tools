@@ -13,7 +13,7 @@ import { validateModel } from '@memoarchitect/tools';
 import { computeCompleteness } from '@memoarchitect/tools';
 import type { ViewpointDTO, ArchLayerDTO } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { ownProjectFiles } from '../model/native-project.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { loadProjectModel, type ProjectModel } from '../toolchain/project-model.js';
@@ -38,12 +38,12 @@ async function resolveForExport(cwd: string, options: Record<string, unknown> = 
     // `toolchain.compiler` decides where the model comes from, as it does for
     // `memo validate`; a stage 1 that reports an error exports nothing. A
     // compiler that builds the model also states the project's resolution and
-    // ontology, so MEMO parses nothing then. Export has always carried every
-    // project file, its own methodology included; `memo validate` leaves a
-    // project's library roots out.
+    // ontology, so MEMO parses nothing then. Export carries the project's own
+    // library roots, its methodology among them, which `memo validate` leaves
+    // out; like every command it reads only what `include` names.
     let loaded: ProjectModel;
     try {
-        loaded = await loadProjectModel({ projectRoot, config, files: findSysmlFiles(projectRoot), cache: false });
+        loaded = await loadProjectModel({ projectRoot, config, files: ownProjectFiles(projectRoot), cache: false });
     } catch (error) {
         console.error(chalk.red(`❌ ${error instanceof Error ? error.message : error}\nNothing exported.`));
         process.exit(1);

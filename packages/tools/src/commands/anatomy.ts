@@ -27,7 +27,7 @@ import { join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import { findProjectRoot, loadProjectSettings } from '@memoarchitect/tools';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { ownProjectFiles } from '../model/native-project.js';
 import { withToolchainOverrides } from '../toolchain/schema.js';
 import { defaultRegistry } from '../toolchain/default-registry.js';
 import { loadProjectModel, Stage1RejectedError } from '../toolchain/project-model.js';
@@ -59,7 +59,7 @@ export async function anatomyGenerate(dir: string, options: Record<string, unkno
     if (!projectRoot) throw new Error('No MEMO project found. A project is located by the `entrypoint` in its `memo.package.yaml`.');
 
     // The package the project imports, and the dependency that holds it.
-    const packageName = findSysmlFiles(projectRoot).map(file => IMPORT_RE.exec(readFileSync(file, 'utf8'))?.[1]).find(Boolean);
+    const packageName = ownProjectFiles(projectRoot).map(file => IMPORT_RE.exec(readFileSync(file, 'utf8'))?.[1]).find(Boolean);
     if (!packageName) {
         throw new Error('The project imports no anatomy package. Add `public import <project>_anatomy_fma::*;` to its '
             + 'entrypoint, beside `public import memo_extension_anatomy::*;` and its AnatomySelectors.');
@@ -79,7 +79,7 @@ export async function anatomyGenerate(dir: string, options: Record<string, unkno
     const config = withToolchainOverrides(loadProjectSettings(projectRoot), options, defaultRegistry);
     let project: Awaited<ReturnType<typeof loadProjectModel>>;
     try {
-        project = await loadProjectModel({ projectRoot, config, files: findSysmlFiles(projectRoot), cache: false });
+        project = await loadProjectModel({ projectRoot, config, files: ownProjectFiles(projectRoot), cache: false });
     } catch (error) {
         if (!(error instanceof Stage1RejectedError)) throw error;
         throw new Error(`${error.message}\nThe selectors are read from the project as it compiles with the anatomy it `
@@ -134,7 +134,7 @@ export async function anatomyGenerate(dir: string, options: Record<string, unkno
     // read again, so the previous anatomy is put back unless the caller insists.
     let broken: string[] = [];
     try {
-        await loadProjectModel({ projectRoot, config, files: findSysmlFiles(projectRoot), cache: false });
+        await loadProjectModel({ projectRoot, config, files: ownProjectFiles(projectRoot), cache: false });
     } catch (error) {
         if (!(error instanceof Stage1RejectedError)) throw error;
         broken = error.diagnostics.filter(d => d.severity === 'error')

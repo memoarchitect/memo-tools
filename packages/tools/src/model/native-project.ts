@@ -533,6 +533,17 @@ export function discoverProjectSources(projectRoot: string): ProjectSources {
 }
 
 /**
+ * Every file the project itself authors: its `include` sources and the library
+ * roots that sit inside it (its own methodology, say), never a file under the
+ * project directory that `include` leaves out, nor an installed library.
+ */
+export function ownProjectFiles(projectRoot: string): string[] {
+    const sources = discoverProjectSources(projectRoot);
+    const inside = sources.projectRoot + sep;
+    return [...sources.projectFiles, ...sources.libraryFiles.filter(file => file.startsWith(inside))];
+}
+
+/**
  * Close a project's resolution over its package index and native usages,
  * however they were read: the import closure from the entrypoint, the library
  * roots it selects, and the method binding.
