@@ -80,6 +80,7 @@ const ELEMENTS: Array<[id: string, kind: string, construct: string]> = [
     ['assembly', 'HardwareAssembly', 'part'],
     ['fn', 'SystemFunction', 'action'],
     ['cfn', 'ComponentFunction', 'action'],
+    ['flowFn', 'FunctionalFlow', 'action'],
     ['act', 'OperationalActivity', 'action'],
     ['act2', 'OperationalActivity', 'action'],
     ['user', 'User', 'part'],
@@ -287,6 +288,16 @@ describe.runIf(available)('Track A0 relation-end rules', () => {
         const model = buildModel([...VALID_LINKS, { type: 'composes', from: 'fn', to: 'mod' }]);
         expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
             .map(v => v.elementId)).toContain('fn');
+    });
+
+    it('CR-ONT-075 accepts a function step owned by a functional flow', () => {
+        if (!available) return;
+        const constraint = rules.get('CR-ONT-075')!;
+        // A step typed `action x : SystemFunction` inside a FunctionalFlow: the
+        // flow is a behaviour that orders functions, not a component.
+        const model = buildModel([...VALID_LINKS, { type: 'composes', from: 'flowFn', to: 'fn' }]);
+        expect(evaluateConstraintNode(constraint, constraint.ast, model, kindRegistry)
+            .map(v => v.elementId)).not.toContain('fn');
     });
 
     // A component used to be an accepted end. §6.2 of the architecture plan
