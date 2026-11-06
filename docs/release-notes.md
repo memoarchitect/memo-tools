@@ -5,6 +5,7 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change 
 ## Unreleased
 
 - **Ids.** A `MemoActor` takes the `ACR` family, not `MEM`.
+- **Fixed.** A system's workspace holds every usage of its definition, not only a top-level one. A product imported with `ScopedTo` a constituent slot of the system of systems (`system.constituent`) was only in the system of systems, so a trace scoped to the system showed its items without titles and without links.
 
 ## 0.18.0
 

@@ -190,9 +190,11 @@ export function computeWorkspaceMembership(
             queue.push(id);
         };
 
+        // A usage of the root definition is that system, wherever it is declared: the top-level one, or a
+        // constituent slot of the system of systems that what the system owns is scoped to.
         join(root.id, 'root');
         for (const element of elements.values()) {
-            if (!element.isDefinition && !element.owner && typeOf(element) === root.id) join(element.id, 'root');
+            if (!element.isDefinition && typeOf(element) === root.id) join(element.id, 'root');
         }
 
         for (let id = queue.shift(); id !== undefined; id = queue.shift()) {

@@ -29,18 +29,20 @@ describe.runIf(compilerConfigured && examplesPresent)('workspace membership on E
         const project = await compiledExample('robot-cell-family');
         const result = membership(project);
 
+        // A system holds its own slot in the cell too: the usage of its definition is the system, so what is
+        // scoped to that slot (ScopedTo) lands in the system's workspace.
         expect(membersOf(project, result, 'NavigationSystem')).toEqual([
-            'GraspEvent', 'GraspEventPort', 'NavigationSystem', 'NavigationSystem::safetyRelay',
+            'RoboticCell::navigation', 'GraspEvent', 'GraspEventPort', 'NavigationSystem', 'NavigationSystem::safetyRelay',
             'NavigationSystem::mapEngine', 'NavigationSystem::pGraspEventIn', 'NavigationSystem::pPointCloudIn',
             'RobotPose', 'PointCloud', 'PointCloudPort', 'SafetyRelayModule', 'cellOperator',
             'fnBuildMap', 'fnTagGrasp', 'ucAcquireMap',
         ].sort());
         expect(membersOf(project, result, 'ManipulatorSystem')).toEqual([
-            'GraspEvent', 'GraspEventPort', 'ManipulatorSystem', 'ManipulatorSystem::motionController',
+            'RoboticCell::manipulation', 'GraspEvent', 'GraspEventPort', 'ManipulatorSystem', 'ManipulatorSystem::motionController',
             'ManipulatorSystem::gripperDrive', 'ManipulatorSystem::pGraspEventOut', 'cellOperator', 'fnExecuteGrasp', 'ucExecuteGrasp',
         ].sort());
         expect(membersOf(project, result, 'PerceptionSystem')).toEqual([
-            'PointCloud', 'PointCloudPort', 'SafetyRelayModule', 'PerceptionSystem',
+            'RoboticCell::perception', 'PointCloud', 'PointCloudPort', 'SafetyRelayModule', 'PerceptionSystem',
             'PerceptionSystem::sensorHub', 'PerceptionSystem::safetyRelay', 'PerceptionSystem::pPointCloudOut',
             'fnAcquirePointClouds', 'cellTechnician', 'ucRecordRun',
         ].sort());
