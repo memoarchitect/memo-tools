@@ -48,6 +48,43 @@ describe('one person\'s choices for a model', () => {
         expect(loadUserPreferences(dir)).toEqual({});
     });
 
+    it('keep favorites of a known type, once each, in the order added', () => {
+        const dir = root();
+        saveUserPreferences(dir, {
+            favorites: [
+                { type: 'view', ref: 'pkg::overview' },
+                { type: 'element', ref: ' pkg::pump ' },
+                { type: 'view', ref: 'pkg::overview' },
+                { type: 'folder', ref: 'Requirement', packageName: 'needs' },
+                { type: 'folder', ref: 'Requirement' },
+                { type: 'nonsense', ref: 'x' } as never,
+                { type: 'element', ref: '' },
+            ],
+        });
+        expect(loadUserPreferences(dir).favorites).toEqual([
+            { type: 'view', ref: 'pkg::overview' },
+            { type: 'element', ref: 'pkg::pump' },
+            { type: 'folder', ref: 'Requirement', packageName: 'needs' },
+            { type: 'folder', ref: 'Requirement' },
+        ]);
+    });
+
+    it('keep the views and elements opened last, once each, at most ten', () => {
+        const dir = root();
+        const ids = Array.from({ length: 12 }, (_, i) => `pkg::e${i}`);
+        saveUserPreferences(dir, { recentElements: ['pkg::e0', ...ids], recentViews: ['pkg::v1', 'pkg::v1', 'pkg::v2'] });
+        const saved = loadUserPreferences(dir);
+        expect(saved.recentElements).toEqual(ids.slice(0, 10));
+        expect(saved.recentViews).toEqual(['pkg::v1', 'pkg::v2']);
+    });
+
+    it('keep favorites and recents beside the other choices', () => {
+        const dir = root();
+        const all = { role: 'safetyEngineer', favorites: [{ type: 'viewpoint' as const, ref: 'riskViewpoint' }], recentViews: ['pkg::v1'] };
+        saveUserPreferences(dir, all);
+        expect(loadUserPreferences(dir)).toEqual(all);
+    });
+
     it('keep the workspace beside the role, and drop each when cleared', () => {
         const dir = root();
         saveUserPreferences(dir, { role: 'safetyEngineer', workspace: 'pump::PumpSystem' });

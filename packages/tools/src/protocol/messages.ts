@@ -1494,6 +1494,26 @@ export interface UserPreferencesDTO {
     features?: string[];
     /** False lists the Model Explorer without package folders; unset means packages are folders. */
     packageFolders?: boolean;
+    /** What the person marked as a favorite, in the order they added it. */
+    favorites?: FavoriteDTO[];
+    /** The views (diagram ids) the person opened last, most recent first. */
+    recentViews?: string[];
+    /** The elements (element ids) the person opened last, most recent first. */
+    recentElements?: string[];
+}
+
+/** What a favorite points at: the model's own id for it, never one Architect makes up. */
+export type FavoriteType = 'element' | 'view' | 'viewpoint' | 'package' | 'folder';
+
+/**
+ * One favorite. `ref` is an element id, a diagram id, a viewpoint id, or a package's qualified name. A
+ * `folder` is the Model Explorer's folder for one element type: `ref` is the type, and `packageName`
+ * narrows it to that type inside one package.
+ */
+export interface FavoriteDTO {
+    type: FavoriteType;
+    ref: string;
+    packageName?: string;
 }
 
 /** Server → Client: the person's choices (on connect and after a save) */
