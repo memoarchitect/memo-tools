@@ -8,8 +8,8 @@
 // the same implementation Architect's server protocol calls.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import chalk from 'chalk';
 import { stringify as toYaml } from 'yaml';
 import { findConfigFile, loadProjectSettings } from '../model/config-loader.js';
@@ -22,7 +22,8 @@ import {
     readValidatorExceptions,
     VALIDATOR_EXCEPTIONS_FILE,
 } from '../toolchain/exceptions.js';
-import { findSysmlFiles } from '../model/sysml-files.js';
+import { findSysmlFiles, isIgnoredDirectory } from '../model/sysml-files.js';
+import { canonicalPath, ownProjectFiles } from '../model/native-project.js';
 import { PROVIDER_ROLES } from '../toolchain/registry.js';
 import { OPENSYSML_PROVIDER_ID } from '../toolchain/providers/opensysml-names.js';
 
@@ -109,6 +110,34 @@ export interface ToolchainCheckOptions extends Record<string, unknown> {
     exceptions?: string;
 }
 
+/**
+ * The `.sysml` files a named directory puts in front of the validator: what the
+ * walk finds, plus the libraries each project in it keeps inside itself, such as
+ * an anatomy generated into its `memo_packages/`. The walk skips `memo_packages/`
+ * because a vendored copy is not authored, but the project imports its own
+ * library, so without it every reference into that library fails to resolve.
+ */
+export function filesToCheck(dir: string): string[] {
+    const files = findSysmlFiles(dir);
+    const seen = new Set(files.map(canonicalPath));
+    const visit = (current: string): void => {
+        if (['memo.package.yaml', 'memo.package.yml'].some(name => existsSync(join(current, name)))) {
+            for (const file of ownProjectFiles(current)) {
+                if (seen.has(file)) continue;
+                seen.add(file);
+                files.push(file);
+            }
+        }
+        try {
+            for (const entry of readdirSync(current, { withFileTypes: true })) {
+                if (entry.isDirectory() && !isIgnoredDirectory(entry.name)) visit(join(current, entry.name));
+            }
+        } catch { /* unreadable directory: the walk skips it too */ }
+    };
+    visit(dir);
+    return files;
+}
+
 export async function toolchainCheckCommand(paths: string[], options: ToolchainCheckOptions = {}): Promise<void> {
     const { projectDir, config } = loadFor(options.project, options);
     // `files` is honoured by every provider, so the set checked is exactly the
@@ -116,7 +145,7 @@ export async function toolchainCheckCommand(paths: string[], options: ToolchainC
     // might walk it differently.
     const files = (paths.length > 0 ? paths : ['.']).flatMap(path => {
         const full = resolve(projectDir, path);
-        return statSync(full).isDirectory() ? findSysmlFiles(full) : [full];
+        return statSync(full).isDirectory() ? filesToCheck(full) : [full];
     });
     const exceptionsPath = resolve(projectDir, options.exceptions ?? VALIDATOR_EXCEPTIONS_FILE);
     const exceptions = readValidatorExceptions(exceptionsPath);
