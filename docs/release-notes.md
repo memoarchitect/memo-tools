@@ -2,6 +2,16 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.18.0
+
+- **Breaking.** Follows the ontology: a requirement's `statement` is gone, so a model that sets it fails to compile; write `doc` instead.
+- **Shorter SysML.** `connect a to b` takes each end's name from the relation definition by position, and Architect, the generator and the EA and Cameo importers write it. `allocate a to b;` is written as an allocation, not a connection.
+- **Successions.** A succession between two steps is written in the action that owns them, and it records where it is, so a step can be placed between two others.
+- **Relations.** `isTrace` is read from the ontology. Rule scopes on a relation's ends are reported to Architect, and computing them no longer adds seconds to each rebuild.
+- **Layout.** Automatic routes are stored in typed fields, and an anonymous connection's id comes from what it connects, so a saved route stays on its connection.
+- **Fixed.** `memo export json`, `interfaces` and `anatomy` read only what the project's `include` names. Before, they read every `.sysml` file under the project folder.
+- **Fixed.** `memo toolchain check` reads the libraries a project keeps in its own `memo_packages/`, such as a generated anatomy.
+
 ## 0.17.1
 
 - **`memo evaluate` under OpenSysML.** A reference in a calculation body that OpenSysML leaves as a name (`{ "@ref": "inner" }`) is read, and an unnamed redefinition (`:>> num`) takes the name of the feature it redefines. Before, every roll-up and trade study evaluated to nothing or to `NaN` under OpenSysML.
