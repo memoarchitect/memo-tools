@@ -316,32 +316,28 @@ export async function writeViewDeclaration(
     const targetFile = chosen ? chosen.file : home ? home.file : bootstrap!.file;
     const absolute = resolve(projectRoot, targetFile);
 
-    if (bootstrap && !existsSync(absolute)) {
-        mkdirSync(dirname(absolute), { recursive: true });
-        const header = [
-            `// ${diagram.viewKind} views. Declared here rather than recorded outside the model.`,
-            `package ${bootstrap.pkg} {`,
-            ...bootstrap.imports.map(line => `    ${line}`),
-            '}',
-            '',
-        ].join('\n');
-        const seeded = await commitSource(absolute, targetFile, header, outlines);
-        if (!seeded.success) return { success: false, reason: seeded.error };
-    } else if (!existsSync(absolute)) {
+    // A new file is written once, whole: its package, its imports and the view. Writing the package first and
+    // the view into it after cost a second compile to outline the half-written file, and a second rebuild for
+    // every client watching the project.
+    const seeding = Boolean(bootstrap) && !existsSync(absolute);
+    if (!seeding && !existsSync(absolute)) {
         return { success: false, reason: `${targetFile} does not exist` };
     }
-
-    const source = readFileSync(absolute, 'utf8');
-    let outline;
-    try {
-        outline = await outlines.outline(targetFile.replaceAll('\\', '/'), source);
-    } catch (e) {
-        return { success: false, reason: `${targetFile} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
+    const source = seeding ? '' : readFileSync(absolute, 'utf8');
+    let target: (ReturnType<typeof locatePackages>[number]) | undefined;
+    if (!seeding) {
+        let outline;
+        try {
+            outline = await outlines.outline(targetFile.replaceAll('\\', '/'), source);
+        } catch (e) {
+            return { success: false, reason: `${targetFile} cannot be edited: ${e instanceof Error ? e.message : String(e)}` };
+        }
+        const packages = locatePackages(outline);
+        const wanted = chosen ? chosen.qualifiedName : bootstrap ? bootstrap.pkg : exemplar!.package;
+        target = packages.find(pkg => pkg.qualifiedName === wanted) ?? (chosen ? undefined : packages[0]);
+        if (!target) return { success: false, reason: `${targetFile} declares no package to hold the view` };
     }
-    const packages = locatePackages(outline);
-    const wanted = chosen ? chosen.qualifiedName : bootstrap ? bootstrap.pkg : exemplar!.package;
-    const target = packages.find(pkg => pkg.qualifiedName === wanted) ?? (chosen ? undefined : packages[0]);
-    if (!target) return { success: false, reason: `${targetFile} declares no package to hold the view` };
+    const targetPackage = seeding ? bootstrap!.pkg : target!.qualifiedName;
 
     // A matrix selects by its axes and exposes nothing (ViewBodyItem makes
     // Expose optional, SysML-textual-bnf.kebnf:1618-1622). Every other view
@@ -373,7 +369,7 @@ export async function writeViewDeclaration(
     const preferred = derived.def === 'MemoScreenLayoutView' && primary
         ? `${primary.id}Layout`
         : camel.charAt(0).toLowerCase() + camel.slice(1);
-    const identifier = freeIdentifier(preferred, model, target.qualifiedName);
+    const identifier = freeIdentifier(preferred, model, targetPackage);
 
     // Emitted at column 0: `insertIntoBody` indents the block one level into the
     // package body it is placed in. An id is written only when the caller has
@@ -394,10 +390,20 @@ export async function writeViewDeclaration(
         '}',
     ].join('\n');
 
-    const updated = insertIntoBody(source, target, `${body}\n`);
+    const updated = seeding
+        ? [
+            `// ${diagram.viewKind} views. Declared here rather than recorded outside the model.`,
+            `package ${targetPackage} {`,
+            ...bootstrap!.imports.map(line => `    ${line}`),
+            ...body.split('\n').map(line => `    ${line}`),
+            '}',
+            '',
+        ].join('\n')
+        : insertIntoBody(source, target!, `${body}\n`);
+    if (seeding) mkdirSync(dirname(absolute), { recursive: true });
     const committed = await commitSource(absolute, targetFile, updated, outlines);
     if (!committed.success) return { success: false, reason: committed.error };
-    return { success: true, filePath: targetFile, identifier, created: !!bootstrap, qualifiedName: `${target.qualifiedName}::${identifier}` };
+    return { success: true, filePath: targetFile, identifier, created: seeding, qualifiedName: `${targetPackage}::${identifier}` };
 }
 
 /**

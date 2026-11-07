@@ -6,7 +6,8 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change 
 
 - **Ids.** A `MemoActor` takes the `ACR` family, not `MEM`.
 - **Favorites and recents.** `memo.user.yaml` keeps a person's favorites (an element, a view, a viewpoint, a package, or a type folder) and the views and elements they opened last, at most ten each.
-- **Fixed.** A system's workspace holds every usage of its definition, not only a top-level one. A product imported with `ScopedTo` a constituent slot of the system of systems (`system.constituent`) was only in the system of systems, so a trace scoped to the system showed its items without titles and without links.
+- **Fixed.** A view declared in a new file is written once, whole. Architect wrote the file's package first and the view into it after, which cost a compile to outline the half-written file and a second rebuild for every client.
+- **Fixed.** A system's workspace holds every usage of its definition, not only a top-level one. A product imported with `ScopedTo` a constituent slot of the system of systems (`plant.pump`) was only in the system of systems, so a trace scoped to the system showed its items without titles and without links.
 
 ## 0.18.0
 
