@@ -301,7 +301,7 @@ function applySemanticProvenance(
     }
 }
 
-/** The definition's own display id and the usage's number, `EXT-AFR-06:1`. */
+/** The definition's own display id and the usage's number, `EXT-PUMP-06:1`. */
 function usageDisplayId(usage: MemoElement, definition: MemoElement | undefined): string | undefined {
     const seq = usage.shortId ? parseUsageShortId(usage.shortId)?.seq : undefined;
     if (!definition || seq === undefined) return undefined;
@@ -332,7 +332,7 @@ function usageDefinitions(elements: ElementIndex): Map<string, MemoElement> {
  *
  * A project definition is registered as a kind of its own, so an element typed by one carries that
  * definition's name as its `kind`; minting a family from that name made one family per definition
- * (`HospitalEpRecordingSystemExternal` → HSP). The family belongs to the ontology: walk the project
+ * (`InfusionPumpSystemExternal` → INF). The family belongs to the ontology: walk the project
  * definitions the kind names, up their specialization chain, to the first ontology kind. The one
  * exception is a definition that declares `@MemoKind { idPrefix }`, which extends the ontology with a
  * family of its own, and so does whatever is typed by it or specializes it.

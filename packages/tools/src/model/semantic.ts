@@ -110,7 +110,7 @@ export interface MemoElement {
     /**
      * The id a reader sees and quotes, decided at compile time so no client chooses one: the authored
      * `providedId` when there is one, else the short id. A usage typed by a project definition reads as
-     * that definition's id plus its own number (`EXT-AFR-06:1`).
+     * that definition's id plus its own number (`EXT-PUMP-06:1`).
      */
     displayId?: string;
     /** On a view: its number in its view kind's family (`INT-7`), the id its permalink carries. */

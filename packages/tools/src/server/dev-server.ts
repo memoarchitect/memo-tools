@@ -584,9 +584,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     // returns whichever loaded first and the rest are shadowed silently, with
     // no error anywhere, which is the worst way for a model to be wrong.
     //
-    // Found in a real model as 11 of 95 views unreachable: ten clinical-step views
-    // all declaring VIEW-AFR-OP-SOS-004, and a CIU interconnect view claiming
-    // the id of the CIU decomposition view, so opening it showed the other.
+    // Found in a real model as 11 of 95 views unreachable: ten views
+    // all declaring the same id, and an interconnect view claiming the id of a
+    // decomposition view, so opening it showed the other.
     reportDuplicateViewIds(
         (initialMessages.find(m => m.type === 'model:update') as ModelUpdateMessage | undefined)
             ?.payload.diagrams ?? []);
