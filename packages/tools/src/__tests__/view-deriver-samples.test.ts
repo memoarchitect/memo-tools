@@ -69,6 +69,7 @@ describe('explicit renderer samples', () => {
             viewpointDefinition: 'logicalArchitectureViewpoint',
             diagramType: 'afd',
         };
+        view.viewShortId = 'ACT-1';
         const elements = toElementIndex([viewpoint, view]);
         const model = {
             elements,

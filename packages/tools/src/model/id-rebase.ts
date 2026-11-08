@@ -17,6 +17,9 @@
 //   * two new elements that took the same number above the mark (two sibling branches merged into
 //     this one) are told apart by key order: the first keeps the number, the others are renumbered.
 //
+// A view's number (`viewShortId`) is repaired the same way, in a sequence of its own: `INT` is both a
+// view family and an element family, and the two share letters but not numbers.
+//
 // The same is done for ids an author wrote in a `providedId` literal, which are text in a source
 // file: a literal that appears more often than at the target. Which occurrences are the branch's own
 // comes from the lines the branch added or changed when the caller has them (`added`, from a diff
@@ -47,13 +50,37 @@ function parseAnyShortId(shortId: string | undefined): { prefix: string; seq: nu
     return family ? { ...family, sep: '-' } : null;
 }
 
+/** Each entry's view numbers, in the shape the repair reads: a registry of its own. */
+function viewNumbers(registry: IdentityRegistry): IdentityRegistry {
+    const out: IdentityRegistry = {};
+    for (const [key, entry] of Object.entries(registry)) {
+        if (!entry.viewShortId && !entry.retiredViewShortIds?.length) continue;
+        out[key] = { shortId: entry.viewShortId, retired: entry.retiredViewShortIds };
+    }
+    return out;
+}
+
+/** Renumber the branch's new short ids and view numbers that collide with the target's. */
+export function rebaseRegistry(target: IdentityRegistry, branch: IdentityRegistry): RegistryRebase {
+    const { registry, changes } = rebaseShortIds(target, branch);
+    const views = rebaseShortIds(viewNumbers(target), viewNumbers(branch));
+    for (const [key, view] of Object.entries(views.registry)) {
+        registry[key] = {
+            ...registry[key],
+            viewShortId: view.shortId,
+            ...(view.retired ? { retiredViewShortIds: view.retired } : {}),
+        };
+    }
+    return { registry, changes: [...changes, ...views.changes] };
+}
+
 /**
  * Renumber the branch's new short ids that collide with the target's.
  *
  * A usage's id is built on its definition's (`SYS-7:2`), so the definitions are repaired first and a usage
  * of one that was renumbered follows it, then the usages are numbered within their definition.
  */
-export function rebaseRegistry(target: IdentityRegistry, branch: IdentityRegistry): RegistryRebase {
+function rebaseShortIds(target: IdentityRegistry, branch: IdentityRegistry): RegistryRebase {
     const highWater = new Map<string, number>();
     const take = (shortId: string | undefined) => {
         const parsed = parseAnyShortId(shortId);

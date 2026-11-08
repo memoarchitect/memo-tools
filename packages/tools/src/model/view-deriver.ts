@@ -15,7 +15,8 @@
 
 import type { MemoModel, MemoElement, ViewpointDTO, DiagramDTO, MatrixAxisDTO, MatrixDefinitionDTO, MatrixGroupDTO } from './semantic.js';
 import type { KindRegistry } from './kind-registry.js';
-import { resolveViewKind, VIEW_KIND_SHORT_ID_PREFIX } from './view-kinds.js';
+import { resolveViewKind, VIEW_KIND_SHORT_ID_PREFIX, type ViewKind } from './view-kinds.js';
+import { assignSequentialShortIds } from './short-id.js';
 
 /** Kinds whose instances are treated as model-defined views. */
 function isViewElement(el: MemoElement, kindRegistry?: KindRegistry): boolean {
@@ -27,6 +28,61 @@ function isViewElement(el: MemoElement, kindRegistry?: KindRegistry): boolean {
     const entry = kindRegistry?.getKind(el.kind);
     if (entry && entry.layer !== 'unknown') return entry.layer === 'viewpoints';
     return true;
+}
+
+/** A view in a path-derived package with a `samples` segment, surfaced under Model Viewpoint > Samples. */
+function isRendererSampleView(el: MemoElement): boolean {
+    return el.package
+        ? el.package.split('::').some(segment => /(?:^|_)samples(?:_|$)/.test(segment))
+        : false;
+}
+
+/**
+ * The id a view routes by and a saved layout keys on. It uses the view's SHORT name, not its qualified
+ * path, because it is user-facing: the path would put the whole package chain in a URL.
+ */
+function diagramIdOf(el: MemoElement): string {
+    return isRendererSampleView(el)
+        ? `diag-sample-${el.shortName ?? el.id}`
+        : el.attributes['providedId'] || el.attributes['id'] || el.shortName || el.id;
+}
+
+/**
+ * One of the 8 spec view kinds: an explicit `viewKind` declaration wins, else the legacy diagramType key
+ * maps; document-backed views (no diagramType) become browser. A view usage inherits the values its
+ * `view def` binds, and its own values win where it declares any.
+ */
+function viewKindOf(el: MemoElement, kindRegistry?: KindRegistry): ViewKind {
+    const inherited = kindRegistry?.getViewDefaults(el.kind) ?? {};
+    return resolveViewKind(el.attributes['viewKind'] || inherited['viewKind'], el.attributes['diagramType']);
+}
+
+/**
+ * Number the views within their standard SysML view-kind family (GEN-1, ACT-1, STM-1), rather than the
+ * generic MemoDiagramView element family, and set `viewShortId` on each.
+ *
+ * Monotonic, as an element's short id is: a view keeps the number `prior` records for it and a new view
+ * takes the next one above any handed out in its family. A new view comes in by the id it routes by.
+ *
+ * `prior` is the numbers, from `priorViewShortIds`, and not the registry: this module also runs in the
+ * browser, and the registry's module reads files.
+ */
+export function assignViewShortIds(
+    elements: Iterable<MemoElement>,
+    kindRegistry: KindRegistry | undefined,
+    prior: ReadonlyMap<string, string>,
+): void {
+    const viewsByPrefix = new Map<string, MemoElement[]>();
+    for (const el of elements) {
+        if (!isViewElement(el, kindRegistry)) continue;
+        const prefix = VIEW_KIND_SHORT_ID_PREFIX[viewKindOf(el, kindRegistry)] ?? 'BRW';
+        viewsByPrefix.set(prefix, [...(viewsByPrefix.get(prefix) ?? []), el]);
+    }
+    for (const [prefix, views] of viewsByPrefix) {
+        const byId = new Map(views.map(view => [view.id, view]));
+        const numbers = assignSequentialShortIds(prefix, [...byId.keys()], prior, id => diagramIdOf(byId.get(id)!));
+        for (const [id, viewShortId] of numbers) byId.get(id)!.viewShortId = viewShortId;
+    }
 }
 
 /** Expand a set of kind names with all transitive specializations. */
@@ -513,9 +569,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
 
         // Explicit renderer samples live in path-derived packages containing
         // a `samples` segment and are surfaced under Model Viewpoint > Samples.
-        const isRendererSample = el.package
-            ? el.package.split('::').some(segment => /(?:^|_)samples(?:_|$)/.test(segment))
-            : false;
+        const isRendererSample = isRendererSampleView(el);
 
         const authoredViewpoints = resolveViewpoints(el, model, kindRegistry);
         // A renderer sample without a binding remains in Model > Samples, but
@@ -599,23 +653,13 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             if (value) properties[hint] = value;
         }
 
-        // Every view resolves to exactly one of the 8 spec view kinds: an
-        // explicit `viewKind` declaration wins, else the legacy diagramType
-        // key maps; document-backed views (no diagramType) become browser.
-        const viewKind = resolveViewKind(attr('viewKind'), el.attributes['diagramType']);
+        const viewKind = viewKindOf(el, kindRegistry);
         const groups = groupsByView.get(el.id) ?? [];
         const matrix = readMatrixDefinition(el.attributes, groups);
 
         diagrams.push({
-            id: isRendererSample
-                // The view's SHORT name: this id is user-facing — it routes,
-                // it keys a saved layout — and the qualified path would
-                // put the whole package chain in a URL.
-                ? `diag-sample-${el.shortName ?? el.id}`
-                // Same reason as the sample branch above: a diagram id routes
-                // and keys a saved layout, so an unnamed view falls back to
-                // its declared name, not to its qualified path.
-                : el.attributes['providedId'] || el.attributes['id'] || el.shortName || el.id,
+            id: diagramIdOf(el),
+            ...(el.viewShortId ? { shortId: el.viewShortId } : {}),
             // The view's own declaration, for mutations that address elements
             // rather than authored ids.
             elementId: el.id,
@@ -644,19 +688,6 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             ...(matrix ? { matrix } : {}),
             sourceFile: el.file,
             package: el.package,
-        });
-    }
-
-    // Views use their standard SysML view-kind family, rather than the generic
-    // MemoDiagramView element family: GEN-1, ACT-1, STM-1, and so on.
-    const diagramsByPrefix = new Map<string, DiagramDTO[]>();
-    for (const diagram of diagrams) {
-        const prefix = VIEW_KIND_SHORT_ID_PREFIX[diagram.viewKind as keyof typeof VIEW_KIND_SHORT_ID_PREFIX] ?? 'BRW';
-        diagramsByPrefix.set(prefix, [...(diagramsByPrefix.get(prefix) ?? []), diagram]);
-    }
-    for (const [prefix, views] of diagramsByPrefix) {
-        views.sort((a, b) => a.id.localeCompare(b.id)).forEach((diagram, index) => {
-            diagram.shortId = `${prefix}-${index + 1}`;
         });
     }
 

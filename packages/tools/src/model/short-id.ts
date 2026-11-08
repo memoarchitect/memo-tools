@@ -160,12 +160,16 @@ export function prefixToFamily(prefix: string): string {
  *
  * Format: {PREFIX}-{n}  e.g. "HZD-1", "HZD-2", "OPR-1", "OPR-2"
  *
+ * `orderKey` is what newcomers are ordered by when the id itself is not, and is
+ * the id by default.
+ *
  * Returns a Map from element id → shortId.
  */
 export function assignSequentialShortIds(
     prefix: string,
     elementIds: string[],
     prior?: ReadonlyMap<string, string> | Record<string, string>,
+    orderKey: (id: string) => string = id => id,
 ): Map<string, string> {
     const priorEntries: Iterable<[string, string]> = prior instanceof Map
         ? prior.entries()
@@ -191,7 +195,7 @@ export function assignSequentialShortIds(
 
     // Newcomers take the next free numbers. Sorted only so that several
     // elements added between two runs are numbered deterministically.
-    const unassigned = elementIds.filter(id => !out.has(id)).sort((a, b) => a.localeCompare(b));
+    const unassigned = elementIds.filter(id => !out.has(id)).sort((a, b) => orderKey(a).localeCompare(orderKey(b)));
     for (const id of unassigned) {
         out.set(id, `${prefix}-${++highWater}`);
     }

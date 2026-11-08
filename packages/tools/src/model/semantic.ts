@@ -113,6 +113,8 @@ export interface MemoElement {
      * that definition's id plus its own number (`EXT-AFR-06:1`).
      */
     displayId?: string;
+    /** On a view: its number in its view kind's family (`INT-7`), the id its permalink carries. */
+    viewShortId?: string;
     /** The family of `shortId` (`SYS` for `SYS-7:1`), for grouping and addresses. */
     idFamily?: string;
     /** Stable technical UUID assigned during compilation; never used as a display label. */

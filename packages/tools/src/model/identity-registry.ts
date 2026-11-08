@@ -1,9 +1,9 @@
 // ─── Element identity registry ───────────────────────────────────────────────
 //
-// Persists the two identifiers a model does NOT author: the sequential
-// `shortId` (REQ-1, HZD-2) and the technical `uuid`.
+// Persists the identifiers a model does NOT author: the sequential `shortId`
+// (REQ-1, HZD-2), the technical `uuid`, and a view's `viewShortId` (INT-7).
 //
-// Both are assigned by the compiler, and both are quoted outside the model — in
+// All are assigned by the compiler, and all are quoted outside the model — in
 // reports, review comments, deep links and external trace tables. An identifier
 // that is recomputed from current content cannot survive the edits those
 // references need it to survive:
@@ -46,6 +46,14 @@ export interface ElementIdentity {
      * again, whichever element it was on.
      */
     retired?: string[];
+    /**
+     * A view's number in its view kind's family (`INT-7`), the id its permalink carries. Separate from
+     * `shortId`: the view families share letters with element families (`INT` is also interfaces, `ACT`
+     * also actions) but not numbers.
+     */
+    viewShortId?: string;
+    /** View numbers this element held and no longer does, as `retired` is for `shortId`. */
+    retiredViewShortIds?: string[];
 }
 
 /** `package::name` → identity. */
@@ -124,16 +132,20 @@ export function writeIdentityRegistry(
  */
 export function persistIdentities(
     projectRoot: string,
-    elements: Iterable<{ id: string; package?: string; shortId?: string; uuid?: string; provenance?: { declaration: { origin?: string } } }>,
+    elements: Iterable<{ id: string; package?: string; shortId?: string; uuid?: string; viewShortId?: string; provenance?: { declaration: { origin?: string } } }>,
     prior: IdentityRegistry = {},
 ): IdentityRegistry {
     const merged: IdentityRegistry = { ...prior };
     for (const el of elements) {
-        if (!el.shortId && !el.uuid) continue;
-        // Another package owns a dependency's identities; this model's registry does not hold them.
-        if (el.provenance?.declaration.origin === 'dependency') continue;
         const key = identityKey(el);
-        merged[key] = withRetired({ shortId: el.shortId, uuid: el.uuid }, prior[key]);
+        // Another package owns a dependency's identities; this model's registry does not hold them. A view
+        // number is this model's own: it is minted in this model's sequence, whoever declares the view.
+        if (el.provenance?.declaration.origin === 'dependency') {
+            if (el.viewShortId) merged[key] = withRetired({ viewShortId: el.viewShortId }, prior[key]);
+            continue;
+        }
+        if (!el.shortId && !el.uuid && !el.viewShortId) continue;
+        merged[key] = withRetired({ shortId: el.shortId, uuid: el.uuid, viewShortId: el.viewShortId }, prior[key]);
     }
     const path = join(projectRoot, IDENTITY_FILENAME);
     const text = serializeIdentityRegistry(merged);
@@ -145,13 +157,25 @@ export function persistIdentities(
     return merged;
 }
 
-/** `entry`, plus every short id `before` held that `entry` does not: those numbers are retired. */
+/** The ids retired once an element holding `was` holds `current`, given the ones already retired. */
+function retiredIds(current: string | undefined, was: string | undefined, earlier: readonly string[]): string[] {
+    const retired = new Set(earlier);
+    if (was && was !== current) retired.add(was);
+    if (current) retired.delete(current);
+    return [...retired].sort();
+}
+
+/** `entry`, plus every short id or view number `before` held that `entry` does not: those numbers are retired. */
 export function withRetired(entry: ElementIdentity, before: ElementIdentity | undefined): ElementIdentity {
     if (!before) return entry;
-    const retired = new Set([...(before.retired ?? []), ...(entry.retired ?? [])]);
-    if (before.shortId && before.shortId !== entry.shortId) retired.add(before.shortId);
-    if (entry.shortId) retired.delete(entry.shortId);
-    return retired.size > 0 ? { ...entry, retired: [...retired].sort() } : entry;
+    const retired = retiredIds(entry.shortId, before.shortId, [...(before.retired ?? []), ...(entry.retired ?? [])]);
+    const retiredViewShortIds = retiredIds(entry.viewShortId, before.viewShortId,
+        [...(before.retiredViewShortIds ?? []), ...(entry.retiredViewShortIds ?? [])]);
+    return {
+        ...entry,
+        ...(retired.length > 0 ? { retired } : {}),
+        ...(retiredViewShortIds.length > 0 ? { retiredViewShortIds } : {}),
+    };
 }
 
 /** Serialize to the same hand-written YAML subset the lockfile uses. */
@@ -164,11 +188,13 @@ export function serializeIdentityRegistry(registry: IdentityRegistry): string {
     out += `elements:\n`;
     for (const key of Object.keys(registry).sort()) {
         const entry = registry[key];
-        if (!entry?.shortId && !entry?.uuid && !entry?.retired?.length) continue;
+        if (!entry?.shortId && !entry?.uuid && !entry?.retired?.length && !entry?.viewShortId && !entry?.retiredViewShortIds?.length) continue;
         out += `  "${key}":\n`;
         if (entry.shortId) out += `    shortId: "${entry.shortId}"\n`;
         if (entry.uuid) out += `    uuid: "${entry.uuid}"\n`;
         if (entry.retired?.length) out += `    retired: "${entry.retired.join(',')}"\n`;
+        if (entry.viewShortId) out += `    viewShortId: "${entry.viewShortId}"\n`;
+        if (entry.retiredViewShortIds?.length) out += `    retiredViewShortIds: "${entry.retiredViewShortIds.join(',')}"\n`;
     }
     return out;
 }
@@ -187,10 +213,11 @@ export function parseIdentityRegistry(content: string): IdentityRegistry {
             registry[current] = {};
             continue;
         }
-        const fieldMatch = line.match(/^ {4}(shortId|uuid|retired): "(.*)"$/);
+        const fieldMatch = line.match(/^ {4}(shortId|uuid|retired|viewShortId|retiredViewShortIds): "(.*)"$/);
         if (fieldMatch && current) {
-            if (fieldMatch[1] === 'retired') registry[current].retired = fieldMatch[2].split(',').filter(Boolean);
-            else registry[current][fieldMatch[1] as 'shortId' | 'uuid'] = fieldMatch[2];
+            if (fieldMatch[1] === 'retired' || fieldMatch[1] === 'retiredViewShortIds') {
+                registry[current][fieldMatch[1]] = fieldMatch[2].split(',').filter(Boolean);
+            } else registry[current][fieldMatch[1] as 'shortId' | 'uuid' | 'viewShortId'] = fieldMatch[2];
         }
     }
     return registry;
@@ -210,11 +237,25 @@ export function parseIdentityRegistry(content: string): IdentityRegistry {
  * high-water mark is exactly what retires its number.
  */
 export function priorShortIds(registry: IdentityRegistry): Map<string, string> {
+    return numbersHandedOut(registry, entry => entry.shortId, entry => entry.retired);
+}
+
+/** The prior view numbers, in the same form: a view numbers apart from the elements sharing its letters. */
+export function priorViewShortIds(registry: IdentityRegistry): Map<string, string> {
+    return numbersHandedOut(registry, entry => entry.viewShortId, entry => entry.retiredViewShortIds);
+}
+
+function numbersHandedOut(
+    registry: IdentityRegistry,
+    held: (entry: ElementIdentity) => string | undefined,
+    retiredOf: (entry: ElementIdentity) => string[] | undefined,
+): Map<string, string> {
     const out = new Map<string, string>();
     for (const [key, entry] of Object.entries(registry)) {
-        if (entry.shortId) out.set(key, entry.shortId);
+        const current = held(entry);
+        if (current) out.set(key, current);
         // A retired number matches no element, and raises the family's high-water mark like a deleted one.
-        for (const retired of entry.retired ?? []) out.set(`${key}\0retired\0${retired}`, retired);
+        for (const retired of retiredOf(entry) ?? []) out.set(`${key}\0retired\0${retired}`, retired);
     }
     return out;
 }

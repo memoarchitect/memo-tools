@@ -5,6 +5,7 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change 
 ## Unreleased
 
 - **Ids.** A `MemoActor` takes the `ACR` family, not `MEM`.
+- **Ids.** A view keeps its number. `INT-7` is recorded in `memo.identity.yaml` as an element's short id is, so adding or removing a view leaves every other view's number alone, a new view takes the next free number, and a retired number is never handed out again. A project's first build records the numbers its views have then. `memo ids rebase` repairs view numbers two branches both handed out.
 - **Favorites and recents.** `memo.user.yaml` keeps a person's favorites (an element, a view, a viewpoint, a package, or a type folder) and the views and elements they opened last, at most ten each.
 - **Fixed.** A view declared in a new file is written once, whole. Architect wrote the file's package first and the view into it after, which cost a compile to outline the half-written file and a second rebuild for every client.
 - **Fixed.** A system's workspace holds every usage of its definition, not only a top-level one. A product imported with `ScopedTo` a constituent slot of the system of systems (`plant.pump`) was only in the system of systems, so a trace scoped to the system showed its items without titles and without links.

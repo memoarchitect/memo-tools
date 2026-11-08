@@ -16,7 +16,8 @@ import type {
     UnresolvedReference,
 } from './semantic.js';
 import { assignSequentialShortIds, assignUsageShortIds, familyPrefix, kindToPrefix, parseUsageShortId } from './short-id.js';
-import { priorIdentityFor, priorShortIds } from './identity-registry.js';
+import { priorIdentityFor, priorShortIds, priorViewShortIds } from './identity-registry.js';
+import { assignViewShortIds } from './view-deriver.js';
 import {
     ElementIndex, describeLocation, qualifiedId, shortNameOf,
     ELEMENT_NAME_COLLISION, AMBIGUOUS_ELEMENT_REFERENCE, RELATIONSHIP_NAME_COLLISION,
@@ -143,6 +144,7 @@ export function completeModel(input: CompleteModelInput): MemoModel {
         el.idFamily = el.shortId?.split('-')[0];
         el.displayId = el.attributes.providedId?.trim() || usageDisplayId(el, definitionOfUsage.get(el.id)) || el.shortId;
     }
+    assignViewShortIds(elements.values(), registries?.kindRegistry, priorViewShortIds(priorIdentities));
 
     // Phase 4: Validate relationship end types (warnings only).
     // A kind conforms to an end type if it equals it or specializes it
