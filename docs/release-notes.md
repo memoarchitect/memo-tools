@@ -2,7 +2,7 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a change that breaks a model, a command or a setting raises the minor number; a fix or addition that breaks nothing raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
-## Unreleased
+## 0.19.0
 
 - **Ids.** A `MemoActor` takes the `ACR` family, not `MEM`.
 - **Ids.** A view keeps its number. `INT-7` is recorded in `memo.identity.yaml` as an element's short id is, so adding or removing a view leaves every other view's number alone, a new view takes the next free number, and a retired number is never handed out again. A project's first build records the numbers its views have then. `memo ids rebase` repairs view numbers two branches both handed out.
