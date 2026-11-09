@@ -617,6 +617,29 @@ export async function previousRelease(projectRoot: string, model: MemoModel, rec
     return commits.size === 1 ? nearest[0].id : undefined;
 }
 
+/** Every release record with a commit, one per commit, oldest first. */
+export async function releasesInOrder(projectRoot: string, model: MemoModel): Promise<string[]> {
+    const byCommit = new Map<string, string>();
+    for (const link of model.relationships.values()) {
+        if (link.type !== 'releaseOf') continue;
+        const commit = attr(model, link.sourceId, 'modelCommit');
+        if (commit && !byCommit.has(commit)) byCommit.set(commit, link.sourceId);
+    }
+    // A record can name a commit this clone does not have.
+    for (const commit of [...byCommit.keys()]) {
+        try { await isAncestor(projectRoot, commit, commit); } catch { byCommit.delete(commit); }
+    }
+    const ordered: { id: string; commit: string }[] = [];
+    for (const [commit, id] of byCommit) {
+        let at = ordered.length;
+        for (let index = 0; index < ordered.length; index++) {
+            if (await isAncestor(projectRoot, commit, ordered[index].commit)) { at = index; break; }
+        }
+        ordered.splice(at, 0, { id, commit });
+    }
+    return ordered.map(release => release.id);
+}
+
 /** Mark a cache as used now: `prune` keeps the most recently used. */
 function touch(dir: string): void {
     const now = new Date();

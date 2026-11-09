@@ -58,3 +58,44 @@ describe('contractChanges', () => {
         expect(judge(input([{ ...a, attributes: { v: '1' } }], []), input([{ ...a, attributes: { v: '2' } }], [])).changes).toEqual([]);
     });
 });
+
+describe('contractChanges: multiplicity', () => {
+    const withBounds = (bounds?: string) => {
+        const element: DiffElement = { ...item({ v: '<Real>' }), ...(bounds ? { attributeMultiplicity: { v: bounds } } : {}) };
+        return input([element, a, b], [carrying('Sig')]);
+    };
+    const code = 'attribute.multiplicity-changed';
+    it('asks more of a producer when the floor rises or the ceiling falls', () => {
+        expect(verdicts(judge(withBounds('0..1'), withBounds('1..1')))).toEqual([[code, 'breaking', 'producers']]);
+        expect(verdicts(judge(withBounds('0..*'), withBounds('0..3')))).toEqual([[code, 'breaking', 'producers']]);
+    });
+    it('asks more of a consumer when the floor falls or the ceiling rises', () => {
+        expect(verdicts(judge(withBounds('1..1'), withBounds('0..1')))).toEqual([[code, 'breaking', 'consumers']]);
+        expect(verdicts(judge(withBounds('1..3'), withBounds('1..*')))).toEqual([[code, 'breaking', 'consumers']]);
+    });
+    it('breaks both when the range moves both ways, and reads no bound as exactly one', () => {
+        expect(verdicts(judge(withBounds('2..3'), withBounds('1..2')))).toEqual([[code, 'breaking', 'both']]);
+        expect(verdicts(judge(withBounds(), withBounds('1..1')))).toEqual([]);
+    });
+    it('shows in the diff', () => {
+        expect(computeModelDiff(withBounds('0..1'), withBounds('1..1')).changed[0].changes).toEqual(['multiplicity of v: 0..1 → 1..1']);
+    });
+});
+
+describe('contractChanges: enumeration members', () => {
+    const mode = (enumMembers: string[]): DiffElement => ({ id: 'p::Mode', name: 'Mode', kind: 'EnumerationDefinition', construct: 'enumeration', isDefinition: true, attributes: {}, enumMembers });
+    const used = (members: string[]) => input([mode(members), item({ m: '<Mode>' }), a, b], []);
+    it('a new member can reach a consumer that does not handle it', () => {
+        const report = judge(used(['on']), used(['on', 'off']));
+        expect(verdicts(report)).toEqual([['enum.member-added', 'breaking', 'consumers']]);
+        expect(report.changes[0].parties.map(p => p.id)).toEqual(['p::Sig']);
+    });
+    it('a removed member stops a producer that sends it', () => {
+        expect(verdicts(judge(used(['on', 'off']), used(['on'])))).toEqual([['enum.member-removed', 'breaking', 'producers']]);
+    });
+    it('says nothing when nothing uses the enumeration', () => {
+        const alone = (members: string[]) => input([mode(members)], []);
+        expect(verdicts(judge(alone(['on']), alone(['on', 'off'])))).toEqual([]);
+    });
+});
+

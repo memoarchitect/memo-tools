@@ -34,7 +34,7 @@ export interface ContractReport {
 }
 
 /** What the model does not record, so a change to it cannot be judged here. */
-export const CONTRACT_LIMITS = 'A multiplicity and the members of an enumeration are not in the model, so a change to either is not judged.';
+export const CONTRACT_LIMITS = 'A change to a constraint, such as the range on a value type, is shown by the diff but not judged.';
 
 type Rule = { verdict: ContractVerdict; breaks?: ContractSide };
 const NEEDS_NEW_PRODUCER: Rule = { verdict: 'breaking', breaks: 'producers' };
@@ -45,6 +45,21 @@ const CANNOT_TELL: Rule = { verdict: 'unknown' };
 
 const leaf = (name: string) => name.slice(name.lastIndexOf(':') + 1);
 const isDeclaredOnly = (value: string) => value.startsWith('<') && value.endsWith('>');
+
+/** Bounds of a written multiplicity; a feature with none is exactly one. */
+const boundsOf = (text: string | undefined) => {
+    const [lower, upper] = (text ?? '1..1').split('..');
+    return { lower: Number(lower), upper: upper === '*' ? Infinity : Number(upper) };
+};
+/** A higher floor or a lower ceiling asks more of a producer; a lower floor or a higher ceiling, of a consumer. */
+function multiplicityRule(before: string | undefined, after: string | undefined): Rule | undefined {
+    const b = boundsOf(before);
+    const a = boundsOf(after);
+    if (b.lower === a.lower && b.upper === a.upper) return undefined;
+    const producers = a.lower > b.lower || a.upper < b.upper;
+    const consumers = a.lower < b.lower || a.upper > b.upper;
+    return producers && consumers ? NEEDS_BOTH : producers ? NEEDS_NEW_PRODUCER : NEEDS_NEW_CONSUMER;
+}
 const CONTRACT_CONSTRUCTS: ReadonlySet<string> = new Set(['item', 'port', 'interface', 'flow']);
 const CARRYING_LINKS: ReadonlySet<string> = new Set(['flow', 'interface']);
 
@@ -113,6 +128,27 @@ export function contractChanges<E extends DiffElement, R extends DiffRelationshi
         if (!a || !b.portSpec || !a.portSpec || b.portSpec.isConjugated === a.portSpec.isConjugated) continue;
         add(subjectOf(a), 'port.conjugation-changed', NEEDS_BOTH, 'the port was conjugated or unconjugated, so its directions reversed',
             b.owner ? [party(b.owner, 'user')] : []);
+    }
+
+    for (const { element } of diff.changed) {
+        const was = before.elements[element.id];
+        const now = after.elements[element.id];
+        if (!was || !now) continue;
+        if (isContract(element)) {
+            for (const key of [...new Set([...Object.keys(was.attributeMultiplicity ?? {}), ...Object.keys(now.attributeMultiplicity ?? {})])].sort()) {
+                const [b, a] = [was.attributeMultiplicity?.[key], now.attributeMultiplicity?.[key]];
+                const rule = multiplicityRule(b, a);
+                if (rule) add(subjectOf(element), 'attribute.multiplicity-changed', rule, `${key} went from [${b ?? '1'}] to [${a ?? '1'}]`, partiesOf(was));
+            }
+        }
+        if (was.enumMembers && now.enumMembers) {
+            const typeName = was.name || leaf(was.id);
+            const users = elements.filter(e => Object.values(e.attributes).includes(`<${typeName}>`));
+            if (users.length === 0) continue;
+            const parties = distinct(users.map(e => party(e.id, 'user')));
+            for (const member of now.enumMembers.filter(m => !was.enumMembers!.includes(m))) add(subjectOf(element), 'enum.member-added', NEEDS_NEW_CONSUMER, `${member} added, so a consumer can receive a value it does not handle`, parties);
+            for (const member of was.enumMembers.filter(m => !now.enumMembers!.includes(m))) add(subjectOf(element), 'enum.member-removed', NEEDS_NEW_PRODUCER, `${member} removed, so a producer sending it has to stop`, parties);
+        }
     }
 
     const linkSubject = (r: DiffRelationship) => ({ id: r.id, name: `${nameOf(r.sourceId)} → ${nameOf(r.targetId)}`, kind: r.kind ?? r.type });

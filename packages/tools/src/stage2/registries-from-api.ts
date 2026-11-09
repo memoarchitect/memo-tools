@@ -308,7 +308,7 @@ function docOf(api: ApiModel, definition: ApiElement): string | undefined {
  * The bounds an end declares (`[0..1]`, `[1..*]`, `[3]`, `[*]`), as the parse
  * reader states them: an exact bound pins both ends, `*` is an unbounded upper.
  */
-function multiplicityOf(api: ApiModel, end: ApiElement): MultiplicityDTO | undefined {
+export function multiplicityOf(api: ApiModel, end: ApiElement): MultiplicityDTO | undefined {
     const range = api.ownedMembers(end['@id']).find(m => m['@type'] === 'MultiplicityRange');
     if (!range) return undefined;
     const bounds = api.ownedMembers(range['@id']);
@@ -317,6 +317,11 @@ function multiplicityOf(api: ApiModel, end: ApiElement): MultiplicityDTO | undef
         const literal = api.expression(bound['@id']);
         return literal.kind === 'number' ? literal.value : null;
     };
+    // `0..1` is one range expression to SysIDE and two bounds to OpenSysML.
+    if (bounds.length === 1 && bounds[0]['@type'] === 'OperatorExpression' && bounds[0].operator === '..') {
+        const [lower, upper] = api.operands(bounds[0]['@id']).map(id => api.element(id)).filter((b): b is ApiElement => Boolean(b));
+        if (lower && upper) return { lower: value(lower) ?? 0, upper: value(upper) };
+    }
     if (bounds.length === 1) {
         const upper = value(bounds[0]);
         return upper === null ? { lower: 0, upper: null } : { lower: upper, upper };

@@ -56,6 +56,14 @@ describe.runIf(compilerConfigured && examplesPresent)('releases compared (A11, A
         expect(await previous('relFirmwareMerge')).toBeUndefined();
     }, 240_000);
 
+    it('follows one definition through every release to the working version, newest first', async () => {
+        const definition = [...working.model.elements.values()].find(e => e.shortName === 'NavigationSystem')!;
+        const rows = await servers.history(definition.id);
+        expect(rows[0].label).toBe('Working version');
+        expect(rows[rows.length - 1].status).toBe('added');
+        expect(rows.some(row => row.status === 'changed' && row.changes.includes('attributes changed') || row.changes.includes('doc changed'))).toBe(true);
+    }, 240_000);
+
     it('says what changed between a release and the previous one, with stable relationship ids', async () => {
         const result = await servers.diff(id('relFirmwareB'), 'previous');
         expect(result.previous).toBe(true);

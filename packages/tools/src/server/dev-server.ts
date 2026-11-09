@@ -2662,6 +2662,15 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
                     } catch (e: any) {
                         ws.send(JSON.stringify({ type: 'release:diff:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
+                } else if (msg.type === 'definition:history') {
+                    const requestId = msg.payload?.requestId;
+                    try {
+                        if (!options.versions) throw new Error('A definition\'s history is read from the working version.');
+                        const versions = await options.versions.history(String(msg.payload?.definition ?? ''));
+                        ws.send(JSON.stringify({ type: 'definition:history:result', payload: { requestId, versions } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'definition:history:result', payload: { requestId, error: e?.message ?? String(e) } }));
+                    }
                 } else if (msg.type === 'dashboard:save' || msg.type === 'dashboard:delete' || msg.type === 'dashboard:move') {
                     // Dashboards are presentation, not model source: they are
                     // deliberately absent from MODEL_MUTATION_MESSAGES, so a

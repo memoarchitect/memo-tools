@@ -864,6 +864,8 @@ export function capture(fixture) {
  * | gpca | +`OcclusionLinePressure`, +`MonitoredBatteryVoltage` and a constraint on each | `signalRange` was a string; a range is a constraint on the type of the attribute that holds it. |
  * | gpca | +2 `MC-001` (info), those two definitions | The constraints are declared on the types and no usage gives them a value to check. |
  * | gpca | +1 `CR-ONT-104` (warning) on `lfPrescriptionEntry` | The new rule: at least one end of that exchange is in no behaviour. |
+ * | gpca | +6 value types (`InfusionRateSetting` and five more) and a constraint on each | `MemoItem.minValue` and `maxValue` were strings; 22 items now hold a `quantity` of a constrained type. |
+ * | gpca | +6 `MC-001` (info), those six definitions | As above: declared on the types, with no usage value to check. |
  */
 
 if (import.meta.url === `file://${process.argv[1]}`) {

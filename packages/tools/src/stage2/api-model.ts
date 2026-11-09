@@ -406,7 +406,7 @@ export class ApiModel {
     }
 
     /** The operands of an operator expression, in order: each parameter's bound value expression. */
-    private operands(id: string): string[] {
+    operands(id: string): string[] {
         return this.ownedRelationships(id)
             .filter(r => r['@type'] === 'ParameterMembership')
             .flatMap(r => refs(r.ownedRelatedElement))

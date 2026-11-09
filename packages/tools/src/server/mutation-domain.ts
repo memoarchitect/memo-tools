@@ -119,7 +119,7 @@ export const READ_ONLY_MESSAGES: ReadonlySet<string> = new Set([
     'diagram:source:request', 'methodology:source:request', 'diagram:parse',
     'import:preview', 'rule:preview', 'open-file',
     // Choosing another version, and comparing two, write nothing.
-    'versions:list', 'version:open', 'release:diff',
+    'versions:list', 'version:open', 'release:diff', 'definition:history',
     // Evaluating the method against the model reads it and writes nothing.
     'guide:evaluate',
     // Sizing a matrix axis reads the model.

@@ -12,7 +12,8 @@ import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { MemoModel } from '../model/semantic.js';
 import type { MEMOConfig } from '../model/config.js';
-import { buildForRecord, pinWorktree, previousRelease, refInfo } from '../model/pinned.js';
+import { buildForRecord, pinWorktree, previousRelease, refInfo, releasesInOrder } from '../model/pinned.js';
+import { definitionHistory, type DefinitionVersion, type HistoryPoint } from '../model/definition-history.js';
 import { computeModelDiff, diffInputOf, summarizeDiff, type ModelDiffSummary } from '../model/model-diff.js';
 import type { PinnedInfo } from '../protocol/messages.js';
 
@@ -85,9 +86,13 @@ export interface VersionServers {
      * earlier record of the same item. Built in this process from the cached pinned builds.
      */
     diff(release: string, against: string): Promise<ReleaseDiff>;
+    /** One definition in every release and the working version, newest first. */
+    history(definitionId: string): Promise<DefinitionVersion[]>;
     open(selection: VersionSelection): Promise<{ url: string; info: PinnedInfo }>;
     close(): void;
 }
+
+const attrCommit = (model: MemoModel, release: string) => model.elements.get(release)?.attributes.modelCommit ?? '';
 
 export function createVersionServers(options: VersionServersOptions): VersionServers {
     const children = new Map<string, { child: ChildProcess; opened: Promise<string> }>();
@@ -145,6 +150,23 @@ export function createVersionServers(options: VersionServersOptions): VersionSer
                 before: { label: label(olderId), commit: older.commit }, after: { label: label(release), commit: newer.commit },
                 previous: against === 'previous', diff: summarizeDiff(computeModelDiff(before, after), before, after),
             };
+        },
+        async history(definitionId) {
+            const model = options.workingModel();
+            if (!model) throw new Error('the working model is not built yet');
+            const config = { config: { toolchain: options.toolchain } };
+            const points: HistoryPoint[] = [];
+            for (const release of await releasesInOrder(options.projectRoot, model)) {
+                const label = model.elements.get(release)?.shortName ?? release;
+                try {
+                    const built = await buildForRecord(options.projectRoot, { model }, release, config);
+                    points.push({ label, commit: built.commit, input: diffInputOf(built.build.project.model) });
+                } catch {
+                    points.push({ label, commit: attrCommit(model, release) });
+                }
+            }
+            points.push({ label: 'Working version', commit: '', input: diffInputOf(model) });
+            return definitionHistory(points, definitionId);
         },
         close() {
             for (const { child } of children.values()) child.kill('SIGTERM');

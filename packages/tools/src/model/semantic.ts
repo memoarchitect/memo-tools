@@ -153,6 +153,10 @@ export interface MemoElement {
      * instances of a type must not count it as one.
      */
     isDefinition?: boolean;
+    /** Declared multiplicities of this element's attributes, by attribute name (`0..1`, `2..*`). Only those written. */
+    attributeMultiplicity?: Record<string, string>;
+    /** An enumeration's members, in declared order. */
+    enumMembers?: string[];
     /** Action parameters (for ActionDefinition elements) */
     parameters?: ActionParameter[];
     /** Parent action ID (for nested action usages) */

@@ -111,6 +111,7 @@ export type ServerMessage =
     | VersionReadyMessage
     | VersionErrorMessage
     | ReleaseDiffResultMessage
+    | DefinitionHistoryResultMessage
     | ReleaseCreateResultMessage
     | DeviceDhfResultMessage
     | GuideResultMessage
@@ -184,6 +185,12 @@ export interface DeviceDhfResultMessage {
         riskDocuments?: number;
         notes?: string[];
     };
+}
+
+/** One definition across the releases, newest first, as `definition:history` answers it. */
+export interface DefinitionHistoryResultMessage {
+    type: 'definition:history:result';
+    payload: { requestId?: string; error?: string; versions?: import('../model/definition-history.js').DefinitionVersion[] };
 }
 
 /** What changed between two releases, as `release:diff` answers it. */

@@ -25,7 +25,7 @@ import type { MEMOConfig } from '../model/config.js';
 import { toModelType } from '../model/naming.js';
 import { LANGUAGE_NATIVE_RELATIONS, REFINEMENT_METADATA, pascalToCamelCase } from '../model/relationship-registry.js';
 import { ElementIndex, qualifiedId } from '../model/element-index.js';
-import { RULE_MARKER, specializesByName } from './registries-from-api.js';
+import { multiplicityOf, RULE_MARKER, specializesByName } from './registries-from-api.js';
 import { resolveLayerFromPath } from '../model/layer-resolver.js';
 import type { ActionParameter, MemoConstruct, MemoElement, MemoModel, MemoPackageDTO, MemoRelationship, PortSpec } from '../model/semantic.js';
 import { ApiModel, type ApiElement, type ApiValue } from './api-model.js';
@@ -552,8 +552,11 @@ class ElementBuilder {
             if (!isPart && !isItem) continue;
             // A connection definition's `end part source : T` is an end, not a part it contains.
             if (member.isEnd === true) continue;
-            // Only a TYPED nested usage is containment; an untyped one is view metadata.
-            if (!this.api.name(member['@id']) || (this.api.types(member['@id']).length === 0 && !this.variationOf(member))) continue;
+            if (!this.api.name(member['@id'])) continue;
+            // An untyped part inside a part is containment like any other (`part u { port m : Pd; }`). Inside a view it
+            // is metadata, flattened onto the view; an item needs a type to say what it is.
+            const untyped = this.api.types(member['@id']).length === 0 && !this.variationOf(member);
+            if (untyped && (isItem || this.elements.get(ownerId)?.construct === 'view')) continue;
             // A typed part that subsets a feature (`part mapEngine : LogicalComponent :> component`)
             // is still a part usage the owner contains: `PartUsage` takes a `UsageDeclaration`, whose
             // `FeatureSpecializationPart` allows typing and subsetting together
@@ -781,7 +784,27 @@ class ElementBuilder {
             || this.api.ownedRelationships(m['@id']).some(r => r['@type'] === 'ReferenceSubsetting'));
     }
 
+    /** What a diff has to see about a definition's shape and is not an attribute value. */
+    private declaredShape(node: ApiElement): Pick<MemoElement, 'attributeMultiplicity' | 'enumMembers'> {
+        const members = this.api.ownedMembers(node['@id']);
+        const multiplicity: Record<string, string> = {};
+        for (const member of members) {
+            if (member['@type'] !== 'AttributeUsage' && member['@type'] !== 'ReferenceUsage') continue;
+            const name = this.api.name(member['@id']);
+            const bounds = name ? multiplicityOf(this.api, member) : undefined;
+            if (name && bounds) multiplicity[name] = `${bounds.lower}..${bounds.upper ?? '*'}`;
+        }
+        const enumMembers = node['@type'] === 'EnumerationDefinition'
+            ? members.filter(member => member['@type'] === 'EnumerationUsage').map(member => this.api.name(member['@id'])).filter((name): name is string => Boolean(name))
+            : [];
+        return {
+            ...(Object.keys(multiplicity).length > 0 ? { attributeMultiplicity: multiplicity } : {}),
+            ...(enumMembers.length > 0 ? { enumMembers } : {}),
+        };
+    }
+
     private define(element: MemoElement, node: ApiElement): void {
+        Object.assign(element, this.declaredShape(node));
         this.elements.define(element, node);
         this.idOf.set(node['@id'], element.id);
     }

@@ -21,6 +21,8 @@ export interface DiffElement {
     portSpec?: { type: string; isConjugated?: boolean };
     /** An action's parameters: the item a flow carries is declared here when the flow names none with `of`. */
     parameters?: readonly { name: string; direction: string; type: string }[];
+    attributeMultiplicity?: Record<string, string>;
+    enumMembers?: readonly string[];
 }
 
 export interface DiffRelationship {
@@ -99,6 +101,11 @@ export function computeModelDiff<E extends DiffElement, R extends DiffRelationsh
         if (b.doc !== a.doc) changes.push('doc changed');
         if (JSON.stringify(b.attributes) !== JSON.stringify(a.attributes)) changes.push('attributes changed');
         if (parameterText(b) !== parameterText(a)) changes.push(`parameters: ${parameterText(b) || '(none)'} → ${parameterText(a) || '(none)'}`);
+        const bounds = (e: DiffElement, key: string) => e.attributeMultiplicity?.[key] ?? '1..1';
+        for (const key of [...new Set([...Object.keys(b.attributeMultiplicity ?? {}), ...Object.keys(a.attributeMultiplicity ?? {})])].sort()) {
+            if (bounds(b, key) !== bounds(a, key)) changes.push(`multiplicity of ${key}: ${bounds(b, key)} → ${bounds(a, key)}`);
+        }
+        if ((b.enumMembers ?? []).join() !== (a.enumMembers ?? []).join()) changes.push(`members: ${(b.enumMembers ?? []).join(', ')} → ${(a.enumMembers ?? []).join(', ')}`);
         if (changes.length > 0) changed.push({ element: a, changes });
     }
 
@@ -143,6 +150,7 @@ export function diffInputOf(model: MemoModel): DiffInput {
             id: element.id, name: element.shortName ?? element.name, kind: element.kind, layer: element.layer,
             doc: element.doc, attributes: element.attributes ?? {}, parameters: element.parameters,
             construct: element.construct, isDefinition: element.isDefinition, owner: element.owner, portSpec: element.portSpec,
+            attributeMultiplicity: element.attributeMultiplicity, enumMembers: element.enumMembers,
         };
     }
     return {
