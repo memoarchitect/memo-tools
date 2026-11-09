@@ -30,6 +30,7 @@ import type { CompiledConstraint } from '../validator/constraint-eval.js';
 import { collectApiConstraints } from '../validator/constraint-loader-api.js';
 import type { BuilderRegistries } from './complete-model.js';
 import { computeModelDiff, diffInputOf } from './model-diff.js';
+import { CONTRACT_LIMITS, contractChanges, type ContractReport } from './contract-changes.js';
 import { buildAt, resolveCommit, type BuildOptions } from './pinned.js';
 import type { MemoElement, MemoModel } from './semantic.js';
 import { computeWorkspaceMembership } from './workspace-membership.js';
@@ -56,7 +57,9 @@ export interface ImpactReport {
     /** The commit the change is measured from. */
     base: { commit: string; ref: string };
     head: 'working tree';
-    changed: { added: number; removed: number; changed: number; addedLinks: number; removedLinks: number; elements: ImpactItem[] };
+    changed: { added: number; removed: number; changed: number; addedLinks: number; removedLinks: number; changedLinks: number; elements: ImpactItem[] };
+    /** Whether the change breaks anyone on either side of an item, port or interface. */
+    contract: ContractReport;
     /** What the change reaches, by the layer each element is in. */
     reached: Record<string, ImpactItem[]>;
     /** The systems and systems of systems that hold anything changed or reached. */
@@ -99,7 +102,9 @@ export async function computeChangeImpact(options: {
     const base = (await buildAt(projectRoot, baseCommit, options.build)).project;
     if (!base.registries) throw new Error('the base model was built without the ontology registries');
 
-    const diff = computeModelDiff(diffInputOf(base.model), diffInputOf(head.model));
+    const baseInput = diffInputOf(base.model);
+    const headInput = diffInputOf(head.model);
+    const diff = computeModelDiff(baseInput, headInput);
     const headMembership = computeWorkspaceMembership(head.model, head.registries);
     const baseMembership = computeWorkspaceMembership(base.model, base.registries);
 
@@ -111,6 +116,7 @@ export async function computeChangeImpact(options: {
     for (const e of diff.removed) baseRoots.add(e.id);
     for (const r of diff.addedRels) for (const id of [r.sourceId, r.targetId]) if (head.model.elements.has(id)) headRoots.add(id);
     for (const r of diff.removedRels) for (const id of [r.sourceId, r.targetId]) if (base.model.elements.has(id)) baseRoots.add(id);
+    for (const { relationship: r } of diff.changedRels) for (const id of [r.sourceId, r.targetId]) if (head.model.elements.has(id)) headRoots.add(id);
 
     // Never through a system or system of systems: everything reaches the one it belongs to.
     const traverse = (model: MemoModel, membership: typeof headMembership, roots: Set<string>) =>
@@ -181,19 +187,25 @@ export async function computeChangeImpact(options: {
 
     return {
         target, base: { commit: baseCommit, ref: target }, head: 'working tree',
+        contract: contractChanges(diff, baseInput, headInput),
         changed: {
             added: diff.summary.added, removed: diff.summary.removed, changed: diff.summary.changed,
-            addedLinks: diff.summary.addedRels, removedLinks: diff.summary.removedRels,
+            addedLinks: diff.summary.addedRels, removedLinks: diff.summary.removedRels, changedLinks: diff.summary.changedRels,
             elements: [
                 ...diff.added.map(e => ({ ...item(head.model.elements.get(e.id)!, 0), via: 'added' })),
                 ...diff.changed.map(c => ({ ...item(head.model.elements.get(c.element.id)!, 0), via: 'changed' })),
                 ...diff.removed.map(e => ({ ...item(base.model.elements.get(e.id)!, 0), via: 'removed' })),
+                ...diff.changedRels.flatMap(({ relationship: r, changes }) => {
+                    const source = head.model.elements.get(r.sourceId);
+                    return source ? [{ ...item(source, 0), via: `${r.type} to ${nameOf(r.targetId)} changed (${changes.join(', ')})` }] : [];
+                }),
             ],
         },
         reached: byLayer, systems: [...systems.values()].sort((a, b) => a.name.localeCompare(b.name)), releases, devices, reopened,
         limits: [
             'A rename shows as a removal and an addition: an element is known by its qualified name.',
             `The reach is ${IMPACT_DEPTH} steps from a change, over every relation but containment, and stops at a system.`,
+            CONTRACT_LIMITS,
         ],
     };
 }

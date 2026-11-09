@@ -38,6 +38,24 @@ describe('interfacesBetween', () => {
         expect(interfacesBetween(model(), 'nav', 'safety').map(f => f.id)).toEqual(['nested']);
         expect(interfacesBetween(model(), 'nav', 'safety', { includeNested: false })).toEqual([]);
     });
+    it('follows bind to a nested part, and names the port the interface is written on', () => {
+        const delegated = model();
+        delegated.elements['lidar::inner'] = el('lidar::inner', 'lidar');
+        delegated.elements['lidar::inner::deep'] = el('lidar::inner::deep', 'lidar::inner');
+        delegated.elements['lidar::inner::deep::p'] = el('lidar::inner::deep::p', 'lidar::inner::deep');
+        delegated.elements['lidar::inner::p'] = el('lidar::inner::p', 'lidar::inner');
+        delegated.relationships.push(
+            { id: 'b1', type: 'bind', sourceId: 'lidar::pub', targetId: 'lidar::inner::p', sourceEnd: '', targetEnd: '', file: '' },
+            { id: 'b2', type: 'bind', sourceId: 'lidar::inner::p', targetId: 'lidar::inner::deep::p', sourceEnd: '', targetEnd: '', file: '' },
+        );
+        const found = interfacesBetween(delegated, 'lidar::inner::deep', 'nav');
+        expect(found.map(f => f.id)).toEqual(['svc', 'topic1']);
+        expect(found.find(f => f.id === 'topic1')?.from).toEqual({ portId: 'lidar::inner::deep::p', ownerId: 'lidar::inner::deep', viaPortId: 'lidar::pub' });
+        expect(interfacesBetween(delegated, 'lidar::inner::deep', 'nav', { includeNested: false })).toEqual([]);
+    });
+    it('keeps the port an interface is written on when the element asked about owns it', () => {
+        expect(interfacesBetween(model(), 'lidar', 'nav')[1].from).toEqual({ portId: 'lidar::pub', ownerId: 'lidar' });
+    });
     it('filters by kind through the ontology specialization chain', () => {
         const conforms = (kind: string, ancestor: string) => ancestor === 'SoftwareInterface' && kind.startsWith('Ros');
         const ros = interfacesBetween(model(), 'lidar', 'nav', { kind: 'SoftwareInterface', kindConforms: conforms });

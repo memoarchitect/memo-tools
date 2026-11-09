@@ -1156,6 +1156,10 @@ class ElementBuilder {
      * `succession first a if g then b;` is a guarded succession, which SysML
      * makes a TransitionUsage (SysML-textual-bnf.kebnf, GuardedSuccession). MEMO
      * records it as a succession whose source end is the guard, `[g]`.
+     *
+     * `decide d; if g then b; else c;` is the same thing with the source left
+     * out (GuardedTargetSuccession, DefaultTargetSuccession, kebnf:1177, 1181):
+     * it is the occurrence declared before, and `else` is the branch `[else]`.
      */
     private guardedSuccession(node: ApiElement, packageName: string, parentActionId: string): void {
         const context = { packageName, ownerId: parentActionId };
@@ -1164,16 +1168,17 @@ class ElementBuilder {
             ? this.api.element((first.memberElement as { '@id': string } | undefined)?.['@id'] ?? '') : undefined;
         const succession = this.api.ownedMembers(node['@id']).find(m => m['@type'] === 'SuccessionAsUsage');
         const targetEnd = succession ? this.connectorEnds(succession).at(-1) : undefined;
-        const source = this.endpoint(this.steps(sourceFeature), context);
+        const written = this.endpoint(this.steps(sourceFeature), context).id;
+        const sourceId = sourceFeature ? (written && this.elements.has(written) ? written : undefined) : this.neighbours(node)[0];
         const target = targetEnd ? this.endpoint(this.endSteps(targetEnd), context) : { id: undefined };
-        if (!source.id || !target.id || !this.elements.has(source.id) || !this.elements.has(target.id)) return;
+        if (!sourceId || !target.id || !this.elements.has(sourceId) || !this.elements.has(target.id)) return;
         const guardMembership = this.api.ownedRelationships(node['@id'])
             .find(r => r['@type'] === 'TransitionFeatureMembership' && r.kind === 'guard');
         const guard = guardMembership
             ? this.expressionText(((guardMembership.ownedRelatedElement as { '@id': string }[] | undefined) ?? [])[0]?.['@id'])
             : undefined;
-        this.relationships.push({ id: this.nextId(), type: 'succession', sourceId: source.id,
-            sourceEnd: guard === undefined ? '' : `[${guard}]`, targetId: target.id, targetEnd: '', file: this.file(node) });
+        this.relationships.push({ id: this.nextId(), type: 'succession', sourceId,
+            sourceEnd: guard !== undefined ? `[${guard}]` : sourceFeature ? '' : '[else]', targetId: target.id, targetEnd: '', file: this.file(node) });
     }
 
     /** An expression as readable text, as MEMO labels a guard: `validUser == true`. */

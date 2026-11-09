@@ -2229,6 +2229,34 @@
         "package": "memo_examples_gpca_pump_gpca_interfaces"
       },
       {
+        "id": "memo_examples_gpca_pump_gpca_interfaces::MonitoredBatteryVoltage",
+        "kind": "ElectricPotentialDifferenceValue",
+        "construct": "attribute",
+        "layer": "unknown",
+        "package": "memo_examples_gpca_pump_gpca_interfaces"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_interfaces::MonitoredBatteryVoltage::constraint1",
+        "kind": "AssertConstraintUsage",
+        "construct": "constraint",
+        "layer": "unknown",
+        "package": "memo_examples_gpca_pump_gpca_interfaces"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_interfaces::OcclusionLinePressure",
+        "kind": "PressureValue",
+        "construct": "attribute",
+        "layer": "unknown",
+        "package": "memo_examples_gpca_pump_gpca_interfaces"
+      },
+      {
+        "id": "memo_examples_gpca_pump_gpca_interfaces::OcclusionLinePressure::constraint1",
+        "kind": "AssertConstraintUsage",
+        "construct": "constraint",
+        "layer": "unknown",
+        "package": "memo_examples_gpca_pump_gpca_interfaces"
+      },
+      {
         "id": "memo_examples_gpca_pump_gpca_interfaces::operatorEntryInterface",
         "kind": "LogicalInterface",
         "construct": "interface",
@@ -9517,6 +9545,7 @@
     ],
     "kindCounts": {
       "ActionUsage": 33,
+      "AssertConstraintUsage": 2,
       "BehaviorProperty": 20,
       "Benefit": 1,
       "Citation": 9,
@@ -9528,6 +9557,7 @@
       "CybersecurityAsset": 2,
       "DataInterface": 1,
       "DetectionMethod": 3,
+      "ElectricPotentialDifferenceValue": 1,
       "FailureCause": 3,
       "FailureEffect": 3,
       "FailureMode": 5,
@@ -9567,6 +9597,7 @@
       "PhysicalAssembly": 1,
       "PhysicalInterface": 2,
       "PhysicalPort": 27,
+      "PressureValue": 1,
       "ProcessingNode": 1,
       "ReasonablyForeseeableMisuse": 1,
       "RegulatedDevice": 3,
@@ -9613,7 +9644,7 @@
       "realization": 31,
       "requirements": 146,
       "safety_risk": 105,
-      "unknown": 68,
+      "unknown": 72,
       "verification_validation": 31
     },
     "diagrams": []
@@ -9664,15 +9695,31 @@
         "rule": "CR-ONT-091",
         "severity": "warning",
         "elementId": "memo_examples_gpca_pump_gpca_system::fcPatientBolus::fcsBolusValidate"
+      },
+      {
+        "rule": "CR-ONT-104",
+        "severity": "warning",
+        "elementId": "memo_examples_gpca_pump_gpca_behavior_subsystems::lfPrescriptionEntry"
+      },
+      {
+        "rule": "MC-001",
+        "severity": "info",
+        "elementId": "memo_examples_gpca_pump_gpca_interfaces::MonitoredBatteryVoltage"
+      },
+      {
+        "rule": "MC-001",
+        "severity": "info",
+        "elementId": "memo_examples_gpca_pump_gpca_interfaces::OcclusionLinePressure"
       }
     ],
     "counts": {
-      "warning": 9
+      "info": 2,
+      "warning": 10
     }
   },
   "errors": [],
   "summary": {
-    "elements": 700,
+    "elements": 704,
     "completeness": 100
   }
 }

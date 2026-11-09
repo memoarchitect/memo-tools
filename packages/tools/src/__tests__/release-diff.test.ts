@@ -63,7 +63,7 @@ describe.runIf(compilerConfigured && examplesPresent)('releases compared (A11, A
         expect([result.before.commit, result.after.commit]).toEqual([repo.c1, repo.c2]);
         // c2 changed one system's description and nothing else.
         expect(result.diff.changed.map(c => `${c.name}: ${c.changes.join(',')}`)).toEqual(['NavigationSystem: attributes changed']);
-        expect(result.diff.summary).toEqual({ added: 0, removed: 0, changed: 1, addedRels: 0, removedRels: 0 });
+        expect(result.diff.summary).toEqual({ added: 0, removed: 0, changed: 1, addedRels: 0, removedRels: 0, changedRels: 0 });
 
         const wide = await servers.diff(id('relFirmwareLate'), 'previous');
         expect([wide.before.label, wide.after.label]).toEqual(['relFirmwareB', 'relFirmwareLate']);

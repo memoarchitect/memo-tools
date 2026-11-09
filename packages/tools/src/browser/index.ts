@@ -25,6 +25,8 @@ export * from '../analysis/interfaces-between.js';
 export * from '../analysis/suspect-links.js';
 export * from '../model/variability.js';
 export * from '../model/model-diff.js';
+export * from '../model/contract-changes.js';
+export * from '../analysis/where-used.js';
 export { defaultReleaseFile, isInSystemFolder } from '../model/release-target.js';
 export { READ_ONLY_MESSAGES, isReadOnlyMessage } from '../server/mutation-domain.js';
 export * from '../import/import-sources.js';

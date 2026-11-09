@@ -855,6 +855,15 @@ export function capture(fixture) {
  * | Fixture | Difference | Why |
  * | --- | --- | --- |
  * | gpca (3), extension-clinical (1), robot-cell-family (1) | workflow `construct`: `action` → `part` | An OperationalWorkflow is the analysis of a body of work (IEC 62366-1's use specification), a part that owns its scenarios; the builder now builds a part's own actions, so each scenario keeps its owner, `composes` edge and steps. |
+ *
+ * BASELINE RE-FROZEN 2026-11-09 — gpca only, for the physical interface's quantities and CR-ONT-104. The other
+ * fixtures did not move. Compared by leaf name: four elements added, none removed, no relationship moved.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | +`OcclusionLinePressure`, +`MonitoredBatteryVoltage` and a constraint on each | `signalRange` was a string; a range is a constraint on the type of the attribute that holds it. |
+ * | gpca | +2 `MC-001` (info), those two definitions | The constraints are declared on the types and no usage gives them a value to check. |
+ * | gpca | +1 `CR-ONT-104` (warning) on `lfPrescriptionEntry` | The new rule: at least one end of that exchange is in no behaviour. |
  */
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -25,6 +25,7 @@ describe.runIf(compilerConfigured && examplesPresent)('a function\'s conditions'
         await withExample({ 'model/seeded_function_conditions.sysml': SEEDED }, project => {
             const owned = [...project.model.elements.values()].filter(e => e.construct === 'constraint' && e.owner === 'seeded_function_conditions::fnDose');
             expect(owned.map(c => c.attributes.expression).sort()).toEqual(['cmd >= 0', 'rate >= 0 and rate <= 10']);
+            expect(owned.map(c => c.shortName).sort()).toEqual(['postcondition', 'precondition']);
             const plain = [...project.model.elements.values()].filter(e => e.construct === 'constraint' && e.owner === 'seeded_function_conditions::fnPlain');
             expect(plain).toEqual([]);
         }, 'robot-cell-family');
