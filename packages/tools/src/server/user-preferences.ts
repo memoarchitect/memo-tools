@@ -24,15 +24,48 @@ const HEADER = `# Your own MEMO Architect choices for this model. Not committed:
 # .gitignore lists this file. Delete it to go back to the defaults.
 `;
 
-/** What the file holds, or no choices at all when it is absent. */
+/** The project file whose `preferences:` block holds the team's defaults. */
+export const PROJECT_PREFERENCES_FILE = 'memo.package.yaml';
+
+function readYamlMap(path: string): Record<string, unknown> | null {
+    if (!existsSync(path)) return null;
+    const parsed = parseYaml(readFileSync(path, 'utf8')) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+}
+
+/** The settings keys a project may default and a person may override. */
+const SETTING_KEYS = ['role', 'workspace', 'explorerSplit', 'features', 'packageFolders'] as const;
+
+/**
+ * The team's defaults: the `preferences:` block of memo.package.yaml (role,
+ * workspace, explorerSplit, features, packageFolders). Shared and committed.
+ */
+export function loadProjectPreferences(projectRoot: string): UserPreferencesDTO {
+    const block = readYamlMap(resolve(projectRoot, PROJECT_PREFERENCES_FILE))?.preferences;
+    if (!block || typeof block !== 'object' || Array.isArray(block)) return {};
+    const raw = block as Record<string, unknown>;
+    return clean(Object.fromEntries(SETTING_KEYS.map(key => [key, raw[key]])));
+}
+
+/**
+ * What the person sees: the project's defaults, with each key the person set in
+ * memo.user.yaml replacing the project's value. A key present in the user file
+ * wins even when it says "none": `features: []` opts out of every default
+ * feature, `packageFolders: true` opts back in to folders the project hides.
+ */
 export function loadUserPreferences(projectRoot: string): UserPreferencesDTO {
-    const path = resolve(projectRoot, USER_PREFERENCES_FILE);
-    if (!existsSync(path)) return {};
-    const parsed = parseYaml(readFileSync(path, 'utf8')) as Record<string, unknown> | null;
-    return clean({
-        role: parsed?.role, workspace: parsed?.workspace, explorerSplit: parsed?.explorerSplit, features: parsed?.features,
-        packageFolders: parsed?.packageFolders, favorites: parsed?.favorites, recentViews: parsed?.recentViews, recentElements: parsed?.recentElements,
+    const defaults = loadProjectPreferences(projectRoot);
+    const parsed = readYamlMap(resolve(projectRoot, USER_PREFERENCES_FILE));
+    if (!parsed) return defaults;
+    const own = clean({
+        role: parsed.role, workspace: parsed.workspace, explorerSplit: parsed.explorerSplit, features: parsed.features,
+        packageFolders: parsed.packageFolders, favorites: parsed.favorites, recentViews: parsed.recentViews, recentElements: parsed.recentElements,
     });
+    const merged: UserPreferencesDTO = { ...defaults, ...own };
+    // Explicit "none" choices are dropped by clean(); a user key that is present still overrides the project.
+    if (Array.isArray(parsed.features) && parsed.features.length === 0) delete merged.features;
+    if (parsed.packageFolders === true) delete merged.packageFolders;
+    return merged;
 }
 
 /** Keep the string choices that are set, trimmed; drop the rest. */
@@ -88,10 +121,22 @@ function cleanRecent(raw: unknown): string[] {
     return [...new Set(ids)].slice(0, RECENT_LIMIT);
 }
 
-/** Write the person's choices; an unset choice removes its key. */
+/**
+ * Write the person's choices. A choice equal to the project's default is left
+ * out, so the person keeps following the team; a choice that differs is written,
+ * including "no features" and "show package folders" when the project says otherwise.
+ */
 export function saveUserPreferences(projectRoot: string, preferences: UserPreferencesDTO): UserPreferencesDTO {
     const next = clean({ ...preferences });
+    const defaults = loadProjectPreferences(projectRoot);
+    const out: Record<string, unknown> = { ...next };
+    for (const key of SETTING_KEYS) {
+        const mine = next[key];
+        const theirs = defaults[key];
+        if (JSON.stringify(mine ?? null) === JSON.stringify(theirs ?? null)) { delete out[key]; continue; }
+        if (mine === undefined) out[key] = key === 'features' ? [] : key === 'packageFolders' ? true : undefined;
+    }
     ensureGitIgnored(projectRoot, USER_PREFERENCES_FILE, 'MEMO Architect: your own choices for this model');
-    writeFileSync(resolve(projectRoot, USER_PREFERENCES_FILE), HEADER + stringifyYaml(next), 'utf8');
-    return next;
+    writeFileSync(resolve(projectRoot, USER_PREFERENCES_FILE), HEADER + stringifyYaml(out), 'utf8');
+    return loadUserPreferences(projectRoot);
 }

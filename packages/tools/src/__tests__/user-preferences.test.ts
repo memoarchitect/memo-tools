@@ -93,3 +93,34 @@ describe('one person\'s choices for a model', () => {
         expect(loadUserPreferences(dir)).toEqual({ role: 'safetyEngineer' });
     });
 });
+
+describe('project defaults and personal overrides', () => {
+    const dirs: string[] = [];
+    const project = (yaml: string) => { const d = mkdtempSync(join(tmpdir(), 'memo-prefs-')); dirs.push(d); writeFileSync(join(d, 'memo.package.yaml'), yaml, 'utf8'); return d; };
+    afterEach(() => { for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
+
+    it('applies the project defaults when the person has chosen nothing', () => {
+        const dir = project('name: x\npreferences:\n  features: [custom-dashboards]\n  packageFolders: false\n');
+        expect(loadUserPreferences(dir)).toEqual({ features: ['custom-dashboards'], packageFolders: false });
+    });
+
+    it('lets a person opt out of every default feature with an empty list', () => {
+        const dir = project('preferences:\n  features: [custom-dashboards]\n');
+        saveUserPreferences(dir, {});
+        expect(readFileSync(join(dir, USER_PREFERENCES_FILE), 'utf8')).toContain('features: []');
+        expect(loadUserPreferences(dir)).toEqual({});
+    });
+
+    it('lets a person override one key and keep following the rest', () => {
+        const dir = project('preferences:\n  role: projectLead\n  features: [guide]\n');
+        saveUserPreferences(dir, { role: 'safetyEngineer', features: ['guide'] });
+        expect(readFileSync(join(dir, USER_PREFERENCES_FILE), 'utf8')).not.toContain('features');
+        expect(loadUserPreferences(dir)).toEqual({ role: 'safetyEngineer', features: ['guide'] });
+    });
+
+    it('lets a person show package folders the project hides', () => {
+        const dir = project('preferences:\n  packageFolders: false\n');
+        saveUserPreferences(dir, { packageFolders: true });
+        expect(loadUserPreferences(dir)).toEqual({});
+    });
+});
