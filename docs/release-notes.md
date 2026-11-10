@@ -2,6 +2,13 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.20.1
+
+- **Project defaults.** A `preferences:` block in `memo.package.yaml` sets team defaults for Architect (`role`, `workspace`, `explorerSplit`, `features`, `packageFolders`). Each key a person sets in `memo.user.yaml` replaces the project's value, and `features: []` opts out of every default feature. Saving leaves out a choice equal to the project default, so the person keeps following the team.
+- **Delete a package with its contents.** `package:delete` takes `deleteContents: true` and removes the whole declaration, nested members included, with a warning that references from other files are not rewritten. Without the flag the members are still lifted into the enclosing package.
+- **Viewpoints name their declaration.** `ViewpointDTO` carries `elementId` and `writable`, so a client can delete an authored viewpoint through the element delete. A library's viewpoint is `writable: false`.
+- **Fixed.** The OpenSysML service Architect and `memo compile` share was closed after 60 seconds even in the middle of a call. A compile whose conversion ran past that failed with `http/2 stream closed with error code CANCEL`. The service now closes only when idle.
+
 ## 0.20.0
 
 - **Breaking.** Follows the ontology: `minValue`, `maxValue` and `signalRange` are gone and `bitRateBps` is a quantity, so a model that sets the old forms fails to compile.
