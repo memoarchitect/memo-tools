@@ -24,7 +24,48 @@ import { connectOpenSysML, openSysMLSettingsKey, toDiagnostic, type OpenSysMLCon
 /** How long an idle service is kept before it is closed. */
 const IDLE_MS = 60_000;
 
-let shared: { key: string; connection: Promise<OpenSysMLConnection>; timer?: NodeJS.Timeout } | undefined;
+interface Shared { key: string; connection: Promise<OpenSysMLConnection>; timer?: NodeJS.Timeout; active: number }
+
+let shared: Shared | undefined;
+
+/** Start the idle clock. It closes the service only when no call is running: a compile's Convert can outlast IDLE_MS. */
+function armIdleTimer(current: Shared): void {
+    if (current.timer) clearTimeout(current.timer);
+    current.timer = setTimeout(() => { if (shared === current && current.active === 0) closeSharedOpenSysMLConnection(); }, IDLE_MS);
+    current.timer.unref();
+}
+
+/** Run `call`, counting it as in flight until it settles, then restart the idle clock. */
+function trackCall<A extends unknown[], R>(current: Shared, self: object, call: (...args: A) => R): (...args: A) => R {
+    return (...args: A): R => {
+        current.active += 1;
+        const done = () => { current.active -= 1; if (shared === current) armIdleTimer(current); };
+        let result: R;
+        try {
+            result = call.apply(self, args);
+        } catch (error) {
+            done();
+            throw error;
+        }
+        if (result && typeof (result as { then?: unknown }).then === 'function') {
+            return (result as unknown as Promise<unknown>).finally(done) as unknown as R;
+        }
+        done();
+        return result;
+    };
+}
+
+/** The same object with each of its functions counted as a call in flight; `close` is left alone. */
+function tracked<T extends object>(current: Shared, target: T): T {
+    return new Proxy(target, {
+        get(object, property) {
+            const value = Reflect.get(object, property, object) as unknown;
+            if (property === 'close') return value;
+            if (property === 'rpc' && value && typeof value === 'object') return tracked(current, value);
+            return typeof value === 'function' ? trackCall(current, object, value as (...args: unknown[]) => unknown) : value;
+        },
+    });
+}
 
 /** The session's OpenSysML service, started on first use and closed once idle. */
 export async function sharedOpenSysMLConnection(config: MEMOConfig): Promise<OpenSysMLConnection> {
@@ -32,14 +73,12 @@ export async function sharedOpenSysMLConnection(config: MEMOConfig): Promise<Ope
     if (shared && shared.key !== key) closeSharedOpenSysMLConnection();
     if (!shared) {
         const connection = connectOpenSysML(config);
-        shared = { key, connection };
+        shared = { key, connection, active: 0 };
         connection.catch(() => { if (shared?.connection === connection) shared = undefined; });
     }
     const current = shared;
-    if (current.timer) clearTimeout(current.timer);
-    current.timer = setTimeout(() => { if (shared === current) closeSharedOpenSysMLConnection(); }, IDLE_MS);
-    current.timer.unref();
-    return current.connection;
+    armIdleTimer(current);
+    return tracked(current, await current.connection);
 }
 
 /** Close the session's service; the next call starts another. */
