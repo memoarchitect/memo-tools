@@ -38,6 +38,27 @@ beforeEach(() => { projectRoot = mkdtempSync(join(tmpdir(), 'memo-element-writer
 afterEach(() => { rmSync(projectRoot, { recursive: true, force: true }); });
 
 describe.runIf(compilerConfigured)('removeElement', () => {
+    it('removes a viewpoint declaration together with the viewpoints nested inside it', async () => {
+        write('model/catalog.sysml', `package Test {
+    viewpoint vpSoS {
+        viewpoint vpPump;
+        viewpoint vpMonitor;
+    }
+    viewpoint vpOther;
+}\n`);
+        const viewpoint: MemoElement = { ...element('vpSoS'), construct: 'viewpoint' };
+
+        const result = await removeElement(viewpoint, model([viewpoint], []), projectRoot, outlines());
+
+        expect(result).toMatchObject({ success: true });
+        const updated = read('model/catalog.sysml');
+        expect(updated).not.toContain('vpSoS');
+        expect(updated).not.toContain('vpPump');
+        expect(updated).not.toContain('vpMonitor');
+        expect(updated).toContain('viewpoint vpOther');
+        await expect(outlines().verify('model/catalog.sysml', updated)).resolves.toBeDefined();
+    });
+
     it('removes the element and all incoming and outgoing connections while preserving unrelated connections', async () => {
         const source = `package Test {
     part parent : UIElement;

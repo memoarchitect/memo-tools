@@ -48,6 +48,10 @@ export const PACKAGE_EDIT_IS_TEXT_ONLY =
     + 'anything it declares — that needs cross-file name resolution — so those references will not resolve '
     + 'until you update them by hand.';
 
+export const PACKAGE_CONTENTS_DELETED =
+    'The package and everything it declared were removed from this file. References to them from other files '
+    + 'were not changed and will no longer resolve until you remove or update them.';
+
 export interface PackageWriteResult {
     success: boolean;
     /** Project-relative files this operation wrote. */
@@ -55,7 +59,7 @@ export interface PackageWriteResult {
     /** Qualified name of the package the operation produced or acted on. */
     qualifiedName?: string;
     /** Advisory notes about a write that succeeded. */
-    warnings?: { code: 'package-edit-is-text-only'; message: string }[];
+    warnings?: { code: 'package-edit-is-text-only' | 'package-contents-deleted'; message: string }[];
     error?: string;
     /** Set when the failure was a stale element identity, so callers can say so. */
     stale?: boolean;
@@ -298,6 +302,45 @@ export async function deletePackage(
     return {
         success: true, filePaths: [file], qualifiedName,
         ...(lifted ? { warnings: [{ code: 'package-edit-is-text-only' as const, message: PACKAGE_EDIT_IS_TEXT_ONLY }] } : {}),
+    };
+}
+
+/**
+ * Remove a package declaration AND everything it declares.
+ *
+ * `deletePackage` keeps the members on purpose: removing a folder must never
+ * silently delete a subtree. This is the explicit other reading, reached only
+ * by a caller that asked for the contents to go (`deleteContents`) after the
+ * person saw what would be lost. It edits one declaration in one file; a
+ * package spread over several files loses only the part declared in `file`.
+ *
+ * References to the removed members from other files are not rewritten — MEMO
+ * has no cross-file name resolution to do it with — so the result carries a
+ * warning that they now dangle.
+ */
+export async function deletePackageWithContents(
+    cwd: string,
+    request: { file: string; qualifiedName: string },
+    /** Outlines of the project's files, from the selected compiler. */
+    outlines: OutlineSource,
+): Promise<PackageWriteResult> {
+    const { file, qualifiedName } = request;
+    const absolute = resolve(cwd, file);
+    if (!existsSync(absolute)) return { success: false, filePaths: [], error: `${file} does not exist.` };
+    const source = readFileSync(absolute, 'utf8');
+
+    const outline = await outlineOf(outlines, file, source);
+    if (typeof outline === 'string') return { success: false, filePaths: [], error: outline };
+    const target = locatePackages(outline).find(pkg => pkg.qualifiedName === qualifiedName);
+    if (!target) {
+        return { success: false, filePaths: [], error: `${file} does not declare package "${qualifiedName}".` };
+    }
+
+    const committed = await commitSource(absolute, file, removeLine(source, target.start, target.end), outlines);
+    if (!committed.success) return { success: false, filePaths: [], error: committed.error };
+    return {
+        success: true, filePaths: [file], qualifiedName,
+        warnings: [{ code: 'package-contents-deleted' as const, message: PACKAGE_CONTENTS_DELETED }],
     };
 }
 

@@ -38,7 +38,7 @@ import type { SourceImportPayload, SourceImportResultMessage, SuspectReviewMessa
 import { removeElement } from './element-writer.js';
 import { projectEntrypoint } from '../model/native-project.js';
 import {
-    createPackage, deletePackage, moveElementToPackage, moveIntoGroupingPackage, movePackage, renamePackage,
+    createPackage, deletePackage, deletePackageWithContents, moveElementToPackage, moveIntoGroupingPackage, movePackage, renamePackage,
     type PackageWriteResult,
 } from './package-writer.js';
 import { writeRelease, type ReleaseCreateRequest } from './release-writer.js';
@@ -1272,7 +1272,11 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             if (type === 'package:rename') {
                 return renamePackage(projectRoot, { file, qualifiedName, name: String(payload.name ?? '') }, (await authoringContext()).outlines);
             }
-            if (type === 'package:delete') return deletePackage(projectRoot, { file, qualifiedName }, (await authoringContext()).outlines);
+            if (type === 'package:delete') {
+                // Keeping the members is the default; removing them is a separate, explicit request.
+                const remove = payload.deleteContents === true ? deletePackageWithContents : deletePackage;
+                return remove(projectRoot, { file, qualifiedName }, (await authoringContext()).outlines);
+            }
             const targetParent: string | undefined = payload.targetParent || undefined;
             const targetFile = targetParent ? fileOf(targetParent) : file;
             if (targetParent && !targetFile) {
