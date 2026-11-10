@@ -2,6 +2,17 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.20.0
+
+- **Breaking.** Follows the ontology: `minValue`, `maxValue` and `signalRange` are gone and `bitRateBps` is a quantity, so a model that sets the old forms fails to compile.
+- **Diff.** A changed link is reported: what it carries, its kind, ports, guard and attributes. So is a changed action parameter, an attribute's multiplicity and an enumeration's members. Model Diff, Releases and Impact all use this.
+- **Breaking-change verdicts.** `contractChanges` says whether a change to an item, port or interface is breaking, compatible or cannot be judged, and who is affected. A change it cannot judge is reported, never dropped.
+- **Where used.** `whereUsed` lists a definition's producers, consumers, flows, interfaces, ports and behaviours. `definition:history` follows one definition through every release to the working version.
+- **Fixed.** `decide d; if ok then b; else c;` builds both branches, with `[ok]` and `[else]`.
+- **Fixed.** Interfaces follow `bind` to a nested part, shown as via its parent's port, and report the real port on a compiled model.
+- **Fixed.** An untyped part nested in a part or definition is built, so an interface to it is kept.
+- **Fixed.** A multiplicity range such as `[0..1]` is read correctly under SysIDE, where it was taken for `[0..*]`, including on the ends of a relation.
+
 ## 0.19.0
 
 - **Ids.** A `MemoActor` takes the `ACR` family, not `MEM`.
