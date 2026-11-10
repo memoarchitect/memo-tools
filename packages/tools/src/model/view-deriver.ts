@@ -411,6 +411,10 @@ interface ResolvedViewpoint {
     explorerLane?: string;
     explorerOrder?: number;
     parentId?: string;
+    /** The element that declares it, when a document does; the address a delete is made at. */
+    elementId?: string;
+    /** False for a viewpoint a library declares: read-only, so it cannot be deleted from here. */
+    writable?: boolean;
     stakeholders: string[];
 }
 
@@ -476,6 +480,7 @@ function readViewpoint(
             ? Number(authored?.attributes['explorerOrder'])
             : undefined,
         ...(parent ? { parentId: viewpointId(parent, parent.id) } : {}),
+        ...(authored ? { elementId: authored.id, writable: authored.provenance?.declaration.writable !== false } : {}),
         stakeholders: viewpointStakeholders(authored, ref, kindRegistry),
         ref,
     };
@@ -598,6 +603,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
                     explorerLane: authoredViewpoint.explorerLane,
                     explorerOrder: authoredViewpoint.explorerOrder,
                     ...(authoredViewpoint.parentId ? { parentId: authoredViewpoint.parentId } : {}),
+                    ...(authoredViewpoint.elementId ? { elementId: authoredViewpoint.elementId, writable: authoredViewpoint.writable } : {}),
                     stakeholders: authoredViewpoint.stakeholders,
                     visibleKinds: [],
                     visibleRelationships: [],

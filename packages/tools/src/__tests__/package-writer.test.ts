@@ -46,6 +46,8 @@ const renamePackage = (root: string, request: Parameters<typeof writer.renamePac
     writer.renamePackage(root, request, outlines());
 const deletePackage = (root: string, request: Parameters<typeof writer.deletePackage>[1]) =>
     writer.deletePackage(root, request, outlines());
+const deletePackageWithContents = (root: string, request: Parameters<typeof writer.deletePackageWithContents>[1]) =>
+    writer.deletePackageWithContents(root, request, outlines());
 const moveIntoGroupingPackage = (root: string, request: Parameters<typeof writer.moveIntoGroupingPackage>[1]) =>
     writer.moveIntoGroupingPackage(root, request, outlines());
 const moveElementToPackage = (root: string, request: Parameters<typeof writer.moveElementToPackage>[1], index: IrIdentityIndex) =>
@@ -219,6 +221,33 @@ describe.runIf(compilerConfigured)('renamePackage', () => {
         const source = readProjectFile('model/plant.sysml');
         expect(source).toContain('package Facility {');
         expect(source).toContain('part pump : Component {');
+    });
+});
+
+describe.runIf(compilerConfigured)('deletePackageWithContents', () => {
+    it('removes the package and every member it declares', async () => {
+        writeProjectFile('model/plant.sysml', `package Plant {
+    package Hydraulics {
+        part pump : Component {
+            attribute :>> note = "pump";
+        }
+    }
+}
+`);
+        const result = await deletePackageWithContents(projectRoot, { file: 'model/plant.sysml', qualifiedName: 'Plant::Hydraulics' });
+
+        expect(result.success).toBe(true);
+        expect(result.warnings?.map(w => w.code)).toEqual(['package-contents-deleted']);
+        expect(readProjectFile('model/plant.sysml')).not.toContain('pump');
+        const { built } = await build();
+        expect(built.packages.map(pkg => pkg.qualifiedName)).not.toContain('Plant::Hydraulics');
+        expect(built.elements.lookup('pump')).toBeUndefined();
+    });
+
+    it('refuses a package the file does not declare', async () => {
+        writeProjectFile('model/plant.sysml', PROJECT);
+        const result = await deletePackageWithContents(projectRoot, { file: 'model/plant.sysml', qualifiedName: 'Nope' });
+        expect(result.success).toBe(false);
     });
 });
 

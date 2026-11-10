@@ -355,6 +355,13 @@ export interface ViewpointDTO {
      */
     parentId?: string;
     /**
+     * The element that declares this viewpoint, when a document does: the address a delete is made at.
+     * Absent for a viewpoint no document declares (one a view merely names).
+     */
+    elementId?: string;
+    /** False when a library declares the viewpoint, which makes it read-only here. */
+    writable?: boolean;
+    /**
      * Who the viewpoint is written for: the usage names its `stakeholders`
      * binds (`safetyEngineer`), from the project's own viewpoint or, for one the
      * library declares, from the library. Empty when it names none. A role

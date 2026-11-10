@@ -53,6 +53,14 @@ describe.runIf(compilerConfigured && examplesPresent)('a viewpoint declared insi
         expect(pump).toMatchObject({ label: 'Pump', parentId: 'vpSoS', explorerLane: 'architecture' });
     });
 
+    it('names the element that declares it, so a delete can be addressed to the declaration', async () => {
+        const { model: built, registry } = await model();
+        const { viewpoints } = deriveModelViews(built, registry);
+        const pump = viewpoints.find(vp => vp.id === 'vpPump');
+        expect(pump?.elementId).toBe(built.elements.lookup('vpPump')?.id);
+        expect(pump?.writable).toBe(true);
+    });
+
     it('carries the parent even though no view binds to it', async () => {
         const { model: built, registry } = await model();
         const { viewpoints } = deriveModelViews(built, registry);
