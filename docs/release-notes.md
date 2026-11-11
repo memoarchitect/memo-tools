@@ -2,6 +2,10 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.20.3
+
+- No changes to the tools. The version moves with `@memoarchitect/architect` and `@memoarchitect/ontology`, which pin it exactly.
+
 ## 0.20.2
 
 - **Fixed.** `memo compile`, `memo validate` and `memo-architect lock` failed with OpenSysML on a large project (`parse binary: Cannot create a string longer than 0x1fffffe8 characters`). The service wrote the project's api-json as one string, which passed Node's limit at about 512 MiB. The project's documents are now converted ten at a time, and a batch that is still too large is halved. The result is the same model. Compact api-json stays off: it needs a newer OpenSysML, and 0.12.1 compiled the same project far slower, which is open on the board.
