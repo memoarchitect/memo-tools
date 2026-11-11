@@ -491,6 +491,8 @@ function overLibrary(library: Stage1Output, project: Stage1Output): Stage1Output
 
 /** The capability that limits a conversion to named documents. */
 const CONVERT_DOCUMENTS = 'convert_documents';
+/** Documents per Convert call: a response is one string, and a large project's whole conversion exceeds V8's string limit. */
+const CONVERT_BATCH = 10;
 /** The capability that answers which documents an edit reached, against a previous model. */
 const PARSE_SOURCES_AFFECTED = 'parse_sources_affected';
 
@@ -587,6 +589,35 @@ async function runStage1(
         // release writes the value; the reader and the capability check stay.
         const compact = false && Boolean(connection.info?.has?.(CONVERT_COMPACT));
         const convert = async (named?: string[]): Promise<ApiElement[] | undefined> => {
+            // The service writes one string per call and Node cannot hold one over ~512 MiB, which a
+            // large project's non-compact api-json passes. Convert the documents in batches, and halve
+            // a batch the string limit still refuses; elements two batches both reach are kept once.
+            if (named && named.length > CONVERT_BATCH) {
+                const merged = new Map<string, ApiElement>();
+                for (let i = 0; i < named.length; i += CONVERT_BATCH) {
+                    const elements = await convertSplitting(named.slice(i, i + CONVERT_BATCH));
+                    if (!elements) return undefined;
+                    for (const element of elements) if (!merged.has(element['@id'])) merged.set(element['@id'], element);
+                }
+                content = undefined;
+                return [...merged.values()];
+            }
+            return named ? convertSplitting(named) : convertOnce(named);
+        };
+        const convertSplitting = async (named: string[]): Promise<ApiElement[] | undefined> => {
+            try {
+                return await convertOnce(named);
+            } catch (error) {
+                if (named.length < 2 || !/string longer than/.test(String(error instanceof Error ? error.message : error))) throw error;
+                const half = Math.ceil(named.length / 2);
+                const first = await convertSplitting(named.slice(0, half));
+                const second = first && await convertSplitting(named.slice(half));
+                if (!first || !second) return undefined;
+                const seen = new Set(first.map(element => element['@id']));
+                return [...first, ...second.filter(element => !seen.has(element['@id']))];
+            }
+        };
+        const convertOnce = async (named?: string[]): Promise<ApiElement[] | undefined> => {
             const converted = await connection.rpc.convert({
                 source: { case: 'modelHash', value: parsed.modelHash }, toFormat: 'api-json',
                 ...(named ? { documents: named } : {}),
