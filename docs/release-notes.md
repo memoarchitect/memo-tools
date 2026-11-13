@@ -2,6 +2,10 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.21.0
+
+- **Breaking, from the ontology.** A model that types an element by `FunctionalAction`, `ActivityAction` or `ActivityFlow` fails to compile; type the step by its function instead. Fixtures are re-frozen for the removal and for `CR-ONT-105`.
+
 ## 0.20.3
 
 - No changes to the tools. The version moves with `@memoarchitect/architect` and `@memoarchitect/ontology`, which pin it exactly.
