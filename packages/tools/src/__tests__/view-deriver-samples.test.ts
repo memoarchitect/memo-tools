@@ -56,19 +56,17 @@ describe('explicit renderer samples', () => {
 
     it('uses the ontology viewpoint binding and authored IDs for views', () => {
         const viewpoint = element('logicalArchitectureViewpoint', 'Viewpoint');
-        viewpoint.attributes = {
-            id: 'VP-LOG',
-            name: 'LogicalArchitectureViewpoint',
-            title: 'Logical Viewpoint',
-        };
+        // A label becomes the element's name, as the builder does it.
+        viewpoint.attributes = { id: 'VP-LOG', label: 'Logical Viewpoint' };
+        viewpoint.name = 'Logical Viewpoint';
         const view = element('gpcaActionFlowView', 'DiagramView');
         view.attributes = {
             id: 'VIEW-BHV-003',
-            name: 'GPCA_InfusionDeliveryActionFlowView',
-            title: 'GPCA Infusion Delivery Action Flow',
+            label: 'GPCA Infusion Delivery Action Flow',
             viewpointDefinition: 'logicalArchitectureViewpoint',
             diagramType: 'afd',
         };
+        view.name = 'GPCA Infusion Delivery Action Flow';
         view.viewShortId = 'ACT-1';
         const elements = toElementIndex([viewpoint, view]);
         const model = {

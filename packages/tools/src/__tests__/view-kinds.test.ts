@@ -90,9 +90,9 @@ describe('KK-1: view-kind taxonomy', () => {
 describe('KK-1: deriveModelViews view kinds', () => {
     it('every derived view resolves to exactly one spec view kind', () => {
         const model = modelOf(
-            el('fmeaView', 'DiagramView', { name: 'FMEA View', viewKind: 'DiagramViewKind::grid', diagramType: 'fmea' }),
-            el('modeView', 'DiagramView', { name: 'Mode View', diagramType: 'stm' }),
-            el('dhfView', 'DocumentView', { name: 'DHF Index', viewKind: 'DocumentViewKind::DHF' }),
+            el('fmeaView', 'DiagramView', { viewKind: 'DiagramViewKind::grid', diagramType: 'fmea' }),
+            el('modeView', 'DiagramView', { diagramType: 'stm' }),
+            el('dhfView', 'DocumentView', { viewKind: 'DocumentViewKind::DHF' }),
         );
         const { diagrams } = deriveModelViews(model);
 
@@ -102,9 +102,9 @@ describe('KK-1: deriveModelViews view kinds', () => {
             expect(isViewKind(d.viewKind!)).toBe(true);
         }
         const byName = new Map(diagrams.map(d => [d.name, d]));
-        expect(byName.get('FMEA View')?.viewKind).toBe('grid');
-        expect(byName.get('Mode View')?.viewKind).toBe('statetransition');
-        expect(byName.get('DHF Index')?.viewKind).toBe('browser');
+        expect(byName.get('fmeaView')?.viewKind).toBe('grid');
+        expect(byName.get('modeView')?.viewKind).toBe('statetransition');
+        expect(byName.get('dhfView')?.viewKind).toBe('browser');
     });
 
     it('inherits an ontology view definition binding after project extensions are applied', () => {
