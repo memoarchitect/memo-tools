@@ -866,6 +866,17 @@ export function capture(fixture) {
  * | gpca | +1 `CR-ONT-104` (warning) on `lfPrescriptionEntry` | The new rule: at least one end of that exchange is in no behaviour. |
  * | gpca | +6 value types (`InfusionRateSetting` and five more) and a constraint on each | `MemoItem.minValue` and `maxValue` were strings; 22 items now hold a `quantity` of a constrained type. |
  * | gpca | +6 `MC-001` (info), those six definitions | As above: declared on the types, with no usage value to check. |
+ *
+ * BASELINE RE-FROZEN 2026-11-12 — gpca only, for the removal of `FunctionalAction`, `ActivityAction` and
+ * `ActivityFlow`. The other fixtures did not move. Compared by leaf name: eleven definitions removed, none added,
+ * no relationship removed.
+ *
+ * | Fixture | Difference | Why |
+ * | --- | --- | --- |
+ * | gpca | −6 action definitions (`AcquireSensorData` … `LogTherapyEvent`) and −5 item definitions (`SensorStatusVector` … `TherapyEventRecord`) | The steps restated six system functions; the items restated the exchange items in gpca_behavior_subsystems. |
+ * | gpca | `infusionDeliveryFlow` ActionUsage → `FunctionalFlow`; it and its six steps layer `unknown` → `functional` | The flow is chain FC-004, and each step subsets the function it performs. |
+ * | gpca | +6 `subsets` (step → function), +6 `performs` (flow → function) | As above. |
+ * | gpca | +5 `CR-ONT-091` (warning) on five steps | Each step's function is safety-critical and no case verifies the step; the existing chains' steps carry the same warning. `logEvent`'s function is not safety-critical. |
  */
 
 if (import.meta.url === `file://${process.argv[1]}`) {

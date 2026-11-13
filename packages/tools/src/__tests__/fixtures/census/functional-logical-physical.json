@@ -4,7 +4,7 @@
     "files": 4,
     "elements": 17,
     "definitions": 1,
-    "relationships": 16,
+    "relationships": 14,
     "packages": 4,
     "parseErrors": 0,
     "builderFindings": 0
@@ -28,15 +28,14 @@
         "ValidationCase": 1,
         "VerificationCase": 2
       },
-      "relationships": 16,
+      "relationships": 14,
       "relationshipTypes": {
         "allocatedTo": 1,
         "composes": 1,
-        "dependency": 2,
         "derivesFrom": 1,
         "performs": 2,
         "producesEvidence": 2,
-        "realizes": 2,
+        "realizedBy": 2,
         "satisfiedBy": 1,
         "subsets": 1,
         "validates": 1,
