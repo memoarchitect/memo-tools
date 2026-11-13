@@ -401,14 +401,6 @@ export function pascalToCamelCase(name: string): string {
     return name[0].toLowerCase() + name.slice(1);
 }
 
-/**
- * Convert PascalCase to a human-readable label.
- * "TraceTo" → "Trace To", "HasSubProcedure" → "Has Sub Procedure"
- */
-export function pascalToLabel(name: string): string {
-    return name.replace(/([a-z])([A-Z])/g, '$1 $2');
-}
-
 /** Strip the `doc /* … *​/` wrapper and per-line asterisks from a doc comment. */
 export function cleanDocComment(content: string): string | undefined {
     const text = content
@@ -601,7 +593,7 @@ export class RelationshipRegistry {
             this.relTypes.set(name, {
                 sysmlName: native.sysmlName,
                 name,
-                label: pascalToLabel(native.sysmlName),
+                label: native.sysmlName,
                 layer: native.layer,
                 description: native.description,
                 nativeKeyword: native.keyword,

@@ -2,6 +2,10 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## Unreleased
+
+- **Changed.** An element's display name is its `@MemoIdentity` label, else its declared name. Item, action and constraint definitions now take their label too, and a `name` or `title` attribute no longer stands in for one: a view or viewpoint is named the same way. A kind's and a relationship's label is the one the ontology states, not one derived from the identifier.
+
 ## 0.21.0
 
 - **Breaking, from the ontology.** A model that types an element by `FunctionalAction`, `ActivityAction` or `ActivityFlow` fails to compile; type the step by its function instead. Fixtures are re-frozen for the removal and for `CR-ONT-105`.

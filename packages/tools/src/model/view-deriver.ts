@@ -389,13 +389,6 @@ export function resolveViewElementIds(
     return [...ids];
 }
 
-/** Human label from a viewpoint reference like "riskViewpoint" → "Risk". */
-function viewpointLabel(ref: string): string {
-    const base = ref.replace(/Viewpoint$/, '');
-    const spaced = base.replace(/([a-z])([A-Z])/g, '$1 $2');
-    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
 /** The name a viewpoint reference ends in: `vpSoS.vpPump` and `pkg::vpPump` are both `vpPump`. */
 const nameOfRef = (ref: string): string => {
     const tail = ref.slice(ref.lastIndexOf('.') + 1);
@@ -465,11 +458,8 @@ function readViewpoint(
     const parent = owner?.construct === 'viewpoint' ? owner : undefined;
     return {
         id: viewpointId(authored, ref),
-        // The label a viewpoint states is `@MemoIdentity`'s, which is the element's name.
-        label: authored?.attributes['title']
-            || authored?.attributes['name']
-            || authored?.attributes['label']
-            || `${viewpointLabel(ref)} Viewpoint`,
+        // Its `@MemoIdentity` label when it states one, else its declared name: the element's name.
+        label: authored?.name || nameOfRef(ref),
         group: authored?.attributes['group'],
         // The viewpoint's own `includedLayers`, as authored. Distinct from
         // the DTO's `visibleLayers`, which is accumulated from the views
@@ -671,7 +661,7 @@ export function deriveModelViews(model: MemoModel, kindRegistry?: KindRegistry):
             elementId: el.id,
             // `name` remains the user-facing title in the transport DTO; the
             // stable authored ID above owns routing and persistence.
-            name: el.attributes['title'] || el.attributes['name'] || el.name,
+            name: el.name,
             diagramType: el.attributes['diagramType'] || 'bdd',
             viewKind,
             viewpointId: vpId,

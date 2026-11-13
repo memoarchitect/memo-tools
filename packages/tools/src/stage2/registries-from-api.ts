@@ -12,7 +12,7 @@ import type { SysMLConstruct } from '../model/config.js';
 import { KindRegistry, type KindRegistryEntry } from '../model/kind-registry.js';
 import { resolveLayerFromPath, resolveNamespaceFromPath, resolveStandardFromPath } from '../model/layer-resolver.js';
 import type { RelationshipEnd, RelationshipRegistryEntry } from '../model/relationship-registry.js';
-import { pascalToCamelCase, pascalToLabel, RelationshipRegistry } from '../model/relationship-registry.js';
+import { pascalToCamelCase, RelationshipRegistry } from '../model/relationship-registry.js';
 import type { MultiplicityDTO } from '../model/relationship-legality.js';
 import type { ApiElement, ApiModel } from './api-model.js';
 import { apiDefinitionFacts } from './build-from-api.js';
@@ -196,7 +196,8 @@ export function apiKindEntries(
             const [superType, ...additional] = superTypes(api, member);
             kinds.push({
                 name: memberName,
-                label: memberName,
+                // Its `@MemoIdentity` label when the ontology states one, else its declared name.
+                label: apiDefinitionFacts(api, member).attributes['label'] || memberName,
                 layer: resolveLayerFromPath(file),
                 sysmlConstruct: construct,
                 superType: superType || undefined,
@@ -238,7 +239,7 @@ export function apiRelationshipEntries(
                 if (sysmlName !== TYPED_DEPENDENCY_MARKER) entries.push({
                     sysmlName,
                     name: pascalToCamelCase(sysmlName),
-                    label: pascalToLabel(sysmlName),
+                    label: apiDefinitionFacts(api, member).attributes['label'] || sysmlName,
                     layer,
                     sysmlConstruct: TYPED_DEPENDENCY_CONSTRUCT,
                     description: docOf(api, member),
@@ -279,7 +280,7 @@ export function apiRelationshipEntries(
             entries.push({
                 sysmlName,
                 name: pascalToCamelCase(sysmlName),
-                label: pascalToLabel(sysmlName),
+                label: apiDefinitionFacts(api, member).attributes['label'] || sysmlName,
                 layer,
                 sysmlConstruct: construct,
                 description: docOf(api, member),

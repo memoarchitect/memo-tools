@@ -313,11 +313,12 @@ class ElementBuilder {
         const superType = this.superTypeName(def);
         const resolved = superType ? this.resolveKind(superType) : undefined;
         const known = resolved?.layer && resolved.layer !== 'unknown';
+        const attributes = this.attributes(def);
         this.define({
-            id: qualifiedId(shortName, packageName, undefined), shortName, name: shortName,
+            id: qualifiedId(shortName, packageName, undefined), shortName, name: displayNameOf(attributes, shortName),
             kind: known ? resolved!.kind! : 'ItemDefinition', construct: 'item', isDefinition: true,
             layer: known ? resolved!.layer! : resolveLayerFromPath(this.file(def)),
-            file: this.file(def), package: packageName || undefined, attributes: this.attributes(def), doc: this.doc(def),
+            file: this.file(def), package: packageName || undefined, attributes, doc: this.doc(def),
         }, def);
     }
 
@@ -329,13 +330,14 @@ class ElementBuilder {
         const resolved = superType ? this.resolveKind(superType) : undefined;
         const known = resolved?.layer && resolved.layer !== 'unknown';
         const parameters = this.parameters(def);
+        const attributes = this.attributes(def);
         this.define({
-            id, shortName, name: shortName,
+            id, shortName, name: displayNameOf(attributes, shortName),
             kind: known ? resolved!.kind! : behaviorKind === 'function' ? 'FunctionDefinition' : 'ActionDefinition',
             construct: 'action', isDefinition: true,
             layer: known ? resolved!.layer! : resolveLayerFromPath(this.file(def)),
             file: this.file(def), package: packageName || undefined,
-            attributes: { ...this.attributes(def), behaviorKind }, doc: this.doc(def),
+            attributes: { ...attributes, behaviorKind }, doc: this.doc(def),
             parameters: parameters.length > 0 ? parameters : undefined,
         }, def);
         this.behaviorBody(def, packageName, id);
@@ -1547,7 +1549,7 @@ class ElementBuilder {
         if (!declared) attributes.positional = 'true';
         const owner = ownerId ? this.elements.get(ownerId) : undefined;
         this.define({
-            id, shortName, name: shortName, kind: metaclass, construct: 'constraint',
+            id, shortName, name: displayNameOf(this.attributes(node), shortName), kind: metaclass, construct: 'constraint',
             layer: owner?.layer ?? resolveLayerFromPath(this.file(node)),
             file: this.file(node), package: packageName || undefined, attributes, doc: this.doc(node),
             isDefinition: metaclass === 'ConstraintDefinition' ? true : undefined, owner: ownerId,
@@ -1597,7 +1599,7 @@ const CONTROL_METACLASS_KINDS: Record<string, string> = {
 };
 
 function displayNameOf(attributes: Record<string, string>, shortName: string): string {
-    return attributes['label'] || attributes['name'] || attributes['title'] || shortName;
+    return attributes['label'] || shortName;
 }
 
 /**

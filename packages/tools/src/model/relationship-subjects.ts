@@ -57,7 +57,7 @@ function subjectConstruct(
 /** A subject's display name, by the precedence an element's has. */
 function subjectName(relationship: MemoRelationship): string {
     const attributes = relationship.attributes ?? {};
-    return attributes['label'] || attributes['name'] || attributes['title'] || relationship.shortName || relationship.id;
+    return attributes['label'] || relationship.shortName || relationship.id;
 }
 
 /**
