@@ -41,6 +41,7 @@ import { ProjectNamesUserSettingError } from '../toolchain/ownership.js';
 import { setCommandLineToolchain } from '../model/config-loader.js';
 import { warnOnPinMismatch } from '../pin-check.js';
 import { toolchainOverridesFromCliOptions } from '../toolchain/schema.js';
+import { nodeSecurityWarning } from '../model/content-store.js';
 
 const program = new Command();
 
@@ -214,6 +215,10 @@ program.hook('preAction', (_program, action) => {
 // A stage 1 that rejects the source is a verdict on the model, not a crash:
 // every command that loads one reports its diagnostics and fails, as
 // `memo validate` does. Anything else is still a crash, with its stack.
+// A Node missing a security release still runs; the warning says what to update.
+const nodeWarning = nodeSecurityWarning();
+if (nodeWarning) console.warn(`⚠️  ${nodeWarning}`);
+
 program.parseAsync().catch((error: unknown) => {
     // So is a project whose settings name no compiler: MEMO chooses none.
     if (error instanceof Stage1RejectedError || error instanceof ToolchainNotConfiguredError || error instanceof UnknownProviderError || error instanceof ProjectNamesUserSettingError) {

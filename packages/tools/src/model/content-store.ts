@@ -5,7 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { discoverMemoManifests, type LoadedMemoManifest } from './manifest.js';
 
 interface ToolsPackageMetadata {
-    memo?: { contentPackage?: string };
+    memo?: {
+        contentPackage?: string;
+        /** The patched minimum of each Node line, from the latest Node security release, and where it is announced. */
+        nodeSecurity?: { advisory: string; patched: Record<string, string> };
+    };
     dependencies?: Record<string, string>;
 }
 
@@ -22,6 +26,27 @@ function packageMetadata(): ToolsPackageMetadata {
         dir = parent;
     }
     throw new Error('Could not locate the @memoarchitect/tools package manifest.');
+}
+
+const versionParts = (version: string): number[] => version.replace(/^v/, '').split('.').map(part => Number.parseInt(part, 10) || 0);
+const olderThan = (a: string, b: string): boolean => {
+    const [x, y] = [versionParts(a), versionParts(b)];
+    for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0);
+    return false;
+};
+
+/**
+ * A warning when this Node is older than the patched release of its line, else nothing. It never stops a
+ * command: an unsupported Node is what `engines` refuses, and a missing security patch is the machine's to fix.
+ */
+export function nodeSecurityWarning(version: string = process.versions.node): string | undefined {
+    const security = packageMetadata().memo?.nodeSecurity;
+    if (!security) return undefined;
+    const line = String(versionParts(version)[0]);
+    const patched = security.patched[line];
+    if (!patched || !olderThan(version, patched)) return undefined;
+    return `Node.js ${version} is missing a security release: update to ${patched} or later, then restart MEMO `
+        + `(a running \`memo-architect dev\` too). ${security.advisory}`;
 }
 
 export function contentPackageName(): string {

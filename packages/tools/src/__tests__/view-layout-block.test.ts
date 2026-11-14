@@ -211,14 +211,14 @@ it('keeps a connector\'s ends as one token, last in the view, and reads a layout
 
 it('writes a pin under its connector\'s shortest unique name and reads it back whole', async () => {
     const { portKeyCodec } = await import('../server/view-layout-store.js');
-    const ids = ['hw::rfg::gen', 'ifc_rfg::Catheter', 'ifc_rfg::Encoder', 'ifc_ims::Catheter'];
+    const ids = ['hw::pump::controller', 'ifc_pump::Line', 'ifc_pump::Encoder', 'ifc_monitor::Line'];
     const codec = portKeyCodec({ elements: Object.fromEntries(ids.map(id => [id, {}])) });
-    expect(codec.shorten('ifc_rfg::Encoder::knob')).toBe('Encoder::knob');
-    expect(codec.expand('Encoder::knob')).toBe('ifc_rfg::Encoder::knob');
-    expect(codec.shorten('ifc_rfg::Catheter::rfPin')).toBe('ifc_rfg::Catheter::rfPin');
-    expect(codec.expand('Catheter::rfPin')).toBe('Catheter::rfPin');
+    expect(codec.shorten('ifc_pump::Encoder::knob')).toBe('Encoder::knob');
+    expect(codec.expand('Encoder::knob')).toBe('ifc_pump::Encoder::knob');
+    expect(codec.shorten('ifc_pump::Line::fluidPin')).toBe('ifc_pump::Line::fluidPin');
+    expect(codec.expand('Line::fluidPin')).toBe('Line::fluidPin');
     expect(codec.shorten('unknown::x')).toBe('unknown::x');
-    const layout = { nodes: { 'hw::rfg::gen': { x: 0, y: 0, ports: { 'ifc_rfg::Encoder::knob': { x: 1, y: 2 } } } }, edges: {} } as unknown as DiagramLayout;
+    const layout = { nodes: { 'hw::pump::controller': { x: 0, y: 0, ports: { 'ifc_pump::Encoder::knob': { x: 1, y: 2 } } } }, edges: {} } as unknown as DiagramLayout;
     const text = replaceViewLayout(SOURCE, 'outer::inner::overview', layout, codec.shorten)!;
     expect(text).toContain('portName = "Encoder::knob"');
 });

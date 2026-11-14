@@ -4,6 +4,7 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breakin
 
 ## Unreleased
 
+- **Added.** `memo` and `memo-architect` warn, and still run, when Node.js is older than the patched release of its line in the latest Node.js security announcement (`memo.nodeSecurity` in the package manifest; 26.13.1, 24.22.3 and 22.23.5 for November 2026).
 - **Changed.** An element's display name is its `@MemoIdentity` label, else its declared name. Item, action and constraint definitions now take their label too, and a `name` or `title` attribute no longer stands in for one: a view or viewpoint is named the same way. A kind's and a relationship's label is the one the ontology states, not one derived from the identifier.
 
 ## 0.21.0
@@ -70,7 +71,7 @@ Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breakin
 ## 0.16.5
 
 - **Saved layouts (tools).** A port, or a port wall, that a view's layout names by its declared name is matched to the port it names. Before, an authored boundary-port position was ignored and the port fell back to automatic placement.
-- **IBD (architect).** A connector to a connector-typed port reaches it: the pins' body carries the handles a plain port has, and a flow written to `connector.pin` ends on that pin. Before, every connector to a return electrode, catheter or panel-LED connector failed to draw. A saved connector route whose ends no longer meet its ports is routed again instead of hanging in empty space.
+- **IBD (architect).** A connector to a connector-typed port reaches it: the pins' body carries the handles a plain port has, and a flow written to `connector.pin` ends on that pin. Before, every connector to a connector-typed port failed to draw. A saved connector route whose ends no longer meet its ports is routed again instead of hanging in empty space.
 - **Diagram toolbar (architect).** The IBD routing controls are icon tiles in the toolbar's own grid, with an opt-in compact mode that hides the group captions.
 
 ## 0.16.4
