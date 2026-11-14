@@ -1,3 +1,4 @@
+import { functionalDisplayIds, functionalScope } from '../model/functional-scope.js';
 // ─── The Guide for one workspace, from a built project ───────────────────────
 //
 // The steps come from the methodologies in the effective chain (read from the handoff), the findings from
@@ -6,8 +7,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { BuilderRegistries } from '../model/complete-model.js';
-import type { MemoModel } from '../model/semantic.js';
-import { computeWorkspaceMembership, selectWorkspace } from '../model/workspace-membership.js';
+import { modelToDTO, type MemoModel } from '../model/semantic.js';
+import { computeWorkspaceMembership, selectWorkspace, workspaceMembershipToDTO } from '../model/workspace-membership.js';
 import { readGuideSources, type GuideLayer, type GuideRoleView } from '../stage2/guide-from-api.js';
 import type { ApiModel } from '../stage2/api-model.js';
 import type { CompiledConstraint } from '../validator/constraint-eval.js';
@@ -46,9 +47,18 @@ export function evaluateWorkspaceGuide(input: GuideServiceInput): GuideResult {
 
     let workspace;
     if (input.workspace) {
-        const selection = selectWorkspace(model, computeWorkspaceMembership(model, registries), input.workspace);
+        const membership = computeWorkspaceMembership(model, registries);
+        const selection = selectWorkspace(model, membership, input.workspace);
         if (!selection.ok) return { ...base, error: selection.message };
-        workspace = selection.scope;
+        const dto = modelToDTO(model, {
+            registries: { kinds: registries.kindRegistry?.toDefinitionDTOs() ?? [], relationships: registries.relationshipRegistry?.toDefinitionDTOs() ?? [] },
+            workspaceMembership: workspaceMembershipToDTO(membership, model),
+        });
+        const scope = functionalScope(dto, selection.scope.root);
+        const subjects = functionalDisplayIds(dto, selection.scope.root, selection.scope.subjects);
+        // Context preserves a drawing's path, but is not this team's own work for completion checks.
+        for (const id of scope.context) subjects.delete(id);
+        workspace = { ...selection.scope, subjects, foreign: new Set([...model.elements.keys()].filter(id => !subjects.has(id))) };
     }
     const validation = validateModel(model, [...constraints], registries.kindRegistry, undefined, undefined, workspace, undefined, registries.relationshipRegistry);
     const evaluation = evaluateGuide({

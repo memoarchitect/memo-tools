@@ -59,6 +59,8 @@ export interface GuideLayer {
     axis?: string;
     /** The stages whose steps it holds. */
     stages: string[];
+    /** Kinds worked in the layer, including specializations, independent of step completion. */
+    elementKinds?: string[];
     /** The viewpoints its views are made in, in order: the name each is written with, its label and its view kind. */
     viewpoints: GuideLayerViewpoint[];
     standardReference?: string;
@@ -153,6 +155,7 @@ export function readGuideSources(api: ApiModel, packages: readonly string[]): Gu
                 layers.push({
                     id, name, label: facts.attributes.label ?? name, purpose: facts.doc,
                     axis: reader.attr(member, 'axis'), stages: reader.attrList(member, 'stages').map(lastSegment),
+                    elementKinds: reader.attrList(member, 'elementKinds'),
                     viewpoints: reader.refList(member, 'layerViewpoints').map(qualified => {
                         const viewpoint = api.resolve(qualified);
                         const name = lastSegment(qualified);

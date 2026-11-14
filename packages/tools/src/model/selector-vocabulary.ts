@@ -86,6 +86,7 @@ const SELECTORS: readonly SelectorSpec[] = [
     // never declared is a step that can never be done, and nothing else would say so.
     { attribute: 'inputKinds', vocabulary: 'kind' },
     { attribute: 'outputKinds', vocabulary: 'kind' },
+    { attribute: 'elementKinds', vocabulary: 'kind' },
 ];
 
 /** A selector naming something no registry declares. */

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { indexKinds, kindConformsTo } from '../model/relationship-legality.js';
 import { readGuideSources } from '../stage2/guide-from-api.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
@@ -65,6 +66,14 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
                 'assurance:Requirements', 'assurance:Safety and risk', 'assurance:Cybersecurity', 'assurance:Human factors',
                 'assurance:Verification and validation',
             ]);
+            const registry = project.registries!.kindRegistry!.entries().map(kind => ({ ...kind, construct: kind.sysmlConstruct }));
+            const hierarchy = indexKinds(registry);
+            const mapped = layers.flatMap(layer => layer.elementKinds ?? []);
+            const architecturalKinds = registry.filter(kind => ['architecture', 'assurance'].includes(kind.namespace?.[0] ?? '') && !['enum def', 'attribute def', 'metadata def'].includes(kind.construct));
+            expect(architecturalKinds.length).toBeGreaterThan(100);
+            expect(architecturalKinds.filter(kind => !mapped.some(base => kindConformsTo(kind.name, base, hierarchy))).map(kind => kind.name)).toEqual([]);
+            expect(layers.find(l => l.name === 'layerFunctional')!.elementKinds).toEqual(expect.arrayContaining(['MemoFunction', 'ComponentFunction', 'FunctionalFlow']));
+            expect(layers.find(l => l.name === 'layerOperational')!.elementKinds).toEqual(expect.arrayContaining(['ClinicalUseCase', 'SystemUseCase', 'ClinicalWorkflow', 'SystemWorkflow', 'OperativeScenario']));
             expect(layers.find(l => l.name === 'layerLogical')).toMatchObject({
                 purpose: 'How the system will work.', stages: ['logical'],
             });

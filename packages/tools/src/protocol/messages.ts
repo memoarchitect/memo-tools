@@ -542,6 +542,8 @@ export interface ElementCreateMessage {
         name: string;
         kind: string;
         construct: string;
+        /** Server-owned native functional structure creation; id is empty until compilation. */
+        functionContext?: { workspace: string; componentId?: string; componentSourceHash?: string };
         attributes?: Record<string, string>;
         precondition: ModelMutationPrecondition;
     };

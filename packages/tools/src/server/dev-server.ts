@@ -1,3 +1,4 @@
+import { createFunction } from './function-writer.js';
 // ─── Dev Server ──────────────────────────────────────────────────────────────
 //
 // HTTP server with:
@@ -1665,6 +1666,17 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // edits next is the one this write produced. The file
                     // watcher still publishes the model.
                     // A new element imports its kind when the file cannot see it; an update never changes imports.
+                    if (msg.type === 'element:create' && msg.payload?.functionContext) {
+                        const result = await createFunction(projectRoot, currentModel()!, msg.payload.functionContext,
+                            msg.payload.name ?? '', (await authoringContext()).outlines, precondition.sourceFile);
+                        if (result.success) {
+                            const transactions = (result.sourceFiles ?? [result.filePath]).map(file => recordWriteTransaction(file, readFileSync(resolve(projectRoot, file), 'utf8')));
+                            const transactionId = transactions[0];
+                            writeBackIndex = addressable((await recompileProject(await authoringContext())).index);
+                            reply({ ...result, sourceFile: result.filePath, transactionId });
+                        } else reply(result);
+                        return;
+                    }
                     const request = msg.type === 'element:create' && msg.payload?.kind && options.kindDefinition
                         ? { ...msg.payload, kindDefinition: options.kindDefinition(msg.payload.kind) } : msg.payload;
                     const result = await writeElement(await authoringContext(), request);

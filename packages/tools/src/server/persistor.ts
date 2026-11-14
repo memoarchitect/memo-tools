@@ -306,7 +306,15 @@ export async function commitSource(
     others?: ReadonlyMap<string, string>,
     /** The project root `others` are named relative to in the verdict. */
     root?: string,
+    /** Exact source snapshots used to construct the edit, including absence for a newly created file. */
+    expectedSources?: ReadonlyMap<string, string | undefined>,
 ): Promise<{ success: boolean; error?: string }> {
+    const files = new Map<string, string>([[absolutePath, updated], ...(others ?? [])]);
+    const before = new Map<string, string | undefined>();
+    try {
+        for (const path of files.keys()) before.set(path, expectedSources?.has(path)
+            ? expectedSources.get(path) : existsSync(path) ? readFileSync(path, 'utf8') : undefined);
+    } catch (error) { return { success: false, error: `Could not read ${relativePath}: ${String(error)}` }; }
     const also = others && root
         ? new Map([...others].map(([path, text]) => [relative(root, path).replaceAll('\\', '/'), text] as const))
         : undefined;
@@ -318,12 +326,15 @@ export async function commitSource(
             error: `The updated source was not accepted (${e instanceof Error ? e.message : String(e)}); ${relativePath} was left unchanged.`,
         };
     }
-    // What each file held, or undefined when the write creates it.
-    const before = new Map<string, string | undefined>();
-    const files = new Map<string, string>([[absolutePath, updated], ...(others ?? [])]);
+    // Verification awaits the compiler. Refuse all writes if any source changed during that interval.
+    try {
+        for (const [path, original] of before) {
+            const current = existsSync(path) ? readFileSync(path, 'utf8') : undefined;
+            if (current !== original) return { success: false, error: `${root ? relative(root, path) : relativePath} changed while the edit was checked; no files were written.` };
+        }
+    } catch (error) { return { success: false, error: `Could not check ${relativePath}: ${String(error)}` }; }
     try {
         for (const [path, text] of files) {
-            before.set(path, existsSync(path) ? readFileSync(path, 'utf8') : undefined);
             atomicWrite(path, text);
         }
     } catch (e) {

@@ -61,3 +61,6 @@ export type {
     DhfDocument, DhfBlock, DhfDocumentSection, DhfFrontmatter, DhfInline, DhfImage, DhfCell, DhfRow,
 } from '../dhf/document-ir.js';
 export * from '../model/variant-overlay.js';
+
+export { functionalStructure } from '../model/functional-structure.js';
+export { functionalScope, functionalScopes, functionalDisplayIds } from '../model/functional-scope.js';
