@@ -63,6 +63,11 @@ const METADATA_KEY_ALIASES: Record<string, Record<string, string>> = {
     Rationale: { text: 'rationale' },
 };
 
+/** Usages that MEMO holds as relationships, not elements: a chain ending on one names the relationship. */
+const RELATIONSHIP_USAGES = new Set([
+    'FlowUsage', 'SuccessionFlowUsage', 'ConnectionUsage', 'InterfaceUsage', 'AllocationUsage', 'BindingConnectorAsUsage',
+]);
+
 const lastSegment = (qualifiedName: string) => {
     const at = qualifiedName.lastIndexOf('::');
     return at < 0 ? qualifiedName : qualifiedName.slice(at + 2);
@@ -906,7 +911,18 @@ class ElementBuilder {
         const head = this.api.qualifiedName(steps[0]['@id']);
         const reference = head && this.elements.has(head) ? [head, ...names.slice(1)].join('.') : names.join('.');
         const walked = this.elements.resolvePath(reference, context);
-        if (walked.element) return options.throughTypes ? this.throughTypes(walked) : { id: walked.id, end: walked.end };
+        if (walked.element) {
+            // A chain that ends on a named flow or connection names that relationship, not the element that
+            // owns it: `allocate path.hop to carrier` allocates the hop. Walking stops at `path` because a
+            // flow is a relationship, not an element, and would otherwise allocate the whole path.
+            const last = steps[steps.length - 1];
+            if (walked.end && RELATIONSHIP_USAGES.has(String(last['@type']))) {
+                const named = this.api.qualifiedName(last['@id']);
+                const relationship = named ? this.elements.lookupRelationship(named, context) : undefined;
+                if (relationship) return { id: relationship.id, end: '' };
+            }
+            return options.throughTypes ? this.throughTypes(walked) : { id: walked.id, end: walked.end };
+        }
         if (walked.ambiguous) return { end: '' };
         // A named flow or connection is an identity too.
         const asRelationship = this.elements.lookupRelationship(head ?? names.join('.'), context)
