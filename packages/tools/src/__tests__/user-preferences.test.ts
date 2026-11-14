@@ -133,6 +133,16 @@ describe('project defaults and personal overrides', () => {
         expect(loadUserPreferences(dir)).toEqual({ ...choices, features: ['guide'], packageFolders: false });
     });
 
+    it.each(['workspace', 'role', 'explorerSplit'] as const)('lets a person clear a project default for %s', key => {
+        const dir = project(`preferences:\n  ${key}: model::default\n`);
+        expect(loadUserPreferences(dir)).toEqual({ [key]: 'model::default' });
+        saveUserPreferences(dir, {});
+        expect(loadUserPreferences(dir)).toEqual({});
+        expect(readFileSync(join(dir, USER_PREFERENCES_FILE), 'utf8')).toContain(`${key}: null`);
+        saveUserPreferences(dir, { [key]: 'model::other' });
+        expect(loadUserPreferences(dir)).toEqual({ [key]: 'model::other' });
+    });
+
     it('lets a person show package folders the project hides', () => {
         const dir = project('preferences:\n  packageFolders: false\n');
         saveUserPreferences(dir, { packageFolders: true });

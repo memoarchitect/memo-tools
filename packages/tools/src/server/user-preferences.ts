@@ -65,6 +65,10 @@ export function loadUserPreferences(projectRoot: string): UserPreferencesDTO {
     // Explicit "none" choices are dropped by clean(); a user key that is present still overrides the project.
     if (Array.isArray(parsed.features) && parsed.features.length === 0) delete merged.features;
     if (parsed.packageFolders === true) delete merged.packageFolders;
+    // A cleared scalar overrides a project default (for example Whole model vs a default system).
+    for (const key of ['role', 'workspace', 'explorerSplit'] as const) {
+        if (Object.hasOwn(parsed, key) && parsed[key] === null) delete merged[key];
+    }
     return merged;
 }
 
@@ -136,7 +140,7 @@ export function saveUserPreferences(projectRoot: string, preferences: UserPrefer
         const mine = next[key];
         const theirs = defaults[key];
         if (JSON.stringify(mine ?? null) === JSON.stringify(theirs ?? null)) { delete out[key]; continue; }
-        if (mine === undefined) out[key] = key === 'features' ? [] : key === 'packageFolders' ? true : undefined;
+        if (mine === undefined) out[key] = key === 'features' ? [] : key === 'packageFolders' ? true : null;
     }
     ensureGitIgnored(projectRoot, USER_PREFERENCES_FILE, 'MEMO Architect: your own choices for this model');
     writeFileSync(resolve(projectRoot, USER_PREFERENCES_FILE), HEADER + stringifyYaml(out), 'utf8');
