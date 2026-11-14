@@ -126,6 +126,13 @@ describe('project defaults and personal overrides', () => {
         expect(loadUserPreferences(dir)).toEqual({ role: 'safetyEngineer', features: ['guide'] });
     });
 
+    it('keeps Pathways choices alongside project defaults and favorites', () => {
+        const dir = project('preferences:\n  features: [guide]\n  packageFolders: false\n');
+        const choices = { pathways: false, lastStep: 'method::step', favorites: [{ type: 'view' as const, ref: 'model::view' }] };
+        saveUserPreferences(dir, { ...choices, features: ['guide'], packageFolders: false });
+        expect(loadUserPreferences(dir)).toEqual({ ...choices, features: ['guide'], packageFolders: false });
+    });
+
     it('lets a person show package folders the project hides', () => {
         const dir = project('preferences:\n  packageFolders: false\n');
         saveUserPreferences(dir, { packageFolders: true });

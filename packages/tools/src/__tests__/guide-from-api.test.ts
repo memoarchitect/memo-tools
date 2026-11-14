@@ -69,10 +69,10 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
                 purpose: 'How the system will work.', stages: ['logical'],
             });
             expect(layers.find(l => l.name === 'layerLogical')!.viewpoints).toEqual([
-                { name: 'vpLogicalArchitecture', label: 'Logical architecture', viewKind: 'general' },
-                { name: 'vpInternalInterconnection', label: 'Internal interconnection', viewKind: 'interconnection' },
-                { name: 'vpSequenceInteraction', label: 'Sequence interaction', viewKind: 'sequence' },
-                { name: 'vpStateMode', label: 'State and mode', viewKind: 'statetransition' },
+                { id: 'memo_viewpoints_catalog::vpLogicalArchitecture', name: 'vpLogicalArchitecture', label: 'Logical architecture', viewKind: 'general' },
+                { id: 'memo_viewpoints_catalog::vpInternalInterconnection', name: 'vpInternalInterconnection', label: 'Internal interconnection', viewKind: 'interconnection' },
+                { id: 'memo_viewpoints_catalog::vpSequenceInteraction', name: 'vpSequenceInteraction', label: 'Sequence interaction', viewKind: 'sequence' },
+                { id: 'memo_viewpoints_catalog::vpStateMode', name: 'vpStateMode', label: 'State and mode', viewKind: 'statetransition' },
             ]);
             expect(layers.find(l => l.name === 'disciplineSafetyRisk')).toMatchObject({ standardReference: 'ISO 14971', stages: ['risk'], importable: true });
             expect(layers.find(l => l.name === 'disciplineCybersecurity')!.importable).toBe(false);

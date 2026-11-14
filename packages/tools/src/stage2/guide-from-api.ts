@@ -39,6 +39,8 @@ export interface GuideStep {
 }
 
 export interface GuideLayerViewpoint {
+    /** The viewpoint's qualified name, used when authoring a native view. */
+    id: string;
     name: string;
     label: string;
     /** The standard SysML v2 view kind it resolves to by default (`general`, `interconnection`, …). */
@@ -155,6 +157,7 @@ export function readGuideSources(api: ApiModel, packages: readonly string[]): Gu
                         const viewpoint = api.resolve(qualified);
                         const name = lastSegment(qualified);
                         return {
+                            id: qualified,
                             name, label: (viewpoint && apiDefinitionFacts(api, viewpoint).attributes.label) || name,
                             viewKind: viewpoint ? reader.attr(viewpoint, 'defaultViewKind') : undefined,
                         };
