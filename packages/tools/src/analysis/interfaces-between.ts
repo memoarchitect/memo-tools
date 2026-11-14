@@ -40,8 +40,11 @@ export interface InterfaceBetween {
     /** Ends in declaration order; `from` is the interface's source end. */
     from: InterfaceEnd;
     to: InterfaceEnd;
-    /** The flows that run over it and the item each carries, when it names or implies one. */
-    carries: { flowId: string; item?: string }[];
+    /**
+     * What moves over it: the flows drawn between its ports, and the flows allocated to it (a hop of a
+     * signal's path, carried by this interface), each with the item it carries when it names or implies one.
+     */
+    carries: { flowId: string; item?: string; allocated?: boolean }[];
     /** True when the interface runs from the second element to the first. */
     reversed: boolean;
 }
@@ -149,6 +152,19 @@ export function interfacesBetween(
         return undefined;
     };
 
+    /** The flows allocated to each interface, by interface id, built on first use. */
+    let hopIndex: Map<string, MemoRelationship[]> | undefined;
+    const hopsAllocatedTo = () => {
+        if (hopIndex) return hopIndex;
+        const flows = new Map(model.relationships.filter(r => r.type === 'flow').map(r => [r.id, r]));
+        hopIndex = new Map();
+        for (const allocation of model.relationships) {
+            const flow = allocation.type === 'allocatedTo' ? flows.get(allocation.sourceId) : undefined;
+            if (flow) hopIndex.set(allocation.targetId, [...(hopIndex.get(allocation.targetId) ?? []), flow]);
+        }
+        return hopIndex;
+    };
+
     const found: InterfaceBetween[] = [];
     for (const relationship of model.relationships) {
         if ((relationship.type !== 'interface' && relationship.type !== 'connect') || !matchesKind(relationship)) continue;
@@ -164,7 +180,10 @@ export function interfacesBetween(
             attributes: Object.fromEntries(Object.entries(relationship.attributes ?? {}).filter(([key]) => key !== 'label')),
             from,
             to,
-            carries: flowsOver(relationship, model.relationships).map(flow => ({ flowId: flow.id, item: carriedItem(flow, id => model.elements[id]) })),
+            carries: [
+                ...flowsOver(relationship, model.relationships).map(flow => ({ flowId: flow.id, item: carriedItem(flow, id => model.elements[id]) })),
+                ...(hopsAllocatedTo().get(relationship.id) ?? []).map(flow => ({ flowId: flow.id, item: carriedItem(flow, id => model.elements[id]), allocated: true })),
+            ],
             reversed: from.ownerId === b,
         });
     }

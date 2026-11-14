@@ -73,3 +73,17 @@ describe('interfacesBetween', () => {
         expect(interfacesBetween(model(), 'nav', 'safety', { kind: 'SoftwareInterface', kindConforms: conforms })).toEqual([]);
     });
 });
+
+describe('what an interface carries', () => {
+    it('lists the signal hops allocated to it, with their item', () => {
+        const traced = model();
+        traced.elements.read = { ...el('read'), construct: 'action', parameters: [{ name: 'sample', direction: 'out', type: 'P::Sample' }] } as MemoElement;
+        traced.elements.filter = { ...el('filter'), construct: 'action', parameters: [{ name: 'sample', direction: 'in', type: 'P::Sample' }] } as MemoElement;
+        traced.relationships.push(
+            { id: 'path::hop', type: 'flow', sourceId: 'read', sourceEnd: 'sample', targetId: 'filter', targetEnd: 'sample', file: '' },
+            { id: 'a1', type: 'allocatedTo', sourceId: 'path::hop', targetId: 'topic1', sourceEnd: 'source', targetEnd: 'target', file: '' },
+        );
+        const topic = interfacesBetween(traced, 'lidar', 'nav').find(f => f.id === 'topic1');
+        expect(topic?.carries).toContainEqual({ flowId: 'path::hop', item: 'Sample', allocated: true });
+    });
+});
