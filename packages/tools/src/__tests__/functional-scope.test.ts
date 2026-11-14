@@ -38,6 +38,16 @@ describe('allocation boundaries in a functional decomposition', () => {
         expect(scope.members.has('foreignChild')).toBe(true);
         expect(scope.shared.has('foreignChild')).toBe(true);
     });
+    it('keeps the system-of-systems unassigned group visible without adopting it as local responsibility', () => {
+        const source = model(); source.elements.stray = { ...source.elements.local, id: 'stray' };
+        source.workspaceMembership!.membership.stray = [];
+        source.workspaceMembership!.unassigned.push('stray');
+        const scope = functionalScope(source, 'SoS');
+        expect(scope.unassigned.has('stray')).toBe(true);
+        expect(functionalDisplayIds(source, 'SoS', new Set(['stray'])).has('stray')).toBe(true);
+        expect(functionalStructure(source, 'SoS').candidates.some(element => element.id === 'stray')).toBe(false);
+        expect(functionalScope(source, 'A').visible.has('stray')).toBe(false);
+    });
     it('creates a distinct system root instead of adopting a shared global function or a definition', () => {
         const source = model(); source.elements.reusable = { ...source.elements.local, id: 'reusable', isDefinition: true };
         source.relationships.push({ id: 'defAlloc', type: 'allocatedTo', sourceId: 'reusable', targetId: 'a' } as never);

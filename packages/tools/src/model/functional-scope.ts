@@ -89,8 +89,10 @@ export function functionalScope(model: MemoModelDTO, workspace: string) {
         if (!members.has(parent)) context.add(parent);
         if (!visited.has(parent)) { visited.add(parent); queue.push(parent); }
     }
-    const visible = new Set([...members, ...context]);
-    return { ...scopes, members, shared, context, visible };
+    const unassigned = model.workspaceMembership?.workspaces.find(candidate => candidate.root === workspace)?.scope === 'sos'
+        ? new Set((model.workspaceMembership.unassigned ?? []).filter(id => scopes.functions.has(id))) : new Set<string>();
+    const visible = new Set([...members, ...context, ...unassigned]);
+    return { ...scopes, members, shared, context, unassigned, visible };
 }
 
 /** Refine a display workspace without changing its authored allocation or membership data. */
