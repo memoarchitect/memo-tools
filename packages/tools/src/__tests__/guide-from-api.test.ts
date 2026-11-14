@@ -73,6 +73,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
                 { id: 'memo_viewpoints_catalog::vpInternalInterconnection', name: 'vpInternalInterconnection', label: 'Internal interconnection', viewKind: 'interconnection' },
                 { id: 'memo_viewpoints_catalog::vpSequenceInteraction', name: 'vpSequenceInteraction', label: 'Sequence interaction', viewKind: 'sequence' },
                 { id: 'memo_viewpoints_catalog::vpStateMode', name: 'vpStateMode', label: 'State and mode', viewKind: 'statetransition' },
+                { id: 'memo_viewpoints_logical_logical_viewpoint::logicalArchitectureViewpoint', name: 'logicalArchitectureViewpoint', label: 'Logical architecture views', viewKind: undefined },
             ]);
             expect(layers.find(l => l.name === 'disciplineSafetyRisk')).toMatchObject({ standardReference: 'ISO 14971', stages: ['risk'], importable: true });
             expect(layers.find(l => l.name === 'disciplineCybersecurity')!.importable).toBe(false);

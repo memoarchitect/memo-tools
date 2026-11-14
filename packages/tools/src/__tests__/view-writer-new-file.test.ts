@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { writeViewDeclaration } from '../server/view-writer.js';
+import { updateViewExpose, writeViewDeclaration } from '../server/view-writer.js';
 import type { OutlineSource } from '../authoring/outline-source.js';
 
 // A view that needs a file of its own is written in one piece. Writing the package first and the view into it
@@ -62,6 +62,50 @@ describe('declaring a view in a new file', () => {
         expect(text).toContain('package plant_views_needs_to_requirements {\n    private import memo::*;\n    view needsToRequirements : MemoTraceabilityMatrixView {');
         expect(text).toContain('        attribute :>> query = "kind: Need";');
         expect(text.trimEnd().endsWith('    }\n}')).toBe(true);
+    });
+
+    it('anchors the first view to a selected project element and declares a palette from the method', async () => {
+        const { root, model } = project();
+        model.diagrams = [];
+        mkdirSync(join(root, 'model/catalog'), { recursive: true });
+        writeFileSync(join(root, 'model/catalog/system.sysml'), 'package plant { private import memo::*; part def SystemA; }');
+        model.elements['plant::SystemA'] = { id: 'plant::SystemA', name: 'System A', kind: 'System', package: 'plant', file: 'model/catalog/system.sysml', attributes: {} };
+        const { calls, outlines } = countingOutlines();
+        const result = await writeViewDeclaration(root, model, {
+            name: 'System A architecture', diagramType: 'bdd', viewKind: 'general',
+            viewpointId: 'memo_viewpoints_catalog::vpLogicalArchitecture', elementIds: ['plant::SystemA'], elementKinds: ['LogicalComponent', 'LogicalPort'], properties: { autoPopulate: 'false' },
+        }, outlines);
+        expect(result).toMatchObject({ success: true, created: true });
+        expect(calls).toEqual({ outline: 0, verify: 1 });
+        const text = readFileSync(join(root, result.filePath!), 'utf8');
+        expect(text).toContain('private import memo_viewpoints_definitions::*;');
+        expect(text).toContain('expose plant::SystemA;');
+        expect(text).toContain('attribute :>> autoPopulate = false;');
+        expect(text).not.toContain('expose plant::*;');
+        expect(text).toContain('ref :>> viewpointDefinition = memo_viewpoints_catalog::vpLogicalArchitecture;');
+        expect(text).toContain('includeElementKinds = ("LogicalComponent", "LogicalPort")');
+        expect(text).not.toContain('providedId');
+    });
+
+    it('keeps manual membership exact when adding and removing elements', async () => {
+        const { root, model } = project();
+        const file = 'model/views/manual.sysml';
+        const viewId = 'plant_views::manual';
+        writeFileSync(join(root, file), 'package plant_views {\n    view manual : MemoDiagramView {\n        expose plant::host;\n        attribute :>> autoPopulate = false;\n    }\n}\n');
+        model.elements[viewId] = { id: viewId, file, package: 'plant_views', attributes: { autoPopulate: 'false' } };
+        for (const name of ['host', 'selected', 'unrelated']) model.elements[`plant::${name}`] = { id: `plant::${name}`, name, kind: 'LogicalComponent', package: 'plant', attributes: {} };
+        const outlines: OutlineSource = {
+            async outline(file, text) { return { file, text, roots: [{ key: viewId, metaclass: 'ViewUsage', role: 'declaration', start: text.indexOf('view manual'), end: text.indexOf('    }') + 5, members: [], fields: [] }] }; },
+            async verify() { return undefined; },
+        };
+        const diagram = { id: 'manual', elementId: viewId } as any;
+        expect((await updateViewExpose(root, model, diagram, ['plant::host', 'plant::selected'], outlines)).success).toBe(true);
+        const selected = readFileSync(join(root, file), 'utf8');
+        expect(selected).toContain('expose plant::selected;');
+        expect(selected).not.toContain('plant::*');
+        expect(selected).not.toContain('plant::unrelated');
+        expect((await updateViewExpose(root, model, diagram, [], outlines)).success).toBe(true);
+        expect(readFileSync(join(root, file), 'utf8')).not.toContain('expose ');
     });
 
     it('writes nothing when the compiler refuses the file', async () => {

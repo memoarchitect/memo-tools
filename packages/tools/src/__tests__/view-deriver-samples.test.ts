@@ -25,6 +25,17 @@ describe('explicit renderer samples', () => {
         expect(deriveModelViews(model).diagrams[0].elementIds).toEqual(['selectedPart']);
     });
 
+    it('keeps an authored view selection separate from its offered palette kinds', () => {
+        const selected = element('plant::host', 'System', 'plant');
+        const other = element('plant::other', 'LogicalComponent', 'plant');
+        const view = element('manualView', 'DiagramView', 'plant_views');
+        view.attributes = { autoPopulate: 'false', expose: 'plant::host', 'selectionQuery.includeElementKinds': 'LogicalComponent' };
+        const model = { elements: toElementIndex([selected, other, view]), packages: [], relationships: [], incoming: new Map() } as unknown as MemoModel;
+        const diagram = deriveModelViews(model).diagrams[0];
+        expect(diagram.elementIds).toEqual(['plant::host']);
+        expect(diagram.elementKinds).toEqual(['LogicalComponent']);
+    });
+
     it('places SysML views from the samples package in Model Viewpoint > Samples', () => {
         const part = element('partA', 'LogicalComponent', 'samples');
         const view = element('sampleInterconnectionView', 'DiagramView', 'samples');
