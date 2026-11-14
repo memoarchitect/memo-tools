@@ -78,7 +78,7 @@ describe('memo dev facts read from a stage 1 handoff', () => {
         expect(graph.dependsOn.get('model/notes.sysml')).toEqual(new Set());
     });
 
-    it('reads the project\'s enumerations, not the library\'s', () => {
-        expect(apiEnumerations(handoff)).toEqual([{ name: 'Mode', literals: ['on', 'off'] }]);
+    it('reads the project\'s enumerations and the ontology\'s', () => {
+        expect(apiEnumerations(handoff)).toEqual([{ name: 'Level', literals: ['low'] }, { name: 'Mode', literals: ['on', 'off'] }]);
     });
 });

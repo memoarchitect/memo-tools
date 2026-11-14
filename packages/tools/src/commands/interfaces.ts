@@ -72,7 +72,7 @@ export async function interfacesCommand(a: string, b: string, options: Interface
     }
     for (const f of found) {
         // Always source -> target; `reversed` says it runs from the second argument to the first.
-        console.log(`${f.name}  [${f.kind ?? 'untyped'}]  ${f.from.portId} -> ${f.to.portId}${f.reversed ? '   (from <b> to <a>)' : ''}`);
+        console.log(`${f.name}  [${f.kind ?? (f.relation === 'connect' ? 'connection' : 'untyped')}]  ${f.from.portId} -> ${f.to.portId}${f.reversed ? '   (from <b> to <a>)' : ''}`);
         for (const [key, value] of Object.entries(f.attributes)) console.log(`    ${key} = ${value}`);
     }
 }

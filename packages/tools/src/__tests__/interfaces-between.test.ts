@@ -31,6 +31,16 @@ describe('interfacesBetween', () => {
         expect(found.find(f => f.id === 'svc')?.reversed).toBe(true);
         expect(found.find(f => f.id === 'topic1')?.reversed).toBe(false);
     });
+    it('counts a plain connection between ports, marked as one; a kind filter leaves it out', () => {
+        const wired = model();
+        wired.relationships.push({ id: 'cable', shortName: 'cable', type: 'connect', sourceId: 'safety::sub', targetId: 'lidar::pub', sourceEnd: '', targetEnd: '', file: '', attributes: { label: 'Communication Cable', gauge: '24' } });
+        const found = interfacesBetween(wired, 'lidar', 'safety');
+        expect(found.map(f => [f.id, f.relation])).toEqual([['cable', 'connect'], ['topic2', 'interface']]);
+        // Named by its label, which is not repeated among the attributes.
+        expect(found[0].name).toBe('Communication Cable');
+        expect(found[0].attributes).toEqual({ gauge: '24' });
+        expect(interfacesBetween(wired, 'lidar', 'safety', { kind: 'RosTopicInterface' }).map(f => f.id)).toEqual(['topic2']);
+    });
     it('ignores other relationship types and interfaces to a third element', () => {
         expect(interfacesBetween(model(), 'lidar', 'nav').some(f => f.id === 'flow1' || f.id === 'topic2')).toBe(false);
     });

@@ -323,18 +323,25 @@ export function apiProjectSourcePackages(api: ApiModel, projectRoot: string): {
     return { packages, files };
 }
 
-/** The project's enumeration definitions with their literals, by name. */
+/**
+ * The enumeration definitions with their literals, by name: the project's and the ontology's (the library it builds
+ * on), so an attribute typed by an ontology enum can be offered its literals. A project enum of the same name wins.
+ * The SysML standard library's are not included.
+ */
 export function apiEnumerations(api: ApiModel): { name: string; literals: string[] }[] {
     const found = new Map<string, { name: string; literals: string[] }>();
+    const fromProject = new Set<string>();
     for (const definition of api.ofType('EnumerationDefinition')) {
-        if (api.source(definition['@id'])?.role !== 'project') continue;
+        const role = api.source(definition['@id'])?.role;
+        if (role !== 'project' && role !== 'library') continue;
         const name = api.declaredName(definition['@id']);
-        if (!name) continue;
+        if (!name || (role === 'library' && fromProject.has(name))) continue;
         const literals = api.ownedMembers(definition['@id'])
             .filter(member => member['@type'] === 'EnumerationUsage')
             .map(member => api.declaredName(member['@id']))
             .filter((literal): literal is string => Boolean(literal));
         found.set(name, { name, literals });
+        if (role === 'project') fromProject.add(name);
     }
     return [...found.values()];
 }

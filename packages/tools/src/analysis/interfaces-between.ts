@@ -8,7 +8,9 @@
 // driver board, two software components.
 //
 // Nothing here knows what a ROS node, a topic or a port type is. An interface
-// is a relationship whose `type` is `interface`; the ontology kind it was
+// is a relationship whose `type` is `interface`, or a plain `connect` between
+// two ports: hardware is wired that way, and to a reader asking what joins two
+// parts a connection is as much an answer as a typed interface. The ontology kind it was
 // declared as (`RosTopicInterface`, `PhysicalInterface`, ...) arrives as the
 // relationship's `kind`, and a caller that wants "every ROS interface" or
 // "every physical interface" passes the supertype and the ontology's own
@@ -32,6 +34,8 @@ export interface InterfaceBetween {
     name: string;
     /** The ontology kind the interface was declared as, if it was typed. */
     kind?: string;
+    /** `interface` for an interface usage, `connect` for a plain connection between the two. */
+    relation: 'interface' | 'connect';
     attributes: Record<string, string>;
     /** Ends in declaration order; `from` is the interface's source end. */
     from: InterfaceEnd;
@@ -147,15 +151,17 @@ export function interfacesBetween(
 
     const found: InterfaceBetween[] = [];
     for (const relationship of model.relationships) {
-        if (relationship.type !== 'interface' || !matchesKind(relationship)) continue;
+        if ((relationship.type !== 'interface' && relationship.type !== 'connect') || !matchesKind(relationship)) continue;
         const from = resolve(relationship.sourcePortId ?? relationship.sourceId, relationship.sourceEnd);
         const to = resolve(relationship.targetPortId ?? relationship.targetId, relationship.targetEnd);
         if (!from || !to || from.ownerId === to.ownerId) continue;
         found.push({
             id: relationship.id,
-            name: relationship.shortName ?? relationship.id,
+            // The label is what a reader calls it; the declared name is the fallback.
+            name: relationship.attributes?.label ?? relationship.shortName ?? relationship.id,
             kind: relationship.kind,
-            attributes: relationship.attributes ?? {},
+            relation: relationship.type === 'connect' ? 'connect' : 'interface',
+            attributes: Object.fromEntries(Object.entries(relationship.attributes ?? {}).filter(([key]) => key !== 'label')),
             from,
             to,
             carries: flowsOver(relationship, model.relationships).map(flow => ({ flowId: flow.id, item: carriedItem(flow, id => model.elements[id]) })),
