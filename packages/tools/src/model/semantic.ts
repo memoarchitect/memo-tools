@@ -14,8 +14,8 @@ export type ParameterDirection = 'in' | 'out' | 'inout';
 
 /** Port specification on a port usage element */
 export interface PortSpec {
-    /** Port type name (qualified) */
-    type: string;
+    /** Port type name (qualified); absent for an untyped port (`port p;`), which SysML allows */
+    type?: string;
     /** Direction: in, out, or inout (undefined = undirected) */
     direction?: ParameterDirection;
     /** True if conjugated (~) */

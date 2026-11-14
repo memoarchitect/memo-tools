@@ -34,7 +34,7 @@ export function definitionUses<E extends DiffElement, R extends DiffRelationship
     return {
         flows: relationships.filter(r => r.type === 'flow' && carriedItem(r, element) === definitionName),
         typedLinks: relationships.filter(r => r.kind && leafName(r.kind) === definitionName),
-        ports: elements.filter(e => e.portSpec && leafName(e.portSpec.type) === definitionName && e.owner),
+        ports: elements.filter(e => e.portSpec?.type && leafName(e.portSpec.type) === definitionName && e.owner),
         parameters: elements.flatMap(e => (e.parameters ?? [])
             .filter(p => leafName(p.type) === definitionName)
             .map(p => ({ element: e, name: p.name, direction: p.direction }))),

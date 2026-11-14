@@ -18,7 +18,7 @@ export interface DiffElement {
     construct?: string;
     isDefinition?: boolean;
     owner?: string;
-    portSpec?: { type: string; isConjugated?: boolean };
+    portSpec?: { type?: string; isConjugated?: boolean };
     /** An action's parameters: the item a flow carries is declared here when the flow names none with `of`. */
     parameters?: readonly { name: string; direction: string; type: string }[];
     attributeMultiplicity?: Record<string, string>;

@@ -364,7 +364,7 @@ class ElementBuilder {
             const directed = this.directedFeatures(usage);
             const directions = new Set(directed.map(f => f.direction));
             element.portSpec = {
-                type: typeName as string,
+                type: typeName,
                 direction: (this.direction(usage) ?? (directions.size === 1 ? directed[0]?.direction : undefined)) as PortSpec['direction'],
                 isConjugated: this.api.ownedRelationships(usage['@id']).some(r => r['@type'] === 'ConjugatedPortTyping'),
             };

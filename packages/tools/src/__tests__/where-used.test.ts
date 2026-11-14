@@ -34,6 +34,11 @@ describe('whereUsed', () => {
         expect(used.ports.map(p => p.owner.id)).toEqual(['a']);
         expect(used.behaviours.map(b => b.id)).toEqual(['run']);
     });
+    it('skips an untyped port (`port p;`) instead of failing', () => {
+        const m = model();
+        m.elements['b::q'] = el('b::q', { construct: 'port', owner: 'b', portSpec: { isConjugated: false } });
+        expect(whereUsed(m, 'Sig').ports.map(p => p.owner.id)).toEqual(['a']);
+    });
     it('is empty for an element that is not a definition', () => {
         expect(whereUsed(model(), 'a').flows).toEqual([]);
     });
