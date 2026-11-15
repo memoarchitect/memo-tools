@@ -1,3 +1,4 @@
+import { writeOperationalWork } from './operational-writer.js';
 import { writeFunctionalFlow } from './functional-flow-writer.js';
 import { createFunction } from './function-writer.js';
 // ─── Dev Server ──────────────────────────────────────────────────────────────
@@ -1667,10 +1668,11 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     // edits next is the one this write produced. The file
                     // watcher still publishes the model.
                     // A new element imports its kind when the file cannot see it; an update never changes imports.
-                    if (msg.type === 'element:create' && msg.payload?.functionContext) {
-                        const writer = ['flow', 'update-flow'].includes(msg.payload.functionContext.operation ?? '') ? writeFunctionalFlow : createFunction;
-                        const result = await writer(projectRoot, currentModel()!, msg.payload.functionContext,
-                            msg.payload.name ?? '', (await authoringContext()).outlines, precondition.sourceFile);
+                    if (msg.type === 'element:create' && (msg.payload?.functionContext || msg.payload?.operationalContext)) {
+                        const writer = ['flow', 'update-flow'].includes(msg.payload.functionContext?.operation ?? '') ? writeFunctionalFlow : createFunction;
+                        const result = msg.payload.operationalContext
+                            ? await writeOperationalWork(projectRoot, currentModel()!, msg.payload.operationalContext, msg.payload.name ?? '', (await authoringContext()).outlines, precondition.sourceFile)
+                            : await writer(projectRoot, currentModel()!, msg.payload.functionContext!, msg.payload.name ?? '', (await authoringContext()).outlines, precondition.sourceFile);
                         if (result.success) {
                             const transactions = (result.sourceFiles ?? [result.filePath]).map(file => recordWriteTransaction(file, readFileSync(resolve(projectRoot, file), 'utf8')));
                             const transactionId = transactions[0];

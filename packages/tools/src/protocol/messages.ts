@@ -1,3 +1,4 @@
+import type { OperationalWriteContext } from '../model/operational-work.js';
 import type { FunctionalWriteContext } from '../model/functional-work.js';
 // ─── WebSocket Protocol Messages ──────────────────────────────────────────────
 //
@@ -545,6 +546,7 @@ export interface ElementCreateMessage {
         construct: string;
         /** Server-owned native functional structure creation; id is empty until compilation. */
         functionContext?: FunctionalWriteContext;
+        operationalContext?: OperationalWriteContext;
         attributes?: Record<string, string>;
         precondition: ModelMutationPrecondition;
     };

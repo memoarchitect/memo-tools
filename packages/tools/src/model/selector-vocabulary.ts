@@ -87,7 +87,7 @@ const SELECTORS: readonly SelectorSpec[] = [
     { attribute: 'inputKinds', vocabulary: 'kind' },
     { attribute: 'outputKinds', vocabulary: 'kind' },
     { attribute: 'elementKinds', vocabulary: 'kind' },
-    ...['taskSubjectKind', 'taskReferenceKind', 'taskImplementationKind', 'taskAllocationKind'].map(attribute => ({ attribute, vocabulary: 'kind' as const })),
+    ...['taskSubjectKind', 'taskReferenceKind', 'taskImplementationKind', 'taskAllocationKind', 'taskWorkflowKind', 'taskScenarioKind', 'taskStepKind'].map(attribute => ({ attribute, vocabulary: 'kind' as const })),
     { attribute: 'taskRelationshipKind', vocabulary: 'relationship' },
 ];
 

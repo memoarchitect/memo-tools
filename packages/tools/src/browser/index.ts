@@ -66,3 +66,5 @@ export { functionalStructure } from '../model/functional-structure.js';
 export { functionalScope, functionalScopes, functionalDisplayIds } from '../model/functional-scope.js';
 
 export { canonicalFunctionId, functionalCatalog, functionalFlowSteps, realizingFunctions, type FunctionalWriteContext, type FunctionalStepInput } from '../model/functional-work.js';
+export { operationalCatalog, operationalChildren, operationalConforms, operationalWorkLevel, includedUseCases, workflowCases, wouldIncludeCycle } from '../model/operational-work.js';
+export type { OperationalWriteContext, OperationalWorkLevel } from '../model/operational-work.js';

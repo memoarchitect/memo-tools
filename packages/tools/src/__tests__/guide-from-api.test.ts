@@ -78,6 +78,10 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
                 { kind: 'sequence', primary: true, subjectKind: 'FunctionalFlow', referenceKind: 'SystemFunction' },
                 { kind: 'realization', primary: false, implementationKind: 'ComponentFunction', allocationKind: 'LogicalComponent', relationshipKind: 'realizes' },
             ] });
+            expect(layers.find(l => l.name === 'layerOperational')).toMatchObject({ workbench: 'operational', tasks: [
+                { level: 'clinical', subjectKind: 'ClinicalUseCase', workflowKind: 'ClinicalWorkflow', scenarioKind: 'OperativeScenario', stepKind: 'OperativeAction' },
+                { level: 'system', subjectKind: 'SystemUseCase', workflowKind: 'SystemWorkflow', scenarioKind: 'OperativeScenario', stepKind: 'OperativeAction' },
+            ] });
             expect(layers.find(l => l.name === 'layerOperational')!.elementKinds).toEqual(expect.arrayContaining(['ClinicalUseCase', 'SystemUseCase', 'ClinicalWorkflow', 'SystemWorkflow', 'OperativeScenario']));
             expect(layers.find(l => l.name === 'layerLogical')).toMatchObject({
                 purpose: 'How the system will work.', stages: ['logical'],
