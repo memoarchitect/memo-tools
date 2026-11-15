@@ -1,3 +1,5 @@
+import { functionalScope } from '../model/functional-scope.js';
+import { canonicalFunctionId, type FunctionalWriteContext } from '../model/functional-work.js';
 import { layoutBlindRevision } from '../model/view-layout-block.js';
 import type { SourceOutline } from '../authoring/source-outline.js';
 import { elementPath } from '../serializer/element-reference.js';
@@ -6,11 +8,11 @@ import { resolve, relative, sep } from 'node:path';
 import type { MemoModelDTO } from '../model/semantic.js';
 import { indexKinds, kindConformsTo } from '../model/relationship-legality.js';
 import type { OutlineSource } from '../authoring/outline-source.js';
-import { insertIntoContainer } from './package-source.js';
+import { appendMembers } from './source-members.js';
 import { functionalStructure } from '../model/functional-structure.js';
 import { commitSource } from './persistor.js';
 
-export interface FunctionContext { workspace: string; componentId?: string; componentSourceHash?: string }
+export type FunctionContext = FunctionalWriteContext;
 /** Create/associate the distinguished system function, optionally adding an allocated child, in one checked edit. */
 export async function createFunction(
     projectRoot: string, model: MemoModelDTO, context: FunctionContext, name: string,
@@ -33,13 +35,20 @@ async function createFunctionSource(
     if (roots.length > 1) return fail('This system has more than one functional root; resolve the duplicate associations first.');
     let root = roots[0] ? model.elements[roots[0].targetId] : undefined;
     if (root && (root.isDefinition === true || !conforms(root.id, 'SystemFunction'))) return fail('The functional root must be a system function.');
+    const operation = context.operation ?? (context.componentId ? 'component-function' : 'root');
+    const systemFunction = context.systemFunctionId ? model.elements[canonicalFunctionId(model, context.systemFunctionId)] : undefined;
+    if (context.systemFunctionId && (!systemFunction || systemFunction.isDefinition || !conforms(systemFunction.id, 'SystemFunction') || !functionalScope(model, system.id).members.has(systemFunction.id))) return fail('Choose a system function in this system.');
+    const existingImplementation = context.componentFunctionId ? model.elements[context.componentFunctionId] : undefined;
+    if (context.componentFunctionId && (!existingImplementation || existingImplementation.isDefinition || !conforms(existingImplementation.id, 'ComponentFunction') || !functionalScope(model, system.id).members.has(existingImplementation.id))) return fail('Choose a component function in this system.');
     const component = context.componentId ? model.elements[context.componentId] : undefined;
     if (context.componentId && (!component || component.isDefinition || !conforms(component.id, 'LogicalComponent') || !model.workspaceMembership.membership[component.id]?.includes(system.id))) return fail('Choose a component inside the selected system.');
-    if (component && !name.trim()) return fail('Name the component function.');
-    if (!component && root) return { success: true, elementId: root.id, filePath: root.file, sourceFiles: [] };
+    if ((component || operation === 'system-function') && !existingImplementation && !name.trim()) return fail('Name the component function.');
+    if (operation === 'root' && root) return { success: true, elementId: root.id, filePath: root.file, sourceFiles: [] };
     const { candidates, adoptable } = functionalStructure(model, system.id);
     if (!root && adoptable) root = adoptable;
-    const home = root ?? system;
+    const parent = operation === 'system-function' && root ? model.elements[canonicalFunctionId(model, context.parentFunctionId ?? root.id)] : root;
+    if (operation === 'system-function' && (!root || !parent || parent.isDefinition || !conforms(parent.id, 'SystemFunction') || !functionalScope(model, system.id).members.has(parent.id))) return fail('Set up the parent function, then choose a function in this system.');
+    const home = existingImplementation ?? (operation === 'system-function' ? parent! : root ?? system);
     if (home.file !== expectedFile) return fail('The functional root changed; reload before creating the function.');
     if (home.provenance && !home.provenance.declaration.writable) return fail('The functional root source is read-only.');
     const absolute = resolve(projectRoot, home.file);
@@ -57,8 +66,9 @@ async function createFunctionSource(
     let newRootBody: string | undefined;
     let rootId = root?.id;
     let childId: string | undefined;
-    const childName = unique(rootId ?? `${home.package}::rootFunction`, name.trim() || 'componentFunction');
-    const child = component ? `action ${childName} : memo_architecture_functional_functions::ComponentFunction {\n    @memo_core_common::MemoIdentity { :>> label = ${JSON.stringify(name.trim())}; }\n}` : '';
+    const childParent = operation === 'system-function' ? parent! : root;
+    const childName = unique(childParent?.id ?? `${home.package}::rootFunction`, name.trim() || 'componentFunction');
+    const child = !existingImplementation && (component || operation === 'system-function') ? `action ${childName} : memo_architecture_functional_functions::${operation === 'system-function' ? 'SystemFunction' : 'ComponentFunction'} {\n    @memo_core_common::MemoIdentity { :>> label = ${JSON.stringify(name.trim())}; }\n}` : '';
     if (!root) {
         const rootName = unique(home.package, 'rootFunction'); rootId = `${home.package}::${rootName}`;
         // Perform references keep existing declarations and qualified identities intact.
@@ -66,12 +76,17 @@ async function createFunctionSource(
         const body = `action ${rootName} : memo_architecture_functional_functions::SystemFunction {\n    @memo_core_common::MemoIdentity { :>> label = ${JSON.stringify(`${system.name} function`)}; }\n${[performances, child].filter(Boolean).map(text => text.split('\n').map(line => `    ${line}`).join('\n')).join('\n')}\n}`;
         newRootBody = body;
     }
-    if (component) childId = `${rootId}::${childName}`;
-    const additions = !roots.length ? `#memo_architecture_functional_functions::FunctionalRoot dependency from ${system.id} to ${rootId};` : '';
+    if (existingImplementation) childId = existingImplementation.id;
+    else if (component || operation === 'system-function') childId = `${operation === 'system-function' ? parent!.id : rootId}::${childName}`;
+    const additions = [!roots.length ? `#memo_architecture_functional_functions::FunctionalRoot dependency from ${system.id} to ${rootId};` : '',
+        systemFunction && childId && !model.relationships.some(edge => edge.type === 'realizes' && edge.sourceId === childId && edge.targetId === systemFunction.id) ? `#ModelingMetadata::Refinement dependency from ${childId} to ${systemFunction.id};` : '',
+    ].filter(Boolean).join('\n');
     const edits = new Map<string, { source: string; outline: SourceOutline; members: Map<string, string> }>();
     edits.set(home.file, { source, outline, members: new Map([[home.package, [newRootBody, additions].filter(Boolean).join('\n')]]) });
-    if (root && component) edits.get(home.file)!.members.set(root.id, child);
-    if (component) {
+    if (child && (root || operation === 'system-function')) edits.get(home.file)!.members.set(operation === 'system-function' ? parent!.id : root!.id, child);
+    const allocated = existingImplementation ? model.relationships.filter(edge => edge.type === 'allocatedTo' && edge.sourceId === existingImplementation.id) : [];
+    if (component && allocated.some(edge => edge.targetId !== component.id)) return fail('This component function is already allocated elsewhere. Review its existing allocation first.');
+    if (component && !allocated.some(edge => edge.targetId === component.id)) {
         let featuring;
         let owner = component.owner ?? component.parentAction;
         const seen = new Set<string>();
@@ -94,7 +109,8 @@ async function createFunctionSource(
         }
         const targetPath = elementPath(component.id, model);
         const target = featuring ? targetPath.slice(`${featuring.id}::`.length) : targetPath;
-        const allocation = `allocation allocate ${elementPath(rootId!, model)}.${childName} to ${target};`;
+        const implementationPath = existingImplementation ? elementPath(existingImplementation.id, model) : `${elementPath(operation === 'system-function' ? parent!.id : rootId!, model)}.${childName}`;
+        const allocation = `allocation allocate ${implementationPath} to ${target};`;
         const file = edits.get(targetFile)!;
         file.members.set(container, [file.members.get(container), allocation].filter(Boolean).join('\n'));
     }
@@ -108,18 +124,4 @@ async function createFunctionSource(
     const committed = await commitSource(absolute, home.file, proposed.get(home.file)!, outlines, others, projectRoot, new Map([...edits].map(([file, edit]) => [resolve(projectRoot, file), edit.source])));
     return committed.success ? { success: true, elementId: childId ?? rootId, filePath: home.file, sourceFiles: [...proposed.keys()] }
         : fail(committed.error ?? 'The compiler refused the function.');
-}
-
-/** Compute independent container insertions against one outline, then apply their ranges from the end. */
-function appendMembers(source: string, outline: SourceOutline, members: ReadonlyMap<string, string>): string | undefined {
-    const edits: { start: number; end: number; text: string }[] = [];
-    for (const [container, text] of members) {
-        if (!text) continue;
-        const proposed = insertIntoContainer(source, outline, container, text); if (proposed === undefined) return undefined;
-        let start = 0; while (start < source.length && source[start] === proposed[start]) start++;
-        let end = source.length, nextEnd = proposed.length;
-        while (end > start && nextEnd > start && source[end - 1] === proposed[nextEnd - 1]) { end--; nextEnd--; }
-        edits.push({ start, end, text: proposed.slice(start, nextEnd) });
-    }
-    return edits.sort((a, b) => b.start - a.start).reduce((text, edit) => text.slice(0, edit.start) + edit.text + text.slice(edit.end), source);
 }

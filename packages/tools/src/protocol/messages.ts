@@ -1,3 +1,4 @@
+import type { FunctionalWriteContext } from '../model/functional-work.js';
 // ─── WebSocket Protocol Messages ──────────────────────────────────────────────
 //
 // Shared types for the CLI dev server ↔ Web app WebSocket protocol.
@@ -543,7 +544,7 @@ export interface ElementCreateMessage {
         kind: string;
         construct: string;
         /** Server-owned native functional structure creation; id is empty until compilation. */
-        functionContext?: { workspace: string; componentId?: string; componentSourceHash?: string };
+        functionContext?: FunctionalWriteContext;
         attributes?: Record<string, string>;
         precondition: ModelMutationPrecondition;
     };

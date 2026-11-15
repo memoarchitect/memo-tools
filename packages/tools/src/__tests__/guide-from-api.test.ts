@@ -73,6 +73,11 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
             expect(architecturalKinds.length).toBeGreaterThan(100);
             expect(architecturalKinds.filter(kind => !mapped.some(base => kindConformsTo(kind.name, base, hierarchy))).map(kind => kind.name)).toEqual([]);
             expect(layers.find(l => l.name === 'layerFunctional')!.elementKinds).toEqual(expect.arrayContaining(['MemoFunction', 'ComponentFunction', 'FunctionalFlow']));
+            expect(layers.find(l => l.name === 'layerFunctional')).toMatchObject({ workbench: 'functional', tasks: [
+                { kind: 'decomposition', primary: true, subjectKind: 'SystemFunction' },
+                { kind: 'sequence', primary: true, subjectKind: 'FunctionalFlow', referenceKind: 'SystemFunction' },
+                { kind: 'realization', primary: false, implementationKind: 'ComponentFunction', allocationKind: 'LogicalComponent', relationshipKind: 'realizes' },
+            ] });
             expect(layers.find(l => l.name === 'layerOperational')!.elementKinds).toEqual(expect.arrayContaining(['ClinicalUseCase', 'SystemUseCase', 'ClinicalWorkflow', 'SystemWorkflow', 'OperativeScenario']));
             expect(layers.find(l => l.name === 'layerLogical')).toMatchObject({
                 purpose: 'How the system will work.', stages: ['logical'],

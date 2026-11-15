@@ -824,6 +824,10 @@ class ElementBuilder {
 
     buildRelationships(): void {
         const project = [...this.api.projectElements()];
+        // Named in-place performances are connector endpoints, so materialize them before flows and successions.
+        for (const node of project) {
+            if (node['@type'] === 'PerformActionUsage' && !this.api.related(node['@id'], ['ReferenceSubsetting'], 'referencedFeature').length) this.performedHere(node, this.nearestElement(node));
+        }
         const scoped = (types: string[], where: 'package' | 'package-or-action') => project
             .filter(e => types.includes(e['@type']))
             .map(e => ({ node: e, ...this.contextOf(e) }))
@@ -1359,6 +1363,13 @@ class ElementBuilder {
                     : type === 'PerformActionUsage' ? this.performedHere(node, owner) : undefined;
                 const edge = type === 'PerformActionUsage' ? 'performs' : type === 'IncludeUseCaseUsage' ? 'includesStep' : 'exhibitsMode';
                 if (owner && target) this.native(edge, owner, target, file);
+                // A named in-place performance may also subset a catalog action. Preserve both identities.
+                if (type === 'PerformActionUsage') {
+                    const step = this.api.qualifiedName(node['@id']);
+                    const subset = this.api.subsetted(node['@id'])[0];
+                    const catalog = subset ? endpointOf(this.steps(subset), node) : undefined;
+                    if (step && catalog && this.elements.has(step)) this.native('subsets', step, catalog, file);
+                }
             } else if (type === 'FramedConcernMembership') {
                 const concern = this.api.element(((node.ownedRelatedElement as { '@id': string }[] | undefined) ?? [])[0]?.['@id'] ?? '');
                 const referenced = concern ? this.api.related(concern['@id'], ['ReferenceSubsetting'], 'referencedFeature')[0] : undefined;

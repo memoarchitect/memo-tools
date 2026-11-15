@@ -64,3 +64,5 @@ export * from '../model/variant-overlay.js';
 
 export { functionalStructure } from '../model/functional-structure.js';
 export { functionalScope, functionalScopes, functionalDisplayIds } from '../model/functional-scope.js';
+
+export { canonicalFunctionId, functionalCatalog, functionalFlowSteps, realizingFunctions, type FunctionalWriteContext, type FunctionalStepInput } from '../model/functional-work.js';

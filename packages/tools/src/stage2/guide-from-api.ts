@@ -47,6 +47,21 @@ export interface GuideLayerViewpoint {
     viewKind?: string;
 }
 
+export interface GuideWorkTask {
+    id: string;
+    label: string;
+    kind: string;
+    primary: boolean;
+    subjectKind: string;
+    referenceKind?: string;
+    implementationKind?: string;
+    allocationKind?: string;
+    relationshipKind?: string;
+    objective?: string;
+    review?: string;
+    viewpoint?: GuideLayerViewpoint;
+}
+
 /** A row of the method map: an architecture layer or an assurance discipline. */
 export interface GuideLayer {
     /** The row's qualified name. */
@@ -59,6 +74,8 @@ export interface GuideLayer {
     axis?: string;
     /** The stages whose steps it holds. */
     stages: string[];
+    workbench?: string;
+    tasks?: GuideWorkTask[];
     /** Kinds worked in the layer, including specializations, independent of step completion. */
     elementKinds?: string[];
     /** The viewpoints its views are made in, in order: the name each is written with, its label and its view kind. */
@@ -164,6 +181,19 @@ export function readGuideSources(api: ApiModel, packages: readonly string[]): Gu
                             name, label: (viewpoint && apiDefinitionFacts(api, viewpoint).attributes.label) || name,
                             viewKind: viewpoint ? reader.attr(viewpoint, 'defaultViewKind') : undefined,
                         };
+                    }),
+                    workbench: reader.attr(member, 'workbench'),
+                    tasks: reader.refList(member, 'workTasks').flatMap(id => {
+                        const task = api.resolve(id); if (!task) return [];
+                        const viewpointId = reader.refList(task, 'taskViewpoint')[0];
+                        const viewpoint = viewpointId ? api.resolve(viewpointId) : undefined;
+                        return [{ id, label: apiDefinitionFacts(api, task).attributes.label ?? lastSegment(id),
+                            kind: (reader.attr(task, 'taskKind') ?? '').split('::').at(-1) ?? '', primary: reader.attr(task, 'primary') === 'true',
+                            subjectKind: reader.attr(task, 'taskSubjectKind') ?? '', referenceKind: reader.attr(task, 'taskReferenceKind'),
+                            implementationKind: reader.attr(task, 'taskImplementationKind'), allocationKind: reader.attr(task, 'taskAllocationKind'),
+                            relationshipKind: reader.attr(task, 'taskRelationshipKind'), objective: reader.attr(task, 'objectiveDescription'), review: reader.attr(task, 'reviewDescription'),
+                            viewpoint: viewpoint && viewpointId ? { id: viewpointId, name: lastSegment(viewpointId), label: apiDefinitionFacts(api, viewpoint).attributes.label ?? lastSegment(viewpointId), viewKind: reader.attr(viewpoint, 'defaultViewKind') } : undefined,
+                        }];
                     }),
                     standardReference: reader.attr(member, 'standardReference'),
                     linkDescription: reader.attr(member, 'linkDescription'), importable: reader.attr(member, 'importable') === 'true',
