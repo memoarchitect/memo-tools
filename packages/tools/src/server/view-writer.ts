@@ -401,6 +401,8 @@ export async function writeViewDeclaration(
         `view ${identifier} : ${viewDef} {`,
         ...(manual ? exposures.map(id => `    expose ${id};`) : exposePackage ? [`    expose ${exposePackage}::*;`] : []),
         ...(manual ? ['    attribute :>> autoPopulate = false;'] : []),
+        ...(diagram.diagramType ? [`    attribute :>> diagramType = ${JSON.stringify(diagram.diagramType)};`] : []),
+        ...['layoutHint', 'styleHint'].flatMap(key => diagram.properties?.[key] !== undefined ? [`    attribute :>> ${key} = ${JSON.stringify(diagram.properties[key])};`] : []),
         `    @MemoIdentity { ${identity} }`,
         ...(!home && !isMatrix && derived.declaresKind ? [`    attribute :>> viewKind = DiagramViewKind::${diagram.viewKind};`] : []),
         ...(group ? [`    attribute group = "${escape(group)}";`] : []),
@@ -421,7 +423,7 @@ export async function writeViewDeclaration(
         ].join('\n')
         : insertIntoBody(source, target!, `${body}\n`);
     if (seeding) mkdirSync(dirname(absolute), { recursive: true });
-    const committed = await commitSource(absolute, targetFile, updated, outlines);
+    const committed = await commitSource(absolute, targetFile, updated, outlines, undefined, projectRoot, new Map([[absolute, seeding ? undefined : source]]));
     if (!committed.success) return { success: false, reason: committed.error };
     return { success: true, filePath: targetFile, identifier, created: seeding, qualifiedName: `${targetPackage}::${identifier}` };
 }
