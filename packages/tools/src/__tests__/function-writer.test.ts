@@ -13,6 +13,15 @@ import { compilerConfigured, examplesPresent, withExample } from './helpers/comp
 const file = 'model/catalog/function_creation.sysml';
 const otherFile = 'model/catalog/component_template.sysml';
 const otherSource = `package component_template { private import memo::*; part def ControllerTemplate specializes LogicalComponent { part worker : LogicalComponent; } }`;
+const monitorFile = 'model/catalog/monitor_functions.sysml';
+const monitorSource = `package monitor_functions {
+    private import memo::*;
+    part def TelemetrySystem specializes System;
+    action telemetryResponsibilities : SystemFunction {
+        action assess : SystemFunction;
+    }
+    #memo_architecture_functional_functions::FunctionalRoot dependency from TelemetrySystem to telemetryResponsibilities;
+}`;
 const source = `package function_creation {
     private import memo::*;
     private import component_template::*;
@@ -81,8 +90,8 @@ describe.runIf(compilerConfigured && examplesPresent)('native functional structu
             expect(readFileSync(join(root, file), 'utf8')).toBe(before);
         });
     }, 180_000); // The transaction is followed by several independent full compiler reloads.
-    it('guides decomposition, reusable flow steps and component realization without duplicating system functions', async () => {
-        await withExample({ [file]: source, [otherFile]: otherSource }, async (project, root) => {
+    it('guides decomposition, cross-system flows and component realization without duplicating system functions', async () => {
+        await withExample({ [file]: source.replace('private import component_template::*;', 'private import component_template::*; private import monitor_functions::TelemetrySystem;'), [otherFile]: otherSource, [monitorFile]: monitorSource }, async (project, root) => {
             const outlines = selectedOutlineSource(root, config());
             const workspace = 'function_creation::PumpSystem';
             const reload = () => loadProjectModel({ projectRoot: root, config: config(), cache: false });
@@ -92,13 +101,21 @@ describe.runIf(compilerConfigured && examplesPresent)('native functional structu
             const fn = await createFunction(root, dto(rooted), { workspace, operation: 'system-function', parentFunctionId: parent.elementId }, 'Coordinate delivery', outlines, file);
             expect(fn.success, fn.error).toBe(true);
             const decomposed = await reload();
-            const catalogBefore = functionalCatalog(dto(decomposed), workspace).map(fn => fn.id);
-            const flow = await writeFunctionalFlow(root, dto(decomposed), { workspace, operation: 'flow', steps: [{ functionId: fn.elementId! }, { functionId: 'function_creation::sharedResponsibility::measure' }] }, 'Deliver safely', outlines, file);
+            const initial = dto(decomposed);
+            const monitorFunction = 'monitor_functions::telemetryResponsibilities::assess';
+            const catalogBefore = functionalCatalog(initial, workspace).map(fn => fn.id);
+            expect(catalogBefore).not.toContain(monitorFunction);
+            expect(functionalCatalog(initial, 'monitor_functions::TelemetrySystem').map(fn => fn.id)).toContain(monitorFunction);
+            const flow = await writeFunctionalFlow(root, initial, { workspace, operation: 'flow', steps: [
+                { functionId: fn.elementId! }, { functionId: monitorFunction }, { functionId: fn.elementId! },
+            ] }, 'Deliver safely', outlines, file);
             expect(flow.success, flow.error).toBe(true);
             const flowed = await reload();
             expect(functionalCatalog(dto(flowed), workspace).map(fn => fn.id)).toEqual(catalogBefore);
             const steps = functionalFlowSteps(dto(flowed), flow.elementId!);
-            expect(steps.steps.map(step => step.functionId)).toEqual([fn.elementId, 'function_creation::sharedResponsibility::measure']);
+            expect(steps.steps.map(step => step.functionId)).toEqual([fn.elementId, monitorFunction, fn.elementId]);
+            expect(new Set(steps.steps.map(step => step.step.id)).size).toBe(3);
+            expect(readFileSync(join(root, monitorFile), 'utf8')).toBe(monitorSource);
             expect(flowed.model.relationships.some(edge => edge.type === 'succession' && edge.sourceId === steps.steps[0].step.id && edge.targetId === steps.steps[1].step.id)).toBe(true);
             const reversed = await writeFunctionalFlow(root, dto(flowed), { workspace, operation: 'update-flow', flowId: flow.elementId, steps: steps.steps.slice().reverse().map(item => ({ stepId: item.step.id, functionId: item.functionId! })) }, '', outlines, file);
             expect(reversed.success, reversed.error).toBe(true);

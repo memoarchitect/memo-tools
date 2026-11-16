@@ -53,6 +53,12 @@ export function functionalCatalog(model: MemoModelDTO, workspace: string | null,
         && canonicalFunctionId(model, element.id) === element.id
         && !insideFlow(element.id));
 }
+/** A flow may perform canonical system functions across workspaces. Tree roots group responsibilities. */
+export function functionalFlowFunctions(model: MemoModelDTO) {
+    const roots = new Set(model.relationships.filter(edge => edge.type === 'functionalRoot').map(edge => edge.targetId));
+    return functionalCatalog(model, null).filter(fn => !roots.has(fn.id));
+}
+
 export function functionalFlowSteps(model: MemoModelDTO, flowId: string) {
     const steps = Object.values(model.elements).filter(element => (element.parentAction ?? element.owner) === flowId && element.construct === 'action'
         && !['InitialNodeUsage', 'ActionFinalNodeUsage', 'ForkNode', 'JoinNode', 'DecisionNode', 'MergeNode'].includes(element.kind));
@@ -68,8 +74,35 @@ export function functionalFlowSteps(model: MemoModelDTO, flowId: string) {
     }
     const cyclic = remaining.size > 0 && edges.length > 0;
     ordered.push(...remaining.values());
-    return { branching: branching || cyclic, steps: ordered.map(step => ({ step, functionId: canonicalFunctionId(model, step.id) !== step.id ? canonicalFunctionId(model, step.id) : undefined })) };
+    const registry = indexKinds(model.registries?.kinds ?? []);
+    const calls = new Map<string, Set<string>>();
+    for (const edge of model.relationships) {
+        if (edge.type !== 'performs' || !ids.has(edge.sourceId)) continue;
+        const target = canonicalFunctionId(model, edge.targetId);
+        const fn = model.elements[target];
+        if (!fn || fn.isDefinition || !kindConformsTo(fn.kind, 'SystemFunction', registry)) continue;
+        const functions = calls.get(edge.sourceId) ?? new Set<string>();
+        functions.add(target);
+        calls.set(edge.sourceId, functions);
+    }
+    return { branching: branching || cyclic, steps: ordered.map(step => {
+        const canonical = canonicalFunctionId(model, step.id);
+        const callsFromStep = calls.get(step.id);
+        const functionId = canonical !== step.id ? canonical : callsFromStep?.size === 1 ? callsFromStep.values().next().value : undefined;
+        return { step, functionId };
+    }) };
 }
+/** Scope flows by where they are authored or whose functions they perform. */
+export function functionalFlowsInScope(model: MemoModelDTO, workspace: string | null, kind = 'FunctionalFlow') {
+    const flows = functionalCatalog(model, null, kind);
+    if (!workspace) return flows;
+    const members = functionalScope(model, workspace).members;
+    const owned = new Set(functionalCatalog(model, workspace, kind).map(flow => flow.id));
+    return flows.filter(flow => owned.has(flow.id) || functionalFlowSteps(model, flow.id).steps.some(
+        ({ step, functionId }) => members.has(step.id) || Boolean(functionId && members.has(functionId)),
+    ));
+}
+
 export function realizingFunctions(model: MemoModelDTO, systemFunctionId: string, implementationKind = 'ComponentFunction') {
     const registry = indexKinds(model.registries?.kinds ?? []);
     return model.relationships.filter(edge => edge.type === 'realizes' && edge.targetId === systemFunctionId)

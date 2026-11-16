@@ -2,7 +2,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { resolve, relative, sep } from 'node:path';
 import type { MemoModelDTO } from '../model/semantic.js';
 import { operationalConforms as conforms, operationalWorkLevel, wouldIncludeCycle, type OperationalWriteContext } from '../model/operational-work.js';
-import { functionalCatalog, functionalFlowSteps } from '../model/functional-work.js';
+import { functionalCatalog, functionalFlowsInScope, functionalFlowSteps } from '../model/functional-work.js';
 import { layoutBlindRevision } from '../model/view-layout-block.js';
 import type { SourceOutline } from '../authoring/source-outline.js';
 import type { OutlineSource } from '../authoring/outline-source.js';
@@ -108,7 +108,7 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
             if (context.level !== 'system' || !family || !sourceElement || !target || operationalWorkLevel(model, sourceElement.id) !== 'system' || operationalWorkLevel(model, target.id) !== 'clinical' || !inScope(sourceElement.id)) return fail('Choose matching system and clinical work to refine.');
             if (!model.relationships.some(edge => edge.type === 'realizes' && edge.sourceId === sourceElement.id && edge.targetId === target.id)) await add(home.file, home.package, refinement(sourceElement.id, target.id));
         } else if (op === 'realize-flow') {
-            if (context.level !== 'system' || !sourceElement || !target || !atLevel(sourceElement.id, 'OperativeAction') && !atLevel(sourceElement.id, 'OperativeScenario') || !inScope(sourceElement.id) || !functionalCatalog(model, context.workspace ?? null, 'FunctionalFlow').some(flow => flow.id === target.id)) return fail('Choose a functional flow and a system activity, or explicitly a whole system scenario.');
+            if (context.level !== 'system' || !sourceElement || !target || !atLevel(sourceElement.id, 'OperativeAction') && !atLevel(sourceElement.id, 'OperativeScenario') || !inScope(sourceElement.id) || !functionalFlowsInScope(model, context.workspace ?? null).some(flow => flow.id === target.id)) return fail('Choose a functional flow and a system activity, or explicitly a whole system scenario.');
             if (!model.relationships.some(edge => edge.type === 'realizes' && edge.sourceId === target.id && edge.targetId === sourceElement.id)) await add(home.file, home.package, refinement(target.id, sourceElement.id));
         } else if (op === 'perform-function') {
             if (context.level !== 'system' || !sourceElement || !atLevel(sourceElement.id, 'OperativeAction') || !inScope(sourceElement.id) || !target || !functionalCatalog(model, context.workspace ?? null).some(fn => fn.id === target.id)) return fail('Choose a system activity and a canonical system function.');

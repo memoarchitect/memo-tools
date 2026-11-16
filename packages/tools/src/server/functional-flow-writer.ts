@@ -1,7 +1,7 @@
 import { readFileSync, realpathSync } from 'node:fs';
 import { resolve, relative, sep } from 'node:path';
 import type { MemoModelDTO } from '../model/semantic.js';
-import { functionalCatalog, functionalFlowSteps, type FunctionalWriteContext } from '../model/functional-work.js';
+import { functionalFlowFunctions, functionalFlowsInScope, functionalFlowSteps, type FunctionalWriteContext } from '../model/functional-work.js';
 import { functionalStructure } from '../model/functional-structure.js';
 import { indexKinds, kindConformsTo } from '../model/relationship-legality.js';
 import { outlineNodes, bodyMembers } from '../authoring/source-outline.js';
@@ -15,17 +15,19 @@ export async function writeFunctionalFlow(projectRoot: string, model: MemoModelD
     const fail = (error: string) => ({ success: false, filePath: expectedFile, error });
     try {
         const root = functionalStructure(model, context.workspace).root;
-        if (!root) return fail('Set up the system parent function first.');
+        if (!model.workspaceMembership?.workspaces.some(scope => scope.root === context.workspace)) return fail('Choose a system workspace.');
+        if (!root && context.operation !== 'update-flow') return fail('Set up the system parent function first.');
         const flow = context.flowId ? model.elements[context.flowId] : undefined;
         if (context.operation === 'update-flow' && !flow) return fail('Choose an existing functional flow.');
-        if (flow && (flow.isDefinition || !kindConformsTo(flow.kind, 'FunctionalFlow', indexKinds(model.registries?.kinds ?? [])) || !functionalCatalog(model, context.workspace, 'FunctionalFlow').some(candidate => candidate.id === flow.id))) return fail('Choose a functional flow in this system.');
-        const home = flow ?? root;
+        if (flow && (flow.isDefinition || !kindConformsTo(flow.kind, 'FunctionalFlow', indexKinds(model.registries?.kinds ?? [])))) return fail('Choose a functional flow.');
+        if (flow && !functionalFlowsInScope(model, context.workspace).some(candidate => candidate.id === flow.id)) return fail('Choose a flow that belongs to or uses functions from this system.');
+        const home = flow ?? root!;
         if (home.file !== expectedFile || (home.provenance && !home.provenance.declaration.writable)) return fail('Reload the writable flow source before editing.');
         if (!flow && !name.trim()) return fail('Name the functional flow.');
         const requested = context.steps ?? [];
         if (!requested.length) return fail('Choose at least one system function.');
-        const catalog = new Map(functionalCatalog(model, context.workspace).filter(fn => fn.id !== root.id).map(fn => [fn.id, fn]));
-        if (requested.some(step => !catalog.has(step.functionId))) return fail('Every step must reference a system function in this system.');
+        const catalog = new Map(functionalFlowFunctions(model).map(fn => [fn.id, fn]));
+        if (requested.some(step => !step.stepId && !catalog.has(step.functionId))) return fail('Every new step must reference a project system function.');
         const absolute = realpathSync(resolve(projectRoot, home.file));
         const rel = relative(realpathSync(projectRoot), absolute);
         if (rel === '..' || rel.startsWith(`..${sep}`)) return fail('Flow source is outside the project.');
@@ -33,8 +35,8 @@ export async function writeFunctionalFlow(projectRoot: string, model: MemoModelD
         const outline = await outlines.outline(home.file, source);
         const stem = name.trim().replace(/[^a-zA-Z0-9_]/g, '_').replace(/^([^a-zA-Z_])/, '_$1') || 'functionalFlow';
         let flowName = stem;
-        for (let suffix = 2; model.elements[`${root.id}::${flowName}`]; suffix++) flowName = `${stem}${suffix}`;
-        const flowId = flow?.id ?? `${root.id}::${flowName}`;
+        for (let suffix = 2; !flow && model.elements[`${root!.id}::${flowName}`]; suffix++) flowName = `${stem}${suffix}`;
+        const flowId = flow?.id ?? `${root!.id}::${flowName}`;
         const current = flow ? functionalFlowSteps(model, flow.id) : undefined;
         if (current?.branching) return fail('This flow has branching or cyclic behavior. Use its full diagram editor to preserve that behavior.');
         const node = flow ? [...outlineNodes(outline)].find(node => node.key === flow.id) : undefined;
@@ -72,7 +74,7 @@ export async function writeFunctionalFlow(projectRoot: string, model: MemoModelD
             for (const cut of cuts) body = body.slice(0, cut!.start - node.body.open) + body.slice(cut!.end - node.body.open);
             proposed = source.slice(0, node.body.open) + body.trimEnd() + '\n' + block.split('\n').map(line => `    ${line}`).join('\n') + '\n' + source.slice(node.body.close);
         } else {
-            proposed = appendMembers(source, outline, new Map([[root.id, `action ${flowName} : memo_architecture_functional_functions::FunctionalFlow {\n    @memo_core_common::MemoIdentity { :>> label = ${JSON.stringify(name.trim())}; }\n${block.split('\n').map(line => `    ${line}`).join('\n')}\n}`]]));
+            proposed = appendMembers(source, outline, new Map([[root!.id, `action ${flowName} : memo_architecture_functional_functions::FunctionalFlow {\n    @memo_core_common::MemoIdentity { :>> label = ${JSON.stringify(name.trim())}; }\n${block.split('\n').map(line => `    ${line}`).join('\n')}\n}`]]));
         }
         if (proposed === undefined) return fail('The parent function could not be located.');
         const result = await commitSource(absolute, home.file, proposed, outlines, undefined, projectRoot, new Map([[absolute, source]]));
