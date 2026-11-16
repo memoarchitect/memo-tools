@@ -20,7 +20,7 @@ import type { RelationshipDefinitionDTO } from '../model/relationship-legality.j
 
 /** The SysML production a relationship is written as. */
 export type RelationshipNotation =
-    'succession' | 'flow' | 'satisfy' | 'allocate' | 'typedDependency' | 'connection' | 'interface' | 'typedFlow';
+    'succession' | 'flow' | 'satisfy' | 'allocate' | 'typedAllocation' | 'typedDependency' | 'connection' | 'interface' | 'typedFlow';
 
 export interface RelationshipNotationRequest {
     /** Connection usage name, when the form carries one. */
@@ -66,6 +66,7 @@ export function notationFor(definition: RelationshipDefinitionDTO): Relationship
     // A typed dependency is a Dependency (SysML-textual-bnf.kebnf:51-59) whose prefix metadata names it.
     if (definition.typedDependency) return 'typedDependency';
     // An exchange the ontology declares as an `interface def` or a `flow def` is a usage typed by it.
+    if (definition.sysmlConstruct === 'allocation def') return 'typedAllocation';
     if (definition.sysmlConstruct === 'interface def') return 'interface';
     if (definition.sysmlConstruct === 'flow def') return 'typedFlow';
     return NATIVE_FORMS[definition.sysmlName]
@@ -75,7 +76,7 @@ export function notationFor(definition: RelationshipDefinitionDTO): Relationship
 
 /** True when the form gives the relationship a name of its own. */
 export function notationIsNameable(notation: RelationshipNotation): boolean {
-    return notation === 'connection' || notation === 'interface' || notation === 'typedFlow';
+    return notation === 'connection' || notation === 'typedAllocation' || notation === 'interface' || notation === 'typedFlow';
 }
 
 /**
@@ -99,6 +100,8 @@ export function renderRelationship(request: RelationshipNotationRequest): string
             return renderSatisfy(request);
         case 'allocate':
             return `allocate ${request.sourceId} to ${request.targetId};`;
+        case 'typedAllocation':
+            return `allocation ${request.id} : ${typeName(request.definition)} allocate ${request.sourceId} to ${request.targetId};`;
         case 'typedDependency':
             return `#${request.definition.typedDependency} dependency from ${request.sourceId} to ${request.targetId};`;
         case 'interface':

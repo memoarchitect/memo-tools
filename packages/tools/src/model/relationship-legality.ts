@@ -93,10 +93,10 @@ export interface RelationshipDefinitionDTO {
      */
     nativeKeyword?: string;
     /**
-     * Set for the two constructs that are written as a typed named usage and are not a `connection def`:
-     * `interface def` (`interface x : Def connect a to b;`) and `flow def` (`flow x : Def from a to b;`).
+     * Set for typed named usages with their own syntax:
+     * `allocation def`, `interface def`, and `flow def`.
      */
-    sysmlConstruct?: 'interface def' | 'flow def';
+    sysmlConstruct?: 'allocation def' | 'interface def' | 'flow def';
     /** First declared end — the source/from end. */
     sourceEnd: RelationshipEndDTO;
     /** Second declared end — the target/to end. */
