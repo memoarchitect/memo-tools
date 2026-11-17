@@ -2,7 +2,9 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
-## Unreleased
+## 0.22.0
+
+- **Breaking, from the ontology.** A model that sets `name` or `description` on a concern definition fails to compile; the label is `@MemoIdentity` and the description is `doc`.
 
 - **Added.** `memo` and `memo-architect` warn, and still run, when Node.js is older than the patched release of its line in the latest Node.js security announcement (`memo.nodeSecurity` in the package manifest; 26.13.1, 24.22.3 and 22.23.5 for November 2026).
 - **Changed.** An element's display name is its `@MemoIdentity` label, else its declared name. Item, action and constraint definitions now take their label too, and a `name` or `title` attribute no longer stands in for one: a view or viewpoint is named the same way. A kind's and a relationship's label is the one the ontology states, not one derived from the identifier.
