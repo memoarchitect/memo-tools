@@ -45,7 +45,8 @@ export function functionalScopes(model: MemoModelDTO): FunctionalScopes {
         // A system usage means that system, even when another system of systems owns the usage.
         if (systemRoots.has(target)) return new Set([target]);
         if (systemRoots.has(definitionOf[target])) return new Set([definitionOf[target]]);
-        return structural.get(target) ?? new Set<string>();
+        // A part that realizes a system is in its workspace by membership, without being owned by it.
+        return structural.get(target) ?? new Set(model.workspaceMembership?.membership[target] ?? []);
     };
     const explicit = new Map<string, Set<string>>();
     for (const edge of model.relationships) {

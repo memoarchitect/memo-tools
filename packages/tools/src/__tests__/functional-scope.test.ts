@@ -27,6 +27,16 @@ describe('allocation boundaries in a functional decomposition', () => {
     it('does not place a system usage allocation into the system of systems that owns that usage', () => {
         expect(functionalScope(model(), 'SoS').members.size).toBe(0);
     });
+    it('places a function allocated to a part that realizes the system, which the system does not own', () => {
+        const source = model();
+        source.elements.realizingPart = { ...source.elements.a, id: 'realizingPart', kind: 'PhysicalAssembly' };
+        source.elements.realized = { ...source.elements.local, id: 'realized' };
+        source.workspaceMembership!.membership.realizingPart = ['A'];
+        source.workspaceMembership!.membership.realized = [];
+        source.relationships.push({ id: 'realizedAlloc', type: 'allocatedTo', sourceId: 'realized', targetId: 'realizingPart' } as never);
+        expect(functionalScope(source, 'A').members.has('realized')).toBe(true);
+        expect(functionalScope(source, 'B').members.has('realized')).toBe(false);
+    });
     it('drops foreign function-owned parameters as well as the foreign branch and handles cycles', () => {
         const source = model(); const ids = functionalDisplayIds(source, 'A', new Set(Object.keys(source.elements)));
         expect(ids.has('pin')).toBe(false); expect(ids.has('cycle1')).toBe(false);
