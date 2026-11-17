@@ -27,6 +27,9 @@ import { RECOMMENDED_COMPILER } from '../packages/tools/lib/toolchain/providers/
 // place, packages/tools/src/toolchain/providers/recommended.ts.
 process.env.MEMO_TOOLCHAIN_COMPILER ??= RECOMMENDED_COMPILER;
 
+// Re-frozen 2026-11-17 (`gpca` only): the system use case binds its subject to the pump usage, so it records one
+// added `hasSubject` edge from the use case to that usage. No element or violation changed; no other fixture moved.
+
 // Re-frozen 2026-11-03 (operational level types): a use case and a workflow are now declared at a
 // level, so gpca, robot-cell-family and extension-clinical record `SystemUseCase`, `SystemWorkflow`
 // and `ClinicalUseCase` where they recorded `UseCase` and `OperationalWorkflow`. Nothing else moved:

@@ -7215,6 +7215,11 @@
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
+        "type": "hasSubject",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::ucDeliverPcaTherapy",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaPump"
+      },
+      {
         "type": "hostedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_physical::mainController",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::controllerBoard"
