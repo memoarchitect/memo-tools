@@ -13,15 +13,15 @@ import { commitSource } from './persistor.js';
 type Result = { success: boolean; elementId?: string; filePath: string; sourceFiles?: string[]; error?: string };
 const fieldsFor: Record<string, readonly string[]> = {
     'use-case': ['goalStatement', 'trigger', 'preCondition', 'successOutcome', 'failureOutcome', 'postCondition'],
-    workflow: ['entryCondition', 'completionCondition'], scenario: ['trigger', 'preCondition', 'postCondition', 'expectedResult', 'pathSummary'], step: ['taskGoal', 'trigger', 'preCondition', 'postCondition'], context: ['responsibility', 'operationalDomain'],
+    workflow: [], scenario: ['trigger', 'preCondition', 'postCondition', 'expectedResult', 'pathSummary'], step: ['taskGoal', 'trigger', 'preCondition', 'postCondition'], context: ['responsibility', 'operationalDomain'],
 };
 
 /** Native operational ownership and traces, in one compiler-checked source transaction. */
 export async function writeOperationalWork(projectRoot: string, model: MemoModelDTO, context: OperationalWriteContext, name: string, outlines: OutlineSource, expectedFile: string): Promise<Result> {
     const fail = (error: string): Result => ({ success: false, filePath: expectedFile, error });
     try {
-        if (!['clinical', 'system'].includes(context.level)) return fail('Choose Clinical or System work.');
-        const op = context.operation; const prefix = context.level === 'clinical' ? 'Clinical' : 'System';
+        if (!['clinical', 'operational'].includes(context.level)) return fail('Choose clinical or operational work.');
+        const op = context.operation; const prefix = context.level === 'clinical' ? 'Clinical' : 'Operational';
         const useCase = context.useCaseId ? model.elements[context.useCaseId] : undefined;
         const workflow = context.workflowId ? model.elements[context.workflowId] : undefined;
         const scenario = context.scenarioId ? model.elements[context.scenarioId] : undefined;
@@ -32,11 +32,11 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
         const system = context.workspace ? model.elements[context.workspace] : undefined;
         const inScope = (id: string) => !context.workspace || model.workspaceMembership?.membership[id]?.includes(context.workspace) || id === context.workspace;
         const atLevel = (id: string, kind: string) => conforms(model, id, kind) && !model.elements[id].isDefinition && operationalWorkLevel(model, id) === context.level;
-        if (context.level === 'system' && !model.workspaceMembership?.workspaces.some(root => root.root === context.workspace)) return fail('Choose one system or system of systems first.');
-        if (useCase && (!atLevel(useCase.id, `${prefix}UseCase`) || context.level === 'system' && !inScope(useCase.id))) return fail('Choose a use case at this level and in the current system.');
-        if (workflow && (!atLevel(workflow.id, `${prefix}Workflow`) || context.level === 'system' && !inScope(workflow.id))) return fail('Choose a workflow at this level and in the current system.');
-        if (scenario && (!atLevel(scenario.id, 'OperativeScenario') || context.level === 'system' && !inScope(scenario.id))) return fail('Choose a scenario owned by a workflow at this level.');
-        if (parentStep && (!atLevel(parentStep.id, 'OperativeAction') || context.level === 'system' && !inScope(parentStep.id))) return fail('Choose an activity in this workflow.');
+        if (context.level === 'operational' && !model.workspaceMembership?.workspaces.some(root => root.root === context.workspace)) return fail('Choose one system or system of systems first.');
+        if (useCase && (!atLevel(useCase.id, `${prefix}UseCase`) || context.level === 'operational' && !inScope(useCase.id))) return fail('Choose a use case at this level and in the current system.');
+        if (workflow && (!atLevel(workflow.id, `${prefix}Workflow`) || context.level === 'operational' && !inScope(workflow.id))) return fail('Choose a workflow at this level and in the current system.');
+        if (scenario && (!atLevel(scenario.id, 'OperativeScenario') || context.level === 'operational' && !inScope(scenario.id))) return fail('Choose a scenario owned by a workflow at this level.');
+        if (parentStep && (!atLevel(parentStep.id, 'OperativeAction') || context.level === 'operational' && !inScope(parentStep.id))) return fail('Choose an activity in this workflow.');
         const home = sourceElement ?? parentStep ?? scenario ?? workflow ?? useCase ?? (subject?.file === expectedFile ? subject : undefined) ?? model.elements[context.homeId ?? ''] ?? system;
         if (!home?.package || home.file !== expectedFile || home.provenance?.declaration.writable === false) return fail('Choose a writable source in this project.');
         if (['context', 'use-case', 'workflow', 'scenario', 'step'].includes(op) && !name.trim()) return fail('Give the new work a name.');
@@ -68,7 +68,7 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
             await add(home.file, home.package, `part ${declared} : memo_architecture_operational_structure::OperationalEntity {\n${identity}\n${attributes}\n}`);
         } else if (op === 'use-case') {
             if (!subject || !conforms(model, subject.id, context.level === 'clinical' ? 'OperationalEntity' : 'System') && !conforms(model, subject.id, context.level === 'clinical' ? 'OperationalEntity' : 'SystemOfSystems')) return fail('Choose a subject appropriate for this level.');
-            if (context.level === 'system' && !useCase && subject.id !== context.workspace && model.workspaceMembership?.definitionOf[subject.id] !== context.workspace) return fail('Create system goals in their own workspace, or explicitly include a child-system use case.');
+            if (context.level === 'operational' && !useCase && subject.id !== context.workspace && model.workspaceMembership?.definitionOf[subject.id] !== context.workspace) return fail('Create system goals in their own workspace, or explicitly include a child-system use case.');
             const declared = unique(home.package, name.trim()); resultId = `${home.package}::${declared}`;
             await add(home.file, home.package, `use case ${declared} : memo_architecture_operational_use_cases::${prefix}UseCase {\n${identity}\n${attributes}\nattribute :>> useCaseKind = memo_architecture_operational_use_cases::UseCaseKind::care;\nsubject :>> supportingSystem ${subject.isDefinition ? ':' : '='} ${elementPath(subject.id, model)};\n}`);
             if (useCase) await add(home.file, useCase.id, `include ${resultId};`);
@@ -97,25 +97,25 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
             if (!scenario && !parentStep) return fail('Choose a scenario to edit its sequence.');
             edit.replacement = rewriteActionSequence(edit.source, edit.outline, model, (parentStep ?? scenario)!.id, context.stepIds ?? []);
         } else if (op === 'include') {
-            if (!sourceElement || !target || !atLevel(sourceElement.id, `${prefix}UseCase`) || !atLevel(target.id, `${prefix}UseCase`) || context.level === 'system' && !inScope(sourceElement.id)) return fail('Choose two use cases at the same level.');
+            if (!sourceElement || !target || !atLevel(sourceElement.id, `${prefix}UseCase`) || !atLevel(target.id, `${prefix}UseCase`) || context.level === 'operational' && !inScope(sourceElement.id)) return fail('Choose two use cases at the same level.');
             if (wouldIncludeCycle(model, sourceElement.id, target.id)) return fail('This inclusion would create a cycle.');
             if (!model.relationships.some(edge => edge.type === 'includesStep' && edge.sourceId === sourceElement.id && edge.targetId === target.id)) await add(home.file, sourceElement.id, `include ${target.id};`);
         } else if (op === 'link-workflow') {
             if (!useCase || !workflow) return fail('Choose a workflow and a matching use case.');
             await linkWorkflow(workflow.id, useCase.id); resultId = workflow.id;
         } else if (op === 'refine') {
-            const family = ['UseCase', 'OperationalWorkflow', 'OperativeScenario', 'OperativeAction'].find(kind => sourceElement && target && conforms(model, sourceElement.id, kind) && conforms(model, target.id, kind));
-            if (context.level !== 'system' || !family || !sourceElement || !target || operationalWorkLevel(model, sourceElement.id) !== 'system' || operationalWorkLevel(model, target.id) !== 'clinical' || !inScope(sourceElement.id)) return fail('Choose matching system and clinical work to refine.');
+            const family = ['UseCase', 'Workflow', 'OperativeScenario', 'OperativeAction'].find(kind => sourceElement && target && conforms(model, sourceElement.id, kind) && conforms(model, target.id, kind));
+            if (context.level !== 'operational' || !family || !sourceElement || !target || operationalWorkLevel(model, sourceElement.id) !== 'operational' || operationalWorkLevel(model, target.id) !== 'clinical' || !inScope(sourceElement.id)) return fail('Choose matching system and clinical work to refine.');
             if (!model.relationships.some(edge => edge.type === 'realizes' && edge.sourceId === sourceElement.id && edge.targetId === target.id)) await add(home.file, home.package, refinement(sourceElement.id, target.id));
         } else if (op === 'realize-flow') {
-            if (context.level !== 'system' || !sourceElement || !target || !atLevel(sourceElement.id, 'OperativeAction') && !atLevel(sourceElement.id, 'OperativeScenario') || !inScope(sourceElement.id) || !functionalFlowsInScope(model, context.workspace ?? null).some(flow => flow.id === target.id)) return fail('Choose a functional flow and a system activity, or explicitly a whole system scenario.');
+            if (context.level !== 'operational' || !sourceElement || !target || !atLevel(sourceElement.id, 'OperativeAction') && !atLevel(sourceElement.id, 'OperativeScenario') || !inScope(sourceElement.id) || !functionalFlowsInScope(model, context.workspace ?? null).some(flow => flow.id === target.id)) return fail('Choose a functional flow and a system activity, or explicitly a whole system scenario.');
             if (!model.relationships.some(edge => edge.type === 'realizes' && edge.sourceId === target.id && edge.targetId === sourceElement.id)) await add(home.file, home.package, refinement(target.id, sourceElement.id));
         } else if (op === 'perform-function') {
-            if (context.level !== 'system' || !sourceElement || !atLevel(sourceElement.id, 'OperativeAction') || !inScope(sourceElement.id) || !target || !functionalCatalog(model, context.workspace ?? null).some(fn => fn.id === target.id)) return fail('Choose a system activity and a canonical system function.');
+            if (context.level !== 'operational' || !sourceElement || !atLevel(sourceElement.id, 'OperativeAction') || !inScope(sourceElement.id) || !target || !functionalCatalog(model, context.workspace ?? null).some(fn => fn.id === target.id)) return fail('Choose a system activity and a canonical system function.');
             if (!model.relationships.some(edge => edge.type === 'performs' && edge.sourceId === sourceElement.id && edge.targetId === target.id)) await add(home.file, sourceElement.id, `perform ${elementPath(target.id, model)};`);
         } else if (op === 'performer') {
             const performer = model.elements[context.performerId ?? ''];
-            if (!sourceElement || !atLevel(sourceElement.id, 'OperativeAction') || context.level === 'system' && !inScope(sourceElement.id) || !performer || !['User', 'OperationalEntity', 'System', 'SystemOfSystems'].some(kind => conforms(model, performer.id, kind)) || context.level === 'clinical' && (conforms(model, performer.id, 'System') || conforms(model, performer.id, 'SystemOfSystems'))) return fail('Choose an appropriate performer for this step.');
+            if (!sourceElement || !atLevel(sourceElement.id, 'OperativeAction') || context.level === 'operational' && !inScope(sourceElement.id) || !performer || !['User', 'OperationalEntity', 'System', 'SystemOfSystems'].some(kind => conforms(model, performer.id, kind)) || context.level === 'clinical' && (conforms(model, performer.id, 'System') || conforms(model, performer.id, 'SystemOfSystems'))) return fail('Choose an appropriate performer for this step.');
             if (performer.provenance?.declaration.writable === false) return fail('The performer source is read-only.');
             if (!model.relationships.some(edge => edge.type === 'performs' && edge.sourceId === performer.id && edge.targetId === sourceElement.id)) await add(performer.file, performer.id, `perform ${elementPath(sourceElement.id, model)};`);
         } else return fail('This operational action is not supported.');

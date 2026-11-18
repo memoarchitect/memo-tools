@@ -229,8 +229,8 @@
         "OperationalEntity": 8,
         "OperativeAction": 14,
         "OperativeScenario": 6,
-        "SystemUseCase": 1,
-        "SystemWorkflow": 3,
+        "OperationalUseCase": 1,
+        "OperationalWorkflow": 3,
         "ValidationCase": 2
       },
       "relationships": 84,

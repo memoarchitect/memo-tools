@@ -1,6 +1,6 @@
 import type { MemoModelDTO } from './semantic.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
-export type OperationalWorkLevel = 'clinical' | 'system';
+export type OperationalWorkLevel = 'clinical' | 'operational';
 export interface OperationalWriteContext {
     operation: 'context' | 'use-case' | 'workflow' | 'scenario' | 'step' | 'reuse-step' | 'sequence' | 'include' | 'link-workflow' | 'refine' | 'realize-flow' | 'perform-function' | 'performer';
     level: OperationalWorkLevel;
@@ -30,7 +30,7 @@ export function operationalWorkLevel(model: MemoModelDTO, id: string): Operation
     while (at && !seen.has(at)) {
         seen.add(at);
         if (operationalConforms(model, at, 'ClinicalUseCase') || operationalConforms(model, at, 'ClinicalWorkflow')) return 'clinical';
-        if (operationalConforms(model, at, 'SystemUseCase') || operationalConforms(model, at, 'SystemWorkflow')) return 'system';
+        if (operationalConforms(model, at, 'OperationalUseCase') || operationalConforms(model, at, 'OperationalWorkflow')) return 'operational';
         const element: MemoModelDTO['elements'][string] | undefined = model.elements[at];
         at = element?.owner ?? element?.parentAction;
     }

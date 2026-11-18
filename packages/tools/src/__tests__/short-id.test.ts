@@ -149,8 +149,8 @@ describe('the id of a usage', () => {
 
     it('keeps the use case and workflow families when they are typed by level', () => {
         expect(kindToPrefix('ClinicalUseCase')).toBe(kindToPrefix('UseCase'));
-        expect(kindToPrefix('SystemUseCase')).toBe(kindToPrefix('UseCase'));
-        expect(kindToPrefix('ClinicalWorkflow')).toBe(kindToPrefix('OperationalWorkflow'));
-        expect(kindToPrefix('SystemWorkflow')).toBe(kindToPrefix('OperationalWorkflow'));
+        expect(kindToPrefix('OperationalUseCase')).toBe(kindToPrefix('UseCase'));
+        expect(kindToPrefix('ClinicalWorkflow')).toBe(kindToPrefix('Workflow'));
+        expect(kindToPrefix('OperationalWorkflow')).toBe(kindToPrefix('Workflow'));
     });
 });

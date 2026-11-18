@@ -27,6 +27,11 @@ import { RECOMMENDED_COMPILER } from '../packages/tools/lib/toolchain/providers/
 // place, packages/tools/src/toolchain/providers/recommended.ts.
 process.env.MEMO_TOOLCHAIN_COMPILER ??= RECOMMENDED_COMPILER;
 
+// Re-frozen 2026-11-17 (operational level renamed; system placement rules): `gpca` and `robot-cell-family`
+// record `OperationalUseCase` and `OperationalWorkflow` where they recorded `SystemUseCase` and
+// `SystemWorkflow`. `robot-cell-family` adds three CR-ONT-106 warnings (its System definitions are in four
+// packages) and `nested-architecture-dsm` one CR-ONT-107 warning (a usage typed by `System`). Nothing else moved.
+
 // Re-frozen 2026-11-17 (`gpca` only): the system use case binds its subject to the pump usage, so it records one
 // added `hasSubject` edge from the use case to that usage. No element or violation changed; no other fixture moved.
 

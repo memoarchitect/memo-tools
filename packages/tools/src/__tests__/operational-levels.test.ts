@@ -53,13 +53,13 @@ const levels = (edit: (text: string) => string = text => text): string => edit(`
     use case ucL1 : ClinicalUseCase {
         subject :>> supportingSystem = careTeam;
     }
-    use case ucL2 : SystemUseCase {
+    use case ucL2 : OperationalUseCase {
         subject :>> supportingSystem = platformX;
     }
     part wfL1 : ClinicalWorkflow {
         action scL1 : OperativeScenario { perform stepPouch; }
     }
-    part wfL2 : SystemWorkflow {
+    part wfL2 : OperationalWorkflow {
         action scL2 : OperativeScenario { perform actPouchX; }
     }
     connection : RealizesUseCase connect realizingWorkflow ::> wfL1 to realizedUseCase ::> ucL1;
@@ -95,9 +95,9 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
             expect(found[byName('ucL1')]).toBe('clinical');
             expect(found[byName('wfL1')]).toBe('clinical');
             expect(found[byName('stepPouch')]).toBe('clinical');
-            expect(found[byName('ucL2')]).toBe('system');
-            expect(found[byName('scL2')]).toBe('system');
-            expect(found[byName('actPouchX')]).toBe('system');
+            expect(found[byName('ucL2')]).toBe('operational');
+            expect(found[byName('scL2')]).toBe('operational');
+            expect(found[byName('actPouchX')]).toBe('operational');
             expect(found[byName('careTeam')]).toBeUndefined();
             expect(found[byName('platformX')]).toBeUndefined();
         });
@@ -120,7 +120,7 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
     }, 180_000);
 
     it('093 flags a use case whose declared type disagrees with its subject', async () => {
-        const text = levels(t => t.replace('use case ucL2 : SystemUseCase', 'use case ucL2 : ClinicalUseCase'));
+        const text = levels(t => t.replace('use case ucL2 : OperationalUseCase', 'use case ucL2 : ClinicalUseCase'));
         await withExample(seeded(text), project => expect(findings(project)).toContain('CR-ONT-093:ucL2'));
     }, 180_000);
 
@@ -130,12 +130,12 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
     }, 180_000);
 
     it('103 flags a workflow that realizes a use case of the other level', async () => {
-        const text = levels(t => t.replace('part wfL2 : SystemWorkflow {', 'part wfL2 : ClinicalWorkflow {'));
+        const text = levels(t => t.replace('part wfL2 : OperationalWorkflow {', 'part wfL2 : ClinicalWorkflow {'));
         await withExample(seeded(text), project => expect(findings(project)).toContain('CR-ONT-103:wfL2'));
     }, 180_000);
 
     it('103 flags a workflow of neither level', async () => {
-        const text = levels(t => t.replace('part wfL1 : ClinicalWorkflow {', 'part wfL1 : OperationalWorkflow {'));
+        const text = levels(t => t.replace('part wfL1 : ClinicalWorkflow {', 'part wfL1 : Workflow {'));
         await withExample(seeded(text), project => expect(findings(project)).toContain('CR-ONT-103:wfL1'));
     }, 180_000);
 
@@ -182,18 +182,18 @@ describe.runIf(compilerConfigured && examplesPresent)('operational level rules (
 
     /** A trade study over two level-2 workflows; `second` is what the second one holds. */
     const study = (secondRefines: boolean) => levels(t => t.replace('    attribute <EUR> euro : CurrencyUnit;', `    action actPouchY : OperativeAction;
-    part wfL2b : OperationalWorkflow {
+    part wfL2b : Workflow {
         action scL2b : OperativeScenario { perform actPouchY; }
     }
     ${secondRefines ? '#refinement dependency actPouchY to stepPouch;' : ''}
     analysis study : TradeStudy {
-        subject : OperationalWorkflow = (wfL2, wfL2b);
+        subject : Workflow = (wfL2, wfL2b);
         objective : MinimizeObjective;
         calc :>> evaluationFunction {
-            in part aWorkflow :>> alternative : OperationalWorkflow;
+            in part aWorkflow :>> alternative : Workflow;
             return :>> result : Real = 1.0;
         }
-        return part :>> selectedAlternative : OperationalWorkflow;
+        return part :>> selectedAlternative : Workflow;
     }
     attribute <EUR> euro : CurrencyUnit;`));
 

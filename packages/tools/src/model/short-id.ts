@@ -22,9 +22,9 @@ const KIND_PREFIX_OVERRIDES: Record<string, string> = {
     // The two operational levels are kinds of use case and of workflow. Typing a use case by its
     // level must not re-mint its short id (USE-1 would become CLN-2), so each keeps its family.
     ClinicalUseCase: 'USE',
-    SystemUseCase: 'USE',
+    OperationalUseCase: 'USE',
     ClinicalWorkflow: 'WFL',
-    SystemWorkflow: 'WFL',
+    OperationalWorkflow: 'WFL',
     // Risk
     Hazard: 'HZD',
     HazardousEvent: 'HZD-EVT',
@@ -58,7 +58,6 @@ const KIND_PREFIX_OVERRIDES: Record<string, string> = {
     ActionDefinition: 'ACT-DEF',
     UseCase: 'UC',
     Workflow: 'WFL',
-    OperationalWorkflow: 'WFL',
     // Operational
     Stakeholder: 'STK',
     // `actor` is a SysML keyword, so the kind is MemoActor; its family is not MEM.
@@ -109,7 +108,7 @@ function derivePrefix(kind: string): string {
 
 /**
  * Get the three-letter display prefix for an element kind. Multi-word type
- * names intentionally use one shared family (OperationalWorkflow → OPR),
+ * names intentionally use one shared family (Workflow → OPR),
  * leaving the numeric sequence to provide uniqueness.
  */
 export function kindToPrefix(kind: string): string {

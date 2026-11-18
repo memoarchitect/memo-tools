@@ -2454,7 +2454,7 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::ucDeliverPcaTherapy",
-        "kind": "SystemUseCase",
+        "kind": "OperationalUseCase",
         "construct": "use case",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
@@ -2475,7 +2475,7 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfManageActiveTherapy",
-        "kind": "SystemWorkflow",
+        "kind": "OperationalWorkflow",
         "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
@@ -2538,14 +2538,14 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfPrepareAndStartTherapy",
-        "kind": "SystemWorkflow",
+        "kind": "OperationalWorkflow",
         "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfRespondToTherapyAlarm",
-        "kind": "SystemWorkflow",
+        "kind": "OperationalWorkflow",
         "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
@@ -9665,6 +9665,8 @@
       "NotificationSpec": 20,
       "OperationalCapability": 2,
       "OperationalEntity": 8,
+      "OperationalUseCase": 1,
+      "OperationalWorkflow": 3,
       "OperativeAction": 14,
       "OperativeScenario": 9,
       "OverallResidualRiskEvaluation": 1,
@@ -9692,8 +9694,6 @@
       "System": 2,
       "SystemConstant": 22,
       "SystemFunction": 11,
-      "SystemUseCase": 1,
-      "SystemWorkflow": 3,
       "Threat": 2,
       "TimingConstraint": 3,
       "TrustBoundary": 1,
