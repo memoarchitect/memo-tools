@@ -86,6 +86,33 @@ describe.runIf(compilerConfigured && examplesPresent)('guided operational author
             expect(crossLevel.success).toBe(false); expect(readFileSync(join(root, file), 'utf8')).toBe(before);
         });
     }, 240_000);
+    it('edits a use case profile: its fields, its actors and the use cases it includes', async () => {
+        await withExample({ [file]: source.replace('part careTeam : OperationalEntity;', 'part careTeam : OperationalEntity;\n    part nurse : User;') }, async (project, root) => {
+            let current = dto(project); const workspace = 'operational_authoring::ControllerSystem'; const outlines = selectedOutlineSource(root, config());
+            const write = async (context: Omit<OperationalWriteContext, 'workspace'>, name = '') => {
+                const result = await writeOperationalWork(root, current, { workspace, ...context }, name, outlines, file);
+                expect(result.success, result.error).toBe(true); current = dto(await loadProjectModel({ projectRoot: root, config: config(), cache: false })); return result.elementId!;
+            };
+            const nurse = 'operational_authoring::nurse';
+            const goal = await write({ operation: 'use-case', level: 'operational', subjectId: workspace }, 'Monitor condition');
+            const child = await write({ operation: 'use-case', level: 'operational', useCaseId: goal, subjectId: workspace }, 'Review status');
+            await write({ operation: 'fields', level: 'operational', sourceId: goal, fields: { goalStatement: 'Keep the condition in view', doc: 'The monitoring goal.' } });
+            expect(current.elements[goal].attributes.goalStatement).toBe('Keep the condition in view');
+            expect(current.elements[goal].doc).toContain('The monitoring goal.');
+            const notAField = await writeOperationalWork(root, current, { workspace, operation: 'fields', level: 'operational', sourceId: goal, fields: { expectedResult: 'x' } }, '', outlines, file);
+            expect(notAField.success).toBe(false);
+            await write({ operation: 'actor', level: 'operational', sourceId: goal, targetId: nurse });
+            const actorEdge = () => current.relationships.some(edge => edge.type === 'participatesIn' && edge.sourceId === nurse && edge.targetId === goal);
+            expect(actorEdge()).toBe(true);
+            const system = await writeOperationalWork(root, current, { workspace, operation: 'actor', level: 'operational', sourceId: goal, targetId: 'operational_authoring::display' }, '', outlines, file);
+            expect(system.success).toBe(false);
+            await write({ operation: 'unlink', level: 'operational', sourceId: goal, targetId: nurse, relation: 'participatesIn' });
+            expect(actorEdge()).toBe(false);
+            await write({ operation: 'unlink', level: 'operational', sourceId: goal, targetId: child, relation: 'includesStep' });
+            expect(current.relationships.some(edge => edge.type === 'includesStep' && edge.sourceId === goal && edge.targetId === child)).toBe(false);
+            expect(current.elements[goal].attributes.goalStatement).toBe('Keep the condition in view');
+        });
+    }, 240_000);
     it('creates clinical context, preserves reused step identities and checks a cross-file performer edit', async () => {
         const other = 'model/catalog/operational_devices.sysml';
         const split = source.replace('part def ControllerSystem specializes System;', '').replace('part controller : ControllerSystem;', 'part controller : operational_devices::ControllerSystem;').replace('dependency from ControllerSystem to', 'dependency from operational_devices::ControllerSystem to');

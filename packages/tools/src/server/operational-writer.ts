@@ -118,15 +118,37 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
             if (!sourceElement || !atLevel(sourceElement.id, 'OperativeAction') || context.level === 'operational' && !inScope(sourceElement.id) || !performer || !['User', 'OperationalEntity', 'System', 'SystemOfSystems'].some(kind => conforms(model, performer.id, kind)) || context.level === 'clinical' && (conforms(model, performer.id, 'System') || conforms(model, performer.id, 'SystemOfSystems'))) return fail('Choose an appropriate performer for this step.');
             if (performer.provenance?.declaration.writable === false) return fail('The performer source is read-only.');
             if (!model.relationships.some(edge => edge.type === 'performs' && edge.sourceId === performer.id && edge.targetId === sourceElement.id)) await add(performer.file, performer.id, `perform ${elementPath(sourceElement.id, model)};`);
+        } else if (op === 'actor') {
+            if (!sourceElement || !atLevel(sourceElement.id, `${prefix}UseCase`) || context.level === 'operational' && !inScope(sourceElement.id)) return fail('Choose a use case at this level.');
+            if (!target || target.isDefinition || !conforms(model, target.id, 'OperationalParticipant')) return fail('Choose an actor: a user or an actor in the model.');
+            if (!model.relationships.some(edge => edge.type === 'participatesIn' && edge.sourceId === target.id && edge.targetId === sourceElement.id)) {
+                await add(home.file, sourceElement.id, `actor ${unique(sourceElement.id, target.id.split('::').at(-1)!)} = ${elementPath(target.id, model)};`);
+            }
+        } else if (op === 'unlink') {
+            // Remove one actor or include line from the use case's own body. A link declared elsewhere is not guessed at.
+            if (!sourceElement || !target || !atLevel(sourceElement.id, `${prefix}UseCase`) || context.level === 'operational' && !inScope(sourceElement.id)) return fail('Choose a use case at this level.');
+            const keyword = context.relation === 'participatesIn' ? 'actor' : context.relation === 'includesStep' ? 'include' : undefined;
+            if (!keyword) return fail('Choose an actor or an included use case to remove.');
+            const node = [...outlineNodes(edit.outline)].find(candidate => candidate.key === sourceElement.id);
+            const names = new Set([elementPath(target.id, model), target.id, target.id.split('::').at(-1)!]);
+            const pattern = keyword === 'actor' ? /^actor\b[^=;{]*=\s*([^;\s{]+)/ : /^include\s+(?:use\s+case\s+)?([^;\s{]+)/;
+            const line = node ? bodyMembers(node).find(member => {
+                // The member's span starts after a membership keyword such as `actor`, so its whole line is matched.
+                const reference = pattern.exec(edit.source.slice(edit.source.lastIndexOf('\n', member.start - 1) + 1, member.end).trim())?.[1];
+                return !!reference && (names.has(reference) || names.has(reference.split(/::|\./).at(-1)!));
+            }) : undefined;
+            if (!line) return fail('That link is not written in this use case. Remove it where it is declared.');
+            const start = edit.source.lastIndexOf('\n', line.start - 1) + 1; const end = edit.source.indexOf('\n', line.end);
+            edit.replacement = edit.source.slice(0, start) + edit.source.slice(end < 0 ? line.end : end + 1);
         } else if (op === 'fields') {
-            // Edit a scenario's or a step's own fields in place: each named attribute line and the doc
+            // Edit a use case's, a scenario's or a step's own fields in place: each named attribute line and the doc
             // comment is replaced, added or removed, and nothing else in the declaration is touched.
             const element = sourceElement;
-            const kind = element && atLevel(element.id, 'OperativeScenario') ? 'scenario' : element && atLevel(element.id, 'OperativeAction') ? 'step' : undefined;
-            if (!element || !kind || context.level === 'operational' && !inScope(element.id)) return fail('Choose a scenario or a step at this level.');
+            const kind = element && atLevel(element.id, `${prefix}UseCase`) ? 'use-case' : element && atLevel(element.id, 'OperativeScenario') ? 'scenario' : element && atLevel(element.id, 'OperativeAction') ? 'step' : undefined;
+            if (!element || !kind || context.level === 'operational' && !inScope(element.id)) return fail('Choose a use case, a scenario or a step at this level.');
             const requested = Object.entries(context.fields ?? {});
             if (!requested.length) return fail('Nothing to save.');
-            const unknown = requested.find(([key]) => key !== 'doc' && !fieldsFor[kind].includes(key)); if (unknown) return fail(`A ${kind} has no field ${unknown[0]}.`);
+            const unknown = requested.find(([key]) => key !== 'doc' && !fieldsFor[kind].includes(key)); if (unknown) return fail(`A ${kind.replace('-', ' ')} has no field ${unknown[0]}.`);
             const node = [...outlineNodes(edit.outline)].find(candidate => candidate.key === element.id);
             if (!node?.body) return fail('The source of this work could not be located.');
             edit.replacement = replaceFields(edit.source, node, requested);
@@ -139,7 +161,7 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
     } catch (error) { return fail(error instanceof Error ? error.message : String(error)); }
 }
 
-/** A scenario's or step's fields rewritten in its own body: the lines that state them are replaced or removed, new ones follow its identity. */
+/** A use case's, scenario's or step's fields rewritten in its own body: the lines that state them are replaced or removed, new ones follow its identity. */
 function replaceFields(source: string, node: OutlineNode, fields: readonly [string, string][]): string {
     const members = bodyMembers(node);
     const lineStart = (offset: number) => source.lastIndexOf('\n', offset - 1) + 1;

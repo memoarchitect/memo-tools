@@ -2,7 +2,7 @@ import type { MemoModelDTO } from './semantic.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
 export type OperationalWorkLevel = 'clinical' | 'operational';
 export interface OperationalWriteContext {
-    operation: 'context' | 'use-case' | 'workflow' | 'scenario' | 'step' | 'reuse-step' | 'sequence' | 'include' | 'link-workflow' | 'refine' | 'realize-flow' | 'perform-function' | 'performer' | 'fields';
+    operation: 'context' | 'use-case' | 'workflow' | 'scenario' | 'step' | 'reuse-step' | 'sequence' | 'include' | 'link-workflow' | 'refine' | 'realize-flow' | 'perform-function' | 'performer' | 'fields' | 'actor' | 'unlink';
     level: OperationalWorkLevel;
     workspace?: string | null;
     homeId?: string;
@@ -17,6 +17,8 @@ export interface OperationalWriteContext {
     scenarioKind?: 'nominal' | 'alternate';
     fields?: Record<string, string>;
     stepIds?: string[];
+    /** For `unlink`: which link of the use case to remove, its actor or an included use case. */
+    relation?: 'participatesIn' | 'includesStep';
     relatedSourceHashes?: Record<string, string>;
 }
 const kindIndexes = new WeakMap<MemoModelDTO, ReturnType<typeof indexKinds>>();
