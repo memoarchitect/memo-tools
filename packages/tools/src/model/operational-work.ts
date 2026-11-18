@@ -2,7 +2,7 @@ import type { MemoModelDTO } from './semantic.js';
 import { indexKinds, kindConformsTo } from './relationship-legality.js';
 export type OperationalWorkLevel = 'clinical' | 'operational';
 export interface OperationalWriteContext {
-    operation: 'context' | 'use-case' | 'workflow' | 'scenario' | 'step' | 'reuse-step' | 'sequence' | 'include' | 'link-workflow' | 'refine' | 'realize-flow' | 'perform-function' | 'performer';
+    operation: 'context' | 'use-case' | 'workflow' | 'scenario' | 'step' | 'reuse-step' | 'sequence' | 'include' | 'link-workflow' | 'refine' | 'realize-flow' | 'perform-function' | 'performer' | 'fields';
     level: OperationalWorkLevel;
     workspace?: string | null;
     homeId?: string;

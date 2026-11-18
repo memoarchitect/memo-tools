@@ -52,6 +52,16 @@ describe.runIf(compilerConfigured && examplesPresent)('guided operational author
             await write({ operation: 'sequence', level: 'operational', scenarioId: scenario, stepIds: [second, step] });
             expect(functionalFlowSteps(current, scenario).steps.map(item => item.step.id)).toEqual([second, step]);
             expect(current.elements[scenario].attributes.preCondition).toBe('Ready to monitor');
+            await write({ operation: 'fields', level: 'operational', sourceId: scenario, fields: { preCondition: 'Patient ready', trigger: 'A reading is due', doc: 'The usual monitoring path.' } });
+            expect(current.elements[scenario].attributes).toMatchObject({ preCondition: 'Patient ready', trigger: 'A reading is due', postCondition: 'Condition recorded' });
+            expect(current.elements[scenario].doc).toContain('The usual monitoring path.');
+            expect(functionalFlowSteps(current, scenario).steps.map(item => item.step.id)).toEqual([second, step]);
+            await write({ operation: 'fields', level: 'operational', sourceId: scenario, fields: { trigger: '' } });
+            expect(current.elements[scenario].attributes.trigger).toBeUndefined();
+            await write({ operation: 'fields', level: 'operational', sourceId: step, fields: { doc: 'Read the sensor.' } });
+            expect(current.elements[step].doc).toContain('Read the sensor.');
+            const refused = await writeOperationalWork(root, current, { workspace, operation: 'fields', level: 'operational', sourceId: scenario, fields: { entryCondition: 'x' } }, '', outlines, file);
+            expect(refused.success).toBe(false);
             await write({ operation: 'refine', level: 'operational', sourceId: step, targetId: clinicalStep });
             await write({ operation: 'perform-function', level: 'operational', sourceId: step, targetId: 'operational_authoring::rootFunction::monitor' });
             await write({ operation: 'realize-flow', level: 'operational', sourceId: step, targetId: 'operational_authoring::rootFunction::monitorFlow' });

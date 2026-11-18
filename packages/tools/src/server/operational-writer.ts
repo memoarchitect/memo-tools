@@ -4,7 +4,7 @@ import type { MemoModelDTO } from '../model/semantic.js';
 import { operationalConforms as conforms, operationalWorkLevel, wouldIncludeCycle, type OperationalWriteContext } from '../model/operational-work.js';
 import { functionalCatalog, functionalFlowsInScope, functionalFlowSteps } from '../model/functional-work.js';
 import { layoutBlindRevision } from '../model/view-layout-block.js';
-import type { SourceOutline } from '../authoring/source-outline.js';
+import { bodyMembers, outlineNodes, type OutlineNode, type SourceOutline } from '../authoring/source-outline.js';
 import type { OutlineSource } from '../authoring/outline-source.js';
 import { elementPath } from '../serializer/element-reference.js';
 import { appendMembers } from './source-members.js';
@@ -52,7 +52,7 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
         const edit = await fileEdit(home.file);
         const add = async (file: string, container: string, text: string) => { const entry = await fileEdit(file); entry.members.set(container, [entry.members.get(container), text].filter(Boolean).join('\n')); };
         const unique = (container: string, requested: string) => { const stem = requested.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^([^a-zA-Z_])/, '_$1') || 'work'; let next = stem; for (let i = 2; model.elements[`${container}::${next}`]; i++) next = `${stem}${i}`; return next; };
-        const attributes = Object.entries(context.fields ?? {}).map(([key, value]) => { if (!fieldsFor[op]?.includes(key)) throw new Error(`This task cannot write ${key}.`); return `attribute :>> ${key} = ${JSON.stringify(value)};`; }).join('\n');
+        const attributes = op === 'fields' ? '' : Object.entries(context.fields ?? {}).map(([key, value]) => { if (!fieldsFor[op]?.includes(key)) throw new Error(`This task cannot write ${key}.`); return `attribute :>> ${key} = ${JSON.stringify(value)};`; }).join('\n');
         const identity = `@memo_core_common::MemoIdentity { :>> label = ${JSON.stringify(name.trim())}; }`;
         const refinement = (from: string, to: string) => `#ModelingMetadata::Refinement dependency from ${from} to ${to};`;
         const featuring = (id: string) => { let owner = model.elements[id]?.owner ?? model.elements[id]?.parentAction; const seen = new Set<string>(); while (owner && !seen.has(owner)) { seen.add(owner); const element = model.elements[owner]; if (!element) break; if (element.isDefinition) return element; owner = element.owner ?? element.parentAction; } return undefined; };
@@ -118,6 +118,18 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
             if (!sourceElement || !atLevel(sourceElement.id, 'OperativeAction') || context.level === 'operational' && !inScope(sourceElement.id) || !performer || !['User', 'OperationalEntity', 'System', 'SystemOfSystems'].some(kind => conforms(model, performer.id, kind)) || context.level === 'clinical' && (conforms(model, performer.id, 'System') || conforms(model, performer.id, 'SystemOfSystems'))) return fail('Choose an appropriate performer for this step.');
             if (performer.provenance?.declaration.writable === false) return fail('The performer source is read-only.');
             if (!model.relationships.some(edge => edge.type === 'performs' && edge.sourceId === performer.id && edge.targetId === sourceElement.id)) await add(performer.file, performer.id, `perform ${elementPath(sourceElement.id, model)};`);
+        } else if (op === 'fields') {
+            // Edit a scenario's or a step's own fields in place: each named attribute line and the doc
+            // comment is replaced, added or removed, and nothing else in the declaration is touched.
+            const element = sourceElement;
+            const kind = element && atLevel(element.id, 'OperativeScenario') ? 'scenario' : element && atLevel(element.id, 'OperativeAction') ? 'step' : undefined;
+            if (!element || !kind || context.level === 'operational' && !inScope(element.id)) return fail('Choose a scenario or a step at this level.');
+            const requested = Object.entries(context.fields ?? {});
+            if (!requested.length) return fail('Nothing to save.');
+            const unknown = requested.find(([key]) => key !== 'doc' && !fieldsFor[kind].includes(key)); if (unknown) return fail(`A ${kind} has no field ${unknown[0]}.`);
+            const node = [...outlineNodes(edit.outline)].find(candidate => candidate.key === element.id);
+            if (!node?.body) return fail('The source of this work could not be located.');
+            edit.replacement = replaceFields(edit.source, node, requested);
         } else return fail('This operational action is not supported.');
         const proposed = new Map<string, string>();
         for (const [file, entry] of edits) { const text = entry.replacement ?? appendMembers(entry.source, entry.outline, entry.members); if (text === undefined) return fail('A source container could not be located.'); proposed.set(file, text); }
@@ -125,4 +137,28 @@ export async function writeOperationalWork(projectRoot: string, model: MemoModel
         const committed = await commitSource(absolute, home.file, proposed.get(home.file)!, outlines, new Map([...proposed].filter(([file]) => file !== home.file).map(([file, text]) => [resolve(projectRoot, file), text])), projectRoot, new Map([...edits].map(([file, entry]) => [resolve(projectRoot, file), entry.source])));
         return committed.success ? { success: true, elementId: resultId, filePath: home.file, sourceFiles: [...proposed.keys()] } : fail(committed.error ?? 'The compiler refused the operational edit.');
     } catch (error) { return fail(error instanceof Error ? error.message : String(error)); }
+}
+
+/** A scenario's or step's fields rewritten in its own body: the lines that state them are replaced or removed, new ones follow its identity. */
+function replaceFields(source: string, node: OutlineNode, fields: readonly [string, string][]): string {
+    const members = bodyMembers(node);
+    const lineStart = (offset: number) => source.lastIndexOf('\n', offset - 1) + 1;
+    const indent = members.length ? source.slice(lineStart(members[0].start), members[0].start) : `${source.slice(lineStart(node.start), node.start).replace(/\S.*$/, '')}    `;
+    const edits: { start: number; end: number; text: string }[] = [];
+    const added: string[] = [];
+    for (const [key, value] of fields) {
+        const text = !value.trim() ? '' : key === 'doc' ? `doc /* ${value.replace(/\*\//g, '* /')} */` : `attribute :>> ${key} = ${JSON.stringify(value)};`;
+        const existing = members.find(member => key === 'doc' ? member.role === 'doc' : member.role === 'attribute' && (member.name === key || member.key.endsWith(`::${key}`)));
+        if (existing && text) edits.push({ start: existing.start, end: existing.end, text });
+        else if (existing) {
+            const end = source.indexOf('\n', existing.end);
+            edits.push({ start: lineStart(existing.start), end: end < 0 ? existing.end : end + 1, text: '' });
+        } else if (text) added.push(text);
+    }
+    if (added.length) {
+        const after = [...members].reverse().find(member => member.role === 'metadata' || member.role === 'attribute' || member.role === 'doc');
+        const at = after ? after.end : node.body!.open;
+        edits.push({ start: at, end: at, text: added.map(line => `\n${indent}${line}`).join('') });
+    }
+    return edits.sort((a, b) => b.start - a.start).reduce((text, change) => text.slice(0, change.start) + change.text + text.slice(change.end), source);
 }
