@@ -979,14 +979,37 @@ export interface DiagramNodeLayout {
     textAlign?: 'left' | 'center' | 'right';
     /** Vertical label alignment. Omitted means the notation's automatic alignment. */
     verticalAlign?: 'top' | 'middle' | 'bottom';
+    /** Which way the label runs. Omitted means horizontal. */
+    textOrientation?: TextOrientation;
     /** Fill opacity 0..1, for dimming context around the parts under review. */
     opacity?: number;
     /** Per-diagram boundary-port positions, relative to the owning node. */
-    ports?: Record<string, { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right'; size?: number; alongOffset?: number; faceOuter?: boolean }>;
+    ports?: Record<string, DiagramPortLayout>;
 }
 
-/** Per-edge visual override */
-export interface DiagramEdgeLayout {
+/** Which way a label's text runs: across, or turned a quarter to read bottom to top. */
+export type TextOrientation = 'horizontal' | 'vertical';
+
+/** How a label is drawn. Each field omitted means the notation's automatic choice. */
+export interface DiagramLabelStyle {
+    textColor?: string;
+    fontSize?: number;
+    fontWeight?: number;
+    textOrientation?: TextOrientation;
+}
+
+/** Per-diagram boundary-port position, relative to the owning node, and how its name is drawn. */
+export interface DiagramPortLayout extends DiagramLabelStyle {
+    x: number;
+    y: number;
+    side?: 'top' | 'bottom' | 'left' | 'right';
+    size?: number;
+    alongOffset?: number;
+    faceOuter?: boolean;
+}
+
+/** Per-edge visual override; the label style is the connector label's. */
+export interface DiagramEdgeLayout extends DiagramLabelStyle {
     color?: string;
     strokeWidth?: number;
     labelVisible?: boolean;
@@ -1019,6 +1042,8 @@ export interface DiagramEdgeLayout {
     routingType?: string;
     routingOverride?: string;
     labelPoint?: { x: number; y: number };
+    /** True once a person has placed the label: routing keeps `labelPoint` instead of recomputing it. */
+    manualLabel?: boolean;
     /** Where each end leaves its box, relative to the box. */
     sourceOffset?: { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right' };
     targetOffset?: { x: number; y: number; side?: 'top' | 'bottom' | 'left' | 'right' };

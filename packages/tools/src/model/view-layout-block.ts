@@ -26,7 +26,7 @@
 
 import { createHash } from 'node:crypto';
 import { edgeAttachment } from './edge-attachment.js';
-import type { DiagramLayout, DiagramNodeLayout, DiagramEdgeLayout, DiagramAnnotation } from '../protocol/messages.js';
+import type { DiagramLayout, DiagramNodeLayout, DiagramEdgeLayout, DiagramAnnotation, DiagramLabelStyle } from '../protocol/messages.js';
 
 type Side = 'top' | 'bottom' | 'left' | 'right';
 
@@ -234,8 +234,8 @@ type JsonRecord = Record<string, unknown>;
 const record = (v: unknown): v is JsonRecord => !!v && typeof v === 'object' && !Array.isArray(v);
 const extras = (v: unknown, known: string[]): JsonRecord => record(v)
     ? Object.fromEntries(Object.entries(v).filter(([k]) => !known.includes(k) && !['__proto__', 'prototype', 'constructor'].includes(k))) : {};
-const NODE_FIELDS = ['x', 'y', 'width', 'height', 'parent', 'color', 'borderColor', 'textColor', 'fontSize', 'fontWeight', 'textAlign', 'verticalAlign', 'opacity', 'ports'];
-const EDGE_FIELDS = ['color', 'strokeWidth', 'labelVisible', 'style', 'points', 'source', 'target', 'sourcePortId', 'targetPortId', 'attachment', 'manualLanding', 'sourceSide', 'sourceT', 'targetSide', 'targetT', 'manualRoute', 'routingType', 'routingOverride', 'labelPoint', 'sourceOffset', 'targetOffset'];
+const NODE_FIELDS = ['x', 'y', 'width', 'height', 'parent', 'color', 'borderColor', 'textColor', 'fontSize', 'fontWeight', 'textAlign', 'verticalAlign', 'textOrientation', 'opacity', 'ports'];
+const EDGE_FIELDS = ['color', 'strokeWidth', 'labelVisible', 'textColor', 'fontSize', 'fontWeight', 'textOrientation', 'style', 'points', 'source', 'target', 'sourcePortId', 'targetPortId', 'attachment', 'manualLanding', 'sourceSide', 'sourceT', 'targetSide', 'targetT', 'manualRoute', 'routingType', 'routingOverride', 'labelPoint', 'manualLabel', 'sourceOffset', 'targetOffset'];
 const NOTE_FIELDS = ['kind', 'x', 'y', 'width', 'height', 'text', 'color'];
 
 /** Fields that the current typed metadata cannot express, without camera data. */
@@ -250,7 +250,7 @@ export function layoutExtension(layout: DiagramLayout): JsonRecord {
         for (const [id, entry] of Object.entries(layout[name] ?? {})) {
             const extra = extras(entry, [...fields]);
             if (name === 'nodes' && record(entry) && record(entry.ports)) {
-                const ports = Object.fromEntries(Object.entries(entry.ports).map(([id, p]) => [id, extras(p, ['x', 'y', 'side', 'size', 'alongOffset', 'faceOuter'])]).filter(([, p]) => Object.keys(p as object).length));
+                const ports = Object.fromEntries(Object.entries(entry.ports).map(([id, p]) => [id, extras(p, ['x', 'y', 'side', 'size', 'alongOffset', 'faceOuter', 'textColor', 'fontSize', 'fontWeight', 'textOrientation'])]).filter(([, p]) => Object.keys(p as object).length));
                 if (Object.keys(ports).length) extra.ports = ports;
             }
             if (Object.keys(extra).length) values[id] = extra;
@@ -277,6 +277,14 @@ function endOffset(x: Scalar | undefined, y: Scalar | undefined, wall: Scalar | 
     const offset: NonNullable<DiagramEdgeLayout['sourceOffset']> = { x: ox, y: oy };
     put(offset, 'side', lit<Side>(wall));
     return offset;
+}
+
+/** A port's or connector's label style, from the four flat fields both records carry. */
+function readLabelStyle(target: DiagramLabelStyle, v: Record<string, Scalar>): void {
+    put(target, 'textColor', str(v.textColor));
+    put(target, 'fontSize', num(v.fontSize));
+    put(target, 'fontWeight', num(v.fontWeight));
+    put(target, 'textOrientation', lit(v.textOrientation));
 }
 
 /** The layout a view's statements describe, or null when it has none. */
@@ -318,6 +326,7 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
                 put(node, 'fontWeight', num(v.fontWeight));
                 put(node, 'textAlign', lit(v.textAlign));
                 put(node, 'verticalAlign', lit(v.verticalAlign));
+                put(node, 'textOrientation', lit(v.textOrientation));
                 put(node, 'opacity', num(v.opacity));
                 layout.nodes[id] = node;
                 break;
@@ -332,6 +341,7 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
                 put(port, 'size', num(v.size));
                 put(port, 'alongOffset', num(v.alongOffset));
                 put(port, 'faceOuter', bool(v.faceOuter));
+                readLabelStyle(port, v);
                 (node.ports ??= {})[name] = port;
                 break;
             }
@@ -348,6 +358,7 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
                 put(edge, 'color', str(v.color));
                 put(edge, 'strokeWidth', num(v.strokeWidth));
                 put(edge, 'labelVisible', bool(v.labelVisible));
+                readLabelStyle(edge, v);
                 put(edge, 'style', lit(v.lineStyle));
                 const route = Array.isArray(v.route) ? v.route : [];
                 if (route.length >= 2) {
@@ -368,6 +379,7 @@ export function layoutFromStatements(statements: readonly LayoutStatement[]): Di
                 put(edge, 'routingType', str(v.routingType));
                 put(edge, 'routingOverride', str(v.routingOverride));
                 if (num(v.labelX) !== undefined && num(v.labelY) !== undefined) edge.labelPoint = { x: num(v.labelX)!, y: num(v.labelY)! };
+                put(edge, 'manualLabel', bool(v.manualLabel));
                 put(edge, 'sourceOffset', endOffset(v.sourceOffsetX, v.sourceOffsetY, v.sourceOffsetSide));
                 put(edge, 'targetOffset', endOffset(v.targetOffsetX, v.targetOffsetY, v.targetOffsetSide));
                 layout.edges[id] = edge;
@@ -430,9 +442,15 @@ const SIDES = new Set(['top', 'bottom', 'left', 'right']);
 const LINE_STYLES = new Set(['solid', 'dashed', 'dotted']);
 const ALIGNS = new Set(['left', 'center', 'right']);
 const VERTICAL_ALIGNS = new Set(['top', 'middle', 'bottom']);
+const ORIENTATIONS = new Set(['horizontal', 'vertical']);
 const literal = (type: string, allowed: Set<string>, v: unknown) =>
     typeof v === 'string' && allowed.has(v) ? `${type}::${v}` : undefined;
 const side = (v: unknown) => literal('MemoLayoutSide', SIDES, v);
+const orientation = (v: unknown) => literal('MemoLayoutTextOrientation', ORIENTATIONS, v);
+const labelStyleFields = (style: DiagramLabelStyle): Field[] => [
+    ['textColor', s(style.textColor)], ['fontSize', n(style.fontSize)], ['fontWeight', n(style.fontWeight)],
+    ['textOrientation', orientation(style.textOrientation)],
+];
 
 /**
  * The statements that state this layout, one per line, in a fixed order (so a
@@ -473,6 +491,7 @@ export function layoutToStatements(layout: DiagramLayout, indent: string, portKe
             ['fontSize', n(node.fontSize)], ['fontWeight', n(node.fontWeight)],
             ['textAlign', literal('MemoLayoutAlign', ALIGNS, node.textAlign)],
             ['verticalAlign', literal('MemoLayoutVerticalAlign', VERTICAL_ALIGNS, node.verticalAlign)],
+            ['textOrientation', orientation(node.textOrientation)],
             ['opacity', n(node.opacity)],
         ], indent));
         for (const name of Object.keys(node.ports ?? {}).sort()) {
@@ -482,6 +501,7 @@ export function layoutToStatements(layout: DiagramLayout, indent: string, portKe
                 ['element', q(id)], ['portName', q(portKey(name))], ['x', n(port.x)], ['y', n(port.y)],
                 ['side', side(port.side)], ['size', n(port.size)],
                 ['alongOffset', n(port.alongOffset)], ['faceOuter', b(port.faceOuter)],
+                ...labelStyleFields(port),
             ], indent));
         }
     }
@@ -507,6 +527,7 @@ export function layoutToStatements(layout: DiagramLayout, indent: string, portKe
         const edge = layout.edges[id];
         const fields: Field[] = [
             ['color', s(edge.color)], ['strokeWidth', n(edge.strokeWidth)], ['labelVisible', b(edge.labelVisible)],
+            ...labelStyleFields(edge),
             ['lineStyle', literal('MemoLayoutLineStyle', LINE_STYLES, edge.style)],
             ['route', routeLiteral(edge.points)],
             ['attachment', edge.source === undefined && edge.target === undefined ? s(edge.attachment) : s(edgeAttachment(edge))],
@@ -514,7 +535,7 @@ export function layoutToStatements(layout: DiagramLayout, indent: string, portKe
             ['sourceSide', side(edge.sourceSide)], ['sourceT', n(edge.sourceT)],
             ['targetSide', side(edge.targetSide)], ['targetT', n(edge.targetT)],
             ['manualRoute', b(edge.manualRoute)], ['routingType', s(edge.routingType)], ['routingOverride', s(edge.routingOverride)],
-            ['labelX', n(edge.labelPoint?.x)], ['labelY', n(edge.labelPoint?.y)],
+            ['labelX', n(edge.labelPoint?.x)], ['labelY', n(edge.labelPoint?.y)], ['manualLabel', b(edge.manualLabel)],
             ['sourceOffsetX', n(edge.sourceOffset?.x)], ['sourceOffsetY', n(edge.sourceOffset?.y)], ['sourceOffsetSide', side(edge.sourceOffset?.side)],
             ['targetOffsetX', n(edge.targetOffset?.x)], ['targetOffsetY', n(edge.targetOffset?.y)], ['targetOffsetSide', side(edge.targetOffset?.side)],
         ];

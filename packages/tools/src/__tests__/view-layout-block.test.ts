@@ -76,6 +76,30 @@ describe('layout statements in a view', () => {
         expect(read.annotations!['note-1']).toEqual(layout.annotations!['note-1']);
     });
 
+    it('round-trips label colour, size, weight and orientation on a box, a port and a connector', () => {
+        const styled: DiagramLayout = {
+            nodes: {
+                'outer::inner::pump': {
+                    x: 0, y: 0, textColor: '#112233', textOrientation: 'vertical',
+                    ports: { flowIn: { x: 0, y: 10, side: 'left', textColor: '#445566', fontSize: 12, fontWeight: 700, textOrientation: 'vertical' } },
+                },
+            },
+            edges: { 'rel-1': { textColor: '#778899', fontSize: 14, fontWeight: 700, textOrientation: 'vertical', labelVisible: false, labelPoint: { x: 40, y: -12.5 }, manualLabel: true } },
+        };
+        const written = replaceViewLayout(SOURCE, 'outer::inner::overview', styled)!;
+        expect(written).toContain('textOrientation = MemoLayoutTextOrientation::vertical');
+        expect(written).not.toContain('MemoLayoutExtension');
+        const read = readFileLayouts(written)['outer::inner::overview'];
+        expect(read.nodes['outer::inner::pump']).toMatchObject({ textColor: '#112233', textOrientation: 'vertical' });
+        expect(read.nodes['outer::inner::pump'].ports).toEqual(styled.nodes['outer::inner::pump'].ports);
+        expect(read.edges['rel-1']).toEqual(styled.edges['rel-1']);
+    });
+
+    it('leaves out an orientation outside its set', () => {
+        const odd = { nodes: { a: { x: 0, y: 0, textOrientation: 'diagonal' } }, edges: {} } as unknown as DiagramLayout;
+        expect(layoutToStatements(odd, '').join('\n')).not.toContain('textOrientation');
+    });
+
     it('touches only its own view, and strips back to the original text', () => {
         const written = replaceViewLayout(SOURCE, 'outer::inner::overview', layout)!;
         expect(written).not.toBe(SOURCE);

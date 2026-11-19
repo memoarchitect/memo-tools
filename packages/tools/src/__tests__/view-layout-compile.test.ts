@@ -23,14 +23,15 @@ const everything: DiagramLayout = {
     nodes: {
         'layout_probe::pump': {
             x: -12.5, y: 40, width: 220, height: 140, parent: null, color: '#ffeecc', borderColor: '#000', textColor: '#111',
-            fontSize: 12, fontWeight: 600, textAlign: 'center', verticalAlign: 'middle', opacity: 0.5,
-            ports: { flowIn: { x: 0, y: 62.25, side: 'left', size: 14 } },
+            fontSize: 12, fontWeight: 600, textAlign: 'center', verticalAlign: 'middle', textOrientation: 'vertical', opacity: 0.5,
+            ports: { flowIn: { x: 0, y: 62.25, side: 'left', size: 14, textColor: '#222', fontSize: 11, fontWeight: 700, textOrientation: 'vertical' } },
         },
         'layout_probe::child': { x: 8, y: 9, parent: 'layout_probe::pump' },
     },
     edges: {
         'rel-1': {
             points: [{ x: -1, y: 2 }, { x: 3.5, y: -4 }], style: 'dotted', color: '#123', strokeWidth: 2, labelVisible: false,
+            textColor: '#333', fontSize: 13, fontWeight: 700, textOrientation: 'horizontal', labelPoint: { x: 4, y: -5 }, manualLabel: true,
             source: 'layout_probe::pump', target: 'layout_probe::child', sourcePortId: 'flowIn', targetPortId: 'in',
             manualLanding: true, sourceSide: 'top', sourceT: 0.25, targetSide: 'bottom', targetT: 0.75,
         },
@@ -51,7 +52,9 @@ describe.runIf(compilerConfigured && examplesPresent)('layout statements under t
             // A rejected compile throws; reaching the next line is the assertion.
             await loadProjectModel({ projectRoot: root, config: { modelName: 'test', toolchain: { compiler: process.env.MEMO_TOOLCHAIN_COMPILER } } as never, cache: false });
             const read = readFileLayouts(text)['layout_probe::overview'];
-            expect(read.nodes['layout_probe::pump'].ports?.flowIn).toEqual({ x: 0, y: 62.25, side: 'left', size: 14 });
+            expect(read.nodes['layout_probe::pump'].ports?.flowIn).toEqual(everything.nodes['layout_probe::pump'].ports!.flowIn);
+            expect(read.edges['rel-1']).toMatchObject({ textColor: '#333', fontSize: 13, fontWeight: 700, textOrientation: 'horizontal' });
+            expect(read.nodes['layout_probe::pump'].textOrientation).toBe('vertical');
             expect(read.edges['rel-1'].points).toEqual([{ x: -1, y: 2 }, { x: 3.5, y: -4 }]);
             expect(read.annotations!['note-1'].text).toBe(everything.annotations!['note-1'].text);
             expect(layoutBlindRevision(text)).toBe(layoutBlindRevision(replaceViewLayout(text, 'layout_probe::overview', null)!));
