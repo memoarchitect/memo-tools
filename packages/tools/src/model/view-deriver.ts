@@ -362,7 +362,8 @@ export function resolveViewElementIds(
     const layers = new Set(layerList);
 
     const ids = new Set<string>();
-    if (kindList.length > 0 || layerList.length > 0) {
+    // Authored views may offer kinds in their palette without drawing every matching element.
+    if (view.attributes.autoPopulate !== 'false' && (kindList.length > 0 || layerList.length > 0)) {
         for (const el of model.elements.values()) {
             if (el.id === view.id) continue;
             if (kinds.size > 0 && !kinds.has(el.kind)) continue;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { indexKinds, kindConformsTo } from '../model/relationship-legality.js';
 import { readGuideSources } from '../stage2/guide-from-api.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 
@@ -40,23 +41,63 @@ export const FAMILY_METHOD = `package robot_cell_family_method {
 describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, from the handoff', () => {
     it('reads the default method\'s steps, their order, roles, viewpoints, done- and link-rules, and a family step that follows one', async () => {
         await withExample({ 'model/catalog/sos/family_method.sysml': FAMILY_METHOD }, project => {
-            const { steps, roleViews } = readGuideSources(project.api, ['memo_methodology_profiles', 'robot_cell_family_method']);
+            const { steps, layers, roleViews } = readGuideSources(project.api, ['memo_methodology_profiles', 'robot_cell_family_method']);
             const byName = new Map(steps.map(s => [s.name, s]));
-            expect(steps.map(s => s.name)).toEqual([
-                'stepSosContext', 'stepSosOperational', 'stepSosFunctions', 'stepSosArchitecture', 'stepSosHazards',
-                'stepSysOperational', 'stepSysFunctional', 'stepSysLogical', 'stepSysHardware', 'stepSysSoftware', 'stepSysHumanFactors',
-                'stepSysRisk', 'stepSysSecurity', 'stepSysVerification', 'stepSysRelease', 'stepFamilyReview',
+            expect(steps.map(s => s.name).slice(0, 7)).toEqual([
+                'stepSosContext', 'stepSosUsers', 'stepSosUseCases', 'stepSosOperational', 'stepSosFunctions', 'stepSosArchitecture', 'stepSosHazards',
             ]);
+            expect(steps.at(-1)!.name).toBe('stepFamilyReview');
             expect(byName.get('stepSosHazards')).toMatchObject({
+                label: 'Identify the hazards of the systems together',
                 stage: 'risk', level: 'systemOfSystems', role: 'safetyEngineer', guideViewpoint: 'vpRiskChain',
                 outputKinds: ['Hazard'], doneWhen: [], linkedWhen: ['HazardMitigationRule'],
                 predecessors: ['memo_methodology_profiles::stepSosArchitecture'], methodology: 'memo_methodology_profiles',
             });
-            expect(byName.get('stepSysLogical')!.predecessors).toEqual(['memo_methodology_profiles::stepSysFunctional']);
-            expect(byName.get('stepSysRisk')!.outputKinds).toEqual(['Hazard', 'Risk']);
-            // Two steps follow the logical step, and one has two ancestors only by chain.
+            // A step is read by its label, a verb phrase; one that has none falls back to its name in words.
+            expect(byName.get('stepSysLogicalInterfaces')).toMatchObject({ label: 'Connect the components', stage: 'logical', outputKinds: ['LogicalPort'] });
+            expect(byName.get('stepSysLogicalAllocation')).toMatchObject({ linkedWhen: ['LogicalFunctionAllocationRule'], outputKinds: [] });
+            // Two steps follow the logical step.
             expect(['stepSysHardware', 'stepSysSoftware'].map(n => byName.get(n)!.predecessors)).toEqual([
                 ['memo_methodology_profiles::stepSysLogical'], ['memo_methodology_profiles::stepSysLogical']]);
+            // The rows of the method map, each side in declaration order; a row names stages, never steps.
+            expect(layers.map(l => `${l.axis}:${l.label}`)).toEqual([
+                'architecture:Context', 'architecture:Operational', 'architecture:Functional', 'architecture:Logical',
+                'architecture:Implementation', 'architecture:Realization',
+                'assurance:Requirements', 'assurance:Safety and risk', 'assurance:Cybersecurity', 'assurance:Human factors',
+                'assurance:Verification and validation',
+            ]);
+            const registry = project.registries!.kindRegistry!.entries().map(kind => ({ ...kind, construct: kind.sysmlConstruct }));
+            const hierarchy = indexKinds(registry);
+            const mapped = layers.flatMap(layer => layer.elementKinds ?? []);
+            const architecturalKinds = registry.filter(kind => ['architecture', 'assurance'].includes(kind.namespace?.[0] ?? '') && !['enum def', 'attribute def', 'metadata def'].includes(kind.construct));
+            expect(architecturalKinds.length).toBeGreaterThan(100);
+            expect(architecturalKinds.filter(kind => !mapped.some(base => kindConformsTo(kind.name, base, hierarchy))).map(kind => kind.name)).toEqual([]);
+            expect(layers.find(l => l.name === 'layerFunctional')!.elementKinds).toEqual(expect.arrayContaining(['MemoFunction', 'ComponentFunction', 'FunctionalFlow']));
+            expect(layers.find(l => l.name === 'layerFunctional')).toMatchObject({ workbench: 'functional', tasks: [
+                { kind: 'decomposition', primary: true, subjectKind: 'SystemFunction' },
+                { kind: 'sequence', primary: true, subjectKind: 'FunctionalFlow', referenceKind: 'SystemFunction' },
+                { kind: 'realization', primary: false, implementationKind: 'ComponentFunction', allocationKind: 'LogicalComponent', relationshipKind: 'realizes' },
+            ] });
+            expect(layers.find(l => l.name === 'layerOperational')).toMatchObject({ workbench: 'operational', tasks: [
+                { level: 'clinical', subjectKind: 'ClinicalUseCase', workflowKind: 'ClinicalWorkflow', scenarioKind: 'OperativeScenario', stepKind: 'OperativeAction' },
+                { level: 'operational', subjectKind: 'OperationalUseCase', workflowKind: 'OperationalWorkflow', scenarioKind: 'OperativeScenario', stepKind: 'OperativeAction' },
+            ] });
+            expect(layers.find(l => l.name === 'layerOperational')!.elementKinds).toEqual(expect.arrayContaining(['ClinicalUseCase', 'OperationalUseCase', 'ClinicalWorkflow', 'OperationalWorkflow', 'OperativeScenario']));
+            expect(layers.find(l => l.name === 'layerLogical')).toMatchObject({
+                purpose: 'How the system will work.', stages: ['logical'],
+            });
+            expect(layers.find(l => l.name === 'layerLogical')!.viewpoints).toEqual([
+                { id: 'memo_viewpoints_catalog::vpLogicalArchitecture', name: 'vpLogicalArchitecture', label: 'Logical architecture', viewKind: 'general' },
+                { id: 'memo_viewpoints_catalog::vpInternalInterconnection', name: 'vpInternalInterconnection', label: 'Internal interconnection', viewKind: 'interconnection' },
+                { id: 'memo_viewpoints_catalog::vpSequenceInteraction', name: 'vpSequenceInteraction', label: 'Sequence interaction', viewKind: 'sequence' },
+                { id: 'memo_viewpoints_catalog::vpStateMode', name: 'vpStateMode', label: 'State and mode', viewKind: 'statetransition' },
+                { id: 'memo_viewpoints_logical_logical_viewpoint::logicalArchitectureViewpoint', name: 'logicalArchitectureViewpoint', label: 'Logical architecture views', viewKind: undefined },
+            ]);
+            expect(layers.find(l => l.name === 'disciplineSafetyRisk')).toMatchObject({ standardReference: 'ISO 14971', stages: ['risk'], importable: true });
+            expect(layers.find(l => l.name === 'disciplineCybersecurity')!.importable).toBe(false);
+            // Every step but the release is held by a row: the release belongs to the design history.
+            const held = new Set(layers.flatMap(l => l.stages));
+            expect(steps.filter(s => s.methodology === 'memo_methodology_profiles' && !held.has(s.stage!)).map(s => s.name)).toEqual(['stepSysRelease']);
             // A family step added by `first <base step> then <family step>`.
             expect(byName.get('stepFamilyReview')).toMatchObject({
                 level: 'system', role: 'regulatoryEngineer', guideViewpoint: 'vpModelContent', outputKinds: ['ReleaseRecord'],
@@ -69,7 +110,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the steps of a method, fr
     it('reads only the packages it is given', async () => {
         await withExample({ 'model/catalog/sos/family_method.sysml': FAMILY_METHOD }, project => {
             expect(readGuideSources(project.api, ['robot_cell_family_method']).steps.map(s => s.name)).toEqual(['stepFamilyReview']);
-            expect(readGuideSources(project.api, ['no_such_package'])).toEqual({ steps: [], roleViews: [] });
+            expect(readGuideSources(project.api, ['no_such_package'])).toEqual({ steps: [], layers: [], roleViews: [] });
         }, 'robot-cell-family');
     }, 120_000);
 });

@@ -1,7 +1,7 @@
 // ─── The operational level of an element ─────────────────────────────────────
 //
 // A use case and a workflow are declared at a level by their type (`ClinicalUseCase`,
-// `SystemUseCase`, `ClinicalWorkflow`, `SystemWorkflow`). A scenario, a step or a resource has no
+// `OperationalUseCase`, `ClinicalWorkflow`, `OperationalWorkflow`). A scenario, a step or a resource has no
 // type of its own for it: it is at the level of the workflow it sits in, reached the way the
 // level rules reach it (CR-ONT-094..097), by `composes` and by what a composed scenario
 // `performs`. This is the one place that walk is written; the rules state it in their predicates
@@ -17,11 +17,11 @@ import type { MemoModel } from './semantic.js';
 import type { KindRegistry } from './kind-registry.js';
 import { withSpecializationExtents } from './kind-extents.js';
 
-export type OperationalLevel = 'clinical' | 'system';
+export type OperationalLevel = 'clinical' | 'operational';
 
 const LEVEL_TYPES: readonly [string, OperationalLevel][] = [
     ['ClinicalUseCase', 'clinical'], ['ClinicalWorkflow', 'clinical'],
-    ['SystemUseCase', 'system'], ['SystemWorkflow', 'system'],
+    ['OperationalUseCase', 'operational'], ['OperationalWorkflow', 'operational'],
 ];
 
 export function operationalLevels(model: MemoModel, kindRegistry: KindRegistry): Record<string, OperationalLevel> {

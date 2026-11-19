@@ -1,3 +1,4 @@
+import { elementPath } from '../serializer/element-reference.js';
 // ─── Relationship Writer ──────────────────────────────────────────────────────
 //
 // Persists model relationships as typed SysML connection usages, and removes
@@ -560,20 +561,6 @@ function stepName(elementId: string, model: Pick<MemoModelDTO, 'elements'>): str
     return model.elements[elementId]?.shortName ?? shortNameOf(elementId);
 }
 
-function elementPath(elementId: string, model: Pick<MemoModelDTO, 'elements'>): string {
-    const named = (id: string) => model.elements[id]?.shortName ?? shortNameOf(id);
-    const nested = [] as string[];
-    let outermost = elementId;
-    const visited = new Set([elementId]);
-    let owner = model.elements[elementId]?.owner;
-    while (owner && !visited.has(owner) && model.elements[owner]) {
-        nested.unshift(named(outermost));
-        outermost = owner;
-        visited.add(owner);
-        owner = model.elements[owner]?.owner;
-    }
-    return [outermost, ...nested].join('.');
-}
 
 /**
  * Atomically replace one relationship declaration at the exact range supplied
@@ -903,11 +890,10 @@ function declaredNameOf(relationship: Pick<MemoRelationship, 'id' | 'shortName'>
 }
 
 /**
- * The connector usages a name can address: a typed `connection`, the `interface` and `flow` a
- * ComponentExchange and a FunctionalExchange are written as, and a named `binding`.
+ * The connector usages a name can address, including typed allocations and exchanges.
  */
 const NAMED_CONNECTOR_METACLASSES: ReadonlySet<string> = new Set([
-    'ConnectionUsage', 'InterfaceUsage', 'FlowUsage', 'FlowConnectionUsage', 'BindingConnectorAsUsage',
+    'ConnectionUsage', 'AllocationUsage', 'InterfaceUsage', 'FlowUsage', 'FlowConnectionUsage', 'BindingConnectorAsUsage',
 ]);
 
 /** A named connector usage anywhere in the file. */

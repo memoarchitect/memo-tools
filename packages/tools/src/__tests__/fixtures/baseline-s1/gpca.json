@@ -2454,7 +2454,7 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::ucDeliverPcaTherapy",
-        "kind": "SystemUseCase",
+        "kind": "OperationalUseCase",
         "construct": "use case",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
@@ -2475,7 +2475,7 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfManageActiveTherapy",
-        "kind": "SystemWorkflow",
+        "kind": "OperationalWorkflow",
         "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
@@ -2538,14 +2538,14 @@
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfPrepareAndStartTherapy",
-        "kind": "SystemWorkflow",
+        "kind": "OperationalWorkflow",
         "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
       },
       {
         "id": "memo_examples_gpca_pump_gpca_operational::wfRespondToTherapyAlarm",
-        "kind": "SystemWorkflow",
+        "kind": "OperationalWorkflow",
         "construct": "part",
         "layer": "operational",
         "package": "memo_examples_gpca_pump_gpca_operational"
@@ -7215,6 +7215,11 @@
         "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaSoftware::tlm"
       },
       {
+        "type": "hasSubject",
+        "sourceId": "memo_examples_gpca_pump_gpca_operational::ucDeliverPcaTherapy",
+        "targetId": "memo_examples_gpca_pump_gpca_architecture::gpcaPump"
+      },
+      {
         "type": "hostedBy",
         "sourceId": "memo_examples_gpca_pump_gpca_physical::mainController",
         "targetId": "memo_examples_gpca_pump_gpca_architecture::controllerBoard"
@@ -9660,6 +9665,8 @@
       "NotificationSpec": 20,
       "OperationalCapability": 2,
       "OperationalEntity": 8,
+      "OperationalUseCase": 1,
+      "OperationalWorkflow": 3,
       "OperativeAction": 14,
       "OperativeScenario": 9,
       "OverallResidualRiskEvaluation": 1,
@@ -9687,8 +9694,6 @@
       "System": 2,
       "SystemConstant": 22,
       "SystemFunction": 11,
-      "SystemUseCase": 1,
-      "SystemWorkflow": 3,
       "Threat": 2,
       "TimingConstraint": 3,
       "TrustBoundary": 1,

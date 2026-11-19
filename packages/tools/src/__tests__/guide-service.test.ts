@@ -21,6 +21,29 @@ const evaluate = (project: ProjectModel, workspace: string | undefined, packages
 const states = (result: ReturnType<typeof evaluate>) => Object.fromEntries(result.steps.map(s => [s.name.replace(/^step/, ''), s.state]));
 
 describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10)', () => {
+    it('counts local functional responsibilities without foreign siblings of a shared root', async () => {
+        await withExample({ 'model/catalog/scoped_functions.sysml': `package scoped_functions {
+            private import memo::*;
+            part def AlphaSystem specializes System;
+            part def BetaSystem specializes System;
+            part alpha : AlphaSystem;
+            part beta : BetaSystem;
+            action sharedRoot : SystemFunction {
+                action local : SystemFunction;
+                action foreign : SystemFunction { action nested : SystemFunction; }
+                action shared : SystemFunction;
+            }
+            allocate sharedRoot to alpha;
+            allocate sharedRoot to beta;
+            allocate sharedRoot.local to alpha;
+            allocate sharedRoot.foreign to beta;
+        }` }, project => {
+            const result = evaluate(project, 'scoped_functions::AlphaSystem');
+            expect(result.error).toBeUndefined();
+            expect(result.steps.find(step => step.name === 'stepSysFunctional')!.outputs).toEqual([{ kind: 'SystemFunction', count: 3, untracedImports: 0 }]);
+        });
+    }, 180_000);
+
     it('reads the system of systems\' steps against E0: what is there is done, and each step on its own', async () => {
         await withExample({}, project => {
             const result = evaluate(project, 'RoboticCell');
@@ -30,7 +53,8 @@ describe.runIf(compilerConfigured && examplesPresent)('the Guide on a model (T10
             // functional chain (the chain is a workflow) and no hazard. Its interfaces exist, so the architecture step
             // is done although the step before it is not: a step is judged by what it states, not by its place.
             expect(states(result)).toEqual({
-                SosContext: 'done', SosOperational: 'done', SosFunctions: 'open', SosArchitecture: 'done', SosHazards: 'open',
+                SosContext: 'done', SosUsers: 'done', SosUseCases: 'done', SosOperational: 'done', SosFunctions: 'open',
+                SosArchitecture: 'done', SosHazards: 'open',
             });
             expect(result.next).toBe('memo_methodology_profiles::stepSosFunctions');
             expect(result.steps.find(s => s.name === 'stepSosFunctions')!.reasons).toEqual(['no FunctionalFlow yet']);

@@ -2,7 +2,7 @@
 //
 // What a person chose for themselves in Architect while working on this model —
 // the role whose viewpoints they want to see, how the explorer splits its folders, the experimental features they switched on, the workspace (the system of systems, or one
-// system) they are working in, what they marked as favorites, and what they opened last. It is not model content
+// system) they are working in, favorites, recent items, whether Pathways guides them, and the method step they last opened. It is not model content
 // and not something the team shares, so it lives in one visible file at the
 // model root, `memo.user.yaml`, which the model's `.gitignore` keeps out of git
 // (added the first time it is written, as personal dashboards are).
@@ -59,24 +59,30 @@ export function loadUserPreferences(projectRoot: string): UserPreferencesDTO {
     if (!parsed) return defaults;
     const own = clean({
         role: parsed.role, workspace: parsed.workspace, explorerSplit: parsed.explorerSplit, features: parsed.features,
-        packageFolders: parsed.packageFolders, favorites: parsed.favorites, recentViews: parsed.recentViews, recentElements: parsed.recentElements,
+        packageFolders: parsed.packageFolders, pathways: parsed.pathways, lastStep: parsed.lastStep, favorites: parsed.favorites, recentViews: parsed.recentViews, recentElements: parsed.recentElements,
     });
     const merged: UserPreferencesDTO = { ...defaults, ...own };
     // Explicit "none" choices are dropped by clean(); a user key that is present still overrides the project.
     if (Array.isArray(parsed.features) && parsed.features.length === 0) delete merged.features;
     if (parsed.packageFolders === true) delete merged.packageFolders;
+    // A cleared scalar overrides a project default (for example Whole model vs a default system).
+    for (const key of ['role', 'workspace', 'explorerSplit'] as const) {
+        if (Object.hasOwn(parsed, key) && parsed[key] === null) delete merged[key];
+    }
     return merged;
 }
 
 /** Keep the string choices that are set, trimmed; drop the rest. */
 function clean(raw: Record<string, unknown>): UserPreferencesDTO {
     const out: UserPreferencesDTO = {};
-    for (const key of ['role', 'workspace', 'explorerSplit'] as const) {
+    for (const key of ['role', 'workspace', 'explorerSplit', 'lastStep'] as const) {
         const value = raw[key];
         if (typeof value === 'string' && value.trim()) out[key] = value.trim();
     }
     // Package folders are on unless the person turned them off, so only `false` is kept.
     if (raw.packageFolders === false) out.packageFolders = false;
+    // Pathways is on unless the person switched it off, so only `false` is kept.
+    if (raw.pathways === false) out.pathways = false;
     // The feature ids switched on: a list of non-empty strings, each once, in the order given.
     if (Array.isArray(raw.features)) {
         const features = [...new Set(raw.features.filter((id): id is string => typeof id === 'string' && id.trim() !== '').map(id => id.trim()))];
@@ -134,7 +140,7 @@ export function saveUserPreferences(projectRoot: string, preferences: UserPrefer
         const mine = next[key];
         const theirs = defaults[key];
         if (JSON.stringify(mine ?? null) === JSON.stringify(theirs ?? null)) { delete out[key]; continue; }
-        if (mine === undefined) out[key] = key === 'features' ? [] : key === 'packageFolders' ? true : undefined;
+        if (mine === undefined) out[key] = key === 'features' ? [] : key === 'packageFolders' ? true : null;
     }
     ensureGitIgnored(projectRoot, USER_PREFERENCES_FILE, 'MEMO Architect: your own choices for this model');
     writeFileSync(resolve(projectRoot, USER_PREFERENCES_FILE), HEADER + stringifyYaml(out), 'utf8');

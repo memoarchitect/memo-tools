@@ -513,7 +513,7 @@ export class RelationshipRegistry {
             isUnique: this.inherited(entry, 'isUnique'),
             isTrace: this.inherited(entry, 'isTrace'),
             nativeKeyword: entry.nativeKeyword,
-            ...(entry.sysmlConstruct === 'interface def' || entry.sysmlConstruct === 'flow def' ? { sysmlConstruct: entry.sysmlConstruct } : {}),
+            ...(entry.sysmlConstruct === 'allocation def' || entry.sysmlConstruct === 'interface def' || entry.sysmlConstruct === 'flow def' ? { sysmlConstruct: entry.sysmlConstruct } : {}),
             ...(entry.sysmlConstruct === 'metadata def' && entry.qualifiedName ? { typedDependency: entry.qualifiedName } : {}),
             ...(entry.sysmlConstruct !== 'metadata def' && entry.qualifiedName ? { qualifiedName: entry.qualifiedName } : {}),
             sourceEnd: toEndDTO(entry.ends[0], 'source'),

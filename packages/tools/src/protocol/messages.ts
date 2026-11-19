@@ -1,3 +1,5 @@
+import type { OperationalWriteContext } from '../model/operational-work.js';
+import type { FunctionalWriteContext } from '../model/functional-work.js';
 // ─── WebSocket Protocol Messages ──────────────────────────────────────────────
 //
 // Shared types for the CLI dev server ↔ Web app WebSocket protocol.
@@ -542,6 +544,9 @@ export interface ElementCreateMessage {
         name: string;
         kind: string;
         construct: string;
+        /** Server-owned native functional structure creation; id is empty until compilation. */
+        functionContext?: FunctionalWriteContext;
+        operationalContext?: OperationalWriteContext;
         attributes?: Record<string, string>;
         precondition: ModelMutationPrecondition;
     };
@@ -1526,6 +1531,10 @@ export interface UserPreferencesDTO {
     features?: string[];
     /** False lists the Model Explorer without package folders; unset means packages are folders. */
     packageFolders?: boolean;
+    /** False switches Pathways (guided modelling) off; unset means it is on where the method guide is. */
+    pathways?: boolean;
+    /** The method step this person last opened, by its qualified name: where they continue. */
+    lastStep?: string;
     /** What the person marked as a favorite, in the order they added it. */
     favorites?: FavoriteDTO[];
     /** The views (diagram ids) the person opened last, most recent first. */

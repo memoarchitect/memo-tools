@@ -41,6 +41,14 @@ describe('one person\'s choices for a model', () => {
         expect(loadUserPreferences(dir)).toEqual({});
     });
 
+    it('keep only a choice to switch Pathways off, and the step last opened', () => {
+        const dir = root();
+        saveUserPreferences(dir, { pathways: false, lastStep: ' memo_methodology_profiles::stepSysLogicalInterfaces ' });
+        expect(loadUserPreferences(dir)).toEqual({ pathways: false, lastStep: 'memo_methodology_profiles::stepSysLogicalInterfaces' });
+        saveUserPreferences(dir, { pathways: true });
+        expect(loadUserPreferences(dir)).toEqual({});
+    });
+
     it('drop the role when it is cleared', () => {
         const dir = root();
         saveUserPreferences(dir, { role: 'safetyEngineer' });
@@ -116,6 +124,23 @@ describe('project defaults and personal overrides', () => {
         saveUserPreferences(dir, { role: 'safetyEngineer', features: ['guide'] });
         expect(readFileSync(join(dir, USER_PREFERENCES_FILE), 'utf8')).not.toContain('features');
         expect(loadUserPreferences(dir)).toEqual({ role: 'safetyEngineer', features: ['guide'] });
+    });
+
+    it('keeps Pathways choices alongside project defaults and favorites', () => {
+        const dir = project('preferences:\n  features: [guide]\n  packageFolders: false\n');
+        const choices = { pathways: false, lastStep: 'method::step', favorites: [{ type: 'view' as const, ref: 'model::view' }] };
+        saveUserPreferences(dir, { ...choices, features: ['guide'], packageFolders: false });
+        expect(loadUserPreferences(dir)).toEqual({ ...choices, features: ['guide'], packageFolders: false });
+    });
+
+    it.each(['workspace', 'role', 'explorerSplit'] as const)('lets a person clear a project default for %s', key => {
+        const dir = project(`preferences:\n  ${key}: model::default\n`);
+        expect(loadUserPreferences(dir)).toEqual({ [key]: 'model::default' });
+        saveUserPreferences(dir, {});
+        expect(loadUserPreferences(dir)).toEqual({});
+        expect(readFileSync(join(dir, USER_PREFERENCES_FILE), 'utf8')).toContain(`${key}: null`);
+        saveUserPreferences(dir, { [key]: 'model::other' });
+        expect(loadUserPreferences(dir)).toEqual({ [key]: 'model::other' });
     });
 
     it('lets a person show package folders the project hides', () => {

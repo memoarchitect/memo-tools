@@ -26,8 +26,8 @@
 // connections ("a package that already collects its links in one file keeps
 // collecting them there"), applied to views. With no same-kind sibling, a file
 // is created beside wherever the project keeps its other views, carrying that
-// exemplar's imports. A project with no views at all is genuinely unanswerable
-// and is refused — there is no sidecar to fall back to.
+// exemplar's imports. With no views yet, a selected project element anchors the
+// first view beside its own source; the compiler checks the complete new declaration.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -243,7 +243,25 @@ function conventionalHome(siblings: MemoElement[]): { file: string; members: Mem
  */
 function bootstrapHome(projectRoot: string, model: MemoModelDTO, diagram: DiagramDTO) {
     const anyView = siblingViews(model, null);
-    if (anyView.length === 0) return undefined;
+    if (anyView.length === 0) {
+        // A first view is anchored to the selected project's own element. Its file and package
+        // give it a home even when there is no existing view convention to copy.
+        const primary = model.elements[(diagram.elementIds ?? [])[0] ?? ''];
+        if (!primary?.file || !primary.package) return undefined;
+        const sourceFile = relative(projectRoot, resolve(projectRoot, primary.file));
+        if (sourceFile.startsWith('..') || isAbsolute(sourceFile) || !existsSync(resolve(projectRoot, sourceFile))) return undefined;
+        const imports = readFileSync(resolve(projectRoot, sourceFile), 'utf8').split('\n')
+            .filter(line => /^\s*(private\s+)?import\s/.test(line)).map(line => line.trim());
+        for (const pkg of ['memo_viewpoints_definitions', 'memo_core_common', 'memo_core_enumerations']) {
+            const statement = `private import ${pkg}::*;`;
+            if (!imports.includes(statement)) imports.push(statement);
+        }
+        return {
+            file: `${dirname(sourceFile)}/views/view_${slug(diagram.name)}.sysml`,
+            pkg: `${primary.package.replaceAll('::', '_')}_views_${slug(diagram.name)}`,
+            imports, exemplar: primary,
+        };
+    }
     const home = conventionalHome(anyView)!;
     const exemplar = home.members[0];
     const file = `${dirname(home.file)}/view_${slug(diagram.name)}.sysml`;
@@ -262,8 +280,7 @@ function bootstrapHome(projectRoot: string, model: MemoModelDTO, diagram: Diagra
 /**
  * Write one view declaration into the project's own home for views of its kind.
  *
- * Returns `{ success: false, reason }` when the project declares no view at all,
- * which is the only case with no convention to infer. There is deliberately no
+ * A selected project element anchors the first view when there is no existing convention. There is deliberately no
  * sidecar fallback: a view that cannot be declared is not created.
  */
 /**
@@ -378,9 +395,14 @@ export async function writeViewDeclaration(
         ...(diagram.id ? [`:>> providedId = "${escape(diagram.id)}";`] : []),
         `:>> label = "${escape(diagram.name)}";`,
     ].join(' ');
+    const manual = diagram.properties?.autoPopulate === 'false';
+    const exposures = manual ? (diagram.elementIds ?? []).map(id => model.elements[id]?.id).filter((id): id is string => Boolean(id)) : [];
     const body = [
         `view ${identifier} : ${viewDef} {`,
-        ...(exposePackage ? [`    expose ${exposePackage}::*;`] : []),
+        ...(manual ? exposures.map(id => `    expose ${id};`) : exposePackage ? [`    expose ${exposePackage}::*;`] : []),
+        ...(manual ? ['    attribute :>> autoPopulate = false;'] : []),
+        ...(diagram.diagramType ? [`    attribute :>> diagramType = ${JSON.stringify(diagram.diagramType)};`] : []),
+        ...['layoutHint', 'styleHint'].flatMap(key => diagram.properties?.[key] !== undefined ? [`    attribute :>> ${key} = ${JSON.stringify(diagram.properties[key])};`] : []),
         `    @MemoIdentity { ${identity} }`,
         ...(!home && !isMatrix && derived.declaresKind ? [`    attribute :>> viewKind = DiagramViewKind::${diagram.viewKind};`] : []),
         ...(group ? [`    attribute group = "${escape(group)}";`] : []),
@@ -401,7 +423,7 @@ export async function writeViewDeclaration(
         ].join('\n')
         : insertIntoBody(source, target!, `${body}\n`);
     if (seeding) mkdirSync(dirname(absolute), { recursive: true });
-    const committed = await commitSource(absolute, targetFile, updated, outlines);
+    const committed = await commitSource(absolute, targetFile, updated, outlines, undefined, projectRoot, new Map([[absolute, seeding ? undefined : source]]));
     if (!committed.success) return { success: false, reason: committed.error };
     return { success: true, filePath: targetFile, identifier, created: seeding, qualifiedName: `${targetPackage}::${identifier}` };
 }
@@ -475,10 +497,11 @@ export async function updateViewExpose(
     const view = model.elements[diagram?.elementId ?? ''];
     if (!view?.file) return { success: false, reason: 'the view has no source file to edit' };
 
+    const manual = view.attributes.autoPopulate === 'false';
     const packages = [...new Set((elementIds ?? [])
-        .map(id => model.elements[id]?.package)
-        .filter((pkg): pkg is string => !!pkg))];
-    if (packages.length === 0) {
+        .map(id => manual ? model.elements[id]?.id : model.elements[id]?.package)
+        .filter((reference): reference is string => !!reference))];
+    if (!manual && packages.length === 0) {
         return { success: false, reason: 'none of those elements belongs to a package that could be exposed' };
     }
 
@@ -498,7 +521,7 @@ export async function updateViewExpose(
 
     const declaration = source.slice(node.start, node.end);
     const indent = ' '.repeat((node.start - (source.lastIndexOf('\n', node.start - 1) + 1)) + 4);
-    const exposeLines = packages.map(pkg => `${indent}expose ${pkg}::*;`).join('\n');
+    const exposeLines = packages.map(reference => `${indent}expose ${reference}${manual ? '' : '::*'};`).join('\n');
     // Drop the existing expose members, then re-state the set just inside the
     // opening brace, where every authored view puts them.
     const withoutExpose = declaration.replace(/^[ \t]*expose\s+[^;]+;[ \t]*\r?\n/gm, '');

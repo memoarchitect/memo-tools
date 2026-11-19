@@ -70,7 +70,7 @@ describe.runIf(compilerConfigured && examplesPresent)('the roll-up calculations,
     private import memo_architecture_operational_activities::*;
     private import memo_architecture_operational_scenarios::*;
     private import memo_architecture_operational_workflows::*;
-    part wfFork : OperationalWorkflow {
+    part wfFork : Workflow {
         action sc : OperativeScenario {
             action open : OperativeAction { attribute :>> expectedDuration = 10 [min]; }
             action left : OperativeAction { attribute :>> expectedDuration = 30 [min]; }

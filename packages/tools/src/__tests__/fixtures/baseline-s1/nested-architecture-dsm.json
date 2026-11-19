@@ -1136,13 +1136,18 @@
   "validation": {
     "violations": [
       {
+        "rule": "CR-ONT-107",
+        "severity": "warning",
+        "elementId": "memo_examples_nested_architecture_dsm_architecture_logical_structure::sysTherapyDelivery"
+      },
+      {
         "rule": "XL-002",
         "severity": "warning",
         "elementId": "memo_examples_nested_architecture_dsm_assurance_requirements::reqStatusVisibility"
       }
     ],
     "counts": {
-      "warning": 1
+      "warning": 2
     }
   },
   "errors": [],

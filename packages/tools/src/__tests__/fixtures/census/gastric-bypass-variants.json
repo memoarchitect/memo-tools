@@ -34,8 +34,8 @@
         "SurgicalPlatform": 4,
         "System": 1,
         "SystemFunction": 3,
-        "SystemUseCase": 3,
-        "SystemWorkflow": 3,
+        "OperationalUseCase": 3,
+        "OperationalWorkflow": 3,
         "User": 3,
         "WorkflowResource": 1
       },

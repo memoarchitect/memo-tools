@@ -194,3 +194,27 @@ describe.runIf(compilerConfigured)('creating a flow between action parameters', 
         expect(readFileSync(join(root, 'model/p.sysml'), 'utf8')).toBe(ACTIONS);
     }, 60_000);
 });
+
+describe.runIf(compilerConfigured)('writing native typed allocations', () => {
+    it('writes and removes a named allocation with the declared type and endpoint order', async () => {
+        writeFileSync(join(root, 'model/p.sysml'), BARE.replace('part def Comp;', 'part def Comp;\n    allocation def Assignment;'));
+        const definition: RelationshipDefinitionDTO = {
+            name: 'assignment', sysmlName: 'Assignment', qualifiedName: 'P::Assignment',
+            label: 'Assignment', layer: 'logical', sysmlConstruct: 'allocation def',
+            sourceEnd: { name: 'source', construct: 'part' }, targetEnd: { name: 'target', construct: 'part' },
+        };
+        const options = { projectRoot: root, outlines: directoryOutlines(root, '') };
+        const result = await writeRelationship({
+            requestId: 'r', type: definition.name, sourceId: 'P::a', targetId: 'P::b', direction: 'outgoing',
+        }, definition, model(), options);
+        expect(result.success, result.error).toBe(true);
+        expect(result.notation).toBe('typedAllocation');
+        expect(readFileSync(join(root, 'model/p.sysml'), 'utf8'))
+            .toContain(`allocation ${result.relationshipId} : P::Assignment allocate P::a to P::b;`);
+        const removed = await removeRelationship({
+            id: `P::${result.relationshipId}`, shortName: result.relationshipId, file: 'model/p.sysml', named: true,
+        } as never, options);
+        expect(removed.success, removed.error).toBe(true);
+        expect(readFileSync(join(root, 'model/p.sysml'), 'utf8')).not.toContain(' allocate P::a to P::b');
+    }, 60_000);
+});

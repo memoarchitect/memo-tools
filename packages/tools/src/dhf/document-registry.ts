@@ -224,7 +224,7 @@ const DHF_DOCUMENT_TYPE_DECLARATIONS: DhfDocumentTypeDeclaration[] = [
         title: 'Design Input Plan',
         template: '21cfr820/design-input',
         layers: ['requirements', 'business'],
-        relevantKinds: ['DesignInput', 'Requirement', 'Need', 'ClinicalUseCase', 'SystemUseCase'],
+        relevantKinds: ['DesignInput', 'Requirement', 'Need', 'ClinicalUseCase', 'OperationalUseCase'],
         relevantRelationships: ['traceTo', 'derivedFrom', 'satisfies'],
         group: 'design',
         sections: [
@@ -316,7 +316,7 @@ const DHF_DOCUMENT_TYPE_DECLARATIONS: DhfDocumentTypeDeclaration[] = [
         // No shipped template claims this document, so it derives no
         // clause references. Adding one is what gives it standards back.
         layers: ['ui', 'requirements'],
-        relevantKinds: ['ClinicalUseCase', 'SystemUseCase', 'UserActivity', 'UserInterface', 'UsabilityRequirement'],
+        relevantKinds: ['ClinicalUseCase', 'OperationalUseCase', 'UserActivity', 'UserInterface', 'UsabilityRequirement'],
         relevantRelationships: ['performs', 'connect', 'satisfies'],
         group: 'compliance',
         sections: [
