@@ -2,6 +2,14 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## 0.23.0
+
+- **Breaking, from the ontology.** A model that types an element by `SystemUseCase` or `SystemWorkflow`, or sets a workflow's `entryCondition` or `completionCondition`, fails to compile: the types are `OperationalUseCase` and `OperationalWorkflow`, and the conditions move to the scenario. An element's operational level is `clinical` or `operational`. Ids keep their prefixes (`USE`, `WFL`).
+- **Added.** The guide reads the method map from the ontology: its layers, the guided tasks in each, and the views each task opens. Whether a person is guided by Pathways, and the step they last opened, are kept in `memo.user.yaml`.
+- **Added.** Writers for guided work: operational use cases, workflows, scenarios and steps edited in place, actors added or unlinked; function trees, functional flows and their realization; typed allocation usages written natively. A function allocated to a part that realizes a system is placed in that system.
+- **Added.** A view's layout reads and writes label style and direction, and a label a person placed.
+- **Fixed.** A cleared personal choice in `memo.user.yaml` overrides the project default instead of falling back to it.
+
 ## 0.22.0
 
 - **Breaking, from the ontology.** A model that sets `name` or `description` on a concern definition fails to compile; the label is `@MemoIdentity` and the description is `doc`.
