@@ -2,10 +2,18 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
-## Unreleased
+## 0.24.0
 
 - **Breaking, from the ontology.** The guide reads a task's allocation kinds as a list, `allocationKinds`. Creating a component function checks its component against the kinds the client sends from the method's realization task, not a fixed `LogicalComponent`.
-- **Added.** `functionTrees(model)` lists every function tree with its size, depth and the systems it belongs to. The function writer can give a system an existing tree: one `FunctionalRoot` from the system to the tree's top function, written beside the tree.
+- **Breaking.** The MCP server's `memo_create_element`, which wrote straight to the source, is gone. With `--write` the server offers the Model Assistant's `propose_*` tools instead; a proposal waits in `memo.ai-proposals.json` (git-ignored) until it is applied in Architect.
+- **Fixed.** `memo_validate` over MCP, `memo ask`, `memo dhf`, the DHF drafter, the plugin command and a static viewer's snapshot run the project's effective rule set (`validateProject`), the one `memo validate` and Architect run; before, they ran without the project's rules.
+- **Fixed.** `memo-architect mcp init` registers `memo-architect mcp`; it registered a `memo mcp` command that does not exist. Applying an approved relationship proposal no longer fails for want of a source precondition, resolves an element applied earlier by its qualified id, and writes a new element beside the elements of its kind.
+- **Added.** MCP tools: `memo_guide`, `memo_allocation`, `memo_interfaces`, `memo_change_impact`, `memo_views`, `memo_systems` and `memo_select_system`; `memo_trace` goes upstream; `memo_validate` narrows to an element or a rule; answers link into the running Architect. A prompt for each method step, and the model as resources (`memo://ontology`, `memo://guide`, `memo://element/{id}`). `propose_update_view` for a hand-curated view.
+- **Added.** `mcp/clients.ts` connects Claude Code, Cursor and VS Code with no machine path, and checks a connection by running its entry; `memo-architect init` connects all three read-only.
+- **Added.** `memo-architect check-change --base <ref>`: what a change reaches, breaking interface changes, releases needing a new release and new findings, failing on what `--fail-on` names.
+- **Added.** `agentIndex` and `agentModelMarkdown`: the model as `llms.txt` and `model.md`.
+- **Changed.** The Anthropic provider streams, caches the conversation prefix, allows 16000 output tokens and sends each turn back as returned, thinking included. The default model is `claude-opus-5-5`.
+- **Added.** `featuresOff` in `memo.user.yaml` and a project's preferences; `userSetting` and `setUserSetting` for a per-machine value outside the toolchain block.
 
 ## 0.23.0
 
