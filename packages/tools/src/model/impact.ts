@@ -95,12 +95,16 @@ export async function computeChangeImpact(options: {
     /** A ref or commit; default HEAD. */
     target?: string;
     build?: BuildOptions;
+    /** Given the model the change is measured from, for a caller that also judges it (a CI check). */
+    withBase?: (base: import('../toolchain/project-model.js').ProjectModel, projectDir: string) => Promise<void> | void;
 }): Promise<ImpactReport> {
     const { head, projectRoot } = options;
     const target = options.target?.trim() || 'HEAD';
     const baseCommit = await mergeBase(projectRoot, target);
-    const base = (await buildAt(projectRoot, baseCommit, options.build)).project;
+    const built = await buildAt(projectRoot, baseCommit, options.build);
+    const base = built.project;
     if (!base.registries) throw new Error('the base model was built without the ontology registries');
+    await options.withBase?.(base, built.projectDir);
 
     const baseInput = diffInputOf(base.model);
     const headInput = diffInputOf(head.model);

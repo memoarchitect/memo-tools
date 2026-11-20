@@ -432,6 +432,20 @@ export function registerProjectCommands(program: Command, hooks: ProjectCommandH
             await askCommand(question, options);
         });
 
+    // ─── memo check-change ───────────────────────────────────────────────────────
+
+    program
+        .command('check-change')
+        .description('Judge the change since a git ref for CI: what it reaches, breaking interface changes and new rule findings')
+        .option('--base <ref>', 'The ref the change is measured from (where it branched from it)', 'main')
+        .option('--fail-on <list>', 'What fails the check: breaking, errors, warnings, release', 'breaking,errors')
+        .option('--json', 'Print the whole report as JSON')
+        .option('--project <dir>', 'Model directory (defaults to the one the current directory is in)')
+        .action(async (options: { base?: string; failOn?: string; json?: boolean; project?: string }) => {
+            const { checkChangeCommand } = await import('../commands/check-change.js');
+            await checkChangeCommand(options);
+        });
+
     // ─── memo mcp ────────────────────────────────────────────────────────────────
 
     // `init` is a positional argument rather than a subcommand: commander binds an
