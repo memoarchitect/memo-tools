@@ -9,3 +9,4 @@ export * from './tools.js';
 export * from './model-loader.js';
 export * from './clients.js';
 export * from './architect-address.js';
+export * from './prompts-and-resources.js';

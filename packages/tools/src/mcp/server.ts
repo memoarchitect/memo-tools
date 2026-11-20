@@ -15,6 +15,7 @@
 import { createInterface } from 'node:readline';
 import { listTools, callTool, type McpSession } from './tools.js';
 import { agentInstructions } from '../llm/sysml-guidance.js';
+import { getPrompt, listPrompts, listResources, listResourceTemplates, readResource } from './prompts-and-resources.js';
 
 /** Protocol revisions this server implements. */
 const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
@@ -26,6 +27,7 @@ const SERVER_NAME = 'memo';
 const PARSE_ERROR = -32700;
 const INVALID_REQUEST = -32600;
 const METHOD_NOT_FOUND = -32601;
+const INVALID_PARAMS = -32602;
 const INTERNAL_ERROR = -32603;
 
 interface JsonRpcRequest {
@@ -79,7 +81,7 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
                     : DEFAULT_PROTOCOL_VERSION;
                 respond(id, {
                     protocolVersion,
-                    capabilities: { tools: { listChanged: false } },
+                    capabilities: { tools: { listChanged: false }, prompts: { listChanged: false }, resources: { listChanged: false } },
                     serverInfo: { name: SERVER_NAME, version },
                     instructions: agentInstructions(),
                 });
@@ -93,6 +95,26 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
             case 'ping':
                 if (!isNotification) respond(id, {});
                 return;
+
+            case 'prompts/list':
+            case 'prompts/get':
+            case 'resources/list':
+            case 'resources/templates/list':
+            case 'resources/read': {
+                if (isNotification) return;
+                try {
+                    const result = method === 'prompts/list' ? { prompts: await listPrompts(projectRoot, session) }
+                        : method === 'prompts/get' ? await getPrompt(projectRoot, String(params?.name ?? ''), params?.arguments ?? {}, session, allowWrites)
+                        : method === 'resources/list' ? { resources: listResources() }
+                        : method === 'resources/templates/list' ? { resourceTemplates: listResourceTemplates() }
+                        : await readResource(projectRoot, String(params?.uri ?? ''), session);
+                    respond(id, result);
+                } catch (e: any) {
+                    // A prompt or resource that does not exist is the caller's mistake, said plainly.
+                    respondError(id, INVALID_PARAMS, e?.message ?? String(e));
+                }
+                return;
+            }
 
             case 'tools/list':
                 if (isNotification) return;
