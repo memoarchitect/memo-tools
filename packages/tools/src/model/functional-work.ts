@@ -10,6 +10,10 @@ export interface FunctionalWriteContext {
     systemFunctionId?: string;
     componentFunctionId?: string;
     componentId?: string;
+    /** The kinds a component function may be allocated to, from the method's realization task. */
+    componentKinds?: string[];
+    /** An existing top function to make this system's function tree (operation `root`). */
+    rootFunctionId?: string;
     componentSourceHash?: string;
     flowId?: string;
     steps?: FunctionalStepInput[];

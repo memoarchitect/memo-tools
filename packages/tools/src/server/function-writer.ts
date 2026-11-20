@@ -9,7 +9,7 @@ import type { MemoModelDTO } from '../model/semantic.js';
 import { indexKinds, kindConformsTo } from '../model/relationship-legality.js';
 import type { OutlineSource } from '../authoring/outline-source.js';
 import { appendMembers } from './source-members.js';
-import { functionalStructure } from '../model/functional-structure.js';
+import { functionalStructure, functionTrees } from '../model/functional-structure.js';
 import { commitSource } from './persistor.js';
 
 export type FunctionContext = FunctionalWriteContext;
@@ -41,9 +41,10 @@ async function createFunctionSource(
     const existingImplementation = context.componentFunctionId ? model.elements[context.componentFunctionId] : undefined;
     if (context.componentFunctionId && (!existingImplementation || existingImplementation.isDefinition || !conforms(existingImplementation.id, 'ComponentFunction') || !functionalScope(model, system.id).members.has(existingImplementation.id))) return fail('Choose a component function in this system.');
     const component = context.componentId ? model.elements[context.componentId] : undefined;
-    if (context.componentId && (!component || component.isDefinition || !conforms(component.id, 'LogicalComponent') || !model.workspaceMembership.membership[component.id]?.includes(system.id))) return fail('Choose a component inside the selected system.');
+    if (context.componentId && (!component || component.isDefinition || !(context.componentKinds ?? []).some(kind => conforms(component.id, kind)) || !model.workspaceMembership.membership[component.id]?.includes(system.id))) return fail('Choose a software or hardware component inside the selected system.');
     if ((component || operation === 'system-function') && !existingImplementation && !name.trim()) return fail('Name the component function.');
     if (operation === 'root' && root) return { success: true, elementId: root.id, filePath: root.file, sourceFiles: [] };
+    if (operation === 'root' && context.rootFunctionId) return adoptFunctionTree(projectRoot, model, system, context.rootFunctionId, outlines, expectedFile, roots.length > 0);
     const { candidates, adoptable } = functionalStructure(model, system.id);
     if (!root && adoptable) root = adoptable;
     const parent = operation === 'system-function' && root ? model.elements[canonicalFunctionId(model, context.parentFunctionId ?? root.id)] : root;
@@ -124,4 +125,31 @@ async function createFunctionSource(
     const committed = await commitSource(absolute, home.file, proposed.get(home.file)!, outlines, others, projectRoot, new Map([...edits].map(([file, edit]) => [resolve(projectRoot, file), edit.source])));
     return committed.success ? { success: true, elementId: childId ?? rootId, filePath: home.file, sourceFiles: [...proposed.keys()] }
         : fail(committed.error ?? 'The compiler refused the function.');
+}
+
+/** Make an existing top function this system's function tree: one FunctionalRoot dependency, written beside the function. */
+async function adoptFunctionTree(
+    projectRoot: string, model: MemoModelDTO, system: MemoModelDTO['elements'][string], rootFunctionId: string,
+    outlines: OutlineSource, expectedFile: string, hasRoot: boolean,
+): Promise<{ success: boolean; elementId?: string; filePath: string; sourceFiles?: string[]; error?: string }> {
+    const fail = (error: string) => ({ success: false, filePath: expectedFile, error });
+    if (hasRoot) return fail('This system already has a function tree.');
+    const tree = functionTrees(model).find(candidate => candidate.root.id === rootFunctionId);
+    if (!tree) return fail('Choose a top function: one that no other function contains.');
+    if (model.relationships.some(edge => edge.type === 'functionalRoot' && edge.targetId === rootFunctionId)) return fail('Another system already has this function tree.');
+    const root = tree.root;
+    if (root.file !== expectedFile) return fail('The function changed; reload before choosing it.');
+    if (root.provenance && !root.provenance.declaration.writable) return fail('The function source is read-only.');
+    if (!root.package) return fail('The function needs a named source package.');
+    const absolute = resolve(projectRoot, root.file);
+    const rel = relative(realpathSync(projectRoot), realpathSync(absolute));
+    if (rel === '..' || rel.startsWith(`..${sep}`)) return fail('Function source is outside the project.');
+    const source = readFileSync(absolute, 'utf8');
+    const outline = await outlines.outline(root.file, source);
+    const dependency = `#memo_architecture_functional_functions::FunctionalRoot dependency from ${system.id} to ${root.id};`;
+    const updated = appendMembers(source, outline, new Map([[root.package, dependency]]));
+    if (updated === undefined) return fail(`A source container could not be located in ${root.file}.`);
+    const committed = await commitSource(absolute, root.file, updated, outlines, new Map(), projectRoot, new Map([[absolute, source]]));
+    return committed.success ? { success: true, elementId: root.id, filePath: root.file, sourceFiles: [root.file] }
+        : fail(committed.error ?? 'The compiler refused the change.');
 }

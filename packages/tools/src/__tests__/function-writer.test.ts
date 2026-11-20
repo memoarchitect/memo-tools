@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { writeFunctionalFlow } from '../server/functional-flow-writer.js';
 import { functionalFlowSteps, realizingFunctions, functionalCatalog } from '../model/functional-work.js';
 import { createFunction } from '../server/function-writer.js';
+import { functionTrees } from '../model/functional-structure.js';
 import { modelToDTO } from '../model/semantic.js';
 import { computeWorkspaceMembership, workspaceMembershipToDTO } from '../model/workspace-membership.js';
 import { selectedOutlineSource } from '../authoring/outline-source.js';
@@ -12,7 +13,8 @@ import { loadProjectModel } from '../toolchain/project-model.js';
 import { compilerConfigured, examplesPresent, withExample } from './helpers/compile-source.js';
 const file = 'model/catalog/function_creation.sysml';
 const otherFile = 'model/catalog/component_template.sysml';
-const otherSource = `package component_template { private import memo::*; part def ControllerTemplate specializes LogicalComponent { part worker : LogicalComponent; } }`;
+const componentKinds = ['SoftwareComponent', 'HardwareComponent'];
+const otherSource = `package component_template { private import memo::*; part def ControllerTemplate specializes LogicalComponent { part worker : SoftwareComponent; } }`;
 const monitorFile = 'model/catalog/monitor_functions.sysml';
 const monitorSource = `package monitor_functions {
     private import memo::*;
@@ -55,6 +57,21 @@ describe.runIf(compilerConfigured && examplesPresent)('native functional structu
         });
     }, 180_000);
 
+    it('gives a system an existing tree no system has, by one FunctionalRoot beside the tree', async () => {
+        const loose = source.replace('    allocation allocate sharedResponsibility to monitor;\n', '')
+            .replace('action def ReusableMeasure specializes SystemFunction;', 'action def ReusableMeasure specializes SystemFunction;\n    action looseTree : SystemFunction { action check : SystemFunction; }');
+        await withExample({ [file]: loose, [otherFile]: otherSource }, async (project, root) => {
+            const model = dto(project);
+            const tree = functionTrees(model).find(candidate => candidate.root.id === 'function_creation::looseTree');
+            expect(tree).toMatchObject({ size: 2, depth: 2, systems: [] });
+            const adopted = await createFunction(root, model, { workspace: 'function_creation::MonitorSystem', operation: 'root', rootFunctionId: 'function_creation::looseTree' }, '', selectedOutlineSource(root, config()), file);
+            expect(adopted.success, adopted.error).toBe(true);
+            expect(readFileSync(join(root, file), 'utf8')).toContain('FunctionalRoot dependency from function_creation::MonitorSystem to function_creation::looseTree;');
+            const nested = await createFunction(root, model, { workspace: 'function_creation::MonitorSystem', operation: 'root', rootFunctionId: 'function_creation::looseTree::check' }, '', selectedOutlineSource(root, config()), file);
+            expect(nested.error).toBe('Choose a top function: one that no other function contains.');
+        });
+    }, 180_000);
+
     it('creates one explicit root referencing existing functions, then an allocated component function, preserving identities', async () => {
         await withExample({ [file]: source, [otherFile]: otherSource }, async (project, root) => {
             const outlines = selectedOutlineSource(root, config());
@@ -65,7 +82,7 @@ describe.runIf(compilerConfigured && examplesPresent)('native functional structu
             expect(next.model.elements.get('function_creation::rootFunction::responsibility1')?.kind).toBe('SystemFunction');
             expect(next.model.relationships.some(edge => edge.type === 'functionalRoot' && edge.targetId === result.elementId)).toBe(true);
             expect(readFileSync(join(root, file), 'utf8')).toContain('perform action responsibility1 : memo_architecture_functional_functions::SystemFunction :> function_creation::sharedResponsibility.measure');
-            const child = await createFunction(root, dto(next), { workspace: 'function_creation::PumpSystem', componentId: 'component_template::ControllerTemplate::worker', componentSourceHash: layoutBlindRevision(readFileSync(join(root, otherFile), 'utf8')) }, 'Compute rate', outlines, file);
+            const child = await createFunction(root, dto(next), { workspace: 'function_creation::PumpSystem', componentId: 'component_template::ControllerTemplate::worker', componentKinds, componentSourceHash: layoutBlindRevision(readFileSync(join(root, otherFile), 'utf8')) }, 'Compute rate', outlines, file);
             expect(child.success, child.error).toBe(true);
             expect(child.sourceFiles).toEqual(expect.arrayContaining([file, otherFile]));
             const final = await loadProjectModel({ projectRoot: root, config: config(), cache: false });
@@ -77,15 +94,15 @@ describe.runIf(compilerConfigured && examplesPresent)('native functional structu
             const repeated = await createFunction(root, dto(final), { workspace: 'function_creation::PumpSystem' }, '', outlines, file);
             expect(repeated.elementId).toBe(result.elementId);
             expect(readFileSync(join(root, file), 'utf8')).toBe(before);
-            const stale = await createFunction(root, dto(final), { workspace: 'function_creation::PumpSystem', componentId: 'component_template::ControllerTemplate::worker', componentSourceHash: 'stale' }, 'Stale', outlines, file);
+            const stale = await createFunction(root, dto(final), { workspace: 'function_creation::PumpSystem', componentId: 'component_template::ControllerTemplate::worker', componentKinds, componentSourceHash: 'stale' }, 'Stale', outlines, file);
             expect(stale.success).toBe(false);
             expect(readFileSync(join(root, file), 'utf8')).toBe(before);
             expect(readFileSync(join(root, otherFile), 'utf8')).toBe(otherBefore);
-            const compilerRefusal = await createFunction(root, dto(final), { workspace: 'function_creation::PumpSystem', componentId: 'component_template::ControllerTemplate::worker', componentSourceHash: layoutBlindRevision(readFileSync(join(root, otherFile), 'utf8')) }, 'Rejected', { ...outlines, verify: async () => { throw new Error('Compiler diagnostic'); } }, file);
+            const compilerRefusal = await createFunction(root, dto(final), { workspace: 'function_creation::PumpSystem', componentId: 'component_template::ControllerTemplate::worker', componentKinds, componentSourceHash: layoutBlindRevision(readFileSync(join(root, otherFile), 'utf8')) }, 'Rejected', { ...outlines, verify: async () => { throw new Error('Compiler diagnostic'); } }, file);
             expect(readFileSync(join(root, otherFile), 'utf8')).toBe(otherBefore);
             expect(compilerRefusal).toMatchObject({ success: false, error: expect.stringContaining('Compiler diagnostic') });
             expect(readFileSync(join(root, file), 'utf8')).toBe(before);
-            const refused = await createFunction(root, dto(final), { workspace: 'function_creation::PumpSystem', componentId: 'function_creation::sharedResponsibility::measure' }, 'Wrong', outlines, file);
+            const refused = await createFunction(root, dto(final), { workspace: 'function_creation::PumpSystem', componentId: 'function_creation::sharedResponsibility::measure', componentKinds }, 'Wrong', outlines, file);
             expect(refused.success).toBe(false);
             expect(readFileSync(join(root, file), 'utf8')).toBe(before);
         });
@@ -121,7 +138,7 @@ describe.runIf(compilerConfigured && examplesPresent)('native functional structu
             expect(reversed.success, reversed.error).toBe(true);
             const reordered = await reload();
             expect(functionalFlowSteps(dto(reordered), flow.elementId!).steps.map(step => step.step.id)).toEqual(steps.steps.slice().reverse().map(step => step.step.id));
-            const implementation = await createFunction(root, dto(reordered), { workspace, operation: 'component-function', systemFunctionId: fn.elementId, componentId: 'component_template::ControllerTemplate::worker', componentSourceHash: layoutBlindRevision(readFileSync(join(root, otherFile), 'utf8')) }, 'Compute schedule', outlines, file);
+            const implementation = await createFunction(root, dto(reordered), { workspace, operation: 'component-function', systemFunctionId: fn.elementId, componentId: 'component_template::ControllerTemplate::worker', componentKinds, componentSourceHash: layoutBlindRevision(readFileSync(join(root, otherFile), 'utf8')) }, 'Compute schedule', outlines, file);
             expect(implementation.success, implementation.error).toBe(true);
             const final = dto(await reload());
             expect(realizingFunctions(final, fn.elementId!).map(item => [item.element.id, item.components.map(component => component.id)])).toEqual([[implementation.elementId, ['component_template::ControllerTemplate::worker']]]);

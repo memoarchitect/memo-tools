@@ -59,7 +59,7 @@ export interface GuideWorkTask {
     scenarioKind?: string;
     stepKind?: string;
     implementationKind?: string;
-    allocationKind?: string;
+    allocationKinds?: string[];
     relationshipKind?: string;
     objective?: string;
     review?: string;
@@ -195,7 +195,7 @@ export function readGuideSources(api: ApiModel, packages: readonly string[]): Gu
                             kind: (reader.attr(task, 'taskKind') ?? '').split('::').at(-1) ?? '', primary: reader.attr(task, 'primary') === 'true',
                             subjectKind: reader.attr(task, 'taskSubjectKind') ?? '', referenceKind: reader.attr(task, 'taskReferenceKind'),
                             level: reader.attr(task, 'taskLevel'), workflowKind: reader.attr(task, 'taskWorkflowKind'), scenarioKind: reader.attr(task, 'taskScenarioKind'), stepKind: reader.attr(task, 'taskStepKind'),
-                            implementationKind: reader.attr(task, 'taskImplementationKind'), allocationKind: reader.attr(task, 'taskAllocationKind'),
+                            implementationKind: reader.attr(task, 'taskImplementationKind'), allocationKinds: reader.attrList(task, 'taskAllocationKinds'),
                             relationshipKind: reader.attr(task, 'taskRelationshipKind'), objective: reader.attr(task, 'objectiveDescription'), review: reader.attr(task, 'reviewDescription'),
                             viewpoint: viewpoint && viewpointId ? { id: viewpointId, name: lastSegment(viewpointId), label: apiDefinitionFacts(api, viewpoint).attributes.label ?? lastSegment(viewpointId), viewKind: reader.attr(viewpoint, 'defaultViewKind') } : undefined,
                         }];

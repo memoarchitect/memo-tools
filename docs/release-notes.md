@@ -2,6 +2,11 @@
 
 Versioned under [semantic versioning](https://semver.org/). Before 1.0 a breaking change to the ontology raises the minor number; any other release raises the patch. Every release is tagged in the repository. The notes for all three packages are also on [memoarchitect.com/releases.html](https://memoarchitect.com/releases.html).
 
+## Unreleased
+
+- **Breaking, from the ontology.** The guide reads a task's allocation kinds as a list, `allocationKinds`. Creating a component function checks its component against the kinds the client sends from the method's realization task, not a fixed `LogicalComponent`.
+- **Added.** `functionTrees(model)` lists every function tree with its size, depth and the systems it belongs to. The function writer can give a system an existing tree: one `FunctionalRoot` from the system to the tree's top function, written beside the tree.
+
 ## 0.23.0
 
 - **Breaking, from the ontology.** A model that types an element by `SystemUseCase` or `SystemWorkflow`, or sets a workflow's `entryCondition` or `completionCondition`, fails to compile: the types are `OperationalUseCase` and `OperationalWorkflow`, and the conditions move to the scenario. An element's operational level is `clinical` or `operational`. Ids keep their prefixes (`USE`, `WFL`).
