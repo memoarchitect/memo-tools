@@ -29,6 +29,12 @@ export interface ChatMessage {
     toolCallId?: string;
     /** Set on `tool` messages when the tool failed, so the model can recover. */
     isError?: boolean;
+    /**
+     * An assistant turn exactly as the provider returned it (Anthropic's content blocks, thinking
+     * included), sent back unchanged on the next request: a model that thinks between tool calls
+     * expects its own blocks back, and a rebuilt turn would lose them.
+     */
+    providerContent?: unknown[];
 }
 
 /** A tool the model may call. `inputSchema` is JSON Schema. */
@@ -48,11 +54,15 @@ export interface CompletionOptions {
     maxTokens?: number;
     /** Tools the model may call this turn. */
     tools?: ToolDefinition[];
+    /** Receives the answer's text as it is written, for a provider that streams. */
+    onText?: (delta: string) => void;
 }
 
 /** Result of an LLM completion */
 export interface CompletionResult {
     content: string;
+    /** The assistant turn as the provider returned it, to send back unchanged (see ChatMessage). */
+    providerContent?: unknown[];
     /** Tool calls requested by the model, if any. */
     toolCalls?: ToolCall[];
     stopReason?: StopReason;
@@ -60,6 +70,8 @@ export interface CompletionResult {
         promptTokens: number;
         completionTokens: number;
         totalTokens: number;
+        /** Prompt tokens read from the provider's cache, when it reports them. */
+        cachedPromptTokens?: number;
     };
 }
 
@@ -257,6 +269,11 @@ function toAnthropicMessages(messages: ChatMessage[]): unknown[] {
             continue;
         }
 
+        if (m.role === 'assistant' && m.providerContent?.length) {
+            out.push({ role: 'assistant', content: m.providerContent });
+            continue;
+        }
+
         if (m.role === 'assistant' && m.toolCalls?.length) {
             const content: unknown[] = [];
             if (m.content) content.push({ type: 'text', text: m.content });
@@ -283,6 +300,72 @@ function anthropicStopReason(raw: string | undefined): StopReason {
     }
 }
 
+/**
+ * Read an Anthropic streaming response into the message it describes: each content block put together
+ * from its deltas (text, tool input, thinking and its signature), the stop reason, and the usage.
+ * Text is handed to `onText` as it arrives.
+ */
+async function readAnthropicStream(response: Response, onText?: (delta: string) => void): Promise<any> {
+    const message: any = { content: [], usage: {} };
+    const partialJson = new Map<number, string>();
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    const handle = (event: any) => {
+        switch (event.type) {
+            case 'message_start':
+                Object.assign(message, { ...event.message, content: [] });
+                message.usage = { ...(event.message?.usage ?? {}) };
+                break;
+            case 'content_block_start':
+                message.content[event.index] = { ...event.content_block };
+                if (event.content_block?.type === 'tool_use') partialJson.set(event.index, '');
+                break;
+            case 'content_block_delta': {
+                const block = message.content[event.index];
+                const delta = event.delta ?? {};
+                if (delta.type === 'text_delta') {
+                    block.text = (block.text ?? '') + delta.text;
+                    onText?.(delta.text);
+                } else if (delta.type === 'input_json_delta') {
+                    partialJson.set(event.index, (partialJson.get(event.index) ?? '') + delta.partial_json);
+                } else if (delta.type === 'thinking_delta') {
+                    block.thinking = (block.thinking ?? '') + delta.thinking;
+                } else if (delta.type === 'signature_delta') {
+                    block.signature = delta.signature;
+                }
+                break;
+            }
+            case 'content_block_stop':
+                if (partialJson.has(event.index)) {
+                    const json = partialJson.get(event.index)!;
+                    message.content[event.index].input = json ? JSON.parse(json) : {};
+                }
+                break;
+            case 'message_delta':
+                if (event.delta?.stop_reason) message.stop_reason = event.delta.stop_reason;
+                Object.assign(message.usage, event.usage ?? {});
+                break;
+            case 'error':
+                throw new Error(`Anthropic API error: ${event.error?.message ?? JSON.stringify(event.error)}`);
+        }
+    };
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let boundary: number;
+        while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+            const frame = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+            const data = frame.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('');
+            if (data) handle(JSON.parse(data));
+        }
+    }
+    message.content = message.content.filter(Boolean);
+    return message;
+}
+
 function createAnthropicProvider(config: LLMConfig): LLMProvider {
     const baseUrl = config.baseUrl || 'https://api.anthropic.com';
 
@@ -294,7 +377,13 @@ function createAnthropicProvider(config: LLMConfig): LLMProvider {
             const body: Record<string, unknown> = {
                 model: config.model,
                 messages: toAnthropicMessages(options.messages),
-                max_tokens: options.maxTokens ?? 4096,
+                // Room for the model's thinking as well as its answer: on current models both count.
+                max_tokens: options.maxTokens ?? 16000,
+                // Cache the conversation's prefix (tools, system prompt, model summary, earlier turns),
+                // which every turn of a chat repeats.
+                cache_control: { type: 'ephemeral' },
+                // Streamed always: long answers would otherwise wait on one response.
+                stream: true,
             };
             if (acceptsSamplingParams(config.model)) {
                 body.temperature = options.temperature ?? 0.3;
@@ -325,26 +414,32 @@ function createAnthropicProvider(config: LLMConfig): LLMProvider {
                 throw new Error(`Anthropic API error ${response.status}: ${text}`);
             }
 
-            const data = await response.json() as any;
+            const streamed = (response.headers?.get?.('content-type') ?? '').includes('text/event-stream');
+            const data = streamed ? await readAnthropicStream(response, options.onText) : await response.json() as any;
             const blocks: any[] = Array.isArray(data.content) ? data.content : [];
 
             const content = blocks
                 .filter(b => b.type === 'text')
                 .map(b => b.text)
                 .join('');
+            // A non-streamed answer has not been shown yet.
+            if (!streamed && content) options.onText?.(content);
 
             const toolCalls: ToolCall[] = blocks
                 .filter(b => b.type === 'tool_use')
                 .map(b => ({ id: b.id, name: b.name, input: (b.input ?? {}) as Record<string, unknown> }));
 
+            const input = (data.usage?.input_tokens ?? 0) + (data.usage?.cache_read_input_tokens ?? 0) + (data.usage?.cache_creation_input_tokens ?? 0);
             return {
                 content,
+                providerContent: blocks,
                 toolCalls: toolCalls.length ? toolCalls : undefined,
                 stopReason: anthropicStopReason(data.stop_reason),
                 usage: data.usage ? {
-                    promptTokens: data.usage.input_tokens,
-                    completionTokens: data.usage.output_tokens,
-                    totalTokens: data.usage.input_tokens + data.usage.output_tokens,
+                    promptTokens: input,
+                    completionTokens: data.usage.output_tokens ?? 0,
+                    totalTokens: input + (data.usage.output_tokens ?? 0),
+                    ...(data.usage.cache_read_input_tokens !== undefined ? { cachedPromptTokens: data.usage.cache_read_input_tokens } : {}),
                 } : undefined,
             };
         },

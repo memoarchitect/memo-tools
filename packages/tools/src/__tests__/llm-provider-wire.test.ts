@@ -60,6 +60,49 @@ describe('Anthropic provider', () => {
         expect(calls[0].body.temperature).toBe(0.5);
     });
 
+    it('streams, caches the prefix, and sends a turn back exactly as it came', async () => {
+        // A streamed answer: thinking with its signature, text in two pieces, then a tool call in two.
+        const events = [
+            { type: 'message_start', message: { id: 'm', role: 'assistant', content: [], usage: { input_tokens: 10, cache_read_input_tokens: 90 } } },
+            { type: 'content_block_start', index: 0, content_block: { type: 'thinking', thinking: '' } },
+            { type: 'content_block_delta', index: 0, delta: { type: 'thinking_delta', thinking: 'Look it up.' } },
+            { type: 'content_block_delta', index: 0, delta: { type: 'signature_delta', signature: 'sig' } },
+            { type: 'content_block_stop', index: 0 },
+            { type: 'content_block_start', index: 1, content_block: { type: 'text', text: '' } },
+            { type: 'content_block_delta', index: 1, delta: { type: 'text_delta', text: 'Search' } },
+            { type: 'content_block_delta', index: 1, delta: { type: 'text_delta', text: 'ing.' } },
+            { type: 'content_block_stop', index: 1 },
+            { type: 'content_block_start', index: 2, content_block: { type: 'tool_use', id: 't1', name: 'memo_search_elements', input: {} } },
+            { type: 'content_block_delta', index: 2, delta: { type: 'input_json_delta', partial_json: '{"que' } },
+            { type: 'content_block_delta', index: 2, delta: { type: 'input_json_delta', partial_json: 'ry":"haz"}' } },
+            { type: 'content_block_stop', index: 2 },
+            { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 7 } },
+            { type: 'message_stop' },
+        ];
+        const sse = events.map(event => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join('');
+        const bodies: any[] = [];
+        globalThis.fetch = vi.fn(async (_url: any, init: any) => {
+            bodies.push(JSON.parse(init.body));
+            return new Response(sse, { headers: { 'content-type': 'text/event-stream' } });
+        }) as unknown as typeof fetch;
+
+        const seen: string[] = [];
+        const result = await createProvider(config).complete({ messages: [{ role: 'user', content: 'hazards?' }], onText: text => seen.push(text) });
+        expect(bodies[0]).toMatchObject({ stream: true, cache_control: { type: 'ephemeral' }, max_tokens: 16000 });
+        expect(seen).toEqual(['Search', 'ing.']);
+        expect(result.content).toBe('Searching.');
+        expect(result.toolCalls).toEqual([{ id: 't1', name: 'memo_search_elements', input: { query: 'haz' } }]);
+        expect(result.stopReason).toBe('tool_use');
+        expect(result.usage).toMatchObject({ promptTokens: 100, cachedPromptTokens: 90, completionTokens: 7 });
+
+        await createProvider(config).complete({ messages: [
+            { role: 'user', content: 'hazards?' },
+            { role: 'assistant', content: result.content, toolCalls: result.toolCalls, providerContent: result.providerContent },
+            { role: 'tool', toolCallId: 't1', content: '{}' },
+        ] });
+        expect(bodies[1].messages[1].content[0]).toEqual({ type: 'thinking', thinking: 'Look it up.', signature: 'sig' });
+    });
+
     it('hoists the system message to the top-level system field', async () => {
         const calls = stubFetch({ content: [], stop_reason: 'end_turn' });
         await createProvider(config).complete({ messages: CONVERSATION });

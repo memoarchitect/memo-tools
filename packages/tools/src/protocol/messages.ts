@@ -80,6 +80,7 @@ export type ServerMessage =
     | LlmChatResultMessage
     | LlmApplyResultMessage
     | AiProposalsMessage
+    | LlmChatDeltaMessage
     | AiProposalsResultMessage
     | AiClientsMessage
     | AiClientsCheckResultMessage
@@ -1206,6 +1207,12 @@ export interface LlmApplyResultMessage {
         failed?: Array<{ id: string; error: string }>;
         error?: string;
     };
+}
+
+/** Server → Client: the assistant's answer text as the model writes it, before the turn's result. */
+export interface LlmChatDeltaMessage {
+    type: 'llm:chat:delta';
+    payload: { requestId: string; text: string };
 }
 
 /** Server → Client: the proposals AI coding tools made over MCP, waiting for the engineer (`memo.ai-proposals.json`). */

@@ -108,6 +108,8 @@ export interface ChatTurnOptions {
     registries?: OntologyRegistriesDTO;
     /** Links, the Guide and change impact, for the read tools that use them. */
     services?: ToolServices;
+    /** Receives the answer's text as the model writes it. */
+    onText?: (delta: string) => void;
     contextOptions?: ContextOptions;
     /** Cap on tool round-trips per turn. */
     maxIterations?: number;
@@ -417,7 +419,7 @@ function executeWriteTool(
 export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnResult> {
     const {
         question, history = [], ctx, provider, ontology = EMPTY_ONTOLOGY_VIEW,
-        allowEdits = false, contextOptions, registries, services,
+        allowEdits = false, contextOptions, registries, services, onText,
         maxIterations = DEFAULT_MAX_ITERATIONS,
     } = options;
 
@@ -443,8 +445,9 @@ export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnRes
         const result = await provider.complete({
             messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...conversation],
             temperature: 0.2,
-            maxTokens: 4096,
+            maxTokens: 16000,
             tools,
+            onText,
         });
 
         if (result.usage) {
@@ -460,12 +463,12 @@ export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnRes
             return {
                 answer,
                 proposedChanges,
-                messages: [...conversation, { role: 'assistant', content: answer }],
+                messages: [...conversation, { role: 'assistant', content: answer, providerContent: result.providerContent }],
                 usage: totals.totalTokens ? totals : undefined,
             };
         }
 
-        conversation.push({ role: 'assistant', content: result.content, toolCalls: calls });
+        conversation.push({ role: 'assistant', content: result.content, toolCalls: calls, providerContent: result.providerContent });
 
         // Every call must get a result, in the same batch — dropping one leaves
         // the conversation malformed for both providers.

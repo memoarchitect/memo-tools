@@ -2535,6 +2535,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                                 ...(options.impact ? { impact: (target?: string) => options.impact!.compute(target) } : {}),
                             };
                             const result = await runChatTurn({
+                                // The answer as it is written, so the page shows it before the turn ends.
+                                onText: text => ws.send(JSON.stringify({ type: 'llm:chat:delta', payload: { requestId, text } })),
                                 question, history, ctx, provider, ontology, registries, services,
                                 allowEdits: allowEdits === true,
                             });
