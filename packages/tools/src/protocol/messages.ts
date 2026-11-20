@@ -1521,8 +1521,8 @@ export interface DashboardResultMessage {
 export interface UserPreferencesDTO {
     role?: string;
     /**
-     * The workspace the person works in: the element id of a system (or system of systems)
-     * definition, as `WorkspaceMembershipDTO.workspaces[].root`. Unset means the whole model.
+     * The workspace the person works in: the short id of a system (or system of systems) definition,
+     * which keeps across a rename or a package move. Unset means the whole model.
      */
     workspace?: string;
     /** The attribute the Model Explorer splits its folders by; unset means it does not. */
@@ -1533,13 +1533,13 @@ export interface UserPreferencesDTO {
     packageFolders?: boolean;
     /** False switches Pathways (guided modelling) off; unset means it is on where the method guide is. */
     pathways?: boolean;
-    /** The method step this person last opened, by its qualified name: where they continue. */
+    /** The method step this person last opened, by its short id (its qualified name when it has none): where they continue. */
     lastStep?: string;
     /** What the person marked as a favorite, in the order they added it. */
     favorites?: FavoriteDTO[];
     /** The views (diagram ids) the person opened last, most recent first. */
     recentViews?: string[];
-    /** The elements (element ids) the person opened last, most recent first. */
+    /** The elements (short ids) the person opened last, most recent first. */
     recentElements?: string[];
 }
 
@@ -1547,7 +1547,7 @@ export interface UserPreferencesDTO {
 export type FavoriteType = 'element' | 'view' | 'viewpoint' | 'package' | 'folder';
 
 /**
- * One favorite. `ref` is an element id, a diagram id, a viewpoint id, or a package's qualified name. A
+ * One favorite. `ref` is an element's short id, a diagram id, a viewpoint id, or a package's qualified name. A
  * `folder` is the Model Explorer's folder for one element type: `ref` is the type, and `packageName`
  * narrows it to that type inside one package.
  */
