@@ -1,6 +1,8 @@
 // ─── MEMO MCP Tools ──────────────────────────────────────────────────────────
 //
-// The tool surface exposed to MCP clients (Cursor, Claude Code, Windsurf, …).
+// The tool surface exposed to MCP clients (Cursor, Claude Code, Windsurf, …),
+// and the read tools of Architect's Model Assistant: one registry, so an IDE
+// agent and the assistant answer the same question the same way.
 //
 // Read tools are always available. Write tools appear only when the server is
 // started with `--write`: an IDE agent editing a regulated SysML model is a
@@ -22,29 +24,33 @@ export interface McpTool {
     inputSchema: Record<string, unknown>;
 }
 
-export interface McpToolContext {
-    projectRoot: string;
+/** What a read tool sees: the loaded model and its ontology, nothing on disk. */
+export interface ReadToolContext {
     ctx: QueryContext;
-    config: MEMOConfig;
     /** Kinds and relationships from the resolved ontology. */
     ontology: OntologyView;
 }
 
-export type McpToolHandler = (
-    input: Record<string, any>,
-    context: McpToolContext,
-) => Promise<unknown> | unknown;
-
-interface Registered {
-    tool: McpTool;
-    handler: McpToolHandler;
-    write: boolean;
+export interface McpToolContext extends ReadToolContext {
+    projectRoot: string;
+    config: MEMOConfig;
 }
+
+type Registered =
+    | { tool: McpTool; write: false; handler: (input: Record<string, any>, context: ReadToolContext) => unknown }
+    | { tool: McpTool; write: true; handler: (input: Record<string, any>, context: McpToolContext) => Promise<unknown> | unknown };
 
 const registry: Registered[] = [];
 
-function define(tool: McpTool, handler: McpToolHandler, write = false): void {
-    registry.push({ tool, handler, write });
+function define(tool: McpTool, handler: (input: Record<string, any>, context: ReadToolContext) => unknown): void {
+    registry.push({ tool, handler, write: false });
+}
+
+function defineWrite(
+    tool: McpTool,
+    handler: (input: Record<string, any>, context: McpToolContext) => Promise<unknown> | unknown,
+): void {
+    registry.push({ tool, handler, write: true });
 }
 
 // ─── Read tools ──────────────────────────────────────────────────────────────
@@ -132,23 +138,30 @@ define({
 
 define({
     name: 'memo_trace',
-    description: 'Follow the relationship chain out of an element. Use this for traceability questions — requirement to verification, hazard to risk control, and so on.',
+    description: 'Follow relationship chains from an element, for traceability questions — requirement to verification, hazard to risk control, and so on. A relationship points one way in the source, so ask for "upstream" (edges into the element, e.g. what verifies or satisfies it) or "both" when "downstream" finds nothing.',
     inputSchema: {
         type: 'object',
         properties: {
             id: { type: 'string', description: 'Element id to trace from.' },
             maxDepth: { type: 'number', description: 'Hops to follow (default 3).' },
+            direction: {
+                type: 'string', enum: ['downstream', 'upstream', 'both'],
+                description: 'downstream follows edges out of the element, upstream edges into it (default both).',
+            },
         },
         required: ['id'],
     },
 }, (input, { ctx }) => {
     const id = String(input.id);
-    if (!ctx.element(id)) throw new Error(`No element with id "${id}".`);
+    if (!ctx.element(id)) throw new Error(`No element with id "${id}". Use memo_search_elements to find it.`);
     const depth = typeof input.maxDepth === 'number' ? input.maxDepth : 3;
+    const direction = input.direction === 'downstream' || input.direction === 'upstream' ? input.direction : 'both';
     return {
         from: id,
-        chain: ctx.traceChain(id, depth).map(step => ({
+        direction,
+        chain: ctx.traceChain(id, depth, direction).map(step => ({
             depth: step.depth,
+            direction: step.direction,
             via: step.relationship.type,
             to: step.element.id,
             name: step.element.name,
@@ -203,7 +216,7 @@ define({
 
 // ─── Write tools (only with --write) ─────────────────────────────────────────
 
-define({
+defineWrite({
     name: 'memo_create_element',
     description: 'Create a new element and write it to the project SysML source. Only kinds defined by the ontology are accepted — call memo_ontology first if unsure.',
     inputSchema: {
@@ -241,12 +254,31 @@ define({
     }, undefined, selectedOutlineSource(projectRoot, config));
     if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
     return { created: id, file: result.filePath };
-}, true);
+});
 
 // ─── Registry access ─────────────────────────────────────────────────────────
 
 export function listTools(allowWrites: boolean): McpTool[] {
     return registry.filter(r => allowWrites || !r.write).map(r => r.tool);
+}
+
+/** The read tools, which any caller holding a loaded model can run. */
+export function readTools(): McpTool[] {
+    return registry.filter(r => !r.write).map(r => r.tool);
+}
+
+/**
+ * Run one read tool against a model the caller already holds. Returns undefined
+ * when `name` is not a read tool, so a caller can try its own tools next.
+ */
+export async function runReadTool(
+    name: string,
+    input: Record<string, any>,
+    context: ReadToolContext,
+): Promise<unknown> {
+    const entry = registry.find(r => r.tool.name === name);
+    if (!entry || entry.write) return undefined;
+    return entry.handler(input ?? {}, context);
 }
 
 /** Run one tool against a freshly-loaded project. */

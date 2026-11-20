@@ -242,6 +242,13 @@ describe('Query Engine', () => {
         expect(chain).toHaveLength(1);
         expect(chain[0].element.id).toBe('h1');
     });
+
+    it('traceChain follows incoming relationships upstream', () => {
+        const chain = ctx.traceChain('h1', 5, 'upstream');
+        expect(chain.map(step => step.element.id)).toContain('c1');
+        expect(chain.every(step => step.direction === 'upstream')).toBe(true);
+        expect(ctx.traceChain('h1')).toHaveLength(0);
+    });
 });
 
 // ─── Template Engine Tests ───────────────────────────────────────────────────

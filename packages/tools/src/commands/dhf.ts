@@ -13,7 +13,7 @@ import { resolve, dirname } from 'node:path';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
 import {
-    findConfigFile, validateModel, computeCompleteness, DHF_DOCUMENT_TYPES, getDocumentType,
+    findConfigFile, computeCompleteness, DHF_DOCUMENT_TYPES, getDocumentType,
     getDocumentsByGroup, getAllDocumentIds, compileDocument, loadDhfConfig, isDocumentEnabled,
     getPlugin, getAvailableFormats, createSnapshot, saveSnapshot, loadSnapshots,
     loadLatestSnapshot, diffSnapshots, generateRedlineDocument, createQueryContext,
@@ -27,6 +27,7 @@ import type { DhfExportFormat, DhfDocument, MemoModel, MEMOConfig, DhfConfig } f
 import type { ValidationResult, CompletenessReport } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
+import { validateProject } from '../toolchain/project-validation.js';
 
 // ─── Shared: find SysML files ────────────────────────────────────────────────
 
@@ -54,7 +55,8 @@ async function loadModel(workspaceName?: string): Promise<LoadedModel> {
     }
 
     const config = loadAndResolveConfig(configPath);
-    const { model, registries: ontologyRegistries } = await loadProjectModel({ projectRoot: dirname(configPath), config });
+    const project = await loadProjectModel({ projectRoot: dirname(configPath), config });
+    const { model, registries: ontologyRegistries } = project;
     // `--workspace`: the same selection, refusals and scoping as `memo validate --workspace`.
     let workspace: WorkspaceScope | undefined;
     if (workspaceName !== undefined) {
@@ -70,7 +72,7 @@ async function loadModel(workspaceName?: string): Promise<LoadedModel> {
         workspace = selection.scope;
         console.log(chalk.gray(`Workspace: ${workspace.name} (${workspace.scope}), ${workspace.subjects.size} elements`));
     }
-    const validation = validateModel(model, undefined, undefined, undefined, undefined, workspace);
+    const { validation } = await validateProject(dirname(configPath), project, { workspace });
     const completeness = computeCompleteness(
         workspace ? narrowModel(model, new Map([...model.elements].filter(([id]) => workspace!.subjects.has(id)))) : model,
         validation);

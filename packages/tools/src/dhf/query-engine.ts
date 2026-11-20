@@ -60,7 +60,11 @@ export interface QueryContext {
     overallCompleteness(): number;
     layerSummary(): Array<{ id: string; label: string; count: number; completeness: number; color: string }>;
     /** Cross-reference: get trace chains from an element */
-    traceChain(elementId: string, maxDepth?: number): Array<{ element: MemoElement; relationship: MemoRelationship; depth: number }>;
+    /**
+     * The elements reachable from one element, breadth first. `downstream` follows edges out of it,
+     * `upstream` edges into it, `both` either way; `direction` on each step says which.
+     */
+    traceChain(elementId: string, maxDepth?: number, direction?: TraceDirection): TraceStep[];
 
     // ─── Standards conformance ───────────────────────────────────────────
     /**
@@ -73,6 +77,15 @@ export interface QueryContext {
      * than rendering an empty table.
      */
     standardsReport?: StandardsReport;
+}
+
+export type TraceDirection = 'downstream' | 'upstream' | 'both';
+
+export interface TraceStep {
+    element: MemoElement;
+    relationship: MemoRelationship;
+    depth: number;
+    direction: 'downstream' | 'upstream';
 }
 
 /** Create a QueryContext from model data */
@@ -170,8 +183,8 @@ export function createQueryContext(
                 completeness: l.percentage,
                 color: l.layerColor,
             })),
-        traceChain: (elementId: string, maxDepth = 5) => {
-            const result: Array<{ element: MemoElement; relationship: MemoRelationship; depth: number }> = [];
+        traceChain: (elementId: string, maxDepth = 5, direction: TraceDirection = 'downstream') => {
+            const result: TraceStep[] = [];
             const visited = new Set<string>();
             const queue: Array<{ id: string; depth: number }> = [{ id: elementId, depth: 0 }];
 
@@ -180,12 +193,14 @@ export function createQueryContext(
                 if (visited.has(id) || depth >= maxDepth) continue;
                 visited.add(id);
 
-                const rels = edgesFrom(id);
-                for (const rel of rels) {
-                    const target = model.elements.get(rel.targetId);
-                    if (target && !visited.has(target.id)) {
-                        result.push({ element: target, relationship: rel, depth: depth + 1 });
-                        queue.push({ id: target.id, depth: depth + 1 });
+                const steps: Array<{ rel: MemoRelationship; next: string; way: 'downstream' | 'upstream' }> = [];
+                if (direction !== 'upstream') for (const rel of edgesFrom(id)) steps.push({ rel, next: rel.targetId, way: 'downstream' });
+                if (direction !== 'downstream') for (const rel of edgesTo(id)) steps.push({ rel, next: rel.sourceId, way: 'upstream' });
+                for (const { rel, next, way } of steps) {
+                    const element = model.elements.get(next);
+                    if (element && !visited.has(element.id)) {
+                        result.push({ element, relationship: rel, depth: depth + 1, direction: way });
+                        queue.push({ id: element.id, depth: depth + 1 });
                     }
                 }
             }

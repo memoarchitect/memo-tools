@@ -47,7 +47,7 @@ function createContext(): QueryContext {
         layerCount: () => 2,
         overallCompleteness: () => 80,
         layerSummary: () => [{ id: 'risk', label: 'Risk', count: 1, completeness: 80, color: '#f00' }],
-        traceChain: () => [{ element: elements[0], relationship: relationships[0], depth: 1 }],
+        traceChain: () => [{ element: elements[0], relationship: relationships[0], depth: 1, direction: 'downstream' as const }],
     } as QueryContext;
 }
 
@@ -109,7 +109,7 @@ describe('runChatTurn — plain answers', () => {
 describe('runChatTurn — read tools', () => {
     it('executes a tool call and feeds the result back', async () => {
         const provider = scriptedProvider([
-            { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c1', name: 'search_elements', input: { kind: 'Hazard' } }] },
+            { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c1', name: 'memo_search_elements', input: { kind: 'Hazard' } }] },
             { content: 'Found OverPressure.', stopReason: 'end_turn' },
         ]);
         const result = await runChatTurn({ question: 'List hazards', ctx: createContext(), provider, ontology });
@@ -124,8 +124,8 @@ describe('runChatTurn — read tools', () => {
         const provider = scriptedProvider([
             {
                 content: '', stopReason: 'tool_use', toolCalls: [
-                    { id: 'c1', name: 'get_element', input: { id: 'haz-001' } },
-                    { id: 'c2', name: 'get_element', input: { id: 'req-001' } },
+                    { id: 'c1', name: 'memo_get_element', input: { id: 'haz-001' } },
+                    { id: 'c2', name: 'memo_get_element', input: { id: 'req-001' } },
                 ],
             },
             { content: 'done', stopReason: 'end_turn' },
@@ -138,7 +138,7 @@ describe('runChatTurn — read tools', () => {
 
     it('reports a bad element id as a recoverable tool error', async () => {
         const provider = scriptedProvider([
-            { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c1', name: 'get_element', input: { id: 'nope' } }] },
+            { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c1', name: 'memo_get_element', input: { id: 'nope' } }] },
             { content: 'That element does not exist.', stopReason: 'end_turn' },
         ]);
         await runChatTurn({ question: 'Describe nope', ctx: createContext(), provider, ontology });
@@ -150,7 +150,7 @@ describe('runChatTurn — read tools', () => {
 
     it('stops at maxIterations rather than looping forever', async () => {
         const provider = scriptedProvider([
-            { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c', name: 'layer_summary', input: {} }] },
+            { content: '', stopReason: 'tool_use', toolCalls: [{ id: 'c', name: 'memo_project_summary', input: {} }] },
         ]);
         const result = await runChatTurn({
             question: 'Loop', ctx: createContext(), provider, ontology, maxIterations: 3,
@@ -259,6 +259,53 @@ describe('runChatTurn — proposed changes', () => {
         const result = await runChatTurn({ question: 'Relate', ctx: createContext(), provider, ontology, allowEdits: true });
         expect(result.proposedChanges).toEqual([]);
         expect(provider.calls[1].messages.find(m => m.role === 'tool')?.content).toContain('not a relationship type');
+    });
+
+    // The ends of `mitigates`: a requirement controls a hazard, never the other way round.
+    const registries = {
+        kinds: [
+            { name: 'Hazard', label: 'Hazard', layer: 'risk', construct: 'part def' },
+            { name: 'SystemRequirement', label: 'System Requirement', layer: 'requirements', construct: 'requirement def' },
+        ],
+        relationships: [{
+            name: 'mitigates', sysmlName: 'Mitigates', label: 'Mitigates', layer: 'risk',
+            sourceEnd: { name: 'control', type: 'SystemRequirement' },
+            targetEnd: { name: 'hazard', type: 'Hazard' },
+        }],
+    };
+
+    it('rejects a relationship whose ends are the wrong kinds', async () => {
+        const provider = stageOne('propose_create_relationship', {
+            type: 'mitigates', sourceId: 'haz-001', targetId: 'req-001',
+        });
+        const result = await runChatTurn({ question: 'Relate', ctx: createContext(), provider, ontology, registries, allowEdits: true });
+        expect(result.proposedChanges).toEqual([]);
+        const content = provider.calls[1].messages.find(m => m.role === 'tool')?.content;
+        expect(content).toContain('Not a legal mitigates');
+        expect(content).toContain('cannot occupy the control end');
+    });
+
+    it('rejects a relationship that already exists', async () => {
+        const provider = stageOne('propose_create_relationship', {
+            type: 'mitigates', sourceId: 'req-001', targetId: 'haz-001',
+        });
+        const result = await runChatTurn({ question: 'Relate', ctx: createContext(), provider, ontology, registries, allowEdits: true });
+        expect(result.proposedChanges).toEqual([]);
+        expect(provider.calls[1].messages.find(m => m.role === 'tool')?.content).toContain('already exists');
+    });
+
+    it('stages a legal relationship to an element staged earlier in the turn', async () => {
+        const provider = scriptedProvider([
+            {
+                content: '', stopReason: 'tool_use', toolCalls: [
+                    { id: 'c1', name: 'propose_create_element', input: { id: 'req-002', name: 'New', kind: 'SystemRequirement' } },
+                    { id: 'c2', name: 'propose_create_relationship', input: { type: 'mitigates', sourceId: 'req-002', targetId: 'haz-001' } },
+                ],
+            },
+            { content: 'Staged both.', stopReason: 'end_turn' },
+        ]);
+        const result = await runChatTurn({ question: 'Add and link', ctx: createContext(), provider, ontology, registries, allowEdits: true });
+        expect(result.proposedChanges.map(c => c.kind)).toEqual(['create-element', 'create-relationship']);
     });
 
     it('rejects a relationship to an element that does not exist', async () => {

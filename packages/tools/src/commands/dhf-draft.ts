@@ -9,7 +9,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import chalk from 'chalk';
 import {
-    findConfigFile, validateModel, computeCompleteness, createQueryContext, getDocumentType,
+    findConfigFile, computeCompleteness, createQueryContext, getDocumentType,
     getAllDocumentIds, compileDocument, loadDhfConfig, getPlugin, resolveLLMConfig,
     createProvider, draftDocument,
 } from '@memoarchitect/tools';
@@ -17,6 +17,7 @@ import type { DhfExportFormat, MemoModel, MEMOConfig, DhfConfig } from '@memoarc
 import type { ValidationResult, CompletenessReport } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
+import { validateProject } from '../toolchain/project-validation.js';
 
 
 export interface DhfDraftCommandOptions {
@@ -58,8 +59,9 @@ export async function dhfDraftCommand(options: DhfDraftCommandOptions): Promise<
 
     console.log(chalk.dim('Loading model...'));
     const config = loadAndResolveConfig(configPath);
-    const { model, registries: ontologyRegistries } = await loadProjectModel({ projectRoot: dirname(configPath), config });
-    const validation = validateModel(model, [], undefined, undefined, undefined, undefined, undefined, ontologyRegistries?.relationshipRegistry);
+    const project = await loadProjectModel({ projectRoot: dirname(configPath), config });
+    const { model, registries: ontologyRegistries } = project;
+    const { validation } = await validateProject(dirname(configPath), project);
     const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);
     const dhfConfig = loadDhfConfig(cwd);

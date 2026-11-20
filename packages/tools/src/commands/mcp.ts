@@ -49,9 +49,10 @@ export interface McpInitOptions {
 
 /** The MCP client entry MEMO registers. */
 function serverEntry(projectRoot: string, write: boolean): Record<string, unknown> {
-    const args = ['-y', '--package=@memoarchitect/tools', 'memo', 'mcp', '--project', projectRoot];
+    // `mcp` is a command of the `memo-architect` binary, not of `memo`: the architect package is the
+    // one that registers the project commands. npx so this works without a global install.
+    const args = ['-y', '--package=@memoarchitect/architect', 'memo-architect', 'mcp', '--project', projectRoot];
     if (write) args.push('--write');
-    // npx rather than a bare `memo` so this works without a global install.
     return { command: 'npx', args };
 }
 

@@ -10,11 +10,12 @@
 import { dirname } from 'node:path';
 import chalk from 'chalk';
 import {
-    findConfigFile, validateModel, computeCompleteness, createQueryContext, resolveLLMConfig,
+    findConfigFile, computeCompleteness, createQueryContext, resolveLLMConfig,
     createProvider, askModel,
 } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
+import { validateProject } from '../toolchain/project-validation.js';
 
 
 export interface AskCommandOptions {
@@ -45,8 +46,9 @@ export async function askCommand(question: string, options: AskCommandOptions): 
 
     console.log(chalk.dim('Loading model...'));
     const config = loadAndResolveConfig(configPath);
-    const { model, registries: ontologyRegistries } = await loadProjectModel({ projectRoot: dirname(configPath), config });
-    const validation = validateModel(model);
+    const project = await loadProjectModel({ projectRoot: dirname(configPath), config });
+    const { model, registries: ontologyRegistries } = project;
+    const { validation } = await validateProject(dirname(configPath), project);
     const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);
 

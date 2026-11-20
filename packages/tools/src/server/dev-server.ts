@@ -790,7 +790,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      * server currently holds. Every LLM handler needs the same four pieces, so
      * they share this rather than each re-deriving them.
      */
-    async function llmQueryContext(workspaceRoot?: string): Promise<{ ctx: QueryContext; config: MEMOConfig; ontology: OntologyView }> {
+    async function llmQueryContext(workspaceRoot?: string): Promise<{ ctx: QueryContext; config: MEMOConfig; ontology: OntologyView; registries?: OntologyRegistriesDTO }> {
         const { findConfigFile, loadProjectOntology, ontologyViewFrom, EMPTY_ONTOLOGY_VIEW } =
             await import('@memoarchitect/tools');
         const { loadAndResolveConfig } = await import('./config-resolver.js');
@@ -804,15 +804,22 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         // Kinds and relationships come from the resolved SysML, not from the
         // settings file the config path points at.
         let ontology = EMPTY_ONTOLOGY_VIEW;
+        let registries: OntologyRegistriesDTO | undefined;
         try {
             const loaded = await loadProjectOntology({ projectRoot: options.projectRoot, config });
             ontology = ontologyViewFrom(loaded.registries.kindRegistry, loaded.registries.relationshipRegistry);
+            if (loaded.registries.kindRegistry && loaded.registries.relationshipRegistry) {
+                registries = {
+                    kinds: loaded.registries.kindRegistry.toDefinitionDTOs(),
+                    relationships: loaded.registries.relationshipRegistry.toDefinitionDTOs(),
+                };
+            }
         } catch {
             // A project whose ontology does not resolve still has a model to query.
         }
 
         const ctx = await scopedQueryContext(config, workspaceRoot);
-        return { ctx, config, ontology };
+        return { ctx, config, ontology, registries };
     }
 
     /** Settings status for the client — provider/model/origin, never the key. */
@@ -2439,10 +2446,10 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         if (!llmConfig) {
                             ws.send(JSON.stringify({ type: 'llm:chat:result', payload: { requestId, error: 'No LLM provider configured. Add an API key in Settings, set ANTHROPIC_API_KEY or OPENAI_API_KEY, or put one in a project .env file.' } }));
                         } else {
-                            const { ctx, ontology } = await llmQueryContext(msg.payload?.workspace);
+                            const { ctx, ontology, registries } = await llmQueryContext(msg.payload?.workspace);
                             const provider = createProvider(llmConfig);
                             const result = await runChatTurn({
-                                question, history, ctx, provider, ontology,
+                                question, history, ctx, provider, ontology, registries,
                                 allowEdits: allowEdits === true,
                             });
                             ws.send(JSON.stringify({

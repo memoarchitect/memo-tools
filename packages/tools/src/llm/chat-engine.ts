@@ -17,6 +17,9 @@ import type { MEMOConfig } from '../model/config.js';
 import { EMPTY_ONTOLOGY_VIEW, type OntologyView } from '../model/kind-registry.js';
 import type { LLMProvider, ChatMessage, ToolDefinition, ToolCall } from './llm-provider.js';
 import { serializeModelContext, type ContextOptions } from './model-context.js';
+import { readTools, runReadTool } from '../mcp/tools.js';
+import { validateRelationshipMutation, type OntologyRegistriesDTO } from '../model/relationship-legality.js';
+import { usageKeyword } from '../model/semantic.js';
 
 // ─── Proposed changes ────────────────────────────────────────────────────────
 
@@ -97,6 +100,12 @@ export interface ChatTurnOptions {
     ontology?: OntologyView;
     /** Allow the model to propose edits. Read-only when false. */
     allowEdits?: boolean;
+    /**
+     * The ontology's kind and relationship definitions, ends included. With them a proposed
+     * relationship is checked the way a hand edit is (`validateRelationshipMutation`): its ends'
+     * kinds and constructs, self-links and multiplicity, before the engineer sees it.
+     */
+    registries?: OntologyRegistriesDTO;
     contextOptions?: ContextOptions;
     /** Cap on tool round-trips per turn. */
     maxIterations?: number;
@@ -111,7 +120,7 @@ You are working with a live medical device architecture model. A summary of it i
 Guidelines:
 - Reference specific element names and IDs when relevant.
 - Prefer calling a tool over guessing. The summary is truncated; the tools see the whole model.
-- When asked about traceability, follow relationship chains with the trace tool.
+- When asked about traceability, follow relationship chains with memo_trace; use direction "upstream" to find what points at an element (what verifies or satisfies it).
 - Use tables for structured data when appropriate.
 - Be precise — never invent elements or relationships that are not in the model.
 - If the model does not contain enough information to answer, say so clearly.
@@ -123,58 +132,14 @@ Proposing changes:
 
 // ─── Tool definitions ────────────────────────────────────────────────────────
 
-const READ_TOOLS: ToolDefinition[] = [
-    {
-        name: 'search_elements',
-        description: 'Search model elements by name/id substring, kind, or layer. Use this whenever you need elements the summary does not list.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                query: { type: 'string', description: 'Case-insensitive substring matched against element id and name.' },
-                kind: { type: 'string', description: 'Restrict to one kind, e.g. "Hazard".' },
-                layer: { type: 'string', description: 'Restrict to one architecture layer, e.g. "risk".' },
-                limit: { type: 'number', description: 'Maximum results (default 50).' },
-            },
-        },
-    },
-    {
-        name: 'get_element',
-        description: 'Get one element in full: attributes, documentation, and every incoming and outgoing relationship.',
-        inputSchema: {
-            type: 'object',
-            properties: { id: { type: 'string', description: 'The element id.' } },
-            required: ['id'],
-        },
-    },
-    {
-        name: 'trace',
-        description: 'Follow the relationship chain out of an element, for traceability questions such as requirement-to-verification coverage.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                id: { type: 'string', description: 'The element id to trace from.' },
-                maxDepth: { type: 'number', description: 'How many hops to follow (default 3).' },
-            },
-            required: ['id'],
-        },
-    },
-    {
-        name: 'list_gaps',
-        description: 'List validation violations — the compliance and completeness gaps in the model.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                severity: { type: 'string', enum: ['error', 'warning', 'info'], description: 'Filter by severity.' },
-                limit: { type: 'number', description: 'Maximum results (default 50).' },
-            },
-        },
-    },
-    {
-        name: 'layer_summary',
-        description: 'Element counts and completeness percentage for every architecture layer.',
-        inputSchema: { type: 'object', properties: {} },
-    },
-];
+/**
+ * The read tools are the MCP server's (`mcp/tools.ts`), so the assistant and an
+ * IDE agent answer one question the same way. Read lazily: the registry module
+ * is part of an import cycle through the package index.
+ */
+function readToolDefinitions(): ToolDefinition[] {
+    return readTools();
+}
 
 function writeTools(ontology: OntologyView = EMPTY_ONTOLOGY_VIEW): ToolDefinition[] {
     const kindNames = Object.keys(ontology.kinds);
@@ -238,7 +203,7 @@ function writeTools(ontology: OntologyView = EMPTY_ONTOLOGY_VIEW): ToolDefinitio
             inputSchema: {
                 type: 'object',
                 properties: {
-                    id: { type: 'string', description: 'The relationship id, as returned by get_element.' },
+                    id: { type: 'string', description: 'The relationship id, as returned by memo_get_element.' },
                     rationale: { type: 'string', description: 'One sentence on why this relationship should go.' },
                 },
                 required: ['id'],
@@ -263,88 +228,30 @@ function fail(message: string): ToolOutcome {
     return { content: message, isError: true };
 }
 
-function describeElement(ctx: QueryContext, id: string): unknown {
-    const el = ctx.element(id);
-    if (!el) return undefined;
-    return {
-        id: el.id,
-        shortId: el.shortId,
-        name: el.name,
-        kind: el.kind,
-        layer: el.layer,
-        construct: el.construct,
-        file: el.file,
-        attributes: el.attributes,
-        doc: el.doc,
-        outgoing: ctx.outgoing(id).map(r => ({
-            relationshipId: r.id, type: r.type, target: r.targetId, targetName: ctx.elementName(r.targetId),
-        })),
-        incoming: ctx.incoming(id).map(r => ({
-            relationshipId: r.id, type: r.type, source: r.sourceId, sourceName: ctx.elementName(r.sourceId),
-        })),
-        violations: ctx.violationsFor(id).map(v => ({ severity: v.severity, rule: v.ruleId, description: v.description })),
-    };
-}
-
-function executeReadTool(name: string, input: Record<string, any>, ctx: QueryContext): ToolOutcome | undefined {
-    switch (name) {
-        case 'search_elements': {
-            const limit = typeof input.limit === 'number' ? input.limit : 50;
-            const query = typeof input.query === 'string' ? input.query.toLowerCase() : undefined;
-            let elements = input.kind ? ctx.elementsByKind(input.kind) : ctx.allElements();
-            if (input.layer) elements = elements.filter(e => e.layer === input.layer);
-            if (query) {
-                elements = elements.filter(e =>
-                    e.id.toLowerCase().includes(query) || e.name.toLowerCase().includes(query));
-            }
-            const total = elements.length;
-            const results = elements.slice(0, limit).map(e => ({
-                id: e.id, name: e.name, kind: e.kind, layer: e.layer,
-            }));
-            return ok({ total, returned: results.length, results });
+/**
+ * The part of the model a relationship check reads: the two ends, as they are or as staged this
+ * turn, and the relationships already there.
+ */
+function legalityModel(
+    ctx: QueryContext,
+    ontology: OntologyView,
+    staged: ProposedChange[],
+    ids: string[],
+): Parameters<typeof validateRelationshipMutation>[1] {
+    const elements: Record<string, any> = {};
+    for (const id of ids) {
+        const existing = ctx.element(id);
+        if (existing) { elements[id] = existing; continue; }
+        const create = staged.find(c => c.kind === 'create-element' && c.elementId === id) as ProposedElementCreate | undefined;
+        if (create) {
+            elements[id] = {
+                id, name: create.name, kind: create.elementKind,
+                construct: usageKeyword(ontology.kinds[create.elementKind]?.sysmlConstruct),
+                layer: create.layer ?? '', attributes: create.attributes ?? {},
+            };
         }
-        case 'get_element': {
-            const detail = describeElement(ctx, String(input.id));
-            return detail ? ok(detail) : fail(`No element with id "${input.id}". Use search_elements to find the right id.`);
-        }
-        case 'trace': {
-            const id = String(input.id);
-            if (!ctx.element(id)) return fail(`No element with id "${id}".`);
-            const depth = typeof input.maxDepth === 'number' ? input.maxDepth : 3;
-            const chain = ctx.traceChain(id, depth).map(step => ({
-                depth: step.depth,
-                via: step.relationship.type,
-                to: step.element.id,
-                name: step.element.name,
-                kind: step.element.kind,
-            }));
-            return ok({ from: id, steps: chain.length, chain });
-        }
-        case 'list_gaps': {
-            const limit = typeof input.limit === 'number' ? input.limit : 50;
-            const severities: Array<'error' | 'warning' | 'info'> = input.severity
-                ? [input.severity]
-                : ['error', 'warning'];
-            const violations = severities.flatMap(s => ctx.violationsBySeverity(s));
-            return ok({
-                total: violations.length,
-                returned: Math.min(violations.length, limit),
-                violations: violations.slice(0, limit).map(v => ({
-                    severity: v.severity,
-                    rule: v.ruleId,
-                    description: v.description,
-                    element: v.elementId,
-                    elementKind: v.elementKind,
-                })),
-            });
-        }
-        case 'layer_summary':
-            return ok(ctx.layerSummary().map(l => ({
-                id: l.id, label: l.label, elements: l.count, completeness: l.completeness,
-            })));
-        default:
-            return undefined;
     }
+    return { elements, relationships: ctx.allRelationships() } as Parameters<typeof validateRelationshipMutation>[1];
 }
 
 /** Staged proposals double as lookup state — later calls may reference earlier ones. */
@@ -363,6 +270,7 @@ function executeWriteTool(
     ontology: OntologyView,
     staged: ProposedChange[],
     nextId: () => string,
+    registries?: OntologyRegistriesDTO,
 ): ToolOutcome | undefined {
     const knownKinds = Object.keys(ontology.kinds).length > 0 ? new Set(Object.keys(ontology.kinds)) : undefined;
     const knownRels = ontology.relationshipTypes.length > 0
@@ -402,7 +310,7 @@ function executeWriteTool(
         case 'propose_update_element': {
             const id = String(input.id ?? '').trim();
             const el = ctx.element(id);
-            if (!el) return fail(`No element with id "${id}". Use search_elements to find the right id.`);
+            if (!el) return fail(`No element with id "${id}". Use memo_search_elements to find the right id.`);
 
             const changes: ProposedElementUpdate['changes'] = {};
             if (typeof input.name === 'string') changes.name = input.name;
@@ -446,7 +354,18 @@ function executeWriteTool(
             const pending = pendingElementIds(staged);
             for (const [label, endpoint] of [['source', sourceId], ['target', targetId]] as const) {
                 if (!ctx.element(endpoint) && !pending.has(endpoint)) {
-                    return fail(`No element with id "${endpoint}" for the ${label}. Use search_elements to find the right id.`);
+                    return fail(`No element with id "${endpoint}" for the ${label}. Use memo_search_elements to find the right id.`);
+                }
+            }
+            if (registries) {
+                const legality = validateRelationshipMutation(
+                    { requestId: 'chat', type, sourceId, targetId, direction: 'outgoing' },
+                    legalityModel(ctx, ontology, staged, [sourceId, targetId]),
+                    registries,
+                );
+                const errors = legality.diagnostics.filter(d => d.severity === 'error');
+                if (errors.length > 0) {
+                    return fail(`Not a legal ${type}: ${errors.map(d => d.message).join('; ')}. Check the relationship's direction and its end kinds with memo_ontology.`);
                 }
             }
             staged.push({
@@ -465,7 +384,7 @@ function executeWriteTool(
         case 'propose_delete_relationship': {
             const relId = String(input.id ?? '').trim();
             const rel = ctx.allRelationships().find(r => r.id === relId);
-            if (!rel) return fail(`No relationship with id "${relId}". Use get_element to list an element's relationship ids.`);
+            if (!rel) return fail(`No relationship with id "${relId}". Use memo_get_element to list an element's relationship ids.`);
             staged.push({
                 kind: 'delete-relationship',
                 id: nextId(),
@@ -496,11 +415,11 @@ function executeWriteTool(
 export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnResult> {
     const {
         question, history = [], ctx, provider, ontology = EMPTY_ONTOLOGY_VIEW,
-        allowEdits = false, contextOptions,
+        allowEdits = false, contextOptions, registries,
         maxIterations = DEFAULT_MAX_ITERATIONS,
     } = options;
 
-    const tools = allowEdits ? [...READ_TOOLS, ...writeTools(ontology)] : READ_TOOLS;
+    const tools = allowEdits ? [...readToolDefinitions(), ...writeTools(ontology)] : readToolDefinitions();
 
     // The model summary is only re-sent when the conversation is new; on later
     // turns it is already in the history and repeating it wastes the window.
@@ -549,7 +468,7 @@ export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnRes
         // Every call must get a result, in the same batch — dropping one leaves
         // the conversation malformed for both providers.
         for (const call of calls) {
-            const outcome = runTool(call, ctx, ontology, allowEdits, proposedChanges, nextId);
+            const outcome = await runTool(call, ctx, ontology, allowEdits, proposedChanges, nextId, registries);
             conversation.push({
                 role: 'tool',
                 toolCallId: call.id,
@@ -570,24 +489,25 @@ export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnRes
     };
 }
 
-function runTool(
+async function runTool(
     call: ToolCall,
     ctx: QueryContext,
     ontology: OntologyView,
     allowEdits: boolean,
     staged: ProposedChange[],
     nextId: () => string,
-): ToolOutcome {
+    registries?: OntologyRegistriesDTO,
+): Promise<ToolOutcome> {
     try {
         const input = (call.input ?? {}) as Record<string, any>;
-        const read = executeReadTool(call.name, input, ctx);
-        if (read) return read;
+        const read = await runReadTool(call.name, input, { ctx, ontology });
+        if (read !== undefined) return ok(read);
 
         if (call.name.startsWith('propose_') && !allowEdits) {
             return fail('Editing is disabled for this conversation. Answer using the read-only tools instead.');
         }
 
-        const write = executeWriteTool(call.name, input, ctx, ontology, staged, nextId);
+        const write = executeWriteTool(call.name, input, ctx, ontology, staged, nextId, registries);
         if (write) return write;
 
         return fail(`Unknown tool "${call.name}".`);
@@ -598,7 +518,7 @@ function runTool(
 
 /** The tool names this engine exposes — used by tests and the MCP server. */
 export function chatToolNames(allowEdits = true): string[] {
-    return (allowEdits ? [...READ_TOOLS, ...writeTools()] : READ_TOOLS).map(t => t.name);
+    return (allowEdits ? [...readToolDefinitions(), ...writeTools()] : readToolDefinitions()).map(t => t.name);
 }
 
-export { READ_TOOLS, writeTools };
+export { writeTools };

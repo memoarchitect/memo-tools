@@ -9,11 +9,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { statSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
 import { findSysmlFiles } from '../model/sysml-files.js';
 // Imported from their defining modules rather than the package index: this
 // module is reached from server/persistor, which imports the package by name.
 import { findConfigFile } from '../model/config-loader.js';
-import { validateModel } from '../validator/rule-engine.js';
 import { computeCompleteness } from '../completeness/tracker.js';
 import { createQueryContext } from '../dhf/query-engine.js';
 import type { QueryContext } from '../dhf/query-engine.js';
@@ -21,6 +21,7 @@ import type { MEMOConfig } from '../model/config.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { EMPTY_ONTOLOGY_VIEW, ontologyViewFrom, type OntologyView } from '../model/kind-registry.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
+import { validateProject } from '../toolchain/project-validation.js';
 
 // Source discovery is the shared walker's job. This module kept its own copy
 // with a shorter skip list, which meant the MCP server saw files every other
@@ -39,13 +40,21 @@ export interface LoadedProject {
 
 interface CacheEntry {
     project: LoadedProject;
-    /** Newest mtime across all .sysml files at load time. */
+    /** What the model was built from, beyond the project's own sources: settings and the ontology closure. */
+    inputs: string[];
     signature: string;
 }
 
 const cache = new Map<string, CacheEntry>();
 
-/** Cheap staleness check: file count plus the newest mtime. */
+/** Settings read next to the sources; a missing one simply contributes nothing. */
+const PROJECT_SETTINGS_FILES = ['memo.package.yaml', 'memo.identity.yaml'];
+
+/**
+ * Cheap staleness check: file count plus the newest mtime. Over the project's sources, its settings
+ * files and every ontology or library file the last build resolved, so editing `memo.config`, the
+ * identity file or a linked ontology is seen as a change, not only editing a `.sysml` file.
+ */
 function signatureOf(files: string[]): string {
     let newest = 0;
     for (const f of files) {
@@ -61,10 +70,10 @@ function signatureOf(files: string[]): string {
 
 export async function loadProject(projectRoot: string): Promise<LoadedProject> {
     const files = findSysmlFiles(projectRoot);
-    const signature = signatureOf(files);
+    const settings = PROJECT_SETTINGS_FILES.map(name => join(projectRoot, name));
 
     const cached = cache.get(projectRoot);
-    if (cached && cached.signature === signature) return cached.project;
+    if (cached && cached.signature === signatureOf([...files, ...settings, ...cached.inputs])) return cached.project;
 
     const configPath = findConfigFile(projectRoot);
     if (!configPath) {
@@ -73,15 +82,22 @@ export async function loadProject(projectRoot: string): Promise<LoadedProject> {
 
     const config = loadAndResolveConfig(configPath);
 
-    const { model, registries } = await loadProjectModel({ projectRoot, config });
+    const loaded = await loadProjectModel({ projectRoot, config });
+    const { model, registries } = loaded;
     const ontology = registries?.kindRegistry && registries.relationshipRegistry
         ? ontologyViewFrom(registries.kindRegistry, registries.relationshipRegistry)
         : EMPTY_ONTOLOGY_VIEW;
-    const validation = validateModel(model, [], undefined, undefined, undefined, undefined, undefined, registries?.relationshipRegistry);
+    // The effective rule set, as `memo validate` and Architect run it: an agent checking its work
+    // must see the findings the engineer sees, not a reduced set.
+    const { validation } = await validateProject(projectRoot, loaded);
     const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);
 
     const project: LoadedProject = { ctx, config, ontology, projectRoot, fileCount: files.length };
-    cache.set(projectRoot, { project, signature });
+    const inputs = new Set<string>([configPath]);
+    for (const pkg of loaded.resolution?.closure.values() ?? []) {
+        for (const file of pkg.files) inputs.add(isAbsolute(file) ? file : join(projectRoot, file));
+    }
+    cache.set(projectRoot, { project, inputs: [...inputs], signature: signatureOf([...files, ...settings, ...inputs]) });
     return project;
 }

@@ -10,12 +10,13 @@ import { resolve, join, dirname } from 'node:path';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import chalk from 'chalk';
 import {
-    findConfigFile, validateModel, computeCompleteness, createQueryContext, PluginRegistry,
+    findConfigFile, computeCompleteness, createQueryContext, PluginRegistry,
     loadPlugins, loadPluginConfig, scaffoldPlugin,
 } from '@memoarchitect/tools';
 import type { PluginType, PluginContext, MemoPlugin } from '@memoarchitect/tools';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
+import { validateProject } from '../toolchain/project-validation.js';
 
 
 // ─── memo-architect plugin list ───────────────────────────────────────────────────────
@@ -126,8 +127,9 @@ export async function pluginRunCommand(
 
     console.log(chalk.dim('Loading model and plugins...'));
     const config = loadAndResolveConfig(configPath);
-    const { model, registries: ontologyRegistries } = await loadProjectModel({ projectRoot: dirname(configPath), config });
-    const validation = validateModel(model);
+    const project = await loadProjectModel({ projectRoot: dirname(configPath), config });
+    const { model, registries: ontologyRegistries } = project;
+    const { validation } = await validateProject(dirname(configPath), project);
     const completeness = computeCompleteness(model, validation);
     const query = createQueryContext(model, validation, completeness, config);
 
