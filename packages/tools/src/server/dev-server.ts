@@ -577,7 +577,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     watchFile(proposalQueueFile, { interval: 1000 }, broadcastProposals);
     const aiClientsMessage = (error?: string) => {
         try {
-            return JSON.stringify({ type: 'ai:clients', payload: { clients: aiClientStatus(options.projectRoot), error } });
+            return JSON.stringify({ type: 'ai:clients', payload: { clients: aiClientStatus(options.projectRoot), projectRoot: options.projectRoot, error } });
         } catch (e: any) {
             return JSON.stringify({ type: 'ai:clients', payload: { clients: [], error: e?.message ?? String(e) } });
         }

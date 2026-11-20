@@ -1240,7 +1240,8 @@ export interface AiProposalsResultMessage {
 /** Server → Client: which AI coding tools are connected to this model, and how. */
 export interface AiClientsMessage {
     type: 'ai:clients';
-    payload: { clients: AiClientStatus[]; error?: string };
+    /** `projectRoot`: the model's folder on this machine, which a tool opens (VS Code, Cursor) or starts in (Claude Code). */
+    payload: { clients: AiClientStatus[]; projectRoot?: string; error?: string };
 }
 
 /** Client → Server: connect or disconnect one AI coding tool, or change whether it may propose edits. */
