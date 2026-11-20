@@ -19,7 +19,7 @@ import type {
 import type { ChatMessage } from '../llm/llm-provider.js';
 import type { ProposedChange } from '../llm/chat-engine.js';
 import type { QueuedProposal } from '../llm/proposal-queue.js';
-import type { AiClientId, AiClientStatus } from '../mcp/clients.js';
+import type { AiClientCheck, AiClientId, AiClientStatus } from '../mcp/clients.js';
 import type { LlmSettingsStatus, LLMProviderName } from '../llm/llm-settings.js';
 import type { UserToolchainStatus } from '../toolchain/user-settings-status.js';
 import type { ClauseFact } from '../validator/rule-clauses.js';
@@ -82,6 +82,7 @@ export type ServerMessage =
     | AiProposalsMessage
     | AiProposalsResultMessage
     | AiClientsMessage
+    | AiClientsCheckResultMessage
     | LlmSettingsMessage
     | LlmSettingsSaveResultMessage
     | ToolchainSettingsMessage
@@ -471,6 +472,7 @@ export type ClientMessage =
     | AiProposalsApplyMessage
     | AiProposalsDiscardMessage
     | AiClientsSetMessage
+    | AiClientsCheckMessage
     | LlmSettingsSaveMessage
     | ToolchainSettingsSaveMessage
     | LlmGenerateMessage
@@ -1245,6 +1247,18 @@ export interface AiClientsMessage {
 export interface AiClientsSetMessage {
     type: 'ai:clients:set';
     payload: { requestId: string; id: AiClientId; connected: boolean; proposesEdits?: boolean };
+}
+
+/** Client → Server: run one AI coding tool's `memo` entry as the tool would, and report what answers. */
+export interface AiClientsCheckMessage {
+    type: 'ai:clients:check';
+    payload: { requestId: string; id: AiClientId };
+}
+
+/** Server → Client: what the check found: the version the entry runs and the tools it offers. */
+export interface AiClientsCheckResultMessage {
+    type: 'ai:clients:check:result';
+    payload: { requestId: string; check: AiClientCheck };
 }
 
 /** Server → Client: current LLM settings. Never includes the API key itself. */

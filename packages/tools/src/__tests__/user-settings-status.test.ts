@@ -144,3 +144,23 @@ describe('changing the compiler setting', () => {
         });
     });
 });
+
+describe('a setting outside the toolchain block', () => {
+    it('is set, read and cleared without disturbing the rest of the file', async () => {
+        const { mkdtempSync, readFileSync, writeFileSync, rmSync } = await import('node:fs');
+        const { tmpdir } = await import('node:os');
+        const { join } = await import('node:path');
+        const { userSetting, setUserSetting } = await import('../model/user-settings.js');
+        const dir = mkdtempSync(join(tmpdir(), 'memo-user-'));
+        const env = { MEMO_CONFIG_DIR: dir };
+        const original = '# mine\ntoolchain:\n  compiler: syside\n';
+        writeFileSync(join(dir, 'settings.yaml'), original);
+        setUserSetting(['jupyter', 'bin'], '/opt/jupyter', env);
+        expect(userSetting(['jupyter', 'bin'], env)).toBe('/opt/jupyter');
+        expect(readFileSync(join(dir, 'settings.yaml'), 'utf8')).toContain('compiler: syside');
+        setUserSetting(['jupyter', 'bin'], undefined, env);
+        expect(userSetting(['jupyter', 'bin'], env)).toBeUndefined();
+        expect(readFileSync(join(dir, 'settings.yaml'), 'utf8')).toBe(original);
+        rmSync(dir, { recursive: true, force: true });
+    });
+});

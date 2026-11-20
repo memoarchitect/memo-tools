@@ -252,7 +252,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
         console.log(chalk.yellow(`  ⚠ Could not create lock file: ${error instanceof Error ? error.message : error}`));
     }
     // AI coding tools opened on the project find the model with nothing more to run: read-only, so
-    // nothing proposes an edit until the engineer turns that on in Settings › Assistant.
+    // nothing proposes an edit until the engineer turns that on in Settings › Jupyter and AI tools.
     try {
         for (const client of AI_CLIENTS) connectAiClient(target.projectDir, client.id);
         console.log(chalk.gray(`  Connected AI coding tools (${AI_CLIENTS.map(client => client.label).join(', ')}), read-only`));

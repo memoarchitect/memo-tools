@@ -2,7 +2,7 @@
 //
 // Each AI coding tool reads its MCP servers from its own file in the project. Connecting one adds a
 // `memo` entry there that runs `memo-architect mcp`; disconnecting removes only that entry, so the
-// project's other servers are left alone. Architect's Settings › Assistant and `memo-architect mcp
+// project's other servers are left alone. Architect's Settings › Jupyter and AI tools and `memo-architect mcp
 // init` both call these functions, so the two always write the same thing.
 //
 // The entries name no absolute path, so they can be committed and work on every engineer's machine:
@@ -124,4 +124,78 @@ export function disconnectAiClient(projectRoot: string, id: string): AiClientSta
         if (existsSync(rulesPath) && readFileSync(rulesPath, 'utf8').includes(RULES_MARKER)) rmSync(rulesPath, { force: true });
     }
     return aiClientStatus(projectRoot).find(status => status.id === client.id)!;
+}
+
+// ─── Checking a connection ───────────────────────────────────────────────────
+
+export interface AiClientCheck {
+    id: AiClientId;
+    ok: boolean;
+    /** The Architect version the tool's entry actually runs. */
+    version?: string;
+    tools?: string[];
+    /** The server offers edits that wait for approval. */
+    proposesEdits?: boolean;
+    /** The server writes straight to the model: an Architect older than the approval step. */
+    writesDirectly?: boolean;
+    error?: string;
+}
+
+/**
+ * Run the `memo` entry exactly as the tool would, in the project, and ask the server who it is and what
+ * it offers. The first run of an `npx` entry may download Architect, so the wait is generous.
+ */
+export async function checkAiClient(projectRoot: string, id: string, timeoutMs = 120_000): Promise<AiClientCheck> {
+    const client = descriptor(id);
+    const entry = readConfig(join(projectRoot, client.file))[client.serversKey]?.[SERVER_NAME];
+    if (!entry || typeof entry.command !== 'string') {
+        return { id: client.id, ok: false, error: `${client.label} is not connected: ${client.file} has no memo server.` };
+    }
+    const args: string[] = (Array.isArray(entry.args) ? entry.args : []).map((arg: unknown) =>
+        String(arg).split('${workspaceFolder}').join(projectRoot));
+    const { spawn } = await import('node:child_process');
+    return new Promise<AiClientCheck>(resolveCheck => {
+        const child = spawn(entry.command, args, {
+            cwd: projectRoot, env: { ...process.env, ...(entry.env ?? {}) }, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
+        });
+        let stdout = '';
+        let stderr = '';
+        let version: string | undefined;
+        let settled = false;
+        const finish = (result: Omit<AiClientCheck, 'id'>) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            child.kill();
+            resolveCheck({ id: client.id, ...result });
+        };
+        const timer = setTimeout(() => finish({ ok: false, error: `No answer within ${Math.round(timeoutMs / 1000)} seconds.${stderr ? ` ${stderr.trim().split('\n').slice(-2).join(' ')}` : ''}` }), timeoutMs);
+        child.on('error', error => finish({ ok: false, error: `${entry.command} could not be run: ${error.message}` }));
+        child.on('exit', code => finish({ ok: false, error: `The server stopped (exit ${code}).${stderr ? ` ${stderr.trim().split('\n').slice(-3).join(' ')}` : ''}` }));
+        child.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-4000); });
+        child.stdout.on('data', chunk => {
+            stdout += chunk;
+            let newline: number;
+            while ((newline = stdout.indexOf('\n')) >= 0) {
+                const line = stdout.slice(0, newline).trim();
+                stdout = stdout.slice(newline + 1);
+                if (!line) continue;
+                let message: any;
+                try { message = JSON.parse(line); } catch { continue; }
+                if (message.id === 1) {
+                    version = message.result?.serverInfo?.version;
+                    child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`);
+                    child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' })}\n`);
+                } else if (message.id === 2) {
+                    const tools: string[] = (message.result?.tools ?? []).map((tool: { name: string }) => tool.name);
+                    finish({
+                        ok: true, version, tools,
+                        proposesEdits: tools.some(name => name.startsWith('propose_')),
+                        writesDirectly: tools.includes('memo_create_element'),
+                    });
+                }
+            }
+        });
+        child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'memo-architect-check', version: '1' } } })}\n`);
+    });
 }

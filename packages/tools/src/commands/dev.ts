@@ -69,6 +69,7 @@ import { isRulePackageInScope, resolveProjectRules, scopedSubjectIds } from '../
 import { isProjectSource } from '../stage2/project-from-api.js';
 import { readClauseFacts, type ClauseFact } from '../validator/rule-clauses.js';
 import type { RuleServiceContext } from '../server/rule-service.js';
+import { recordArchitectAddress } from '../mcp/architect-address.js';
 
 /** Gather git info for model metadata */
 function getGitInfo(cwd: string): Partial<ModelMetadata> {
@@ -723,6 +724,8 @@ export async function devCommand(options: {
     const boundPort = options.readOnly ? server.port : port;
     workingPort = boundPort;
     console.log(chalk.green(`\n  ➜ http://${host}:${boundPort}\n`));
+    // The working server says where it is, so an AI coding tool's answers link here.
+    if (!options.readOnly) process.once('exit', recordArchitectAddress(cwd, `http://${host}:${boundPort}`));
     // A pinned server is a child of the server that opened it: it tells that parent where it is, and
     // goes when the parent does.
     if (options.readOnly && process.send) {

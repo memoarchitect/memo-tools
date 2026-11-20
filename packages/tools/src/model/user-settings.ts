@@ -69,24 +69,50 @@ function readDocument(path: string): Document {
     return document.contents === null ? new Document({}) : document;
 }
 
-/** Set a toolchain leaf (`compiler`, `opensysml.binary`) in the user's settings file. Returns the file. */
-export function setUserToolchainSetting(path: string, value: string, env: NodeJS.ProcessEnv = process.env): string {
+/**
+ * One value in the user's settings file outside the toolchain block, by its path (`['jupyter', 'bin']`):
+ * a setting of this machine that is not a compiler's, such as where its JupyterLab is.
+ */
+export function userSetting(steps: readonly string[], env: NodeJS.ProcessEnv = process.env): string | undefined {
     const file = userSettingsPath(env);
+    if (!existsSync(file)) return undefined;
+    const value = readDocument(file).getIn(steps);
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+/** Set (or, with `undefined`, remove) one value in the user's settings file, keeping the rest. Returns the file. */
+export function setUserSetting(steps: readonly string[], value: string | undefined, env: NodeJS.ProcessEnv = process.env): string {
+    const file = userSettingsPath(env);
+    if (value === undefined && !existsSync(file)) return file;
     const document = readDocument(file);
-    document.setIn(['toolchain', ...path.split('.')], value);
+    if (value === undefined) {
+        if (!document.hasIn(steps)) return file;
+        document.deleteIn(steps);
+        // A block left empty goes too, so clearing a setting leaves the file as it was before it.
+        for (let depth = steps.length - 1; depth > 0; depth--) {
+            const parent = document.getIn(steps.slice(0, depth)) as { items?: unknown[] } | undefined;
+            if (!parent || !Array.isArray(parent.items) || parent.items.length > 0) break;
+            document.deleteIn(steps.slice(0, depth));
+        }
+    } else {
+        document.setIn(steps, value);
+    }
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, document.toString());
     return file;
+}
+
+/** Set a toolchain leaf (`compiler`, `opensysml.binary`) in the user's settings file. Returns the file. */
+export function setUserToolchainSetting(path: string, value: string, env: NodeJS.ProcessEnv = process.env): string {
+    return setUserSetting(['toolchain', ...path.split('.')], value, env);
 }
 
 /** Remove a toolchain leaf from the user's settings file; false when it was not set. */
 export function unsetUserToolchainSetting(path: string, env: NodeJS.ProcessEnv = process.env): boolean {
     const file = userSettingsPath(env);
     if (!existsSync(file)) return false;
-    const document = readDocument(file);
     const steps = ['toolchain', ...path.split('.')];
-    if (!document.hasIn(steps)) return false;
-    document.deleteIn(steps);
-    writeFileSync(file, document.toString());
+    if (!readDocument(file).hasIn(steps)) return false;
+    setUserSetting(steps, undefined, env);
     return true;
 }

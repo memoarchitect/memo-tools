@@ -19,7 +19,7 @@ export * from './model/effective-scope.js';
 export * from './model/settings-boundary.js';
 export * from './model/config-loader.js';
 export { mergeToolchain } from './model/toolchain-merge.js';
-export { userToolchain, userSettingsPath, USER_COMPILER_ENV } from './model/user-settings.js';
+export { userToolchain, userSettingsPath, userSetting, setUserSetting, USER_COMPILER_ENV } from './model/user-settings.js';
 export {
     applyUserSetting, applyProjectSetting, userToolchainStatus, userSettingReports, userLeaf, ConfigSettingError,
 } from './toolchain/user-settings-status.js';

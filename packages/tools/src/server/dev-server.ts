@@ -564,7 +564,7 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     // Proposals an AI coding tool made over MCP arrive in memo.ai-proposals.json from another process;
     // every open Architect lists them as they arrive.
     const { readProposalQueue, removeProposals, proposalQueuePath } = await import('../llm/proposal-queue.js');
-    const { aiClientStatus, connectAiClient, disconnectAiClient } = await import('../mcp/clients.js');
+    const { aiClientStatus, connectAiClient, disconnectAiClient, checkAiClient } = await import('../mcp/clients.js');
     const proposalsMessage = () => JSON.stringify({ type: 'ai:proposals', payload: { proposals: readProposalQueue(options.projectRoot) } });
     const broadcastProposals = () => {
         const message = proposalsMessage();
@@ -2581,6 +2581,11 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         ws.send(JSON.stringify({ type: 'ai:proposals:result', payload: { requestId, applied, failed, error: e?.message ?? String(e) } }));
                     }
                     broadcastProposals();
+                } else if (msg.type === 'ai:clients:check') {
+                    const { requestId, id } = msg.payload ?? {};
+                    // Not awaited: a first npx run can take minutes, and the page keeps working meanwhile.
+                    void checkAiClient(options.projectRoot, String(id)).then(check =>
+                        ws.send(JSON.stringify({ type: 'ai:clients:check:result', payload: { requestId, check } })));
                 } else if (msg.type === 'ai:clients:set') {
                     const { id, connected, proposesEdits } = msg.payload ?? {};
                     let error: string | undefined;

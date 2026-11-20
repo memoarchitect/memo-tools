@@ -51,7 +51,7 @@ export interface McpInitOptions {
     noRules?: boolean;
 }
 
-/** The same connection Architect's Settings › Assistant makes, for every AI coding tool at once. */
+/** The same connection Architect's Settings › Jupyter and AI tools makes, for every AI coding tool at once. */
 export async function mcpInitCommand(options: McpInitOptions): Promise<void> {
     const projectRoot = resolve(options.project ?? process.cwd());
 
@@ -69,5 +69,5 @@ export async function mcpInitCommand(options: McpInitOptions): Promise<void> {
     console.log(options.write
         ? chalk.yellow('The tools may propose model edits. Each waits for you under AI Tools › Pending changes in Architect.')
         : chalk.dim('The tools can read and check the model. Re-run with --write to let them propose edits.'));
-    console.log(chalk.dim('The same switches are in Architect under Settings › Assistant. Restart the tool to pick the server up.'));
+    console.log(chalk.dim('The same switches are in Architect under Settings › Jupyter and AI tools. Restart the tool to pick the server up.'));
 }

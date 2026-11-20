@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { aiClientStatus, connectAiClient, disconnectAiClient } from '../mcp/clients.js';
+import { aiClientStatus, checkAiClient, connectAiClient, disconnectAiClient } from '../mcp/clients.js';
 import { appendProposals, readProposalQueue, removeProposals, PROPOSAL_QUEUE_FILE } from '../llm/proposal-queue.js';
 import { stageProposal } from '../llm/chat-engine.js';
 import type { QueryContext } from '../dhf/query-engine.js';
@@ -65,6 +65,39 @@ describe('connecting AI coding tools', () => {
         writeFileSync(join(root, '.mcp.json'), '{ not json');
         expect(() => connectAiClient(root, 'claude-code')).toThrow(/not valid JSON/);
         expect(readFileSync(join(root, '.mcp.json'), 'utf8')).toBe('{ not json');
+    });
+});
+
+describe('checking a connected tool', () => {
+    // A stand-in MCP server: answers initialize with a version and tools/list with the tools given.
+    const fakeServer = (tools: string[]) => {
+        const script = join(root, 'fake-mcp.cjs');
+        writeFileSync(script, `
+            const rl = require('readline').createInterface({ input: process.stdin });
+            rl.on('line', line => {
+                const m = JSON.parse(line);
+                if (m.id === 1) console.log(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { serverInfo: { name: 'memo', version: '9.9.9' } } }));
+                if (m.id === 2) console.log(JSON.stringify({ jsonrpc: '2.0', id: 2, result: { tools: ${JSON.stringify(tools.map(name => ({ name })))} } }));
+            });`);
+        writeFileSync(join(root, '.mcp.json'), JSON.stringify({ mcpServers: { memo: { command: process.execPath, args: [script, '${workspaceFolder}'] } } }));
+    };
+
+    it('reports the version and tools the entry runs', async () => {
+        fakeServer(['memo_search_elements', 'propose_create_element']);
+        expect(await checkAiClient(root, 'claude-code', 10_000)).toMatchObject({
+            ok: true, version: '9.9.9', proposesEdits: true, writesDirectly: false,
+        });
+    });
+
+    it('flags an Architect that writes straight to the model', async () => {
+        fakeServer(['memo_search_elements', 'memo_create_element']);
+        expect(await checkAiClient(root, 'claude-code', 10_000)).toMatchObject({ ok: true, writesDirectly: true });
+    });
+
+    it('says when a tool is not connected or its entry does not start', async () => {
+        expect((await checkAiClient(root, 'cursor', 5_000)).error).toMatch(/not connected/);
+        writeFileSync(join(root, '.mcp.json'), JSON.stringify({ mcpServers: { memo: { command: join(root, 'missing'), args: [] } } }));
+        expect((await checkAiClient(root, 'claude-code', 5_000)).ok).toBe(false);
     });
 });
 

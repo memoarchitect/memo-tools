@@ -12,6 +12,7 @@
 import { loadProject, type LoadedProject } from './model-loader.js';
 import { evaluateWorkspaceGuide } from '../methodology/guide-service.js';
 import { computeChangeImpact } from '../model/impact.js';
+import { architectAddress } from './architect-address.js';
 import type { QueryContext } from '../dhf/query-engine.js';
 import type { OntologyView } from '../model/kind-registry.js';
 import { stageProposal, writeTools } from '../llm/chat-engine.js';
@@ -408,11 +409,8 @@ export function listTools(allowWrites: boolean): McpTool[] {
     return allowWrites ? [...read, ...proposalTools()] : read;
 }
 
-/**
- * Where an element opens in MEMO Architect, for answers to carry. `MEMO_ARCHITECT_URL` names the running
- * Architect when it is not on its default port.
- */
-export function architectLink(base = process.env.MEMO_ARCHITECT_URL ?? 'http://localhost:3000') {
+/** Where an element opens in the MEMO Architect at `base`, for answers to carry. */
+export function architectLink(base: string) {
     const root = base.replace(/\/$/, '');
     return (element: { id: string; shortId?: string; idFamily?: string }) =>
         `${root}/catalog/${encodeURIComponent(element.idFamily ?? '_')}/${encodeURIComponent(element.shortId ?? element.id)}`;
@@ -425,7 +423,8 @@ export function projectServices(project: LoadedProject): ToolServices {
         constraints: project.constraints, packages: project.methodologyPackages,
     };
     return {
-        link: architectLink(),
+        // The Architect running on this project, read per answer: it may have started after this session.
+        link: element => architectLink(architectAddress(project.projectRoot))(element),
         guide: () => evaluateWorkspaceGuide({
             api: project.model.api, model: project.model.model, registries: project.model.registries ?? {},
             constraints: project.constraints, packages: project.methodologyPackages, workspace: project.workspace?.id,
@@ -476,7 +475,7 @@ export async function callTool(
     const proposes = !entry && proposalTools().some(tool => tool.name === name);
     if (!entry && !proposes) throw new Error(`Unknown tool "${name}".`);
     if (proposes && !allowWrites) {
-        throw new Error(`Tool "${name}" proposes a model change and this server is read-only. Turn on "Let AI tools propose edits" in MEMO Architect (Settings › AI assistant), or start it with \`memo-architect mcp --write\`.`);
+        throw new Error(`Tool "${name}" proposes a model change and this server is read-only. Turn on "Let AI tools propose edits" in MEMO Architect (Settings › Jupyter and AI tools), or start it with \`memo-architect mcp --write\`.`);
     }
     const project = await loadProject(projectRoot, session.system);
     const { ctx, ontology, registries } = project;
