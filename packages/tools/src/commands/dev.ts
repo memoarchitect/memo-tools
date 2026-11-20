@@ -674,6 +674,7 @@ export async function devCommand(options: {
         initialMessages: initial.messages,
         ruleContext: () => ruleContext,
         ontologyRegistries,
+        currentRegistries: () => lastAccepted?.registries,
         ontologyRoots,
         packageMetadata: () => lastPackages,
         relationshipFiles: config.relationshipFiles,

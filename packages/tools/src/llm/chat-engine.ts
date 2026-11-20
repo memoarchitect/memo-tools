@@ -516,6 +516,31 @@ async function runTool(
     }
 }
 
+/**
+ * Stage one proposal outside a chat turn: the MCP server's write tools, which an AI coding tool calls.
+ * The same checks as the assistant's (`executeWriteTool`), against the proposals already waiting, so
+ * a relationship may end on an element proposed earlier. Undefined when `name` is not a proposal tool.
+ */
+export function stageProposal(
+    name: string,
+    input: Record<string, any>,
+    options: {
+        ctx: QueryContext;
+        ontology?: OntologyView;
+        registries?: OntologyRegistriesDTO;
+        /** Proposals already waiting for the engineer. */
+        waiting?: readonly ProposedChange[];
+    },
+): { added: ProposedChange[]; message: string; isError?: boolean } | undefined {
+    const staged = [...(options.waiting ?? [])];
+    const before = staged.length;
+    // Ids are unique across processes: two clients may propose at once.
+    const nextId = () => `chg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const outcome = executeWriteTool(name, input ?? {}, options.ctx, options.ontology ?? EMPTY_ONTOLOGY_VIEW, staged, nextId, options.registries);
+    if (!outcome) return undefined;
+    return { added: staged.slice(before), message: outcome.content, isError: outcome.isError };
+}
+
 /** The tool names this engine exposes — used by tests and the MCP server. */
 export function chatToolNames(allowEdits = true): string[] {
     return (allowEdits ? [...readToolDefinitions(), ...writeTools()] : readToolDefinitions()).map(t => t.name);

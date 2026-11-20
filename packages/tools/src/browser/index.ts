@@ -53,6 +53,8 @@ export type {
     ProposedRelationshipDelete,
 } from '../llm/chat-engine.js';
 export type { LlmSettingsStatus, LlmSettingsOrigin } from '../llm/llm-settings.js';
+export type { QueuedProposal } from '../llm/proposal-queue.js';
+export type { AiClientId, AiClientStatus } from '../mcp/clients.js';
 export type { UserToolchainStatus, UserSettingReport } from '../toolchain/user-settings-status.js';
 
 // The Word document built from a DHF document (a real .docx; the `docx` package runs in a browser).

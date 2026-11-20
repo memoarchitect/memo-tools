@@ -14,6 +14,7 @@ import { createLockFile } from '../lock.js';
 import { scaffoldAnalysisSamples } from '../analysis-starters.js';
 import { loadProjectSettings } from '../model/config-loader.js';
 import { loadProjectOntology } from '../toolchain/project-model.js';
+import { AI_CLIENTS, connectAiClient } from '../mcp/clients.js';
 
 export interface AvailableOntology {
     name: string;
@@ -249,6 +250,14 @@ export async function initCommand(name: string | undefined, options: InitOptions
         console.log(chalk.gray(`  Created memo.lock.yaml (locked to ${lock.ontology} v${lock.version})`));
     } catch (error) {
         console.log(chalk.yellow(`  ⚠ Could not create lock file: ${error instanceof Error ? error.message : error}`));
+    }
+    // AI coding tools opened on the project find the model with nothing more to run: read-only, so
+    // nothing proposes an edit until the engineer turns that on in Settings › Assistant.
+    try {
+        for (const client of AI_CLIENTS) connectAiClient(target.projectDir, client.id);
+        console.log(chalk.gray(`  Connected AI coding tools (${AI_CLIENTS.map(client => client.label).join(', ')}), read-only`));
+    } catch (error) {
+        console.log(chalk.yellow(`  ⚠ Could not connect AI coding tools: ${error instanceof Error ? error.message : error}`));
     }
     console.log(chalk.green(target.inPlace ? '\n✅ Model created in current directory' : `\n✅ Model created at ./${target.modelName}`));
 }

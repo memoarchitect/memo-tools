@@ -19,6 +19,8 @@ import {
 } from '../toolchain/operations.js';
 import type { Diagnostic } from '../toolchain/diagnostic.js';
 import type { ProviderRegistry } from '../toolchain/registry.js';
+import { loadProjectModel } from '../toolchain/project-model.js';
+import { validateProject } from '../toolchain/project-validation.js';
 
 
 export interface ProjectSnapshot {
@@ -77,6 +79,28 @@ export function viewerModel(semanticModel: MemoModel, kindRegistry?: KindRegistr
     return modelToDTO(semanticModel, { viewpoints: [...derived.viewpoints], architectureLayers: undefined, diagrams: [...derived.diagrams] });
 }
 
+/**
+ * The findings of the project's effective rule set, the set `memo validate` and the dev server run.
+ * The lowering run carries no handoff, and the rule definitions are read from the handoff, so the
+ * project is loaded once more through the stage 1 cache for them; the rules run on the lowered model,
+ * so the findings name the elements the viewer shows. A project that cannot be loaded that way still
+ * gets the structural checks rather than no validation.
+ */
+async function snapshotValidation(
+    projectRoot: string,
+    config: MEMOConfig,
+    model: MemoModel,
+    registries: BuilderRegistries | undefined,
+    registry: ProviderRegistry,
+): Promise<ValidationResult> {
+    try {
+        const project = await loadProjectModel({ projectRoot, config, registry });
+        return (await validateProject(projectRoot, { ...project, model, registries: registries ?? project.registries })).validation;
+    } catch {
+        return validateModel(model, [], registries?.kindRegistry, undefined, undefined, undefined, undefined, registries?.relationshipRegistry);
+    }
+}
+
 /** Build the immutable data payload consumed by exports and Architect. */
 export async function buildProjectSnapshot(
     projectRoot = process.cwd(),
@@ -129,7 +153,7 @@ export async function buildProjectSnapshot(
     ontologyRegistries = loweringRun.registries ?? ontologyRegistries;
 
     const semanticModel = dtoToModel(loweringRun.ir.model);
-    const validation = validateModel(semanticModel, [], ontologyRegistries?.kindRegistry, undefined, undefined, undefined, undefined, ontologyRegistries?.relationshipRegistry);
+    const validation = await snapshotValidation(cwd, config, semanticModel, ontologyRegistries, registry);
     const completeness = computeCompleteness(semanticModel, validation);
 
     const model = viewerModel(semanticModel, ontologyRegistries?.kindRegistry);

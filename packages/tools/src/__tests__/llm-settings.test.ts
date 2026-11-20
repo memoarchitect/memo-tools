@@ -205,8 +205,8 @@ describe('resolveLlmSettings precedence', () => {
     it('lets MEMO_LLM_MODEL override project settings', () => {
         saveLlmCredential('anthropic', 'sk-ant');
         saveLlmProjectSettings(projectRoot, { model: 'claude-sonnet-5' });
-        process.env.MEMO_LLM_MODEL = 'claude-opus-5';
-        expect(resolveLlmSettings(projectRoot).model).toBe('claude-opus-5');
+        process.env.MEMO_LLM_MODEL = 'claude-opus-5-5';
+        expect(resolveLlmSettings(projectRoot).model).toBe('claude-opus-5-5');
     });
 });
 

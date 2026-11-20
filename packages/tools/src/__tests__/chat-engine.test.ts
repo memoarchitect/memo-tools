@@ -371,7 +371,7 @@ describe('runChatTurn — proposed changes', () => {
 describe('acceptsSamplingParams', () => {
     it('excludes models that removed the sampling parameters', () => {
         // These return a 400 if temperature is sent.
-        for (const model of ['claude-opus-5', 'claude-opus-4-7', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-fable-5']) {
+        for (const model of ['claude-opus-5-5', 'claude-opus-5', 'claude-haiku-5-5', 'claude-opus-4-7', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-fable-5']) {
             expect(acceptsSamplingParams(model)).toBe(false);
         }
     });

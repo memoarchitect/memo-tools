@@ -45,7 +45,7 @@ const CONVERSATION: ChatMessage[] = [
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 
 describe('Anthropic provider', () => {
-    const config = { provider: 'anthropic' as const, apiKey: 'sk-ant', model: 'claude-opus-5' };
+    const config = { provider: 'anthropic' as const, apiKey: 'sk-ant', model: 'claude-opus-5-5' };
 
     it('omits temperature on models that reject sampling parameters', async () => {
         const calls = stubFetch({ content: [{ type: 'text', text: 'hi' }], stop_reason: 'end_turn' });

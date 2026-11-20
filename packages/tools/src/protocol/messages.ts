@@ -18,6 +18,8 @@ import type {
 } from '../model/relationship-legality.js';
 import type { ChatMessage } from '../llm/llm-provider.js';
 import type { ProposedChange } from '../llm/chat-engine.js';
+import type { QueuedProposal } from '../llm/proposal-queue.js';
+import type { AiClientId, AiClientStatus } from '../mcp/clients.js';
 import type { LlmSettingsStatus, LLMProviderName } from '../llm/llm-settings.js';
 import type { UserToolchainStatus } from '../toolchain/user-settings-status.js';
 import type { ClauseFact } from '../validator/rule-clauses.js';
@@ -77,6 +79,9 @@ export type ServerMessage =
     | LlmAskResultMessage
     | LlmChatResultMessage
     | LlmApplyResultMessage
+    | AiProposalsMessage
+    | AiProposalsResultMessage
+    | AiClientsMessage
     | LlmSettingsMessage
     | LlmSettingsSaveResultMessage
     | ToolchainSettingsMessage
@@ -463,6 +468,9 @@ export type ClientMessage =
     | LlmAskMessage
     | LlmChatMessage
     | LlmApplyMessage
+    | AiProposalsApplyMessage
+    | AiProposalsDiscardMessage
+    | AiClientsSetMessage
     | LlmSettingsSaveMessage
     | ToolchainSettingsSaveMessage
     | LlmGenerateMessage
@@ -1198,6 +1206,47 @@ export interface LlmApplyResultMessage {
     };
 }
 
+/** Server → Client: the proposals AI coding tools made over MCP, waiting for the engineer (`memo.ai-proposals.json`). */
+export interface AiProposalsMessage {
+    type: 'ai:proposals';
+    payload: { proposals: QueuedProposal[] };
+}
+
+/** Client → Server: apply waiting proposals, through the path an approved chat proposal takes. */
+export interface AiProposalsApplyMessage {
+    type: 'ai:proposals:apply';
+    payload: { requestId: string; ids: string[] };
+}
+
+/** Client → Server: drop waiting proposals without applying them. */
+export interface AiProposalsDiscardMessage {
+    type: 'ai:proposals:discard';
+    payload: { requestId: string; ids: string[] };
+}
+
+/** Server → Client: what an apply or discard did. Applied and discarded proposals leave the queue. */
+export interface AiProposalsResultMessage {
+    type: 'ai:proposals:result';
+    payload: {
+        requestId: string;
+        applied?: string[];
+        failed?: Array<{ id: string; error: string }>;
+        error?: string;
+    };
+}
+
+/** Server → Client: which AI coding tools are connected to this model, and how. */
+export interface AiClientsMessage {
+    type: 'ai:clients';
+    payload: { clients: AiClientStatus[]; error?: string };
+}
+
+/** Client → Server: connect or disconnect one AI coding tool, or change whether it may propose edits. */
+export interface AiClientsSetMessage {
+    type: 'ai:clients:set';
+    payload: { requestId: string; id: AiClientId; connected: boolean; proposesEdits?: boolean };
+}
+
 /** Server → Client: current LLM settings. Never includes the API key itself. */
 export interface LlmSettingsMessage {
     type: 'llm:settings';
@@ -1529,6 +1578,8 @@ export interface UserPreferencesDTO {
     explorerSplit?: string;
     /** The experimental features this person switched on in Settings, by id; none means all are off. */
     features?: string[];
+    /** The features that are on by default and this person switched off (AI Tools, Guided Pathways, Custom Dashboards), by id. */
+    featuresOff?: string[];
     /** False lists the Model Explorer without package folders; unset means packages are folders. */
     packageFolders?: boolean;
     /** False switches Pathways (guided modelling) off; unset means it is on where the method guide is. */

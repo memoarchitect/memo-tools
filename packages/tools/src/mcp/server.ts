@@ -14,6 +14,7 @@
 
 import { createInterface } from 'node:readline';
 import { listTools, callTool } from './tools.js';
+import { agentInstructions } from '../llm/sysml-guidance.js';
 
 /** Protocol revisions this server implements. */
 const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
@@ -44,6 +45,9 @@ export interface McpServerOptions {
 export function startMcpServer(options: McpServerOptions): Promise<void> {
     const { projectRoot, allowWrites = false, version = '0.0.0' } = options;
 
+    // Recorded with each proposal, so the engineer sees which tool proposed it.
+    let clientName: string | undefined;
+
     function send(payload: unknown): void {
         process.stdout.write(`${JSON.stringify(payload)}\n`);
     }
@@ -66,6 +70,7 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
                 if (isNotification) return;
                 // Speak the client's revision when we know it, so a client
                 // pinned to an older one is not forced to downgrade us.
+                if (typeof params?.clientInfo?.name === 'string') clientName = params.clientInfo.name;
                 const requested = params?.protocolVersion;
                 const protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(requested)
                     ? requested
@@ -74,8 +79,7 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
                     protocolVersion,
                     capabilities: { tools: { listChanged: false } },
                     serverInfo: { name: SERVER_NAME, version },
-                    instructions:
-                        'MEMO models medical device architecture in SysML v2. Call memo_ontology before writing or editing any .sysml file so you use the kinds and relationship types this project actually defines, and memo_validate afterwards to check the result.',
+                    instructions: agentInstructions(),
                 });
                 return;
             }
@@ -101,7 +105,7 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
                     return;
                 }
                 try {
-                    const result = await callTool(name, params?.arguments ?? {}, projectRoot, allowWrites);
+                    const result = await callTool(name, params?.arguments ?? {}, projectRoot, allowWrites, clientName);
                     respond(id, {
                         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
                     });

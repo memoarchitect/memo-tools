@@ -22,6 +22,7 @@ import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { EMPTY_ONTOLOGY_VIEW, ontologyViewFrom, type OntologyView } from '../model/kind-registry.js';
 import { loadProjectModel } from '../toolchain/project-model.js';
 import { validateProject } from '../toolchain/project-validation.js';
+import type { OntologyRegistriesDTO } from '../model/relationship-legality.js';
 
 // Source discovery is the shared walker's job. This module kept its own copy
 // with a shorter skip list, which meant the MCP server saw files every other
@@ -36,6 +37,8 @@ export interface LoadedProject {
     fileCount: number;
     /** Kinds and relationships from the resolved ontology. */
     ontology: OntologyView;
+    /** The ontology's definitions, ends included, for checking a proposed relationship. */
+    registries?: OntologyRegistriesDTO;
 }
 
 interface CacheEntry {
@@ -93,7 +96,10 @@ export async function loadProject(projectRoot: string): Promise<LoadedProject> {
     const completeness = computeCompleteness(model, validation);
     const ctx = createQueryContext(model, validation, completeness, config);
 
-    const project: LoadedProject = { ctx, config, ontology, projectRoot, fileCount: files.length };
+    const definitions: OntologyRegistriesDTO | undefined = registries?.kindRegistry && registries.relationshipRegistry
+        ? { kinds: registries.kindRegistry.toDefinitionDTOs(), relationships: registries.relationshipRegistry.toDefinitionDTOs() }
+        : undefined;
+    const project: LoadedProject = { ctx, config, ontology, registries: definitions, projectRoot, fileCount: files.length };
     const inputs = new Set<string>([configPath]);
     for (const pkg of loaded.resolution?.closure.values() ?? []) {
         for (const file of pkg.files) inputs.add(isAbsolute(file) ? file : join(projectRoot, file));

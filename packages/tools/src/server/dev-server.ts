@@ -96,6 +96,8 @@ export interface DevServerOptions {
     initialMessages: ServerMessage[];
     /** Frozen ontology registries from bootstrap — used to validate diagrams/layouts on load */
     ontologyRegistries?: BuilderRegistries;
+    /** The registries of the last accepted build, which follow the project's own kinds as it is edited. */
+    currentRegistries?: () => BuilderRegistries | undefined;
     /**
      * Absolute roots of installed ontology packages. Authoring never writes
      * into these — they are read-only library content.
@@ -170,6 +172,7 @@ const MODEL_MUTATION_MESSAGES = new Set([
     'ontology:install', 'ontology:remove', 'ontology:save-selection',
     'dhf:doc:save', 'dhf:doc:delete', 'dhf:settings:save', 'dhf:template:save',
     'llm:chat:apply', 'llm:settings:save',
+    'ai:proposals:apply', 'ai:proposals:discard', 'ai:clients:set',
 ]);
 
 /** Exported so the lockout boundary is mechanically testable. */
@@ -558,6 +561,28 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
     };
     const dashboardWatcher = createDashboardWatcher(options.projectRoot, broadcastDashboards);
 
+    // Proposals an AI coding tool made over MCP arrive in memo.ai-proposals.json from another process;
+    // every open Architect lists them as they arrive.
+    const { readProposalQueue, removeProposals, proposalQueuePath } = await import('../llm/proposal-queue.js');
+    const { aiClientStatus, connectAiClient, disconnectAiClient } = await import('../mcp/clients.js');
+    const proposalsMessage = () => JSON.stringify({ type: 'ai:proposals', payload: { proposals: readProposalQueue(options.projectRoot) } });
+    const broadcastProposals = () => {
+        const message = proposalsMessage();
+        for (const client of clients) {
+            if (client.readyState === 1) client.send(message);
+        }
+    };
+    const proposalQueueFile = proposalQueuePath(options.projectRoot);
+    const { watchFile, unwatchFile } = await import('node:fs');
+    watchFile(proposalQueueFile, { interval: 1000 }, broadcastProposals);
+    const aiClientsMessage = (error?: string) => {
+        try {
+            return JSON.stringify({ type: 'ai:clients', payload: { clients: aiClientStatus(options.projectRoot), error } });
+        } catch (e: any) {
+            return JSON.stringify({ type: 'ai:clients', payload: { clients: [], error: e?.message ?? String(e) } });
+        }
+    };
+
     // Every view is DECLARED in SysML — see `view-writer.ts`. The sidecar at
     // .memo/user-diagrams.json used to be merged in here as a second class of
     // view, which is how a view could exist for Architect and for nothing else:
@@ -801,17 +826,19 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
         const configPath = findConfigFile(options.projectRoot);
         const config = configPath ? loadAndResolveConfig(configPath) : { modelName: 'untitled' } as MEMOConfig;
 
-        // Kinds and relationships come from the resolved SysML, not from the
-        // settings file the config path points at.
+        // Kinds and relationships come from the resolved SysML, not from the settings file the config
+        // path points at: the last accepted build's, which the server already holds, so a chat turn
+        // never compiles the project again. Only a server started without them loads the ontology.
         let ontology = EMPTY_ONTOLOGY_VIEW;
         let registries: OntologyRegistriesDTO | undefined;
         try {
-            const loaded = await loadProjectOntology({ projectRoot: options.projectRoot, config });
-            ontology = ontologyViewFrom(loaded.registries.kindRegistry, loaded.registries.relationshipRegistry);
-            if (loaded.registries.kindRegistry && loaded.registries.relationshipRegistry) {
+            const built = options.currentRegistries?.() ?? options.ontologyRegistries
+                ?? (await loadProjectOntology({ projectRoot: options.projectRoot, config })).registries;
+            ontology = ontologyViewFrom(built.kindRegistry, built.relationshipRegistry);
+            if (built.kindRegistry && built.relationshipRegistry) {
                 registries = {
-                    kinds: loaded.registries.kindRegistry.toDefinitionDTOs(),
-                    relationships: loaded.registries.relationshipRegistry.toDefinitionDTOs(),
+                    kinds: built.kindRegistry.toDefinitionDTOs(),
+                    relationships: built.relationshipRegistry.toDefinitionDTOs(),
                 };
             }
         } catch {
@@ -843,6 +870,44 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
      * relationship dialog — so an LLM-originated edit is validated exactly like
      * a hand-made one, and the file watcher broadcasts the result either way.
      */
+    /**
+     * The precondition for a write the engineer approved here (an AI proposal applied from Architect).
+     * A browser's edit carries the file's hash as the browser last saw it, so an edit made against a
+     * stale picture is refused. An approved proposal is written by the server itself, a moment after
+     * the approval and after any write earlier in the same batch, so the file as it is now is the base.
+     */
+    function approvedPrecondition(sourceFile: string, targetElementIds: string[]): ModelMutationPrecondition {
+        const path = resolve(realpathSync(resolve(options.projectRoot)), sourceFile);
+        return {
+            workspaceSessionId,
+            baseRevision: workspaceRevision,
+            sourceFile,
+            expectedSourceHash: existsSync(path) ? fileRevision(readFileSync(path, 'utf8')) : '',
+            targetElementIds,
+        };
+    }
+
+    /**
+     * The id an element has in the model. A proposal names an element it proposed by the name it gave
+     * it; once applied, the element's id is qualified by its package (`pkg::name`), so a relationship
+     * proposed to it is resolved to the one element whose qualified id ends in that name.
+     */
+    function appliedElementId(id: string): string {
+        const elements = currentModel()?.elements ?? {};
+        if (elements[id]) return id;
+        const matches = Object.keys(elements).filter(candidate => candidate.endsWith(`::${id}`));
+        return matches.length === 1 ? matches[0] : id;
+    }
+
+    /** The project file that holds most of the model's elements of a kind, if it has any. */
+    function fileOfKind(kind: string): string | undefined {
+        const counts = new Map<string, number>();
+        for (const element of Object.values(currentModel()?.elements ?? {}) as Array<{ kind: string; file?: string }>) {
+            if (element.kind === kind && element.file) counts.set(element.file, (counts.get(element.file) ?? 0) + 1);
+        }
+        return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+    }
+
     async function applyProposedChange(change: ProposedChange): Promise<void> {
         const { saveElementToFile } = await import('./persistor.js');
 
@@ -860,6 +925,9 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                     layer: change.layer ?? kindDef?.layer ?? '',
                     doc: change.doc ?? '',
                     attributes: change.attributes ?? {},
+                    // Beside the elements of its kind, as an engineer would put it; a kind the
+                    // model has none of goes where the writer puts a new element.
+                    file: fileOfKind(change.elementKind),
                 }, irIndex(), (await authoringContext()).outlines);
                 if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
                 await recompileAfterWrite();
@@ -881,12 +949,18 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             }
 
             case 'create-relationship': {
+                const sourceId = appliedElementId(change.sourceId);
+                const targetId = appliedElementId(change.targetId);
+                // Written where a hand edit writes it: the source element's own file.
+                const owningFile = currentModel()?.elements?.[sourceId]?.file;
                 const response = await handleRelationshipCreate({
                     requestId: change.id,
                     type: change.relationshipType,
-                    sourceId: change.sourceId,
-                    targetId: change.targetId,
+                    sourceId,
+                    targetId,
                     direction: 'outgoing',
+                    ...(owningFile ? { owningFile } : {}),
+                    precondition: owningFile ? approvedPrecondition(owningFile, [sourceId, targetId]) : undefined,
                 });
                 if (!response.payload.success) {
                     throw new Error(response.payload.error ?? 'The relationship was rejected.');
@@ -895,9 +969,11 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             }
 
             case 'delete-relationship': {
+                const file = currentModel()?.relationships?.find(rel => rel.id === change.relationshipId)?.file;
                 const response = await handleRelationshipDelete({
                     requestId: change.id,
                     relationshipId: change.relationshipId,
+                    precondition: file ? approvedPrecondition(file, [change.sourceId, change.targetId]) : undefined,
                 });
                 if (!response.payload.success) {
                     throw new Error(response.payload.error ?? 'The relationship could not be removed.');
@@ -1558,6 +1634,8 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
             } catch (e) {
                 console.error('[LLM] settings load failed:', e);
             }
+            ws.send(proposalsMessage());
+            ws.send(aiClientsMessage());
         })();
 
         ws.on('close', () => {
@@ -2467,6 +2545,47 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         console.error('[LLM] chat failed:', e);
                         ws.send(JSON.stringify({ type: 'llm:chat:result', payload: { requestId, error: e?.message ?? String(e) } }));
                     }
+                } else if (msg.type === 'ai:proposals:apply' || msg.type === 'ai:proposals:discard') {
+                    const { requestId, ids } = msg.payload ?? {};
+                    const wanted = new Set<string>(Array.isArray(ids) ? ids : []);
+                    const applied: string[] = [];
+                    const failed: Array<{ id: string; error: string }> = [];
+                    try {
+                        const chosen = readProposalQueue(options.projectRoot).filter(proposal => wanted.has(proposal.id));
+                        if (msg.type === 'ai:proposals:apply') {
+                            // In the order proposed: a relationship may end on an element proposed before it.
+                            for (const proposal of chosen) {
+                                try {
+                                    await applyProposedChange(proposal);
+                                    applied.push(proposal.id);
+                                } catch (e: any) {
+                                    failed.push({ id: proposal.id, error: e?.message ?? String(e) });
+                                }
+                            }
+                            // A proposal that failed stays, with its error shown, for the engineer to discard.
+                            removeProposals(options.projectRoot, applied);
+                            console.log(`[AI] applied ${applied.length} proposal(s), ${failed.length} failed`);
+                        } else {
+                            removeProposals(options.projectRoot, chosen.map(proposal => proposal.id));
+                        }
+                        ws.send(JSON.stringify({ type: 'ai:proposals:result', payload: { requestId, applied, failed } }));
+                    } catch (e: any) {
+                        ws.send(JSON.stringify({ type: 'ai:proposals:result', payload: { requestId, applied, failed, error: e?.message ?? String(e) } }));
+                    }
+                    broadcastProposals();
+                } else if (msg.type === 'ai:clients:set') {
+                    const { id, connected, proposesEdits } = msg.payload ?? {};
+                    let error: string | undefined;
+                    try {
+                        if (connected) connectAiClient(options.projectRoot, String(id), { proposesEdits: proposesEdits === true });
+                        else disconnectAiClient(options.projectRoot, String(id));
+                    } catch (e: any) {
+                        error = e?.message ?? String(e);
+                    }
+                    const message = aiClientsMessage(error);
+                    for (const client of clients) {
+                        if (client.readyState === 1) client.send(message);
+                    }
                 } else if (msg.type === 'llm:chat:apply') {
                     // Apply the subset of proposals the engineer approved.
                     const { requestId, changes } = msg.payload ?? {};
@@ -2921,6 +3040,7 @@ Return ONLY a JSON array of strings. Each string is a concise, actionable sugges
         },
         close() {
             dashboardWatcher.close();
+            unwatchFile(proposalQueueFile, broadcastProposals);
             wss.close();
             viteServer?.close();
             server.close();

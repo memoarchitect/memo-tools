@@ -4,18 +4,16 @@
 // and the read tools of Architect's Model Assistant: one registry, so an IDE
 // agent and the assistant answer the same question the same way.
 //
-// Read tools are always available. Write tools appear only when the server is
-// started with `--write`: an IDE agent editing a regulated SysML model is a
-// deliberate choice, not a default.
+// Read tools are always available. Proposal tools appear only when the server is
+// started with `--write`, and even then a proposal is never applied here: the
+// engineer applies it in Architect.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { loadProject } from './model-loader.js';
-import { saveElementToFile } from '../server/persistor.js';
 import type { QueryContext } from '../dhf/query-engine.js';
 import type { OntologyView } from '../model/kind-registry.js';
-import type { MEMOConfig } from '../model/config.js';
-import { selectedOutlineSource } from '../authoring/outline-source.js';
-import { usageKeyword } from '../model/semantic.js';
+import { stageProposal, writeTools } from '../llm/chat-engine.js';
+import { appendProposals, readProposalQueue } from '../llm/proposal-queue.js';
 
 /** An MCP tool as advertised in `tools/list`. */
 export interface McpTool {
@@ -31,26 +29,15 @@ export interface ReadToolContext {
     ontology: OntologyView;
 }
 
-export interface McpToolContext extends ReadToolContext {
-    projectRoot: string;
-    config: MEMOConfig;
+interface Registered {
+    tool: McpTool;
+    handler: (input: Record<string, any>, context: ReadToolContext) => unknown;
 }
-
-type Registered =
-    | { tool: McpTool; write: false; handler: (input: Record<string, any>, context: ReadToolContext) => unknown }
-    | { tool: McpTool; write: true; handler: (input: Record<string, any>, context: McpToolContext) => Promise<unknown> | unknown };
 
 const registry: Registered[] = [];
 
 function define(tool: McpTool, handler: (input: Record<string, any>, context: ReadToolContext) => unknown): void {
-    registry.push({ tool, handler, write: false });
-}
-
-function defineWrite(
-    tool: McpTool,
-    handler: (input: Record<string, any>, context: McpToolContext) => Promise<unknown> | unknown,
-): void {
-    registry.push({ tool, handler, write: true });
+    registry.push({ tool, handler });
 }
 
 // ─── Read tools ──────────────────────────────────────────────────────────────
@@ -214,57 +201,30 @@ define({
     })),
 }));
 
-// ─── Write tools (only with --write) ─────────────────────────────────────────
+// ─── Proposal tools (only with --write) ──────────────────────────────────────
+//
+// The Model Assistant's proposal tools (`writeTools` in llm/chat-engine.ts), so an IDE agent proposes
+// a change exactly as the assistant does. A proposal is not applied: it waits in
+// `memo.ai-proposals.json` until the engineer applies it in Architect (AI Tools › Pending changes).
 
-defineWrite({
-    name: 'memo_create_element',
-    description: 'Create a new element and write it to the project SysML source. Only kinds defined by the ontology are accepted — call memo_ontology first if unsure.',
-    inputSchema: {
-        type: 'object',
-        properties: {
-            id: { type: 'string', description: 'Unique element id (SysML usage name).' },
-            name: { type: 'string', description: 'Human-readable name.' },
-            kind: { type: 'string', description: 'Ontology kind, as listed by memo_ontology.' },
-            layer: { type: 'string', description: 'Architecture layer. Defaults to the kind\'s layer.' },
-            attributes: { type: 'object', description: 'Attribute key/value pairs.', additionalProperties: { type: 'string' } },
-            doc: { type: 'string', description: 'Documentation comment.' },
-            file: { type: 'string', description: 'Project-relative .sysml file to write into. Defaults to model/generated.sysml.' },
-        },
-        required: ['id', 'name', 'kind'],
-    },
-}, async (input, { ctx, config, ontology, projectRoot }) => {
-    const id = String(input.id).trim();
-    const kind = String(input.kind).trim();
-    if (ctx.element(id)) throw new Error(`Element "${id}" already exists.`);
-
-    const kinds = ontology.kinds;
-    if (Object.keys(kinds).length > 0 && !kinds[kind]) {
-        throw new Error(`"${kind}" is not a kind in this ontology. Valid kinds: ${Object.keys(kinds).join(', ')}`);
-    }
-
-    const result = await saveElementToFile(projectRoot, {
-        id,
-        name: String(input.name),
-        kind,
-        construct: usageKeyword(kinds[kind]?.sysmlConstruct),
-        layer: input.layer ?? kinds[kind]?.layer ?? '',
-        doc: input.doc ?? '',
-        attributes: input.attributes ?? {},
-        file: input.file,
-    }, undefined, selectedOutlineSource(projectRoot, config));
-    if (!result.success) throw new Error(result.error ?? 'Failed to write the element.');
-    return { created: id, file: result.filePath };
-});
+function proposalTools(): McpTool[] {
+    return writeTools().map(tool => ({
+        name: tool.name,
+        description: `${tool.description} The change waits for the engineer to apply it in MEMO Architect (AI Tools › Pending changes); it is not written to the model.`,
+        inputSchema: tool.inputSchema,
+    }));
+}
 
 // ─── Registry access ─────────────────────────────────────────────────────────
 
 export function listTools(allowWrites: boolean): McpTool[] {
-    return registry.filter(r => allowWrites || !r.write).map(r => r.tool);
+    const read = registry.map(r => r.tool);
+    return allowWrites ? [...read, ...proposalTools()] : read;
 }
 
 /** The read tools, which any caller holding a loaded model can run. */
 export function readTools(): McpTool[] {
-    return registry.filter(r => !r.write).map(r => r.tool);
+    return registry.map(r => r.tool);
 }
 
 /**
@@ -277,7 +237,7 @@ export async function runReadTool(
     context: ReadToolContext,
 ): Promise<unknown> {
     const entry = registry.find(r => r.tool.name === name);
-    if (!entry || entry.write) return undefined;
+    if (!entry) return undefined;
     return entry.handler(input ?? {}, context);
 }
 
@@ -287,12 +247,24 @@ export async function callTool(
     input: Record<string, any>,
     projectRoot: string,
     allowWrites: boolean,
+    client?: string,
 ): Promise<unknown> {
     const entry = registry.find(r => r.tool.name === name);
-    if (!entry) throw new Error(`Unknown tool "${name}".`);
-    if (entry.write && !allowWrites) {
-        throw new Error(`Tool "${name}" modifies the model and this server is read-only. Restart it with \`memo-architect mcp --write\` to enable edits.`);
+    const proposes = !entry && proposalTools().some(tool => tool.name === name);
+    if (!entry && !proposes) throw new Error(`Unknown tool "${name}".`);
+    if (proposes && !allowWrites) {
+        throw new Error(`Tool "${name}" proposes a model change and this server is read-only. Turn on "Let AI tools propose edits" in MEMO Architect (Settings › Assistant), or start it with \`memo-architect mcp --write\`.`);
     }
-    const { ctx, config, ontology } = await loadProject(projectRoot);
-    return entry.handler(input ?? {}, { projectRoot, ctx, config, ontology });
+    const { ctx, ontology, registries } = await loadProject(projectRoot);
+    if (entry) return entry.handler(input ?? {}, { ctx, ontology });
+
+    const staged = stageProposal(name, input ?? {}, { ctx, ontology, registries, waiting: readProposalQueue(projectRoot) });
+    if (!staged) throw new Error(`Unknown tool "${name}".`);
+    if (staged.isError) throw new Error(staged.message);
+    const queue = appendProposals(projectRoot, staged.added, client);
+    return {
+        proposed: staged.added.map(change => change.summary),
+        waiting: queue.length,
+        note: 'Not applied. The engineer reviews and applies it in MEMO Architect under AI Tools › Pending changes.',
+    };
 }

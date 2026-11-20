@@ -38,7 +38,7 @@ export type LlmSettingsOrigin = 'env' | 'env-file' | 'project-settings' | 'user-
 
 /** Default model per provider. Both are the current flagship at time of writing. */
 export const DEFAULT_MODELS: Record<LLMProviderName, string> = {
-    anthropic: 'claude-opus-5',
+    anthropic: 'claude-opus-5-5',
     openai: 'gpt-4o',
 };
 
@@ -290,6 +290,8 @@ export interface LlmSettingsStatus {
     keyOrigin?: LlmSettingsOrigin;
     /** True when the key came from a file MEMO can overwrite. */
     keyEditable: boolean;
+    /** The model each provider uses when none is set, for the form's placeholder. */
+    defaultModels: Record<LLMProviderName, string>;
 }
 
 export function llmSettingsStatus(projectRoot?: string): LlmSettingsStatus {
@@ -303,5 +305,6 @@ export function llmSettingsStatus(projectRoot?: string): LlmSettingsStatus {
         // An env-supplied key wins over the credentials file, so offering to
         // overwrite it in the UI would be a lie — saving would change nothing.
         keyEditable: !resolved.configured || resolved.keyOrigin === 'user-credentials',
+        defaultModels: { ...DEFAULT_MODELS },
     };
 }

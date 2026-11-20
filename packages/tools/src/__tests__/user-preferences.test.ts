@@ -33,6 +33,15 @@ describe('one person\'s choices for a model', () => {
         expect(loadUserPreferences(dir)).toEqual({});
     });
 
+    it('keep the default features switched off, apart from the ones switched on', () => {
+        const dir = root();
+        saveUserPreferences(dir, { features: ['import'], featuresOff: ['ai-tools', 'ai-tools', 'guide'] });
+        expect(loadUserPreferences(dir)).toEqual({ features: ['import'], featuresOff: ['ai-tools', 'guide'] });
+        expect(readFileSync(join(dir, USER_PREFERENCES_FILE), 'utf8')).toContain('featuresOff');
+        saveUserPreferences(dir, { features: ['import'] });
+        expect(loadUserPreferences(dir)).toEqual({ features: ['import'] });
+    });
+
     it('keep only a choice to hide package folders, the default being to show them', () => {
         const dir = root();
         saveUserPreferences(dir, { packageFolders: false });
@@ -116,6 +125,14 @@ describe('project defaults and personal overrides', () => {
         const dir = project('preferences:\n  features: [custom-dashboards]\n');
         saveUserPreferences(dir, {});
         expect(readFileSync(join(dir, USER_PREFERENCES_FILE), 'utf8')).toContain('features: []');
+        expect(loadUserPreferences(dir)).toEqual({});
+    });
+
+    it('lets a project switch a default feature off and a person switch it back on', () => {
+        const dir = project('preferences:\n  featuresOff: [ai-tools]\n');
+        expect(loadUserPreferences(dir)).toEqual({ featuresOff: ['ai-tools'] });
+        saveUserPreferences(dir, {});
+        expect(readFileSync(join(dir, USER_PREFERENCES_FILE), 'utf8')).toContain('featuresOff: []');
         expect(loadUserPreferences(dir)).toEqual({});
     });
 

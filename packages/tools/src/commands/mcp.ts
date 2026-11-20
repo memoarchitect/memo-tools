@@ -2,16 +2,16 @@
 //
 //   memo-architect mcp              — serve the model over MCP on stdio (read-only)
 //   memo-architect mcp --write      — same, with the model-editing tools enabled
-//   memo-architect mcp init         — wire the server into Cursor / Claude Code
+//   memo-architect mcp init         — connect Claude Code, Cursor and VS Code to it
 //
 // The serve path must keep stdout clean for JSON-RPC frames, so it prints
 // nothing there. `init` is an ordinary command and prints normally.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
 import chalk from 'chalk';
-import { findConfigFile } from '../index.js';
+import { findConfigFile, findProjectRoot } from '../index.js';
+import { AI_CLIENTS, connectAiClient } from '../mcp/clients.js';
 import { startMcpServer } from '../mcp/server.js';
 
 export interface McpServeOptions {
@@ -21,7 +21,11 @@ export interface McpServeOptions {
 }
 
 export async function mcpCommand(options: McpServeOptions): Promise<void> {
-    const projectRoot = resolve(options.project ?? process.cwd());
+    // Without --project the model is the one the working directory is in: a client starts a project's
+    // servers in the project, which may be a folder below the model's root.
+    const projectRoot = options.project
+        ? resolve(options.project)
+        : findProjectRoot(process.cwd()) ?? resolve(process.cwd());
 
     if (!findConfigFile(projectRoot)) {
         // stderr, not stdout — an MCP client is reading stdout as protocol.
@@ -41,85 +45,13 @@ export async function mcpCommand(options: McpServeOptions): Promise<void> {
 
 export interface McpInitOptions {
     project?: string;
-    /** Register the server with edit tools enabled. */
+    /** Let the tools propose model edits, which wait for approval in Architect. */
     write?: boolean;
     /** Skip writing the Cursor rules file. */
     noRules?: boolean;
 }
 
-/** The MCP client entry MEMO registers. */
-function serverEntry(projectRoot: string, write: boolean): Record<string, unknown> {
-    // `mcp` is a command of the `memo-architect` binary, not of `memo`: the architect package is the
-    // one that registers the project commands. npx so this works without a global install.
-    const args = ['-y', '--package=@memoarchitect/architect', 'memo-architect', 'mcp', '--project', projectRoot];
-    if (write) args.push('--write');
-    return { command: 'npx', args };
-}
-
-/**
- * Merge our server into an MCP config file, preserving any other servers the
- * user has registered. Only the `memo` key is ever touched.
- */
-function mergeMcpConfig(path: string, entry: Record<string, unknown>): 'created' | 'updated' {
-    let config: Record<string, any> = {};
-    let existed = false;
-
-    if (existsSync(path)) {
-        existed = true;
-        try {
-            config = JSON.parse(readFileSync(path, 'utf8'));
-        } catch {
-            throw new Error(`${path} is not valid JSON. Fix or remove it, then re-run.`);
-        }
-    }
-
-    if (!config.mcpServers || typeof config.mcpServers !== 'object') config.mcpServers = {};
-    config.mcpServers.memo = entry;
-
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
-    return existed ? 'updated' : 'created';
-}
-
-const CURSOR_RULES = `---
-description: MEMO SysML v2 modelling conventions for this medical device project
-globs:
-  - "**/*.sysml"
-alwaysApply: false
----
-
-# MEMO model conventions
-
-This project is a MEMO medical device model. The \`.sysml\` files are the
-regulated source of truth — treat them as you would production code under
-change control.
-
-## Before you edit
-
-- Call the \`memo_ontology\` MCP tool to see the element kinds and relationship
-  types this project actually defines. Never invent a kind or relationship
-  name; if what you need is missing, say so rather than approximating.
-- Call \`memo_search_elements\` to find the exact id of anything you reference.
-  Ids are SysML usage names and must match exactly.
-
-## While you edit
-
-- Every element belongs to exactly one architecture layer, determined by its
-  kind. Do not move an element between layers as a side effect of another change.
-- Relationships are typed. Use the relationship types from \`memo_ontology\`,
-  with the direction the ontology specifies.
-- Terms that come from a standard (ISO 14971 risk vocabulary, IEC 62304
-  software safety classes) carry regulatory meaning. Use them exactly as the
-  ontology defines them — never paraphrase a regulated term.
-
-## After you edit
-
-- Call \`memo_validate\` and resolve any new errors you introduced. Warnings
-  that predate your change are not yours to fix unless asked.
-- Traceability matters more than volume: a new requirement with no verification
-  is a gap, not progress.
-`;
-
+/** The same connection Architect's Settings › Assistant makes, for every AI coding tool at once. */
 export async function mcpInitCommand(options: McpInitOptions): Promise<void> {
     const projectRoot = resolve(options.project ?? process.cwd());
 
@@ -129,29 +61,13 @@ export async function mcpInitCommand(options: McpInitOptions): Promise<void> {
         process.exit(1);
     }
 
-    const write = options.write === true;
-    const entry = serverEntry(projectRoot, write);
-
-    const mcpPath = resolve(projectRoot, '.cursor', 'mcp.json');
-    const outcome = mergeMcpConfig(mcpPath, entry);
-    console.log(`${outcome === 'created' ? 'Created' : 'Updated'} ${chalk.cyan('.cursor/mcp.json')}`);
-
-    if (!options.noRules) {
-        const rulesPath = resolve(projectRoot, '.cursor', 'rules', 'memo.mdc');
-        mkdirSync(dirname(rulesPath), { recursive: true });
-        const rulesExisted = existsSync(rulesPath);
-        writeFileSync(rulesPath, CURSOR_RULES, 'utf8');
-        console.log(`${rulesExisted ? 'Updated' : 'Created'} ${chalk.cyan('.cursor/rules/memo.mdc')}`);
+    for (const client of AI_CLIENTS) {
+        const status = connectAiClient(projectRoot, client.id, { proposesEdits: options.write === true, rules: !options.noRules });
+        console.log(`Connected ${chalk.cyan(status.label)} (${status.file})`);
     }
-
     console.log('');
-    console.log(chalk.bold('MEMO is now available to Cursor.'));
-    console.log(chalk.dim('Restart Cursor, then check Settings → MCP for the "memo" server.'));
-    console.log('');
-    console.log(write
-        ? chalk.yellow('Editing tools are enabled — Cursor can write elements into your SysML source.')
-        : chalk.dim('The server is read-only. Re-run with --write to let Cursor create elements.'));
-    console.log('');
-    console.log(chalk.dim('For Claude Code, register the same server with:'));
-    console.log(chalk.dim(`  claude mcp add memo -- npx -y --package=@memoarchitect/architect memo-architect mcp --project ${projectRoot}${write ? ' --write' : ''}`));
+    console.log(options.write
+        ? chalk.yellow('The tools may propose model edits. Each waits for you under AI Tools › Pending changes in Architect.')
+        : chalk.dim('The tools can read and check the model. Re-run with --write to let them propose edits.'));
+    console.log(chalk.dim('The same switches are in Architect under Settings › Assistant. Restart the tool to pick the server up.'));
 }

@@ -7,3 +7,4 @@
 export * from './server.js';
 export * from './tools.js';
 export * from './model-loader.js';
+export * from './clients.js';

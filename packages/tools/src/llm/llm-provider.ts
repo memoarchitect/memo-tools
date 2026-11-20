@@ -219,6 +219,7 @@ const MODELS_REJECTING_SAMPLING_PARAMS = [
     'claude-opus-4-7',
     'claude-opus-4-8',
     'claude-sonnet-5',
+    'claude-haiku-5',
     'claude-fable-5',
     'claude-mythos-5',
 ];

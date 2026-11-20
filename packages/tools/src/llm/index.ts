@@ -12,3 +12,4 @@ export * from './chat-engine.js';
 export * from './generate-engine.js';
 export * from './sysml-guidance.js';
 export * from './draft-engine.js';
+export * from './proposal-queue.js';
