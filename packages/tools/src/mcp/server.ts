@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createInterface } from 'node:readline';
-import { listTools, callTool } from './tools.js';
+import { listTools, callTool, type McpSession } from './tools.js';
 import { agentInstructions } from '../llm/sysml-guidance.js';
 
 /** Protocol revisions this server implements. */
@@ -47,6 +47,8 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
 
     // Recorded with each proposal, so the engineer sees which tool proposed it.
     let clientName: string | undefined;
+    // The system this session's answers are scoped to (memo_select_system).
+    const session: McpSession = {};
 
     function send(payload: unknown): void {
         process.stdout.write(`${JSON.stringify(payload)}\n`);
@@ -105,7 +107,7 @@ export function startMcpServer(options: McpServerOptions): Promise<void> {
                     return;
                 }
                 try {
-                    const result = await callTool(name, params?.arguments ?? {}, projectRoot, allowWrites, clientName);
+                    const result = await callTool(name, params?.arguments ?? {}, projectRoot, allowWrites, clientName, session);
                     respond(id, {
                         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
                     });

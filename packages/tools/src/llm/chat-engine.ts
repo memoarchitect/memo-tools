@@ -17,7 +17,7 @@ import type { MEMOConfig } from '../model/config.js';
 import { EMPTY_ONTOLOGY_VIEW, type OntologyView } from '../model/kind-registry.js';
 import type { LLMProvider, ChatMessage, ToolDefinition, ToolCall } from './llm-provider.js';
 import { serializeModelContext, type ContextOptions } from './model-context.js';
-import { readTools, runReadTool } from '../mcp/tools.js';
+import { readTools, runReadTool, type ToolServices } from '../mcp/tools.js';
 import { validateRelationshipMutation, type OntologyRegistriesDTO } from '../model/relationship-legality.js';
 import { usageKeyword } from '../model/semantic.js';
 
@@ -106,6 +106,8 @@ export interface ChatTurnOptions {
      * kinds and constructs, self-links and multiplicity, before the engineer sees it.
      */
     registries?: OntologyRegistriesDTO;
+    /** Links, the Guide and change impact, for the read tools that use them. */
+    services?: ToolServices;
     contextOptions?: ContextOptions;
     /** Cap on tool round-trips per turn. */
     maxIterations?: number;
@@ -118,7 +120,7 @@ const SYSTEM_PROMPT = `You are MEMO Model Analyst, an expert in medical device s
 You are working with a live medical device architecture model. A summary of it is provided below, and you have tools to look up anything the summary omits.
 
 Guidelines:
-- Reference specific element names and IDs when relevant.
+- Reference specific element names and IDs when relevant. When a tool gives an element's link, write the element as a markdown link, [name](link), so the engineer can open it.
 - Prefer calling a tool over guessing. The summary is truncated; the tools see the whole model.
 - When asked about traceability, follow relationship chains with memo_trace; use direction "upstream" to find what points at an element (what verifies or satisfies it).
 - Use tables for structured data when appropriate.
@@ -415,7 +417,7 @@ function executeWriteTool(
 export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnResult> {
     const {
         question, history = [], ctx, provider, ontology = EMPTY_ONTOLOGY_VIEW,
-        allowEdits = false, contextOptions, registries,
+        allowEdits = false, contextOptions, registries, services,
         maxIterations = DEFAULT_MAX_ITERATIONS,
     } = options;
 
@@ -468,7 +470,7 @@ export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnRes
         // Every call must get a result, in the same batch — dropping one leaves
         // the conversation malformed for both providers.
         for (const call of calls) {
-            const outcome = await runTool(call, ctx, ontology, allowEdits, proposedChanges, nextId, registries);
+            const outcome = await runTool(call, ctx, ontology, allowEdits, proposedChanges, nextId, registries, services);
             conversation.push({
                 role: 'tool',
                 toolCallId: call.id,
@@ -497,10 +499,11 @@ async function runTool(
     staged: ProposedChange[],
     nextId: () => string,
     registries?: OntologyRegistriesDTO,
+    services?: ToolServices,
 ): Promise<ToolOutcome> {
     try {
         const input = (call.input ?? {}) as Record<string, any>;
-        const read = await runReadTool(call.name, input, { ctx, ontology });
+        const read = await runReadTool(call.name, input, { ctx, ontology, registries, services });
         if (read !== undefined) return ok(read);
 
         if (call.name.startsWith('propose_') && !allowEdits) {

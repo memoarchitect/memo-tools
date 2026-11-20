@@ -20,7 +20,11 @@ import type { QueryContext } from '../dhf/query-engine.js';
 import type { MEMOConfig } from '../model/config.js';
 import { loadAndResolveConfig } from '../server/config-resolver.js';
 import { EMPTY_ONTOLOGY_VIEW, ontologyViewFrom, type OntologyView } from '../model/kind-registry.js';
-import { loadProjectModel } from '../toolchain/project-model.js';
+import { loadProjectModel, projectConstraints, type ProjectModel } from '../toolchain/project-model.js';
+import type { CompiledConstraint } from '../validator/constraint-eval.js';
+import { loadMethodologyDescriptor } from '../model/methodology-loader.js';
+import { computeWorkspaceMembership, selectWorkspace } from '../model/workspace-membership.js';
+import { narrowModel } from '../model/narrow-model.js';
 import { validateProject } from '../toolchain/project-validation.js';
 import type { OntologyRegistriesDTO } from '../model/relationship-legality.js';
 
@@ -39,10 +43,22 @@ export interface LoadedProject {
     ontology: OntologyView;
     /** The ontology's definitions, ends included, for checking a proposed relationship. */
     registries?: OntologyRegistriesDTO;
+    /** The project as the compiler built it, for the services that need its handoff (the Guide, change impact). */
+    model: ProjectModel;
+    /** The rule definitions the project resolves. */
+    constraints: CompiledConstraint[];
+    /** The packages declaring the effective methodology chain, base first. */
+    methodologyPackages: string[];
+    /** The systems and systems of systems the model declares, each a workspace an agent can work in. */
+    systems: { id: string; name: string; scope: 'system' | 'sos' }[];
+    /** The workspace the context is scoped to, when one was asked for. */
+    workspace?: { id: string; name: string; scope: 'system' | 'sos' };
 }
 
 interface CacheEntry {
+    /** The whole model's load; a workspace's is derived from it on demand. */
     project: LoadedProject;
+    scoped: Map<string, LoadedProject>;
     /** What the model was built from, beyond the project's own sources: settings and the ontology closure. */
     inputs: string[];
     signature: string;
@@ -71,7 +87,38 @@ function signatureOf(files: string[]): string {
     return `${files.length}:${newest}`;
 }
 
-export async function loadProject(projectRoot: string): Promise<LoadedProject> {
+/**
+ * The project, whole or scoped to one system or system of systems (by id or name), as
+ * `memo validate --workspace` scopes it: the element queries list the workspace's members and the
+ * rules judge only them, over the whole model.
+ */
+export async function loadProject(projectRoot: string, system?: string): Promise<LoadedProject> {
+    const whole = await loadWholeProject(projectRoot);
+    if (!system) return whole;
+    const entry = cache.get(projectRoot)!;
+    const known = entry.scoped.get(system);
+    if (known) return known;
+
+    const registries = whole.model.registries;
+    if (!registries?.kindRegistry || !registries.relationshipRegistry) {
+        throw new Error('This model was built without ontology registries, so it has no systems to scope to.');
+    }
+    const selection = selectWorkspace(whole.model.model, computeWorkspaceMembership(whole.model.model, registries), system);
+    if (!selection.ok) throw new Error(selection.message);
+    const workspace = selection.scope;
+    const { validation } = await validateProject(projectRoot, whole.model, { workspace });
+    const subjects = new Map([...whole.model.model.elements].filter(([id]) => workspace.subjects.has(id)));
+    const completeness = computeCompleteness(narrowModel(whole.model.model, subjects), validation);
+    const scoped: LoadedProject = {
+        ...whole,
+        ctx: createQueryContext(whole.model.model, validation, completeness, whole.config, undefined, workspace),
+        workspace: { id: workspace.root, name: workspace.name, scope: workspace.scope },
+    };
+    entry.scoped.set(system, scoped);
+    return scoped;
+}
+
+async function loadWholeProject(projectRoot: string): Promise<LoadedProject> {
     const files = findSysmlFiles(projectRoot);
     const settings = PROJECT_SETTINGS_FILES.map(name => join(projectRoot, name));
 
@@ -99,11 +146,24 @@ export async function loadProject(projectRoot: string): Promise<LoadedProject> {
     const definitions: OntologyRegistriesDTO | undefined = registries?.kindRegistry && registries.relationshipRegistry
         ? { kinds: registries.kindRegistry.toDefinitionDTOs(), relationships: registries.relationshipRegistry.toDefinitionDTOs() }
         : undefined;
-    const project: LoadedProject = { ctx, config, ontology, registries: definitions, projectRoot, fileCount: files.length };
+    let methodologyPackages: string[] = [];
+    try {
+        const descriptor = await loadMethodologyDescriptor(projectRoot, loaded.resolution, loaded.api);
+        methodologyPackages = (descriptor.effective?.chain ?? []).map(m => m.packageQualifiedName).filter((p): p is string => !!p);
+    } catch {
+        // A model whose methodology does not resolve still answers every question but the Guide's.
+    }
+    const systems = registries?.kindRegistry && registries.relationshipRegistry
+        ? computeWorkspaceMembership(model, registries).workspaces.map(w => ({ id: model.elements.get(w.root)?.shortId ?? w.root, name: model.elements.get(w.root)?.name ?? w.root, scope: w.scope }))
+        : [];
+    const project: LoadedProject = {
+        ctx, config, ontology, registries: definitions, projectRoot, fileCount: files.length,
+        model: loaded, constraints: projectConstraints(loaded), methodologyPackages, systems,
+    };
     const inputs = new Set<string>([configPath]);
     for (const pkg of loaded.resolution?.closure.values() ?? []) {
         for (const file of pkg.files) inputs.add(isAbsolute(file) ? file : join(projectRoot, file));
     }
-    cache.set(projectRoot, { project, inputs: [...inputs], signature: signatureOf([...files, ...settings, ...inputs]) });
+    cache.set(projectRoot, { project, scoped: new Map(), inputs: [...inputs], signature: signatureOf([...files, ...settings, ...inputs]) });
     return project;
 }

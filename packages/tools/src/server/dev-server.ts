@@ -2524,10 +2524,18 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                         if (!llmConfig) {
                             ws.send(JSON.stringify({ type: 'llm:chat:result', payload: { requestId, error: 'No LLM provider configured. Add an API key in Settings, set ANTHROPIC_API_KEY or OPENAI_API_KEY, or put one in a project .env file.' } }));
                         } else {
-                            const { ctx, ontology, registries } = await llmQueryContext(msg.payload?.workspace);
+                            const workspace = msg.payload?.workspace;
+                            const { ctx, ontology, registries } = await llmQueryContext(workspace);
                             const provider = createProvider(llmConfig);
+                            // In the app, an element's link is the route that opens it, which the panel follows.
+                            const services = {
+                                link: (element: { id: string; shortId?: string; idFamily?: string }) =>
+                                    `/catalog/${encodeURIComponent(element.idFamily ?? '_')}/${encodeURIComponent(element.shortId ?? element.id)}`,
+                                ...(options.guide ? { guide: () => options.guide!.evaluate(workspace) } : {}),
+                                ...(options.impact ? { impact: (target?: string) => options.impact!.compute(target) } : {}),
+                            };
                             const result = await runChatTurn({
-                                question, history, ctx, provider, ontology, registries,
+                                question, history, ctx, provider, ontology, registries, services,
                                 allowEdits: allowEdits === true,
                             });
                             ws.send(JSON.stringify({
