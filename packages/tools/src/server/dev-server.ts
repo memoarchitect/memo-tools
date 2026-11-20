@@ -968,6 +968,24 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                 return;
             }
 
+            case 'update-view': {
+                // What a view shows is its `expose` members: the same write as a hand edit of the view.
+                const declared = currentDiagrams().find(d => d.id === change.viewId || d.elementId === change.viewId);
+                if (!declared) throw new Error(`The view "${change.viewName}" no longer exists.`);
+                // Checked again here: the view may have become self-filling since it was proposed.
+                if (currentModel()?.elements?.[declared.elementId ?? '']?.attributes?.autoPopulate !== 'false') {
+                    throw new Error(`"${declared.name}" fills itself from its packages and query, so one element cannot be shown or hidden on its own.`);
+                }
+                const removed = new Set(change.remove.map(appliedElementId));
+                const shown = (declared.elementIds ?? []).filter(id => !removed.has(id));
+                for (const id of change.add.map(appliedElementId)) if (!shown.includes(id)) shown.push(id);
+                const result = await updateViewExpose(
+                    options.projectRoot, currentModel() ?? ({ elements: {} } as any), declared, shown, (await authoringContext()).outlines);
+                if (!result.success) throw new Error(`The view "${declared.name}" was not changed: ${(result as any).reason}.`);
+                await recompileAfterWrite();
+                return;
+            }
+
             case 'delete-relationship': {
                 const file = currentModel()?.relationships?.find(rel => rel.id === change.relationshipId)?.file;
                 const response = await handleRelationshipDelete({
@@ -2531,13 +2549,15 @@ export async function createDevServer(options: DevServerOptions): Promise<DevSer
                             const services = {
                                 link: (element: { id: string; shortId?: string; idFamily?: string }) =>
                                     `/catalog/${encodeURIComponent(element.idFamily ?? '_')}/${encodeURIComponent(element.shortId ?? element.id)}`,
+                                viewLink: (view: { id: string; diagramType: string }) =>
+                                    `/viewpoints/${encodeURIComponent(view.diagramType)}/${encodeURIComponent(view.id)}`,
                                 ...(options.guide ? { guide: () => options.guide!.evaluate(workspace) } : {}),
                                 ...(options.impact ? { impact: (target?: string) => options.impact!.compute(target) } : {}),
                             };
                             const result = await runChatTurn({
                                 // The answer as it is written, so the page shows it before the turn ends.
                                 onText: text => ws.send(JSON.stringify({ type: 'llm:chat:delta', payload: { requestId, text } })),
-                                question, history, ctx, provider, ontology, registries, services,
+                                question, history, ctx, provider, ontology, registries, services, views: currentDiagrams(),
                                 allowEdits: allowEdits === true,
                             });
                             ws.send(JSON.stringify({

@@ -17,7 +17,7 @@ import type { MEMOConfig } from '../model/config.js';
 import { EMPTY_ONTOLOGY_VIEW, type OntologyView } from '../model/kind-registry.js';
 import type { LLMProvider, ChatMessage, ToolDefinition, ToolCall } from './llm-provider.js';
 import { serializeModelContext, type ContextOptions } from './model-context.js';
-import { readTools, runReadTool, type ToolServices } from '../mcp/tools.js';
+import { readTools, runReadTool, type ToolServices, type ViewSummary } from '../mcp/tools.js';
 import { validateRelationshipMutation, type OntologyRegistriesDTO } from '../model/relationship-legality.js';
 import { usageKeyword } from '../model/semantic.js';
 
@@ -65,11 +65,23 @@ export interface ProposedRelationshipDelete {
     summary: string;
 }
 
+/** Elements added to or removed from what a declared view shows (its `expose` members). */
+export interface ProposedViewUpdate {
+    kind: 'update-view';
+    id: string;
+    viewId: string;
+    viewName: string;
+    add: string[];
+    remove: string[];
+    summary: string;
+}
+
 export type ProposedChange =
     | ProposedElementCreate
     | ProposedElementUpdate
     | ProposedRelationshipCreate
-    | ProposedRelationshipDelete;
+    | ProposedRelationshipDelete
+    | ProposedViewUpdate;
 
 // ─── Turn result ─────────────────────────────────────────────────────────────
 
@@ -108,6 +120,8 @@ export interface ChatTurnOptions {
     registries?: OntologyRegistriesDTO;
     /** Links, the Guide and change impact, for the read tools that use them. */
     services?: ToolServices;
+    /** The model's declared views, for reading them and proposing what they show. */
+    views?: readonly ViewSummary[];
     /** Receives the answer's text as the model writes it. */
     onText?: (delta: string) => void;
     contextOptions?: ContextOptions;
@@ -213,6 +227,20 @@ function writeTools(ontology: OntologyView = EMPTY_ONTOLOGY_VIEW): ToolDefinitio
                 required: ['id'],
             },
         },
+        {
+            name: 'propose_update_view',
+            description: 'Propose adding elements to, or removing them from, what a hand-curated view (diagram) shows. memo_views lists the views and the elements each shows. A view that fills itself from its packages and query, and a matrix view, cannot be changed this way.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    view: { type: 'string', description: 'The view, by its id or short id as memo_views gives it.' },
+                    add: { type: 'array', items: { type: 'string' }, description: 'Element ids to show in the view.' },
+                    remove: { type: 'array', items: { type: 'string' }, description: 'Element ids the view shows that it should not.' },
+                    rationale: { type: 'string', description: 'Why, in one sentence, for the engineer reviewing it.' },
+                },
+                required: ['view'],
+            },
+        },
     ];
 }
 
@@ -275,6 +303,7 @@ function executeWriteTool(
     staged: ProposedChange[],
     nextId: () => string,
     registries?: OntologyRegistriesDTO,
+    views?: readonly ViewSummary[],
 ): ToolOutcome | undefined {
     const knownKinds = Object.keys(ontology.kinds).length > 0 ? new Set(Object.keys(ontology.kinds)) : undefined;
     const knownRels = ontology.relationshipTypes.length > 0
@@ -385,6 +414,44 @@ function executeWriteTool(
             return ok(`Staged for approval: ${sourceId} —${type}→ ${targetId}. Not yet applied to the model.`);
         }
 
+        case 'propose_update_view': {
+            if (!views) return fail('The views are not available here, so a view change cannot be proposed.');
+            const key = String(input.view ?? '').trim();
+            const view = views.find(v => v.id === key || v.shortId === key || v.elementId === key);
+            if (!view) return fail(`No view "${key}". Use memo_views to find the view's id.`);
+            if (view.matrix || !view.elementIds) return fail(`"${view.name}" lists no elements (it is a matrix or a query view), so it cannot be changed this way.`);
+            // A view that fills itself shows whole packages, so one element cannot be added or hidden on its
+            // own: the writer would expose its whole package. Only a hand-curated view lists elements.
+            if (ctx.element(view.elementId ?? '')?.attributes?.autoPopulate !== 'false') {
+                return fail(`"${view.name}" fills itself from its packages and query, so one element cannot be shown or hidden on its own. Propose the element where the view's query will find it, or ask the engineer to change the view.`);
+            }
+            const list = (value: unknown) => (Array.isArray(value) ? value : []).map(id => String(id).trim()).filter(Boolean);
+            const add = list(input.add);
+            const remove = list(input.remove);
+            if (add.length + remove.length === 0) return fail('Name elements to add or remove.');
+            const pending = pendingElementIds(staged);
+            const shown = new Set(view.elementIds);
+            for (const id of add) {
+                if (!ctx.element(id) && !pending.has(id)) return fail(`No element with id "${id}". Use memo_search_elements to find the right id.`);
+                if (shown.has(id)) return fail(`"${view.name}" already shows "${id}".`);
+            }
+            for (const id of remove) {
+                if (!shown.has(id)) return fail(`"${view.name}" does not show "${id}".`);
+            }
+            staged.push({
+                kind: 'update-view',
+                id: nextId(),
+                viewId: view.id,
+                viewName: view.name,
+                add,
+                remove,
+                summary: typeof input.rationale === 'string' && input.rationale
+                    ? input.rationale
+                    : `${view.name}: ${[add.length ? `show ${add.length}` : '', remove.length ? `hide ${remove.length}` : ''].filter(Boolean).join(', ')}`,
+            });
+            return ok(`Staged for approval: change what "${view.name}" shows. Not yet applied to the model.`);
+        }
+
         case 'propose_delete_relationship': {
             const relId = String(input.id ?? '').trim();
             const rel = ctx.allRelationships().find(r => r.id === relId);
@@ -419,7 +486,7 @@ function executeWriteTool(
 export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnResult> {
     const {
         question, history = [], ctx, provider, ontology = EMPTY_ONTOLOGY_VIEW,
-        allowEdits = false, contextOptions, registries, services, onText,
+        allowEdits = false, contextOptions, registries, services, onText, views,
         maxIterations = DEFAULT_MAX_ITERATIONS,
     } = options;
 
@@ -473,7 +540,7 @@ export async function runChatTurn(options: ChatTurnOptions): Promise<ChatTurnRes
         // Every call must get a result, in the same batch — dropping one leaves
         // the conversation malformed for both providers.
         for (const call of calls) {
-            const outcome = await runTool(call, ctx, ontology, allowEdits, proposedChanges, nextId, registries, services);
+            const outcome = await runTool(call, ctx, ontology, allowEdits, proposedChanges, nextId, registries, services, views);
             conversation.push({
                 role: 'tool',
                 toolCallId: call.id,
@@ -503,17 +570,18 @@ async function runTool(
     nextId: () => string,
     registries?: OntologyRegistriesDTO,
     services?: ToolServices,
+    views?: readonly ViewSummary[],
 ): Promise<ToolOutcome> {
     try {
         const input = (call.input ?? {}) as Record<string, any>;
-        const read = await runReadTool(call.name, input, { ctx, ontology, registries, services });
+        const read = await runReadTool(call.name, input, { ctx, ontology, registries, services, views });
         if (read !== undefined) return ok(read);
 
         if (call.name.startsWith('propose_') && !allowEdits) {
             return fail('Editing is disabled for this conversation. Answer using the read-only tools instead.');
         }
 
-        const write = executeWriteTool(call.name, input, ctx, ontology, staged, nextId, registries);
+        const write = executeWriteTool(call.name, input, ctx, ontology, staged, nextId, registries, views);
         if (write) return write;
 
         return fail(`Unknown tool "${call.name}".`);
@@ -534,6 +602,7 @@ export function stageProposal(
         ctx: QueryContext;
         ontology?: OntologyView;
         registries?: OntologyRegistriesDTO;
+        views?: readonly ViewSummary[];
         /** Proposals already waiting for the engineer. */
         waiting?: readonly ProposedChange[];
     },
@@ -542,7 +611,7 @@ export function stageProposal(
     const before = staged.length;
     // Ids are unique across processes: two clients may propose at once.
     const nextId = () => `chg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const outcome = executeWriteTool(name, input ?? {}, options.ctx, options.ontology ?? EMPTY_ONTOLOGY_VIEW, staged, nextId, options.registries);
+    const outcome = executeWriteTool(name, input ?? {}, options.ctx, options.ontology ?? EMPTY_ONTOLOGY_VIEW, staged, nextId, options.registries, options.views);
     if (!outcome) return undefined;
     return { added: staged.slice(before), message: outcome.content, isError: outcome.isError };
 }

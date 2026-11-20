@@ -117,7 +117,7 @@ export function listResourceTemplates() {
 
 export async function readResource(projectRoot: string, uri: string, session: McpSession) {
     const project = await loadProject(projectRoot, session.system);
-    const context = { ctx: project.ctx, ontology: project.ontology, registries: project.registries, services: projectServices(project) };
+    const context = { ctx: project.ctx, ontology: project.ontology, registries: project.registries, services: projectServices(project), views: project.views };
     let value: unknown;
     const fixed = RESOURCES.find(resource => resource.uri === uri);
     if (fixed) {

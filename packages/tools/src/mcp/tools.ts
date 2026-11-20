@@ -20,6 +20,7 @@ import type { GuideResult } from '../methodology/guide-service.js';
 import type { ImpactReport } from '../model/impact.js';
 import type { MemoElement } from '../model/semantic.js';
 import type { OntologyRegistriesDTO } from '../model/relationship-legality.js';
+import type { DiagramDTO } from '../model/semantic.js';
 import { appendProposals, readProposalQueue } from '../llm/proposal-queue.js';
 
 /** An MCP tool as advertised in `tools/list`. */
@@ -36,6 +37,8 @@ export interface McpTool {
 export interface ToolServices {
     /** Where an element opens in MEMO Architect. */
     link?: (element: { id: string; shortId?: string; idFamily?: string }) => string;
+    /** Where a view opens in MEMO Architect. */
+    viewLink?: (view: { id: string; diagramType: string }) => string;
     /** Where the model stands against its method, for the workspace the context is scoped to. */
     guide?: () => GuideResult;
     /** What the working tree's change reaches, measured from where it branched from `target`. */
@@ -43,6 +46,9 @@ export interface ToolServices {
     /** The systems and systems of systems the model declares, and the one the answers are scoped to. */
     systems?: () => { systems: { id: string; name: string; scope: 'system' | 'sos' }[]; selected?: string };
 }
+
+/** A declared view as the tools read it: what identifies it and what it shows. */
+export type ViewSummary = Pick<DiagramDTO, 'id' | 'shortId' | 'name' | 'diagramType' | 'viewKind' | 'elementIds' | 'matrix' | 'elementId' | 'sourceFile' | 'description'>;
 
 /** What a read tool sees: the loaded model and its ontology, nothing on disk. */
 export interface ReadToolContext {
@@ -52,6 +58,8 @@ export interface ReadToolContext {
     /** The ontology's definitions, ends and SysML constructs included. */
     registries?: OntologyRegistriesDTO;
     services?: ToolServices;
+    /** The model's declared views (diagrams). */
+    views?: readonly ViewSummary[];
 }
 
 /** An element as the tools report it: what identifies it, and where it opens in Architect. */
@@ -367,6 +375,41 @@ define({
 });
 
 define({
+    name: 'memo_views',
+    description: 'The views (diagrams) the model declares: what each is, how many elements it shows, and where it opens. Give an element to list only the views that show it, or a view to list the elements it shows.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            element: { type: 'string', description: 'Only the views that show this element id.' },
+            view: { type: 'string', description: 'One view, by id or short id: list the elements it shows.' },
+            query: { type: 'string', description: 'Case-insensitive substring of the view name.' },
+        },
+    },
+}, (input, { ctx, views, services }) => {
+    if (!views) unavailable('The list of views');
+    const describe = (view: ViewSummary) => ({
+        id: view.id, shortId: view.shortId, name: view.name, viewKind: view.viewKind ?? view.diagramType,
+        elements: view.elementIds?.length ?? 0, ...(view.matrix ? { matrix: true } : {}), file: view.sourceFile,
+        ...(services?.viewLink ? { link: services.viewLink(view) } : {}),
+    });
+    if (typeof input.view === 'string') {
+        const view = views.find(v => v.id === input.view || v.shortId === input.view);
+        if (!view) throw new Error(`No view "${input.view}".`);
+        return { ...describe(view), description: view.description, shows: (view.elementIds ?? []).map(id => {
+            const element = ctx.element(id);
+            return element ? brief(element, services) : { id };
+        }) };
+    }
+    const query = typeof input.query === 'string' ? input.query.toLowerCase() : undefined;
+    return {
+        views: views
+            .filter(view => !input.element || view.elementIds?.includes(String(input.element)))
+            .filter(view => !query || view.name.toLowerCase().includes(query))
+            .map(describe),
+    };
+});
+
+define({
     name: 'memo_systems',
     description: 'The systems and systems of systems this model declares, and the one your answers are scoped to, if any. Each is a workspace a team works in.',
     inputSchema: { type: 'object', properties: {} },
@@ -425,6 +468,7 @@ export function projectServices(project: LoadedProject): ToolServices {
     return {
         // The Architect running on this project, read per answer: it may have started after this session.
         link: element => architectLink(architectAddress(project.projectRoot))(element),
+        viewLink: view => `${architectAddress(project.projectRoot).replace(/\/$/, '')}/viewpoints/${encodeURIComponent(view.diagramType)}/${encodeURIComponent(view.id)}`,
         guide: () => evaluateWorkspaceGuide({
             api: project.model.api, model: project.model.model, registries: project.model.registries ?? {},
             constraints: project.constraints, packages: project.methodologyPackages, workspace: project.workspace?.id,
@@ -479,9 +523,9 @@ export async function callTool(
     }
     const project = await loadProject(projectRoot, session.system);
     const { ctx, ontology, registries } = project;
-    if (entry) return entry.handler(input ?? {}, { ctx, ontology, registries, services: projectServices(project) });
+    if (entry) return entry.handler(input ?? {}, { ctx, ontology, registries, services: projectServices(project), views: project.views });
 
-    const staged = stageProposal(name, input ?? {}, { ctx, ontology, registries, waiting: readProposalQueue(projectRoot) });
+    const staged = stageProposal(name, input ?? {}, { ctx, ontology, registries, views: project.views, waiting: readProposalQueue(projectRoot) });
     if (!staged) throw new Error(`Unknown tool "${name}".`);
     if (staged.isError) throw new Error(staged.message);
     const queue = appendProposals(projectRoot, staged.added, client);

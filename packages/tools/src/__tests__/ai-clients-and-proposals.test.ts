@@ -134,6 +134,30 @@ describe('proposals from AI coding tools', () => {
         expect(stageProposal('memo_search_elements', {}, { ctx, ontology })).toBeUndefined();
     });
 
+    it('proposes what a hand-curated view shows, and refuses a view that fills itself', () => {
+        const withViews = {
+            element: (id: string) => ({
+                'v::manual': { id: 'v::manual', attributes: { autoPopulate: 'false' } },
+                'v::auto': { id: 'v::auto', attributes: { autoPopulate: 'true' } },
+                'haz-001': elements[0],
+            } as Record<string, any>)[id],
+            allRelationships: () => [],
+        } as unknown as QueryContext;
+        const views = [
+            { id: 'V-1', name: 'Curated', diagramType: 'bdd', elementId: 'v::manual', elementIds: [] },
+            { id: 'V-2', name: 'Auto', diagramType: 'bdd', elementId: 'v::auto', elementIds: [] },
+        ];
+        const ok = stageProposal('propose_update_view', { view: 'V-1', add: ['haz-001'] }, { ctx: withViews, ontology, views });
+        expect(ok?.isError).toBeFalsy();
+        expect(ok?.added[0]).toMatchObject({ kind: 'update-view', viewId: 'V-1', add: ['haz-001'], remove: [] });
+        expect(stageProposal('propose_update_view', { view: 'V-2', add: ['haz-001'] }, { ctx: withViews, ontology, views })?.message)
+            .toMatch(/fills itself/);
+        expect(stageProposal('propose_update_view', { view: 'V-1', remove: ['haz-001'] }, { ctx: withViews, ontology, views })?.message)
+            .toMatch(/does not show/);
+        expect(stageProposal('propose_update_view', { view: 'nope', add: ['haz-001'] }, { ctx: withViews, ontology, views })?.message)
+            .toMatch(/No view/);
+    });
+
     it('keeps the queue out of git and drops what was applied or discarded', () => {
         const staged = stageProposal('propose_create_element', { id: 'req-9', name: 'Limit', kind: 'Requirement' }, { ctx, ontology })!;
         appendProposals(root, staged.added);

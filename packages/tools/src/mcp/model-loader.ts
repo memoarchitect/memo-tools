@@ -25,6 +25,8 @@ import type { CompiledConstraint } from '../validator/constraint-eval.js';
 import { loadMethodologyDescriptor } from '../model/methodology-loader.js';
 import { computeWorkspaceMembership, selectWorkspace } from '../model/workspace-membership.js';
 import { narrowModel } from '../model/narrow-model.js';
+import { deriveModelViews } from '../model/view-deriver.js';
+import type { ViewSummary } from './tools.js';
 import { validateProject } from '../toolchain/project-validation.js';
 import type { OntologyRegistriesDTO } from '../model/relationship-legality.js';
 
@@ -51,6 +53,8 @@ export interface LoadedProject {
     methodologyPackages: string[];
     /** The systems and systems of systems the model declares, each a workspace an agent can work in. */
     systems: { id: string; name: string; scope: 'system' | 'sos' }[];
+    /** The views the model declares. */
+    views: ViewSummary[];
     /** The workspace the context is scoped to, when one was asked for. */
     workspace?: { id: string; name: string; scope: 'system' | 'sos' };
 }
@@ -159,6 +163,7 @@ async function loadWholeProject(projectRoot: string): Promise<LoadedProject> {
     const project: LoadedProject = {
         ctx, config, ontology, registries: definitions, projectRoot, fileCount: files.length,
         model: loaded, constraints: projectConstraints(loaded), methodologyPackages, systems,
+        views: deriveModelViews(model, registries?.kindRegistry).diagrams,
     };
     const inputs = new Set<string>([configPath]);
     for (const pkg of loaded.resolution?.closure.values() ?? []) {
